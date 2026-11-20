@@ -1,0 +1,33 @@
+/* ===================================================================
+   DESIGN TOKENS
+   The single design system for the app. Components use these tokens
+   through Tailwind utilities (bg-surface, text-ink, bg-accent ...),
+   never raw hex values, so a re-theme is a change to this block only.
+   =================================================================== */
+@import 'tailwindcss';
+
+@theme {
+  /* --- COLORS --- */
+  --color-surface: #ffffff;
+  --color-surface-raised: #f2f4f5;
+  --color-ink: #1c1c1c;
+  --color-ink-muted: #576f76;
+  --color-accent: #d93900;
+  --color-accent-hover: #b83000;
+  --color-on-accent: #ffffff;
+
+  /* --- TYPOGRAPHY --- */
+  --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* --- DARK MODE: same token names, darker values --- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-surface: #0e1113;
+    --color-surface-raised: #1a1f22;
+    --color-ink: #f2f4f5;
+    --color-ink-muted: #8ba2ad;
+    --color-accent: #ff4500;
+    --color-accent-hover: #ff6a33;
+  }
+}
