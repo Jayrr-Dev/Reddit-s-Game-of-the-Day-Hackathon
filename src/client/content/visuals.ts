@@ -24,6 +24,7 @@ export const STATUS_LOOK: Record<StatusId | 'shroud', Look> = {
   surge: { glyph: 'swirl', toneClass: 'text-shroud' },
   piercing: { glyph: 'bow', toneClass: 'text-heal' },
   protection: { glyph: 'shield', toneClass: 'text-accent' },
+  momentum: { glyph: 'bolt', toneClass: 'text-energy' },
 };
 
 // --- HERO INTENTS ---

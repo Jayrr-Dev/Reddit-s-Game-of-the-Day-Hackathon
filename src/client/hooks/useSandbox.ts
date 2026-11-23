@@ -26,7 +26,11 @@ const reduce = (state: SandboxState, event: SandboxEvent): SandboxState => {
   if (event.type === 'reshuffle')
     return { combat: createSandbox(event.seed), round: state.round + 1 };
   const { action } = event;
-  if (action.type !== 'playCard' && action.type !== 'endTurn') return state;
+  const isCombatInput =
+    action.type === 'playCard' ||
+    action.type === 'endTurn' ||
+    action.type === 'charge';
+  if (!isCombatInput) return state;
   return { ...state, combat: sandboxReducer(state.combat, action) };
 };
 

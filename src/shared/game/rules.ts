@@ -10,6 +10,13 @@ export const ENERGY_PER_TURN = 3;
 export const CARDS_PER_TURN = 5;
 /** Cards drawn beyond this are discarded instead of added to the hand. */
 export const MAX_HAND_SIZE = 10;
+/**
+ * Energy it costs the villain to Charge: when the front row is empty,
+ * the back row only steps up when the villain charges at them.
+ */
+export const CHARGE_COST = 1;
+/** Momentum (gained by charging) multiplies the next Melee card's damage. */
+export const MOMENTUM_DAMAGE_FACTOR = 1.5;
 
 // --- BATTLEFIELD ---
 /** Columns in each row of the hero battlefield (rows are front and back). */

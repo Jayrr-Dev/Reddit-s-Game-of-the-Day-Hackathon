@@ -46,6 +46,7 @@ const GAIN_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   surge: STATUS_LOOK.surge,
   piercing: STATUS_LOOK.piercing,
   protection: STATUS_LOOK.protection,
+  momentum: STATUS_LOOK.momentum,
 };
 
 // --- SUBCOMPONENTS ---

@@ -4,7 +4,7 @@
 // heroes are Combatants, so one set of rules covers both sides.
 // ===================================================================
 
-import { DREAD_DAMAGE_FACTOR } from './rules.ts';
+import { DREAD_DAMAGE_FACTOR, MOMENTUM_DAMAGE_FACTOR } from './rules.ts';
 import type {
   BuffId,
   CardType,
@@ -22,6 +22,7 @@ export const NO_STATUSES: Statuses = {
   surge: 0,
   piercing: 0,
   protection: 0,
+  momentum: 0,
 };
 
 /** Which buff powers up each card type's damage (curses and buffs: none). */
@@ -48,10 +49,14 @@ export const typeBonus = (attacker: Combatant, type?: CardType): number => {
   return buff ? attacker.statuses[buff] : 0;
 };
 
+/** True when a card of `type` is boosted by the attacker's Momentum. */
+export const hasMomentumFor = (attacker: Combatant, type?: CardType) =>
+  type === 'melee' && attacker.statuses.momentum > 0;
+
 /**
- * Damage per hit after the attacker's wrath, type buff and dread.
- * Wrath and the buff (Might, Surge or Piercing, by card type) add first,
- * then dread scales, matching what the UI shows.
+ * Damage per hit after the attacker's wrath, type buff, Momentum and
+ * dread. Wrath and the buff (Might, Surge or Piercing, by card type) add
+ * first, then Momentum (Melee only) and dread scale, matching the UI.
  */
 export const attackDamage = (
   base: number,
@@ -59,7 +64,9 @@ export const attackDamage = (
   type?: CardType
 ): number => {
   const withWrath = base + attacker.statuses.wrath + typeBonus(attacker, type);
-  const factor = attacker.statuses.dread > 0 ? DREAD_DAMAGE_FACTOR : 1;
+  const momentum = hasMomentumFor(attacker, type) ? MOMENTUM_DAMAGE_FACTOR : 1;
+  const dread = attacker.statuses.dread > 0 ? DREAD_DAMAGE_FACTOR : 1;
+  const factor = momentum * dread;
   return Math.max(0, Math.floor(withWrath * factor));
 };
 

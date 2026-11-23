@@ -9,7 +9,13 @@
 
 import { sizeOf } from './battlefield.ts';
 import { ALL_CARD_IDS } from './cards.ts';
-import { combatOutcome, endTurn, playCard, startCombat } from './combat.ts';
+import {
+  charge,
+  combatOutcome,
+  endTurn,
+  playCard,
+  startCombat,
+} from './combat.ts';
 import { CHAMPION_IDS, ELITE_IDS, GRUNT_IDS, type HeroId } from './heroes.ts';
 import { nextInt, pickWeighted, type RngState } from './rng.ts';
 import { ENERGY_PER_TURN } from './rules.ts';
@@ -19,7 +25,8 @@ import type { CombatState } from './types.ts';
 /** What the sandbox accepts: the two combat inputs. */
 export type SandboxAction =
   | { type: 'playCard'; handIndex: number; targetUid: number }
-  | { type: 'endTurn' };
+  | { type: 'endTurn' }
+  | { type: 'charge' };
 
 // --- CONSTANTS ---
 /** So much HP the heroes can't win; you test, you don't lose. */
@@ -92,6 +99,18 @@ const nextHorde = (state: CombatState, firstUid: number): CombatState => {
   return { ...state, heroes, rng };
 };
 
+/** Runs one sandbox input through the engine. */
+const applyAction = (state: CombatState, action: SandboxAction) => {
+  switch (action.type) {
+    case 'playCard':
+      return playCard(state, action.handIndex, action.targetUid);
+    case 'endTurn':
+      return endTurn(state);
+    case 'charge':
+      return charge(state);
+  }
+};
+
 // --- PUBLIC API ---
 /** A new sandbox fight from `seed`. */
 export const createSandbox = (seed: RngState): CombatState => {
@@ -104,10 +123,7 @@ export const sandboxReducer = (
   state: CombatState,
   action: SandboxAction
 ): CombatState => {
-  const acted =
-    action.type === 'playCard'
-      ? playCard(state, action.handIndex, action.targetUid)
-      : endTurn(state);
+  const acted = applyAction(state, action);
   if (acted === state) return state;
   const isCleared = combatOutcome(acted) === 'won';
   const highestUid = Math.max(0, ...state.heroes.map((unit) => unit.uid));

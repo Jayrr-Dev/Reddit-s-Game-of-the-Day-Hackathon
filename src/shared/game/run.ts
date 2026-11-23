@@ -15,7 +15,13 @@
 // ===================================================================
 
 import { STARTER_DECK, type CardId } from './cards.ts';
-import { combatOutcome, endTurn, playCard, startCombat } from './combat.ts';
+import {
+  charge,
+  combatOutcome,
+  endTurn,
+  playCard,
+  startCombat,
+} from './combat.ts';
 import { mightAt, routeOptions, stopSeed, type Stop } from './kingdom.ts';
 import { rollOffers } from './rewards.ts';
 import {
@@ -63,6 +69,8 @@ export type RunAction =
   | { type: 'chooseStop'; option: number }
   | { type: 'playCard'; handIndex: number; targetUid: number }
   | { type: 'endTurn' }
+  /** Charges an empty front row: the back row steps up (costs energy). */
+  | { type: 'charge' }
   | { type: 'pickCard'; offerIndex: number | null }
   | { type: 'graveChoice'; choice: GraveChoice }
   /** Gives up the march; the score so far stands. */
@@ -220,6 +228,10 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
       return phase.kind === 'combat'
         ? settleCombat(state, phase.stop, endTurn(phase.combat))
         : state;
+    case 'charge':
+      return phase.kind === 'combat'
+        ? settleCombat(state, phase.stop, charge(phase.combat))
+        : state;
     case 'pickCard':
       return phase.kind === 'reward' || phase.kind === 'altar'
         ? takeOffer(state, phase.offers, action.offerIndex)
@@ -272,6 +284,7 @@ export const isRunAction = (value: unknown): value is RunAction => {
         isIndex(value.targetUid)
       );
     case 'endTurn':
+    case 'charge':
     case 'abandon':
       return true;
     case 'pickCard':

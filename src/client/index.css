@@ -51,6 +51,7 @@
   --animate-gain-float: gain-float 1100ms ease-out forwards;
   --animate-hero-lunge: hero-lunge 420ms ease-in-out;
   --animate-hero-death: hero-death 520ms ease-in forwards;
+  --animate-speed-lines: speed-lines 560ms ease-out forwards;
   --animate-ember: ember 480ms ease-out forwards;
 
   @keyframes rise {
@@ -124,6 +125,21 @@
 
   /* A hero falls: white hit flash, stagger back, then slump, char and
      fade. Transform composes with the body's centring translate. */
+  /* Charge: speed lines rush in from the edges toward the centre, then
+     fade as the back row steps up. */
+  @keyframes speed-lines {
+    0% {
+      opacity: 0;
+      scale: 1.35;
+    }
+    20% {
+      opacity: 0.9;
+    }
+    100% {
+      opacity: 0;
+      scale: 0.9;
+    }
+  }
   @keyframes hero-death {
     0% {
       filter: brightness(3) saturate(0);

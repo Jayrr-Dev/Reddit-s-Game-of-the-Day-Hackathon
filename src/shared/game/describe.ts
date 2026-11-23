@@ -41,6 +41,10 @@ export const STATUS_INFO: Record<StatusId | 'shroud', StatusInfo> = {
     label: 'Piercing',
     description: 'Adds this much to every Range hit.',
   },
+  momentum: {
+    label: 'Momentum',
+    description: 'From charging: your next Melee card deals 50% more damage.',
+  },
   protection: {
     label: 'Protection',
     description: 'Adds this much to every Guard your cards give.',

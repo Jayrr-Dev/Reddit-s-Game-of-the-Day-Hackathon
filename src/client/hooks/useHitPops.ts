@@ -21,7 +21,7 @@ import { HERO_ANCHOR_ATTR, HERO_UID_ATTR, type Point } from './useCardDrag';
 
 // --- TYPES ---
 /** What a pop shows: a hit, or something a hero gained. */
-export type PopKind = 'hit' | 'heal' | 'shroud' | 'wrath' | BuffId;
+export type PopKind = 'hit' | 'heal' | 'shroud' | 'wrath' | 'momentum' | BuffId;
 
 /**
  * One pop's numbers: for a hit, HP lost and damage the shroud soaked up;
@@ -58,6 +58,7 @@ const HIT_POP_MS = 1400;
 const GONE = { hp: 0, shroud: 0, wrath: 0 };
 /** Fight-long statuses the villain can gain from cards; each pops "+N". */
 const VILLAIN_GAINS: readonly (StatusId & PopKind)[] = [
+  'momentum',
   'wrath',
   'might',
   'surge',

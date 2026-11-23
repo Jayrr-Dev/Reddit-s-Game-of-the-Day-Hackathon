@@ -7,7 +7,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { canPull, legalTargets, sizeOf, targetRuleOf } from './battlefield.ts';
 import { ALL_CARD_IDS, getCard, type CardId } from './cards.ts';
-import { canPlayCard, playCard, startCombat } from './combat.ts';
+import {
+  canCharge,
+  canPlayCard,
+  charge,
+  playCard,
+  startCombat,
+} from './combat.ts';
+import { CHARGE_COST } from './rules.ts';
 import type { HeroId } from './heroes.ts';
 import { ELITE_IDS, GRUNT_IDS } from './heroes.ts';
 import type { CombatState, HeroUnit } from './types.ts';
@@ -183,9 +190,43 @@ void test('a push sends a front-row hero back and the field re-forms', () => {
   assert.equal(unitOf(after, 'squire').row, 'front');
 });
 
-void test('when the front row falls, the back row steps forward', () => {
+void test('when the front row falls, the back row holds until a Charge', () => {
   const state = fight(['squire', 'priest'], ['undyingHatred']);
   const after = playCard(state, 0, unitOf(state, 'squire').uid);
   assert.equal(after.heroes.length, 1);
-  assert.equal(unitOf(after, 'priest').row, 'front');
+  assert.equal(unitOf(after, 'priest').row, 'back');
+  assert.equal(canCharge(after), true);
+  const charged = charge(after);
+  assert.equal(unitOf(charged, 'priest').row, 'front');
+  assert.equal(charged.energy, after.energy - CHARGE_COST);
+  assert.equal(canCharge(charged), false);
+});
+
+void test('Charge is refused while anyone holds the front or energy is short', () => {
+  const state = fight(['squire', 'priest'], []);
+  assert.equal(canCharge(state), false);
+  assert.equal(charge(state), state);
+  const felled = playCard(
+    fight(['squire', 'priest'], ['undyingHatred']),
+    0,
+    unitOf(state, 'squire').uid
+  );
+  const broke = { ...felled, energy: 0 };
+  assert.equal(canCharge(broke), false);
+  assert.equal(charge(broke), broke);
+});
+
+void test('charging gives Momentum: the next Melee card hits 50% harder, once', () => {
+  const felled = playCard(
+    fight(['squire', 'priest'], ['undyingHatred', 'twinDaggers', 'backhand']),
+    0,
+    unitOf(fight(['squire', 'priest'], []), 'squire').uid
+  );
+  const charged = charge({ ...felled, energy: 3 });
+  assert.equal(charged.player.statuses.momentum, 1);
+  const priest = unitOf(charged, 'priest');
+  // Backhand: 6 x 1.5 = 9, and Momentum is spent.
+  const struck = playCard(charged, 1, priest.uid);
+  assert.equal(priest.hp - unitOf(struck, 'priest').hp, 9);
+  assert.equal(struck.player.statuses.momentum, 0);
 });

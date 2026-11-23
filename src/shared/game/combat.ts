@@ -32,6 +32,7 @@ import {
   createCombatant,
   endOfTurnUpkeep,
   guardAmount,
+  hasMomentumFor,
   heal,
   isDefeated,
   takeDamage,
@@ -39,7 +40,12 @@ import {
 } from './combatant.ts';
 import { getHero, type HeroId } from './heroes.ts';
 import { shuffle, type RngState } from './rng.ts';
-import { CARDS_PER_TURN, ENERGY_PER_TURN, MAX_HAND_SIZE } from './rules.ts';
+import {
+  CARDS_PER_TURN,
+  CHARGE_COST,
+  ENERGY_PER_TURN,
+  MAX_HAND_SIZE,
+} from './rules.ts';
 import type {
   CardDef,
   CardEffect,
@@ -168,16 +174,45 @@ const updateHeroes = (
 });
 
 /**
- * Takes defeated heroes off the field and counts them as slain. If that
- * empties the front row, the back row steps forward.
+ * Takes defeated heroes off the field and counts them as slain. An
+ * emptied front row stays empty: the back row holds its ground (and
+ * keeps acting) until the villain Charges.
  */
 const removeFallen = (state: CombatState): CombatState => {
   const standing = state.heroes.filter((unit) => !isDefeated(unit));
   const fallen = state.heroes.length - standing.length;
   return fallen === 0
     ? state
-    : { ...state, heroes: stepForward(standing), slain: state.slain + fallen };
+    : { ...state, heroes: standing, slain: state.slain + fallen };
 };
+
+// --- CHARGE ---
+/**
+ * True when the villain can Charge: the fight is on, the front row is
+ * empty, someone holds the back row, and there is energy to pay.
+ */
+export const canCharge = (state: CombatState): boolean =>
+  combatOutcome(state) === 'ongoing' &&
+  state.energy >= CHARGE_COST &&
+  state.heroes.length > 0 &&
+  state.heroes.every((unit) => unit.row === 'back');
+
+/**
+ * Charges the back row: pays CHARGE_COST, every hero steps up, and the
+ * villain gains Momentum (the next Melee card hits 50% harder).
+ */
+export const charge = (state: CombatState): CombatState =>
+  canCharge(state)
+    ? {
+        ...state,
+        energy: state.energy - CHARGE_COST,
+        heroes: stepForward(state.heroes),
+        player: {
+          ...state.player,
+          statuses: { ...state.player.statuses, momentum: 1 },
+        },
+      }
+    : state;
 
 /**
  * Resolves who an effect hits. `one` is the aimed hero (if still alive);
@@ -295,6 +330,18 @@ const aimCard = (
     : (legal[0]?.uid ?? -1);
 };
 
+/** A Melee card uses up Momentum once it has resolved (all its hits). */
+const spendMomentum = (state: CombatState, cardDef: CardDef): CombatState =>
+  hasMomentumFor(state.player, cardDef.type)
+    ? {
+        ...state,
+        player: {
+          ...state.player,
+          statuses: { ...state.player.statuses, momentum: 0 },
+        },
+      }
+    : state;
+
 /** Spends the card's energy and takes it out of the hand. */
 const payForCard = (state: CombatState, handIndex: number): CombatState => {
   const cardId = state.hand[handIndex];
@@ -322,9 +369,12 @@ export const playCard = (
   const cardDef = getCard(cardId);
   const aimedUid = aimCard(state, cardId, targetUid);
   const paid = payForCard(state, handIndex);
-  const resolved = cardDef.effects.reduce<CombatState>(
-    (current, effect) => applyCardEffect(current, effect, aimedUid, cardDef),
-    paid
+  const resolved = spendMomentum(
+    cardDef.effects.reduce<CombatState>(
+      (current, effect) => applyCardEffect(current, effect, aimedUid, cardDef),
+      paid
+    ),
+    cardDef
   );
   const settled = cardDef.fades
     ? { ...resolved, fadedPile: [...resolved.fadedPile, cardId] }

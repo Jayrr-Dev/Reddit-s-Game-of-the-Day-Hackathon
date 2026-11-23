@@ -21,9 +21,11 @@ import type { RngState } from './rng.ts';
  * - surge:      adds this much to every Magic hit
  * - piercing:   adds this much to every Range hit
  * - protection: adds this much to every Shroud a card gives
+ * Momentum comes from charging: while above 0 the next Melee card deals
+ * 50% more damage (every hit of it), then it is spent.
  */
 export type BuffId = 'might' | 'surge' | 'piercing' | 'protection';
-export type StatusId = 'hex' | 'dread' | 'wrath' | BuffId;
+export type StatusId = 'hex' | 'dread' | 'wrath' | 'momentum' | BuffId;
 export type Statuses = Record<StatusId, number>;
 
 /** Anything with HP that fights: the villain or a hero. */

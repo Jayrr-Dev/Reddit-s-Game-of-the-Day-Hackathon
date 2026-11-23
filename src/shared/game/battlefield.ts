@@ -119,7 +119,11 @@ export const formUp = (units: readonly UnplacedHero[]): HeroUnit[] => {
   return stepForward(ordered);
 };
 
-/** When the front row is empty, every back-row hero steps forward. */
+/**
+ * When the front row is empty, every back-row hero steps forward. Used
+ * when a horde forms up (a horde of archers still starts in front) and
+ * when the villain Charges; heroes never step up on their own mid-fight.
+ */
 export const stepForward = (heroes: HeroUnit[]): HeroUnit[] => {
   const hasFront = heroes.some((unit) => unit.row === 'front');
   return hasFront ? heroes : heroes.map((unit) => ({ ...unit, row: 'front' }));
@@ -225,13 +229,13 @@ const moveTo = (heroes: HeroUnit[], uid: number, row: HeroRow) => {
   if (!unit || unit.row === row) return heroes;
   const seating = seatInOtherRow(heroes, unit);
   if (!seating) return heroes;
-  return stepForward(
-    heroes.map((hero) => {
-      const col = seating.get(hero.uid);
-      if (col === undefined) return hero;
-      return hero.uid === uid ? { ...hero, row, col } : { ...hero, col };
-    })
-  );
+  // No stepForward here: pushing the last front hero back leaves the
+  // front empty until the villain Charges.
+  return heroes.map((hero) => {
+    const col = seating.get(hero.uid);
+    if (col === undefined) return hero;
+    return hero.uid === uid ? { ...hero, row, col } : { ...hero, col };
+  });
 };
 
 /** Pull: the hero steps into the front row (no-op if blocked). */

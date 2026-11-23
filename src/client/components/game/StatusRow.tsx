@@ -11,6 +11,7 @@ import { Chip } from '../ui/Chip';
 
 // --- CONSTANTS ---
 const STATUS_ORDER: readonly StatusId[] = [
+  'momentum',
   'wrath',
   'might',
   'surge',
@@ -19,6 +20,10 @@ const STATUS_ORDER: readonly StatusId[] = [
   'hex',
   'dread',
 ];
+
+/** What a chip says: its stacks, except Momentum, which is a boost. */
+const chipText = (id: StatusId, value: number): string =>
+  id === 'momentum' ? '+50%' : String(value);
 
 // --- COMPONENT ---
 /** Shows only the statuses that are above zero. */
@@ -42,7 +47,7 @@ export const StatusRow = ({ combatant }: { combatant: Combatant }) => {
           key={id}
           {...STATUS_LOOK[id]}
           shape="square"
-          text={String(combatant.statuses[id])}
+          text={chipText(id, combatant.statuses[id])}
           title={`${STATUS_INFO[id].label}: ${STATUS_INFO[id].description}`}
         />
       ))}

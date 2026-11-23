@@ -5,6 +5,8 @@
 //   TopBar        a thin strip: where you are, score, and the pause gear
 //   Battlefield   3 x 2 parallax scene; every hero wears its own plate
 //   HitNumbers    damage numbers that pop over the hero that was hit
+// Charge (when the front row is empty) brings the back row up with a
+// speed-lines burst (SpeedLines) and grants Momentum.
 // End Turn plays the heroes' turn out (useHeroTurn): heroes attack in
 // speed order, staggered, before the real state takes over.
 //   Bottom band   PlayerCorner (portrait + HP) + discard pile | your
@@ -18,6 +20,7 @@
 
 import { useCallback, useState, type ReactNode } from 'react';
 import { getCard } from '../../../shared/game/cards';
+import { canCharge } from '../../../shared/game/combat';
 import type { RunAction } from '../../../shared/game/run';
 import type { CardType, CombatState } from '../../../shared/game/types';
 import type { CardBox, Point } from '../../hooks/useCardDrag';
@@ -32,6 +35,7 @@ import {
 import { useSmoothPoint } from '../../hooks/useSmoothPoint';
 import { AimArrow } from './combat/AimArrow';
 import { BattlefieldView } from './combat/BattlefieldView';
+import { ChargeButton } from './combat/ChargeButton';
 import { DraggedCard } from './combat/DraggedCard';
 import { EnergyTray } from './combat/EnergyTray';
 import { FanHand } from './combat/FanHand';
@@ -39,6 +43,7 @@ import { HitNumbers } from './combat/HitNumbers';
 import { PileStack } from './combat/PileStack';
 import { PlayerCorner } from './combat/PlayerCorner';
 import { ShroudGainPops } from './combat/ShroudGainPops';
+import { SpeedLines } from './combat/SpeedLines';
 import { TopBar } from './combat/TopBar';
 import { TurnCorner } from './combat/TurnCorner';
 import { MenuPanel } from './menu/MenuPanel';
@@ -63,6 +68,14 @@ const cardTop = ({ center, height }: CardBox): Point => ({
   y: center.y - height / 2,
 });
 
+/**
+ * True while the Charge button should show: the front row is empty and
+ * heroes hold the back (whether you can afford it is canCharge's call).
+ */
+const isChargeOffered = (combat: CombatState): boolean =>
+  combat.heroes.length > 0 &&
+  combat.heroes.every((unit) => unit.row === 'back');
+
 // --- SUBCOMPONENTS ---
 /**
  * The row above the hand: portrait + discard pile | effects + energy |
@@ -74,10 +87,12 @@ const PlayerBar = ({
   combat,
   hits,
   onEndTurn,
+  onCharge,
 }: {
   combat: CombatState;
   hits: readonly PlayerHitPop[];
   onEndTurn: () => void;
+  onCharge: () => void;
 }) => (
   <div className="grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-end gap-1 px-2">
     <div className="flex items-end gap-5 justify-self-start">
@@ -90,6 +105,12 @@ const PlayerBar = ({
       />
     </div>
     <div className="relative flex min-w-0 flex-col items-center gap-1 pb-1">
+      {/* CHARGE floats above the chips, so showing it never moves the bar */}
+      {isChargeOffered(combat) && (
+        <div className="absolute bottom-full mb-2">
+          <ChargeButton isAffordable={canCharge(combat)} onCharge={onCharge} />
+        </div>
+      )}
       <ShroudGainPops shroud={combat.player.shroud} />
       <StatusRow combatant={combat.player} />
       <EnergyTray energy={combat.energy} />
@@ -142,9 +163,12 @@ export const CombatView = ({
   const isAnimating = heroTurn.isPlaying || cardHits.isPlaying;
   // The type of the card played last colours its damage numbers.
   const [lastCardType, setLastCardType] = useState<CardType>();
+  // Counts charges, so each one re-keys (and replays) the speed lines.
+  const [chargeCount, setChargeCount] = useState(0);
   const routeAction = useCallback(
     (action: RunAction) => {
       if (action.type === 'endTurn') return playHeroTurn();
+      if (action.type === 'charge') setChargeCount((count) => count + 1);
       if (action.type === 'playCard') {
         const cardId = realCombat.hand[action.handIndex];
         setLastCardType(cardId ? getCard(cardId).type : undefined);
@@ -189,6 +213,7 @@ export const CombatView = ({
           actingUids={heroTurn.actingUids}
           onTapHero={controls.tapHero}
         />
+        {chargeCount > 0 && <SpeedLines key={chargeCount} />}
         <HitNumbers pops={pops} />
       </div>
       {/* BOTTOM BAND: rises over the field's foreground */}
@@ -197,6 +222,7 @@ export const CombatView = ({
           combat={combat}
           hits={playerHits}
           onEndTurn={controls.endTurn}
+          onCharge={() => routeAction({ type: 'charge' })}
         />
         <FanHand
           combat={combat}
