@@ -133,14 +133,42 @@ void test('a pull drags an unblocked back-row hero forward', () => {
   assert.equal(unitOf(after, 'archer').hp, archer.hp - 5);
 });
 
-void test('a hero standing in front blocks the pull', () => {
-  // The squire takes the middle column; put the priest right behind it.
-  const base = fight(['squire', 'priest'], ['chainsOfGrief']);
-  const squire = unitOf(base, 'squire');
+void test('a pull slides the front row over to make room', () => {
+  // Squire front-left, Rogue front-middle, Archer back-left (behind the
+  // Squire), front-right empty: the Archer takes the left, the Squire
+  // slides to the middle and the Rogue to the right.
+  const base = fight(['squire', 'rogue', 'archer'], ['chainsOfGrief']);
   const state: CombatState = {
     ...base,
-    heroes: base.heroes.map((unit) =>
-      unit.heroId === 'priest' ? { ...unit, col: squire.col } : unit
+    heroes: base.heroes.map((unit) => {
+      if (unit.heroId === 'squire') return { ...unit, row: 'front', col: 0 };
+      if (unit.heroId === 'rogue') return { ...unit, row: 'front', col: 1 };
+      return { ...unit, row: 'back', col: 0 };
+    }),
+  };
+  const archer = unitOf(state, 'archer');
+  assert.ok(canPull(state.heroes, archer));
+  const after = playCard(state, 0, archer.uid);
+  assert.deepEqual(
+    ['archer', 'squire', 'rogue'].map((id) => {
+      const unit = unitOf(after, id as HeroId);
+      return `${unit.row}:${unit.col}`;
+    }),
+    ['front:0', 'front:1', 'front:2']
+  );
+});
+
+void test('a full front row blocks the pull', () => {
+  const base = fight(
+    ['squire', 'rogue', 'shieldmaiden', 'priest'],
+    ['chainsOfGrief']
+  );
+  const state: CombatState = {
+    ...base,
+    heroes: base.heroes.map((unit, index) =>
+      unit.heroId === 'priest'
+        ? { ...unit, row: 'back', col: 1 }
+        : { ...unit, row: 'front', col: index }
     ),
   };
   assert.equal(canPull(state.heroes, unitOf(state, 'priest')), false);

@@ -6,8 +6,10 @@
 // RULES
 //   - Melee cards hit the front row only. Reach cards, curses and Hex
 //     hit any hero.
-//   - A pull drags a back-row hero forward, but only when the front
-//     columns in front of it are empty. A push is the mirror image.
+//   - A pull drags a back-row hero forward into its own columns. If
+//     someone stands there, the front row slides sideways to make room,
+//     so a pull only fails when the front row has no space left. A push
+//     is the mirror image.
 //   - When the front row empties, the back row steps forward, so a
 //     fight can never stall behind a healer nobody can reach.
 // ===================================================================
@@ -26,8 +28,8 @@ export type UnplacedHero = Omit<HeroUnit, 'row' | 'col'>;
  * - none:     the card needs no target
  * - front:    melee; front row only
  * - any:      Reach or a curse; any hero
- * - pullable: a back-row hero with open space in front of it
- * - pushable: a front-row hero with open space behind it
+ * - pullable: a back-row hero with room for it in the front row
+ * - pushable: a front-row hero with room for it in the back row
  */
 export type TargetRule = 'none' | 'front' | 'any' | 'pullable' | 'pushable';
 
@@ -125,32 +127,112 @@ export const stepForward = (heroes: HeroUnit[]): HeroUnit[] => {
 
 // --- MOVEMENT ---
 
-/** True when the hero could move to the other row in its own columns. */
-const canSwitchRow = (heroes: readonly HeroUnit[], unit: HeroUnit): boolean =>
-  isSpanOpen(
-    heroes,
-    otherRow(unit.row),
-    spanOf(unit.col, sizeOf(unit)),
-    unit.uid
+/** Where each hero of one row stands: uid -> leftmost column. */
+type Seating = Map<number, number>;
+
+/** Every leftmost column a hero of `size` can take. */
+const startColumns = (size: HeroSize): number[] =>
+  Array.from({ length: BATTLEFIELD_COLUMNS - size + 1 }, (_, col) => col);
+
+/** True when no two seated heroes share a column. */
+const isSeatingValid = (
+  seats: readonly { col: number; size: number }[]
+): boolean => {
+  const cells = seats.flatMap(({ col, size }) => spanOf(col, size));
+  return new Set(cells).size === cells.length;
+};
+
+/** Every way to give each hero in `units` a leftmost column. */
+const allSeatings = (
+  units: readonly HeroUnit[]
+): { uid: number; col: number; size: number }[][] =>
+  units.reduce<{ uid: number; col: number; size: number }[][]>(
+    (options, unit) =>
+      options.flatMap((seated) =>
+        startColumns(sizeOf(unit)).map((col) => [
+          ...seated,
+          { uid: unit.uid, col, size: sizeOf(unit) },
+        ])
+      ),
+    [[]]
   );
+
+/** True when the heroes already in the row keep their left-to-right order. */
+const keepsOrder = (
+  seats: readonly { uid: number; col: number }[],
+  rowOrder: readonly number[]
+): boolean => {
+  const cols = rowOrder.map(
+    (uid) => seats.find((seat) => seat.uid === uid)?.col ?? 0
+  );
+  return cols.every(
+    (col, index) => index === 0 || col > (cols[index - 1] ?? 0)
+  );
+};
+
+/**
+ * How the hero would be seated if it moved to the other row: it keeps
+ * its own columns when it can, and that row's heroes slide sideways to
+ * make room, never passing each other. Picks the seating that moves
+ * everyone the least (moving the hero itself costs most, so it shifts
+ * only when it must). Returns
+ * null when the other row has no room at all.
+ * Brute force on purpose: a row is 3 columns and at most 3 heroes, so
+ * there are only a few dozen seatings to try.
+ */
+const seatInOtherRow = (
+  heroes: readonly HeroUnit[],
+  unit: HeroUnit
+): Seating | null => {
+  const row = otherRow(unit.row);
+  const rowHeroes = heroes
+    .filter((other) => other.row === row)
+    .sort((a, b) => a.col - b.col);
+  const rowOrder = rowHeroes.map((hero) => hero.uid);
+  const movers = [unit, ...rowHeroes];
+  const startOf = new Map(movers.map((hero) => [hero.uid, hero.col]));
+  /** Columns moved, with the moving hero's own shift weighted heavily. */
+  const costOf = (seats: readonly { uid: number; col: number }[]) =>
+    seats.reduce(
+      (total, { uid, col }) =>
+        total +
+        Math.abs(col - (startOf.get(uid) ?? col)) * (uid === unit.uid ? 10 : 1),
+      0
+    );
+  const best = allSeatings(movers)
+    .filter((seats) => isSeatingValid(seats) && keepsOrder(seats, rowOrder))
+    .reduce<{ uid: number; col: number }[] | null>(
+      (cheapest, seats) =>
+        cheapest === null || costOf(seats) < costOf(cheapest)
+          ? seats
+          : cheapest,
+      null
+    );
+  return best && new Map(best.map(({ uid, col }) => [uid, col]));
+};
 
 /** True when a pull would work on this hero right now. */
 export const canPull = (heroes: readonly HeroUnit[], unit: HeroUnit) =>
-  unit.row === 'back' && canSwitchRow(heroes, unit);
+  unit.row === 'back' && seatInOtherRow(heroes, unit) !== null;
 
 /** True when a push would work on this hero right now. */
 export const canPush = (heroes: readonly HeroUnit[], unit: HeroUnit) =>
-  unit.row === 'front' && canSwitchRow(heroes, unit);
+  unit.row === 'front' && seatInOtherRow(heroes, unit) !== null;
 
-/** Moves one hero to `row` if its columns there are open. */
-const moveTo = (heroes: HeroUnit[], uid: number, row: HeroRow) =>
-  stepForward(
-    heroes.map((unit) =>
-      unit.uid === uid && unit.row !== row && canSwitchRow(heroes, unit)
-        ? { ...unit, row }
-        : unit
-    )
+/** Moves one hero to `row`, sliding that row over to make room. */
+const moveTo = (heroes: HeroUnit[], uid: number, row: HeroRow) => {
+  const unit = heroes.find((hero) => hero.uid === uid);
+  if (!unit || unit.row === row) return heroes;
+  const seating = seatInOtherRow(heroes, unit);
+  if (!seating) return heroes;
+  return stepForward(
+    heroes.map((hero) => {
+      const col = seating.get(hero.uid);
+      if (col === undefined) return hero;
+      return hero.uid === uid ? { ...hero, row, col } : { ...hero, col };
+    })
   );
+};
 
 /** Pull: the hero steps into the front row (no-op if blocked). */
 export const pullHero = (heroes: HeroUnit[], uid: number) =>
