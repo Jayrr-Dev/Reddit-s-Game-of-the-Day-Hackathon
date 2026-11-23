@@ -58,7 +58,7 @@ export const CardView = ({
       <span className="absolute -left-1.5 -top-1.5 flex size-6 items-center justify-center rounded-full bg-energy text-xs font-black text-on-accent ring-2 ring-surface">
         {cardDef.cost}
       </span>
-      <span className="mt-1 font-display text-[11px] font-bold leading-tight">
+      <span className="mt-3 font-display text-[11px] font-bold leading-tight">
         {cardDef.name}
       </span>
       <Glyph name={look.glyph} className="size-7 text-ink/80" />
