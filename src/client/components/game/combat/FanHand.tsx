@@ -14,6 +14,7 @@ import type { CombatState } from '../../../../shared/game/types';
 import type { CardBox } from '../../../hooks/useCardDrag';
 import { useHandIds } from '../../../hooks/useHandIds';
 import { CardView } from '../CardView';
+import { LIFT_SCALE } from './DraggedCard';
 
 // --- TYPES ---
 export type FanHandProps = {
@@ -38,7 +39,9 @@ const HELD_TRANSFORM = 'translateY(-34px) scale(1.4)';
 /** Widest gap between card centres; tighter when the hand is big. */
 const SLOT_WIDTH = '4.25rem';
 /** How long a let-go card takes to glide back into its slot (ms). */
-const RETURN_MS = 220;
+const RETURN_MS = 240;
+/** A soft ease-out with no overshoot, so the card settles, not bounces. */
+const RETURN_EASING = 'cubic-bezier(0.25, 0.8, 0.35, 1)';
 
 // --- HELPERS ---
 /** Where a slot sits in the fan; the held card stands up out of it. */
@@ -81,7 +84,9 @@ const HandSlot = ({
   const slotRef = useRef<HTMLDivElement>(null);
   const lastBoxRef = useRef<CardBox | null>(null);
   const wasLiftedRef = useRef(false);
-  const transform = slotTransform(offset, isHeld);
+  // While its card is lifted the slot stays in the fan pose (never the
+  // raised "held" pose), so letting go starts no second transition.
+  const transform = slotTransform(offset, isHeld && !isLifted);
 
   // RETURN GLIDE: runs before paint, so the card never flashes in place.
   useLayoutEffect(() => {
@@ -92,18 +97,21 @@ const HandSlot = ({
     }
     const from = lastBoxRef.current;
     const slot = slotRef.current;
-    if (!wasLiftedRef.current || !from || !slot) return;
+    const hand = slot?.offsetParent;
+    if (!wasLiftedRef.current || !from || !slot || !hand) return;
     wasLiftedRef.current = false;
-    const rect = slot.getBoundingClientRect();
-    const dx = from.center.x - (rect.left + rect.width / 2);
-    const dy = from.center.y - (rect.top + rect.height / 2);
-    slot.animate(
-      [
-        { transform: `translate(${dx}px, ${dy}px) ${transform}` },
-        { transform },
-      ],
-      { duration: RETURN_MS, easing: 'cubic-bezier(0.2, 0.8, 0.3, 1)' }
-    );
+    // Where the slot's centre sits before its fan tilt, from layout
+    // boxes (not the transformed box, which a running transition skews).
+    const handBox = hand.getBoundingClientRect();
+    const dx = from.center.x - (handBox.left + slot.offsetLeft);
+    const dy =
+      from.center.y - (handBox.top + slot.offsetTop + slot.offsetHeight / 2);
+    // Start exactly where the lifted copy was drawn (same size, upright).
+    const start = `translateX(-50%) translate(${dx}px, ${dy}px) scale(${LIFT_SCALE})`;
+    slot.animate([{ transform: start }, { transform }], {
+      duration: RETURN_MS,
+      easing: RETURN_EASING,
+    });
   }, [isLifted, liftedBox, transform]);
 
   return (

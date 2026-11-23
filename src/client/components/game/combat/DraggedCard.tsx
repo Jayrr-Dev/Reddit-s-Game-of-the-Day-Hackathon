@@ -22,7 +22,7 @@ export type DraggedCardProps = {
 
 // --- CONSTANTS ---
 /** How much bigger the lifted card is drawn. */
-const LIFT_SCALE = 1.08;
+export const LIFT_SCALE = 1.08;
 /** The glow's blur radius (px) at rest and at full strength. */
 const GLOW_MIN_PX = 6;
 const GLOW_MAX_PX = 26;
