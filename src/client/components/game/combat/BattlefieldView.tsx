@@ -10,6 +10,7 @@ import type { ReactNode } from 'react';
 import { sizeOf } from '../../../../shared/game/battlefield';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
 import type { HeroRow, HeroUnit } from '../../../../shared/game/types';
+import { FIELD_ATTR } from '../../../hooks/useCardDrag';
 import { cssVars, depthStyle } from '../../../lib/cssVars';
 import { Backdrop, Foreground } from './Backdrop';
 import type { AimState } from '../../../hooks/useCombatControls';
@@ -83,6 +84,7 @@ export const BattlefieldView = ({
   return (
     <div
       className="parallax-stage relative min-h-0 flex-1 overflow-hidden"
+      {...{ [FIELD_ATTR]: true }}
       style={cssVars({ '--cam': cameraFor(focused) })}
     >
       <Backdrop hue={hue} />
