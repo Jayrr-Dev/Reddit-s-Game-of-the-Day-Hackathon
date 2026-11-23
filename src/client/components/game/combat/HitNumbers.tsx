@@ -25,13 +25,18 @@ import { Glyph } from '../../ui/Glyph';
  * same colour the card itself glows), or blood red for untyped hits.
  */
 const NUMBER_CLASS =
-  'font-display font-black [-webkit-text-stroke:1.5px_var(--pop-tone)] [text-shadow:0_0_10px_var(--pop-tone)]';
+  'font-display font-black [paint-order:stroke_fill] [-webkit-text-stroke:5px_var(--pop-tone)] [text-shadow:0_0_12px_var(--pop-tone)]';
 /** Hits with no card type (the heroes' attacks on you). */
 const UNTYPED_TONE = 'var(--color-hp)';
 
 /** The colour a hit is drawn in. */
 const toneOf = (source?: CardType): string =>
-  source ? CARD_LOOK[source].glowVar : UNTYPED_TONE;
+  `color-mix(in oklab, ${source ? CARD_LOOK[source].glowVar : UNTYPED_TONE} ${TONE_STRENGTH}, white)`;
+/**
+ * How much of the type colour the outline keeps; the rest is white, so
+ * numbers read a little brighter than the card glow they match.
+ */
+const TONE_STRENGTH = '78%';
 
 /** Blocked damage is drawn smaller than damage dealt. */
 const BLOCKED_SCALE = 0.65;
