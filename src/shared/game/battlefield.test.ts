@@ -6,7 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { canPull, legalTargets, sizeOf, targetRuleOf } from './battlefield.ts';
-import type { CardId } from './cards.ts';
+import { ALL_CARD_IDS, getCard, type CardId } from './cards.ts';
 import { canPlayCard, playCard, startCombat } from './combat.ts';
 import type { HeroId } from './heroes.ts';
 import { ELITE_IDS, GRUNT_IDS } from './heroes.ts';
@@ -97,6 +97,16 @@ void test('Reach and curses can hit the back row', () => {
   const after = playCard(state, 0, priest.uid);
   assert.equal(unitOf(after, 'priest').hp, priest.hp - 6);
   assert.equal(targetRuleOf('whisperHex'), 'any');
+});
+
+void test('a card type decides its reach: only Melee and Buff stay short', () => {
+  for (const cardId of ALL_CARD_IDS) {
+    const { type, reach } = getCard(cardId);
+    const isShort = type === 'melee' || type === 'buff';
+    assert.equal(reach, !isShort, `${cardId} (${type})`);
+  }
+  assert.equal(targetRuleOf('cruelSlash'), 'front');
+  assert.equal(targetRuleOf('mourningCurse'), 'any');
 });
 
 void test('a melee play aimed at the back row lands on the front instead', () => {

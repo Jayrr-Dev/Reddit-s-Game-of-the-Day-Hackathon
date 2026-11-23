@@ -32,10 +32,11 @@
   --color-energy: #e8bb66;
 
   /* --- CARD CATEGORIES --- */
-  --color-card-strike: #8e1f33;
+  --color-card-melee: #8e1f33;
+  --color-card-range: #3e6a2e;
+  --color-card-magic: #1f6577;
+  --color-card-buff: #2c4675;
   --color-card-curse: #5a2a86;
-  --color-card-guard: #2c4675;
-  --color-card-power: #7a5a1c;
   --color-parchment: #dccaa2;
   --color-on-parchment: #2b1b12;
 

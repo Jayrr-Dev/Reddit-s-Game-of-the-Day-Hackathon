@@ -2,18 +2,18 @@
 // CARD VIEW
 // One card face, laid out top to bottom like a classic battler card:
 //   cost orb      energy cost, top-left, overlapping the frame
-//   art window    an arched window with the family's glyph
+//   art window    an arched window with the type's glyph
 //   name banner   the name across the middle in the display font
 //   rules panel   parchment with the rules text, keywords in bold
-//   type ribbon   the family (Strike, Curse ...) and a rarity gem
-// The frame and outer glow are coloured by family (see CARD_LOOK).
+//   type ribbon   the type (Melee, Range, Magic, Buff, Curse) and rarity
+// The frame and outer glow are coloured by type (see CARD_LOOK).
 // The text comes from describeCard, so it always matches what the card
 // really does (including live wrath/dread math).
 // ===================================================================
 
 import { Fragment } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
-import { cardCategory, describeCard } from '../../../shared/game/describe';
+import { describeCard } from '../../../shared/game/describe';
 import type { Combatant } from '../../../shared/game/types';
 import { CARD_LOOK, RARITY_GEM, RULES_KEYWORDS } from '../../content/visuals';
 import { Glyph, type GlyphName } from '../ui/Glyph';
@@ -86,7 +86,7 @@ const RulesLine = ({ text }: { text: string }) => (
   </span>
 );
 
-/** The arched art window with the family's glyph. */
+/** The arched art window with the type's glyph. */
 const ArtWindow = ({
   glyph,
   glowVar,
@@ -109,7 +109,7 @@ const ArtWindow = ({
   </span>
 );
 
-/** The ribbon under the rules: the card's family and its rarity gem. */
+/** The ribbon under the rules: the card's type and its rarity gem. */
 const TypeRibbon = ({
   typeName,
   gemClass,
@@ -140,18 +140,18 @@ export const CardView = ({
   onClick,
 }: CardViewProps) => {
   const cardDef = getCard(cardId);
-  const family = CARD_LOOK[cardCategory(cardId)];
+  const typeLook = CARD_LOOK[cardDef.type];
   const look = SIZE_LOOK[size];
-  // The family glow; brighter and gold-rimmed while the card is held.
+  // The typeLook glow; brighter and gold-rimmed while the card is held.
   const glow = isSelected
     ? `0 0 0 2px var(--color-accent), 0 0 16px var(--color-accent)`
-    : `0 0 6px color-mix(in srgb, ${family.glowVar} 70%, transparent)`;
+    : `0 0 6px color-mix(in srgb, ${typeLook.glowVar} 70%, transparent)`;
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={isDisabled}
-      className={`relative flex ${look.box} shrink-0 flex-col rounded-lg ${family.frameClass} p-[3px] pb-3 text-center ring-1 ring-black/60 transition-transform enabled:hover:-translate-y-1 disabled:opacity-40 disabled:saturate-50 animate-rise`}
+      className={`relative flex ${look.box} shrink-0 flex-col rounded-lg ${typeLook.frameClass} p-[3px] pb-3 text-center ring-1 ring-black/60 transition-transform enabled:hover:-translate-y-1 disabled:opacity-40 disabled:saturate-50 animate-rise`}
       style={{ boxShadow: `${glow}, 0 6px 10px rgb(0 0 0 / 0.5)` }}
     >
       <span
@@ -159,9 +159,13 @@ export const CardView = ({
       >
         {cardDef.cost}
       </span>
-      <ArtWindow glyph={family.glyph} glowVar={family.glowVar} look={look} />
+      <ArtWindow
+        glyph={typeLook.glyph}
+        glowVar={typeLook.glowVar}
+        look={look}
+      />
       <span
-        className={`-mx-[3px] shrink-0 border-y border-black/50 ${family.frameClass} font-display font-black uppercase leading-none tracking-tight text-ink [text-shadow:0_1px_1px_rgb(0_0_0/0.8)] ${look.name}`}
+        className={`-mx-[3px] shrink-0 border-y border-black/50 ${typeLook.frameClass} font-display font-black uppercase leading-none tracking-tight text-ink [text-shadow:0_1px_1px_rgb(0_0_0/0.8)] ${look.name}`}
       >
         {cardDef.name}
       </span>
@@ -173,7 +177,7 @@ export const CardView = ({
         ))}
       </span>
       <TypeRibbon
-        typeName={family.typeName}
+        typeName={typeLook.typeName}
         gemClass={RARITY_GEM[cardDef.rarity]}
         look={look}
       />

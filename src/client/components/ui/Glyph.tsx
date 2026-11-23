@@ -10,6 +10,8 @@ import { GAME_ICONS } from '../../content/gameIcons';
 // --- TYPES ---
 export type GlyphName =
   | 'sword'
+  | 'bow'
+  | 'swirl'
   | 'shield'
   | 'skull'
   | 'flame'

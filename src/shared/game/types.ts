@@ -51,8 +51,16 @@ export type CardEffect =
 
 export type CardRarity = 'starter' | 'common' | 'uncommon' | 'rare';
 
+/**
+ * What kind of card it is. Shown on the card, and it decides reach:
+ * Melee hits the front row only; Range, Magic and Curse reach any hero.
+ * Buff cards act on the villain.
+ */
+export type CardType = 'melee' | 'range' | 'magic' | 'buff' | 'curse';
+
 export type CardDef = {
   name: string;
+  type: CardType;
   cost: number;
   rarity: CardRarity;
   effects: readonly CardEffect[];
@@ -60,7 +68,8 @@ export type CardDef = {
   fades: boolean;
   /**
    * Reach cards can hit the back row. Without Reach, damage is melee and
-   * only reaches the front row (curses and Hex always reach).
+   * only reaches the front row (curses and Hex always reach). Derived
+   * from `type` when the card is built (see REACHING_TYPES in cards.ts).
    */
   reach: boolean;
 };

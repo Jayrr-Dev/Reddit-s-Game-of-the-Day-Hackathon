@@ -25,7 +25,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
     'rounded-full px-5 h-10 font-semibold bg-accent text-on-accent hover:bg-accent-hover',
   ghost: 'rounded-full px-5 h-10 font-semibold text-ink-muted hover:text-ink',
   menu: `${MENU_SLAB} bg-surface-raised text-ink ring-accent/40 hover:ring-accent`,
-  menuPrimary: `${MENU_SLAB} bg-gradient-to-b from-blood to-card-strike text-ink ring-accent hover:brightness-110`,
+  menuPrimary: `${MENU_SLAB} bg-gradient-to-b from-blood to-card-melee text-ink ring-accent hover:brightness-110`,
 };
 
 // --- COMPONENT ---

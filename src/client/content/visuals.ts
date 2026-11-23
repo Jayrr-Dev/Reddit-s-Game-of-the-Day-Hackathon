@@ -5,9 +5,9 @@
 // status or card type is defined once.
 // ===================================================================
 
-import type { CardCategory, IntentKind } from '../../shared/game/describe';
+import type { IntentKind } from '../../shared/game/describe';
 import type { StopKind } from '../../shared/game/kingdom';
-import type { CardRarity, StatusId } from '../../shared/game/types';
+import type { CardRarity, CardType, StatusId } from '../../shared/game/types';
 import type { GlyphName } from '../components/ui/Glyph';
 
 // --- TYPES ---
@@ -32,37 +32,43 @@ export const INTENT_LOOK: Record<IntentKind, Look> = {
 
 // --- CARDS ---
 /**
- * One look per card family: the art glyph, the type shown on the
+ * One look per card type: the art glyph, the type shown on the
  * ribbon, the frame and banner colour, and the outer glow (a CSS colour
  * var, so the glow can be built with a shadow).
  */
 export const CARD_LOOK: Record<
-  CardCategory,
+  CardType,
   { glyph: GlyphName; typeName: string; frameClass: string; glowVar: string }
 > = {
-  strike: {
+  melee: {
     glyph: 'sword',
-    typeName: 'Strike',
-    frameClass: 'bg-card-strike',
+    typeName: 'Melee',
+    frameClass: 'bg-card-melee',
     glowVar: 'var(--color-hp)',
+  },
+  range: {
+    glyph: 'bow',
+    typeName: 'Range',
+    frameClass: 'bg-card-range',
+    glowVar: 'var(--color-heal)',
+  },
+  magic: {
+    glyph: 'swirl',
+    typeName: 'Magic',
+    frameClass: 'bg-card-magic',
+    glowVar: 'var(--color-shroud)',
+  },
+  buff: {
+    glyph: 'shield',
+    typeName: 'Buff',
+    frameClass: 'bg-card-buff',
+    glowVar: 'var(--color-energy)',
   },
   curse: {
     glyph: 'skull',
     typeName: 'Curse',
     frameClass: 'bg-card-curse',
     glowVar: 'var(--color-hex)',
-  },
-  guard: {
-    glyph: 'shield',
-    typeName: 'Guard',
-    frameClass: 'bg-card-guard',
-    glowVar: 'var(--color-shroud)',
-  },
-  power: {
-    glyph: 'flame',
-    typeName: 'Power',
-    frameClass: 'bg-card-power',
-    glowVar: 'var(--color-wrath)',
   },
 };
 
@@ -80,7 +86,6 @@ export const RULES_KEYWORDS = [
   'Dread',
   'Shroud',
   'Wrath',
-  'Reach',
   'ALL',
 ] as const;
 

@@ -22,7 +22,7 @@ export const TAGLINE =
 // --- HOW TO PLAY ---
 export const HOW_TO_PLAY = [
   'Tap a card, then tap a glowing hero. 3 energy a turn.',
-  'Melee hits the front row. Reach and curses hit anyone.',
+  'Melee hits the front row. Range, Magic and Curse hit anyone.',
   'Pull a hiding healer forward. Every 5th stop is a champion.',
 ] as const;
 

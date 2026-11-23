@@ -86,7 +86,7 @@ export const describeCardEffect = (
 };
 
 /**
- * All text lines for a card: "Reach." first when it has it, the effects,
+ * All text lines for a card: the effects (its type shows reach),
  * then "Fades." when it does.
  */
 export const describeCard = (
@@ -97,29 +97,12 @@ export const describeCard = (
   const lines = cardDef.effects.map((effect) =>
     describeCardEffect(effect, attacker, !cardDef.reach)
   );
-  return [
-    ...(cardDef.reach ? ['Reach.'] : []),
-    ...lines,
-    ...(cardDef.fades ? ['Fades.'] : []),
-  ];
+  return [...lines, ...(cardDef.fades ? ['Fades.'] : [])];
 };
 
 /** True when playing this card needs the player to pick a hero. */
 export const cardNeedsTarget = (cardId: CardId): boolean =>
   targetRuleOf(cardId) !== 'none';
-
-// --- CARD CATEGORY (FOR ART AND COLOUR) ---
-export type CardCategory = 'strike' | 'curse' | 'guard' | 'power';
-
-/** Picks a card's look from its first meaningful effect. */
-export const cardCategory = (cardId: CardId): CardCategory => {
-  const kinds = getCard(cardId).effects.map((effect) => effect.kind);
-  if (kinds.includes('damage') || kinds.includes('reap')) return 'strike';
-  if (kinds.includes('pull') || kinds.includes('push')) return 'curse';
-  if (kinds.includes('hex') || kinds.includes('dread')) return 'curse';
-  if (kinds.includes('shroud')) return 'guard';
-  return 'power';
-};
 
 // --- HERO INTENTS ---
 export type IntentKind = 'attack' | 'curse' | 'guard' | 'buff' | 'heal';

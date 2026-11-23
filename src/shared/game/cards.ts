@@ -5,7 +5,7 @@
 // source of truth for both the rules and the UI.
 // ===================================================================
 
-import type { CardDef, CardEffect, CardRarity } from './types.ts';
+import type { CardDef, CardEffect, CardRarity, CardType } from './types.ts';
 
 // --- EFFECT BUILDERS ---
 // Short constructors keep the catalog readable and fully typed.
@@ -40,60 +40,87 @@ const reap = (multiplier: number): CardEffect => ({ kind: 'reap', multiplier });
 const pull: CardEffect = { kind: 'pull' };
 const push: CardEffect = { kind: 'push' };
 
-/** Optional card traits; both default to false. */
-type CardTraits = { fades?: boolean; reach?: boolean };
+/** Optional card traits; defaults to false. */
+type CardTraits = { fades?: boolean };
 const FADES: CardTraits = { fades: true };
-const REACH: CardTraits = { reach: true };
 
-/** Builds a card definition. */
+/** Card types that can hit the back row (Melee only hits the front). */
+const REACHING_TYPES: ReadonlySet<CardType> = new Set([
+  'range',
+  'magic',
+  'curse',
+]);
+
+/** Builds a card definition; its reach comes from its type. */
 const card = (
   name: string,
+  type: CardType,
   cost: number,
   rarity: CardRarity,
   effects: CardEffect[],
-  { fades = false, reach = false }: CardTraits = {}
-): CardDef => ({ name, cost, rarity, effects, fades, reach });
+  { fades = false }: CardTraits = {}
+): CardDef => ({
+  name,
+  type,
+  cost,
+  rarity,
+  effects,
+  fades,
+  reach: REACHING_TYPES.has(type),
+});
 
 // --- CATALOG ---
 export const CARDS = {
   // STARTER DECK
-  backhand: card('Backhand', 1, 'starter', [hit(6)]),
-  darkCloak: card('Dark Cloak', 1, 'starter', [shroud(5)]),
-  mourningCurse: card('Mourning Curse', 1, 'starter', [hit(4), hex(2)], REACH),
-  chainsOfGrief: card('Chains of Grief', 1, 'starter', [pull, hit(5)]),
+  backhand: card('Backhand', 'melee', 1, 'starter', [hit(6)]),
+  darkCloak: card('Dark Cloak', 'buff', 1, 'starter', [shroud(5)]),
+  mourningCurse: card('Mourning Curse', 'curse', 1, 'starter', [
+    hit(4),
+    hex(2),
+  ]),
+  chainsOfGrief: card('Chains of Grief', 'curse', 1, 'starter', [pull, hit(5)]),
 
   // COMMON
-  cruelSlash: card('Cruel Slash', 1, 'common', [hit(9)]),
-  twinDaggers: card('Twin Daggers', 1, 'common', [hit(4, 2)]),
-  boneWard: card('Bone Ward', 1, 'common', [shroud(8)]),
-  whisperHex: card('Whisper Hex', 0, 'common', [hex(3)]),
-  quickJab: card('Quick Jab', 0, 'common', [hit(3), draw(1)]),
-  sneer: card('Sneer', 1, 'common', [shroud(5), dread(1)]),
-  fortressOfSpite: card('Fortress of Spite', 2, 'common', [shroud(14)]),
-  sear: card('Sear', 1, 'common', [hit(5), hex(3)]),
-  cleave: card('Cleave', 1, 'common', [hitAll(6)]),
-  spiteBolt: card('Spite Bolt', 1, 'common', [hit(6)], REACH),
-  hurlAside: card('Hurl Aside', 1, 'common', [hit(5), push]),
-  beckon: card('Beckon', 0, 'common', [pull, dread(1)]),
+  cruelSlash: card('Cruel Slash', 'melee', 1, 'common', [hit(9)]),
+  twinDaggers: card('Twin Daggers', 'melee', 1, 'common', [hit(4, 2)]),
+  boneWard: card('Bone Ward', 'buff', 1, 'common', [shroud(8)]),
+  whisperHex: card('Whisper Hex', 'curse', 0, 'common', [hex(3)]),
+  quickJab: card('Quick Jab', 'melee', 0, 'common', [hit(3), draw(1)]),
+  sneer: card('Sneer', 'curse', 1, 'common', [shroud(5), dread(1)]),
+  fortressOfSpite: card('Fortress of Spite', 'buff', 2, 'common', [shroud(14)]),
+  sear: card('Sear', 'melee', 1, 'common', [hit(5), hex(3)]),
+  cleave: card('Cleave', 'melee', 1, 'common', [hitAll(6)]),
+  spiteBolt: card('Spite Bolt', 'range', 1, 'common', [hit(6)]),
+  hurlAside: card('Hurl Aside', 'melee', 1, 'common', [hit(5), push]),
+  beckon: card('Beckon', 'curse', 0, 'common', [pull, dread(1)]),
 
   // UNCOMMON
-  reap: card('Reap', 1, 'uncommon', [reap(2)]),
-  seethe: card('Seethe', 1, 'uncommon', [wrath(2)], FADES),
-  ruin: card('Ruin', 2, 'uncommon', [hit(16)]),
-  coldResolve: card('Cold Resolve', 1, 'uncommon', [shroud(6), draw(2)]),
-  dreadGaze: card('Dread Gaze', 1, 'uncommon', [dread(2, 'all'), draw(1)]),
-  bloodPact: card('Blood Pact', 0, 'uncommon', [energy(2)], FADES),
-  stormOfBlades: card('Storm of Blades', 2, 'uncommon', [hit(3, 4)]),
-  plague: card('Plague', 2, 'uncommon', [hex(4, 'all')]),
-  darkBulwark: card('Dark Bulwark', 2, 'uncommon', [shroud(10), wrath(1)]),
-  drain: card('Drain', 1, 'uncommon', [hit(6), heal(3)]),
+  reap: card('Reap', 'magic', 1, 'uncommon', [reap(2)]),
+  seethe: card('Seethe', 'buff', 1, 'uncommon', [wrath(2)], FADES),
+  ruin: card('Ruin', 'melee', 2, 'uncommon', [hit(16)]),
+  coldResolve: card('Cold Resolve', 'buff', 1, 'uncommon', [
+    shroud(6),
+    draw(2),
+  ]),
+  dreadGaze: card('Dread Gaze', 'curse', 1, 'uncommon', [
+    dread(2, 'all'),
+    draw(1),
+  ]),
+  bloodPact: card('Blood Pact', 'buff', 0, 'uncommon', [energy(2)], FADES),
+  stormOfBlades: card('Storm of Blades', 'melee', 2, 'uncommon', [hit(3, 4)]),
+  plague: card('Plague', 'curse', 2, 'uncommon', [hex(4, 'all')]),
+  darkBulwark: card('Dark Bulwark', 'buff', 2, 'uncommon', [
+    shroud(10),
+    wrath(1),
+  ]),
+  drain: card('Drain', 'melee', 1, 'uncommon', [hit(6), heal(3)]),
 
   // RARE
-  cataclysm: card('Cataclysm', 3, 'rare', [hitAll(14)], REACH),
-  vengeance: card('Vengeance', 1, 'rare', [wrath(3)], FADES),
-  gravePact: card('Grave Pact', 1, 'rare', [heal(8)], FADES),
-  doom: card('Doom', 2, 'rare', [hex(9)], FADES),
-  undyingHatred: card('Undying Hatred', 2, 'rare', [hit(20)]),
+  cataclysm: card('Cataclysm', 'magic', 3, 'rare', [hitAll(14)]),
+  vengeance: card('Vengeance', 'buff', 1, 'rare', [wrath(3)], FADES),
+  gravePact: card('Grave Pact', 'buff', 1, 'rare', [heal(8)], FADES),
+  doom: card('Doom', 'curse', 2, 'rare', [hex(9)], FADES),
+  undyingHatred: card('Undying Hatred', 'melee', 2, 'rare', [hit(20)]),
 } as const satisfies Record<string, CardDef>;
 
 // --- DERIVED DATA ---
