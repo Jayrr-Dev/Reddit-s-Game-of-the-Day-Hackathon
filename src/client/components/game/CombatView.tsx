@@ -2,8 +2,7 @@
 // COMBAT VIEW
 // One fight, laid out like a mobile card battler and sized to the
 // 512 px Reddit post. Layers, top to bottom:
-//   TargetPlate   the aimed (or focused) hero: name, big HP bar, intent,
-//                 effects; the gear opens the pause sheet
+//   TopBar        a thin strip: where you are, score, and the pause gear
 //   Battlefield   3 x 2 parallax scene; every hero wears its own plate
 //   HitNumbers    big damage numbers that pop on a hit
 //   Bottom band   PlayerCorner (portrait + HP) | your effects + energy |
@@ -27,7 +26,7 @@ import { EnergyTray } from './combat/EnergyTray';
 import { FanHand } from './combat/FanHand';
 import { HitNumbers } from './combat/HitNumbers';
 import { PlayerCorner } from './combat/PlayerCorner';
-import { TargetPlate } from './combat/TargetPlate';
+import { TopBar } from './combat/TopBar';
 import { TurnCorner } from './combat/TurnCorner';
 import { MenuPanel } from './menu/MenuPanel';
 import { StatusRow } from './StatusRow';
@@ -100,9 +99,6 @@ export const CombatView = ({
   const pops = useHitPops(combat.heroes);
   const { drag } = controls;
   const draggedCardId = drag ? combat.hand[drag.handIndex] : undefined;
-  // The top plate follows the aim while dragging, else the focus.
-  const plateUid = controls.hoverUid ?? controls.focusUid;
-  const plateUnit = combat.heroes.find((unit) => unit.uid === plateUid);
   // The arrow is hidden until it has a target, then flies out from the
   // card and glides onto the snapped hero rather than jumping to it.
   const aimShown = useSmoothPoint(
@@ -112,7 +108,11 @@ export const CombatView = ({
 
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden">
-      <TargetPlate unit={plateUnit} onOpenMenu={() => setIsPaused(true)} />
+      <TopBar
+        where={where}
+        score={score}
+        onOpenMenu={() => setIsPaused(true)}
+      />
       {/* BATTLEFIELD (fills the space between the plate and the band) */}
       <div className="relative flex min-h-0 flex-1 flex-col">
         <BattlefieldView
