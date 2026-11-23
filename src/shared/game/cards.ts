@@ -37,22 +37,30 @@ const draw = (amount: number): CardEffect => ({ kind: 'draw', amount });
 const energy = (amount: number): CardEffect => ({ kind: 'energy', amount });
 const heal = (amount: number): CardEffect => ({ kind: 'heal', amount });
 const reap = (multiplier: number): CardEffect => ({ kind: 'reap', multiplier });
+const pull: CardEffect = { kind: 'pull' };
+const push: CardEffect = { kind: 'push' };
 
-/** Builds a card definition; `fades` defaults to false. */
+/** Optional card traits; both default to false. */
+type CardTraits = { fades?: boolean; reach?: boolean };
+const FADES: CardTraits = { fades: true };
+const REACH: CardTraits = { reach: true };
+
+/** Builds a card definition. */
 const card = (
   name: string,
   cost: number,
   rarity: CardRarity,
   effects: CardEffect[],
-  fades = false
-): CardDef => ({ name, cost, rarity, effects, fades });
+  { fades = false, reach = false }: CardTraits = {}
+): CardDef => ({ name, cost, rarity, effects, fades, reach });
 
 // --- CATALOG ---
 export const CARDS = {
   // STARTER DECK
   backhand: card('Backhand', 1, 'starter', [hit(6)]),
   darkCloak: card('Dark Cloak', 1, 'starter', [shroud(5)]),
-  mourningCurse: card('Mourning Curse', 1, 'starter', [hit(4), hex(2)]),
+  mourningCurse: card('Mourning Curse', 1, 'starter', [hit(4), hex(2)], REACH),
+  chainsOfGrief: card('Chains of Grief', 1, 'starter', [pull, hit(5)]),
 
   // COMMON
   cruelSlash: card('Cruel Slash', 1, 'common', [hit(9)]),
@@ -64,24 +72,27 @@ export const CARDS = {
   fortressOfSpite: card('Fortress of Spite', 2, 'common', [shroud(14)]),
   sear: card('Sear', 1, 'common', [hit(5), hex(3)]),
   cleave: card('Cleave', 1, 'common', [hitAll(6)]),
+  spiteBolt: card('Spite Bolt', 1, 'common', [hit(6)], REACH),
+  hurlAside: card('Hurl Aside', 1, 'common', [hit(5), push]),
+  beckon: card('Beckon', 0, 'common', [pull, dread(1)]),
 
   // UNCOMMON
   reap: card('Reap', 1, 'uncommon', [reap(2)]),
-  seethe: card('Seethe', 1, 'uncommon', [wrath(2)], true),
+  seethe: card('Seethe', 1, 'uncommon', [wrath(2)], FADES),
   ruin: card('Ruin', 2, 'uncommon', [hit(16)]),
   coldResolve: card('Cold Resolve', 1, 'uncommon', [shroud(6), draw(2)]),
   dreadGaze: card('Dread Gaze', 1, 'uncommon', [dread(2, 'all'), draw(1)]),
-  bloodPact: card('Blood Pact', 0, 'uncommon', [energy(2)], true),
+  bloodPact: card('Blood Pact', 0, 'uncommon', [energy(2)], FADES),
   stormOfBlades: card('Storm of Blades', 2, 'uncommon', [hit(3, 4)]),
   plague: card('Plague', 2, 'uncommon', [hex(4, 'all')]),
   darkBulwark: card('Dark Bulwark', 2, 'uncommon', [shroud(10), wrath(1)]),
   drain: card('Drain', 1, 'uncommon', [hit(6), heal(3)]),
 
   // RARE
-  cataclysm: card('Cataclysm', 3, 'rare', [hitAll(14)]),
-  vengeance: card('Vengeance', 1, 'rare', [wrath(3)], true),
-  gravePact: card('Grave Pact', 1, 'rare', [heal(8)], true),
-  doom: card('Doom', 2, 'rare', [hex(9)], true),
+  cataclysm: card('Cataclysm', 3, 'rare', [hitAll(14)], REACH),
+  vengeance: card('Vengeance', 1, 'rare', [wrath(3)], FADES),
+  gravePact: card('Grave Pact', 1, 'rare', [heal(8)], FADES),
+  doom: card('Doom', 2, 'rare', [hex(9)], FADES),
   undyingHatred: card('Undying Hatred', 2, 'rare', [hit(20)]),
 } as const satisfies Record<string, CardDef>;
 
@@ -109,7 +120,7 @@ export const STARTER_DECK: readonly CardId[] = [
   'backhand',
   'backhand',
   'backhand',
-  'backhand',
+  'chainsOfGrief',
   'darkCloak',
   'darkCloak',
   'darkCloak',

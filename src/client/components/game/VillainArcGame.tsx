@@ -4,7 +4,13 @@
 // input as a RunAction; this component never changes game state itself.
 // ===================================================================
 
-import type { RunAction, RunState } from '../../../shared/game/run';
+import { regionIndexOf, regionName } from '../../../shared/game/kingdom';
+import {
+  computeScore,
+  type RunAction,
+  type RunState,
+} from '../../../shared/game/run';
+import { regionHue } from '../../content/visuals';
 import { CombatView } from './CombatView';
 import { GraveView } from './GraveView';
 import { OfferView } from './OfferView';
@@ -24,10 +30,19 @@ const PhaseBody = ({ run, onAction }: VillainArcGameProps) => {
   switch (phase.kind) {
     case 'route':
       return <RouteView options={phase.options} onAction={onAction} />;
-    case 'combat':
+    case 'combat': {
+      const region = regionIndexOf(run.stop);
       return (
-        <CombatView key={run.stop} combat={phase.combat} onAction={onAction} />
+        <CombatView
+          key={run.stop}
+          combat={phase.combat}
+          hue={regionHue(region)}
+          where={`Wave ${run.stop} · ${regionName(region)}`}
+          score={computeScore(run.stats)}
+          onAction={onAction}
+        />
       );
+    }
     case 'reward':
       return (
         <OfferView
@@ -54,12 +69,23 @@ const PhaseBody = ({ run, onAction }: VillainArcGameProps) => {
 };
 
 // --- COMPONENT ---
-/** HUD on top, the phase view filling the rest. */
-export const VillainArcGame = ({ run, onAction }: VillainArcGameProps) => (
-  <div className="flex min-h-screen w-full flex-col">
-    <RunHud run={run} />
-    <main className="flex flex-1 flex-col items-center justify-center p-3">
-      <PhaseBody run={run} onAction={onAction} />
-    </main>
-  </div>
-);
+/**
+ * Fills the post exactly (no page scroll inside the feed). Combat owns
+ * the whole box; the other phases get the run HUD on top.
+ */
+export const VillainArcGame = ({ run, onAction }: VillainArcGameProps) => {
+  if (run.phase.kind === 'combat')
+    return (
+      <div className="h-full w-full overflow-hidden">
+        <PhaseBody run={run} onAction={onAction} />
+      </div>
+    );
+  return (
+    <div className="flex h-full w-full flex-col overflow-hidden">
+      <RunHud run={run} />
+      <main className="flex min-h-0 flex-1 flex-col items-center justify-center p-3">
+        <PhaseBody run={run} onAction={onAction} />
+      </main>
+    </div>
+  );
+};

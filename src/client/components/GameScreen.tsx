@@ -1,5 +1,5 @@
 // ===================================================================
-// GAME SCREEN (EXPANDED VIEW)
+// GAME SCREEN (INLINE IN THE POST)
 // Loads the day, then hands off to the session: title screen -> run ->
 // results. Data loading and side effects live in hooks; this file only
 // decides which screen is showing.

@@ -5,12 +5,14 @@
 // ===================================================================
 
 // --- GAME IDENTITY ---
-/** Display name used in post titles and the splash screen. */
+/** Display name used in post titles and on the title screen. */
 export const GAME_TITLE = 'Villain Arc';
 
 // --- LEADERBOARD LIMITS ---
 /** How many entries the daily leaderboard returns. */
 export const LEADERBOARD_SIZE = 10;
+/** How many of those rows fit under the title and results screens. */
+export const LEADERBOARD_PREVIEW_ROWS = 3;
 
 // --- REDIS RETENTION ---
 /** Daily keys expire after this many days so Redis storage stays bounded. */

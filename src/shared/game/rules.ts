@@ -11,6 +11,10 @@ export const CARDS_PER_TURN = 5;
 /** Cards drawn beyond this are discarded instead of added to the hand. */
 export const MAX_HAND_SIZE = 10;
 
+// --- BATTLEFIELD ---
+/** Columns in each row of the hero battlefield (rows are front and back). */
+export const BATTLEFIELD_COLUMNS = 3;
+
 // --- STATUSES ---
 /** A combatant with dread deals this fraction of its attack damage. */
 export const DREAD_DAMAGE_FACTOR = 0.75;

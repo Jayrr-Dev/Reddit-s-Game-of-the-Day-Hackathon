@@ -101,8 +101,7 @@ src/
     core/              Domain logic: dailyPost, leaderboard, streaks, redisKeys
     http/              Error helpers, Express-to-Hono bridge for Journeys
   client/              Runs in the post's iframe
-    splash.tsx         Inline feed view (light; opens the game)
-    game.tsx           Expanded game view
+    game.tsx           The game, played inline in the post (512 px tall)
     components/        Screens, PlaceholderGame, LeaderboardList, ui/ atoms
     hooks/             useDailyGame, useLeaderboard
     lib/               apiClient (only place that calls fetch), journeys, mountApp

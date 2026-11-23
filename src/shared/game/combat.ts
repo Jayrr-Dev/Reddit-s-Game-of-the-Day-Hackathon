@@ -12,6 +12,16 @@
 //             -> new villain turn (clear shroud, refill energy, draw).
 // ===================================================================
 
+import {
+  areaTargets,
+  formUp,
+  legalTargets,
+  pullHero,
+  pushHero,
+  stepForward,
+  targetRuleOf,
+  type UnplacedHero,
+} from './battlefield.ts';
 import { getCard, type CardId } from './cards.ts';
 import {
   addShroud,
@@ -52,12 +62,12 @@ export type CombatSetup = {
 export const scaleByMight = (amount: number, might: number): number =>
   Math.round(amount * might);
 
-/** Puts one hero on the field. */
+/** Creates one hero; formUp() then gives it a place on the field. */
 const createHeroUnit = (
   heroId: HeroId,
   uid: number,
   might: number
-): HeroUnit => {
+): UnplacedHero => {
   const maxHp = scaleByMight(getHero(heroId).maxHp, might);
   return { ...createCombatant(maxHp, maxHp), uid, heroId, moveIndex: 0, might };
 };
@@ -67,8 +77,10 @@ export const startCombat = (setup: CombatSetup): CombatState => {
   const [drawPile, rng] = shuffle(setup.seed, setup.deck);
   const initial: CombatState = {
     player: createCombatant(setup.hp, setup.maxHp),
-    heroes: setup.heroIds.map((id, index) =>
-      createHeroUnit(id, index + 1, setup.might)
+    heroes: formUp(
+      setup.heroIds.map((id, index) =>
+        createHeroUnit(id, index + 1, setup.might)
+      )
     ),
     energy: 0,
     hand: [],
@@ -98,11 +110,21 @@ export const nextHeroMove = (unit: HeroUnit): HeroMove => {
   return heroMove;
 };
 
-/** True when the card in that hand slot can be played right now. */
+/** Heroes this card may be aimed at now (every hero for untargeted cards). */
+export const targetsFor = (state: CombatState, cardId: CardId): HeroUnit[] =>
+  legalTargets(state.heroes, targetRuleOf(cardId));
+
+/**
+ * True when the card in that hand slot can be played right now: it is
+ * affordable and, if it needs a target, a legal one exists (a pull with
+ * every back-row hero blocked cannot be played).
+ */
 export const canPlayCard = (state: CombatState, handIndex: number): boolean => {
   const cardId = state.hand[handIndex];
   if (cardId === undefined || combatOutcome(state) !== 'ongoing') return false;
-  return getCard(cardId).cost <= state.energy;
+  const hasTarget =
+    targetRuleOf(cardId) === 'none' || targetsFor(state, cardId).length > 0;
+  return getCard(cardId).cost <= state.energy && hasTarget;
 };
 
 // --- DRAWING ---
@@ -141,28 +163,32 @@ const updateHeroes = (
   ),
 });
 
-/** Takes defeated heroes off the field and counts them as slain. */
+/**
+ * Takes defeated heroes off the field and counts them as slain. If that
+ * empties the front row, the back row steps forward.
+ */
 const removeFallen = (state: CombatState): CombatState => {
   const standing = state.heroes.filter((unit) => !isDefeated(unit));
   const fallen = state.heroes.length - standing.length;
   return fallen === 0
     ? state
-    : { ...state, heroes: standing, slain: state.slain + fallen };
+    : { ...state, heroes: stepForward(standing), slain: state.slain + fallen };
 };
 
 /**
- * Resolves who a card hits. A stale or missing target falls back to the
- * first living hero, so a replayed log can never target a ghost.
+ * Resolves who an effect hits. `one` is the aimed hero (if still alive);
+ * `all` is everyone for Reach cards and curses, the front row for melee.
  */
 const resolveTargets = (
   state: CombatState,
   target: CardTarget,
-  targetUid: number
+  targetUid: number,
+  isMelee = false
 ): number[] => {
   const living = state.heroes.filter((unit) => !isDefeated(unit));
-  if (target === 'all') return living.map((unit) => unit.uid);
-  const chosen = living.find((unit) => unit.uid === targetUid) ?? living[0];
-  return chosen ? [chosen.uid] : [];
+  if (target === 'all')
+    return areaTargets(living, isMelee).map((unit) => unit.uid);
+  return living.some((unit) => unit.uid === targetUid) ? [targetUid] : [];
 };
 
 // --- CARD EFFECTS ---
@@ -171,14 +197,15 @@ const resolveTargets = (
 const villainAttack = (
   state: CombatState,
   effect: Extract<CardEffect, { kind: 'damage' }>,
-  targetUid: number
+  targetUid: number,
+  isMelee: boolean
 ): CombatState => {
   const perHit = attackDamage(effect.amount, state.player);
   return Array.from({ length: effect.hits }).reduce<CombatState>(
     (current) =>
       updateHeroes(
         current,
-        resolveTargets(current, effect.target, targetUid),
+        resolveTargets(current, effect.target, targetUid, isMelee),
         (unit) => takeDamage(unit, perHit)
       ),
     state
@@ -195,15 +222,16 @@ const reapHex = (
     takeDamage(unit, unit.statuses.hex * multiplier)
   );
 
-/** Resolves one card effect. */
+/** Resolves one card effect. `isMelee` is true for cards without Reach. */
 const applyCardEffect = (
   state: CombatState,
   effect: CardEffect,
-  targetUid: number
+  targetUid: number,
+  isMelee: boolean
 ): CombatState => {
   switch (effect.kind) {
     case 'damage':
-      return villainAttack(state, effect, targetUid);
+      return villainAttack(state, effect, targetUid, isMelee);
     case 'hex':
     case 'dread':
       return updateHeroes(
@@ -226,7 +254,27 @@ const applyCardEffect = (
       return { ...state, energy: state.energy + effect.amount };
     case 'heal':
       return { ...state, player: heal(state.player, effect.amount) };
+    case 'pull':
+      return { ...state, heroes: pullHero(state.heroes, targetUid) };
+    case 'push':
+      return { ...state, heroes: pushHero(state.heroes, targetUid) };
   }
+};
+
+/**
+ * The hero a card actually hits: the requested one when it is a legal
+ * target, otherwise the first legal hero. A replayed log can therefore
+ * never aim at a ghost or past the front row.
+ */
+const aimCard = (
+  state: CombatState,
+  cardId: CardId,
+  targetUid: number
+): number => {
+  const legal = targetsFor(state, cardId);
+  return legal.some((unit) => unit.uid === targetUid)
+    ? targetUid
+    : (legal[0]?.uid ?? -1);
 };
 
 /**
@@ -243,13 +291,15 @@ export const playCard = (
   if (cardId === undefined || !canPlayCard(state, handIndex)) return state;
 
   const cardDef = getCard(cardId);
+  const aimedUid = aimCard(state, cardId, targetUid);
   const paid: CombatState = {
     ...state,
     energy: state.energy - cardDef.cost,
     hand: state.hand.filter((_, index) => index !== handIndex),
   };
   const resolved = cardDef.effects.reduce<CombatState>(
-    (current, effect) => applyCardEffect(current, effect, targetUid),
+    (current, effect) =>
+      applyCardEffect(current, effect, aimedUid, !cardDef.reach),
     paid
   );
   const settled = cardDef.fades

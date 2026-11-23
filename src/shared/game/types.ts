@@ -43,7 +43,11 @@ export type CardEffect =
   | { kind: 'wrath'; amount: number }
   | { kind: 'draw'; amount: number }
   | { kind: 'energy'; amount: number }
-  | { kind: 'heal'; amount: number };
+  | { kind: 'heal'; amount: number }
+  /** Drags the target from the back row into the front row. */
+  | { kind: 'pull' }
+  /** Shoves the target from the front row into the back row. */
+  | { kind: 'push' };
 
 export type CardRarity = 'starter' | 'common' | 'uncommon' | 'rare';
 
@@ -54,6 +58,11 @@ export type CardDef = {
   effects: readonly CardEffect[];
   /** A fading card leaves the fight after it is played. */
   fades: boolean;
+  /**
+   * Reach cards can hit the back row. Without Reach, damage is melee and
+   * only reaches the front row (curses and Hex always reach).
+   */
+  reach: boolean;
 };
 
 // --- HEROES ---
@@ -73,6 +82,15 @@ export type HeroMove = {
 
 export type HeroTier = 'grunt' | 'elite' | 'champion';
 
+// --- BATTLEFIELD ---
+/**
+ * The heroes stand on a grid 3 columns wide and 2 rows deep. Fighters
+ * take the front row; healers, buffers and archers keep to the back.
+ */
+export type HeroRow = 'front' | 'back';
+/** How many columns a hero fills: grunts 1, elites 2, champions 3. */
+export type HeroSize = 1 | 2 | 3;
+
 export type HeroDef = {
   name: string;
   tier: HeroTier;
@@ -81,6 +99,9 @@ export type HeroDef = {
   moves: readonly HeroMove[];
   /** Portrait hue (0 to 360). Each hero gets its own heraldic colour. */
   hue: number;
+  /** The row this hero takes when the fight starts. */
+  row: HeroRow;
+  size: HeroSize;
 };
 
 // --- COMBAT STATE ---
@@ -91,6 +112,9 @@ export type HeroUnit = Combatant & {
   moveIndex: number;
   /** Strength multiplier from how deep into the kingdom this fight is. */
   might: number;
+  row: HeroRow;
+  /** Leftmost battlefield column (0 to 2) this hero stands in. */
+  col: number;
 };
 
 export type CombatState = {

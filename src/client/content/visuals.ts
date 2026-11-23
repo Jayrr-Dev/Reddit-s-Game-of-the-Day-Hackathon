@@ -49,3 +49,15 @@ export const STOP_LOOK: Record<StopKind, Look> = {
   grave: { glyph: 'grave', toneClass: 'text-shroud' },
   altar: { glyph: 'altar', toneClass: 'text-hex' },
 };
+
+// --- REGION BACKDROPS ---
+/**
+ * Backdrop hue for each region, in conquest order (dusk village, dusty
+ * road, cold monastery, burning gates, violet court, golden throne).
+ * Endless uprisings past the throne cycle through them again.
+ */
+const REGION_HUES: readonly number[] = [265, 25, 205, 355, 295, 42];
+
+/** The backdrop hue for a region index. */
+export const regionHue = (regionIndex: number): number =>
+  REGION_HUES[regionIndex % REGION_HUES.length] ?? 265;

@@ -18,10 +18,9 @@ export const TAGLINE =
 
 // --- HOW TO PLAY ---
 export const HOW_TO_PLAY = [
-  'Spend 3 energy a turn on cards. Tap a hero to aim.',
-  'Heroes show their next move. Shroud up before big hits.',
-  'Every 5th stop a champion guards the region. Beat them to conquer it.',
-  'The heroes never stop coming. Push as deep as you can.',
+  'Tap a card, then tap a glowing hero. 3 energy a turn.',
+  'Melee hits the front row. Reach and curses hit anyone.',
+  'Pull a hiding healer forward. Every 5th stop is a champion.',
 ] as const;
 
 // --- STOPS ---

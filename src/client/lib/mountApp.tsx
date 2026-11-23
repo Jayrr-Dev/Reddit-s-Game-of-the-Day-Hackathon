@@ -1,6 +1,6 @@
 // ===================================================================
 // MOUNT APP
-// Shared bootstrap for every HTML entrypoint (splash, game). Keeps the
+// Shared bootstrap for every HTML entrypoint. Keeps the
 // StrictMode/root wiring in one place.
 // ===================================================================
 

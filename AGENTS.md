@@ -18,8 +18,7 @@ You are writing a Devvit web application that will be executed on Reddit.com.
 - `/src/client`: **Frontend Code**. This is executed inside of an iFrame on reddit.com
   - To add an entrypoint, create a HTML file and add to the mapping inside of `devvit.json`
   - Entrypoints:
-    - `game.html`: The main React entry point (Expanded View).
-    - `splash.html`: The initial React entry point (Inline View). This will be shown in the reddit.com feed. Please keep it fast and keep heavy dependencies inside of `game.html`
+    - `game.html`: The only entry point. The whole game plays inline in the post (the `tall` height, 512 px), because few players open the expanded view. Every screen must fit 512 px tall and 288 to 880 px wide, with taps only (no drag or swipe, so the feed still scrolls).
   - `components/ui/`: Atoms (Button, Screen, StatTile). Style only through the design tokens in `index.css`.
   - `hooks/`: Data hooks. `lib/apiClient.ts` is the only place that calls `fetch`.
 - `/src/shared`: **Shared Code**. Constants, API types, and pure functions (with `*.test.ts` next to them). Relative imports inside `src/shared` use the `.ts` extension so `node --test` can run them.
