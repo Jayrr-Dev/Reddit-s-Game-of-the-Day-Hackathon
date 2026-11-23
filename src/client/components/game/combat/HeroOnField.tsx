@@ -30,6 +30,10 @@ export type HeroOnFieldProps = {
   unit: HeroUnit;
   isFocused: boolean;
   aim: AimState;
+  /** 1-based place in the heroes' turn order. */
+  turnOrder: number;
+  /** True while this hero's attack animation plays. */
+  isActing: boolean;
   onTap: (uid: number) => void;
 };
 
@@ -88,6 +92,8 @@ export const HeroOnField = ({
   unit,
   isFocused,
   aim,
+  turnOrder,
+  isActing,
   onTap,
 }: HeroOnFieldProps) => {
   const hero = getHero(unit.heroId);
@@ -111,7 +117,7 @@ export const HeroOnField = ({
     >
       <div className="relative h-full w-full [container-type:size]">
         <div
-          className="absolute bottom-0 left-1/2 -translate-x-1/2"
+          className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${isActing ? 'animate-hero-lunge' : ''}`}
           style={bodyStyle}
           {...{ [HERO_ANCHOR_ATTR]: true }}
         >
@@ -124,7 +130,12 @@ export const HeroOnField = ({
             className="absolute left-1/2 flex -translate-x-1/2 justify-center"
             style={plateStyle(size)}
           >
-            <HeroPlate unit={unit} isFocused={isFocused} />
+            <HeroPlate
+              unit={unit}
+              isFocused={isFocused}
+              turnOrder={turnOrder}
+              isActing={isActing}
+            />
           </div>
         </div>
       </div>

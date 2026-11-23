@@ -66,83 +66,87 @@ const WIDE_BACK: Placement = { row: 'back', size: 2 };
 /** A champion fills the whole front row on its own. */
 const HUGE: Placement = { row: 'front', size: 3 };
 
-/** Builds a hero definition. */
+/**
+ * Builds a hero definition. Speed sets the turn order (higher acts
+ * first): nimble rogues and archers strike before armoured fighters.
+ */
 const hero = (
   name: string,
   tier: HeroTier,
   maxHp: number,
   hue: number,
+  speed: number,
   placement: Placement,
   moves: HeroMove[]
-): HeroDef => ({ name, tier, maxHp, hue, moves, ...placement });
+): HeroDef => ({ name, tier, maxHp, hue, speed, moves, ...placement });
 
 // --- CATALOG ---
 export const HEROES = {
   // GRUNTS (THE HORDE)
-  squire: hero('Squire', 'grunt', 14, 210, FRONT, [
+  squire: hero('Squire', 'grunt', 14, 210, 4, FRONT, [
     move('Swing', attack(5)),
     move('Raise Shield', shroud(4), attack(3)),
   ]),
-  bard: hero('Bard', 'grunt', 11, 300, BACK, [
+  bard: hero('Bard', 'grunt', 11, 300, 6, BACK, [
     move('Rousing Ballad', wrath(1, 'allies')),
     move('Mocking Verse', dread(1), attack(2)),
   ]),
-  archer: hero('Archer', 'grunt', 10, 110, BACK, [
+  archer: hero('Archer', 'grunt', 10, 110, 7, BACK, [
     move('Volley', attack(2, 3)),
     move('Aimed Shot', attack(7)),
   ]),
-  priest: hero('Priest', 'grunt', 12, 50, BACK, [
+  priest: hero('Priest', 'grunt', 12, 50, 5, BACK, [
     move('Smite', attack(4)),
     move('Mend', heal(5)),
   ]),
-  shieldmaiden: hero('Shieldmaiden', 'grunt', 18, 190, FRONT, [
+  shieldmaiden: hero('Shieldmaiden', 'grunt', 18, 190, 3, FRONT, [
     move('Brace', shroud(7)),
     move('Shield Bash', attack(6)),
   ]),
-  rogue: hero('Rogue', 'grunt', 12, 140, FRONT, [
+  rogue: hero('Rogue', 'grunt', 12, 140, 9, FRONT, [
     move('Poisoned Blade', hex(2), attack(3)),
     move('Flurry', attack(3, 2)),
   ]),
 
   // ELITES
-  paladin: hero('Paladin', 'elite', 40, 45, WIDE_FRONT, [
+  paladin: hero('Paladin', 'elite', 40, 45, 4, WIDE_FRONT, [
     move('Holy Shield', shroud(10), attack(5)),
     move('Judgment', attack(13)),
     move('Consecrate', wrath(2)),
   ]),
-  archmage: hero('Archmage', 'elite', 32, 260, WIDE_BACK, [
+  archmage: hero('Archmage', 'elite', 32, 260, 6, WIDE_BACK, [
     move('Arcane Bolts', attack(4, 3)),
     move('Curse of Light', hex(4), dread(1)),
     move('Mana Shield', shroud(12)),
   ]),
 
   // CHAMPIONS (ONE PER REGION, IN REGION ORDER)
-  holt: hero('Sergeant Holt', 'champion', 50, 20, HUGE, [
+  holt: hero('Sergeant Holt', 'champion', 50, 20, 5, HUGE, [
     move('Rally', wrath(1), shroud(6)),
     move('Halberd Sweep', attack(10)),
     move('Twin Thrust', attack(6, 2)),
   ]),
-  lysa: hero('Ranger Lysa', 'champion', 46, 120, HUGE, [
+  lysa: hero('Ranger Lysa', 'champion', 46, 120, 8, HUGE, [
     move('Hail of Arrows', attack(3, 4)),
     move('Snare', dread(2), shroud(6)),
     move('Piercing Shot', attack(12)),
   ]),
-  maren: hero('High Priestess Maren', 'champion', 55, 55, HUGE, [
+  maren: hero('High Priestess Maren', 'champion', 55, 55, 4, HUGE, [
     move('Sanctuary', shroud(10), heal(6, 'self')),
     move('Holy Fire', hex(5)),
     move('Smite the Wicked', attack(11)),
   ]),
-  brannoc: hero('Sir Brannoc', 'champion', 70, 220, HUGE, [
+  brannoc: hero('Sir Brannoc', 'champion', 70, 220, 3, HUGE, [
     move('Iron Wall', shroud(15)),
     move('Gatebreaker', attack(18)),
     move('Hammer Blows', attack(8, 2)),
   ]),
-  seris: hero("Seris, the Queen's Blade", 'champion', 58, 330, HUGE, [
+  seris: hero("Seris, the Queen's Blade", 'champion', 58, 330, 9, HUGE, [
     move('Dance of Blades', attack(4, 4)),
     move('Feint', dread(2), shroud(8)),
     move('Execution', attack(20)),
   ]),
-  valen: hero('Valen the Radiant', 'champion', 90, 48, HUGE, [
+  valen: hero('Valen the Radiant', 'champion', 90, 48, 6, HUGE, [
     move('Radiance', wrath(2), shroud(12)),
     move('Lightbringer', attack(9, 2)),
     move('Brand of Light', hex(6)),

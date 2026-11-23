@@ -15,6 +15,8 @@ import {
   canPlayCard,
   combatOutcome,
   endTurn,
+  endTurnSteps,
+  heroTurnOrder,
   playCard,
   startCombat,
 } from './combat.ts';
@@ -122,4 +124,25 @@ void test('ending the turn lets the hero act and deals a new hand', () => {
   assert.equal(after.turn, 2);
   assert.equal(after.hand.length, CARDS_PER_TURN);
   assert.equal(after.heroes[0]?.moveIndex, 1);
+});
+
+void test('heroes act fastest first, ties by uid, beat by beat', () => {
+  const state = startCombat({
+    hp: 60,
+    maxHp: 60,
+    deck: ['backhand'],
+    heroIds: ['squire', 'rogue', 'archer', 'shieldmaiden'],
+    might: 1,
+    seed: 3,
+  });
+  const order = heroTurnOrder(state.heroes).map((unit) => unit.heroId);
+  assert.deepEqual(order, ['rogue', 'archer', 'squire', 'shieldmaiden']);
+  const steps = endTurnSteps(state);
+  const actors = steps.flatMap(({ actorUid }) =>
+    actorUid === null
+      ? []
+      : [state.heroes.find((unit) => unit.uid === actorUid)?.heroId]
+  );
+  assert.deepEqual(actors, order);
+  assert.deepEqual(steps.at(-1)?.state, endTurn(state));
 });

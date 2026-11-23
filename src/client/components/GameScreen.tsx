@@ -91,6 +91,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
         submission={submission}
         entries={entries}
         onPlayAgain={() => void handleStart()}
+        onBackToMenu={() => setIsPlaying(false)}
       />
     );
   }

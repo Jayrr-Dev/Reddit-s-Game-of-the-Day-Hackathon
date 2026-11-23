@@ -24,6 +24,10 @@ import { DrainBar } from './DrainBar';
 export type HeroPlateProps = {
   unit: HeroUnit;
   isFocused: boolean;
+  /** 1-based place in the heroes' turn order. */
+  turnOrder: number;
+  /** True while this hero attacks (the badge lights up). */
+  isActing: boolean;
 };
 
 // --- CONSTANTS ---
@@ -70,9 +74,36 @@ export const IntentChips = ({ unit }: { unit: HeroUnit }) => {
   );
 };
 
+/** Where the hero acts in the heroes' turn, centred above the plate. */
+const TurnOrderBadge = ({
+  unit,
+  turnOrder,
+  isActing,
+}: {
+  unit: HeroUnit;
+  turnOrder: number;
+  isActing: boolean;
+}) => (
+  <span
+    title={`Acts ${turnOrder}${ordinalSuffix(turnOrder)} (speed ${getHero(unit.heroId).speed})`}
+    className={`mx-auto grid size-4 place-items-center rounded-full font-display text-[10px] font-black leading-none ring-1 transition-colors ${isActing ? 'bg-accent text-on-accent ring-accent' : 'bg-surface-sunken/90 text-ink ring-accent/50'}`}
+  >
+    {turnOrder}
+  </span>
+);
+
+/** "st", "nd", "rd" or "th" for small whole numbers. */
+const ordinalSuffix = (n: number): string =>
+  ({ 1: 'st', 2: 'nd', 3: 'rd' })[n] ?? 'th';
+
 // --- COMPONENT ---
 /** Renders one hero's plate; the focused hero's name is lit gold. */
-export const HeroPlate = ({ unit, isFocused }: HeroPlateProps) => {
+export const HeroPlate = ({
+  unit,
+  isFocused,
+  turnOrder,
+  isActing,
+}: HeroPlateProps) => {
   const look = PLATE_LOOK[sizeOf(unit)];
   const nameClass = isFocused ? 'text-accent' : 'text-ink';
   const scaleClass = unit.row === 'back' ? 'scale-[0.8]' : '';
@@ -82,6 +113,7 @@ export const HeroPlate = ({ unit, isFocused }: HeroPlateProps) => {
       className={`pointer-events-none flex origin-bottom flex-col gap-1.5 ${scaleClass}`}
       style={{ width: look.width, maxWidth: look.maxWidth }}
     >
+      <TurnOrderBadge unit={unit} turnOrder={turnOrder} isActing={isActing} />
       <span
         className={`truncate px-1 text-left font-display font-bold ${look.name} uppercase leading-none tracking-wider drop-shadow ${nameClass}`}
       >

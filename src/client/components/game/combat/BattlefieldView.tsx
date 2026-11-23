@@ -9,6 +9,7 @@
 
 import { useRef, type ReactNode } from 'react';
 import { sizeOf } from '../../../../shared/game/battlefield';
+import { heroTurnOrder } from '../../../../shared/game/combat';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
 import type { HeroRow, HeroUnit } from '../../../../shared/game/types';
 import { FIELD_ATTR } from '../../../hooks/useCardDrag';
@@ -26,6 +27,8 @@ export type BattlefieldViewProps = {
   focusUid: number | null;
   /** Aim state per hero uid while a card is held (empty when none). */
   aimOf: (uid: number) => AimState;
+  /** Heroes whose attack is playing right now (hero turn). */
+  actingUids: readonly number[];
   onTapHero: (uid: number) => void;
 };
 
@@ -68,12 +71,17 @@ export const BattlefieldView = ({
   hue,
   focusUid,
   aimOf,
+  actingUids,
   onTapHero,
 }: BattlefieldViewProps) => {
   const fieldRef = useRef<HTMLDivElement>(null);
   usePlateSpacing(fieldRef, heroes);
   useRowMoves(fieldRef, heroes);
   const focused = heroes.find((unit) => unit.uid === focusUid);
+  // 1-based place in the heroes' turn order, shown on each plate.
+  const turnOrderOf = new Map(
+    heroTurnOrder(heroes).map((unit, index) => [unit.uid, index + 1])
+  );
   /** Renders the heroes standing in one row. */
   const renderRow = (row: HeroRow) =>
     heroes
@@ -84,6 +92,8 @@ export const BattlefieldView = ({
           unit={unit}
           isFocused={unit.uid === focusUid}
           aim={aimOf(unit.uid)}
+          turnOrder={turnOrderOf.get(unit.uid) ?? 0}
+          isActing={actingUids.includes(unit.uid)}
           onTap={onTapHero}
         />
       ));

@@ -8,7 +8,8 @@
 // TURN ORDER
 //   Villain turn: play cards with energy, then End Turn.
 //   End Turn: discard hand -> villain upkeep (hex) -> heroes clear shroud
-//             -> each hero acts in order, then takes its own upkeep
+//             -> each hero acts, fastest first (see heroTurnOrder), then
+//                takes its own upkeep
 //             -> new villain turn (clear shroud, refill energy, draw).
 // ===================================================================
 
@@ -393,13 +394,15 @@ const heroActs = (state: CombatState, uid: number): CombatState => {
   return removeFallen(settled);
 };
 
-/** All heroes act in order, after their shroud from last round fades. */
-const runHeroTurns = (state: CombatState): CombatState => {
-  const ready = { ...state, heroes: state.heroes.map(clearShroud) };
-  return ready.heroes
-    .map((unit) => unit.uid)
-    .reduce<CombatState>(heroActs, ready);
-};
+/**
+ * The order heroes act in: fastest first; equal speeds go by uid (the
+ * order they joined the fight), so the order is always the same and the
+ * server's replay matches the player's screen.
+ */
+export const heroTurnOrder = (heroes: readonly HeroUnit[]): HeroUnit[] =>
+  [...heroes].sort(
+    (a, b) => getHero(b.heroId).speed - getHero(a.heroId).speed || a.uid - b.uid
+  );
 
 // --- VILLAIN TURN ---
 
@@ -415,23 +418,48 @@ const startPlayerTurn = (state: CombatState): CombatState =>
     CARDS_PER_TURN
   );
 
-/** Ends the villain's turn and plays out the heroes' turn. */
-export const endTurn = (state: CombatState): CombatState => {
-  if (combatOutcome(state) !== 'ongoing') return state;
+/**
+ * One beat of the end of a turn: the state right after it, and the hero
+ * who just acted (null for the villain's upkeep and the new turn).
+ */
+export type TurnStep = { actorUid: number | null; state: CombatState };
 
-  // 1. DISCARD THE HAND, THEN THE VILLAIN'S OWN UPKEEP (HEX TICKS)
+/**
+ * Ends the villain's turn, beat by beat, so the view can play the
+ * heroes' attacks one at a time. The last step is the final state.
+ * Empty when the fight is already over.
+ */
+export const endTurnSteps = (state: CombatState): TurnStep[] => {
+  if (combatOutcome(state) !== 'ongoing') return [];
+
+  // 1. DISCARD THE HAND, THE VILLAIN'S UPKEEP (HEX TICKS), AND THE
+  //    HEROES' SHROUD FROM LAST ROUND FADES
   const discarded: CombatState = {
     ...state,
     hand: [],
     discardPile: [...state.discardPile, ...state.hand],
     player: endOfTurnUpkeep(state.player),
+    heroes: state.heroes.map(clearShroud),
   };
-  if (combatOutcome(discarded) === 'lost') return discarded;
+  const steps: TurnStep[] = [{ actorUid: null, state: discarded }];
+  if (combatOutcome(discarded) === 'lost') return steps;
 
-  // 2. THE HORDE ACTS
-  const afterHeroes = runHeroTurns(discarded);
-  if (combatOutcome(afterHeroes) !== 'ongoing') return afterHeroes;
+  // 2. THE HORDE ACTS, FASTEST FIRST (imperative: each step builds on
+  //    the last, and fallen heroes or a fallen villain end it early)
+  let current = discarded;
+  for (const { uid } of heroTurnOrder(discarded.heroes)) {
+    const next = heroActs(current, uid);
+    if (next === current) continue;
+    steps.push({ actorUid: uid, state: next });
+    current = next;
+    if (combatOutcome(current) !== 'ongoing') return steps;
+  }
 
   // 3. NEXT VILLAIN TURN
-  return startPlayerTurn(afterHeroes);
+  steps.push({ actorUid: null, state: startPlayerTurn(current) });
+  return steps;
 };
+
+/** Ends the villain's turn and plays out the heroes' turn. */
+export const endTurn = (state: CombatState): CombatState =>
+  endTurnSteps(state).at(-1)?.state ?? state;

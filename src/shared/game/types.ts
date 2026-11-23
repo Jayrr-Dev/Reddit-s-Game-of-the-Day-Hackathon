@@ -111,6 +111,8 @@ export type HeroDef = {
   /** The row this hero takes when the fight starts. */
   row: HeroRow;
   size: HeroSize;
+  /** Who acts first on the heroes' turn: higher goes earlier. */
+  speed: number;
 };
 
 // --- COMBAT STATE ---

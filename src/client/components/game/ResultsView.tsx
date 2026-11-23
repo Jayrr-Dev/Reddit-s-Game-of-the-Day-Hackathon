@@ -20,6 +20,8 @@ export type ResultsViewProps = {
   submission: RunSubmission;
   entries: LeaderboardEntry[];
   onPlayAgain: () => void;
+  /** Returns to the title screen. */
+  onBackToMenu: () => void;
 };
 
 // --- HELPERS ---
@@ -46,6 +48,7 @@ export const ResultsView = ({
   submission,
   entries,
   onPlayAgain,
+  onBackToMenu,
 }: ResultsViewProps) => (
   <main className="flex h-full flex-col items-center justify-center gap-2 overflow-hidden p-3 animate-rise">
     <Glyph name="skull" className="size-9 text-blood" />
@@ -62,7 +65,12 @@ export const ResultsView = ({
       <StatTile label="Regions" value={stats.regionsConquered} />
     </div>
     <p className="text-xs text-ink-muted">{submissionNote(submission)}</p>
-    <Button onClick={onPlayAgain}>March again (practice)</Button>
+    <div className="flex flex-wrap justify-center gap-2">
+      <Button onClick={onPlayAgain}>March again (practice)</Button>
+      <Button variant="ghost" onClick={onBackToMenu}>
+        Back to menu
+      </Button>
+    </div>
     <section className="flex w-full max-w-xs flex-col items-center gap-1">
       <h2 className="font-display text-xs font-bold text-ink-muted">
         Today's tyrants · new horde at midnight UTC

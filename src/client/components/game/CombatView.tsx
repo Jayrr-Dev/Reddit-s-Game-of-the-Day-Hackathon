@@ -5,6 +5,8 @@
 //   TopBar        a thin strip: where you are, score, and the pause gear
 //   Battlefield   3 x 2 parallax scene; every hero wears its own plate
 //   HitNumbers    damage numbers that pop over the hero that was hit
+// End Turn plays the heroes' turn out (useHeroTurn): heroes attack in
+// speed order, staggered, before the real state takes over.
 //   Bottom band   PlayerCorner (portrait + HP) + discard pile | your
 //                 effects + energy | TurnCorner (draw pile + End Turn),
 //                 then the hand. A "+N" chip floats up when you gain
@@ -14,12 +16,17 @@
 // All game state comes from the engine; this view only routes input.
 // ===================================================================
 
-import { useState, type ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import type { RunAction } from '../../../shared/game/run';
 import type { CombatState } from '../../../shared/game/types';
 import type { CardBox, Point } from '../../hooks/useCardDrag';
 import { useCombatControls } from '../../hooks/useCombatControls';
-import { useHitPops } from '../../hooks/useHitPops';
+import { useHeroTurn } from '../../hooks/useHeroTurn';
+import {
+  useHitPops,
+  usePlayerHits,
+  type PlayerHitPop,
+} from '../../hooks/useHitPops';
 import { useSmoothPoint } from '../../hooks/useSmoothPoint';
 import { AimArrow } from './combat/AimArrow';
 import { BattlefieldView } from './combat/BattlefieldView';
@@ -63,14 +70,16 @@ const cardTop = ({ center, height }: CardBox): Point => ({
  */
 const PlayerBar = ({
   combat,
+  hits,
   onEndTurn,
 }: {
   combat: CombatState;
+  hits: readonly PlayerHitPop[];
   onEndTurn: () => void;
 }) => (
   <div className="grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-end gap-1 px-2">
     <div className="flex items-end gap-4 justify-self-start">
-      <PlayerCorner player={combat.player} />
+      <PlayerCorner player={combat.player} hits={hits} />
       <PileStack
         count={combat.discardPile.length}
         label="Cards in the discard pile"
@@ -113,16 +122,27 @@ const PauseSheet = ({
 // --- COMPONENT ---
 /** Renders one fight. */
 export const CombatView = ({
-  combat,
+  combat: realCombat,
   hue,
   where,
   score,
   onAction,
   pauseActions,
 }: CombatViewProps) => {
-  const controls = useCombatControls(combat, onAction);
+  // While the heroes' turn plays out, draw its beats instead of the
+  // real state, and route End Turn to the playback.
+  const heroTurn = useHeroTurn(realCombat, onAction);
+  const { endTurn: playHeroTurn } = heroTurn;
+  const combat = heroTurn.shown;
+  const routeAction = useCallback(
+    (action: RunAction) =>
+      action.type === 'endTurn' ? playHeroTurn() : onAction(action),
+    [playHeroTurn, onAction]
+  );
+  const controls = useCombatControls(combat, routeAction);
   const [isPaused, setIsPaused] = useState(false);
-  const pops = useHitPops(combat.heroes, combat.turn);
+  const pops = useHitPops(combat.heroes, combat.turn, heroTurn.isPlaying);
+  const playerHits = usePlayerHits(combat.player, combat.turn);
   const { drag } = controls;
   const draggedCardId = drag ? combat.hand[drag.handIndex] : undefined;
   // The arrow is hidden until it has a target, then flies out from the
@@ -146,13 +166,18 @@ export const CombatView = ({
           hue={hue}
           focusUid={controls.focusUid}
           aimOf={controls.aimOf}
+          actingUids={heroTurn.actingUids}
           onTapHero={controls.tapHero}
         />
         <HitNumbers pops={pops} />
       </div>
       {/* BOTTOM BAND: rises over the field's foreground */}
       <div className="relative z-30 -mt-8 flex shrink-0 flex-col">
-        <PlayerBar combat={combat} onEndTurn={controls.endTurn} />
+        <PlayerBar
+          combat={combat}
+          hits={playerHits}
+          onEndTurn={controls.endTurn}
+        />
         <FanHand
           combat={combat}
           heldIndex={controls.heldIndex}
@@ -180,6 +205,8 @@ export const CombatView = ({
           )}
         </>
       )}
+      {/* THE HEROES' TURN IS PLAYING: SWALLOW TAPS UNTIL IT ENDS */}
+      {heroTurn.isPlaying && <div className="absolute inset-0 z-50" />}
       {isPaused && (
         <PauseSheet
           where={where}

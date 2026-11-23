@@ -1,7 +1,8 @@
 // ===================================================================
 // HIT NUMBERS
 // The damage numbers that punch in over the hero that was hit, then
-// drift up and fade (see --animate-hit-pop). Damage a shroud soaked up
+// drift up and fade (see --animate-hit-pop). Several hits on one target
+// stack upward instead of overlapping. Damage a shroud soaked up
 // shows beside it, struck through and faded, with a shield.
 // ===================================================================
 
@@ -31,32 +32,72 @@ const BlockedPart = ({ blocked }: { blocked: number }) => (
   </span>
 );
 
-/** One pop, centred on the hit hero's body. */
-const Pop = ({ pop }: { pop: HitPop }) => (
-  <div
-    className="absolute -translate-x-1/2 -translate-y-1/2"
-    style={{ left: pop.point.x, top: pop.point.y }}
-  >
-    <div className="flex items-center gap-1 animate-hit-pop">
-      {pop.amount > 0 && (
-        <span
-          className={`${NUMBER_CLASS} text-surface-sunken`}
-          style={{ fontSize: popFontPx(pop.amount) }}
-        >
-          {pop.amount}
-        </span>
-      )}
-      {pop.blocked > 0 && <BlockedPart blocked={pop.blocked} />}
-    </div>
+/** One hit: the damage dealt, then any blocked part beside it. */
+export const HitLine = ({
+  amount,
+  blocked,
+}: {
+  amount: number;
+  blocked: number;
+}) => (
+  <div className="flex items-center gap-1 animate-hit-pop">
+    {amount > 0 && (
+      <span
+        className={`${NUMBER_CLASS} text-surface-sunken`}
+        style={{ fontSize: popFontPx(amount) }}
+      >
+        {amount}
+      </span>
+    )}
+    {blocked > 0 && <BlockedPart blocked={blocked} />}
   </div>
 );
 
+/**
+ * Several hits on one target, stacked: the newest sits at the bottom
+ * and pushes older ones up while they fade, so numbers never overlap.
+ */
+export const HitStack = ({
+  hits,
+}: {
+  hits: readonly { id: number; amount: number; blocked: number }[];
+}) => (
+  <div className="flex flex-col-reverse items-center">
+    {[...hits].reverse().map((hit) => (
+      <HitLine key={hit.id} amount={hit.amount} blocked={hit.blocked} />
+    ))}
+  </div>
+);
+
+/** Groups pops by hero, in the order they happened. */
+const popsByHero = (pops: readonly HitPop[]): HitPop[][] => [
+  ...pops
+    .reduce((groups, pop) => {
+      groups.set(pop.uid, [...(groups.get(pop.uid) ?? []), pop]);
+      return groups;
+    }, new Map<number, HitPop[]>())
+    .values(),
+];
+
 // --- COMPONENT ---
-/** Renders the current damage numbers over their heroes. */
+/**
+ * Renders the current damage numbers over their heroes; each hero's
+ * stack is anchored at its latest hit point and grows upward.
+ */
 export const HitNumbers = ({ pops }: { pops: HitPop[] }) => (
   <div className="pointer-events-none fixed inset-0 z-40">
-    {pops.map((pop) => (
-      <Pop key={pop.id} pop={pop} />
-    ))}
+    {popsByHero(pops).map((group) => {
+      const latest = group[group.length - 1];
+      if (!latest) return null;
+      return (
+        <div
+          key={latest.uid}
+          className="absolute -translate-x-1/2 -translate-y-full"
+          style={{ left: latest.point.x, top: latest.point.y + 24 }}
+        >
+          <HitStack hits={group} />
+        </div>
+      );
+    })}
   </div>
 );
