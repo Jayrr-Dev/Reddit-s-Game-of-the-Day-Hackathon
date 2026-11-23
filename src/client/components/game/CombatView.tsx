@@ -180,14 +180,18 @@ export const CombatView = ({
   const isAnimating = heroTurn.isPlaying || cardHits.isPlaying;
   // The type of the card played last colours its damage numbers.
   const [lastCardType, setLastCardType] = useState<CardType>();
-  // Counts charges, so each one re-keys (and replays) the speed lines.
-  const [chargeCount, setChargeCount] = useState(0);
+  // The last field move (Charge or Back Step) with a running count, so
+  // each one re-keys (and replays) its speed lines.
+  const [burst, setBurst] = useState<{ move: FieldMove; count: number }>();
   // Recent hits, so damage numbers are sized against a typical hit.
   const [hitHistory] = useState(() => new HitHistory());
   const routeAction = useCallback(
     (action: RunAction) => {
       if (action.type === 'endTurn') return playHeroTurn();
-      if (action.type === 'charge') setChargeCount((count) => count + 1);
+      if (action.type === 'charge' || action.type === 'backStep') {
+        const move = action.type;
+        setBurst((last) => ({ move, count: (last?.count ?? 0) + 1 }));
+      }
       if (action.type === 'playCard') {
         const cardId = realCombat.hand[action.handIndex];
         setLastCardType(cardId ? getCard(cardId).type : undefined);
@@ -239,7 +243,12 @@ export const CombatView = ({
           actingUids={heroTurn.actingUids}
           onTapHero={controls.tapHero}
         />
-        {chargeCount > 0 && <SpeedLines key={chargeCount} />}
+        {burst && (
+          <SpeedLines
+            key={burst.count}
+            direction={burst.move === 'charge' ? 'in' : 'out'}
+          />
+        )}
         <HitNumbers pops={pops} />
       </div>
       {/* BOTTOM BAND: rises over the field's foreground */}

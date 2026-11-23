@@ -1,9 +1,12 @@
 // ===================================================================
 // SPEED LINES
-// The Charge burst: thin wedges radiate from the edges toward the
-// middle of the battlefield, rush inward and fade (--animate-speed-lines),
-// like the villain lunging at the back row. Drawn as one SVG; the
-// wedges are generated, so there are no assets.
+// The field-move bursts, drawn as one SVG of generated wedges (no
+// assets):
+//   in   Charge: wedges rush inward from the edges and fade
+//        (--animate-speed-lines), like the villain lunging forward.
+//   out  Back Step: the same wedges fly outward while the field blurs
+//        for a beat (--animate-speed-lines-out, --animate-back-blur),
+//        like the villain leaping back.
 // ===================================================================
 
 // --- CONSTANTS ---
@@ -36,13 +39,30 @@ const WEDGES: readonly string[] = Array.from({ length: LINE_COUNT }, (_, i) => {
   return `M${tip} L${left} L${right} Z`;
 });
 
+// --- TYPES ---
+export type SpeedLinesDirection = 'in' | 'out';
+
+// --- CONSTANTS (ANIMATION) ---
+const LINES_ANIMATION: Record<SpeedLinesDirection, string> = {
+  in: 'animate-speed-lines',
+  out: 'animate-speed-lines-out',
+};
+
 // --- COMPONENT ---
 /** Plays the burst once; re-key it to play again. */
-export const SpeedLines = () => (
-  // Clipped to the battlefield, so the inward rush never covers the bars.
+export const SpeedLines = ({
+  direction = 'in',
+}: {
+  direction?: SpeedLinesDirection;
+}) => (
+  // Clipped to the battlefield, so the burst never covers the bars.
   <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden">
+    {/* BACK STEP: the whole field smears for a moment as you leap back */}
+    {direction === 'out' && (
+      <div className="absolute inset-0 animate-back-blur backdrop-blur-[3px]" />
+    )}
     <svg
-      className="size-full animate-speed-lines"
+      className={`size-full ${LINES_ANIMATION[direction]}`}
       viewBox="-100 -100 200 200"
       preserveAspectRatio="none"
       aria-hidden="true"
