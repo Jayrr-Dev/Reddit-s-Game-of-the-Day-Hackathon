@@ -1,15 +1,15 @@
 // ===================================================================
 // SHROUD GAIN POPS
-// When you gain Shroud, a "+N" chip in the same look as the Shroud
-// chip under it (shield + number) floats up and fades out.
+// When you gain Shroud, a bare shield + "+N" in the Shroud chip's
+// colour (no background) floats up and fades out.
 // ===================================================================
 
 import { STATUS_LOOK } from '../../../content/visuals';
 import { useGainPops } from '../../../hooks/useGainPops';
-import { Chip } from '../../ui/Chip';
+import { Glyph } from '../../ui/Glyph';
 
 // --- COMPONENT ---
-/** Renders the floating "+N Shroud" chips, anchored above their parent. */
+/** Renders the floating "+N" Shroud gains, anchored above their parent. */
 export const ShroudGainPops = ({ shroud }: { shroud: number }) => {
   const pops = useGainPops(shroud);
   return (
@@ -17,11 +17,10 @@ export const ShroudGainPops = ({ shroud }: { shroud: number }) => {
       {pops.map((pop) => (
         <span
           key={pop.id}
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 origin-bottom scale-150"
+          className={`absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-0.5 font-display text-xl font-black whitespace-nowrap animate-gain-float drop-shadow-[0_0_3px_black] [-webkit-text-stroke:1px_var(--color-surface-sunken)] ${STATUS_LOOK.shroud.toneClass}`}
         >
-          <span className="block animate-gain-float">
-            <Chip {...STATUS_LOOK.shroud} text={`+${pop.amount}`} />
-          </span>
+          <Glyph name={STATUS_LOOK.shroud.glyph} className="size-5" />
+          {`+${pop.amount}`}
         </span>
       ))}
     </div>
