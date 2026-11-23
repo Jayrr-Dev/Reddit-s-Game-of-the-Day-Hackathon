@@ -5,15 +5,18 @@
 //   Battlefield   3 x 2 parallax scene with every hero
 //   VillainDock   portrait + HP, energy, statuses, draw pile, End Turn
 //   FanHand       the cards in hand
-//   AimArrow      the targeting line while a card is dragged
+//   DraggedCard   the card under the finger while it is dragged
+//   AimArrow      the targeting line from that card to the aim tip
 // All game state comes from the engine; this view only routes input.
 // ===================================================================
 
 import type { RunAction } from '../../../shared/game/run';
 import type { CombatState } from '../../../shared/game/types';
+import type { CardBox, Point } from '../../hooks/useCardDrag';
 import { useCombatControls } from '../../hooks/useCombatControls';
 import { AimArrow } from './combat/AimArrow';
 import { BattlefieldView } from './combat/BattlefieldView';
+import { DraggedCard } from './combat/DraggedCard';
 import { FanHand } from './combat/FanHand';
 import { FocusHud } from './combat/FocusHud';
 import { VillainDock } from './combat/VillainDock';
@@ -28,6 +31,13 @@ export type CombatViewProps = {
   onAction: (action: RunAction) => void;
 };
 
+// --- HELPERS ---
+/** The middle of a card's top edge, where the arrow leaves the card. */
+const cardTop = ({ center, height }: CardBox): Point => ({
+  x: center.x,
+  y: center.y - height / 2,
+});
+
 // --- COMPONENT ---
 /** Renders one fight. */
 export const CombatView = ({
@@ -40,6 +50,7 @@ export const CombatView = ({
   const controls = useCombatControls(combat, onAction);
   const focused = combat.heroes.find((unit) => unit.uid === controls.focusUid);
   const { drag } = controls;
+  const draggedCardId = drag ? combat.hand[drag.handIndex] : undefined;
   const isHolding = controls.heldIndex !== null;
 
   return (
@@ -65,9 +76,21 @@ export const CombatView = ({
         heldIndex={controls.heldIndex}
         onTapCard={controls.tapCard}
         onPressCard={controls.pressCard}
+        draggedIndex={drag?.handIndex ?? null}
       />
-      {drag && (
-        <AimArrow from={drag.from} to={drag.to} isLive={controls.isDropLive} />
+      {drag && draggedCardId !== undefined && (
+        <>
+          <DraggedCard
+            cardId={draggedCardId}
+            attacker={combat.player}
+            box={drag.card}
+          />
+          <AimArrow
+            from={cardTop(drag.card)}
+            to={drag.tip}
+            isLive={controls.isDropLive}
+          />
+        </>
       )}
     </div>
   );
