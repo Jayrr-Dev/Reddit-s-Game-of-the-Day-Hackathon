@@ -2,7 +2,8 @@
 // USE HIT POPS
 // Watches HP and shroud and, whenever someone is hit, adds a "pop" that
 // floats over them for a moment: the HP lost, and the part their shroud
-// blocked. Two hooks share the same rules:
+// blocked. Heroes also pop what they gain from their own moves (healing,
+// Shroud, Wrath) in the same spot. Two hooks share the same rules:
 //   useHitPops     every hero, each pop placed over that hero's body
 //   usePlayerHits  the villain (drawn over the portrait)
 // Pops clear themselves after HIT_POP_MS.
@@ -13,8 +14,14 @@ import type { Combatant, HeroUnit } from '../../shared/game/types';
 import { HERO_ANCHOR_ATTR, HERO_UID_ATTR, type Point } from './useCardDrag';
 
 // --- TYPES ---
-/** What one hit did: HP lost and damage the shroud soaked up. */
-export type Hit = { amount: number; blocked: number };
+/** What a pop shows: a hit, or something a hero gained. */
+export type PopKind = 'hit' | 'heal' | 'shroud' | 'wrath';
+
+/**
+ * One pop's numbers: for a hit, HP lost and damage the shroud soaked up;
+ * for a gain, how much was gained (blocked is 0).
+ */
+export type Hit = { kind: PopKind; amount: number; blocked: number };
 
 /** A hit on screen (id keys it while it floats). */
 export type PlayerHitPop = Hit & { id: number };
@@ -26,12 +33,17 @@ export type HitPop = PlayerHitPop & {
 };
 
 /** What we remember about a hero between looks. */
-type HeroLook = { hp: number; shroud: number; point: Point | null };
+type HeroLook = {
+  hp: number;
+  shroud: number;
+  wrath: number;
+  point: Point | null;
+};
 
 // --- CONSTANTS ---
 /** How long a damage number stays on screen (matches --animate-hit-pop). */
 const HIT_POP_MS = 1400;
-const UNHURT = { hp: 0, shroud: 0 };
+const GONE = { hp: 0, shroud: 0, wrath: 0 };
 
 // --- HELPERS ---
 /**
@@ -47,7 +59,22 @@ const hitBetween = (
   const amount = Math.max(0, before.hp - after.hp);
   const shroudLost = Math.max(0, before.shroud - after.shroud);
   const blocked = countsBlocked ? shroudLost : 0;
-  return amount > 0 || blocked > 0 ? { amount, blocked } : null;
+  return amount > 0 || blocked > 0 ? { kind: 'hit', amount, blocked } : null;
+};
+
+/** What a hero gained between two looks (heal, Shroud, Wrath). */
+const gainsBetween = (
+  before: Omit<HeroLook, 'point'>,
+  after: Omit<HeroLook, 'point'>
+): Hit[] => {
+  const gains: [PopKind, number][] = [
+    ['heal', after.hp - before.hp],
+    ['shroud', after.shroud - before.shroud],
+    ['wrath', after.wrath - before.wrath],
+  ];
+  return gains
+    .filter(([, amount]) => amount > 0)
+    .map(([kind, amount]) => ({ kind, amount, blocked: 0 }));
 };
 
 /** The middle of a hero's drawn body, or null if it is not on screen. */
@@ -71,22 +98,36 @@ const lookAt = (
       {
         hp: unit.hp,
         shroud: unit.shroud,
+        wrath: unit.statuses.wrath,
         point: bodyPointOf(unit.uid) ?? before.get(unit.uid)?.point ?? null,
       },
     ])
   );
 
-/** Hero hits since the last look (a fallen hero counts as 0 HP). */
-const heroHitsSince = (
+/**
+ * Hero pops since the last look: hits, and on the heroes' turn what
+ * their moves gave them. A fallen hero counts as 0 HP.
+ */
+const heroPopsSince = (
   before: ReadonlyMap<number, HeroLook>,
   heroes: readonly HeroUnit[],
-  countsBlocked: boolean
+  countsBlocked: boolean,
+  isHeroTurn: boolean
 ): Omit<HitPop, 'id'>[] =>
   [...before].flatMap(([uid, old]) => {
-    const now = heroes.find((unit) => unit.uid === uid) ?? UNHURT;
+    const unit = heroes.find((hero) => hero.uid === uid);
+    const now = unit
+      ? { hp: unit.hp, shroud: unit.shroud, wrath: unit.statuses.wrath }
+      : GONE;
     const hit = hitBetween(old, now, countsBlocked);
+    const gains = isHeroTurn && unit ? gainsBetween(old, now) : [];
     const point = bodyPointOf(uid) ?? old.point;
-    return hit && point ? [{ ...hit, uid, point }] : [];
+    if (!point) return [];
+    return [...(hit ? [hit] : []), ...gains].map((pop) => ({
+      ...pop,
+      uid,
+      point,
+    }));
   });
 
 // --- SHARED HOOK ---
@@ -113,9 +154,9 @@ const usePopQueue = <T extends object>() => {
 
 // --- HOOKS ---
 /**
- * The damage numbers to show over heroes right now. `isHeroTurn` is
- * true while the heroes' turn plays out: heroes can't be struck then,
- * and their shroud fading is not a block.
+ * The numbers to show over heroes right now. `isHeroTurn` is true
+ * while the heroes' turn plays out: their shroud fading then is not a
+ * block, and what their moves give them (heal, Shroud, Wrath) pops.
  */
 export const useHitPops = (
   heroes: readonly HeroUnit[],
@@ -129,7 +170,12 @@ export const useHitPops = (
   // HERO CHANGES -> NEW POPS
   useEffect(() => {
     const countsBlocked = lastTurnRef.current === turn && !isHeroTurn;
-    const hits = heroHitsSince(lastLookRef.current, heroes, countsBlocked);
+    const hits = heroPopsSince(
+      lastLookRef.current,
+      heroes,
+      countsBlocked,
+      isHeroTurn
+    );
     lastLookRef.current = lookAt(heroes, lastLookRef.current);
     lastTurnRef.current = turn;
     if (hits.length > 0) add(hits);

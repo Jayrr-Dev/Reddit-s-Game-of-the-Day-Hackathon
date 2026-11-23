@@ -3,10 +3,12 @@
 // The damage numbers that punch in over the hero that was hit, then
 // drift up and fade (see --animate-hit-pop). Several hits on one target
 // stack upward instead of overlapping. Damage a shroud soaked up
-// shows beside it, struck through and faded, with a shield.
+// shows beside it, struck through and faded, with a shield. What a hero
+// gains from its own move (heal, Shroud, Wrath) pops as "+N" + icon.
 // ===================================================================
 
-import type { HitPop } from '../../../hooks/useHitPops';
+import { INTENT_LOOK, STATUS_LOOK, type Look } from '../../../content/visuals';
+import type { Hit, HitPop, PopKind } from '../../../hooks/useHitPops';
 import { popFontPx } from '../../../lib/popSize';
 import { Glyph } from '../../ui/Glyph';
 
@@ -17,6 +19,14 @@ const NUMBER_CLASS =
 
 /** Blocked damage is drawn smaller than damage dealt. */
 const BLOCKED_SCALE = 0.65;
+/** Gains (heal, Shroud, Wrath) are drawn a little smaller than hits. */
+const GAIN_SCALE = 0.75;
+/** Icon and colour of each kind of gain, from the shared look tables. */
+const GAIN_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
+  heal: INTENT_LOOK.heal,
+  shroud: STATUS_LOOK.shroud,
+  wrath: STATUS_LOOK.wrath,
+};
 
 // --- SUBCOMPONENTS ---
 /** The faded, struck-through blocked amount with its shield. */
@@ -53,18 +63,41 @@ export const HitLine = ({
   </div>
 );
 
+/** One gain: "+N" with its icon, in its colour. */
+const GainLine = ({ kind, amount }: { kind: PopKind; amount: number }) => {
+  if (kind === 'hit') return null;
+  const look = GAIN_LOOK[kind];
+  return (
+    <div
+      className={`flex items-center gap-0.5 font-display font-black whitespace-nowrap animate-hit-pop drop-shadow-[0_1px_2px_black] ${look.toneClass}`}
+      style={{ fontSize: popFontPx(amount, GAIN_SCALE) }}
+    >
+      {`+${amount}`}
+      <Glyph name={look.glyph} className="size-[0.8em]" />
+    </div>
+  );
+};
+
+/** A hit or a gain, whichever the pop is. */
+const PopLine = ({ hit }: { hit: Hit }) =>
+  hit.kind === 'hit' ? (
+    <HitLine amount={hit.amount} blocked={hit.blocked} />
+  ) : (
+    <GainLine kind={hit.kind} amount={hit.amount} />
+  );
+
 /**
- * Several hits on one target, stacked: the newest sits at the bottom
+ * Several pops on one target, stacked: the newest sits at the bottom
  * and pushes older ones up while they fade, so numbers never overlap.
  */
 export const HitStack = ({
   hits,
 }: {
-  hits: readonly { id: number; amount: number; blocked: number }[];
+  hits: readonly (Hit & { id: number })[];
 }) => (
   <div className="flex flex-col-reverse items-center">
     {[...hits].reverse().map((hit) => (
-      <HitLine key={hit.id} amount={hit.amount} blocked={hit.blocked} />
+      <PopLine key={hit.id} hit={hit} />
     ))}
   </div>
 );
