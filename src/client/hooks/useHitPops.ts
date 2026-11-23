@@ -17,6 +17,7 @@ import type {
   HeroUnit,
   StatusId,
 } from '../../shared/game/types';
+import type { HitHistory } from '../lib/popSize';
 import { HERO_ANCHOR_ATTR, HERO_UID_ATTR, type Point } from './useCardDrag';
 
 // --- TYPES ---
@@ -35,8 +36,11 @@ export type Hit = {
   source?: CardType | undefined;
 };
 
-/** A hit on screen (id keys it while it floats). */
-export type PlayerHitPop = Hit & { id: number };
+/**
+ * A pop on screen: id keys it while it floats, and `typical` is the
+ * typical hit when it appeared, which sets its size (see popSize.ts).
+ */
+export type PlayerHitPop = Hit & { id: number; typical: number };
 
 export type HitPop = PlayerHitPop & {
   uid: number;
@@ -135,7 +139,7 @@ const heroPopsSince = (
   countsBlocked: boolean,
   isHeroTurn: boolean,
   source: CardType | undefined
-): Omit<HitPop, 'id'>[] =>
+): Omit<HitPop, 'id' | 'typical'>[] =>
   [...before].flatMap(([uid, old]) => {
     const unit = heroes.find((hero) => hero.uid === uid);
     const now = unit
@@ -154,23 +158,38 @@ const heroPopsSince = (
   });
 
 // --- SHARED HOOK ---
-/** A list of pops that each remove themselves after HIT_POP_MS. */
-const usePopQueue = <T extends object>() => {
-  const [pops, setPops] = useState<(T & { id: number })[]>([]);
+/**
+ * A list of pops that each remove themselves after HIT_POP_MS. Each is
+ * stamped with the typical hit from `history`, then its damage is
+ * recorded there for the pops that follow.
+ */
+const usePopQueue = <T extends Hit>(history: HitHistory) => {
+  const [pops, setPops] = useState<(T & { id: number; typical: number })[]>([]);
   const nextIdRef = useRef(0);
 
   /** Shows new pops; each leaves on its own timer. */
-  const add = useCallback((fresh: readonly T[]) => {
-    const keyed = fresh.map((pop) => ({ ...pop, id: nextIdRef.current++ }));
-    setPops((current) => [...current, ...keyed]);
-    const ids = keyed.map((pop) => pop.id);
-    // No cleanup on purpose: a newer hit must not cancel this removal.
-    window.setTimeout(
-      () =>
-        setPops((current) => current.filter((pop) => !ids.includes(pop.id))),
-      HIT_POP_MS
-    );
-  }, []);
+  const add = useCallback(
+    (fresh: readonly T[]) => {
+      const typical = history.typical();
+      const keyed = fresh.map((pop) => ({
+        ...pop,
+        id: nextIdRef.current++,
+        typical,
+      }));
+      history.record(
+        fresh.filter((pop) => pop.kind === 'hit').map((pop) => pop.amount)
+      );
+      setPops((current) => [...current, ...keyed]);
+      const ids = keyed.map((pop) => pop.id);
+      // No cleanup on purpose: a newer hit must not cancel this removal.
+      window.setTimeout(
+        () =>
+          setPops((current) => current.filter((pop) => !ids.includes(pop.id))),
+        HIT_POP_MS
+      );
+    },
+    [history]
+  );
 
   return [pops, add] as const;
 };
@@ -188,9 +207,10 @@ export const useHitPops = (
   heroes: readonly HeroUnit[],
   turn: number,
   isHeroTurn: boolean,
-  cardType: CardType | undefined
+  cardType: CardType | undefined,
+  history: HitHistory
 ): HitPop[] => {
-  const [pops, add] = usePopQueue<Omit<HitPop, 'id'>>();
+  const [pops, add] = usePopQueue<Omit<HitPop, 'id' | 'typical'>>(history);
   const lastLookRef = useRef(new Map<number, HeroLook>());
   const lastTurnRef = useRef(turn);
 
@@ -226,9 +246,10 @@ const villainGainsBetween = (before: Combatant, after: Combatant): Hit[] =>
  */
 export const usePlayerHits = (
   player: Combatant,
-  turn: number
+  turn: number,
+  history: HitHistory
 ): PlayerHitPop[] => {
-  const [pops, add] = usePopQueue<Hit>();
+  const [pops, add] = usePopQueue<Hit>(history);
   const lastRef = useRef({ player, turn });
 
   // VILLAIN CHANGES -> NEW POPS

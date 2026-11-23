@@ -14,7 +14,7 @@ import {
   STATUS_LOOK,
   type Look,
 } from '../../../content/visuals';
-import type { Hit, HitPop, PopKind } from '../../../hooks/useHitPops';
+import type { HitPop, PlayerHitPop, PopKind } from '../../../hooks/useHitPops';
 import { popFontPx } from '../../../lib/popSize';
 import { Glyph } from '../../ui/Glyph';
 
@@ -51,11 +51,17 @@ const GAIN_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
 
 // --- SUBCOMPONENTS ---
 /** The faded, struck-through blocked amount with its shield. */
-const BlockedPart = ({ blocked }: { blocked: number }) => (
+const BlockedPart = ({
+  blocked,
+  typical,
+}: {
+  blocked: number;
+  typical: number;
+}) => (
   <span className="flex items-center gap-0.5 opacity-70 drop-shadow-[0_0_2px_black]">
     <span
       className="font-display font-black text-ink [-webkit-text-stroke:1px_var(--color-surface-sunken)] line-through decoration-hp decoration-[3px]"
-      style={{ fontSize: popFontPx(blocked, BLOCKED_SCALE) }}
+      style={{ fontSize: popFontPx(blocked, typical, BLOCKED_SCALE) }}
     >
       {blocked}
     </span>
@@ -67,10 +73,13 @@ const BlockedPart = ({ blocked }: { blocked: number }) => (
 export const HitLine = ({
   amount,
   blocked,
+  typical,
   source,
 }: {
   amount: number;
   blocked: number;
+  /** The typical hit when this one landed; sizes it (see popSize). */
+  typical: number;
   /** The card type that dealt it, which picks the colour. */
   source?: CardType | undefined;
 }) => (
@@ -79,25 +88,33 @@ export const HitLine = ({
       <span
         className={`${NUMBER_CLASS} text-surface-sunken`}
         style={{
-          fontSize: popFontPx(amount),
+          fontSize: popFontPx(amount, typical),
           ['--pop-tone' as string]: toneOf(source),
         }}
       >
         {amount}
       </span>
     )}
-    {blocked > 0 && <BlockedPart blocked={blocked} />}
+    {blocked > 0 && <BlockedPart blocked={blocked} typical={typical} />}
   </div>
 );
 
 /** One gain: "+N" with its icon, in its colour. */
-const GainLine = ({ kind, amount }: { kind: PopKind; amount: number }) => {
+const GainLine = ({
+  kind,
+  amount,
+  typical,
+}: {
+  kind: PopKind;
+  amount: number;
+  typical: number;
+}) => {
   if (kind === 'hit') return null;
   const look = GAIN_LOOK[kind];
   return (
     <div
       className={`flex items-center gap-0.5 font-display font-black whitespace-nowrap animate-hit-pop drop-shadow-[0_1px_2px_black] ${look.toneClass}`}
-      style={{ fontSize: popFontPx(amount, GAIN_SCALE) }}
+      style={{ fontSize: popFontPx(amount, typical, GAIN_SCALE) }}
     >
       {`+${amount}`}
       <Glyph name={look.glyph} className="size-[0.8em]" />
@@ -106,22 +123,23 @@ const GainLine = ({ kind, amount }: { kind: PopKind; amount: number }) => {
 };
 
 /** A hit or a gain, whichever the pop is. */
-const PopLine = ({ hit }: { hit: Hit }) =>
+const PopLine = ({ hit }: { hit: PlayerHitPop }) =>
   hit.kind === 'hit' ? (
-    <HitLine amount={hit.amount} blocked={hit.blocked} source={hit.source} />
+    <HitLine
+      amount={hit.amount}
+      blocked={hit.blocked}
+      typical={hit.typical}
+      source={hit.source}
+    />
   ) : (
-    <GainLine kind={hit.kind} amount={hit.amount} />
+    <GainLine kind={hit.kind} amount={hit.amount} typical={hit.typical} />
   );
 
 /**
  * Several pops on one target, stacked: the newest sits at the bottom
  * and pushes older ones up while they fade, so numbers never overlap.
  */
-export const HitStack = ({
-  hits,
-}: {
-  hits: readonly (Hit & { id: number })[];
-}) => (
+export const HitStack = ({ hits }: { hits: readonly PlayerHitPop[] }) => (
   <div className="flex flex-col-reverse items-center">
     {[...hits].reverse().map((hit) => (
       <PopLine key={hit.id} hit={hit} />

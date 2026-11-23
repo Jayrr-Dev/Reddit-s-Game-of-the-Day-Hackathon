@@ -33,6 +33,7 @@ import {
   type PlayerHitPop,
 } from '../../hooks/useHitPops';
 import { useSmoothPoint } from '../../hooks/useSmoothPoint';
+import { HitHistory } from '../../lib/popSize';
 import { AimArrow } from './combat/AimArrow';
 import { BattlefieldView } from './combat/BattlefieldView';
 import { ChargeButton } from './combat/ChargeButton';
@@ -165,6 +166,8 @@ export const CombatView = ({
   const [lastCardType, setLastCardType] = useState<CardType>();
   // Counts charges, so each one re-keys (and replays) the speed lines.
   const [chargeCount, setChargeCount] = useState(0);
+  // Recent hits, so damage numbers are sized against a typical hit.
+  const [hitHistory] = useState(() => new HitHistory());
   const routeAction = useCallback(
     (action: RunAction) => {
       if (action.type === 'endTurn') return playHeroTurn();
@@ -184,9 +187,10 @@ export const CombatView = ({
     combat.heroes,
     combat.turn,
     heroTurn.isPlaying,
-    lastCardType
+    lastCardType,
+    hitHistory
   );
-  const playerHits = usePlayerHits(combat.player, combat.turn);
+  const playerHits = usePlayerHits(combat.player, combat.turn, hitHistory);
   const { drag } = controls;
   const draggedCardId = drag ? combat.hand[drag.handIndex] : undefined;
   // The arrow is hidden until it has a target, then flies out from the

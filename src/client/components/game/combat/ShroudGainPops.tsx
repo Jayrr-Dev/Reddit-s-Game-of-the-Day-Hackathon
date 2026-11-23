@@ -6,7 +6,7 @@
 
 import { STATUS_LOOK } from '../../../content/visuals';
 import { useGainPops } from '../../../hooks/useGainPops';
-import { popFontPx } from '../../../lib/popSize';
+import { DEFAULT_TYPICAL_HIT, popFontPx } from '../../../lib/popSize';
 import { Glyph } from '../../ui/Glyph';
 
 // --- CONSTANTS ---
@@ -23,7 +23,9 @@ export const ShroudGainPops = ({ shroud }: { shroud: number }) => {
         <span
           key={pop.id}
           className={`absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-0.5 font-display font-black whitespace-nowrap animate-gain-float drop-shadow-[0_0_3px_black] [-webkit-text-stroke:1px_var(--color-surface-sunken)] ${STATUS_LOOK.shroud.toneClass}`}
-          style={{ fontSize: popFontPx(pop.amount, GAIN_SCALE) }}
+          style={{
+            fontSize: popFontPx(pop.amount, DEFAULT_TYPICAL_HIT, GAIN_SCALE),
+          }}
         >
           <Glyph name={STATUS_LOOK.shroud.glyph} className="size-[0.9em]" />
           {`+${pop.amount}`}
