@@ -100,22 +100,23 @@ export const useCombatControls = (
   /**
    * Would letting go play the card, and at whom? Targeted cards need a
    * snapped hero; untargeted hero cards need the tip on the field;
-   * self-only cards need a pull of SELF_PLAY_LIFT_PX.
+   * self-only cards need a pull of SELF_PLAY_LIFT_PX. `isAimed` says the
+   * arrow has a target; a pull-back keeps that aim (for the shrinking
+   * arrow) but cancels the drop.
    */
   const resolveDrop = (
     cardId: CardId,
     drop: Omit<CardDrop, 'handIndex'>,
     legal: number[]
-  ): { isLive: boolean; target: HeroAnchor | null } => {
+  ): { isLive: boolean; isAimed: boolean; target: HeroAnchor | null } => {
     const style = aimStyleOf(cardId);
-    if (style.isTargeted) {
-      const target = snapTarget(drop, legal);
-      return { isLive: target !== null, target };
+    if (!style.hasArrow) {
+      const isLive = drop.lift >= SELF_PLAY_LIFT_PX;
+      return { isLive, isAimed: false, target: null };
     }
-    const isLive = style.hasArrow
-      ? drop.isOverField
-      : drop.lift >= SELF_PLAY_LIFT_PX;
-    return { isLive, target: null };
+    const target = style.isTargeted ? snapTarget(drop, legal) : null;
+    const isAimed = style.isTargeted ? target !== null : drop.isOverField;
+    return { isLive: isAimed && drop.pullBack === 0, isAimed, target };
   };
 
   /** Drop: play the card if the drop is live, else put it back. */
@@ -141,20 +142,22 @@ export const useCombatControls = (
   const dropState =
     drag && dragCard !== undefined
       ? resolveDrop(dragCard, drag, legalUids)
-      : { isLive: false, target: null };
-  const hoverUid = dropState.target?.uid ?? null;
+      : { isLive: false, isAimed: false, target: null };
   const isDropLive = dropState.isLive;
+  // The lock lets go as soon as a pull-back starts.
+  const hoverUid = isDropLive ? (dropState.target?.uid ?? null) : null;
+  /** How far the arrow has shrunk back toward the card (0..1). */
+  const arrowRetract = drag?.pullBack ?? 0;
   /** How brightly the dragged card glows (self cards only). */
   const selfGlow = drag && dragStyle ? glowOf(dragStyle, drag.lift) : 0;
   /**
    * Where the arrow points: the snapped hero (or the tip, for untargeted
-   * cards). Null while nothing would be hit, or for self-only cards, so
+   * cards). Null while nothing is aimed at, or for self-only cards, so
    * the arrow stays hidden until it has somewhere to fly to.
    */
-  const aimPoint: Point | null =
-    isDropLive && dragStyle?.hasArrow
-      ? (dropState.target?.point ?? drag?.tip ?? null)
-      : null;
+  const aimPoint: Point | null = dropState.isAimed
+    ? (dropState.target?.point ?? drag?.tip ?? null)
+    : null;
 
   /** How a hero should look given the held card and the drag. */
   const aimOf = (uid: number): AimState => {
@@ -203,6 +206,7 @@ export const useCombatControls = (
     drag,
     aimPoint,
     isDropLive,
+    arrowRetract,
     selfGlow,
     aimOf,
     pressCard,

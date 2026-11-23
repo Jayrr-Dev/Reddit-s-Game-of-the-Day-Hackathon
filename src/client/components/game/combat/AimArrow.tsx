@@ -16,6 +16,8 @@ export type AimArrowProps = {
   to: Point;
   /** True when dropping here would play the card. */
   isLive: boolean;
+  /** 0 = full arrow; toward 1 it shrinks into the card and fades out. */
+  retract?: number;
 };
 
 type Dash = { start: Point; end: Point; width: number };
@@ -31,6 +33,8 @@ const WIDTH_AT_HEAD = 9;
 /** Arrow head length and half-width (px). */
 const HEAD_LENGTH = 20;
 const HEAD_HALF_WIDTH = 12;
+/** How thin a fully pulled-back arrow gets (share of its width). */
+const RETRACT_MIN_SCALE = 0.3;
 /** Radius of the lock ring drawn on a live target (px). */
 const LOCK_RING_RADIUS = 16;
 
@@ -65,6 +69,12 @@ const curveAt = (from: Point, to: Point, t: number): Point => {
 /** Linear blend between two numbers. */
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
+/** Linear blend between two points. */
+const lerpPoint = (a: Point, b: Point, t: number): Point => ({
+  x: lerp(a.x, b.x, t),
+  y: lerp(a.y, b.y, t),
+});
+
 /** Where the body stops (t), so it ends at the head's base. */
 const bodyEndT = (from: Point, to: Point): number => {
   const length = Math.hypot(to.x - from.x, to.y - from.y);
@@ -75,7 +85,7 @@ const bodyEndT = (from: Point, to: Point): number => {
  * The dashes along the curve, stopping at the head. Every other step is
  * a gap; each dash is wider than the one before.
  */
-const dashesFor = (from: Point, to: Point): Dash[] => {
+const dashesFor = (from: Point, to: Point, scale: number): Dash[] => {
   const endT = bodyEndT(from, to);
   return Array.from({ length: STEPS }, (_, step) => step)
     .filter((step) => step % 2 === 0)
@@ -85,7 +95,7 @@ const dashesFor = (from: Point, to: Point): Dash[] => {
       return {
         start: curveAt(from, to, t0 * endT),
         end: curveAt(from, to, t1 * endT),
-        width: lerp(WIDTH_AT_CARD, WIDTH_AT_HEAD, t1),
+        width: lerp(WIDTH_AT_CARD, WIDTH_AT_HEAD, t1) * scale,
       };
     });
 };
@@ -94,21 +104,21 @@ const dashesFor = (from: Point, to: Point): Dash[] => {
  * The arrow head: a triangle along the curve's final tangent, which for
  * a quadratic curve runs from the control point to the end point.
  */
-const headPoints = (from: Point, to: Point): string => {
+const headPoints = (from: Point, to: Point, scale: number): string => {
   const control = controlOf(from, to);
   const angle = Math.atan2(to.y - control.y, to.x - control.x);
   const base = {
-    x: to.x - Math.cos(angle) * HEAD_LENGTH,
-    y: to.y - Math.sin(angle) * HEAD_LENGTH,
+    x: to.x - Math.cos(angle) * HEAD_LENGTH * scale,
+    y: to.y - Math.sin(angle) * HEAD_LENGTH * scale,
   };
   const side = { x: -Math.sin(angle), y: Math.cos(angle) };
   const left = {
-    x: base.x + side.x * HEAD_HALF_WIDTH,
-    y: base.y + side.y * HEAD_HALF_WIDTH,
+    x: base.x + side.x * HEAD_HALF_WIDTH * scale,
+    y: base.y + side.y * HEAD_HALF_WIDTH * scale,
   };
   const right = {
-    x: base.x - side.x * HEAD_HALF_WIDTH,
-    y: base.y - side.y * HEAD_HALF_WIDTH,
+    x: base.x - side.x * HEAD_HALF_WIDTH * scale,
+    y: base.y - side.y * HEAD_HALF_WIDTH * scale,
   };
   return [to, left, right].map((p) => `${p.x},${p.y}`).join(' ');
 };
@@ -142,13 +152,19 @@ const ArrowBody = ({
 
 // --- COMPONENT ---
 /** Renders the tapered arrow, its head and (when live) a lock ring. */
-export const AimArrow = ({ from, to, isLive }: AimArrowProps) => {
+export const AimArrow = ({ from, to, isLive, retract = 0 }: AimArrowProps) => {
+  if (retract >= 1) return null;
+  // PULL-BACK: the tip slides back toward the card while the arrow thins
+  // and fades, all by the same share.
+  const end = lerpPoint(from, to, 1 - retract);
+  const scale = lerp(1, RETRACT_MIN_SCALE, retract);
   const color = isLive ? LIVE_COLOR : IDLE_COLOR;
-  const dashes = dashesFor(from, to);
-  const head = headPoints(from, to);
+  const dashes = dashesFor(from, end, scale);
+  const head = headPoints(from, end, scale);
   return (
     <svg
       className="pointer-events-none fixed inset-0 z-50 h-full w-full"
+      style={{ opacity: 1 - retract }}
       aria-hidden="true"
     >
       <ArrowBody dashes={dashes} color="black" extraWidth={3} opacity={0.5} />
