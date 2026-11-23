@@ -133,6 +133,7 @@ export const CombatView = ({
           onTapCard={controls.tapCard}
           onPressCard={controls.pressCard}
           draggedIndex={drag?.handIndex ?? null}
+          draggedBox={drag?.card ?? null}
         />
       </div>
       {drag && draggedCardId !== undefined && (
