@@ -46,6 +46,18 @@ const ROW_BOX: Record<HeroRow, { bottom: string; height: string }> = {
   back: { bottom: '63%', height: '25%' },
 };
 
+/**
+ * March-in stagger (ms): heroes enter one column after another, the
+ * back row a beat behind the front, so a new wave reads as a march.
+ */
+const MARCH_STAGGER_PER_COL_MS = 70;
+const MARCH_BACK_ROW_DELAY_MS = 90;
+
+/** When this hero starts marching in. */
+const marchDelayMs = (unit: HeroUnit): number =>
+  unit.col * MARCH_STAGGER_PER_COL_MS +
+  (unit.row === 'back' ? MARCH_BACK_ROW_DELAY_MS : 0);
+
 /** Gap (px) kept between the plate and the top of the drawing space. */
 const PLATE_REST_PX = 2;
 
@@ -167,7 +179,11 @@ export const HeroOnField = ({
       className={`pointer-events-auto absolute transition-all duration-700 ${AIM_CLASS[aim]}`}
       style={boxStyle(unit)}
     >
-      <div className="relative h-full w-full [container-type:size]">
+      {/* MARCHES IN ONCE, WHEN THE HERO FIRST APPEARS (A NEW WAVE) */}
+      <div
+        className="relative h-full w-full origin-bottom animate-hero-march [container-type:size]"
+        style={{ animationDelay: `${marchDelayMs(unit)}ms` }}
+      >
         <div
           className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${isActing ? 'animate-hero-lunge' : ''}`}
           style={bodyStyle}
