@@ -30,18 +30,26 @@ export type CardDrag = {
   card: CardBox;
   /** Where the arrow points (runs ahead of the finger). */
   tip: Point;
-  /** Heroes under the tip, nearest first. */
-  overUids: number[];
+  /** Every hero on the field, nearest to the tip first (for snapping). */
+  nearHeroes: HeroAnchor[];
   /** True when the tip is over the battlefield. */
   isOverField: boolean;
 };
 
+/** A hero and the point the arrow snaps to when aimed at it. */
+export type HeroAnchor = { uid: number; point: Point };
+
 /** Where a drag ended. */
-export type CardDrop = Pick<CardDrag, 'handIndex' | 'overUids' | 'isOverField'>;
+export type CardDrop = Pick<
+  CardDrag,
+  'handIndex' | 'nearHeroes' | 'isOverField'
+>;
 
 /** A press that has not moved far enough to count as a drag yet. */
 type Press = {
   handIndex: number;
+  /** The card's slot; it captures the pointer once the drag starts. */
+  element: HTMLElement;
   card: CardBox;
   grab: Point;
   pointerId: number;
@@ -54,11 +62,15 @@ const DRAG_START_PX = 10;
 const CARD_FOLLOW = 0.5;
 /** The aim tip travels this many times as far as the finger. */
 const AIM_GAIN = 1.8;
+/** Where on a hero's drawing the arrow lands (share of its height). */
+const ANCHOR_HEIGHT_SHARE = 0.5;
 /** Keep the tip this far inside the battlefield's top edge (px). */
 const TIP_INSET_PX = 6;
 /** Data attributes that mark drop targets in the DOM. */
 export const HERO_UID_ATTR = 'data-hero-uid';
 export const FIELD_ATTR = 'data-battlefield';
+/** Marks the box around a hero's drawing (the arrow lands at its middle). */
+export const HERO_ANCHOR_ATTR = 'data-hero-anchor';
 
 // --- GEOMETRY HELPERS ---
 /** Point a + (b - a) * scale. */
@@ -67,46 +79,53 @@ const extend = (a: Point, b: Point, scale: number): Point => ({
   y: a.y + (b.y - a.y) * scale,
 });
 
-/** Distance from a point to the centre of an element's box. */
-const distanceToCenter = (point: Point, element: Element): number => {
-  const rect = element.getBoundingClientRect();
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
-  return Math.hypot(point.x - cx, point.y - cy);
-};
+/** The battlefield's box, if it is on screen. */
+const fieldRect = (): DOMRect | undefined =>
+  document.querySelector(`[${FIELD_ATTR}]`)?.getBoundingClientRect();
 
 /** Keeps the tip inside the window and below the field's top edge. */
 const clampTip = (tip: Point): Point => {
-  const field = document.querySelector(`[${FIELD_ATTR}]`);
-  const top = field ? field.getBoundingClientRect().top + TIP_INSET_PX : 0;
+  const top = (fieldRect()?.top ?? 0) + TIP_INSET_PX;
   return {
     x: Math.min(Math.max(tip.x, 0), window.innerWidth - 1),
     y: Math.min(Math.max(tip.y, top), window.innerHeight - 1),
   };
 };
 
+/** True when a point lies inside a box. */
+const isInside = (point: Point, rect: DOMRect | undefined): boolean =>
+  rect !== undefined &&
+  point.x >= rect.left &&
+  point.x <= rect.right &&
+  point.y >= rect.top &&
+  point.y <= rect.bottom;
+
 // --- DOM PROBE ---
-/**
- * Reads what lies under the tip. Front and back heroes overlap, so we
- * collect every hero under it and sort them nearest-centre first: aim
- * higher (drag further) and the back-row hero wins.
- */
-const probe = (tip: Point): Pick<CardDrag, 'overUids' | 'isOverField'> => {
-  const elements = document.elementsFromPoint(tip.x, tip.y);
-  const heroes = elements.filter((element) =>
-    element.hasAttribute(HERO_UID_ATTR)
-  );
-  const overUids = heroes
-    .map((element) => ({
-      uid: Number(element.getAttribute(HERO_UID_ATTR)),
-      distance: distanceToCenter(tip, element),
-    }))
-    .sort((a, b) => a.distance - b.distance)
-    .map((hit) => hit.uid);
+/** Where the arrow lands on one hero: the middle of its drawing. */
+const anchorOf = (element: Element): HeroAnchor => {
+  const body = element.querySelector(`[${HERO_ANCHOR_ATTR}]`) ?? element;
+  const rect = body.getBoundingClientRect();
   return {
-    overUids,
-    isOverField: elements.some((element) => element.hasAttribute(FIELD_ATTR)),
+    uid: Number(element.getAttribute(HERO_UID_ATTR)),
+    point: {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height * ANCHOR_HEIGHT_SHARE,
+    },
   };
+};
+
+/**
+ * Every hero sorted by distance from the tip, so the arrow can snap to
+ * the nearest valid one. Aim higher (drag further) and the back row,
+ * whose anchors sit higher, comes out nearest.
+ */
+const probe = (tip: Point): Pick<CardDrag, 'nearHeroes' | 'isOverField'> => {
+  const distance = (anchor: HeroAnchor) =>
+    Math.hypot(anchor.point.x - tip.x, anchor.point.y - tip.y);
+  const nearHeroes = [...document.querySelectorAll(`[${HERO_UID_ATTR}]`)]
+    .map(anchorOf)
+    .sort((a, b) => distance(a) - distance(b));
+  return { nearHeroes, isOverField: isInside(tip, fieldRect()) };
 };
 
 /** True once the pointer has travelled far enough to count as a drag. */
@@ -153,38 +172,61 @@ export const useCardDrag = (
   useEffect(() => {
     if (!press) return;
     let current: CardDrag | null = null;
+    // False once the press has ended; late events are then ignored, so
+    // nothing can redraw the arrow after the finger has lifted.
+    let isActive = true;
 
     /** Follows the pointer, starting the drag once past the threshold. */
     const handleMove = (event: PointerEvent) => {
-      if (event.pointerId !== press.pointerId) return;
+      if (!isActive || event.pointerId !== press.pointerId) return;
       const pointer = { x: event.clientX, y: event.clientY };
       if (!current && !isPastThreshold(press.grab, pointer)) return;
       if (!current) {
         didDragRef.current = true;
+        // Capture only once it is a real drag, so a tap still clicks.
+        // Capture keeps the moves coming even if a host page (Reddit's
+        // app webview) would rather scroll.
+        press.element.setPointerCapture(press.pointerId);
         callbacksRef.current.onDragStart(press.handIndex);
       }
+      if (!isActive) return;
       current = dragAt(press, pointer);
       setDrag(current);
     };
 
-    /** Ends the press; a real drag reports where it was dropped. */
-    const handleEnd = (event: PointerEvent) => {
-      if (event.pointerId !== press.pointerId) return;
+    /**
+     * Ends the press. Only a pointerup drops the card; a cancel or the
+     * window losing focus just lets go, so the arrow is never left on
+     * screen. (Not lostpointercapture: taking capture from the browser's
+     * own touch capture fires it mid-drag.)
+     */
+    const handleEnd = (event: Event) => {
+      if (!isActive) return;
+      if (event instanceof PointerEvent && event.pointerId !== press.pointerId)
+        return;
+      isActive = false;
       if (current && event.type === 'pointerup') {
-        const { handIndex, overUids, isOverField } = current;
-        callbacksRef.current.onDrop({ handIndex, overUids, isOverField });
+        const { handIndex, nearHeroes, isOverField } = current;
+        callbacksRef.current.onDrop({ handIndex, nearHeroes, isOverField });
       }
+      current = null;
       setDrag(null);
       setPress(null);
     };
 
+    /** While a card is held, the finger must not scroll the page. */
+    const blockScroll = (event: TouchEvent) => {
+      if (current) event.preventDefault();
+    };
+
+    const endEvents = ['pointerup', 'pointercancel', 'blur'];
     window.addEventListener('pointermove', handleMove);
-    window.addEventListener('pointerup', handleEnd);
-    window.addEventListener('pointercancel', handleEnd);
+    window.addEventListener('touchmove', blockScroll, { passive: false });
+    endEvents.forEach((name) => window.addEventListener(name, handleEnd));
     return () => {
       window.removeEventListener('pointermove', handleMove);
-      window.removeEventListener('pointerup', handleEnd);
-      window.removeEventListener('pointercancel', handleEnd);
+      window.removeEventListener('touchmove', blockScroll);
+      endEvents.forEach((name) => window.removeEventListener(name, handleEnd));
     };
   }, [press]);
 
@@ -198,6 +240,7 @@ export const useCardDrag = (
     didDragRef.current = false;
     setPress({
       handIndex,
+      element: event.currentTarget,
       card: {
         center: {
           x: rect.left + rect.width / 2,
@@ -214,5 +257,6 @@ export const useCardDrag = (
   /** True when the last press on a card turned into a drag. */
   const wasDrag = () => didDragRef.current;
 
-  return { drag, pressCard, wasDrag } as const;
+  // A drag only exists while its press does (belt and braces).
+  return { drag: press ? drag : null, pressCard, wasDrag } as const;
 };

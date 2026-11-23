@@ -10,7 +10,13 @@
 // ===================================================================
 
 import { useState } from 'react';
-import { useCardDrag, type CardDrop } from './useCardDrag';
+import {
+  useCardDrag,
+  type CardDrag,
+  type CardDrop,
+  type HeroAnchor,
+  type Point,
+} from './useCardDrag';
 import { targetRuleOf } from '../../shared/game/battlefield';
 import { canPlayCard, targetsFor } from '../../shared/game/combat';
 import type { RunAction } from '../../shared/game/run';
@@ -30,11 +36,16 @@ const resolveFocus = (combat: CombatState, chosenUid: number | null) => {
 };
 
 /**
- * The hero a drag is aiming at: the nearest legal hero under the tip,
- * else the nearest hero at all (so an illegal aim still shows).
+ * The hero a drag snaps to: the nearest legal hero to the tip, but only
+ * while the tip is over the battlefield (back in the hand = no target).
  */
-const pickTarget = (overUids: number[], legalUids: number[]) =>
-  overUids.find((uid) => legalUids.includes(uid)) ?? overUids[0] ?? null;
+const snapTarget = (
+  drag: Pick<CardDrag, 'nearHeroes' | 'isOverField'>,
+  legalUids: number[]
+): HeroAnchor | null =>
+  drag.isOverField
+    ? (drag.nearHeroes.find((hero) => legalUids.includes(hero.uid)) ?? null)
+    : null;
 
 // --- HOOK ---
 /** Selection, focus and tap handlers for one fight. */
@@ -61,7 +72,7 @@ export const useCombatControls = (
     onAction({ type: 'playCard', handIndex, targetUid: targetUid ?? 0 });
 
   /** Drop: play at a legal hero (or the field, if untargeted), else cancel. */
-  const dropCard = ({ handIndex, overUids, isOverField }: CardDrop) => {
+  const dropCard = ({ handIndex, nearHeroes, isOverField }: CardDrop) => {
     setHeldIndex(null);
     const cardId = combat.hand[handIndex];
     if (cardId === undefined || !canPlayCard(combat, handIndex)) return;
@@ -70,10 +81,10 @@ export const useCombatControls = (
       return;
     }
     const legal = targetsFor(combat, cardId).map((unit) => unit.uid);
-    const overUid = pickTarget(overUids, legal);
-    if (overUid !== null && legal.includes(overUid)) {
-      setChosenUid(overUid);
-      playAt(handIndex, overUid);
+    const target = snapTarget({ nearHeroes, isOverField }, legal);
+    if (target) {
+      setChosenUid(target.uid);
+      playAt(handIndex, target.uid);
     }
   };
 
@@ -82,15 +93,18 @@ export const useCombatControls = (
     setHeldIndex(canPlayCard(combat, handIndex) ? handIndex : null);
 
   const { drag, pressCard, wasDrag } = useCardDrag(startDrag, dropCard);
-  const hoverUid = drag ? pickTarget(drag.overUids, legalUids) : null;
-  const isHoverLegal = hoverUid !== null && legalUids.includes(hoverUid);
-  // Would letting go play the card? Untargeted cards: anywhere on the
-  // field. Targeted cards: over a legal hero.
+  // SNAPPING: while dragging, the arrow locks onto the nearest legal hero.
   const dragCard = drag ? combat.hand[drag.handIndex] : undefined;
+  const isUntargeted =
+    dragCard !== undefined && targetRuleOf(dragCard) === 'none';
+  const snapped = drag && !isUntargeted ? snapTarget(drag, legalUids) : null;
+  const hoverUid = snapped?.uid ?? null;
+  // Would letting go play the card? Untargeted: anywhere on the field.
+  // Targeted: when the arrow has snapped to a legal hero.
   const isDropLive =
-    drag !== null &&
-    dragCard !== undefined &&
-    (targetRuleOf(dragCard) === 'none' ? drag.isOverField : isHoverLegal);
+    drag !== null && (isUntargeted ? drag.isOverField : snapped !== null);
+  /** Where the arrow points: the snapped hero, else the raw tip. */
+  const aimPoint: Point | null = snapped?.point ?? drag?.tip ?? null;
 
   /** How a hero should look given the held card and the drag. */
   const aimOf = (uid: number): AimState => {
@@ -133,6 +147,7 @@ export const useCombatControls = (
     focusUid,
     heldIndex: isHolding ? heldIndex : null,
     drag,
+    aimPoint,
     isDropLive,
     aimOf,
     pressCard,

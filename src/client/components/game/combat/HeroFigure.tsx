@@ -7,6 +7,7 @@
 // ===================================================================
 
 import type { HeroSize, HeroTier } from '../../../../shared/game/types';
+import { BODY_WIDTH } from '../../../lib/heroFigure';
 
 // --- TYPES ---
 export type HeroFigureProps = {
@@ -16,8 +17,6 @@ export type HeroFigureProps = {
 };
 
 // --- CONSTANTS ---
-/** Body width in viewBox units per hero size (height stays 100). */
-const BODY_WIDTH: Record<HeroSize, number> = { 1: 60, 2: 110, 3: 150 };
 
 // --- COMPONENT ---
 /** Draws the hero, feet at the bottom edge, head near the top. */
@@ -29,7 +28,7 @@ export const HeroFigure = ({ hue, tier, size }: HeroFigureProps) => {
   return (
     <svg
       viewBox={`0 0 ${width} 100`}
-      className="h-full w-auto overflow-visible"
+      className="h-full w-full overflow-visible"
       aria-hidden="true"
     >
       {/* SHADOW */}

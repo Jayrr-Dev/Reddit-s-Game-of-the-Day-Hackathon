@@ -1,8 +1,8 @@
 // ===================================================================
 // COMBAT VIEW
 // One fight, laid out to fit the 512 px Reddit post (top to bottom):
-//   FocusHud      location, focused hero's HP emblem, intent, statuses
-//   Battlefield   3 x 2 parallax scene with every hero
+//   FocusHud      location and score
+//   Battlefield   3 x 2 parallax scene; every hero wears its HP plate
 //   VillainDock   portrait + HP, energy, statuses, draw pile, End Turn
 //   FanHand       the cards in hand
 //   DraggedCard   the card under the finger while it is dragged
@@ -14,6 +14,7 @@ import type { RunAction } from '../../../shared/game/run';
 import type { CombatState } from '../../../shared/game/types';
 import type { CardBox, Point } from '../../hooks/useCardDrag';
 import { useCombatControls } from '../../hooks/useCombatControls';
+import { useSmoothPoint } from '../../hooks/useSmoothPoint';
 import { AimArrow } from './combat/AimArrow';
 import { BattlefieldView } from './combat/BattlefieldView';
 import { DraggedCard } from './combat/DraggedCard';
@@ -48,15 +49,16 @@ export const CombatView = ({
   onAction,
 }: CombatViewProps) => {
   const controls = useCombatControls(combat, onAction);
-  const focused = combat.heroes.find((unit) => unit.uid === controls.focusUid);
   const { drag } = controls;
   const draggedCardId = drag ? combat.hand[drag.handIndex] : undefined;
+  // The arrow glides onto the snapped hero rather than jumping to it.
+  const aimShown = useSmoothPoint(controls.aimPoint);
   const isHolding = controls.heldIndex !== null;
 
   return (
     <div className="flex h-full w-full flex-col">
-      <FocusHud where={where} score={score} unit={focused} />
-      <div className="relative -mt-12 flex min-h-0 flex-1 flex-col">
+      <FocusHud where={where} score={score} />
+      <div className="relative -mt-5 flex min-h-0 flex-1 flex-col">
         <BattlefieldView
           heroes={combat.heroes}
           hue={hue}
@@ -85,11 +87,13 @@ export const CombatView = ({
             attacker={combat.player}
             box={drag.card}
           />
-          <AimArrow
-            from={cardTop(drag.card)}
-            to={drag.tip}
-            isLive={controls.isDropLive}
-          />
+          {aimShown && (
+            <AimArrow
+              from={cardTop(drag.card)}
+              to={aimShown}
+              isLive={controls.isDropLive}
+            />
+          )}
         </>
       )}
     </div>
