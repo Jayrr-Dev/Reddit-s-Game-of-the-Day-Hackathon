@@ -2,12 +2,14 @@
 // PLAYER CORNER
 // The bottom-left corner: the villain's hooded portrait inside a ring
 // that drains with HP, and the HP number on a shield beside it. Hits
-// from the heroes shake the portrait and stack up above it.
+// from the heroes shake the portrait and stack up above it, and leave
+// their marks on it (see ImpactOverlay).
 // ===================================================================
 
 import type { Combatant } from '../../../../shared/game/types';
 import type { PlayerHitPop } from '../../../hooks/useHitPops';
 import { HitStack } from './HitNumbers';
+import { ImpactOverlay } from './ImpactOverlay';
 
 // --- COMPONENT ---
 /** Renders the portrait and HP shield. */
@@ -20,7 +22,7 @@ export const PlayerCorner = ({
 }) => {
   const degrees = Math.max(0, (player.hp / player.maxHp) * 360);
   // Keyed on the newest hit, so the portrait shakes once per hit.
-  const latestHitId = hits[hits.length - 1]?.id ?? -1;
+  const latestHitId = hits.findLast((hit) => hit.kind === 'hit')?.id ?? -1;
   return (
     <div
       className="relative size-14 shrink-0"
@@ -50,6 +52,8 @@ export const PlayerCorner = ({
           <circle cx="23" cy="18" r="1.4" className="fill-hp" />
         </svg>
       </div>
+      {/* HIT MARKS, ARROWS AND GLOWS OVER THE PORTRAIT */}
+      <ImpactOverlay pops={hits} />
       <span className="absolute -bottom-1 left-[calc(100%-1.25rem)] flex h-7 min-w-8 items-center justify-center px-1.5 bg-surface-raised pb-1 font-display text-sm font-black text-ink ring-1 ring-accent/70 [clip-path:polygon(0_0,100%_0,100%_60%,50%_100%,0_60%)]">
         {player.hp}
       </span>

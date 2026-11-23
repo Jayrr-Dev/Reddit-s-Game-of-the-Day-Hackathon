@@ -8,13 +8,9 @@
 // ===================================================================
 
 import type { CardType } from '../../../../shared/game/types';
-import {
-  CARD_LOOK,
-  INTENT_LOOK,
-  STATUS_LOOK,
-  type Look,
-} from '../../../content/visuals';
+import { CARD_LOOK, POP_LOOK } from '../../../content/visuals';
 import type { HitPop, PlayerHitPop, PopKind } from '../../../hooks/useHitPops';
+import { ImpactOverlay } from './ImpactOverlay';
 import { popFontPx } from '../../../lib/popSize';
 import { Glyph } from '../../ui/Glyph';
 
@@ -42,17 +38,6 @@ const TONE_STRENGTH = '78%';
 const BLOCKED_SCALE = 0.65;
 /** Gains (heal, Shroud, Wrath) are drawn a little smaller than hits. */
 const GAIN_SCALE = 0.75;
-/** Icon and colour of each kind of gain, from the shared look tables. */
-const GAIN_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
-  heal: INTENT_LOOK.heal,
-  shroud: STATUS_LOOK.shroud,
-  wrath: STATUS_LOOK.wrath,
-  might: STATUS_LOOK.might,
-  surge: STATUS_LOOK.surge,
-  piercing: STATUS_LOOK.piercing,
-  protection: STATUS_LOOK.protection,
-  momentum: STATUS_LOOK.momentum,
-};
 
 // --- SUBCOMPONENTS ---
 /** The part a Guard soaked up: small and faded, with a shield. */
@@ -124,7 +109,7 @@ const GainLine = ({
   typical: number;
 }) => {
   if (kind === 'hit') return null;
-  const look = GAIN_LOOK[kind];
+  const look = POP_LOOK[kind];
   return (
     <div
       className={`flex items-center gap-0.5 font-display font-black whitespace-nowrap animate-hit-pop drop-shadow-[0_1px_2px_black] ${look.toneClass}`}
@@ -136,9 +121,9 @@ const GainLine = ({
   );
 };
 
-/** A hit or a gain, whichever the pop is. */
+/** A hit or a gain, whichever the pop is (quiet pops show no number). */
 const PopLine = ({ hit }: { hit: PlayerHitPop }) =>
-  hit.kind === 'hit' ? (
+  hit.isQuiet ? null : hit.kind === 'hit' ? (
     <HitLine
       amount={hit.amount}
       blocked={hit.blocked}
@@ -182,12 +167,20 @@ export const HitNumbers = ({ pops }: { pops: HitPop[] }) => (
       const latest = group[group.length - 1];
       if (!latest) return null;
       return (
-        <div
-          key={latest.uid}
-          className="absolute -translate-x-1/2 -translate-y-full"
-          style={{ left: latest.point.x, top: latest.point.y + 24 }}
-        >
-          <HitStack hits={group} />
+        <div key={latest.uid}>
+          {/* EFFECTS OVER THE BODY (under the numbers) */}
+          <div
+            className="absolute size-28 -translate-x-1/2 -translate-y-1/2"
+            style={{ left: latest.point.x, top: latest.point.y }}
+          >
+            <ImpactOverlay pops={group} />
+          </div>
+          <div
+            className="absolute -translate-x-1/2 -translate-y-full"
+            style={{ left: latest.point.x, top: latest.point.y + 24 }}
+          >
+            <HitStack hits={group} />
+          </div>
         </div>
       );
     })}

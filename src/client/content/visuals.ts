@@ -9,9 +9,15 @@ import type { IntentKind } from '../../shared/game/describe';
 import type { StopKind } from '../../shared/game/kingdom';
 import type { CardRarity, CardType, StatusId } from '../../shared/game/types';
 import type { GlyphName } from '../components/ui/Glyph';
+import type { PopKind } from '../hooks/useHitPops';
 
 // --- TYPES ---
 export type Look = { glyph: GlyphName; toneClass: string };
+
+// --- HELPERS ---
+/** A look's colour as a CSS value (its text-* class names the token). */
+export const toneVarOf = (look: Look): string =>
+  `var(--color-${look.toneClass.replace(/^text-/, '')})`;
 
 // --- STATUSES ---
 export const STATUS_LOOK: Record<StatusId | 'shroud', Look> = {
@@ -120,3 +126,21 @@ const REGION_HUES: readonly number[] = [265, 25, 205, 355, 295, 42];
 /** The backdrop hue for a region index. */
 export const regionHue = (regionIndex: number): number =>
   REGION_HUES[regionIndex % REGION_HUES.length] ?? 265;
+
+// --- POPS ---
+/**
+ * Icon and colour of each kind of gain or debuff, from the shared look
+ * tables (also the glow colour in ImpactOverlay).
+ */
+export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
+  heal: INTENT_LOOK.heal,
+  shroud: STATUS_LOOK.shroud,
+  wrath: STATUS_LOOK.wrath,
+  might: STATUS_LOOK.might,
+  surge: STATUS_LOOK.surge,
+  piercing: STATUS_LOOK.piercing,
+  protection: STATUS_LOOK.protection,
+  momentum: STATUS_LOOK.momentum,
+  hex: STATUS_LOOK.hex,
+  dread: STATUS_LOOK.dread,
+};
