@@ -31,6 +31,7 @@ export const STATUS_LOOK: Record<StatusId | 'shroud', Look> = {
 export const INTENT_LOOK: Record<IntentKind, Look> = {
   attack: { glyph: 'sword', toneClass: 'text-hp' },
   curse: { glyph: 'skull', toneClass: 'text-hex' },
+  dread: STATUS_LOOK.dread,
   guard: { glyph: 'shield', toneClass: 'text-shroud' },
   buff: { glyph: 'flame', toneClass: 'text-wrath' },
   heal: { glyph: 'heart', toneClass: 'text-heal' },

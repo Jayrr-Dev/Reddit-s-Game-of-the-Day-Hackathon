@@ -128,40 +128,57 @@ export const cardNeedsTarget = (cardId: CardId): boolean =>
   targetRuleOf(cardId) !== 'none';
 
 // --- HERO INTENTS ---
-export type IntentKind = 'attack' | 'curse' | 'guard' | 'buff' | 'heal';
-export type Intent = { kind: IntentKind; text: string };
+export type IntentKind =
+  'attack' | 'curse' | 'dread' | 'guard' | 'buff' | 'heal';
+/**
+ * One intent chip: `text` is just the number (the icon says what it
+ * is); `label` spells it out for the tooltip.
+ */
+export type Intent = { kind: IntentKind; text: string; label: string };
 
 /** One intent chip for one effect of a hero's next move. */
 const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
   const scaled = (amount: number) => scaleByMight(amount, unit.might);
-  const allies = (who: 'self' | 'allies') => (who === 'allies' ? ' all' : '');
+  const toWhom = (who: 'self' | 'allies') =>
+    who === 'allies' ? ' to every hero' : '';
   switch (effect.kind) {
     case 'attack': {
       const perHit = attackDamage(scaled(effect.amount), unit);
-      return {
-        kind: 'attack',
-        text: effect.hits > 1 ? `${perHit}×${effect.hits}` : `${perHit}`,
-      };
+      const text = effect.hits > 1 ? `${perHit}×${effect.hits}` : `${perHit}`;
+      return { kind: 'attack', text, label: `Attack for ${text}` };
     }
-    case 'hex':
-      return { kind: 'curse', text: `Hex ${scaled(effect.amount)}` };
+    case 'hex': {
+      const amount = scaled(effect.amount);
+      return { kind: 'curse', text: `${amount}`, label: `Hex ${amount}` };
+    }
     case 'dread':
-      return { kind: 'curse', text: `Dread ${effect.amount}` };
-    case 'shroud':
+      return {
+        kind: 'dread',
+        text: `${effect.amount}`,
+        label: `Dread ${effect.amount}`,
+      };
+    case 'shroud': {
+      const amount = scaled(effect.amount);
       return {
         kind: 'guard',
-        text: `${scaled(effect.amount)}${allies(effect.who)}`,
+        text: `${amount}`,
+        label: `Guard ${amount}${toWhom(effect.who)}`,
       };
+    }
     case 'wrath':
       return {
         kind: 'buff',
-        text: `Wrath +${effect.amount}${allies(effect.who)}`,
+        text: `+${effect.amount}`,
+        label: `Wrath +${effect.amount}${toWhom(effect.who)}`,
       };
-    case 'heal':
+    case 'heal': {
+      const amount = scaled(effect.amount);
       return {
         kind: 'heal',
-        text: `${scaled(effect.amount)}${allies(effect.who)}`,
+        text: `${amount}`,
+        label: `Heal ${amount}${toWhom(effect.who)}`,
       };
+    }
   }
 };
 

@@ -64,6 +64,7 @@ export const IntentChips = ({ unit }: { unit: HeroUnit }) => {
           key={`${intent.kind}-${index}`}
           {...INTENT_LOOK[intent.kind]}
           text={intent.text}
+          title={`${name}: ${intent.label}`}
         />
       ))}
     </div>
