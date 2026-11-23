@@ -81,6 +81,8 @@ const REAIM_PX = 4;
 const CARD_FOLLOW = 0.5;
 /** The aim tip travels this many times as far as the finger. */
 const AIM_GAIN = 2.5;
+/** Sideways the tip moves less, so it doesn't fly off the screen edge. */
+const AIM_GAIN_SIDEWAYS = 1.6;
 /** Where on a hero's drawing the arrow lands (share of its height). */
 const ANCHOR_HEIGHT_SHARE = 0.5;
 /** Keep the tip this far inside the battlefield's top edge (px). */
@@ -90,12 +92,14 @@ export const HERO_UID_ATTR = 'data-hero-uid';
 export const FIELD_ATTR = 'data-battlefield';
 /** Marks the box around a hero's drawing (the arrow lands at its middle). */
 export const HERO_ANCHOR_ATTR = 'data-hero-anchor';
+/** Marks a hero's row ('front' or 'back'), for hit-testing. */
+export const HERO_ROW_ATTR = 'data-hero-row';
 
 // --- GEOMETRY HELPERS ---
-/** Point a + (b - a) * scale. */
-const extend = (a: Point, b: Point, scale: number): Point => ({
-  x: a.x + (b.x - a.x) * scale,
-  y: a.y + (b.y - a.y) * scale,
+/** Point a + (b - a) scaled per axis. */
+const extend = (a: Point, b: Point, scaleX: number, scaleY: number): Point => ({
+  x: a.x + (b.x - a.x) * scaleX,
+  y: a.y + (b.y - a.y) * scaleY,
 });
 
 /** The battlefield's box, if it is on screen. */
@@ -131,30 +135,57 @@ const isInside = (point: Point, rect: DOMRect | undefined): boolean =>
   point.y <= rect.bottom;
 
 // --- DOM PROBE ---
+/** One hero as the probe sees it: its anchor, drawing box and row. */
+type ProbedHero = HeroAnchor & { box: DOMRect; isFront: boolean };
+
 /** Where the arrow lands on one hero: the middle of its drawing. */
-const anchorOf = (element: Element): HeroAnchor => {
+const probeHero = (element: Element): ProbedHero => {
   const body = element.querySelector(`[${HERO_ANCHOR_ATTR}]`) ?? element;
-  const rect = body.getBoundingClientRect();
+  const box = body.getBoundingClientRect();
   return {
     uid: Number(element.getAttribute(HERO_UID_ATTR)),
     point: {
-      x: rect.left + rect.width / 2,
-      y: rect.top + rect.height * ANCHOR_HEIGHT_SHARE,
+      x: box.left + box.width / 2,
+      y: box.top + box.height * ANCHOR_HEIGHT_SHARE,
     },
+    box,
+    isFront: element.getAttribute(HERO_ROW_ATTR) === 'front',
   };
 };
 
+/** How much height counts against a hero within its row (vs width). */
+const ROW_HEIGHT_WEIGHT = 0.35;
+
 /**
- * Every hero sorted by distance from the tip, so the arrow can snap to
- * the nearest valid one. Aim higher (drag further) and the back row,
- * whose anchors sit higher, comes out nearest.
+ * Sorts heroes best aimed-at first. Height picks the ROW: with the tip
+ * below the top of the front row's drawings (their heads) the front row
+ * comes first, above it the back row does, so "aim higher to reach the
+ * back" holds and both rows get a wide band. Within a row, sideways
+ * distance picks the hero. (Plain nearest-anchor left the front hero a
+ * thin band when a back hero stood right behind it.)
  */
+const rankHeroes = (heroes: ProbedHero[], tip: Point): ProbedHero[] => {
+  const frontTops = heroes.filter((hero) => hero.isFront).map((h) => h.box.top);
+  const isAimingFront = tip.y >= Math.min(...frontTops, Infinity);
+  /** Lower is better: wrong-row heroes after right-row ones. */
+  const rank = (hero: ProbedHero): number => {
+    const tier = hero.isFront === isAimingFront ? 0 : 1_000_000;
+    const dx = Math.abs(hero.point.x - tip.x);
+    const dy = Math.abs(hero.point.y - tip.y) * ROW_HEIGHT_WEIGHT;
+    return tier + dx + dy;
+  };
+  return [...heroes].sort((a, b) => rank(a) - rank(b));
+};
+
+/** Every hero, best aimed-at first (see rankHeroes), for snapping. */
 const probe = (tip: Point): Pick<CardDrag, 'nearHeroes' | 'isOverField'> => {
-  const distance = (anchor: HeroAnchor) =>
-    Math.hypot(anchor.point.x - tip.x, anchor.point.y - tip.y);
-  const nearHeroes = [...document.querySelectorAll(`[${HERO_UID_ATTR}]`)]
-    .map(anchorOf)
-    .sort((a, b) => distance(a) - distance(b));
+  const heroes = [...document.querySelectorAll(`[${HERO_UID_ATTR}]`)].map(
+    probeHero
+  );
+  const nearHeroes = rankHeroes(heroes, tip).map(({ uid, point }) => ({
+    uid,
+    point,
+  }));
   return { nearHeroes, isOverField: isInside(tip, fieldRect()) };
 };
 
@@ -204,7 +235,10 @@ const dragAt = (
   };
   const isMovingUp = shift.y < 0;
   const tip = clampTip(
-    liftTip(extend(press.grab, pointer, AIM_GAIN), isMovingUp)
+    liftTip(
+      extend(press.grab, pointer, AIM_GAIN_SIDEWAYS, AIM_GAIN),
+      isMovingUp
+    )
   );
   // The glow follows height both ways, so a pull-back fades it smoothly.
   const lift = Math.max(0, -shift.y);

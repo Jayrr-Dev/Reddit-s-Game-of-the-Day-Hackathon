@@ -222,3 +222,23 @@ export const areaTargets = (
   isMelee: boolean
 ): HeroUnit[] =>
   isMelee ? heroes.filter((unit) => unit.row === 'front') : [...heroes];
+
+/**
+ * Every hero an area card would hit: hex and dread to ALL reach every
+ * hero, damage to ALL reaches the front row only unless the card has
+ * Reach (mirrors resolveTargets in combat.ts).
+ */
+export const cardAreaTargets = (
+  heroes: readonly HeroUnit[],
+  cardId: CardId
+): HeroUnit[] => {
+  const { effects, reach } = getCard(cardId);
+  const areaEffects = effects.filter(
+    (effect) => 'target' in effect && effect.target === 'all'
+  );
+  const hitsEveryone = areaEffects.some(
+    (effect) => effect.kind !== 'damage' || reach
+  );
+  if (areaEffects.length === 0) return [];
+  return areaTargets(heroes, !hitsEveryone);
+};

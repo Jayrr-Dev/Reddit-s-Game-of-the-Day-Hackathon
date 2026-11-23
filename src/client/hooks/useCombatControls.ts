@@ -4,11 +4,12 @@
 //   TAP   Tap a card. Cards with no target play at once; others are
 //         held. Tap a glowing hero to play the held card at it.
 //   DRAG  Press a card and drag up. How it aims depends on who it hits:
-//         HEROES  an arrow appears and snaps to the nearest legal hero
-//                 (untargeted: anywhere on the field); drop to play.
-//         SELF    no arrow; the card glows brighter the higher it is
-//                 pulled, and plays once pulled SELF_PLAY_LIFT_PX up.
-//         BOTH    the glow and the arrow; the arrow decides the play.
+//         ONE HERO  an arrow appears and snaps to a legal hero; drop to
+//                   play. (With a self effect too, the card also glows.)
+//         AREA      no arrow; every hero it would hit turns red, the
+//                   card glows brighter the higher it is pulled, and it
+//                   plays once pulled PULL_TO_PLAY_PX up.
+//         SELF      no arrow; the card glows the same way.
 // While a card is held, legal heroes glow and illegal ones dim. Tapping
 // or dropping on a hero focuses it (top HUD + camera lean).
 // ===================================================================
@@ -24,6 +25,7 @@ import {
 import {
   affectsHeroes,
   affectsSelf,
+  cardAreaTargets,
   targetRuleOf,
 } from '../../shared/game/battlefield';
 import type { CardId } from '../../shared/game/cards';
@@ -33,26 +35,37 @@ import type { CombatState } from '../../shared/game/types';
 
 // --- TYPES ---
 /** How a hero should look given the card the player is holding. */
-export type AimState = 'idle' | 'legal' | 'locked' | 'illegal';
+export type AimState =
+  | 'idle'
+  | 'legal'
+  | 'locked'
+  | 'illegal'
+  /** In an area card's blast (red); `struck` once letting go plays it. */
+  | 'marked'
+  | 'struck';
 
 /** How a dragged card aims (see the header). */
 type AimStyle = { hasArrow: boolean; hasGlow: boolean; isTargeted: boolean };
 
 // --- CONSTANTS ---
-/** How far (px) the finger must pull a self-only card up to play it. */
-const SELF_PLAY_LIFT_PX = 56;
+/** How far (px) the finger must pull an arrowless card up to play it. */
+const PULL_TO_PLAY_PX = 56;
 
 // --- HELPERS ---
 /** Works out whether a card shows an arrow, a glow, or both. */
-const aimStyleOf = (cardId: CardId): AimStyle => ({
-  hasArrow: affectsHeroes(cardId),
-  hasGlow: affectsSelf(cardId),
-  isTargeted: targetRuleOf(cardId) !== 'none',
-});
+const aimStyleOf = (cardId: CardId): AimStyle => {
+  const isTargeted = targetRuleOf(cardId) !== 'none';
+  const isArea = !isTargeted && affectsHeroes(cardId);
+  return {
+    hasArrow: isTargeted,
+    hasGlow: affectsSelf(cardId) || isArea,
+    isTargeted,
+  };
+};
 
-/** How brightly a self card glows: 0 at rest, 1 once it would play. */
+/** How brightly a card glows: 0 at rest, 1 once it would play. */
 const glowOf = (style: AimStyle, lift: number): number =>
-  style.hasGlow ? Math.min(1, lift / SELF_PLAY_LIFT_PX) : 0;
+  style.hasGlow ? Math.min(1, lift / PULL_TO_PLAY_PX) : 0;
 /** The focused hero if alive, else the first front-row hero. */
 const resolveFocus = (combat: CombatState, chosenUid: number | null) => {
   const isAlive = combat.heroes.some((unit) => unit.uid === chosenUid);
@@ -99,8 +112,7 @@ export const useCombatControls = (
 
   /**
    * Would letting go play the card, and at whom? Targeted cards need a
-   * snapped hero; untargeted hero cards need the tip on the field;
-   * self-only cards need a pull of SELF_PLAY_LIFT_PX. `isAimed` says the
+   * snapped hero; area and self cards need a pull of PULL_TO_PLAY_PX. `isAimed` says the
    * arrow has a target; a pull-back keeps that aim (for the shrinking
    * arrow) but cancels the drop.
    */
@@ -111,11 +123,11 @@ export const useCombatControls = (
   ): { isLive: boolean; isAimed: boolean; target: HeroAnchor | null } => {
     const style = aimStyleOf(cardId);
     if (!style.hasArrow) {
-      const isLive = drop.lift >= SELF_PLAY_LIFT_PX;
+      const isLive = drop.lift >= PULL_TO_PLAY_PX;
       return { isLive, isAimed: false, target: null };
     }
-    const target = style.isTargeted ? snapTarget(drop, legal) : null;
-    const isAimed = style.isTargeted ? target !== null : drop.isOverField;
+    const target = snapTarget(drop, legal);
+    const isAimed = target !== null;
     return { isLive: isAimed && drop.pullBack === 0, isAimed, target };
   };
 
@@ -159,11 +171,22 @@ export const useCombatControls = (
     ? (dropState.target?.point ?? drag?.tip ?? null)
     : null;
 
+  // AREA CARDS: the heroes in the blast, shown red while it is held.
+  const blastUids =
+    isHolding && targetRuleOf(heldCard) === 'none'
+      ? cardAreaTargets(combat.heroes, heldCard).map((unit) => unit.uid)
+      : [];
+  const isArea = blastUids.length > 0;
+
   /** How a hero should look given the held card and the drag. */
   const aimOf = (uid: number): AimState => {
     // Self-only cards (shroud, draw ...) leave every hero alone.
     const isAimingHeroes = isHolding && affectsHeroes(heldCard);
     if (!isAimingHeroes) return 'idle';
+    if (isArea) {
+      if (!blastUids.includes(uid)) return 'illegal';
+      return isDropLive ? 'struck' : 'marked';
+    }
     if (!legalUids.includes(uid)) return 'illegal';
     return uid === hoverUid ? 'locked' : 'legal';
   };

@@ -11,7 +11,11 @@ import { sizeOf } from '../../../../shared/game/battlefield';
 import { getHero } from '../../../../shared/game/heroes';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
 import type { HeroRow, HeroUnit } from '../../../../shared/game/types';
-import { HERO_ANCHOR_ATTR, HERO_UID_ATTR } from '../../../hooks/useCardDrag';
+import {
+  HERO_ANCHOR_ATTR,
+  HERO_ROW_ATTR,
+  HERO_UID_ATTR,
+} from '../../../hooks/useCardDrag';
 import type { AimState } from '../../../hooks/useCombatControls';
 import { figureAspect } from '../../../lib/heroFigure';
 import { HeroFigure } from './HeroFigure';
@@ -39,6 +43,8 @@ const AIM_CLASS: Record<AimState, string> = {
   legal: 'drop-shadow-[0_0_8px_var(--color-accent)]',
   locked: 'scale-105 drop-shadow-[0_0_14px_var(--color-accent)]',
   illegal: 'opacity-35 grayscale',
+  marked: 'drop-shadow-[0_0_8px_var(--color-hp)]',
+  struck: 'scale-105 drop-shadow-[0_0_16px_var(--color-hp)] brightness-110',
 };
 
 // --- HELPERS ---
@@ -80,7 +86,7 @@ export const HeroOnField = ({
     <button
       type="button"
       onClick={() => onTap(unit.uid)}
-      {...{ [HERO_UID_ATTR]: unit.uid }}
+      {...{ [HERO_UID_ATTR]: unit.uid, [HERO_ROW_ATTR]: unit.row }}
       aria-label={`${hero.name}, ${unit.hp} of ${unit.maxHp} HP, ${unit.row} row`}
       className={`pointer-events-auto absolute transition-all duration-700 ${AIM_CLASS[aim]}`}
       style={boxStyle(unit)}
