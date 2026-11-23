@@ -3,8 +3,9 @@
 // The title screen, laid out like a mobile game's main menu and sized
 // to the 512 px inline post (top to bottom):
 //   KeyArt + logo   the scene fills the top, the logo sits over it
-//   Badges          streak and today's best, top right
-//   Badge rail      small stat badges down the left edge
+//   Badges          date and best streak top left; streak and
+//                   today's best top right (kept off the menu so
+//                   they never cover the ranked note on a narrow post)
 //   Menu            stacked wide buttons: start, leaderboard, rules,
 //                   target dummies (practice)
 //   Ranked note     whether the next run counts
@@ -104,9 +105,13 @@ const Hero = ({ data }: { data: InitResponse }) => (
     </div>
     {/* FADE THE SCENE INTO THE MENU */}
     <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-surface" />
-    <p className="absolute left-3 top-2 text-[10px] font-semibold text-ink-muted">
-      {formatDailyKey(data.dailyKey)}
-    </p>
+    {/* DATE AND BEST STREAK (TOP LEFT) */}
+    <div className="absolute left-2 top-2 flex flex-col items-start gap-1.5">
+      <p className="pl-1 text-[10px] font-semibold text-ink-muted">
+        {formatDailyKey(data.dailyKey)}
+      </p>
+      <StatBadge glyph="crown" value={data.streak.best} label="Best streak" />
+    </div>
     <div className="absolute right-2 top-2 flex flex-col items-end gap-1.5">
       <StatBadge glyph="flame" value={data.streak.current} label="Streak" />
       <StatBadge
@@ -115,8 +120,10 @@ const Hero = ({ data }: { data: InitResponse }) => (
         label="Today's best"
       />
     </div>
-    {/* LOGO: centred in the sky, above the villain on the ridge */}
-    <div className="absolute inset-x-0 top-[12%] bottom-[45%] flex items-center justify-center">
+    {/* LOGO: centred in the sky, above the villain on the ridge. A wide
+        post crops the sky, which lifts the villain, so the logo rides
+        higher there (@xl) to keep the tagline off his hood. */}
+    <div className="absolute inset-x-0 top-[12%] bottom-[45%] flex @xl:top-[3%] @xl:bottom-[54%] items-center justify-center">
       <Logo />
     </div>
   </div>
@@ -159,14 +166,6 @@ export const IntroView = ({
     <main className="relative flex h-full flex-col overflow-hidden bg-surface">
       <Hero data={data} />
       <div className="relative flex shrink-0 justify-center px-3 pb-3">
-        {/* BADGE RAIL (LEFT EDGE) */}
-        <div className="absolute bottom-3 left-2 flex flex-col gap-1.5">
-          <StatBadge
-            glyph="crown"
-            value={data.streak.best}
-            label="Best streak"
-          />
-        </div>
         {/* MENU */}
         <nav className="flex w-full max-w-60 flex-col items-center gap-2">
           <Button variant="menuPrimary" onClick={onStart} disabled={isStarting}>

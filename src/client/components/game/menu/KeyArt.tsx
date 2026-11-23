@@ -32,13 +32,46 @@ const HordeHero = ({ x, scale }: { x: number; scale: number }) => (
   </g>
 );
 
-/** The castle on the skyline: towers, spires and a great hall. */
+/**
+ * Where the castle stands: off to the left on the far hills, so the
+ * centred logo never covers it (the low tower faces the logo). Its base runs down past the hill line
+ * (CASTLE_FOOTING) and is hidden by the hills, so it rises out of them
+ * instead of stopping on a flat edge. Kept low enough that a wide,
+ * short post (which crops the sky) never clips its spire.
+ */
+const CASTLE_AT = { x: 72, y: 180, scale: 0.66 } as const;
+const CASTLE_FOOTING = 40;
+
+/**
+ * The heroes' castle: a tall keep with a spire, flanking towers with
+ * conical roofs and crenellated curtain walls. Drawn about its base
+ * centre (y = 0 is the hill line); a few lit windows give it life.
+ */
 const Castle = () => (
-  <path
-    d="M126 170 V128 h8 v-10 l5 -14 l5 14 v10 h8 v-22 l8 -26 l8 26 v22 h10
-       v-40 l9 -34 l9 34 v40 h10 v-22 l8 -26 l8 26 v22 h8 v-10 l5 -14 l5 14
-       v10 h8 V170 Z"
-  />
+  <g
+    transform={`translate(${CASTLE_AT.x} ${CASTLE_AT.y}) scale(${CASTLE_AT.scale})`}
+  >
+    {/* CURTAIN WALLS, WITH BATTLEMENTS */}
+    <path
+      d={`M-30 ${CASTLE_FOOTING} V-26 h3 v-4 h3 v4 h3 v-4 h3 v4 h3 v-4 h3 v4
+          h3 v-4 h3 v4 h3 v-4 h3 v4 h3 v-4 h3 v4 h3 v-4 h3 v4 h3 v-4 h3 v4
+          h3 v-4 h3 v4 h3 v-4 h3 v4 V${CASTLE_FOOTING} Z`}
+    />
+    {/* FLANKING TOWERS AND THEIR ROOFS */}
+    <path d={`M-38 ${CASTLE_FOOTING} V-44 h14 V${CASTLE_FOOTING} Z`} />
+    <path d="M-40 -44 L-31 -62 L-22 -44 Z" />
+    <path d={`M24 ${CASTLE_FOOTING} V-30 h12 V${CASTLE_FOOTING} Z`} />
+    <path d="M22 -30 L30 -42 L38 -30 Z" />
+    {/* THE KEEP AND ITS SPIRE */}
+    <path d={`M-10 ${CASTLE_FOOTING} V-56 h20 V${CASTLE_FOOTING} Z`} />
+    <path d="M-12 -56 L0 -84 L12 -56 Z" />
+    {/* LIT WINDOWS */}
+    <g style={{ fill: 'var(--color-wrath)' }} opacity="0.8">
+      <rect x="-2" y="-46" width="4" height="6" rx="2" />
+      <rect x="-33" y="-34" width="3" height="5" rx="1.5" />
+      <rect x="28.5" y="-22" width="3" height="5" rx="1.5" />
+    </g>
+  </g>
 );
 
 /** The villain: a tall hooded cloak flaring in the wind. */
@@ -79,7 +112,7 @@ export const KeyArt = () => (
     <rect width="360" height="240" fill={`url(#${SKY_ID})`} />
     <rect width="360" height="240" fill={`url(#${SUN_ID})`} />
     {/* CASTLE ON THE SKYLINE */}
-    <g style={{ fill: 'var(--color-surface-raised)' }} opacity="0.9">
+    <g style={{ fill: 'var(--color-surface-raised)' }}>
       <Castle />
     </g>
     {/* FAR HILLS */}
