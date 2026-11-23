@@ -1,6 +1,7 @@
 // ===================================================================
 // STATUS ROW
-// Shroud plus any active statuses on a combatant, as chips.
+// Shroud plus any active statuses on a combatant, as square chips
+// (intents are round, so effects in play read apart from what's coming).
 // ===================================================================
 
 import { STATUS_INFO } from '../../../shared/game/describe';
@@ -23,6 +24,7 @@ export const StatusRow = ({ combatant }: { combatant: Combatant }) => {
       {hasShroud && (
         <Chip
           {...STATUS_LOOK.shroud}
+          shape="square"
           text={String(combatant.shroud)}
           title={STATUS_INFO.shroud.description}
         />
@@ -31,6 +33,7 @@ export const StatusRow = ({ combatant }: { combatant: Combatant }) => {
         <Chip
           key={id}
           {...STATUS_LOOK[id]}
+          shape="square"
           text={String(combatant.statuses[id])}
           title={`${STATUS_INFO[id].label}: ${STATUS_INFO[id].description}`}
         />
