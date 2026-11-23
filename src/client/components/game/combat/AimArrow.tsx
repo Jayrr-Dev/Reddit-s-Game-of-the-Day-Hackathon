@@ -1,10 +1,11 @@
 // ===================================================================
 // AIM ARROW
-// The targeting line drawn while a card is dragged: a curved, dashed
-// arrow from the card to the finger. It turns gold when letting go
-// would play the card, and stays grey when it would not.
-// Drawn in viewport pixels on a fixed, click-through layer, so it
-// lines up with the pointer however the scene is transformed.
+// The targeting line drawn while a card is dragged: a curved arrow from
+// the dragged card to the aim tip. It starts thin at the card and grows
+// thicker toward the head, drawn as a chain of dashes whose width
+// increases along the curve. It turns gold (with a lock ring) when
+// letting go would play the card, and stays grey when it would not.
+// Drawn in viewport pixels on a fixed, click-through layer.
 // ===================================================================
 
 import type { Point } from '../../../hooks/useCardDrag';
@@ -17,63 +18,132 @@ export type AimArrowProps = {
   isLive: boolean;
 };
 
+type Dash = { start: Point; end: Point; width: number };
+
 // --- CONSTANTS ---
-const ARROW_MARKER_ID = 'aim-arrow-head';
 const LIVE_COLOR = 'var(--color-accent)';
 const IDLE_COLOR = 'var(--color-ink-muted)';
+/** Number of steps the curve is cut into (every other one is drawn). */
+const STEPS = 22;
+/** Line width (px) at the card and at the head. */
+const WIDTH_AT_CARD = 1.5;
+const WIDTH_AT_HEAD = 9;
+/** Arrow head length and half-width (px). */
+const HEAD_LENGTH = 20;
+const HEAD_HALF_WIDTH = 12;
+/** Radius of the lock ring drawn on a live target (px). */
+const LOCK_RING_RADIUS = 16;
 
-// --- HELPERS ---
+// --- GEOMETRY ---
 /**
- * A quadratic curve whose bend sits straight above the card, so the
- * line rises out of the hand before swinging toward the target.
+ * A point on the quadratic curve at t (0..1). The bend sits straight
+ * above the card, so the line rises out of the hand before swinging
+ * toward the target.
  */
-const curvePath = (from: Point, to: Point): string =>
-  `M ${from.x} ${from.y} Q ${from.x} ${to.y} ${to.x} ${to.y}`;
+const curveAt = (from: Point, to: Point, t: number): Point => {
+  const control = { x: from.x, y: to.y };
+  const u = 1 - t;
+  return {
+    x: u * u * from.x + 2 * u * t * control.x + t * t * to.x,
+    y: u * u * from.y + 2 * u * t * control.y + t * t * to.y,
+  };
+};
+
+/** Linear blend between two numbers. */
+const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
+
+/**
+ * The dashes along the curve, stopping short of the head. Every other
+ * step is a gap; each dash is wider than the one before.
+ */
+const dashesFor = (from: Point, to: Point): Dash[] =>
+  Array.from({ length: STEPS }, (_, step) => step)
+    .filter((step) => step % 2 === 0)
+    .map((step) => {
+      const t0 = step / STEPS;
+      const t1 = (step + 1) / STEPS;
+      return {
+        start: curveAt(from, to, t0 * 0.92),
+        end: curveAt(from, to, t1 * 0.92),
+        width: lerp(WIDTH_AT_CARD, WIDTH_AT_HEAD, t1),
+      };
+    });
+
+/** The arrow head: a triangle pointing along the curve's last stretch. */
+const headPoints = (from: Point, to: Point): string => {
+  const back = curveAt(from, to, 0.9);
+  const angle = Math.atan2(to.y - back.y, to.x - back.x);
+  const base = {
+    x: to.x - Math.cos(angle) * HEAD_LENGTH,
+    y: to.y - Math.sin(angle) * HEAD_LENGTH,
+  };
+  const side = { x: -Math.sin(angle), y: Math.cos(angle) };
+  const left = {
+    x: base.x + side.x * HEAD_HALF_WIDTH,
+    y: base.y + side.y * HEAD_HALF_WIDTH,
+  };
+  const right = {
+    x: base.x - side.x * HEAD_HALF_WIDTH,
+    y: base.y - side.y * HEAD_HALF_WIDTH,
+  };
+  return [to, left, right].map((p) => `${p.x},${p.y}`).join(' ');
+};
+
+// --- SUBCOMPONENTS ---
+/** One pass of the dashed body (used for the shadow and the colour). */
+const ArrowBody = ({
+  dashes,
+  color,
+  extraWidth = 0,
+  opacity = 1,
+}: {
+  dashes: Dash[];
+  color: string;
+  extraWidth?: number;
+  opacity?: number;
+}) => (
+  <g stroke={color} strokeLinecap="round" strokeOpacity={opacity}>
+    {dashes.map((dash, index) => (
+      <line
+        key={index}
+        x1={dash.start.x}
+        y1={dash.start.y}
+        x2={dash.end.x}
+        y2={dash.end.y}
+        strokeWidth={dash.width + extraWidth}
+      />
+    ))}
+  </g>
+);
 
 // --- COMPONENT ---
-/** Renders the arrow, or nothing until the drag has moved. */
+/** Renders the tapered arrow, its head and (when live) a lock ring. */
 export const AimArrow = ({ from, to, isLive }: AimArrowProps) => {
   const color = isLive ? LIVE_COLOR : IDLE_COLOR;
+  const dashes = dashesFor(from, to);
+  const head = headPoints(from, to);
   return (
     <svg
       className="pointer-events-none fixed inset-0 z-50 h-full w-full"
       aria-hidden="true"
     >
-      <defs>
-        <marker
-          id={ARROW_MARKER_ID}
-          viewBox="0 0 10 10"
-          refX="5"
-          refY="5"
-          markerWidth="4"
-          markerHeight="4"
-          orient="auto-start-reverse"
-        >
-          <path d="M0 0 L10 5 L0 10 z" fill={color} />
-        </marker>
-      </defs>
-      <path
-        d={curvePath(from, to)}
-        fill="none"
+      <ArrowBody dashes={dashes} color="black" extraWidth={3} opacity={0.5} />
+      <polygon
+        points={head}
+        fill="black"
+        fillOpacity="0.5"
         stroke="black"
         strokeOpacity="0.5"
-        strokeWidth="8"
-        strokeLinecap="round"
+        strokeWidth="3"
+        strokeLinejoin="round"
       />
-      <path
-        d={curvePath(from, to)}
-        fill="none"
-        stroke={color}
-        strokeWidth="4"
-        strokeLinecap="round"
-        strokeDasharray="10 7"
-        markerEnd={`url(#${ARROW_MARKER_ID})`}
-      />
+      <ArrowBody dashes={dashes} color={color} />
+      <polygon points={head} fill={color} />
       {isLive && (
         <circle
           cx={to.x}
           cy={to.y}
-          r="14"
+          r={LOCK_RING_RADIUS}
           fill="none"
           stroke={color}
           strokeWidth="2.5"

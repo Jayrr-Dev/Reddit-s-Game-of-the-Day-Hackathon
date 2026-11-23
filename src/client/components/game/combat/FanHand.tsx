@@ -17,6 +17,8 @@ export type FanHandProps = {
   onTapCard: (handIndex: number) => void;
   /** Pointer down on a card: may become a drag (see useCardDrag). */
   onPressCard: (handIndex: number, event: PointerEvent<HTMLElement>) => void;
+  /** The card being dragged; its slot is left empty while it is lifted. */
+  draggedIndex: number | null;
 };
 
 // --- CONSTANTS ---
@@ -32,6 +34,7 @@ export const FanHand = ({
   heldIndex,
   onTapCard,
   onPressCard,
+  draggedIndex,
 }: FanHandProps) => {
   const middle = (combat.hand.length - 1) / 2;
   return (
@@ -39,12 +42,13 @@ export const FanHand = ({
       {combat.hand.map((cardId, index) => {
         const offset = index - middle;
         const isHeld = index === heldIndex;
+        const isLifted = index === draggedIndex;
         return (
           <div
             // A hand can hold duplicates, so the slot index is part of the key.
             key={`${combat.turn}-${index}-${cardId}`}
             // touch-none: a press on a card drags it instead of scrolling.
-            className={`flex min-w-0 shrink basis-[4.25rem] touch-none select-none justify-center ${isHeld ? 'z-10' : ''}`}
+            className={`flex min-w-0 shrink basis-[4.25rem] touch-none select-none justify-center ${isHeld ? 'z-10' : ''} ${isLifted ? 'opacity-0' : ''}`}
             onPointerDown={(event) => onPressCard(index, event)}
             style={{
               transform: `translateY(${Math.abs(offset) * DROP_PER_CARD}px) rotate(${offset * TILT_PER_CARD}deg)`,

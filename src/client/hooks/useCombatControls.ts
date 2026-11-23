@@ -29,6 +29,13 @@ const resolveFocus = (combat: CombatState, chosenUid: number | null) => {
   return front?.uid ?? combat.heroes[0]?.uid ?? null;
 };
 
+/**
+ * The hero a drag is aiming at: the nearest legal hero under the tip,
+ * else the nearest hero at all (so an illegal aim still shows).
+ */
+const pickTarget = (overUids: number[], legalUids: number[]) =>
+  overUids.find((uid) => legalUids.includes(uid)) ?? overUids[0] ?? null;
+
 // --- HOOK ---
 /** Selection, focus and tap handlers for one fight. */
 export const useCombatControls = (
@@ -54,7 +61,7 @@ export const useCombatControls = (
     onAction({ type: 'playCard', handIndex, targetUid: targetUid ?? 0 });
 
   /** Drop: play at a legal hero (or the field, if untargeted), else cancel. */
-  const dropCard = ({ handIndex, overUid, isOverField }: CardDrop) => {
+  const dropCard = ({ handIndex, overUids, isOverField }: CardDrop) => {
     setHeldIndex(null);
     const cardId = combat.hand[handIndex];
     if (cardId === undefined || !canPlayCard(combat, handIndex)) return;
@@ -63,6 +70,7 @@ export const useCombatControls = (
       return;
     }
     const legal = targetsFor(combat, cardId).map((unit) => unit.uid);
+    const overUid = pickTarget(overUids, legal);
     if (overUid !== null && legal.includes(overUid)) {
       setChosenUid(overUid);
       playAt(handIndex, overUid);
@@ -74,7 +82,7 @@ export const useCombatControls = (
     setHeldIndex(canPlayCard(combat, handIndex) ? handIndex : null);
 
   const { drag, pressCard, wasDrag } = useCardDrag(startDrag, dropCard);
-  const hoverUid = drag?.overUid ?? null;
+  const hoverUid = drag ? pickTarget(drag.overUids, legalUids) : null;
   const isHoverLegal = hoverUid !== null && legalUids.includes(hoverUid);
   // Would letting go play the card? Untargeted cards: anywhere on the
   // field. Targeted cards: over a legal hero.
