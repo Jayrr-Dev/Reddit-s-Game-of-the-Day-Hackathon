@@ -23,7 +23,8 @@ const prefersReducedMotion = (): boolean =>
 /**
  * Returns `target` eased over a few frames; null while there is none.
  * When a target appears, the point flies out from `origin` (if given),
- * so the arrow grows from the card instead of popping in.
+ * so the arrow grows from the card instead of popping in; when it goes,
+ * the point pulls back into `origin`. A null origin hides it at once.
  */
 export const useSmoothPoint = (
   target: Point | null,
@@ -37,10 +38,16 @@ export const useSmoothPoint = (
   });
 
   // ANIMATION LOOP: imperative on purpose (timing is the whole point).
+  // With a target the point glides onto it; when the target goes away
+  // the point pulls back into the origin (the card), then disappears.
   useEffect(() => {
-    // No target (or less motion wanted): the render below returns the
-    // target as is; just forget the old point so the next one flies in.
-    if (!target || prefersReducedMotion()) {
+    const goal = target ?? originRef.current;
+    const isRetracting = !target;
+    if (
+      !goal ||
+      prefersReducedMotion() ||
+      (isRetracting && !shownRef.current)
+    ) {
       shownRef.current = null;
       const frame = requestAnimationFrame(() => setShown(null));
       return () => cancelAnimationFrame(frame);
@@ -48,16 +55,17 @@ export const useSmoothPoint = (
     // A new target with nothing shown yet starts from the origin.
     shownRef.current ??= originRef.current;
     let frame = 0;
-    /** Moves one step toward the target, then schedules the next. */
+    /** Moves one step toward the goal, then schedules the next. */
     const step = () => {
-      const from = shownRef.current ?? target;
+      const from = shownRef.current ?? goal;
       const next = {
-        x: from.x + (target.x - from.x) * EASE_PER_FRAME,
-        y: from.y + (target.y - from.y) * EASE_PER_FRAME,
+        x: from.x + (goal.x - from.x) * EASE_PER_FRAME,
+        y: from.y + (goal.y - from.y) * EASE_PER_FRAME,
       };
       const isSettled =
-        Math.hypot(target.x - next.x, target.y - next.y) < SETTLE_PX;
-      shownRef.current = isSettled ? target : next;
+        Math.hypot(goal.x - next.x, goal.y - next.y) < SETTLE_PX;
+      // Fully pulled back: hide it, so the next aim flies out fresh.
+      shownRef.current = isSettled ? (isRetracting ? null : goal) : next;
       setShown(shownRef.current);
       if (!isSettled) frame = requestAnimationFrame(step);
     };
@@ -65,8 +73,9 @@ export const useSmoothPoint = (
     return () => cancelAnimationFrame(frame);
   }, [target?.x, target?.y]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Hidden with no target; instant with reduced motion; else eased.
-  if (!target) return null;
-  if (prefersReducedMotion()) return target;
+  // Gone once the drag ends; instant with reduced motion; else eased
+  // (including the pull-back while the target is gone).
+  if (!origin) return null;
+  if (target && prefersReducedMotion()) return target;
   return shown;
 };

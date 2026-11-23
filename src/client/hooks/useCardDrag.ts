@@ -10,7 +10,10 @@
 //      (it stays low, near the hand) and the AIM TIP runs ahead of the
 //      finger (AIM_GAIN times the drag). So the arrow aims on its own:
 //      a short drag reaches the front row, a longer one the back row.
-//   4. Pointer up reports the drop (card, heroes under the tip, and
+//   4. Dragging back DOWN cancels the aim at once: the lock and glow go
+//      and the arrow pulls back into the card, so letting go returns the
+//      card to the hand. Moving up again re-aims.
+//   5. Pointer up reports the drop (card, heroes under the tip, and
 //      whether the tip is on the battlefield) and the drag ends.
 // The cards themselves use `touch-action: none`, so only a press that
 // starts on a card is captured; the rest of the post still scrolls.
@@ -62,6 +65,10 @@ type Press = {
 // --- CONSTANTS ---
 /** How far (px) a press must move before it turns into a drag. */
 const DRAG_START_PX = 4;
+/** Pulling down this far (px) from the highest point cancels the aim. */
+const PULL_BACK_PX = 8;
+/** Moving up this far (px) after a pull-back re-aims. */
+const REAIM_PX = 4;
 /** The card travels this share of the finger's path (stays low). */
 const CARD_FOLLOW = 0.5;
 /** The aim tip travels this many times as far as the finger. */
@@ -147,8 +154,33 @@ const probe = (tip: Point): Pick<CardDrag, 'nearHeroes' | 'isOverField'> => {
 const isPastThreshold = (from: Point, to: Point): boolean =>
   Math.hypot(to.x - from.x, to.y - from.y) >= DRAG_START_PX;
 
+/**
+ * Tracks whether the finger is pulling the card back down. `turnY` is
+ * the highest point while aiming, or the lowest point while pulled
+ * back, so each direction change is measured from where it turned.
+ */
+type PullTracker = { isPulledBack: boolean; turnY: number };
+
+/** Updates the pull-back state for a new pointer height. */
+const trackPull = (pull: PullTracker, y: number): PullTracker => {
+  if (!pull.isPulledBack) {
+    const peak = Math.min(pull.turnY, y);
+    return y - peak >= PULL_BACK_PX
+      ? { isPulledBack: true, turnY: y }
+      : { isPulledBack: false, turnY: peak };
+  }
+  const low = Math.max(pull.turnY, y);
+  return low - y >= REAIM_PX
+    ? { isPulledBack: false, turnY: y }
+    : { isPulledBack: true, turnY: low };
+};
+
 /** The drag state for a pointer position. */
-const dragAt = (press: Press, pointer: Point): CardDrag => {
+const dragAt = (
+  press: Press,
+  pointer: Point,
+  isPulledBack: boolean
+): CardDrag => {
   const shift = { x: pointer.x - press.grab.x, y: pointer.y - press.grab.y };
   const card = {
     ...press.card,
@@ -161,6 +193,16 @@ const dragAt = (press: Press, pointer: Point): CardDrag => {
   const tip = clampTip(
     liftTip(extend(press.grab, pointer, AIM_GAIN), isMovingUp)
   );
+  // Pulled back: nothing is aimed at, so no lock, no arrow, no glow.
+  if (isPulledBack)
+    return {
+      handIndex: press.handIndex,
+      card,
+      tip,
+      lift: 0,
+      nearHeroes: [],
+      isOverField: false,
+    };
   const lift = Math.max(0, -shift.y);
   return { handIndex: press.handIndex, card, tip, lift, ...probe(tip) };
 };
@@ -194,11 +236,13 @@ export const useCardDrag = (
     // False once the press has ended; late events are then ignored, so
     // nothing can redraw the arrow after the finger has lifted.
     let isActive = true;
+    let pull: PullTracker = { isPulledBack: false, turnY: press.grab.y };
 
     /** Follows the pointer, starting the drag once past the threshold. */
     const handleMove = (event: PointerEvent) => {
       if (!isActive || event.pointerId !== press.pointerId) return;
       const pointer = { x: event.clientX, y: event.clientY };
+      pull = trackPull(pull, pointer.y);
       if (!current && !isPastThreshold(press.grab, pointer)) return;
       if (!current) {
         didDragRef.current = true;
@@ -209,8 +253,16 @@ export const useCardDrag = (
         callbacksRef.current.onDragStart(press.handIndex);
       }
       if (!isActive) return;
-      current = dragAt(press, pointer);
+      current = dragAt(press, pointer, pull.isPulledBack);
       setDrag(current);
+    };
+
+    /** Ends the press without playing: clears the drag and the press. */
+    const letGo = () => {
+      isActive = false;
+      current = null;
+      setDrag(null);
+      setPress(null);
     };
 
     /**
@@ -223,7 +275,6 @@ export const useCardDrag = (
       if (!isActive) return;
       if (event instanceof PointerEvent && event.pointerId !== press.pointerId)
         return;
-      isActive = false;
       if (current && event.type === 'pointerup') {
         const { handIndex, nearHeroes, isOverField, lift } = current;
         callbacksRef.current.onDrop({
@@ -233,9 +284,7 @@ export const useCardDrag = (
           lift,
         });
       }
-      current = null;
-      setDrag(null);
-      setPress(null);
+      letGo();
     };
 
     /** While a card is held, the finger must not scroll the page. */
