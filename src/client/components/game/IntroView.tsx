@@ -13,6 +13,7 @@
 
 import { useState } from 'react';
 import { GAME_TITLE, LEADERBOARD_SIZE } from '../../../shared/constants/game';
+import { formatDailyKey } from '../../../shared/utils/dailyKey';
 import type { InitResponse, LeaderboardEntry } from '../../../shared/types/api';
 import {
   HOW_TO_PLAY,
@@ -77,13 +78,19 @@ const StatBadge = ({
   </div>
 );
 
-/** The game's name over the art, with the tagline beneath. */
+/**
+ * The game's name over the art, with the tagline beneath. Sizes follow
+ * the hero box's width (cqw), clamped, so the name wraps to two lines on
+ * a phone and stays on one line on desktop, and neither line can run
+ * past the edges. The tagline never wraps. A soft dark halo keeps both
+ * readable over the castle.
+ */
 const Logo = () => (
-  <div className="flex flex-col items-center px-6 text-center">
-    <h1 className="font-display text-5xl font-black uppercase tracking-wide text-accent [text-shadow:0_3px_0_var(--color-surface-sunken),0_0_18px_rgb(0_0_0/0.7)]">
+  <div className="flex max-w-full flex-col items-center px-4 text-center">
+    <h1 className="text-balance font-display text-[clamp(2.25rem,12cqw,3.5rem)] font-black uppercase leading-[0.95] tracking-wide text-accent [text-shadow:0_3px_0_var(--color-surface-sunken),0_0_18px_rgb(0_0_0/0.8),0_0_36px_rgb(0_0_0/0.6)]">
       {GAME_TITLE}
     </h1>
-    <p className="mt-1 border-y border-accent/50 px-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-ink">
+    <p className="mt-2 whitespace-nowrap rounded-full bg-surface-sunken/70 px-3 py-0.5 text-[clamp(7px,2.6cqw,10px)] font-semibold uppercase tracking-[0.18em] text-ink">
       {LOGO_SUBTITLE}
     </p>
   </div>
@@ -91,14 +98,14 @@ const Logo = () => (
 
 /** The scene, the logo over it and the corner badges. */
 const Hero = ({ data }: { data: InitResponse }) => (
-  <div className="relative min-h-0 flex-1">
+  <div className="relative min-h-0 flex-1 [container-type:size]">
     <div className="absolute inset-0">
       <KeyArt />
     </div>
     {/* FADE THE SCENE INTO THE MENU */}
     <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-surface" />
-    <p className="absolute left-3 top-2 text-[10px] text-ink-muted">
-      {data.dailyKey}
+    <p className="absolute left-3 top-2 text-[10px] font-semibold text-ink-muted">
+      {formatDailyKey(data.dailyKey)}
     </p>
     <div className="absolute right-2 top-2 flex flex-col items-end gap-1.5">
       <StatBadge glyph="flame" value={data.streak.current} label="Streak" />
@@ -108,7 +115,8 @@ const Hero = ({ data }: { data: InitResponse }) => (
         label="Today's best"
       />
     </div>
-    <div className="absolute inset-x-0 top-[30%]">
+    {/* LOGO: centred in the sky, above the villain on the ridge */}
+    <div className="absolute inset-x-0 top-[12%] bottom-[45%] flex items-center justify-center">
       <Logo />
     </div>
   </div>

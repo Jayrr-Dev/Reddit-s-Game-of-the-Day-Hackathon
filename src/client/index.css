@@ -184,3 +184,19 @@ body {
   font-family: var(--font-body);
   -webkit-tap-highlight-color: transparent;
 }
+
+/* A game, not a document: nothing can be selected, long-pressed for a
+   callout, or dragged out as an image. Real text fields stay usable. */
+* {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+
+input,
+textarea,
+[contenteditable='true'] {
+  user-select: text;
+  -webkit-user-select: text;
+}

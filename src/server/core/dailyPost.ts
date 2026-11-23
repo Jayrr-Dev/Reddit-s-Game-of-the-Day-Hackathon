@@ -7,7 +7,11 @@
 
 import { context, reddit, redis } from '@devvit/web/server';
 import { GAME_TITLE } from '../../shared/constants/game';
-import { getDailyKey, isDailyKey } from '../../shared/utils/dailyKey';
+import {
+  formatDailyKey,
+  getDailyKey,
+  isDailyKey,
+} from '../../shared/utils/dailyKey';
 import { redisKeys } from './redisKeys';
 
 // --- TYPES ---
@@ -19,9 +23,9 @@ export type DailyPostResult = {
 
 // --- FUNCTIONS ---
 
-/** Builds the post title for a day, e.g. "Villain Arc · 2026-11-20". */
+/** Builds the post title for a day, e.g. "Villain Arc · Fri, Nov 20". */
 const buildPostTitle = (dailyKey: string): string =>
-  `${GAME_TITLE} · ${dailyKey}`;
+  `${GAME_TITLE} · ${formatDailyKey(dailyKey)}`;
 
 /**
  * Creates today's post unless one already exists for that day.

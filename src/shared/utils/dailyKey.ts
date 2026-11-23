@@ -9,6 +9,22 @@
 // --- FORMAT RULES ---
 const DAILY_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+/** Fixed English names, so server and client format a day identically. */
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const;
 
 // --- FUNCTIONS ---
 
@@ -27,3 +43,12 @@ export const isDailyKey = (value: unknown): value is string =>
   typeof value === 'string' &&
   DAILY_KEY_PATTERN.test(value) &&
   !Number.isNaN(Date.parse(`${value}T00:00:00.000Z`));
+
+/** A daily key as people read it, e.g. "2026-11-23" -> "Mon, Nov 23". */
+export const formatDailyKey = (dailyKey: string): string => {
+  const day = new Date(`${dailyKey}T00:00:00.000Z`);
+  if (Number.isNaN(day.getTime())) return dailyKey;
+  const weekday = WEEKDAYS[day.getUTCDay()] ?? '';
+  const month = MONTHS[day.getUTCMonth()] ?? '';
+  return `${weekday}, ${month} ${day.getUTCDate()}`;
+};
