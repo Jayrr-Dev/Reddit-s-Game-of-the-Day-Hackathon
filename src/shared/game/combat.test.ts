@@ -22,6 +22,7 @@ import {
   playCardSteps,
   startCombat,
 } from './combat.ts';
+import { describeCard } from './describe.ts';
 import { CARDS_PER_TURN, ENERGY_PER_TURN } from './rules.ts';
 import type { CombatState } from './types.ts';
 
@@ -200,4 +201,31 @@ void test('playCardSteps shows each hit and ends on the real play', () => {
   assert.deepEqual(steps.at(-1), playCard(start, 0, squireUid(start)));
   const hpOf = (state: CombatState) => state.heroes[0]?.hp ?? 0;
   assert.ok(hpOf(steps[0] as CombatState) > hpOf(steps[1] as CombatState));
+});
+
+// --- PREVIEW MATCHES THE ENGINE ---
+void test('card text damage always equals the damage the engine deals', () => {
+  const buffSets: Partial<typeof NO_STATUSES>[] = [
+    {},
+    { wrath: 2 },
+    { might: 3 },
+    { surge: 2, piercing: 1 },
+    { momentum: 1, might: 1 },
+    { wrath: 1, dread: 1 },
+  ];
+  const cards: CardId[] = ['backhand', 'spiteBolt', 'hexfire', 'twinDaggers'];
+  for (const buffs of buffSets) {
+    for (const cardId of cards) {
+      const start = withHand(fightWith(['backhand']), [cardId]);
+      const player = {
+        ...start.player,
+        statuses: { ...NO_STATUSES, ...buffs },
+      };
+      const [line = ''] = describeCard(cardId, player);
+      const perHit = Number(/Deal (\d+)/.exec(line)?.[1]);
+      const hits = Number(/(\d+) times/.exec(line)?.[1] ?? 1);
+      const dealt = damageWith(cardId, buffs);
+      assert.equal(dealt, Math.min(perHit * hits, 14), `${cardId} ${line}`);
+    }
+  }
 });
