@@ -127,8 +127,9 @@ export const clearShroud = <T extends Combatant>(target: T): T => ({
 });
 
 /**
- * End-of-turn upkeep: hex deals its damage then weakens by 1,
- * and dread wears off by 1. Wrath is permanent for the fight.
+ * End-of-turn upkeep: hex deals its damage then weakens by 1, dread
+ * wears off by 1, and unused Momentum is lost. Wrath and buffs are
+ * permanent for the fight.
  */
 export const endOfTurnUpkeep = <T extends Combatant>(target: T): T => {
   const { hex, dread } = target.statuses;
@@ -139,6 +140,7 @@ export const endOfTurnUpkeep = <T extends Combatant>(target: T): T => {
       ...hexed.statuses,
       hex: Math.max(0, hex - 1),
       dread: Math.max(0, dread - 1),
+      momentum: 0,
     },
   };
 };

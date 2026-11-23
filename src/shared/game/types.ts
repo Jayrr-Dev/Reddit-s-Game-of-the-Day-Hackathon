@@ -22,7 +22,8 @@ import type { RngState } from './rng.ts';
  * - piercing:   adds this much to every Range hit
  * - protection: adds this much to every Shroud a card gives
  * Momentum comes from charging: while above 0 the next Melee card deals
- * 50% more damage (every hit of it), then it is spent.
+ * 50% more damage (every hit of it), then it is spent; it is lost at
+ * the end of the turn if no Melee card used it.
  */
 export type BuffId = 'might' | 'surge' | 'piercing' | 'protection';
 export type StatusId = 'hex' | 'dread' | 'wrath' | 'momentum' | BuffId;

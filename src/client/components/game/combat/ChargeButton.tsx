@@ -21,7 +21,7 @@ export const ChargeButton = ({
     type="button"
     onClick={onCharge}
     disabled={!isAffordable}
-    title="Charge: the back row steps up, and your next Melee card deals 50% more damage."
+    title="Charge: the back row steps up, and your next Melee card this turn deals 50% more damage."
     className="flex items-center gap-1.5 rounded-full bg-blood py-1 pl-1 pr-3 font-display text-sm font-black uppercase tracking-widest text-ink shadow-[0_0_14px_var(--color-blood)] ring-1 ring-accent transition active:scale-95 enabled:animate-pulse disabled:opacity-40 disabled:shadow-none"
   >
     <span className="flex size-5 items-center justify-center rounded-full bg-energy text-xs text-surface-sunken">

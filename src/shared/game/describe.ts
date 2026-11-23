@@ -43,7 +43,8 @@ export const STATUS_INFO: Record<StatusId | 'shroud', StatusInfo> = {
   },
   momentum: {
     label: 'Momentum',
-    description: 'From charging: your next Melee card deals 50% more damage.',
+    description:
+      'From charging: your next Melee card this turn deals 50% more damage.',
   },
   protection: {
     label: 'Protection',

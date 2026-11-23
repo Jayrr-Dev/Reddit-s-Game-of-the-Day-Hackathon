@@ -11,6 +11,7 @@ import {
   canCharge,
   canPlayCard,
   charge,
+  endTurn,
   playCard,
   startCombat,
 } from './combat.ts';
@@ -242,4 +243,15 @@ void test('a front-row sweep cannot be played while the front row is empty', () 
   assert.equal(canPlayCard(felled, 1), true);
   assert.equal(canPlayCard(felled, 2), false);
   assert.equal(playCard(felled, 0, -1), felled);
+});
+
+void test('Momentum unused by the end of the turn is lost', () => {
+  const felled = playCard(
+    fight(['squire', 'priest'], ['undyingHatred', 'darkCloak']),
+    0,
+    unitOf(fight(['squire', 'priest'], []), 'squire').uid
+  );
+  const charged = charge({ ...felled, energy: 3 });
+  assert.equal(charged.player.statuses.momentum, 1);
+  assert.equal(endTurn(charged).player.statuses.momentum, 0);
 });
