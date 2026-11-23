@@ -1,41 +1,100 @@
 // ===================================================================
 // GAME SCREEN (EXPANDED VIEW)
-// Composes the daily loop: stats header, the game, and the leaderboard.
-// Data loading lives in hooks; this component only arranges the pieces.
+// Loads the day, then hands off to the session: title screen -> run ->
+// results. Data loading and side effects live in hooks; this file only
+// decides which screen is showing.
 // ===================================================================
 
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { showToast } from '@devvit/web/client';
-import { GAME_TITLE } from '../../shared/constants/game';
-import type { InitResponse } from '../../shared/types/api';
+import type { RunAction } from '../../shared/game/run';
+import type { FinishRunResponse, InitResponse } from '../../shared/types/api';
 import { useDailyGame } from '../hooks/useDailyGame';
 import { useLeaderboard } from '../hooks/useLeaderboard';
+import { useRun } from '../hooks/useRun';
+import { useRunJourney } from '../hooks/useRunJourney';
+import { useRunSubmission } from '../hooks/useRunSubmission';
 import { journeys } from '../lib/journeys';
-import { LeaderboardList } from './LeaderboardList';
-import { PlaceholderGame } from './PlaceholderGame';
+import { IntroView } from './game/IntroView';
+import { ResultsView } from './game/ResultsView';
+import { VillainArcGame } from './game/VillainArcGame';
 import { Screen } from './ui/Screen';
-import { StatTile } from './ui/StatTile';
 
-// --- SUBCOMPONENTS ---
+// --- TYPES ---
+type SessionProps = {
+  data: InitResponse;
+  startRun: () => Promise<boolean>;
+  finishRun: (actions: RunAction[]) => Promise<FinishRunResponse>;
+};
 
-/** Day label plus the player's streak and best score. */
-const DailyHeader = ({ data }: { data: InitResponse }) => (
-  <header className="flex flex-col items-center gap-2">
-    <h1 className="font-display text-2xl font-bold">{GAME_TITLE}</h1>
-    <p className="text-sm text-ink-muted">{data.dailyKey}</p>
-    <div className="flex gap-2">
-      <StatTile label="Streak" value={data.streak.current} />
-      <StatTile label="Best streak" value={data.streak.best} />
-      <StatTile label="Today's best" value={data.bestScoreToday ?? '–'} />
-    </div>
-  </header>
-);
+// --- SESSION ---
+/** One visit to the post: title screen, any number of runs, results. */
+const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
+  const { run, actions, hasProgress, act, restart } = useRun(data.dailyKey);
+  const { entries, refresh } = useLeaderboard();
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+  const isFallen = run.phase.kind === 'fallen';
+  const canResume = hasProgress && !isFallen;
+
+  const onSaved = useCallback(() => void refresh(), [refresh]);
+  const { submission, reset } = useRunSubmission({
+    run,
+    actions,
+    isActive: isPlaying,
+    finishRun,
+    onSaved,
+  });
+  useRunJourney(run, isPlaying);
+
+  /** Claims the run with the server (ranked or practice), then plays. */
+  const handleStart = async () => {
+    setIsStarting(true);
+    try {
+      if (!canResume) {
+        restart();
+        reset();
+        await startRun();
+      }
+      journeys.start();
+      setIsPlaying(true);
+    } catch (error) {
+      showToast(
+        error instanceof Error ? error.message : 'Could not start the run'
+      );
+    } finally {
+      setIsStarting(false);
+    }
+  };
+
+  if (!isPlaying) {
+    return (
+      <IntroView
+        data={data}
+        entries={entries}
+        canResume={canResume}
+        isStarting={isStarting}
+        onStart={() => void handleStart()}
+      />
+    );
+  }
+  if (isFallen) {
+    return (
+      <ResultsView
+        stats={run.stats}
+        submission={submission}
+        entries={entries}
+        onPlayAgain={() => void handleStart()}
+      />
+    );
+  }
+  return <VillainArcGame run={run} onAction={act} />;
+};
 
 // --- COMPONENT ---
-/** Renders loading, error, or the playable daily screen. */
+/** Renders loading, error, or the playable session. */
 export const GameScreen = () => {
-  const { state, submitScore } = useDailyGame();
-  const { entries, refresh } = useLeaderboard();
+  const { state, startRun, finishRun } = useDailyGame();
   const isReady = state.status === 'ready';
 
   // TELL JOURNEYS THE GAME IS INTERACTIVE (ONCE, AFTER DATA LOADS)
@@ -43,32 +102,10 @@ export const GameScreen = () => {
     if (isReady) journeys.appReady();
   }, [isReady]);
 
-  /** Saves the run, then refreshes the board and tells the player their rank. */
-  const handleFinish = async (score: number) => {
-    try {
-      const result = await submitScore(score);
-      await refresh();
-      showToast(
-        result.rank
-          ? `Score ${score}! You're #${result.rank} today.`
-          : `Score ${score}!`
-      );
-    } catch (error) {
-      showToast(
-        error instanceof Error ? error.message : 'Could not save score'
-      );
-    }
-  };
-
-  if (state.status === 'loading') return <Screen>Loading…</Screen>;
+  if (state.status === 'loading') return <Screen>Gathering the horde…</Screen>;
   if (state.status === 'error')
     return <Screen>Something went wrong: {state.message}</Screen>;
-
   return (
-    <Screen>
-      <DailyHeader data={state.data} />
-      <PlaceholderGame onFinish={(score) => void handleFinish(score)} />
-      <LeaderboardList entries={entries} />
-    </Screen>
+    <GameSession data={state.data} startRun={startRun} finishRun={finishRun} />
   );
 };

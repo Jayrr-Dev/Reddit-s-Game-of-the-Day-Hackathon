@@ -7,20 +7,26 @@
 
 import { context, requestExpandedMode } from '@devvit/web/client';
 import { GAME_TITLE } from '../../shared/constants/game';
+import { TAGLINE } from '../content/lore';
 import { Button } from './ui/Button';
+import { Glyph } from './ui/Glyph';
 import { Screen } from './ui/Screen';
 
 /** Greets the player and opens the expanded game view on tap. */
 export const SplashScreen = () => (
   <Screen>
-    <h1 className="font-display text-2xl font-bold">{GAME_TITLE}</h1>
-    <p className="text-ink-muted">
+    <Glyph name="crown" className="size-10 text-accent" />
+    <h1 className="font-display text-3xl font-black tracking-wide text-accent">
+      {GAME_TITLE}
+    </h1>
+    <p className="max-w-xs text-center text-sm text-ink-muted">{TAGLINE}</p>
+    <p className="font-display italic">
       {context.username
-        ? `Ready, u/${context.username}?`
-        : "Today's challenge is live."}
+        ? `The heroes fear you, u/${context.username}.`
+        : "Today's horde is marching."}
     </p>
     <Button onClick={(event) => requestExpandedMode(event.nativeEvent, 'game')}>
-      Play
+      Begin the conquest
     </Button>
   </Screen>
 );

@@ -6,7 +6,7 @@
 
 // --- GAME IDENTITY ---
 /** Display name used in post titles and the splash screen. */
-export const GAME_TITLE = 'Daily Game';
+export const GAME_TITLE = 'Villain Arc';
 
 // --- LEADERBOARD LIMITS ---
 /** How many entries the daily leaderboard returns. */

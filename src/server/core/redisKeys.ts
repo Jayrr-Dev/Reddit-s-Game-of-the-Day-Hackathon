@@ -10,6 +10,9 @@ export const redisKeys = {
   dailyLeaderboard: (dailyKey: string) => `leaderboard:${dailyKey}`,
   /** Hash: one player's streak record (current, best, lastPlayedKey). */
   playerStreak: (userId: string) => `streak:${userId}`,
+  /** String: "started" or "finished" for a player's one ranked run of a day. */
+  rankedRun: (dailyKey: string, userId: string) =>
+    `ranked-run:${dailyKey}:${userId}`,
   /** String: the post id created for one day, so the daily post is made once. */
   dailyPostId: (dailyKey: string) => `daily-post:${dailyKey}`,
 } as const;

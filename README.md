@@ -1,14 +1,18 @@
-# Daily Game (working title)
+# Villain Arc
 
 An entry for **[Reddit's Game of the Day Hackathon](https://redditgameofday2026.devpost.com/)**: a daily game that runs inside a Reddit post, built on Reddit's Developer Platform ([Devvit Web](https://developers.reddit.com/docs/capabilities/devvit-web/devvit_web_overview)).
 
-> **Status:** project scaffold. The daily loop (one post per day, leaderboard, streaks, analytics) is wired end to end around a placeholder "tap 10 times" game. The real game mechanic is still to be chosen. Before submitting, rewrite the top of this README to describe the game and how to play it; the hackathon requires that.
+> **Status:** playable. Villain Arc is an endless daily deckbuilder. The heroes killed your lover, and now you march on their kingdom. Everyone faces the same seeded horde each day.
 
 ---
 
 ## How to play
 
-_To be written once the game is designed._ Judges read this section, so keep it short: the goal, the controls, and what changes each day.
+- **Goal:** push as deep into the kingdom as you can. The heroes never stop coming, so every run ends. Your score is how far you got.
+- **Fights:** each turn you have 3 energy and draw 5 cards. Tap a hero to target it, then tap cards to play them. Every hero shows its next move, so raise **Shroud** (block) before big hits. **Hex** deals damage each turn, **Dread** weakens attacks and **Wrath** strengthens every hit.
+- **The road:** after each stop you choose one of two paths: a hero horde, an elite, her grave (heal or gain max HP) or the dark altar (a rare card). After a won fight you add 1 of 3 cards to your deck.
+- **Regions:** every 5th stop a champion guards the region. Beat them to conquer it: Border Village, King's Road, Monastery, Castle Gates, Royal Court, then the Throne Room. After that, uprisings keep coming, and the heroes get stronger.
+- **Daily:** the date seeds the whole run, so everyone gets the same paths, hordes and card offers. Your first run each day is ranked, and later runs are practice. The server replays your moves to verify the score (100 per wave, 10 per hero slain, 500 per region).
 
 ---
 

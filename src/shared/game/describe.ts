@@ -1,0 +1,161 @@
+// ===================================================================
+// DESCRIPTIONS
+// Turns game data into words and numbers for the screen. Card text and
+// hero intents are generated from the same effects the engine runs, so
+// the UI can never disagree with the rules.
+// ===================================================================
+
+import { getCard, type CardId } from './cards.ts';
+import { attackDamage } from './combatant.ts';
+import { nextHeroMove, scaleByMight } from './combat.ts';
+import type {
+  CardEffect,
+  Combatant,
+  HeroEffect,
+  HeroUnit,
+  StatusId,
+} from './types.ts';
+
+// --- STATUS GLOSSARY ---
+export type StatusInfo = { label: string; description: string };
+
+export const STATUS_INFO: Record<StatusId | 'shroud', StatusInfo> = {
+  shroud: {
+    label: 'Shroud',
+    description: 'Blocks damage. Fades at the start of your turn.',
+  },
+  hex: {
+    label: 'Hex',
+    description: 'Loses this much HP each turn, then Hex drops by 1.',
+  },
+  dread: {
+    label: 'Dread',
+    description: 'Deals 25% less attack damage. Drops by 1 each turn.',
+  },
+  wrath: { label: 'Wrath', description: 'Adds this much damage to every hit.' },
+};
+
+// --- CARD TEXT ---
+
+/** "to all heroes" suffix for area effects. */
+const areaSuffix = (target: 'one' | 'all'): string =>
+  target === 'all' ? ' to ALL heroes' : '';
+
+/**
+ * One line of card text. When `attacker` is given, damage shows the real
+ * number after the villain's wrath and dread, like a live preview.
+ */
+export const describeCardEffect = (
+  effect: CardEffect,
+  attacker?: Combatant
+): string => {
+  switch (effect.kind) {
+    case 'damage': {
+      const amount = attacker
+        ? attackDamage(effect.amount, attacker)
+        : effect.amount;
+      const times = effect.hits > 1 ? ` ${effect.hits} times` : '';
+      return `Deal ${amount} damage${times}${areaSuffix(effect.target)}.`;
+    }
+    case 'hex':
+      return `Apply ${effect.amount} Hex${areaSuffix(effect.target)}.`;
+    case 'dread':
+      return `Apply ${effect.amount} Dread${areaSuffix(effect.target)}.`;
+    case 'reap':
+      return `Deal damage equal to ${effect.multiplier}× the target's Hex.`;
+    case 'shroud':
+      return `Gain ${effect.amount} Shroud.`;
+    case 'wrath':
+      return `Gain ${effect.amount} Wrath.`;
+    case 'draw':
+      return `Draw ${effect.amount} card${effect.amount === 1 ? '' : 's'}.`;
+    case 'energy':
+      return `Gain ${effect.amount} energy.`;
+    case 'heal':
+      return `Heal ${effect.amount} HP.`;
+  }
+};
+
+/** All text lines for a card, ending with "Fades." when it does. */
+export const describeCard = (
+  cardId: CardId,
+  attacker?: Combatant
+): string[] => {
+  const cardDef = getCard(cardId);
+  const lines = cardDef.effects.map((effect) =>
+    describeCardEffect(effect, attacker)
+  );
+  return cardDef.fades ? [...lines, 'Fades.'] : lines;
+};
+
+/** True when playing this card needs the player to pick a hero. */
+export const cardNeedsTarget = (cardId: CardId): boolean =>
+  getCard(cardId).effects.some(
+    (effect) =>
+      effect.kind === 'reap' ||
+      ((effect.kind === 'damage' ||
+        effect.kind === 'hex' ||
+        effect.kind === 'dread') &&
+        effect.target === 'one')
+  );
+
+// --- CARD CATEGORY (FOR ART AND COLOUR) ---
+export type CardCategory = 'strike' | 'curse' | 'guard' | 'power';
+
+/** Picks a card's look from its first meaningful effect. */
+export const cardCategory = (cardId: CardId): CardCategory => {
+  const kinds = getCard(cardId).effects.map((effect) => effect.kind);
+  if (kinds.includes('damage') || kinds.includes('reap')) return 'strike';
+  if (kinds.includes('hex') || kinds.includes('dread')) return 'curse';
+  if (kinds.includes('shroud')) return 'guard';
+  return 'power';
+};
+
+// --- HERO INTENTS ---
+export type IntentKind = 'attack' | 'curse' | 'guard' | 'buff' | 'heal';
+export type Intent = { kind: IntentKind; text: string };
+
+/** One intent chip for one effect of a hero's next move. */
+const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
+  const scaled = (amount: number) => scaleByMight(amount, unit.might);
+  const allies = (who: 'self' | 'allies') => (who === 'allies' ? ' all' : '');
+  switch (effect.kind) {
+    case 'attack': {
+      const perHit = attackDamage(scaled(effect.amount), unit);
+      return {
+        kind: 'attack',
+        text: effect.hits > 1 ? `${perHit}×${effect.hits}` : `${perHit}`,
+      };
+    }
+    case 'hex':
+      return { kind: 'curse', text: `Hex ${scaled(effect.amount)}` };
+    case 'dread':
+      return { kind: 'curse', text: `Dread ${effect.amount}` };
+    case 'shroud':
+      return {
+        kind: 'guard',
+        text: `${scaled(effect.amount)}${allies(effect.who)}`,
+      };
+    case 'wrath':
+      return {
+        kind: 'buff',
+        text: `Wrath +${effect.amount}${allies(effect.who)}`,
+      };
+    case 'heal':
+      return {
+        kind: 'heal',
+        text: `${scaled(effect.amount)}${allies(effect.who)}`,
+      };
+  }
+};
+
+/** What a hero will do next: the move's name plus one chip per effect. */
+export const describeHeroIntent = (
+  unit: HeroUnit
+): { name: string; intents: Intent[] } => {
+  const heroMove = nextHeroMove(unit);
+  return {
+    name: heroMove.name,
+    intents: heroMove.effects.map((effect) => describeHeroEffect(unit, effect)),
+  };
+};

@@ -6,10 +6,11 @@
 
 import type {
   ApiErrorResponse,
+  FinishRunRequest,
+  FinishRunResponse,
   InitResponse,
   LeaderboardResponse,
-  SubmitScoreRequest,
-  SubmitScoreResponse,
+  StartRunResponse,
 } from '../../shared/types/api';
 
 // --- HELPERS ---
@@ -37,14 +38,19 @@ const request = async <TResponse>(
   return body as TResponse;
 };
 
+/** Sends a JSON POST. */
+const postJson = <TResponse>(path: string, payload?: unknown) =>
+  request<TResponse>(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload ?? {}),
+  });
+
 // --- ROUTES ---
 export const apiClient = {
   init: () => request<InitResponse>('/api/init'),
   leaderboard: () => request<LeaderboardResponse>('/api/leaderboard'),
-  submitScore: (payload: SubmitScoreRequest) =>
-    request<SubmitScoreResponse>('/api/score', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    }),
+  startRun: () => postJson<StartRunResponse>('/api/run/start'),
+  finishRun: (payload: FinishRunRequest) =>
+    postJson<FinishRunResponse>('/api/run/finish', payload),
 };
