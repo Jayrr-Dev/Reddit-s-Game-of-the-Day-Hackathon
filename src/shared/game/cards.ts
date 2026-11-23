@@ -5,7 +5,13 @@
 // source of truth for both the rules and the UI.
 // ===================================================================
 
-import type { CardDef, CardEffect, CardRarity, CardType } from './types.ts';
+import type {
+  BuffId,
+  CardDef,
+  CardEffect,
+  CardRarity,
+  CardType,
+} from './types.ts';
 
 // --- EFFECT BUILDERS ---
 // Short constructors keep the catalog readable and fully typed.
@@ -33,6 +39,11 @@ const dread = (amount: number, target: 'one' | 'all' = 'one'): CardEffect => ({
 });
 const shroud = (amount: number): CardEffect => ({ kind: 'shroud', amount });
 const wrath = (amount: number): CardEffect => ({ kind: 'wrath', amount });
+const buff = (which: BuffId, amount: number): CardEffect => ({
+  kind: 'buff',
+  buff: which,
+  amount,
+});
 const draw = (amount: number): CardEffect => ({ kind: 'draw', amount });
 const energy = (amount: number): CardEffect => ({ kind: 'energy', amount });
 const heal = (amount: number): CardEffect => ({ kind: 'heal', amount });
@@ -93,6 +104,29 @@ export const CARDS = {
   spiteBolt: card('Spite Bolt', 'range', 1, 'common', [hit(6)]),
   hurlAside: card('Hurl Aside', 'melee', 1, 'common', [hit(5), push]),
   beckon: card('Beckon', 'curse', 0, 'common', [pull, dread(1)]),
+  hexfire: card('Hexfire', 'magic', 1, 'common', [hit(6), hex(1)]),
+  barbedVolley: card('Barbed Volley', 'range', 1, 'common', [hit(2, 3)]),
+  flurry: card('Flurry', 'melee', 1, 'common', [hit(3, 3)]),
+  spikedGuard: card('Spiked Guard', 'melee', 1, 'common', [hit(5), shroud(5)]),
+  blackArrow: card('Black Arrow', 'range', 1, 'common', [hit(7)]),
+  retreatingShot: card('Retreating Shot', 'range', 1, 'common', [
+    hit(4),
+    shroud(4),
+  ]),
+  wardingBolt: card('Warding Bolt', 'magic', 1, 'common', [hit(4), shroud(4)]),
+  // Fight-long buffs. One type each, so they hit harder than Wrath per
+  // stack; Piercing and Surge are a bit bigger because fewer cards use them.
+  bloodlust: card('Bloodlust', 'buff', 1, 'common', [buff('might', 2)], FADES),
+  darkSurge: card('Dark Surge', 'buff', 1, 'common', [buff('surge', 3)], FADES),
+  deadeye: card('Deadeye', 'buff', 1, 'common', [buff('piercing', 3)], FADES),
+  ironHide: card(
+    'Iron Hide',
+    'buff',
+    1,
+    'common',
+    [shroud(4), buff('protection', 2)],
+    FADES
+  ),
 
   // UNCOMMON
   reap: card('Reap', 'magic', 1, 'uncommon', [reap(2)]),
@@ -114,6 +148,17 @@ export const CARDS = {
     wrath(1),
   ]),
   drain: card('Drain', 'melee', 1, 'uncommon', [hit(6), heal(3)]),
+  shadowBarrage: card('Shadow Barrage', 'magic', 2, 'uncommon', [hit(3, 4)]),
+  rainOfThorns: card('Rain of Thorns', 'range', 2, 'uncommon', [hitAll(5)]),
+  soulLance: card('Soul Lance', 'magic', 2, 'uncommon', [hit(14)]),
+  tyrantsStance: card(
+    "Tyrant's Stance",
+    'buff',
+    1,
+    'uncommon',
+    [buff('might', 1), buff('protection', 2), draw(1)],
+    FADES
+  ),
 
   // RARE
   cataclysm: card('Cataclysm', 'magic', 3, 'rare', [hitAll(14)]),
@@ -121,6 +166,19 @@ export const CARDS = {
   gravePact: card('Grave Pact', 'buff', 1, 'rare', [heal(8)], FADES),
   doom: card('Doom', 'curse', 2, 'rare', [hex(9)], FADES),
   undyingHatred: card('Undying Hatred', 'melee', 2, 'rare', [hit(20)]),
+  ascendance: card(
+    'Ascendance',
+    'buff',
+    2,
+    'rare',
+    [
+      buff('might', 2),
+      buff('surge', 2),
+      buff('piercing', 2),
+      buff('protection', 2),
+    ],
+    FADES
+  ),
 } as const satisfies Record<string, CardDef>;
 
 // --- DERIVED DATA ---

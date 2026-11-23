@@ -26,6 +26,10 @@ const GAIN_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   heal: INTENT_LOOK.heal,
   shroud: STATUS_LOOK.shroud,
   wrath: STATUS_LOOK.wrath,
+  might: STATUS_LOOK.might,
+  surge: STATUS_LOOK.surge,
+  piercing: STATUS_LOOK.piercing,
+  protection: STATUS_LOOK.protection,
 };
 
 // --- SUBCOMPONENTS ---

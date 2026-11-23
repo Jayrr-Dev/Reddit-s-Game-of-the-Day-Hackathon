@@ -7,9 +7,10 @@
 
 import { targetRuleOf } from './battlefield.ts';
 import { getCard, type CardId } from './cards.ts';
-import { attackDamage } from './combatant.ts';
+import { attackDamage, guardAmount } from './combatant.ts';
 import { nextHeroMove, scaleByMight } from './combat.ts';
 import type {
+  CardDef,
   CardEffect,
   Combatant,
   HeroEffect,
@@ -22,7 +23,7 @@ export type StatusInfo = { label: string; description: string };
 
 export const STATUS_INFO: Record<StatusId | 'shroud', StatusInfo> = {
   shroud: {
-    label: 'Shroud',
+    label: 'Guard',
     description: 'Blocks damage. Fades at the start of your turn.',
   },
   hex: {
@@ -34,6 +35,16 @@ export const STATUS_INFO: Record<StatusId | 'shroud', StatusInfo> = {
     description: 'Deals 25% less attack damage. Drops by 1 each turn.',
   },
   wrath: { label: 'Wrath', description: 'Adds this much damage to every hit.' },
+  might: { label: 'Might', description: 'Adds this much to every Melee hit.' },
+  surge: { label: 'Surge', description: 'Adds this much to every Magic hit.' },
+  piercing: {
+    label: 'Piercing',
+    description: 'Adds this much to every Range hit.',
+  },
+  protection: {
+    label: 'Protection',
+    description: 'Adds this much to every Guard your cards give.',
+  },
 };
 
 // --- CARD TEXT ---
@@ -45,19 +56,20 @@ const areaSuffix = (target: 'one' | 'all', isMelee = false): string => {
 };
 
 /**
- * One line of card text. When `attacker` is given, damage shows the real
- * number after the villain's wrath and dread, like a live preview.
- * `isMelee` is true for cards without Reach.
+ * One line of card text. When `attacker` is given, numbers are a live
+ * preview: damage after the villain's wrath, type buff and dread, and
+ * Shroud with Protection added. `cardDef` gives the type and reach.
  */
 export const describeCardEffect = (
   effect: CardEffect,
-  attacker?: Combatant,
-  isMelee = false
+  cardDef: CardDef,
+  attacker?: Combatant
 ): string => {
+  const isMelee = !cardDef.reach;
   switch (effect.kind) {
     case 'damage': {
       const amount = attacker
-        ? attackDamage(effect.amount, attacker)
+        ? attackDamage(effect.amount, attacker, cardDef.type)
         : effect.amount;
       const times = effect.hits > 1 ? ` ${effect.hits} times` : '';
       return `Deal ${amount} damage${times}${areaSuffix(effect.target, isMelee)}.`;
@@ -68,10 +80,16 @@ export const describeCardEffect = (
       return `Apply ${effect.amount} Dread${areaSuffix(effect.target)}.`;
     case 'reap':
       return `Deal damage equal to ${effect.multiplier}× the target's Hex.`;
-    case 'shroud':
-      return `Gain ${effect.amount} Shroud.`;
+    case 'shroud': {
+      const amount = attacker
+        ? guardAmount(effect.amount, attacker)
+        : effect.amount;
+      return `Gain ${amount} Guard.`;
+    }
     case 'wrath':
       return `Gain ${effect.amount} Wrath.`;
+    case 'buff':
+      return `Gain ${effect.amount} ${STATUS_INFO[effect.buff].label}.`;
     case 'draw':
       return `Draw ${effect.amount} card${effect.amount === 1 ? '' : 's'}.`;
     case 'energy':
@@ -95,7 +113,7 @@ export const describeCard = (
 ): string[] => {
   const cardDef = getCard(cardId);
   const lines = cardDef.effects.map((effect) =>
-    describeCardEffect(effect, attacker, !cardDef.reach)
+    describeCardEffect(effect, cardDef, attacker)
   );
   return [...lines, ...(cardDef.fades ? ['Fades.'] : [])];
 };

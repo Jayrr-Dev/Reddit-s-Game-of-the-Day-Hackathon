@@ -31,14 +31,17 @@ import {
   clearShroud,
   createCombatant,
   endOfTurnUpkeep,
+  guardAmount,
   heal,
   isDefeated,
   takeDamage,
+  typeBonus,
 } from './combatant.ts';
 import { getHero, type HeroId } from './heroes.ts';
 import { shuffle, type RngState } from './rng.ts';
 import { CARDS_PER_TURN, ENERGY_PER_TURN, MAX_HAND_SIZE } from './rules.ts';
 import type {
+  CardDef,
   CardEffect,
   CardTarget,
   CombatOutcome,
@@ -199,9 +202,10 @@ const villainAttack = (
   state: CombatState,
   effect: Extract<CardEffect, { kind: 'damage' }>,
   targetUid: number,
-  isMelee: boolean
+  cardDef: CardDef
 ): CombatState => {
-  const perHit = attackDamage(effect.amount, state.player);
+  const isMelee = !cardDef.reach;
+  const perHit = attackDamage(effect.amount, state.player, cardDef.type);
   return Array.from({ length: effect.hits }).reduce<CombatState>(
     (current) =>
       updateHeroes(
@@ -213,26 +217,32 @@ const villainAttack = (
   );
 };
 
-/** Reap: damage equal to the target's hex times the multiplier. */
+/**
+ * Reap: damage equal to the target's hex times the multiplier, plus the
+ * card type's buff (Surge for a Magic reap).
+ */
 const reapHex = (
   state: CombatState,
   multiplier: number,
-  targetUid: number
-): CombatState =>
-  updateHeroes(state, resolveTargets(state, 'one', targetUid), (unit) =>
-    takeDamage(unit, unit.statuses.hex * multiplier)
+  targetUid: number,
+  cardDef: CardDef
+): CombatState => {
+  const bonus = typeBonus(state.player, cardDef.type);
+  return updateHeroes(state, resolveTargets(state, 'one', targetUid), (unit) =>
+    takeDamage(unit, unit.statuses.hex * multiplier + bonus)
   );
+};
 
-/** Resolves one card effect. `isMelee` is true for cards without Reach. */
+/** Resolves one effect of the card `cardDef` (its type picks the buff). */
 const applyCardEffect = (
   state: CombatState,
   effect: CardEffect,
   targetUid: number,
-  isMelee: boolean
+  cardDef: CardDef
 ): CombatState => {
   switch (effect.kind) {
     case 'damage':
-      return villainAttack(state, effect, targetUid, isMelee);
+      return villainAttack(state, effect, targetUid, cardDef);
     case 'hex':
     case 'dread':
       return updateHeroes(
@@ -241,9 +251,16 @@ const applyCardEffect = (
         (unit) => addStatus(unit, effect.kind, effect.amount)
       );
     case 'reap':
-      return reapHex(state, effect.multiplier, targetUid);
-    case 'shroud':
-      return { ...state, player: addShroud(state.player, effect.amount) };
+      return reapHex(state, effect.multiplier, targetUid, cardDef);
+    case 'shroud': {
+      const amount = guardAmount(effect.amount, state.player);
+      return { ...state, player: addShroud(state.player, amount) };
+    }
+    case 'buff':
+      return {
+        ...state,
+        player: addStatus(state.player, effect.buff, effect.amount),
+      };
     case 'wrath':
       return {
         ...state,
@@ -278,6 +295,17 @@ const aimCard = (
     : (legal[0]?.uid ?? -1);
 };
 
+/** Spends the card's energy and takes it out of the hand. */
+const payForCard = (state: CombatState, handIndex: number): CombatState => {
+  const cardId = state.hand[handIndex];
+  const cost = cardId === undefined ? 0 : getCard(cardId).cost;
+  return {
+    ...state,
+    energy: state.energy - cost,
+    hand: state.hand.filter((_, index) => index !== handIndex),
+  };
+};
+
 /**
  * Plays the card in `handIndex` at the hero with `targetUid`.
  * Illegal plays (no such card, not enough energy, fight over) return
@@ -293,20 +321,52 @@ export const playCard = (
 
   const cardDef = getCard(cardId);
   const aimedUid = aimCard(state, cardId, targetUid);
-  const paid: CombatState = {
-    ...state,
-    energy: state.energy - cardDef.cost,
-    hand: state.hand.filter((_, index) => index !== handIndex),
-  };
+  const paid = payForCard(state, handIndex);
   const resolved = cardDef.effects.reduce<CombatState>(
-    (current, effect) =>
-      applyCardEffect(current, effect, aimedUid, !cardDef.reach),
+    (current, effect) => applyCardEffect(current, effect, aimedUid, cardDef),
     paid
   );
   const settled = cardDef.fades
     ? { ...resolved, fadedPile: [...resolved.fadedPile, cardId] }
     : { ...resolved, discardPile: [...resolved.discardPile, cardId] };
   return removeFallen(settled);
+};
+
+/** A multi-hit damage effect split into single hits (same numbers). */
+const oneHitAtATime = (effect: CardEffect): CardEffect[] =>
+  effect.kind === 'damage' && effect.hits > 1
+    ? Array.from({ length: effect.hits }, () => ({ ...effect, hits: 1 }))
+    : [effect];
+
+/**
+ * Plays a card beat by beat, so the view can show each hit of a
+ * multi-hit card land on its own. The middle states are for display
+ * only (a felled hero still stands at 0 HP); the last step is exactly
+ * playCard()'s result, which is what the server replays. Splitting is
+ * safe because a card's hits all use the damage worked out before the
+ * first one. Empty when the play is illegal.
+ */
+export const playCardSteps = (
+  state: CombatState,
+  handIndex: number,
+  targetUid: number
+): CombatState[] => {
+  const cardId = state.hand[handIndex];
+  if (cardId === undefined || !canPlayCard(state, handIndex)) return [];
+  const cardDef = getCard(cardId);
+  const aimedUid = aimCard(state, cardId, targetUid);
+  const paid = payForCard(state, handIndex);
+  const beats = cardDef.effects.flatMap(oneHitAtATime);
+  const middle = beats
+    .slice(0, -1)
+    .reduce<CombatState[]>(
+      (states, effect) => [
+        ...states,
+        applyCardEffect(states.at(-1) ?? paid, effect, aimedUid, cardDef),
+      ],
+      []
+    );
+  return [...middle, playCard(state, handIndex, targetUid)];
 };
 
 // --- HERO TURN ---

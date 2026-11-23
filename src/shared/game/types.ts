@@ -10,13 +10,20 @@ import type { RngState } from './rng.ts';
 
 // --- STATUSES ---
 /**
- * Lingering effects on a combatant (shroud, the block value, lives on the
+ * Lingering effects on a combatant (shroud, the block value, shown to
+ * players as "Guard", lives on the
  * combatant itself because it resets every turn):
  * - hex:   loses this much HP at the end of its turn, then hex drops by 1
  * - dread: deals 25% less attack damage; drops by 1 at the end of its turn
  * - wrath: adds this much to every hit; lasts the whole fight
+ * Buffs, gained from the villain's Buff cards, also last the whole fight:
+ * - might:      adds this much to every Melee hit
+ * - surge:      adds this much to every Magic hit
+ * - piercing:   adds this much to every Range hit
+ * - protection: adds this much to every Shroud a card gives
  */
-export type StatusId = 'hex' | 'dread' | 'wrath';
+export type BuffId = 'might' | 'surge' | 'piercing' | 'protection';
+export type StatusId = 'hex' | 'dread' | 'wrath' | BuffId;
 export type Statuses = Record<StatusId, number>;
 
 /** Anything with HP that fights: the villain or a hero. */
@@ -41,6 +48,8 @@ export type CardEffect =
   | { kind: 'reap'; multiplier: number }
   | { kind: 'shroud'; amount: number }
   | { kind: 'wrath'; amount: number }
+  /** Grants the villain a fight-long buff. */
+  | { kind: 'buff'; buff: BuffId; amount: number }
   | { kind: 'draw'; amount: number }
   | { kind: 'energy'; amount: number }
   | { kind: 'heal'; amount: number }

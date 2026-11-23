@@ -10,7 +10,15 @@ import { STATUS_LOOK } from '../../content/visuals';
 import { Chip } from '../ui/Chip';
 
 // --- CONSTANTS ---
-const STATUS_ORDER: readonly StatusId[] = ['wrath', 'hex', 'dread'];
+const STATUS_ORDER: readonly StatusId[] = [
+  'wrath',
+  'might',
+  'surge',
+  'piercing',
+  'protection',
+  'hex',
+  'dread',
+];
 
 // --- COMPONENT ---
 /** Shows only the statuses that are above zero. */
@@ -26,7 +34,7 @@ export const StatusRow = ({ combatant }: { combatant: Combatant }) => {
           {...STATUS_LOOK.shroud}
           shape="square"
           text={String(combatant.shroud)}
-          title={STATUS_INFO.shroud.description}
+          title={`${STATUS_INFO.shroud.label}: ${STATUS_INFO.shroud.description}`}
         />
       )}
       {active.map((id) => (

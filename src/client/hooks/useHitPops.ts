@@ -10,12 +10,17 @@
 // ===================================================================
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Combatant, HeroUnit } from '../../shared/game/types';
+import type {
+  BuffId,
+  Combatant,
+  HeroUnit,
+  StatusId,
+} from '../../shared/game/types';
 import { HERO_ANCHOR_ATTR, HERO_UID_ATTR, type Point } from './useCardDrag';
 
 // --- TYPES ---
 /** What a pop shows: a hit, or something a hero gained. */
-export type PopKind = 'hit' | 'heal' | 'shroud' | 'wrath';
+export type PopKind = 'hit' | 'heal' | 'shroud' | 'wrath' | BuffId;
 
 /**
  * One pop's numbers: for a hit, HP lost and damage the shroud soaked up;
@@ -44,6 +49,14 @@ type HeroLook = {
 /** How long a damage number stays on screen (matches --animate-hit-pop). */
 const HIT_POP_MS = 1400;
 const GONE = { hp: 0, shroud: 0, wrath: 0 };
+/** Fight-long statuses the villain can gain from cards; each pops "+N". */
+const VILLAIN_GAINS: readonly (StatusId & PopKind)[] = [
+  'wrath',
+  'might',
+  'surge',
+  'piercing',
+  'protection',
+];
 
 // --- HELPERS ---
 /**
@@ -184,20 +197,33 @@ export const useHitPops = (
   return pops;
 };
 
-/** The damage numbers to show over the villain right now. */
+/** Buffs (and Wrath) the villain gained between two looks. */
+const villainGainsBetween = (before: Combatant, after: Combatant): Hit[] =>
+  VILLAIN_GAINS.map((kind) => ({
+    kind,
+    amount: after.statuses[kind] - before.statuses[kind],
+    blocked: 0,
+  })).filter((gain) => gain.amount > 0);
+
+/**
+ * The numbers to show over the villain right now: hits taken, and
+ * "+N" for every buff or Wrath gained (Guard has its own pop).
+ */
 export const usePlayerHits = (
   player: Combatant,
   turn: number
 ): PlayerHitPop[] => {
   const [pops, add] = usePopQueue<Hit>();
-  const lastRef = useRef({ hp: player.hp, shroud: player.shroud, turn });
+  const lastRef = useRef({ player, turn });
 
   // VILLAIN CHANGES -> NEW POPS
   useEffect(() => {
     const last = lastRef.current;
-    const hit = hitBetween(last, player, last.turn === turn);
-    lastRef.current = { hp: player.hp, shroud: player.shroud, turn };
-    if (hit) add([hit]);
+    const hit = hitBetween(last.player, player, last.turn === turn);
+    const gains = villainGainsBetween(last.player, player);
+    lastRef.current = { player, turn };
+    const fresh = [...(hit ? [hit] : []), ...gains];
+    if (fresh.length > 0) add(fresh);
   }, [player, turn, add]);
 
   return pops;

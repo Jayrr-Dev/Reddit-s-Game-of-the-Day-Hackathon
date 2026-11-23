@@ -21,6 +21,7 @@ import type { RunAction } from '../../../shared/game/run';
 import type { CombatState } from '../../../shared/game/types';
 import type { CardBox, Point } from '../../hooks/useCardDrag';
 import { useCombatControls } from '../../hooks/useCombatControls';
+import { useCardHits } from '../../hooks/useCardHits';
 import { useHeroTurn } from '../../hooks/useHeroTurn';
 import {
   useHitPops,
@@ -131,13 +132,20 @@ export const CombatView = ({
 }: CombatViewProps) => {
   // While the heroes' turn plays out, draw its beats instead of the
   // real state, and route End Turn to the playback.
+  // Likewise a multi-hit card shows each hit before it is committed.
   const heroTurn = useHeroTurn(realCombat, onAction);
+  const cardHits = useCardHits(realCombat, onAction);
   const { endTurn: playHeroTurn } = heroTurn;
-  const combat = heroTurn.shown;
+  const { playCard: playCardHits } = cardHits;
+  const combat = cardHits.isPlaying ? cardHits.shown : heroTurn.shown;
+  const isAnimating = heroTurn.isPlaying || cardHits.isPlaying;
   const routeAction = useCallback(
-    (action: RunAction) =>
-      action.type === 'endTurn' ? playHeroTurn() : onAction(action),
-    [playHeroTurn, onAction]
+    (action: RunAction) => {
+      if (action.type === 'endTurn') return playHeroTurn();
+      if (action.type === 'playCard') return playCardHits(action);
+      onAction(action);
+    },
+    [playHeroTurn, playCardHits, onAction]
   );
   const controls = useCombatControls(combat, routeAction);
   const [isPaused, setIsPaused] = useState(false);
@@ -205,8 +213,8 @@ export const CombatView = ({
           )}
         </>
       )}
-      {/* THE HEROES' TURN IS PLAYING: SWALLOW TAPS UNTIL IT ENDS */}
-      {heroTurn.isPlaying && <div className="absolute inset-0 z-50" />}
+      {/* A TURN OR A CARD'S HITS ARE PLAYING: SWALLOW TAPS UNTIL DONE */}
+      {isAnimating && <div className="absolute inset-0 z-50" />}
       {isPaused && (
         <PauseSheet
           where={where}

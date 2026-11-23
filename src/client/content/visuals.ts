@@ -19,6 +19,11 @@ export const STATUS_LOOK: Record<StatusId | 'shroud', Look> = {
   hex: { glyph: 'skull', toneClass: 'text-hex' },
   dread: { glyph: 'eye', toneClass: 'text-dread' },
   wrath: { glyph: 'flame', toneClass: 'text-wrath' },
+  // Buffs wear their card type's icon and colour (see CARD_LOOK).
+  might: { glyph: 'sword', toneClass: 'text-hp' },
+  surge: { glyph: 'swirl', toneClass: 'text-shroud' },
+  piercing: { glyph: 'bow', toneClass: 'text-heal' },
+  protection: { glyph: 'shield', toneClass: 'text-accent' },
 };
 
 // --- HERO INTENTS ---
@@ -84,8 +89,12 @@ export const RARITY_GEM: Record<CardRarity, string | null> = {
 export const RULES_KEYWORDS = [
   'Hex',
   'Dread',
-  'Shroud',
+  'Guard',
   'Wrath',
+  'Might',
+  'Surge',
+  'Piercing',
+  'Protection',
   'ALL',
 ] as const;
 

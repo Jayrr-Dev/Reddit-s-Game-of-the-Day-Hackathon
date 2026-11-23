@@ -1,0 +1,75 @@
+// ===================================================================
+// USE CARD HITS
+// Lets a multi-hit card land one hit at a time. The engine resolves a
+// card in one go; playCardSteps() also returns the state after each
+// hit, so this hook shows those beats a moment apart (each one pops its
+// own number) and only then sends the real playCard action. Single-hit
+// cards go straight through with no delay.
+// ===================================================================
+
+import { useCallback, useEffect, useState } from 'react';
+import { playCardSteps } from '../../shared/game/combat';
+import type { RunAction } from '../../shared/game/run';
+import type { CombatState } from '../../shared/game/types';
+
+// --- TYPES ---
+type PlayCardAction = Extract<RunAction, { type: 'playCard' }>;
+type Playback = {
+  action: PlayCardAction;
+  /** The beats before the real result (that one comes from the commit). */
+  beats: CombatState[];
+  index: number;
+};
+
+// --- CONSTANTS ---
+/** Gap between one hit landing and the next (ms). Quick, so it stays snappy. */
+const HIT_STAGGER_MS = 110;
+
+// --- HOOK ---
+/**
+ * Returns the state to draw (a hit beat while one plays, else the real
+ * state), whether hits are playing, and playCard() to start one.
+ */
+export const useCardHits = (
+  combat: CombatState,
+  onAction: (action: RunAction) => void
+) => {
+  const [playback, setPlayback] = useState<Playback | null>(null);
+  const beat = playback?.beats[playback.index];
+
+  // NEXT HIT AFTER A BEAT; AFTER THE LAST ONE, COMMIT THE REAL PLAY
+  useEffect(() => {
+    if (!playback) return;
+    const timer = window.setTimeout(() => {
+      const isLast = playback.index >= playback.beats.length - 1;
+      if (isLast) {
+        onAction(playback.action);
+        setPlayback(null);
+        return;
+      }
+      setPlayback({ ...playback, index: playback.index + 1 });
+    }, HIT_STAGGER_MS);
+    return () => window.clearTimeout(timer);
+  }, [playback, onAction]);
+
+  /** Plays a card: hit by hit when it has several, otherwise at once. */
+  const playCard = useCallback(
+    (action: PlayCardAction) => {
+      if (playback) return;
+      const steps = playCardSteps(combat, action.handIndex, action.targetUid);
+      const beats = steps.slice(0, -1);
+      if (beats.length === 0) {
+        onAction(action);
+        return;
+      }
+      setPlayback({ action, beats, index: 0 });
+    },
+    [combat, playback, onAction]
+  );
+
+  return {
+    shown: beat ?? combat,
+    isPlaying: playback !== null,
+    playCard,
+  } as const;
+};

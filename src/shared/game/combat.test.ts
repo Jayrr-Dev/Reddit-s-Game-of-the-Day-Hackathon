@@ -10,6 +10,7 @@ import {
   endOfTurnUpkeep,
   takeDamage,
   createCombatant,
+  NO_STATUSES,
 } from './combatant.ts';
 import {
   canPlayCard,
@@ -18,6 +19,7 @@ import {
   endTurnSteps,
   heroTurnOrder,
   playCard,
+  playCardSteps,
   startCombat,
 } from './combat.ts';
 import { CARDS_PER_TURN, ENERGY_PER_TURN } from './rules.ts';
@@ -52,11 +54,11 @@ void test('shroud absorbs damage before HP', () => {
 void test('wrath adds to each hit and dread cuts damage by 25%', () => {
   const base = createCombatant(10, 10);
   assert.equal(
-    attackDamage(6, { ...base, statuses: { hex: 0, dread: 0, wrath: 2 } }),
+    attackDamage(6, { ...base, statuses: { ...NO_STATUSES, wrath: 2 } }),
     8
   );
   assert.equal(
-    attackDamage(8, { ...base, statuses: { hex: 0, dread: 1, wrath: 0 } }),
+    attackDamage(8, { ...base, statuses: { ...NO_STATUSES, dread: 1 } }),
     6
   );
 });
@@ -64,11 +66,11 @@ void test('wrath adds to each hit and dread cuts damage by 25%', () => {
 void test('hex deals its damage at end of turn and then drops by one', () => {
   const hexed = {
     ...createCombatant(20, 20),
-    statuses: { hex: 3, dread: 1, wrath: 0 },
+    statuses: { ...NO_STATUSES, hex: 3, dread: 1 },
   };
   const after = endOfTurnUpkeep(hexed);
   assert.equal(after.hp, 17);
-  assert.deepEqual(after.statuses, { hex: 2, dread: 0, wrath: 0 });
+  assert.deepEqual(after.statuses, { ...NO_STATUSES, hex: 2 });
 });
 
 // --- TURN FLOW ---
@@ -145,4 +147,57 @@ void test('heroes act fastest first, ties by uid, beat by beat', () => {
   );
   assert.deepEqual(actors, order);
   assert.deepEqual(steps.at(-1)?.state, endTurn(state));
+});
+
+// --- BUFFS ---
+/** The Squire's uid in a fightWith() fight. */
+const squireUid = (state: CombatState): number => state.heroes[0]?.uid ?? -1;
+
+/** HP the Squire lost when `cardId` is played with the given buffs. */
+const damageWith = (cardId: CardId, buffs: Partial<typeof NO_STATUSES>) => {
+  const start = withHand(fightWith(['backhand']), [cardId]);
+  const buffed = {
+    ...start,
+    player: { ...start.player, statuses: { ...NO_STATUSES, ...buffs } },
+  };
+  const before = buffed.heroes[0]?.hp ?? 0;
+  const after = playCard(buffed, 0, squireUid(buffed));
+  return before - (after.heroes[0]?.hp ?? 0);
+};
+
+void test('Might, Surge and Piercing each power up only their own card type', () => {
+  assert.equal(damageWith('backhand', { might: 2 }), 8);
+  assert.equal(damageWith('backhand', { surge: 2, piercing: 2 }), 6);
+  assert.equal(damageWith('spiteBolt', { piercing: 3 }), 9);
+  assert.equal(damageWith('hexfire', { surge: 1 }), 7);
+  assert.equal(damageWith('mourningCurse', { might: 5, surge: 5 }), 4);
+});
+
+void test('a type buff adds to every hit of a multi-hit card', () => {
+  assert.equal(damageWith('flurry', { might: 1 }), 12);
+});
+
+void test('Protection adds to every Guard (shroud) a card gives', () => {
+  const start = withHand(fightWith(['backhand']), ['darkCloak']);
+  const guarded = {
+    ...start,
+    player: { ...start.player, statuses: { ...NO_STATUSES, protection: 2 } },
+  };
+  assert.equal(playCard(guarded, 0, -1).player.shroud, 7);
+});
+
+void test('buff cards grant their buff for the rest of the fight', () => {
+  const start = withHand(fightWith(['backhand']), ['bloodlust']);
+  const after = playCard(start, 0, -1);
+  assert.equal(after.player.statuses.might, 2);
+  assert.equal(endTurn(after).player.statuses.might, 2);
+});
+
+void test('playCardSteps shows each hit and ends on the real play', () => {
+  const start = withHand(fightWith(['backhand']), ['flurry']);
+  const steps = playCardSteps(start, 0, squireUid(start));
+  assert.equal(steps.length, 3);
+  assert.deepEqual(steps.at(-1), playCard(start, 0, squireUid(start)));
+  const hpOf = (state: CombatState) => state.heroes[0]?.hp ?? 0;
+  assert.ok(hpOf(steps[0] as CombatState) > hpOf(steps[1] as CombatState));
 });
