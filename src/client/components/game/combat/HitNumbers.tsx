@@ -2,8 +2,8 @@
 // HIT NUMBERS
 // The damage numbers that punch in over the hero that was hit, then
 // drift up and fade (see --animate-hit-pop). Several hits on one target
-// stack upward instead of overlapping. Damage a shroud soaked up
-// shows beside it, struck through and faded, with a shield. What a hero
+// stack upward instead of overlapping. The number is the whole hit;
+// the part a Guard soaked up shows small beside it with a shield. What a hero
 // gains from its own move (heal, Shroud, Wrath) pops as "+N" + icon.
 // ===================================================================
 
@@ -50,7 +50,7 @@ const GAIN_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
 };
 
 // --- SUBCOMPONENTS ---
-/** The faded, struck-through blocked amount with its shield. */
+/** The part a Guard soaked up: small and faded, with a shield. */
 const BlockedPart = ({
   blocked,
   typical,
@@ -58,46 +58,55 @@ const BlockedPart = ({
   blocked: number;
   typical: number;
 }) => (
-  <span className="flex items-center gap-0.5 opacity-70 drop-shadow-[0_0_2px_black]">
+  <span className="flex items-center gap-0.5 opacity-80 drop-shadow-[0_0_2px_black]">
+    <Glyph name="shield" className="size-[0.9em] text-shroud" />
     <span
-      className="font-display font-black text-ink [-webkit-text-stroke:1px_var(--color-surface-sunken)] line-through decoration-hp decoration-[3px]"
+      className="font-display font-black text-ink [-webkit-text-stroke:1px_var(--color-surface-sunken)]"
       style={{ fontSize: popFontPx(blocked, typical, BLOCKED_SCALE) }}
     >
       {blocked}
     </span>
-    <Glyph name="shield" className="size-[0.8em] text-ink" />
   </span>
 );
 
-/** One hit: the damage dealt, then any blocked part beside it. */
+/**
+ * One hit. The big number is the whole hit (what the card dealt, buffs
+ * and all), so it always matches the card text; the part a Guard
+ * soaked up sits small beside it. A hit that was fully blocked is
+ * drawn faded, since no HP was lost.
+ */
 export const HitLine = ({
   amount,
   blocked,
   typical,
   source,
 }: {
+  /** HP lost. */
   amount: number;
+  /** Damage the target's Guard absorbed. */
   blocked: number;
   /** The typical hit when this one landed; sizes it (see popSize). */
   typical: number;
   /** The card type that dealt it, which picks the colour. */
   source?: CardType | undefined;
-}) => (
-  <div className="flex items-center gap-1 animate-hit-pop">
-    {amount > 0 && (
+}) => {
+  const total = amount + blocked;
+  const isFullyBlocked = amount === 0;
+  return (
+    <div className="flex items-center gap-1 animate-hit-pop">
       <span
-        className={`${NUMBER_CLASS} text-surface-sunken`}
+        className={`${NUMBER_CLASS} text-surface-sunken ${isFullyBlocked ? 'opacity-60' : ''}`}
         style={{
-          fontSize: popFontPx(amount, typical),
+          fontSize: popFontPx(total, typical),
           ['--pop-tone' as string]: toneOf(source),
         }}
       >
-        {amount}
+        {total}
       </span>
-    )}
-    {blocked > 0 && <BlockedPart blocked={blocked} typical={typical} />}
-  </div>
-);
+      {blocked > 0 && <BlockedPart blocked={blocked} typical={typical} />}
+    </div>
+  );
+};
 
 /** One gain: "+N" with its icon, in its colour. */
 const GainLine = ({

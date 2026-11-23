@@ -177,7 +177,9 @@ const usePopQueue = <T extends Hit>(history: HitHistory) => {
         typical,
       }));
       history.record(
-        fresh.filter((pop) => pop.kind === 'hit').map((pop) => pop.amount)
+        fresh
+          .filter((pop) => pop.kind === 'hit')
+          .map((pop) => pop.amount + pop.blocked)
       );
       setPops((current) => [...current, ...keyed]);
       const ids = keyed.map((pop) => pop.id);
