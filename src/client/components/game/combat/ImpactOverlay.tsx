@@ -2,7 +2,7 @@
 // IMPACT OVERLAY
 // Quick effects drawn over a character for each pop (see useHitPops),
 // so you can read what just happened to them without reading numbers:
-//   HIT     Melee (and the heroes' own attacks)  a red slash
+//   HIT     Melee (and the heroes' own attacks)  a thin black slice
 //           Range                                 a green streak, like an arrow
 //           Magic                                 a blue plus
 //           Curse (Hex ticking, curse cards)      a purple glow
@@ -16,6 +16,7 @@
 
 import type { CSSProperties } from 'react';
 import { POP_LOOK, toneVarOf } from '../../../content/visuals';
+import { Slice } from './Slice';
 import type { PlayerHitPop } from '../../../hooks/useHitPops';
 
 // --- CONSTANTS ---
@@ -53,22 +54,27 @@ const placeAt = (
 
 // --- SUBCOMPONENTS ---
 /**
- * A Melee cut: a thin blade-shaped wound, pointed at both ends, red at
- * the edges with a dark core. It swipes open from one end.
+ * A Melee cut: a semi-thin black slice, pointed at both ends. Each one
+ * gets its own length, thickness and angle (from its pop id), so a
+ * flurry reads as quick offset slices rather than one stamp. A faint
+ * light edge keeps it visible on dark armour.
  */
-const Slash = ({ id }: { id: number }) => (
-  <span className="absolute w-[62%]" style={placeAt(id, -38, 30)}>
-    <svg
-      viewBox="0 0 100 14"
-      className="block w-full origin-left animate-impact-slash drop-shadow-[0_0_4px_var(--color-hp)]"
-      aria-hidden="true"
+const Slash = ({ id }: { id: number }) => {
+  const length = 45 + seeded(id, 5) * 35; // % of the overlay box
+  // Mostly down-left to up-right, but about a third cut the other way.
+  const baseDeg = seeded(id, 7) < 0.35 ? 35 : -35;
+  return (
+    <span
+      className="absolute"
+      style={{ ...placeAt(id, baseDeg, 30), width: `${length}%` }}
     >
-      {/* RED EDGE, THEN THE DARK CORE INSIDE IT */}
-      <path d="M0 7Q50 -1 100 7Q50 15 0 7Z" fill="var(--color-hp)" />
-      <path d="M14 7Q50 3.5 86 7Q50 10.5 14 7Z" fill="#1a0306" />
-    </svg>
-  </span>
-);
+      <Slice
+        halfThickness={1.6 + seeded(id, 6) * 1.6}
+        className="origin-left animate-impact-slash"
+      />
+    </span>
+  );
+};
 
 /** A Range shot: a thin green streak with a bright head. */
 const Streak = ({ id }: { id: number }) => (
