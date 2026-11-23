@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   BuffId,
+  CardType,
   Combatant,
   HeroUnit,
   StatusId,
@@ -26,7 +27,13 @@ export type PopKind = 'hit' | 'heal' | 'shroud' | 'wrath' | BuffId;
  * One pop's numbers: for a hit, HP lost and damage the shroud soaked up;
  * for a gain, how much was gained (blocked is 0).
  */
-export type Hit = { kind: PopKind; amount: number; blocked: number };
+export type Hit = {
+  kind: PopKind;
+  amount: number;
+  blocked: number;
+  /** For a hit on a hero: the type of the card that dealt it (its colour). */
+  source?: CardType | undefined;
+};
 
 /** A hit on screen (id keys it while it floats). */
 export type PlayerHitPop = Hit & { id: number };
@@ -125,14 +132,16 @@ const heroPopsSince = (
   before: ReadonlyMap<number, HeroLook>,
   heroes: readonly HeroUnit[],
   countsBlocked: boolean,
-  isHeroTurn: boolean
+  isHeroTurn: boolean,
+  source: CardType | undefined
 ): Omit<HitPop, 'id'>[] =>
   [...before].flatMap(([uid, old]) => {
     const unit = heroes.find((hero) => hero.uid === uid);
     const now = unit
       ? { hp: unit.hp, shroud: unit.shroud, wrath: unit.statuses.wrath }
       : GONE;
-    const hit = hitBetween(old, now, countsBlocked);
+    const found = hitBetween(old, now, countsBlocked);
+    const hit = found ? { ...found, source } : null;
     const gains = isHeroTurn && unit ? gainsBetween(old, now) : [];
     const point = bodyPointOf(uid) ?? old.point;
     if (!point) return [];
@@ -170,11 +179,15 @@ const usePopQueue = <T extends object>() => {
  * The numbers to show over heroes right now. `isHeroTurn` is true
  * while the heroes' turn plays out: their shroud fading then is not a
  * block, and what their moves give them (heal, Shroud, Wrath) pops.
+ * `cardType` is the type of the card you played last, which colours
+ * its hits; on the heroes' turn the only harm to them is Hex ticking,
+ * so those hits take the Curse colour.
  */
 export const useHitPops = (
   heroes: readonly HeroUnit[],
   turn: number,
-  isHeroTurn: boolean
+  isHeroTurn: boolean,
+  cardType: CardType | undefined
 ): HitPop[] => {
   const [pops, add] = usePopQueue<Omit<HitPop, 'id'>>();
   const lastLookRef = useRef(new Map<number, HeroLook>());
@@ -187,12 +200,13 @@ export const useHitPops = (
       lastLookRef.current,
       heroes,
       countsBlocked,
-      isHeroTurn
+      isHeroTurn,
+      isHeroTurn ? 'curse' : cardType
     );
     lastLookRef.current = lookAt(heroes, lastLookRef.current);
     lastTurnRef.current = turn;
     if (hits.length > 0) add(hits);
-  }, [heroes, turn, isHeroTurn, add]);
+  }, [heroes, turn, isHeroTurn, cardType, add]);
 
   return pops;
 };

@@ -17,8 +17,9 @@
 // ===================================================================
 
 import { useCallback, useState, type ReactNode } from 'react';
+import { getCard } from '../../../shared/game/cards';
 import type { RunAction } from '../../../shared/game/run';
-import type { CombatState } from '../../../shared/game/types';
+import type { CardType, CombatState } from '../../../shared/game/types';
 import type { CardBox, Point } from '../../hooks/useCardDrag';
 import { useCombatControls } from '../../hooks/useCombatControls';
 import { useCardHits } from '../../hooks/useCardHits';
@@ -139,17 +140,28 @@ export const CombatView = ({
   const { playCard: playCardHits } = cardHits;
   const combat = cardHits.isPlaying ? cardHits.shown : heroTurn.shown;
   const isAnimating = heroTurn.isPlaying || cardHits.isPlaying;
+  // The type of the card played last colours its damage numbers.
+  const [lastCardType, setLastCardType] = useState<CardType>();
   const routeAction = useCallback(
     (action: RunAction) => {
       if (action.type === 'endTurn') return playHeroTurn();
-      if (action.type === 'playCard') return playCardHits(action);
+      if (action.type === 'playCard') {
+        const cardId = realCombat.hand[action.handIndex];
+        setLastCardType(cardId ? getCard(cardId).type : undefined);
+        return playCardHits(action);
+      }
       onAction(action);
     },
-    [playHeroTurn, playCardHits, onAction]
+    [playHeroTurn, playCardHits, onAction, realCombat.hand]
   );
   const controls = useCombatControls(combat, routeAction);
   const [isPaused, setIsPaused] = useState(false);
-  const pops = useHitPops(combat.heroes, combat.turn, heroTurn.isPlaying);
+  const pops = useHitPops(
+    combat.heroes,
+    combat.turn,
+    heroTurn.isPlaying,
+    lastCardType
+  );
   const playerHits = usePlayerHits(combat.player, combat.turn);
   const { drag } = controls;
   const draggedCardId = drag ? combat.hand[drag.handIndex] : undefined;

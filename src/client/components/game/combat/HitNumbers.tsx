@@ -7,15 +7,31 @@
 // gains from its own move (heal, Shroud, Wrath) pops as "+N" + icon.
 // ===================================================================
 
-import { INTENT_LOOK, STATUS_LOOK, type Look } from '../../../content/visuals';
+import type { CardType } from '../../../../shared/game/types';
+import {
+  CARD_LOOK,
+  INTENT_LOOK,
+  STATUS_LOOK,
+  type Look,
+} from '../../../content/visuals';
 import type { Hit, HitPop, PopKind } from '../../../hooks/useHitPops';
 import { popFontPx } from '../../../lib/popSize';
 import { Glyph } from '../../ui/Glyph';
 
 // --- CONSTANTS ---
-/** The red-outlined look of the damage number. */
+/**
+ * The outlined look of the damage number. The outline and glow colour
+ * comes from --pop-tone: the card type's colour (CARD_LOOK.glowVar, the
+ * same colour the card itself glows), or blood red for untyped hits.
+ */
 const NUMBER_CLASS =
-  'font-display font-black [-webkit-text-stroke:1.5px_var(--color-hp)] [text-shadow:0_0_10px_var(--color-hp)]';
+  'font-display font-black [-webkit-text-stroke:1.5px_var(--pop-tone)] [text-shadow:0_0_10px_var(--pop-tone)]';
+/** Hits with no card type (the heroes' attacks on you). */
+const UNTYPED_TONE = 'var(--color-hp)';
+
+/** The colour a hit is drawn in. */
+const toneOf = (source?: CardType): string =>
+  source ? CARD_LOOK[source].glowVar : UNTYPED_TONE;
 
 /** Blocked damage is drawn smaller than damage dealt. */
 const BLOCKED_SCALE = 0.65;
@@ -50,15 +66,21 @@ const BlockedPart = ({ blocked }: { blocked: number }) => (
 export const HitLine = ({
   amount,
   blocked,
+  source,
 }: {
   amount: number;
   blocked: number;
+  /** The card type that dealt it, which picks the colour. */
+  source?: CardType | undefined;
 }) => (
   <div className="flex items-center gap-1 animate-hit-pop">
     {amount > 0 && (
       <span
         className={`${NUMBER_CLASS} text-surface-sunken`}
-        style={{ fontSize: popFontPx(amount) }}
+        style={{
+          fontSize: popFontPx(amount),
+          ['--pop-tone' as string]: toneOf(source),
+        }}
       >
         {amount}
       </span>
@@ -85,7 +107,7 @@ const GainLine = ({ kind, amount }: { kind: PopKind; amount: number }) => {
 /** A hit or a gain, whichever the pop is. */
 const PopLine = ({ hit }: { hit: Hit }) =>
   hit.kind === 'hit' ? (
-    <HitLine amount={hit.amount} blocked={hit.blocked} />
+    <HitLine amount={hit.amount} blocked={hit.blocked} source={hit.source} />
   ) : (
     <GainLine kind={hit.kind} amount={hit.amount} />
   );
