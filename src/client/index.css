@@ -29,6 +29,8 @@
   --color-dread: #6f7f9e;
   --color-wrath: #e0663a;
   --color-heal: #5fbf7f;
+  /* Range: steel arrows, silver grey (cards, chips, hit numbers, streaks). */
+  --color-range: #b9c2cc;
   /* Card numbers raised by a buff / lowered by a debuff (on parchment). */
   --color-boosted: #23803f;
   --color-weakened: #b3263e;
@@ -36,7 +38,7 @@
 
   /* --- CARD CATEGORIES --- */
   --color-card-melee: #8e1f33;
-  --color-card-range: #3e6a2e;
+  --color-card-range: #5b636d;
   --color-card-magic: #1f6577;
   --color-card-buff: #2c4675;
   --color-card-curse: #5a2a86;

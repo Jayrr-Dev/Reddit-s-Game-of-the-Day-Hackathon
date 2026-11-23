@@ -80,7 +80,7 @@ const Slash = ({ id }: { id: number }) => {
 /** A Range shot: a thin steel-grey streak with a bright head, like an arrow. */
 const Streak = ({ id }: { id: number }) => (
   <span className="absolute w-[45%]" style={placeAt(id, -35, 20)}>
-    <span className="block h-[3px] animate-impact-streak rounded-full bg-gradient-to-r from-transparent via-[#8b95a1] to-white shadow-[0_0_3px_rgb(0_0_0/0.8)]" />
+    <span className="block h-[3px] animate-impact-streak rounded-full bg-gradient-to-r from-transparent via-range to-white shadow-[0_0_3px_rgb(0_0_0/0.8)]" />
   </span>
 );
 

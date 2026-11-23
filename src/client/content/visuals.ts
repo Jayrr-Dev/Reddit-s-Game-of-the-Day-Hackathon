@@ -28,7 +28,7 @@ export const STATUS_LOOK: Record<StatusId | 'shroud', Look> = {
   // Buffs wear their card type's icon and colour (see CARD_LOOK).
   might: { glyph: 'sword', toneClass: 'text-hp' },
   surge: { glyph: 'swirl', toneClass: 'text-shroud' },
-  piercing: { glyph: 'bow', toneClass: 'text-heal' },
+  piercing: { glyph: 'bow', toneClass: 'text-range' },
   protection: { glyph: 'shield', toneClass: 'text-accent' },
   momentum: { glyph: 'bolt', toneClass: 'text-energy' },
 };
@@ -37,7 +37,7 @@ export const STATUS_LOOK: Record<StatusId | 'shroud', Look> = {
 export const INTENT_LOOK: Record<IntentKind, Look> = {
   attack: { glyph: 'sword', toneClass: 'text-hp' },
   // Hero attacks wear their type's colour, like the villain's cards.
-  range: { glyph: 'bow', toneClass: 'text-heal' },
+  range: { glyph: 'bow', toneClass: 'text-range' },
   magic: { glyph: 'swirl', toneClass: 'text-shroud' },
   advance: { glyph: 'march', toneClass: 'text-ink' },
   curse: { glyph: 'skull', toneClass: 'text-hex' },
@@ -67,7 +67,7 @@ export const CARD_LOOK: Record<
     glyph: 'bow',
     typeName: 'Range',
     frameClass: 'bg-card-range',
-    glowVar: 'var(--color-heal)',
+    glowVar: 'var(--color-range)',
   },
   magic: {
     glyph: 'swirl',
