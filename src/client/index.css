@@ -48,6 +48,7 @@
   --animate-rise: rise 180ms ease-out;
   --animate-shake: shake 260ms ease-in-out;
   --animate-hit-pop: hit-pop 900ms ease-out forwards;
+  --animate-gain-float: gain-float 1100ms ease-out forwards;
 
   @keyframes rise {
     from {
@@ -77,6 +78,24 @@
     100% {
       opacity: 0;
       transform: translateY(-18px);
+    }
+  }
+
+  /* A "+N" gain chip: fades in, floats straight up and fades out. */
+  @keyframes gain-float {
+    0% {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    15% {
+      opacity: 1;
+    }
+    60% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-36px);
     }
   }
 

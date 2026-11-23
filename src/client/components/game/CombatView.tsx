@@ -7,7 +7,8 @@
 //   HitNumbers    damage numbers that pop over the hero that was hit
 //   Bottom band   PlayerCorner (portrait + HP) + discard pile | your
 //                 effects + energy | TurnCorner (draw pile + End Turn),
-//                 then the hand
+//                 then the hand. A "+N" chip floats up when you gain
+//                 Shroud.
 //   DraggedCard   the card under the finger while it is dragged
 //   AimArrow      the targeting line from that card to its target
 // All game state comes from the engine; this view only routes input.
@@ -28,6 +29,7 @@ import { FanHand } from './combat/FanHand';
 import { HitNumbers } from './combat/HitNumbers';
 import { PileStack } from './combat/PileStack';
 import { PlayerCorner } from './combat/PlayerCorner';
+import { ShroudGainPops } from './combat/ShroudGainPops';
 import { TopBar } from './combat/TopBar';
 import { TurnCorner } from './combat/TurnCorner';
 import { MenuPanel } from './menu/MenuPanel';
@@ -74,7 +76,8 @@ const PlayerBar = ({
         side="left"
       />
     </div>
-    <div className="flex min-w-0 flex-col items-center gap-1 pb-1">
+    <div className="relative flex min-w-0 flex-col items-center gap-1 pb-1">
+      <ShroudGainPops shroud={combat.player.shroud} />
       <StatusRow combatant={combat.player} />
       <EnergyTray energy={combat.energy} />
     </div>
