@@ -3,9 +3,10 @@
 // Quick effects drawn over a character for each pop (see useHitPops),
 // so you can read what just happened to them without reading numbers:
 //   HIT     Melee (and the heroes' own attacks)  a thin black slice
-//           Range                                 a green streak, like an arrow
+//           Range                                 a steel-grey streak, like an arrow
 //           Magic                                 a blue plus
 //           Curse (Hex ticking, curse cards)      a purple glow
+//   HEAL    green pluses rising off the body, and a green glow
 //   BUFF    a green arrow up over the face, and a glow in its colour
 //   DEBUFF  a red arrow down over the face, and a glow in its colour
 // Every hit is its own pop, so a 3-hit card leaves 3 marks. Each mark
@@ -76,10 +77,10 @@ const Slash = ({ id }: { id: number }) => {
   );
 };
 
-/** A Range shot: a thin green streak with a bright head. */
+/** A Range shot: a thin steel-grey streak with a bright head, like an arrow. */
 const Streak = ({ id }: { id: number }) => (
   <span className="absolute w-[45%]" style={placeAt(id, -35, 20)}>
-    <span className="block h-[3px] animate-impact-streak rounded-full bg-gradient-to-r from-transparent via-heal to-white shadow-[0_0_6px_var(--color-heal)]" />
+    <span className="block h-[3px] animate-impact-streak rounded-full bg-gradient-to-r from-transparent via-[#8b95a1] to-white shadow-[0_0_3px_rgb(0_0_0/0.8)]" />
   </span>
 );
 
@@ -99,6 +100,41 @@ const Plus = ({ id }: { id: number }) => (
       />
     </svg>
   </span>
+);
+
+/** Rising heal sparks: [left %, start delay ms] for each green plus. */
+const HEAL_SPARKS: readonly (readonly [number, number])[] = [
+  [30, 0],
+  [62, 90],
+  [45, 170],
+  [72, 250],
+];
+
+/** A heal: green pluses float up off the body, one after another. */
+const HealSparks = () => (
+  <>
+    {HEAL_SPARKS.map(([left, delay]) => (
+      <span
+        key={left}
+        className="absolute top-[55%] aspect-square w-[16%] -translate-x-1/2"
+        style={{ left: `${left}%` }}
+      >
+        <svg
+          viewBox="0 0 10 10"
+          className="block size-full animate-impact-rise drop-shadow-[0_0_3px_var(--color-heal)]"
+          style={{ animationDelay: `${delay}ms` }}
+          aria-hidden="true"
+        >
+          <path
+            d="M5 1v8M1 5h8"
+            stroke="var(--color-heal)"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+          />
+        </svg>
+      </span>
+    ))}
+  </>
 );
 
 /** A soft wash of colour over the character (status applied). */
@@ -142,6 +178,13 @@ const HitMark = ({ pop }: { pop: PlayerHitPop }) => {
 /** The effect for one pop: a hit mark, or a status arrow and glow. */
 const Impact = ({ pop }: { pop: PlayerHitPop }) => {
   if (pop.kind === 'hit') return <HitMark pop={pop} />;
+  if (pop.kind === 'heal')
+    return (
+      <>
+        <Glow tone="var(--color-heal)" />
+        <HealSparks />
+      </>
+    );
   const isDebuff = DEBUFF_KINDS.includes(pop.kind);
   return (
     <>

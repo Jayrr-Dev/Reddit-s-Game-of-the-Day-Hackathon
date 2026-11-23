@@ -288,8 +288,9 @@ export const useHitPops = (
 };
 
 /**
- * Buffs (and Wrath) the villain gained between two looks, plus Guard
- * gained (quiet: Guard has its own "+N" pop by the Guard chip).
+ * What the villain gained between two looks: HP healed ("+N"), buffs
+ * and Wrath, plus Guard (quiet: Guard has its own "+N" pop by the
+ * Guard chip).
  */
 const villainGainsBetween = (before: Combatant, after: Combatant): Hit[] => {
   const buffs = VILLAIN_GAINS.map((kind) => ({
@@ -303,12 +304,18 @@ const villainGainsBetween = (before: Combatant, after: Combatant): Hit[] => {
     blocked: 0,
     isQuiet: true,
   };
-  return [...buffs, guard].filter((gain) => gain.amount > 0);
+  const healed = {
+    kind: 'heal' as const,
+    amount: after.hp - before.hp,
+    blocked: 0,
+  };
+  return [healed, ...buffs, guard].filter((gain) => gain.amount > 0);
 };
 
 /**
  * The numbers to show over the villain right now: hits taken, "+N" for
- * every buff or Wrath gained, and quiet pops for Guard and debuffs.
+ * HP healed and every buff or Wrath gained, and quiet pops for Guard
+ * and debuffs.
  * `source` is how the hero attack landing now lands (Melee, Range or
  * Magic), which colours the hit; null for untyped harm such as Hex.
  */
