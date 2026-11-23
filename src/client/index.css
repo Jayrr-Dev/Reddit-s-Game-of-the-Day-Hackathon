@@ -29,6 +29,9 @@
   --color-dread: #6f7f9e;
   --color-wrath: #e0663a;
   --color-heal: #5fbf7f;
+  /* Card numbers raised by a buff / lowered by a debuff (on parchment). */
+  --color-boosted: #23803f;
+  --color-weakened: #b3263e;
   --color-energy: #e8bb66;
 
   /* --- CARD CATEGORIES --- */

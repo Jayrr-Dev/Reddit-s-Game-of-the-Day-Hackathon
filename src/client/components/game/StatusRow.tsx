@@ -10,13 +10,21 @@ import { STATUS_LOOK } from '../../content/visuals';
 import { Chip } from '../ui/Chip';
 
 // --- CONSTANTS ---
+/**
+ * Left to right, grouped by what they do (Guard itself is drawn first):
+ * defence, then attack, then magic, then debuffs.
+ */
 const STATUS_ORDER: readonly StatusId[] = [
-  'momentum',
+  // DEFENCE
+  'protection',
+  // ATTACK
   'wrath',
   'might',
-  'surge',
   'piercing',
-  'protection',
+  'momentum',
+  // MAGIC
+  'surge',
+  // DEBUFFS
   'hex',
   'dread',
 ];

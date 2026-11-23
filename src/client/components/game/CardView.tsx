@@ -70,21 +70,42 @@ const SIZE_LOOK: Record<CardSize, SizeLook> = {
 /** Splits rules text into plain words and bold keywords or numbers. */
 const KEYWORD_PATTERN = new RegExp(`(\\d+|${RULES_KEYWORDS.join('|')})`, 'g');
 
+/**
+ * Colour for a number on the live card compared with the printed one:
+ * green when buffs raised it, red when debuffs lowered it, plain when
+ * unchanged (or not a number).
+ */
+const changeClass = (live: string, printed: string | undefined): string => {
+  const diff = Number(live) - Number(printed);
+  if (printed === undefined || Number.isNaN(diff) || diff === 0) return '';
+  return diff > 0 ? 'text-boosted' : 'text-weakened';
+};
+
 // --- SUBCOMPONENTS ---
-/** One rules line with keywords and numbers in bold. */
-const RulesLine = ({ text }: { text: string }) => (
-  <span className="block">
-    {text.split(KEYWORD_PATTERN).map((part, index) =>
-      index % 2 === 1 ? (
-        <b key={index} className="font-black">
-          {part}
-        </b>
-      ) : (
-        <Fragment key={index}>{part}</Fragment>
-      )
-    )}
-  </span>
-);
+/**
+ * One rules line with keywords and numbers in bold. `printed` is the
+ * same line without the villain's statuses; both come from the same
+ * template, so the Nth number of each lines up for the comparison.
+ */
+const RulesLine = ({ text, printed }: { text: string; printed: string }) => {
+  const printedParts = printed.split(KEYWORD_PATTERN);
+  return (
+    <span className="block">
+      {text.split(KEYWORD_PATTERN).map((part, index) =>
+        index % 2 === 1 ? (
+          <b
+            key={index}
+            className={`font-black ${changeClass(part, printedParts[index])}`}
+          >
+            {part}
+          </b>
+        ) : (
+          <Fragment key={index}>{part}</Fragment>
+        )
+      )}
+    </span>
+  );
+};
 
 /** The arched art window with the type's glyph. */
 const ArtWindow = ({
@@ -141,6 +162,8 @@ export const CardView = ({
 }: CardViewProps) => {
   const cardDef = getCard(cardId);
   const typeLook = CARD_LOOK[cardDef.type];
+  // The card as printed (no statuses), to colour numbers that changed.
+  const printedLines = describeCard(cardId);
   const look = SIZE_LOOK[size];
   // The typeLook glow; brighter and gold-rimmed while the card is held.
   const glow = isSelected
@@ -172,8 +195,12 @@ export const CardView = ({
       <span
         className={`flex w-full min-h-0 flex-1 flex-col justify-center rounded-b-sm bg-parchment text-on-parchment ${look.rules}`}
       >
-        {describeCard(cardId, attacker).map((line) => (
-          <RulesLine key={line} text={line} />
+        {describeCard(cardId, attacker).map((line, index) => (
+          <RulesLine
+            key={line}
+            text={line}
+            printed={printedLines[index] ?? line}
+          />
         ))}
       </span>
       <TypeRibbon
