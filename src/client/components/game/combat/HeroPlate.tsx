@@ -17,6 +17,7 @@ import type { HeroSize, HeroUnit } from '../../../../shared/game/types';
 import { INTENT_LOOK } from '../../../content/visuals';
 import { Chip } from '../../ui/Chip';
 import { StatusRow } from '../StatusRow';
+import { PLATE_UID_ATTR } from '../../../hooks/usePlateSpacing';
 import { DrainBar } from './DrainBar';
 
 // --- TYPES ---
@@ -77,6 +78,7 @@ export const HeroPlate = ({ unit, isFocused }: HeroPlateProps) => {
   const scaleClass = unit.row === 'back' ? 'scale-[0.8]' : '';
   return (
     <div
+      {...{ [PLATE_UID_ATTR]: unit.uid }}
       className={`pointer-events-none flex origin-bottom flex-col gap-1.5 ${scaleClass}`}
       style={{ width: look.width, maxWidth: look.maxWidth }}
     >

@@ -6,7 +6,7 @@
 // toward the focused hero, and the stage sways gently on its own.
 // ===================================================================
 
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { sizeOf } from '../../../../shared/game/battlefield';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
 import type { HeroRow, HeroUnit } from '../../../../shared/game/types';
@@ -14,6 +14,7 @@ import { FIELD_ATTR } from '../../../hooks/useCardDrag';
 import { cssVars, depthStyle } from '../../../lib/cssVars';
 import { Backdrop, Foreground } from './Backdrop';
 import type { AimState } from '../../../hooks/useCombatControls';
+import { usePlateSpacing } from '../../../hooks/usePlateSpacing';
 import { HeroOnField } from './HeroOnField';
 
 // --- TYPES ---
@@ -66,6 +67,8 @@ export const BattlefieldView = ({
   aimOf,
   onTapHero,
 }: BattlefieldViewProps) => {
+  const fieldRef = useRef<HTMLDivElement>(null);
+  usePlateSpacing(fieldRef, heroes);
   const focused = heroes.find((unit) => unit.uid === focusUid);
   /** Renders the heroes standing in one row. */
   const renderRow = (row: HeroRow) =>
@@ -83,6 +86,7 @@ export const BattlefieldView = ({
 
   return (
     <div
+      ref={fieldRef}
       className="parallax-stage relative min-h-0 flex-1 overflow-hidden"
       {...{ [FIELD_ATTR]: true }}
       style={cssVars({ '--cam': cameraFor(focused) })}
