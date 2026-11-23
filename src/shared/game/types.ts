@@ -101,7 +101,8 @@ export type CardDef = {
 // --- HEROES ---
 /**
  * How a hero attack lands. Melee only works from the front row; Range
- * made up close (front row) lands as Melee for less; Magic works anywhere.
+ * hits harder from the back row and lands as plain Melee up close (front
+ * row); Magic works anywhere.
  */
 export type HeroAttackType = Extract<CardType, 'melee' | 'range' | 'magic'>;
 

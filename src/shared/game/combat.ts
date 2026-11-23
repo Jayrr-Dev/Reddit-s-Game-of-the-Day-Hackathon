@@ -48,7 +48,7 @@ import {
   BACK_STEP_COST,
   CARDS_PER_TURN,
   CHARGE_COST,
-  CLOSE_RANGE_DAMAGE_FACTOR,
+  LONG_RANGE_DAMAGE_FACTOR,
   FIELD_MOVE_STREAK_COST,
   ENERGY_PER_TURN,
   MAX_HAND_SIZE,
@@ -155,19 +155,27 @@ export const plannedHeroMove = (unit: HeroUnit): PlannedMove | null => {
 };
 
 /**
+ * A Range hit at its proper range. Rounded (not floored) so even small
+ * hits feel the bonus: 2 -> 3, 6 -> 8.
+ */
+const longRangeHit = (perHit: number): number =>
+  Math.round(perHit * LONG_RANGE_DAMAGE_FACTOR);
+
+/**
  * How one hero attack lands from where the hero stands: its type and
- * damage per hit. A Range attack made up close (from the front row)
- * lands as Melee, for CLOSE_RANGE_DAMAGE_FACTOR of the damage.
+ * damage per hit. A Range attack from the back row is at its proper
+ * range (LONG_RANGE_DAMAGE_FACTOR); made up close (from the front row)
+ * it lands as a plain Melee hit.
  */
 export const heroAttackOf = (
   unit: HeroUnit,
   effect: Extract<HeroEffect, { kind: 'attack' }>
 ): { type: HeroAttackType; perHit: number } => {
   const perHit = attackDamage(scaleByMight(effect.amount, unit.might), unit);
-  const isUpClose = unit.row === 'front';
-  return effect.type === 'range' && isUpClose
-    ? { type: 'melee', perHit: Math.floor(perHit * CLOSE_RANGE_DAMAGE_FACTOR) }
-    : { type: effect.type, perHit };
+  if (effect.type !== 'range') return { type: effect.type, perHit };
+  return unit.row === 'front'
+    ? { type: 'melee', perHit }
+    : { type: 'range', perHit: longRangeHit(perHit) };
 };
 
 /** Heroes this card may be aimed at now (every hero for untargeted cards). */
@@ -351,14 +359,14 @@ const resolveTargets = (
 
 // --- CARD EFFECTS ---
 
-/** One villain hit on a hero: a Range card up close deals less. */
-const villainHitOn = (
+/** One villain hit on a hero: a Range card at a back-row hero hits harder. */
+export const cardHitOn = (
   unit: HeroUnit,
   perHit: number,
   cardDef: CardDef
 ): number =>
-  cardDef.type === 'range' && unit.row === 'front'
-    ? Math.floor(perHit * CLOSE_RANGE_DAMAGE_FACTOR)
+  cardDef.type === 'range' && unit.row === 'back'
+    ? longRangeHit(perHit)
     : perHit;
 
 /** Deals `hits` hits of villain attack damage to the targets. */
@@ -375,7 +383,7 @@ const villainAttack = (
       updateHeroes(
         current,
         resolveTargets(current, effect.target, targetUid, isMelee),
-        (unit) => takeDamage(unit, villainHitOn(unit, perHit, cardDef))
+        (unit) => takeDamage(unit, cardHitOn(unit, perHit, cardDef))
       ),
     state
   );

@@ -282,6 +282,9 @@ export const CombatView = ({
           <DraggedCard
             cardId={draggedCardId}
             attacker={combat.player}
+            target={combat.heroes.find(
+              (unit) => unit.uid === controls.hoverUid
+            )}
             box={drag.card}
             glow={controls.selfGlow}
           />

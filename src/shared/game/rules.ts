@@ -22,8 +22,11 @@ export const MOMENTUM_DAMAGE_FACTOR = 1.5;
  * whole front row is pushed back to the back row (out of melee reach).
  */
 export const BACK_STEP_COST = 1;
-/** Range attacks made up close (at or from the front row) deal this share. */
-export const CLOSE_RANGE_DAMAGE_FACTOR = 0.7;
+/**
+ * Range attacks at their proper range (a villain card at a back-row
+ * hero, a hero shooting from the back row) deal this much damage.
+ */
+export const LONG_RANGE_DAMAGE_FACTOR = 1.3;
 /**
  * Each consecutive use of the same field move (this turn or the last)
  * costs this much more energy; a break in the streak resets it.

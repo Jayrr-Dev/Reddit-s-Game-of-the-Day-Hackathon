@@ -7,7 +7,7 @@
 // ===================================================================
 
 import type { CardId } from '../../../../shared/game/cards';
-import type { Combatant } from '../../../../shared/game/types';
+import type { Combatant, HeroUnit } from '../../../../shared/game/types';
 import type { CardBox } from '../../../hooks/useCardDrag';
 import { CardView } from '../CardView';
 
@@ -15,6 +15,8 @@ import { CardView } from '../CardView';
 export type DraggedCardProps = {
   cardId: CardId;
   attacker: Combatant;
+  /** The hero the drag is locked onto, so the numbers fit that hero. */
+  target?: HeroUnit | undefined;
   box: CardBox;
   /** 0 (no glow) to 1 (pulled high enough to play). */
   glow: number;
@@ -42,6 +44,7 @@ const glowFilter = (glow: number): string => {
 export const DraggedCard = ({
   cardId,
   attacker,
+  target,
   box,
   glow,
 }: DraggedCardProps) => (
@@ -57,6 +60,7 @@ export const DraggedCard = ({
     <CardView
       cardId={cardId}
       attacker={attacker}
+      target={target}
       size="fan"
       onClick={() => {}}
     />

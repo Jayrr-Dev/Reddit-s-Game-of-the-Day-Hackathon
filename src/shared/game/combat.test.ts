@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { advanceMelee } from './battlefield.ts';
-import { ALL_CARD_IDS, getCard, type CardId } from './cards.ts';
+import { ALL_CARD_IDS, type CardId } from './cards.ts';
 import {
   attackDamage,
   endOfTurnUpkeep,
@@ -28,12 +28,7 @@ import {
   startCombat,
 } from './combat.ts';
 import { describeCard, describeHeroIntent } from './describe.ts';
-import {
-  BACK_STEP_COST,
-  CARDS_PER_TURN,
-  CLOSE_RANGE_DAMAGE_FACTOR,
-  ENERGY_PER_TURN,
-} from './rules.ts';
+import { BACK_STEP_COST, CARDS_PER_TURN, ENERGY_PER_TURN } from './rules.ts';
 import type { CombatState, HeroUnit } from './types.ts';
 
 // --- FIXTURES ---
@@ -189,8 +184,8 @@ const damageWith = (cardId: CardId, buffs: Partial<typeof NO_STATUSES>) => {
 void test('Might, Surge and Piercing each power up only their own card type', () => {
   assert.equal(damageWith('backhand', { might: 2 }), 8);
   assert.equal(damageWith('backhand', { surge: 2, piercing: 2 }), 6);
-  // 9, but a Range card up close (the Squire is in front) deals 70%.
-  assert.equal(damageWith('spiteBolt', { piercing: 3 }), 6);
+  // The Squire is in front: no long-range bonus.
+  assert.equal(damageWith('spiteBolt', { piercing: 3 }), 9);
   assert.equal(damageWith('hexfire', { surge: 1 }), 7);
   assert.equal(damageWith('mourningCurse', { might: 5, surge: 5 }), 4);
 });
@@ -254,8 +249,9 @@ void test('a Target N card can pick the same hero more than once', () => {
   const [squire, archer] = start.heroes.map((unit) => unit.uid);
   const picks = [archer ?? -1, archer ?? -1, squire ?? -1];
   const after = playCard(start, 0, picks[0] ?? -1, picks);
-  // Up close the Squire takes 70% of 3 (2); the Archer takes 3 + 3.
-  assert.deepEqual(hpLost(start, after), [2, 6]);
+  // The Squire (front) takes 3; the back-row Archer takes 130% of 3
+  // (rounded to 4) twice.
+  assert.deepEqual(hpLost(start, after), [3, 8]);
 });
 
 void test('every pick follows reach: a melee pick at the back row hits the front', () => {
@@ -296,13 +292,9 @@ void test('card text damage always equals the damage the engine deals', () => {
       const [line = ''] = describeCard(cardId, player);
       const perHit = Number(/Deal (\d+)/.exec(line)?.[1]);
       const hits = Number(/(\d+) times/.exec(line)?.[1] ?? 1);
-      // The Squire stands in front, so a Range card lands up close.
-      const isUpClose = getCard(cardId).type === 'range';
-      const landed = isUpClose
-        ? Math.floor(perHit * CLOSE_RANGE_DAMAGE_FACTOR)
-        : perHit;
+      // The Squire stands in front, so no Range card gets its bonus.
       const dealt = damageWith(cardId, buffs);
-      assert.equal(dealt, Math.min(landed * hits, 14), `${cardId} ${line}`);
+      assert.equal(dealt, Math.min(perHit * hits, 14), `${cardId} ${line}`);
     }
   }
 });
@@ -333,7 +325,7 @@ void test('a melee hero in the back row skips to a move it can make, or advances
   assert.equal(heroNamed(after, 'squire')?.moveIndex, 0);
 });
 
-void test('a Range hero shoots from the back and strikes for less up close', () => {
+void test('a Range hero shoots harder from the back and strikes plainly up close', () => {
   const fresh = startCombat({
     hp: 60,
     maxHp: 60,
@@ -343,11 +335,13 @@ void test('a Range hero shoots from the back and strikes for less up close', () 
     seed: 3,
   });
   const archer = heroNamed(fresh, 'archer') as HeroUnit;
-  assert.equal(describeHeroIntent(archer).intents[0]?.kind, 'range');
+  // Volley 2x3 from the back: Range at 130% (2.6 rounds to 3).
+  const [shot] = describeHeroIntent(archer).intents;
+  assert.deepEqual([shot?.kind, shot?.text], ['range', '3×3']);
+  // Up close it lands as plain Melee.
   const upClose = { ...archer, row: 'front' as const };
-  const [intent] = describeHeroIntent(upClose).intents;
-  // Volley 2x3 up close: Melee, 70% of 2 rounds down to 1.
-  assert.deepEqual([intent?.kind, intent?.text], ['attack', '1×3']);
+  const [strike] = describeHeroIntent(upClose).intents;
+  assert.deepEqual([strike?.kind, strike?.text], ['attack', '2×3']);
 });
 
 void test('Back Step pushes a full front row back for 1 energy', () => {

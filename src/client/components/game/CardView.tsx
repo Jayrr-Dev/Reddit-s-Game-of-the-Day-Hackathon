@@ -8,13 +8,14 @@
 //   type ribbon   the type (Melee, Range, Magic, Buff, Curse) and rarity
 // The frame and outer glow are coloured by type (see CARD_LOOK).
 // The text comes from describeCard, so it always matches what the card
-// really does (including live wrath/dread math).
+// really does (including live wrath/dread math, and the hero it is
+// aimed at while dragged).
 // ===================================================================
 
 import { Fragment } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { describeCard } from '../../../shared/game/describe';
-import type { Combatant } from '../../../shared/game/types';
+import type { Combatant, HeroUnit } from '../../../shared/game/types';
 import { CARD_LOOK, RARITY_GEM, RULES_KEYWORDS } from '../../content/visuals';
 import { Glyph, type GlyphName } from '../ui/Glyph';
 
@@ -23,6 +24,11 @@ export type CardViewProps = {
   cardId: CardId;
   /** When given, damage numbers include this attacker's wrath and dread. */
   attacker?: Combatant;
+  /**
+   * The hero the card is aimed at, if any: numbers then show what it
+   * would really do to that hero (Range bonus, Reap's Hex, ...).
+   */
+  target?: HeroUnit | undefined;
   isDisabled?: boolean;
   /** Lifted and outlined while the player is choosing its target. */
   isSelected?: boolean;
@@ -155,6 +161,7 @@ const TypeRibbon = ({
 export const CardView = ({
   cardId,
   attacker,
+  target,
   isDisabled = false,
   isSelected = false,
   size = 'offer',
@@ -195,7 +202,7 @@ export const CardView = ({
       <span
         className={`flex w-full min-h-0 flex-1 flex-col justify-center rounded-b-sm bg-parchment text-on-parchment ${look.rules}`}
       >
-        {describeCard(cardId, attacker).map((line, index) => (
+        {describeCard(cardId, attacker, target).map((line, index) => (
           <RulesLine
             key={line}
             text={line}

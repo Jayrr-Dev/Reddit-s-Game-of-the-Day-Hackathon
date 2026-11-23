@@ -7,8 +7,13 @@
 
 import { targetRuleOf } from './battlefield.ts';
 import { getCard, type CardId } from './cards.ts';
-import { attackDamage, guardAmount } from './combatant.ts';
-import { heroAttackOf, plannedHeroMove, scaleByMight } from './combat.ts';
+import { attackDamage, guardAmount, typeBonus } from './combatant.ts';
+import {
+  cardHitOn,
+  heroAttackOf,
+  plannedHeroMove,
+  scaleByMight,
+} from './combat.ts';
 import type {
   CardDef,
   CardEffect,
@@ -64,19 +69,25 @@ const areaSuffix = (target: 'one' | 'all', isMelee = false): string => {
 /**
  * One line of card text. When `attacker` is given, numbers are a live
  * preview: damage after the villain's wrath, type buff and dread, and
- * Shroud with Protection added. `cardDef` gives the type and reach.
+ * Shroud with Protection added. When `target` is given too (the hero
+ * the card is aimed at), single-target numbers are for that hero: a
+ * Range card's long-range bonus, and Reap's damage from its Hex.
+ * `cardDef` gives the type and reach.
  */
 export const describeCardEffect = (
   effect: CardEffect,
   cardDef: CardDef,
-  attacker?: Combatant
+  attacker?: Combatant,
+  target?: HeroUnit
 ): string => {
   const isMelee = !cardDef.reach;
   switch (effect.kind) {
     case 'damage': {
-      const amount = attacker
+      const perHit = attacker
         ? attackDamage(effect.amount, attacker, cardDef.type)
         : effect.amount;
+      const isAimed = target !== undefined && effect.target === 'one';
+      const amount = isAimed ? cardHitOn(target, perHit, cardDef) : perHit;
       const times = effect.hits > 1 ? ` ${effect.hits} times` : '';
       return `Deal ${amount} damage${times}${areaSuffix(effect.target, isMelee)}.`;
     }
@@ -84,8 +95,12 @@ export const describeCardEffect = (
       return `Apply ${effect.amount} Hex${areaSuffix(effect.target)}.`;
     case 'dread':
       return `Apply ${effect.amount} Dread${areaSuffix(effect.target)}.`;
-    case 'reap':
-      return `Deal damage equal to ${effect.multiplier}× the target's Hex.`;
+    case 'reap': {
+      if (!target)
+        return `Deal damage equal to ${effect.multiplier}× the target's Hex.`;
+      const bonus = attacker ? typeBonus(attacker, cardDef.type) : 0;
+      return `Deal ${target.statuses.hex * effect.multiplier + bonus} damage.`;
+    }
     case 'shroud': {
       const amount = attacker
         ? guardAmount(effect.amount, attacker)
@@ -115,11 +130,12 @@ export const describeCardEffect = (
  */
 export const describeCard = (
   cardId: CardId,
-  attacker?: Combatant
+  attacker?: Combatant,
+  target?: HeroUnit
 ): string[] => {
   const cardDef = getCard(cardId);
   const lines = cardDef.effects.map((effect) =>
-    describeCardEffect(effect, cardDef, attacker)
+    describeCardEffect(effect, cardDef, attacker, target)
   );
   const targetLine = cardDef.targets > 1 ? [`Target ${cardDef.targets}.`] : [];
   return [...targetLine, ...lines, ...(cardDef.fades ? ['Fades.'] : [])];

@@ -28,7 +28,7 @@ const attackOf =
   });
 /** A Melee attack: only from the front row. */
 const strike = attackOf('melee');
-/** A Range attack: full damage from the back row, weaker up close. */
+/** A Range attack: +30% from the back row, plain Melee up close. */
 const shoot = attackOf('range');
 /** A Magic attack: the same from either row. */
 const spell = attackOf('magic');
