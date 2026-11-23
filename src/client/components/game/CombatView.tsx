@@ -1,26 +1,36 @@
 // ===================================================================
 // COMBAT VIEW
-// One fight, laid out to fit the 512 px Reddit post (top to bottom):
-//   FocusHud      location and score
-//   Battlefield   3 x 2 parallax scene; every hero wears its HP plate
-//   VillainDock   portrait + HP, energy, statuses, draw pile, End Turn
-//   FanHand       the cards in hand
+// One fight, laid out like a mobile card battler and sized to the
+// 512 px Reddit post. Layers, top to bottom:
+//   TargetPlate   the aimed (or focused) hero: name, big HP bar, intent,
+//                 effects; the gear opens the pause sheet
+//   Battlefield   3 x 2 parallax scene; every hero wears its own plate
+//   HitNumbers    big damage numbers that pop on a hit
+//   Bottom band   PlayerCorner (portrait + HP) | your effects + energy |
+//                 TurnCorner (deck count + End Turn), then the hand
 //   DraggedCard   the card under the finger while it is dragged
-//   AimArrow      the targeting line from that card to the aim tip
+//   AimArrow      the targeting line from that card to its target
 // All game state comes from the engine; this view only routes input.
 // ===================================================================
 
+import { useState } from 'react';
 import type { RunAction } from '../../../shared/game/run';
 import type { CombatState } from '../../../shared/game/types';
 import type { CardBox, Point } from '../../hooks/useCardDrag';
 import { useCombatControls } from '../../hooks/useCombatControls';
+import { useHitPops } from '../../hooks/useHitPops';
 import { useSmoothPoint } from '../../hooks/useSmoothPoint';
 import { AimArrow } from './combat/AimArrow';
 import { BattlefieldView } from './combat/BattlefieldView';
 import { DraggedCard } from './combat/DraggedCard';
+import { EnergyTray } from './combat/EnergyTray';
 import { FanHand } from './combat/FanHand';
-import { FocusHud } from './combat/FocusHud';
-import { VillainDock } from './combat/VillainDock';
+import { HitNumbers } from './combat/HitNumbers';
+import { PlayerCorner } from './combat/PlayerCorner';
+import { TargetPlate } from './combat/TargetPlate';
+import { TurnCorner } from './combat/TurnCorner';
+import { MenuPanel } from './menu/MenuPanel';
+import { StatusRow } from './StatusRow';
 
 // --- TYPES ---
 export type CombatViewProps = {
@@ -39,6 +49,43 @@ const cardTop = ({ center, height }: CardBox): Point => ({
   y: center.y - height / 2,
 });
 
+// --- SUBCOMPONENTS ---
+/** The row above the hand: your portrait, effects + energy, End Turn. */
+const PlayerBar = ({
+  combat,
+  onEndTurn,
+}: {
+  combat: CombatState;
+  onEndTurn: () => void;
+}) => (
+  <div className="flex items-end justify-between gap-2 px-3">
+    <PlayerCorner player={combat.player} />
+    <div className="flex min-w-0 flex-1 flex-col items-center gap-1 pb-1">
+      <StatusRow combatant={combat.player} />
+      <EnergyTray energy={combat.energy} />
+    </div>
+    <TurnCorner drawCount={combat.drawPile.length} onEndTurn={onEndTurn} />
+  </div>
+);
+
+/** The pause sheet: where you are, your score, and Back to resume. */
+const PauseSheet = ({
+  where,
+  score,
+  onClose,
+}: {
+  where: string;
+  score: number;
+  onClose: () => void;
+}) => (
+  <MenuPanel title="Paused" onClose={onClose}>
+    <p className="text-center text-sm text-ink">{where}</p>
+    <p className="text-center font-display text-2xl font-black text-accent">
+      {score} pts
+    </p>
+  </MenuPanel>
+);
+
 // --- COMPONENT ---
 /** Renders one fight. */
 export const CombatView = ({
@@ -49,20 +96,25 @@ export const CombatView = ({
   onAction,
 }: CombatViewProps) => {
   const controls = useCombatControls(combat, onAction);
+  const [isPaused, setIsPaused] = useState(false);
+  const pops = useHitPops(combat.heroes);
   const { drag } = controls;
   const draggedCardId = drag ? combat.hand[drag.handIndex] : undefined;
+  // The top plate follows the aim while dragging, else the focus.
+  const plateUid = controls.hoverUid ?? controls.focusUid;
+  const plateUnit = combat.heroes.find((unit) => unit.uid === plateUid);
   // The arrow is hidden until it has a target, then flies out from the
   // card and glides onto the snapped hero rather than jumping to it.
   const aimShown = useSmoothPoint(
     controls.aimPoint,
     drag ? cardTop(drag.card) : null
   );
-  const isHolding = controls.heldIndex !== null;
 
   return (
-    <div className="flex h-full w-full flex-col">
-      <FocusHud where={where} score={score} />
-      <div className="relative -mt-5 flex min-h-0 flex-1 flex-col">
+    <div className="relative flex h-full w-full flex-col overflow-hidden">
+      <TargetPlate unit={plateUnit} onOpenMenu={() => setIsPaused(true)} />
+      {/* BATTLEFIELD (fills the space between the plate and the band) */}
+      <div className="relative flex min-h-0 flex-1 flex-col">
         <BattlefieldView
           heroes={combat.heroes}
           hue={hue}
@@ -70,20 +122,19 @@ export const CombatView = ({
           aimOf={controls.aimOf}
           onTapHero={controls.tapHero}
         />
-        {isHolding && !drag && (
-          <p className="pointer-events-none absolute inset-x-0 bottom-1 z-30 text-center text-[11px] font-semibold text-accent drop-shadow">
-            Tap or drag to a glowing hero
-          </p>
-        )}
+        <HitNumbers pops={pops} />
       </div>
-      <VillainDock combat={combat} onEndTurn={controls.endTurn} />
-      <FanHand
-        combat={combat}
-        heldIndex={controls.heldIndex}
-        onTapCard={controls.tapCard}
-        onPressCard={controls.pressCard}
-        draggedIndex={drag?.handIndex ?? null}
-      />
+      {/* BOTTOM BAND: rises over the field's foreground */}
+      <div className="relative z-30 -mt-8 flex shrink-0 flex-col">
+        <PlayerBar combat={combat} onEndTurn={controls.endTurn} />
+        <FanHand
+          combat={combat}
+          heldIndex={controls.heldIndex}
+          onTapCard={controls.tapCard}
+          onPressCard={controls.pressCard}
+          draggedIndex={drag?.handIndex ?? null}
+        />
+      </div>
       {drag && draggedCardId !== undefined && (
         <>
           <DraggedCard
@@ -100,6 +151,13 @@ export const CombatView = ({
             />
           )}
         </>
+      )}
+      {isPaused && (
+        <PauseSheet
+          where={where}
+          score={score}
+          onClose={() => setIsPaused(false)}
+        />
       )}
     </div>
   );

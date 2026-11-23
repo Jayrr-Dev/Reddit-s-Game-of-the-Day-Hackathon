@@ -26,6 +26,15 @@ export type FanHandProps = {
 const TILT_PER_CARD = 4;
 /** Pixels each card drops per step away from the middle. */
 const DROP_PER_CARD = 3;
+/** The held card is raised out of the fan, upright and enlarged. */
+const HELD_TRANSFORM = 'translateY(-34px) scale(1.4)';
+
+// --- HELPERS ---
+/** Where a slot sits in the fan; the held card stands up out of it. */
+const slotTransform = (offset: number, isHeld: boolean): string =>
+  isHeld
+    ? HELD_TRANSFORM
+    : `translateY(${Math.abs(offset) * DROP_PER_CARD}px) rotate(${offset * TILT_PER_CARD}deg)`;
 
 // --- COMPONENT ---
 /** Renders the fanned hand. */
@@ -48,11 +57,9 @@ export const FanHand = ({
             // A hand can hold duplicates, so the slot index is part of the key.
             key={`${combat.turn}-${index}-${cardId}`}
             // touch-none: a press on a card drags it instead of scrolling.
-            className={`flex min-w-0 shrink basis-[4.25rem] touch-none select-none justify-center ${isHeld ? 'z-10' : ''} ${isLifted ? 'opacity-0' : ''}`}
+            className={`flex min-w-0 shrink basis-[4.25rem] origin-bottom touch-none select-none justify-center transition-transform duration-150 ${isHeld ? 'z-10' : ''} ${isLifted ? 'opacity-0' : ''}`}
             onPointerDown={(event) => onPressCard(index, event)}
-            style={{
-              transform: `translateY(${Math.abs(offset) * DROP_PER_CARD}px) rotate(${offset * TILT_PER_CARD}deg)`,
-            }}
+            style={{ transform: slotTransform(offset, isHeld) }}
           >
             <CardView
               cardId={cardId}

@@ -18,7 +18,9 @@ export type GlyphName =
   | 'grave'
   | 'altar'
   | 'bolt'
-  | 'eye';
+  | 'eye'
+  | 'cog'
+  | 'hourglass';
 
 export type GlyphProps = {
   name: GlyphName;
