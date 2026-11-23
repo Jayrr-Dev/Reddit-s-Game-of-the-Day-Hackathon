@@ -19,6 +19,7 @@ import {
   STORY_LINES,
   TAGLINE,
 } from '../../content/lore';
+import { ICON_AUTHORS } from '../../content/gameIcons';
 import { LeaderboardList } from '../LeaderboardList';
 import { Button } from '../ui/Button';
 import { Glyph, type GlyphName } from '../ui/Glyph';
@@ -120,6 +121,9 @@ const RulesSheet = () => (
         <li key={rule}>• {rule}</li>
       ))}
     </ul>
+    <p className="mt-auto text-center text-[9px] leading-tight text-ink-muted">
+      Icons by {ICON_AUTHORS.join(', ')} from game-icons.net, CC BY 3.0.
+    </p>
   </>
 );
 
