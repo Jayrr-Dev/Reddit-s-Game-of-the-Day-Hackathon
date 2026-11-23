@@ -1,0 +1,173 @@
+// ===================================================================
+// TOOLTIP (ATOM)
+// A small label that names what you're pointing at, styled like a
+// shadcn tooltip: dark, rounded, thin border, soft shadow, with an
+// arrow. It shows after a short hover with a mouse, or on a long press
+// with a finger, and hides when the pointer leaves or lifts. Rendered
+// in a portal with fixed positioning so the battlefield's clipping
+// can't cut it off; it sits above the trigger (below when there's no
+// room) and is kept inside the screen.
+// ===================================================================
+
+import {
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent,
+  type PointerEvent,
+  type ReactNode,
+} from 'react';
+import { createPortal } from 'react-dom';
+
+// --- TYPES ---
+export type TooltipContent = { title: string; description?: string };
+
+type Placement = {
+  left: number;
+  top: number;
+  arrowLeft: number;
+  isAbove: boolean;
+};
+
+// --- CONSTANTS ---
+/** Hover delay before showing with a mouse (ms). */
+const HOVER_DELAY_MS = 150;
+/** How long a finger must rest on the trigger to show it (ms). */
+const LONG_PRESS_MS = 400;
+/** Most the label may be wide (px); it is placed before it renders. */
+const MAX_WIDTH = 200;
+/** Space kept from the screen edges and from the trigger (px). */
+const EDGE_GAP = 8;
+const TRIGGER_GAP = 6;
+/** Below this much room above the trigger, show it underneath. */
+const MIN_ROOM_ABOVE = 70;
+
+// --- HELPERS ---
+/** Where to put the label for a trigger at `rect`. */
+const placeFor = (rect: DOMRect): Placement => {
+  const centre = rect.left + rect.width / 2;
+  const maxLeft = window.innerWidth - MAX_WIDTH - EDGE_GAP;
+  const left = Math.min(maxLeft, Math.max(EDGE_GAP, centre - MAX_WIDTH / 2));
+  const isAbove = rect.top >= MIN_ROOM_ABOVE;
+  return {
+    left,
+    top: isAbove ? rect.top - TRIGGER_GAP : rect.bottom + TRIGGER_GAP,
+    arrowLeft: centre - left,
+    isAbove,
+  };
+};
+
+// --- SUBCOMPONENTS ---
+/**
+ * The label and its arrow. It spans MAX_WIDTH but centres its content,
+ * so a short label stays small and sits over its trigger.
+ */
+const TooltipLabel = ({
+  content,
+  placement,
+}: {
+  content: TooltipContent;
+  placement: Placement;
+}) => (
+  <div
+    role="tooltip"
+    className={`pointer-events-none fixed z-[100] flex justify-center animate-tooltip-in ${placement.isAbove ? '-translate-y-full' : ''}`}
+    style={{ left: placement.left, top: placement.top, width: MAX_WIDTH }}
+  >
+    <div className="relative rounded-md border border-edge bg-surface-raised px-2.5 py-1.5 text-center shadow-[0_6px_18px_rgb(0_0_0/0.5)]">
+      <p className="text-xs font-semibold text-ink">{content.title}</p>
+      {content.description && (
+        <p className="text-[11px] leading-snug text-ink-muted">
+          {content.description}
+        </p>
+      )}
+    </div>
+    {/* ARROW: a rotated square sharing the label's border */}
+    <span
+      className={`absolute size-2 rotate-45 border-edge bg-surface-raised ${placement.isAbove ? '-bottom-[3px] border-b border-r' : '-top-[3px] border-l border-t'}`}
+      style={{ left: placement.arrowLeft - 4 }}
+    />
+  </div>
+);
+
+// --- COMPONENT ---
+/** Wraps `children` so hovering or long-pressing shows `content`. */
+export const Tooltip = ({
+  content,
+  children,
+}: {
+  content: TooltipContent;
+  children: ReactNode;
+}) => {
+  const [placement, setPlacement] = useState<Placement | null>(null);
+  const triggerRef = useRef<HTMLSpanElement>(null);
+  const timerRef = useRef<number | undefined>(undefined);
+  // True after a long press showed the label, so the finger lifting
+  // doesn't also count as a tap on whatever is behind (a hero).
+  const wasPressShownRef = useRef(false);
+
+  // NEVER LEAVE A PENDING TIMER BEHIND
+  useEffect(() => () => window.clearTimeout(timerRef.current), []);
+
+  /** Shows the label after `delayMs`, unless the pointer leaves first. */
+  const showAfter = (delayMs: number) => {
+    window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => {
+      const rect = triggerRef.current?.getBoundingClientRect();
+      if (rect) setPlacement(placeFor(rect));
+    }, delayMs);
+  };
+
+  /** Hides the label (and cancels one that was about to show). */
+  const hide = () => {
+    window.clearTimeout(timerRef.current);
+    setPlacement(null);
+  };
+
+  /** A mouse hovers; a finger has to press and hold. */
+  const onPointerDown = (event: PointerEvent) => {
+    wasPressShownRef.current = false;
+    if (event.pointerType === 'mouse') return;
+    showAfter(LONG_PRESS_MS);
+    window.setTimeout(() => {
+      wasPressShownRef.current = true;
+    }, LONG_PRESS_MS);
+  };
+  /** Swallows the tap that ends a long press. */
+  const onClickCapture = (event: MouseEvent) => {
+    if (!wasPressShownRef.current) return;
+    event.stopPropagation();
+    wasPressShownRef.current = false;
+  };
+  const onPointerEnter = (event: PointerEvent) => {
+    if (event.pointerType === 'mouse') showAfter(HOVER_DELAY_MS);
+  };
+
+  return (
+    <>
+      <span
+        ref={triggerRef}
+        aria-label={
+          content.description
+            ? `${content.title}: ${content.description}`
+            : content.title
+        }
+        onPointerEnter={onPointerEnter}
+        onPointerDown={onPointerDown}
+        onPointerLeave={hide}
+        onPointerUp={hide}
+        onPointerCancel={hide}
+        onClickCapture={onClickCapture}
+        onContextMenu={(event) => event.preventDefault()}
+        className="pointer-events-auto inline-flex"
+      >
+        {children}
+      </span>
+      {placement &&
+        createPortal(
+          <TooltipLabel content={content} placement={placement} />,
+          document.body
+        )}
+    </>
+  );
+};

@@ -58,13 +58,13 @@ const PLATE_LOOK: Record<
 export const IntentChips = ({ unit }: { unit: HeroUnit }) => {
   const { name, intents } = describeHeroIntent(unit);
   return (
-    <div className="flex flex-wrap items-center gap-0.5" title={name}>
+    <div className="flex flex-nowrap items-center gap-0.5">
       {intents.map((intent, index) => (
         <Chip
           key={`${intent.kind}-${index}`}
           {...INTENT_LOOK[intent.kind]}
           text={intent.text}
-          title={`${name}: ${intent.label}`}
+          info={{ title: intent.label, description: `Next move: ${name}` }}
         />
       ))}
     </div>
@@ -89,7 +89,9 @@ export const HeroPlate = ({ unit, isFocused }: HeroPlateProps) => {
         {getHero(unit.heroId).name}
       </span>
       <DrainBar hp={unit.hp} maxHp={unit.maxHp} size="small" />
-      <div className="flex origin-top scale-[0.8] items-start justify-between gap-1">
+      {/* ONE ROW OF CHIPS: never wraps (a second row would push the plate
+          up under the top bar); a long row spills out evenly sideways. */}
+      <div className="flex w-max min-w-full origin-top scale-[0.8] items-start justify-between gap-1 self-center">
         <IntentChips unit={unit} />
         <StatusRow combatant={unit} />
       </div>

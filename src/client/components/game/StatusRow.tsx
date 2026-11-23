@@ -41,13 +41,16 @@ export const StatusRow = ({ combatant }: { combatant: Combatant }) => {
   if (!hasShroud && active.length === 0) return <div className="h-5" />;
 
   return (
-    <div className="flex h-5 flex-wrap justify-center gap-1">
+    <div className="flex h-5 flex-nowrap justify-center gap-1">
       {hasShroud && (
         <Chip
           {...STATUS_LOOK.shroud}
           shape="square"
           text={String(combatant.shroud)}
-          title={`${STATUS_INFO.shroud.label}: ${STATUS_INFO.shroud.description}`}
+          info={{
+            title: STATUS_INFO.shroud.label,
+            description: STATUS_INFO.shroud.description,
+          }}
         />
       )}
       {active.map((id) => (
@@ -56,7 +59,10 @@ export const StatusRow = ({ combatant }: { combatant: Combatant }) => {
           {...STATUS_LOOK[id]}
           shape="square"
           text={chipText(id, combatant.statuses[id])}
-          title={`${STATUS_INFO[id].label}: ${STATUS_INFO[id].description}`}
+          info={{
+            title: STATUS_INFO[id].label,
+            description: STATUS_INFO[id].description,
+          }}
         />
       ))}
     </div>

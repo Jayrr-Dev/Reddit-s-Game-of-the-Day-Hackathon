@@ -6,14 +6,15 @@
 // ===================================================================
 
 import { Glyph, type GlyphName } from './Glyph';
+import { Tooltip, type TooltipContent } from './Tooltip';
 
 export type ChipProps = {
   glyph: GlyphName;
   text: string;
   /** Tailwind text colour class, e.g. "text-hex". */
   toneClass: string;
-  /** Tooltip explaining the chip. */
-  title?: string;
+  /** What the chip means, shown in a tooltip on hover or long press. */
+  info?: TooltipContent;
   /** "pill" for intents (default), "square" for active effects. */
   shape?: ChipShape;
 };
@@ -25,16 +26,24 @@ const SHAPE_CLASS: Record<ChipShape, string> = {
   square: 'rounded-[3px] px-1',
 };
 
-/** Renders one badge. */
-export const Chip = ({
+/** Renders one badge, with its tooltip when it has `info`. */
+export const Chip = ({ info, ...badge }: ChipProps) =>
+  info ? (
+    <Tooltip content={info}>
+      <Badge {...badge} />
+    </Tooltip>
+  ) : (
+    <Badge {...badge} />
+  );
+
+/** The badge itself: icon and value. */
+const Badge = ({
   glyph,
   text,
   toneClass,
-  title,
   shape = 'pill',
-}: ChipProps) => (
+}: Omit<ChipProps, 'info'>) => (
   <span
-    title={title}
     className={`inline-flex items-center gap-0.5 bg-surface-sunken ${SHAPE_CLASS[shape]} py-0.5 text-[11px] font-bold ring-1 ring-edge ${toneClass}`}
   >
     <Glyph name={glyph} className="size-3" />
