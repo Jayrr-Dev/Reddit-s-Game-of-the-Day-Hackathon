@@ -14,7 +14,7 @@
 // All game state comes from the engine; this view only routes input.
 // ===================================================================
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { RunAction } from '../../../shared/game/run';
 import type { CombatState } from '../../../shared/game/types';
 import type { CardBox, Point } from '../../hooks/useCardDrag';
@@ -43,6 +43,8 @@ export type CombatViewProps = {
   where: string;
   score: number;
   onAction: (action: RunAction) => void;
+  /** Extra buttons for the pause menu (e.g. the sandbox's reshuffle). */
+  pauseActions?: ReactNode;
 };
 
 // --- HELPERS ---
@@ -91,10 +93,12 @@ const PlayerBar = ({
 const PauseSheet = ({
   where,
   score,
+  actions,
   onClose,
 }: {
   where: string;
   score: number;
+  actions?: ReactNode;
   onClose: () => void;
 }) => (
   <MenuPanel title="Paused" onClose={onClose}>
@@ -102,6 +106,7 @@ const PauseSheet = ({
     <p className="text-center font-display text-2xl font-black text-accent">
       {score} pts
     </p>
+    {actions}
   </MenuPanel>
 );
 
@@ -113,6 +118,7 @@ export const CombatView = ({
   where,
   score,
   onAction,
+  pauseActions,
 }: CombatViewProps) => {
   const controls = useCombatControls(combat, onAction);
   const [isPaused, setIsPaused] = useState(false);
@@ -178,6 +184,7 @@ export const CombatView = ({
         <PauseSheet
           where={where}
           score={score}
+          actions={pauseActions}
           onClose={() => setIsPaused(false)}
         />
       )}

@@ -5,7 +5,8 @@
 //   KeyArt + logo   the scene fills the top, the logo sits over it
 //   Badges          streak and today's best, top right
 //   Badge rail      small stat badges down the left edge
-//   Menu            stacked wide buttons: start, leaderboard, rules
+//   Menu            stacked wide buttons: start, leaderboard, rules,
+//                   target dummies (practice)
 //   Ranked note     whether the next run counts
 // The rules and the leaderboard open as sheets over the menu.
 // ===================================================================
@@ -33,7 +34,13 @@ export type IntroViewProps = {
   canResume: boolean;
   isStarting: boolean;
   onStart: () => void;
+  /** Opens the target-dummy practice fight (testing aid). */
+  onPractice: () => void;
 };
+
+// --- CONSTANTS ---
+/** Shows the Target dummies practice button (a testing aid; turn off for launch if wanted). */
+const SHOW_PRACTICE = true;
 
 /** Which sheet (if any) covers the menu. */
 type Sheet = 'none' | 'rules' | 'board';
@@ -135,6 +142,7 @@ export const IntroView = ({
   canResume,
   isStarting,
   onStart,
+  onPractice,
 }: IntroViewProps) => {
   const [sheet, setSheet] = useState<Sheet>('none');
   const closeSheet = () => setSheet('none');
@@ -162,6 +170,11 @@ export const IntroView = ({
           <Button variant="menu" onClick={() => setSheet('rules')}>
             How to play
           </Button>
+          {SHOW_PRACTICE && (
+            <Button variant="menu" onClick={onPractice}>
+              Target dummies
+            </Button>
+          )}
           <p className="text-center text-[10px] leading-tight text-ink-muted">
             {rankedNote(data, canResume)}
           </p>

@@ -1,8 +1,9 @@
 // ===================================================================
 // GAME SCREEN (INLINE IN THE POST)
 // Loads the day, then hands off to the session: title screen -> run ->
-// results. Data loading and side effects live in hooks; this file only
-// decides which screen is showing.
+// results, or title screen -> target-dummy practice. Data loading and
+// side effects live in hooks; this file only decides which screen is
+// showing.
 // ===================================================================
 
 import { useCallback, useEffect, useState } from 'react';
@@ -17,6 +18,7 @@ import { useRunSubmission } from '../hooks/useRunSubmission';
 import { journeys } from '../lib/journeys';
 import { IntroView } from './game/IntroView';
 import { ResultsView } from './game/ResultsView';
+import { SandboxView } from './game/SandboxView';
 import { VillainArcGame } from './game/VillainArcGame';
 import { Screen } from './ui/Screen';
 
@@ -34,6 +36,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
   const { entries, refresh } = useLeaderboard();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [isPracticing, setIsPracticing] = useState(false);
   const isFallen = run.phase.kind === 'fallen';
   const canResume = hasProgress && !isFallen;
 
@@ -67,6 +70,8 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
     }
   };
 
+  if (isPracticing)
+    return <SandboxView onExit={() => setIsPracticing(false)} />;
   if (!isPlaying) {
     return (
       <IntroView
@@ -75,6 +80,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
         canResume={canResume}
         isStarting={isStarting}
         onStart={() => void handleStart()}
+        onPractice={() => setIsPracticing(true)}
       />
     );
   }
