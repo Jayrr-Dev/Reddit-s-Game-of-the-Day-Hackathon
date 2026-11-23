@@ -64,10 +64,22 @@ export type RunState = {
 
 export type GraveChoice = 'mourn' | 'vow';
 
+/**
+ * Plays a card. `targetUids` lists each pick of a Target N card in
+ * order (the same hero may appear more than once); `targetUid` is the
+ * first pick, and the only one for every other card.
+ */
+export type PlayCardAction = {
+  type: 'playCard';
+  handIndex: number;
+  targetUid: number;
+  targetUids?: number[];
+};
+
 /** Every input a player can give. Logged and replayed by the server. */
 export type RunAction =
   | { type: 'chooseStop'; option: number }
-  | { type: 'playCard'; handIndex: number; targetUid: number }
+  | PlayCardAction
   | { type: 'endTurn' }
   /** Charges an empty front row: the back row steps up (costs energy). */
   | { type: 'charge' }
@@ -221,7 +233,12 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
         ? settleCombat(
             state,
             phase.stop,
-            playCard(phase.combat, action.handIndex, action.targetUid)
+            playCard(
+              phase.combat,
+              action.handIndex,
+              action.targetUid,
+              action.targetUids
+            )
           )
         : state;
     case 'endTurn':
@@ -269,6 +286,16 @@ export const computeScore = (stats: RunStats): number =>
 const isIndex = (value: unknown): value is number =>
   typeof value === 'number' && Number.isInteger(value) && value >= 0;
 
+/** Most picks one action may carry (no card needs more; caps junk input). */
+const MAX_TARGET_PICKS = 10;
+
+/** True for a missing pick list, or a short list of uids. */
+const isPickList = (value: unknown): boolean =>
+  value === undefined ||
+  (Array.isArray(value) &&
+    value.length <= MAX_TARGET_PICKS &&
+    value.every(isIndex));
+
 /** Type guard for one logged action arriving from the network. */
 export const isRunAction = (value: unknown): value is RunAction => {
   if (typeof value !== 'object' || value === null || !('type' in value))
@@ -281,7 +308,8 @@ export const isRunAction = (value: unknown): value is RunAction => {
         'handIndex' in value &&
         'targetUid' in value &&
         isIndex(value.handIndex) &&
-        isIndex(value.targetUid)
+        isIndex(value.targetUid) &&
+        isPickList('targetUids' in value ? value.targetUids : undefined)
       );
     case 'endTurn':
     case 'charge':

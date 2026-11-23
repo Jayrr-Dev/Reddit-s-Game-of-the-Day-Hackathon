@@ -51,8 +51,8 @@ const reap = (multiplier: number): CardEffect => ({ kind: 'reap', multiplier });
 const pull: CardEffect = { kind: 'pull' };
 const push: CardEffect = { kind: 'push' };
 
-/** Optional card traits; defaults to false. */
-type CardTraits = { fades?: boolean };
+/** Optional card traits: fading (default no) and Target N (default 1). */
+type CardTraits = { fades?: boolean; targets?: number };
 const FADES: CardTraits = { fades: true };
 
 /** Card types that can hit the back row (Melee only hits the front). */
@@ -69,7 +69,7 @@ const card = (
   cost: number,
   rarity: CardRarity,
   effects: CardEffect[],
-  { fades = false }: CardTraits = {}
+  { fades = false, targets = 1 }: CardTraits = {}
 ): CardDef => ({
   name,
   type,
@@ -78,6 +78,7 @@ const card = (
   effects,
   fades,
   reach: REACHING_TYPES.has(type),
+  targets,
 });
 
 // --- CATALOG ---
@@ -116,6 +117,16 @@ export const CARDS = {
   wardingBolt: card('Warding Bolt', 'magic', 1, 'common', [hit(4), shroud(4)]),
   // Fight-long buffs. One type each, so they hit harder than Wrath per
   // stack; Piercing and Surge are a bit bigger because fewer cards use them.
+  // TARGET N: pick a hero per shot (the same one again is fine)
+  scatterShot: card('Scatter Shot', 'range', 1, 'common', [hit(3)], {
+    targets: 3,
+  }),
+  forkedBolt: card('Forked Bolt', 'magic', 1, 'common', [hit(5)], {
+    targets: 2,
+  }),
+  reapingCuts: card('Reaping Cuts', 'melee', 1, 'common', [hit(4)], {
+    targets: 2,
+  }),
   bloodlust: card('Bloodlust', 'buff', 1, 'common', [buff('might', 2)], FADES),
   darkSurge: card('Dark Surge', 'buff', 1, 'common', [buff('surge', 3)], FADES),
   deadeye: card('Deadeye', 'buff', 1, 'common', [buff('piercing', 3)], FADES),

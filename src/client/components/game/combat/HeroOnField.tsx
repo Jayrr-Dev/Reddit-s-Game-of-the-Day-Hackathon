@@ -20,16 +20,19 @@ import {
   HERO_ROW_ATTR,
   HERO_UID_ATTR,
 } from '../../../hooks/useCardDrag';
-import type { AimState } from '../../../hooks/useCombatControls';
+import type { AimState, PickMarker } from '../../../hooks/useCombatControls';
 import { figureAspect, headTopShare } from '../../../lib/heroFigure';
 import { HeroFigure } from './HeroFigure';
 import { HeroPlate } from './HeroPlate';
+import { PickMark } from './PickMark';
 
 // --- TYPES ---
 export type HeroOnFieldProps = {
   unit: HeroUnit;
   isFocused: boolean;
   aim: AimState;
+  /** Set while a held Target card has picked this hero. */
+  pickMarker: PickMarker | null;
   /** True while this hero's attack animation plays. */
   isActing: boolean;
   /** True for a fallen hero playing its death (display only). */
@@ -158,6 +161,7 @@ export const HeroOnField = ({
   unit,
   isFocused,
   aim,
+  pickMarker,
   isActing,
   isDying = false,
   onTap,
@@ -194,6 +198,7 @@ export const HeroOnField = ({
           >
             <HeroFigure hue={hero.hue} tier={hero.tier} size={size} />
           </div>
+          {pickMarker && <PickMark marker={pickMarker} />}
           <div
             className="absolute left-1/2 flex -translate-x-1/2 justify-center"
             style={plateStyle(size)}

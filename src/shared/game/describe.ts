@@ -120,7 +120,8 @@ export const describeCard = (
   const lines = cardDef.effects.map((effect) =>
     describeCardEffect(effect, cardDef, attacker)
   );
-  return [...lines, ...(cardDef.fades ? ['Fades.'] : [])];
+  const targetLine = cardDef.targets > 1 ? [`Target ${cardDef.targets}.`] : [];
+  return [...targetLine, ...lines, ...(cardDef.fades ? ['Fades.'] : [])];
 };
 
 /** True when playing this card needs the player to pick a hero. */

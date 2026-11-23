@@ -19,14 +19,13 @@ import {
 import { CHAMPION_IDS, ELITE_IDS, GRUNT_IDS, type HeroId } from './heroes.ts';
 import { nextInt, pickWeighted, type RngState } from './rng.ts';
 import { ENERGY_PER_TURN } from './rules.ts';
+import type { PlayCardAction } from './run.ts';
 import type { CombatState } from './types.ts';
 
 // --- TYPES ---
 /** What the sandbox accepts: the two combat inputs. */
 export type SandboxAction =
-  | { type: 'playCard'; handIndex: number; targetUid: number }
-  | { type: 'endTurn' }
-  | { type: 'charge' };
+  PlayCardAction | { type: 'endTurn' } | { type: 'charge' };
 
 // --- CONSTANTS ---
 /** So much HP the heroes can't win; you test, you don't lose. */
@@ -103,7 +102,12 @@ const nextHorde = (state: CombatState, firstUid: number): CombatState => {
 const applyAction = (state: CombatState, action: SandboxAction) => {
   switch (action.type) {
     case 'playCard':
-      return playCard(state, action.handIndex, action.targetUid);
+      return playCard(
+        state,
+        action.handIndex,
+        action.targetUid,
+        action.targetUids
+      );
     case 'endTurn':
       return endTurn(state);
     case 'charge':

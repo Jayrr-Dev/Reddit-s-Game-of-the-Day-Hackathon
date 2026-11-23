@@ -342,7 +342,8 @@ const aimCard = (
   cardId: CardId,
   targetUid: number
 ): number => {
-  const legal = targetsFor(state, cardId);
+  // Mid-card (between picks) a felled hero still stands at 0 HP.
+  const legal = targetsFor(state, cardId).filter((unit) => !isDefeated(unit));
   return legal.some((unit) => unit.uid === targetUid)
     ? targetUid
     : (legal[0]?.uid ?? -1);
@@ -371,27 +372,74 @@ const payForCard = (state: CombatState, handIndex: number): CombatState => {
   };
 };
 
+/** A multi-hit damage effect split into single hits (same numbers). */
+const oneHitAtATime = (effect: CardEffect): CardEffect[] =>
+  effect.kind === 'damage' && effect.hits > 1
+    ? Array.from({ length: effect.hits }, () => ({ ...effect, hits: 1 }))
+    : [effect];
+
 /**
- * Plays the card in `handIndex` at the hero with `targetUid`.
- * Illegal plays (no such card, not enough energy, fight over) return
- * the state unchanged, so bad input can never corrupt a run.
+ * The hero asked for on each pick. A Target N card takes N picks (a
+ * short list repeats its last pick); every other card takes one.
+ */
+const requestedPicks = (
+  cardDef: CardDef,
+  targetUid: number,
+  targetUids: readonly number[] | undefined
+): number[] => {
+  const asked = targetUids && targetUids.length > 0 ? targetUids : [targetUid];
+  return Array.from(
+    { length: cardDef.targets },
+    (_, pick) => asked[Math.min(pick, asked.length - 1)] ?? targetUid
+  );
+};
+
+/**
+ * Resolves a paid-for card and returns the state after every beat (each
+ * hit of each pick). Splitting hits changes nothing: a card's hits all
+ * use the damage worked out before the first one.
+ */
+const cardBeats = (
+  paid: CombatState,
+  cardId: CardId,
+  picks: readonly number[]
+): CombatState[] => {
+  const cardDef = getCard(cardId);
+  const beats = cardDef.effects.flatMap(oneHitAtATime);
+  const states: CombatState[] = [];
+  let current = paid;
+  // Imperative on purpose: each pick aims at the field the last one left
+  // (a hero felled by pick 1 can't be hit by pick 2; the aim moves on).
+  for (const requested of picks) {
+    const aimed = aimCard(current, cardId, requested);
+    for (const effect of beats) {
+      current = applyCardEffect(current, effect, aimed, cardDef);
+      states.push(current);
+    }
+  }
+  return states;
+};
+
+/**
+ * Plays the card in `handIndex` at the hero with `targetUid` (or, for a
+ * Target N card, at each hero in `targetUids` in turn; the same hero
+ * may be picked more than once). Illegal plays (no such card, not
+ * enough energy, fight over) return the state unchanged, so bad input
+ * can never corrupt a run.
  */
 export const playCard = (
   state: CombatState,
   handIndex: number,
-  targetUid: number
+  targetUid: number,
+  targetUids?: readonly number[]
 ): CombatState => {
   const cardId = state.hand[handIndex];
   if (cardId === undefined || !canPlayCard(state, handIndex)) return state;
-
   const cardDef = getCard(cardId);
-  const aimedUid = aimCard(state, cardId, targetUid);
   const paid = payForCard(state, handIndex);
+  const picks = requestedPicks(cardDef, targetUid, targetUids);
   const resolved = spendMomentum(
-    cardDef.effects.reduce<CombatState>(
-      (current, effect) => applyCardEffect(current, effect, aimedUid, cardDef),
-      paid
-    ),
+    cardBeats(paid, cardId, picks).at(-1) ?? paid,
     cardDef
   );
   const settled = cardDef.fades
@@ -400,41 +448,27 @@ export const playCard = (
   return removeFallen(settled);
 };
 
-/** A multi-hit damage effect split into single hits (same numbers). */
-const oneHitAtATime = (effect: CardEffect): CardEffect[] =>
-  effect.kind === 'damage' && effect.hits > 1
-    ? Array.from({ length: effect.hits }, () => ({ ...effect, hits: 1 }))
-    : [effect];
-
 /**
- * Plays a card beat by beat, so the view can show each hit of a
- * multi-hit card land on its own. The middle states are for display
- * only (a felled hero still stands at 0 HP); the last step is exactly
- * playCard()'s result, which is what the server replays. Splitting is
- * safe because a card's hits all use the damage worked out before the
- * first one. Empty when the play is illegal.
+ * Plays a card beat by beat, so the view can show each hit (of each
+ * pick) land on its own. The middle states are for display only (a
+ * felled hero still stands at 0 HP); the last step is exactly
+ * playCard()'s result, which is what the server replays. Empty when
+ * the play is illegal.
  */
 export const playCardSteps = (
   state: CombatState,
   handIndex: number,
-  targetUid: number
+  targetUid: number,
+  targetUids?: readonly number[]
 ): CombatState[] => {
   const cardId = state.hand[handIndex];
   if (cardId === undefined || !canPlayCard(state, handIndex)) return [];
-  const cardDef = getCard(cardId);
-  const aimedUid = aimCard(state, cardId, targetUid);
-  const paid = payForCard(state, handIndex);
-  const beats = cardDef.effects.flatMap(oneHitAtATime);
-  const middle = beats
-    .slice(0, -1)
-    .reduce<CombatState[]>(
-      (states, effect) => [
-        ...states,
-        applyCardEffect(states.at(-1) ?? paid, effect, aimedUid, cardDef),
-      ],
-      []
-    );
-  return [...middle, playCard(state, handIndex, targetUid)];
+  const picks = requestedPicks(getCard(cardId), targetUid, targetUids);
+  const beats = cardBeats(payForCard(state, handIndex), cardId, picks);
+  return [
+    ...beats.slice(0, -1),
+    playCard(state, handIndex, targetUid, targetUids),
+  ];
 };
 
 // --- HERO TURN ---

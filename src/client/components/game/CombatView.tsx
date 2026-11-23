@@ -214,6 +214,7 @@ export const CombatView = ({
           hue={hue}
           focusUid={controls.focusUid}
           aimOf={controls.aimOf}
+          pickMarkerOf={controls.pickMarkerOf}
           actingUids={heroTurn.actingUids}
           onTapHero={controls.tapHero}
         />

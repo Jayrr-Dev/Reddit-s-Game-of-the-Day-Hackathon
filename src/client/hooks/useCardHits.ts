@@ -9,11 +9,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { playCardSteps } from '../../shared/game/combat';
-import type { RunAction } from '../../shared/game/run';
+import type { PlayCardAction, RunAction } from '../../shared/game/run';
 import type { CombatState } from '../../shared/game/types';
 
 // --- TYPES ---
-type PlayCardAction = Extract<RunAction, { type: 'playCard' }>;
 type Playback = {
   action: PlayCardAction;
   /** The beats before the real result (that one comes from the commit). */
@@ -56,7 +55,12 @@ export const useCardHits = (
   const playCard = useCallback(
     (action: PlayCardAction) => {
       if (playback) return;
-      const steps = playCardSteps(combat, action.handIndex, action.targetUid);
+      const steps = playCardSteps(
+        combat,
+        action.handIndex,
+        action.targetUid,
+        action.targetUids
+      );
       const beats = steps.slice(0, -1);
       if (beats.length === 0) {
         onAction(action);

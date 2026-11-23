@@ -84,6 +84,12 @@ export type CardDef = {
    * from `type` when the card is built (see REACHING_TYPES in cards.ts).
    */
   reach: boolean;
+  /**
+   * Target N: how many picks the card takes. Each pick is a target the
+   * player chooses (the same hero may be picked again), and the card's
+   * effects resolve once per pick, in order. 1 for ordinary cards.
+   */
+  targets: number;
 };
 
 // --- HEROES ---

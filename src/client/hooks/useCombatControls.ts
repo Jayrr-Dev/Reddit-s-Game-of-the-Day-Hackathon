@@ -12,6 +12,11 @@
 //         SELF      no arrow; the card glows the same way.
 // While a card is held, legal heroes glow and illegal ones dim. Tapping
 // or dropping on a hero focuses it (top HUD + camera lean).
+// TARGET N cards take N picks before they fire: each drop on a hero (or
+// tap on one while the card is held) adds a pick and keeps the card
+// held, and the last pick plays it. The same hero may be picked again.
+// Tapping the card or dropping it anywhere else cancels; nothing is
+// spent until the card fires.
 // ===================================================================
 
 import { useState } from 'react';
@@ -28,7 +33,7 @@ import {
   cardAreaTargets,
   targetRuleOf,
 } from '../../shared/game/battlefield';
-import type { CardId } from '../../shared/game/cards';
+import { getCard, type CardId } from '../../shared/game/cards';
 import { canPlayCard, targetsFor } from '../../shared/game/combat';
 import type { RunAction } from '../../shared/game/run';
 import type { CombatState } from '../../shared/game/types';
@@ -46,6 +51,15 @@ export type AimState =
 
 /** How a dragged card aims (see the header). */
 type AimStyle = { hasArrow: boolean; hasGlow: boolean; isTargeted: boolean };
+
+/** The heroes picked so far for a held Target N card, in order. */
+type Picks = { handIndex: number; cardId: CardId; uids: number[] };
+
+/**
+ * A hero picked by a held Target N card: Melee marks it with slashes,
+ * every other type with a crosshair; `count` is how often it was picked.
+ */
+export type PickMarker = { kind: 'crosshair' | 'slash'; count: number };
 
 // --- CONSTANTS ---
 /** How far (px) the finger must pull an arrowless card up to play it. */
@@ -94,6 +108,7 @@ export const useCombatControls = (
 ) => {
   const [chosenUid, setChosenUid] = useState<number | null>(null);
   const [heldIndex, setHeldIndex] = useState<number | null>(null);
+  const [picks, setPicks] = useState<Picks | null>(null);
   const focusUid = resolveFocus(combat, chosenUid);
 
   // A held card is only valid while it is still in hand and playable.
@@ -105,10 +120,50 @@ export const useCombatControls = (
   const legalUids = isHolding
     ? targetsFor(combat, heldCard).map((unit) => unit.uid)
     : [];
+  // Picks only count while their card is still the one held.
+  const pickedUids =
+    picks &&
+    isHolding &&
+    picks.handIndex === heldIndex &&
+    picks.cardId === heldCard
+      ? picks.uids
+      : [];
 
   /** Plays an untargeted card (aimed at the focus) or a targeted one. */
   const playAt = (handIndex: number, targetUid: number | null) =>
     onAction({ type: 'playCard', handIndex, targetUid: targetUid ?? 0 });
+
+  /** Lets go of the held card and forgets its picks. */
+  const release = () => {
+    setHeldIndex(null);
+    setPicks(null);
+  };
+
+  /**
+   * Adds a pick for the card in `handIndex`. The last pick fires the
+   * card at every picked hero in order; until then the card stays held.
+   */
+  const addPick = (handIndex: number, uid: number) => {
+    const cardId = combat.hand[handIndex];
+    if (cardId === undefined) return;
+    const isSameCard =
+      picks?.handIndex === handIndex && picks.cardId === cardId;
+    const uids = [...(isSameCard ? picks.uids : []), uid];
+    const { targets } = getCard(cardId);
+    if (uids.length < targets) {
+      setPicks({ handIndex, cardId, uids });
+      setHeldIndex(handIndex);
+      return;
+    }
+    release();
+    if (targets === 1) return playAt(handIndex, uid);
+    onAction({
+      type: 'playCard',
+      handIndex,
+      targetUid: uids[0] ?? uid,
+      targetUids: uids,
+    });
+  };
 
   /**
    * Would letting go play the card, and at whom? Targeted cards need a
@@ -133,19 +188,25 @@ export const useCombatControls = (
 
   /** Drop: play the card if the drop is live, else put it back. */
   const dropCard = ({ handIndex, ...drop }: CardDrop) => {
-    setHeldIndex(null);
     const cardId = combat.hand[handIndex];
-    if (cardId === undefined || !canPlayCard(combat, handIndex)) return;
+    if (cardId === undefined || !canPlayCard(combat, handIndex))
+      return release();
     const legal = targetsFor(combat, cardId).map((unit) => unit.uid);
     const { isLive, target } = resolveDrop(cardId, drop, legal);
-    if (!isLive) return;
-    if (target) setChosenUid(target.uid);
-    playAt(handIndex, target?.uid ?? focusUid);
+    if (!isLive) return release();
+    if (!target) {
+      release();
+      return playAt(handIndex, focusUid);
+    }
+    setChosenUid(target.uid);
+    addPick(handIndex, target.uid);
   };
 
   /** Drag start: hold the card so legal heroes light up. */
-  const startDrag = (handIndex: number) =>
+  const startDrag = (handIndex: number) => {
+    if (picks && picks.handIndex !== handIndex) setPicks(null);
     setHeldIndex(canPlayCard(combat, handIndex) ? handIndex : null);
+  };
 
   const { drag, pressCard, wasDrag } = useCardDrag(startDrag, dropCard);
   // SNAPPING AND GLOW: worked out fresh from the live drag each render.
@@ -191,32 +252,36 @@ export const useCombatControls = (
     return uid === hoverUid ? 'locked' : 'legal';
   };
 
-  /** Plays a hand slot at a hero, then lets go of the card. */
-  const play = (handIndex: number, targetUid: number) => {
-    playAt(handIndex, targetUid);
-    setHeldIndex(null);
-  };
-
   /** Card tap: play untargeted cards, otherwise hold or let go. */
   const tapCard = (handIndex: number) => {
     if (wasDrag()) return; // the click a browser fires after a drag
     const cardId = combat.hand[handIndex];
     if (cardId === undefined || !canPlayCard(combat, handIndex)) return;
-    if (targetRuleOf(cardId) === 'none') return play(handIndex, focusUid ?? 0);
-    setHeldIndex(heldIndex === handIndex ? null : handIndex);
+    const wasHeld = heldIndex === handIndex;
+    release();
+    if (targetRuleOf(cardId) === 'none') return playAt(handIndex, focusUid);
+    if (!wasHeld) setHeldIndex(handIndex);
   };
 
-  /** Hero tap: focus it, and fire the held card if it may hit this hero. */
+  /** Hero tap: focus it, and pick it for the held card if it may hit it. */
   const tapHero = (uid: number) => {
     setChosenUid(uid);
     if (isHolding && heldIndex !== null && legalUids.includes(uid))
-      play(heldIndex, uid);
+      addPick(heldIndex, uid);
   };
 
   /** Ends the turn and drops any held card. */
   const endTurn = () => {
-    setHeldIndex(null);
+    release();
     onAction({ type: 'endTurn' });
+  };
+
+  /** The pick marker on a hero for the held card, or null if unpicked. */
+  const pickMarkerOf = (uid: number): PickMarker | null => {
+    const count = pickedUids.filter((picked) => picked === uid).length;
+    if (count === 0 || heldCard === undefined) return null;
+    const kind = getCard(heldCard).type === 'melee' ? 'slash' : 'crosshair';
+    return { kind, count };
   };
 
   return {
@@ -232,6 +297,7 @@ export const useCombatControls = (
     arrowRetract,
     selfGlow,
     aimOf,
+    pickMarkerOf,
     pressCard,
     tapCard,
     tapHero,

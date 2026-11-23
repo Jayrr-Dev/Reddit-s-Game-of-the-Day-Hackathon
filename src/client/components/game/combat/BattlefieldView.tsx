@@ -15,7 +15,7 @@ import type { HeroRow, HeroUnit } from '../../../../shared/game/types';
 import { FIELD_ATTR } from '../../../hooks/useCardDrag';
 import { cssVars, depthStyle } from '../../../lib/cssVars';
 import { Backdrop, Foreground } from './Backdrop';
-import type { AimState } from '../../../hooks/useCombatControls';
+import type { AimState, PickMarker } from '../../../hooks/useCombatControls';
 import { useFallenHeroes } from '../../../hooks/useFallenHeroes';
 import { usePlateSpacing } from '../../../hooks/usePlateSpacing';
 import { ROW_LAYER_ATTR, useRowMoves } from '../../../hooks/useRowMoves';
@@ -28,6 +28,8 @@ export type BattlefieldViewProps = {
   focusUid: number | null;
   /** Aim state per hero uid while a card is held (empty when none). */
   aimOf: (uid: number) => AimState;
+  /** The Target pick marker on a hero, if a held card picked it. */
+  pickMarkerOf: (uid: number) => PickMarker | null;
   /** Heroes whose attack is playing right now (hero turn). */
   actingUids: readonly number[];
   onTapHero: (uid: number) => void;
@@ -72,6 +74,7 @@ export const BattlefieldView = ({
   hue,
   focusUid,
   aimOf,
+  pickMarkerOf,
   actingUids,
   onTapHero,
 }: BattlefieldViewProps) => {
@@ -90,6 +93,7 @@ export const BattlefieldView = ({
           unit={unit}
           isFocused={unit.uid === focusUid}
           aim={aimOf(unit.uid)}
+          pickMarker={pickMarkerOf(unit.uid)}
           isActing={actingUids.includes(unit.uid)}
           onTap={onTapHero}
         />
@@ -102,6 +106,7 @@ export const BattlefieldView = ({
           unit={unit}
           isFocused={false}
           aim="idle"
+          pickMarker={null}
           isActing={false}
           isDying
           onTap={onTapHero}

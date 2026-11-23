@@ -203,6 +203,53 @@ void test('playCardSteps shows each hit and ends on the real play', () => {
   assert.ok(hpOf(steps[0] as CombatState) > hpOf(steps[1] as CombatState));
 });
 
+// --- TARGET N ---
+/** A fight against a Squire (front) and an Archer (back). */
+const squireAndArcher = (hand: CardId[]): CombatState =>
+  withHand(
+    startCombat({
+      hp: 60,
+      maxHp: 60,
+      deck: ['backhand'],
+      heroIds: ['squire', 'archer'],
+      might: 1,
+      seed: 7,
+    }),
+    hand
+  );
+
+/** HP lost by each hero (by uid) between two states. */
+const hpLost = (before: CombatState, after: CombatState) =>
+  before.heroes.map(
+    (unit) =>
+      unit.hp - (after.heroes.find((now) => now.uid === unit.uid)?.hp ?? 0)
+  );
+
+void test('a Target N card can pick the same hero more than once', () => {
+  const start = squireAndArcher(['scatterShot']);
+  const [squire, archer] = start.heroes.map((unit) => unit.uid);
+  const picks = [archer ?? -1, archer ?? -1, squire ?? -1];
+  const after = playCard(start, 0, picks[0] ?? -1, picks);
+  assert.deepEqual(hpLost(start, after), [3, 6]);
+});
+
+void test('every pick follows reach: a melee pick at the back row hits the front', () => {
+  const start = squireAndArcher(['reapingCuts']);
+  const [squire, archer] = start.heroes.map((unit) => unit.uid);
+  const picks = [squire ?? -1, archer ?? -1];
+  const after = playCard(start, 0, picks[0] ?? -1, picks);
+  assert.deepEqual(hpLost(start, after), [8, 0]);
+});
+
+void test('a Target N card shows one beat per pick and ends on the real play', () => {
+  const start = squireAndArcher(['forkedBolt']);
+  const [squire, archer] = start.heroes.map((unit) => unit.uid);
+  const picks = [squire ?? -1, archer ?? -1];
+  const steps = playCardSteps(start, 0, picks[0] ?? -1, picks);
+  assert.equal(steps.length, 2);
+  assert.deepEqual(steps.at(-1), playCard(start, 0, picks[0] ?? -1, picks));
+});
+
 // --- PREVIEW MATCHES THE ENGINE ---
 void test('card text damage always equals the damage the engine deals', () => {
   const buffSets: Partial<typeof NO_STATUSES>[] = [
