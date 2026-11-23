@@ -20,9 +20,17 @@
 
 import { useCallback, useState, type ReactNode } from 'react';
 import { getCard } from '../../../shared/game/cards';
-import { canBackStep, canCharge } from '../../../shared/game/combat';
+import {
+  canBackStep,
+  canCharge,
+  fieldMoveCost,
+} from '../../../shared/game/combat';
 import type { RunAction } from '../../../shared/game/run';
-import type { CardType, CombatState } from '../../../shared/game/types';
+import type {
+  CardType,
+  CombatState,
+  FieldMoveId,
+} from '../../../shared/game/types';
 import type { CardBox, Point } from '../../hooks/useCardDrag';
 import { useCombatControls } from '../../hooks/useCombatControls';
 import { useCardHits } from '../../hooks/useCardHits';
@@ -36,7 +44,7 @@ import { useSmoothPoint } from '../../hooks/useSmoothPoint';
 import { HitHistory } from '../../lib/popSize';
 import { AimArrow } from './combat/AimArrow';
 import { BattlefieldView } from './combat/BattlefieldView';
-import { FieldMoveButton, type FieldMove } from './combat/FieldMoveButton';
+import { FieldMoveButton } from './combat/FieldMoveButton';
 import { DraggedCard } from './combat/DraggedCard';
 import { EnergyTray } from './combat/EnergyTray';
 import { FanHand } from './combat/FanHand';
@@ -74,7 +82,7 @@ const cardTop = ({ center, height }: CardBox): Point => ({
  * back row, Back Step while every hero stands in the front row (whether
  * you can afford it is canCharge / canBackStep's call).
  */
-const fieldMoveOffered = (combat: CombatState): FieldMove | null => {
+const fieldMoveOffered = (combat: CombatState): FieldMoveId | null => {
   if (combat.heroes.length === 0) return null;
   if (combat.heroes.every((unit) => unit.row === 'back')) return 'charge';
   if (combat.heroes.every((unit) => unit.row === 'front')) return 'backStep';
@@ -82,7 +90,7 @@ const fieldMoveOffered = (combat: CombatState): FieldMove | null => {
 };
 
 /** True when you can pay for a field move right now. */
-const canAfford = (combat: CombatState, move: FieldMove): boolean =>
+const canAfford = (combat: CombatState, move: FieldMoveId): boolean =>
   move === 'charge' ? canCharge(combat) : canBackStep(combat);
 
 // --- SUBCOMPONENTS ---
@@ -101,7 +109,7 @@ const PlayerBar = ({
   combat: CombatState;
   hits: readonly PlayerHitPop[];
   onEndTurn: () => void;
-  onFieldMove: (move: FieldMove) => void;
+  onFieldMove: (move: FieldMoveId) => void;
 }) => {
   const fieldMove = fieldMoveOffered(combat);
   return (
@@ -122,6 +130,7 @@ const PlayerBar = ({
           <div className="absolute bottom-full mb-2">
             <FieldMoveButton
               move={fieldMove}
+              cost={fieldMoveCost(combat, fieldMove)}
               isAffordable={canAfford(combat, fieldMove)}
               onPress={() => onFieldMove(fieldMove)}
             />
@@ -182,7 +191,7 @@ export const CombatView = ({
   const [lastCardType, setLastCardType] = useState<CardType>();
   // The last field move (Charge or Back Step) with a running count, so
   // each one re-keys (and replays) its speed lines.
-  const [burst, setBurst] = useState<{ move: FieldMove; count: number }>();
+  const [burst, setBurst] = useState<{ move: FieldMoveId; count: number }>();
   // Recent hits, so damage numbers are sized against a typical hit.
   const [hitHistory] = useState(() => new HitHistory());
   const routeAction = useCallback(

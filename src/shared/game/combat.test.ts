@@ -16,6 +16,8 @@ import {
 import {
   backStep,
   canBackStep,
+  charge,
+  fieldMoveCost,
   canPlayCard,
   combatOutcome,
   endTurn,
@@ -376,4 +378,29 @@ void test('every card text fits on the card face', () => {
     assert.ok(lines.length <= MAX_CARD_LINES, `${cardId}: ${text}`);
     assert.ok(text.length <= MAX_CARD_TEXT_CHARS, `${cardId}: ${text}`);
   }
+});
+
+void test('a field move costs 1 more for each use in a row; a break resets it', () => {
+  const start = { ...fightWith(['backhand']), energy: 9 };
+  assert.equal(fieldMoveCost(start, 'backStep'), 1);
+  // Back Step, then Charge (a different move breaks the streak), then
+  // Back Step again: each costs 1.
+  const mixed = backStep(charge(backStep(start)));
+  assert.equal(mixed.energy, 9 - 3);
+  // Two Back Steps in a row so far: the next costs 3.
+  const streak = {
+    ...start,
+    lastFieldMove: { move: 'backStep' as const, turn: start.turn, streak: 2 },
+  };
+  assert.equal(fieldMoveCost(streak, 'backStep'), 3);
+  assert.equal(fieldMoveCost(streak, 'charge'), 1);
+  // Last turn still counts as in a row; two turns later it is gone.
+  assert.equal(
+    fieldMoveCost({ ...streak, turn: start.turn + 1 }, 'backStep'),
+    3
+  );
+  assert.equal(
+    fieldMoveCost({ ...streak, turn: start.turn + 2 }, 'backStep'),
+    1
+  );
 });

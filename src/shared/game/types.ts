@@ -158,6 +158,16 @@ export type HeroUnit = Combatant & {
   col: number;
 };
 
+/** The villain's two moves on the battlefield itself. */
+export type FieldMoveId = 'charge' | 'backStep';
+
+/** The last field move made: which, on what turn, and its streak so far. */
+export type FieldMoveRecord = {
+  move: FieldMoveId;
+  turn: number;
+  streak: number;
+};
+
 export type CombatState = {
   player: Combatant;
   heroes: HeroUnit[];
@@ -170,6 +180,8 @@ export type CombatState = {
   /** Heroes defeated so far in this fight. */
   slain: number;
   rng: RngState;
+  /** The last Charge or Back Step (its streak raises the next one's cost). */
+  lastFieldMove: FieldMoveRecord | null;
 };
 
 export type CombatOutcome = 'ongoing' | 'won' | 'lost';

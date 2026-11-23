@@ -24,6 +24,11 @@ export const MOMENTUM_DAMAGE_FACTOR = 1.5;
 export const BACK_STEP_COST = 1;
 /** Range attacks made up close (at or from the front row) deal this share. */
 export const CLOSE_RANGE_DAMAGE_FACTOR = 0.7;
+/**
+ * Each consecutive use of the same field move (this turn or the last)
+ * costs this much more energy; a break in the streak resets it.
+ */
+export const FIELD_MOVE_STREAK_COST = 1;
 
 // --- BATTLEFIELD ---
 /** Columns in each row of the hero battlefield (rows are front and back). */
