@@ -185,6 +185,19 @@ export const targetRuleOf = (cardId: CardId): TargetRule => {
   return isMelee && !reach ? 'front' : 'any';
 };
 
+// --- WHO A CARD AFFECTS ---
+/** Effect kinds that land on the villain (the player), not a hero. */
+const SELF_EFFECT_KINDS: ReadonlySet<CardDef['effects'][number]['kind']> =
+  new Set(['shroud', 'wrath', 'draw', 'energy', 'heal']);
+
+/** True when a card does something to the villain (shroud, draw ...). */
+export const affectsSelf = (cardId: CardId): boolean =>
+  getCard(cardId).effects.some((effect) => SELF_EFFECT_KINDS.has(effect.kind));
+
+/** True when a card does something to one or more heroes. */
+export const affectsHeroes = (cardId: CardId): boolean =>
+  getCard(cardId).effects.some((effect) => !SELF_EFFECT_KINDS.has(effect.kind));
+
 /** The heroes that fit a target rule, in battlefield order. */
 export const legalTargets = (
   heroes: readonly HeroUnit[],

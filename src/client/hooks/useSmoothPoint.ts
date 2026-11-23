@@ -20,18 +20,33 @@ const prefersReducedMotion = (): boolean =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // --- HOOK ---
-/** Returns `target` eased over a few frames; null while there is none. */
-export const useSmoothPoint = (target: Point | null): Point | null => {
-  const [shown, setShown] = useState<Point | null>(target);
-  const shownRef = useRef<Point | null>(target);
+/**
+ * Returns `target` eased over a few frames; null while there is none.
+ * When a target appears, the point flies out from `origin` (if given),
+ * so the arrow grows from the card instead of popping in.
+ */
+export const useSmoothPoint = (
+  target: Point | null,
+  origin: Point | null = null
+): Point | null => {
+  const [shown, setShown] = useState<Point | null>(null);
+  const shownRef = useRef<Point | null>(null);
+  const originRef = useRef(origin);
+  useEffect(() => {
+    originRef.current = origin;
+  });
 
   // ANIMATION LOOP: imperative on purpose (timing is the whole point).
   useEffect(() => {
-    if (!target || !shownRef.current || prefersReducedMotion()) {
-      shownRef.current = target;
-      setShown(target);
-      return;
+    // No target (or less motion wanted): the render below returns the
+    // target as is; just forget the old point so the next one flies in.
+    if (!target || prefersReducedMotion()) {
+      shownRef.current = null;
+      const frame = requestAnimationFrame(() => setShown(null));
+      return () => cancelAnimationFrame(frame);
     }
+    // A new target with nothing shown yet starts from the origin.
+    shownRef.current ??= originRef.current;
     let frame = 0;
     /** Moves one step toward the target, then schedules the next. */
     const step = () => {
@@ -50,5 +65,8 @@ export const useSmoothPoint = (target: Point | null): Point | null => {
     return () => cancelAnimationFrame(frame);
   }, [target?.x, target?.y]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Hidden with no target; instant with reduced motion; else eased.
+  if (!target) return null;
+  if (prefersReducedMotion()) return target;
   return shown;
 };

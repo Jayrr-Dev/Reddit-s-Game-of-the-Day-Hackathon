@@ -51,8 +51,12 @@ export const CombatView = ({
   const controls = useCombatControls(combat, onAction);
   const { drag } = controls;
   const draggedCardId = drag ? combat.hand[drag.handIndex] : undefined;
-  // The arrow glides onto the snapped hero rather than jumping to it.
-  const aimShown = useSmoothPoint(controls.aimPoint);
+  // The arrow is hidden until it has a target, then flies out from the
+  // card and glides onto the snapped hero rather than jumping to it.
+  const aimShown = useSmoothPoint(
+    controls.aimPoint,
+    drag ? cardTop(drag.card) : null
+  );
   const isHolding = controls.heldIndex !== null;
 
   return (
@@ -86,6 +90,7 @@ export const CombatView = ({
             cardId={draggedCardId}
             attacker={combat.player}
             box={drag.card}
+            glow={controls.selfGlow}
           />
           {aimShown && (
             <AimArrow

@@ -3,8 +3,12 @@
 // Controls for a fight. Two ways to play a card, both safe in the feed:
 //   TAP   Tap a card. Cards with no target play at once; others are
 //         held. Tap a glowing hero to play the held card at it.
-//   DRAG  Press a card and drag. An arrow follows the finger; drop on a
-//         glowing hero (or anywhere on the field for untargeted cards).
+//   DRAG  Press a card and drag up. How it aims depends on who it hits:
+//         HEROES  an arrow appears and snaps to the nearest legal hero
+//                 (untargeted: anywhere on the field); drop to play.
+//         SELF    no arrow; the card glows brighter the higher it is
+//                 pulled, and plays once pulled SELF_PLAY_LIFT_PX up.
+//         BOTH    the glow and the arrow; the arrow decides the play.
 // While a card is held, legal heroes glow and illegal ones dim. Tapping
 // or dropping on a hero focuses it (top HUD + camera lean).
 // ===================================================================
@@ -17,7 +21,12 @@ import {
   type HeroAnchor,
   type Point,
 } from './useCardDrag';
-import { targetRuleOf } from '../../shared/game/battlefield';
+import {
+  affectsHeroes,
+  affectsSelf,
+  targetRuleOf,
+} from '../../shared/game/battlefield';
+import type { CardId } from '../../shared/game/cards';
 import { canPlayCard, targetsFor } from '../../shared/game/combat';
 import type { RunAction } from '../../shared/game/run';
 import type { CombatState } from '../../shared/game/types';
@@ -26,7 +35,24 @@ import type { CombatState } from '../../shared/game/types';
 /** How a hero should look given the card the player is holding. */
 export type AimState = 'idle' | 'legal' | 'locked' | 'illegal';
 
+/** How a dragged card aims (see the header). */
+type AimStyle = { hasArrow: boolean; hasGlow: boolean; isTargeted: boolean };
+
+// --- CONSTANTS ---
+/** How far (px) the finger must pull a self-only card up to play it. */
+const SELF_PLAY_LIFT_PX = 56;
+
 // --- HELPERS ---
+/** Works out whether a card shows an arrow, a glow, or both. */
+const aimStyleOf = (cardId: CardId): AimStyle => ({
+  hasArrow: affectsHeroes(cardId),
+  hasGlow: affectsSelf(cardId),
+  isTargeted: targetRuleOf(cardId) !== 'none',
+});
+
+/** How brightly a self card glows: 0 at rest, 1 once it would play. */
+const glowOf = (style: AimStyle, lift: number): number =>
+  style.hasGlow ? Math.min(1, lift / SELF_PLAY_LIFT_PX) : 0;
 /** The focused hero if alive, else the first front-row hero. */
 const resolveFocus = (combat: CombatState, chosenUid: number | null) => {
   const isAlive = combat.heroes.some((unit) => unit.uid === chosenUid);
@@ -71,21 +97,37 @@ export const useCombatControls = (
   const playAt = (handIndex: number, targetUid: number | null) =>
     onAction({ type: 'playCard', handIndex, targetUid: targetUid ?? 0 });
 
-  /** Drop: play at a legal hero (or the field, if untargeted), else cancel. */
-  const dropCard = ({ handIndex, nearHeroes, isOverField }: CardDrop) => {
+  /**
+   * Would letting go play the card, and at whom? Targeted cards need a
+   * snapped hero; untargeted hero cards need the tip on the field;
+   * self-only cards need a pull of SELF_PLAY_LIFT_PX.
+   */
+  const resolveDrop = (
+    cardId: CardId,
+    drop: Omit<CardDrop, 'handIndex'>,
+    legal: number[]
+  ): { isLive: boolean; target: HeroAnchor | null } => {
+    const style = aimStyleOf(cardId);
+    if (style.isTargeted) {
+      const target = snapTarget(drop, legal);
+      return { isLive: target !== null, target };
+    }
+    const isLive = style.hasArrow
+      ? drop.isOverField
+      : drop.lift >= SELF_PLAY_LIFT_PX;
+    return { isLive, target: null };
+  };
+
+  /** Drop: play the card if the drop is live, else put it back. */
+  const dropCard = ({ handIndex, ...drop }: CardDrop) => {
     setHeldIndex(null);
     const cardId = combat.hand[handIndex];
     if (cardId === undefined || !canPlayCard(combat, handIndex)) return;
-    if (targetRuleOf(cardId) === 'none') {
-      if (isOverField) playAt(handIndex, focusUid);
-      return;
-    }
     const legal = targetsFor(combat, cardId).map((unit) => unit.uid);
-    const target = snapTarget({ nearHeroes, isOverField }, legal);
-    if (target) {
-      setChosenUid(target.uid);
-      playAt(handIndex, target.uid);
-    }
+    const { isLive, target } = resolveDrop(cardId, drop, legal);
+    if (!isLive) return;
+    if (target) setChosenUid(target.uid);
+    playAt(handIndex, target?.uid ?? focusUid);
   };
 
   /** Drag start: hold the card so legal heroes light up. */
@@ -93,22 +135,32 @@ export const useCombatControls = (
     setHeldIndex(canPlayCard(combat, handIndex) ? handIndex : null);
 
   const { drag, pressCard, wasDrag } = useCardDrag(startDrag, dropCard);
-  // SNAPPING: while dragging, the arrow locks onto the nearest legal hero.
+  // SNAPPING AND GLOW: worked out fresh from the live drag each render.
   const dragCard = drag ? combat.hand[drag.handIndex] : undefined;
-  const isUntargeted =
-    dragCard !== undefined && targetRuleOf(dragCard) === 'none';
-  const snapped = drag && !isUntargeted ? snapTarget(drag, legalUids) : null;
-  const hoverUid = snapped?.uid ?? null;
-  // Would letting go play the card? Untargeted: anywhere on the field.
-  // Targeted: when the arrow has snapped to a legal hero.
-  const isDropLive =
-    drag !== null && (isUntargeted ? drag.isOverField : snapped !== null);
-  /** Where the arrow points: the snapped hero, else the raw tip. */
-  const aimPoint: Point | null = snapped?.point ?? drag?.tip ?? null;
+  const dragStyle = dragCard === undefined ? null : aimStyleOf(dragCard);
+  const dropState =
+    drag && dragCard !== undefined
+      ? resolveDrop(dragCard, drag, legalUids)
+      : { isLive: false, target: null };
+  const hoverUid = dropState.target?.uid ?? null;
+  const isDropLive = dropState.isLive;
+  /** How brightly the dragged card glows (self cards only). */
+  const selfGlow = drag && dragStyle ? glowOf(dragStyle, drag.lift) : 0;
+  /**
+   * Where the arrow points: the snapped hero (or the tip, for untargeted
+   * cards). Null while nothing would be hit, or for self-only cards, so
+   * the arrow stays hidden until it has somewhere to fly to.
+   */
+  const aimPoint: Point | null =
+    isDropLive && dragStyle?.hasArrow
+      ? (dropState.target?.point ?? drag?.tip ?? null)
+      : null;
 
   /** How a hero should look given the held card and the drag. */
   const aimOf = (uid: number): AimState => {
-    if (!isHolding) return 'idle';
+    // Self-only cards (shroud, draw ...) leave every hero alone.
+    const isAimingHeroes = isHolding && affectsHeroes(heldCard);
+    if (!isAimingHeroes) return 'idle';
     if (!legalUids.includes(uid)) return 'illegal';
     return uid === hoverUid ? 'locked' : 'legal';
   };
@@ -149,6 +201,7 @@ export const useCombatControls = (
     drag,
     aimPoint,
     isDropLive,
+    selfGlow,
     aimOf,
     pressCard,
     tapCard,

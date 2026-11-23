@@ -4,6 +4,8 @@
 //   1. Pointer down on a card records the card's box and the grab point.
 //   2. Once the pointer moves past DRAG_START_PX it becomes a drag;
 //      a shorter press stays a plain tap (handled by the card's click).
+//      Any upward move lifts the tip onto the battlefield at once, so the
+//      arrow locks onto the nearest target the moment the finger goes up.
 //   3. While dragging, the CARD follows the finger at CARD_FOLLOW speed
 //      (it stays low, near the hand) and the AIM TIP runs ahead of the
 //      finger (AIM_GAIN times the drag). So the arrow aims on its own:
@@ -34,6 +36,8 @@ export type CardDrag = {
   nearHeroes: HeroAnchor[];
   /** True when the tip is over the battlefield. */
   isOverField: boolean;
+  /** How far (px) the finger has moved up from where it pressed. */
+  lift: number;
 };
 
 /** A hero and the point the arrow snaps to when aimed at it. */
@@ -42,7 +46,7 @@ export type HeroAnchor = { uid: number; point: Point };
 /** Where a drag ended. */
 export type CardDrop = Pick<
   CardDrag,
-  'handIndex' | 'nearHeroes' | 'isOverField'
+  'handIndex' | 'nearHeroes' | 'isOverField' | 'lift'
 >;
 
 /** A press that has not moved far enough to count as a drag yet. */
@@ -57,11 +61,11 @@ type Press = {
 
 // --- CONSTANTS ---
 /** How far (px) a press must move before it turns into a drag. */
-const DRAG_START_PX = 10;
+const DRAG_START_PX = 4;
 /** The card travels this share of the finger's path (stays low). */
 const CARD_FOLLOW = 0.5;
 /** The aim tip travels this many times as far as the finger. */
-const AIM_GAIN = 1.8;
+const AIM_GAIN = 2.5;
 /** Where on a hero's drawing the arrow lands (share of its height). */
 const ANCHOR_HEIGHT_SHARE = 0.5;
 /** Keep the tip this far inside the battlefield's top edge (px). */
@@ -90,6 +94,17 @@ const clampTip = (tip: Point): Point => {
     x: Math.min(Math.max(tip.x, 0), window.innerWidth - 1),
     y: Math.min(Math.max(tip.y, top), window.innerHeight - 1),
   };
+};
+
+/**
+ * Once the finger has moved up at all, the tip is at least on the
+ * battlefield's bottom edge, so even a tiny flick upward counts as aiming
+ * (and snaps to the nearest hero). Moving down leaves the tip alone.
+ */
+const liftTip = (tip: Point, isMovingUp: boolean): Point => {
+  const field = fieldRect();
+  if (!isMovingUp || !field) return tip;
+  return { ...tip, y: Math.min(tip.y, field.bottom - TIP_INSET_PX) };
 };
 
 /** True when a point lies inside a box. */
@@ -142,8 +157,12 @@ const dragAt = (press: Press, pointer: Point): CardDrag => {
       y: press.card.center.y + shift.y * CARD_FOLLOW,
     },
   };
-  const tip = clampTip(extend(press.grab, pointer, AIM_GAIN));
-  return { handIndex: press.handIndex, card, tip, ...probe(tip) };
+  const isMovingUp = shift.y < 0;
+  const tip = clampTip(
+    liftTip(extend(press.grab, pointer, AIM_GAIN), isMovingUp)
+  );
+  const lift = Math.max(0, -shift.y);
+  return { handIndex: press.handIndex, card, tip, lift, ...probe(tip) };
 };
 
 // --- HOOK ---
@@ -206,8 +225,13 @@ export const useCardDrag = (
         return;
       isActive = false;
       if (current && event.type === 'pointerup') {
-        const { handIndex, nearHeroes, isOverField } = current;
-        callbacksRef.current.onDrop({ handIndex, nearHeroes, isOverField });
+        const { handIndex, nearHeroes, isOverField, lift } = current;
+        callbacksRef.current.onDrop({
+          handIndex,
+          nearHeroes,
+          isOverField,
+          lift,
+        });
       }
       current = null;
       setDrag(null);
