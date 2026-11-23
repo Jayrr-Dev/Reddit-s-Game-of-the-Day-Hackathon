@@ -70,8 +70,9 @@ export const HitLine = ({
   blocked,
   typical,
   source,
+  isKill = false,
 }: {
-  /** HP lost. */
+  /** Damage past Guard (overkill included, so it can exceed HP left). */
   amount: number;
   /** Damage the target's Guard absorbed. */
   blocked: number;
@@ -79,20 +80,30 @@ export const HitLine = ({
   typical: number;
   /** The card type that dealt it, which picks the colour. */
   source?: CardType | undefined;
+  /** True when the hit felled its target: a black skull follows it. */
+  isKill?: boolean | undefined;
 }) => {
   const total = amount + blocked;
   const isFullyBlocked = amount === 0;
+  const fontSize = popFontPx(total, typical);
+  const tone = toneOf(source);
   return (
     <div className="flex items-center gap-1 animate-hit-pop">
       <span
         className={`${NUMBER_CLASS} text-surface-sunken ${isFullyBlocked ? 'opacity-60' : ''}`}
-        style={{
-          fontSize: popFontPx(total, typical),
-          ['--pop-tone' as string]: toneOf(source),
-        }}
+        style={{ fontSize, ['--pop-tone' as string]: tone }}
       >
         {total}
       </span>
+      {/* KILLING BLOW: a black skull outlined in the hit's colour */}
+      {isKill && (
+        <span
+          className="text-black [filter:drop-shadow(0_0_1.5px_var(--pop-tone))_drop-shadow(0_0_1.5px_var(--pop-tone))_drop-shadow(0_0_6px_var(--pop-tone))]"
+          style={{ fontSize, ['--pop-tone' as string]: tone }}
+        >
+          <Glyph name="skull" className="size-[0.8em]" />
+        </span>
+      )}
       {blocked > 0 && <BlockedPart blocked={blocked} typical={typical} />}
     </div>
   );
@@ -129,6 +140,7 @@ const PopLine = ({ hit }: { hit: PlayerHitPop }) =>
       blocked={hit.blocked}
       typical={hit.typical}
       source={hit.source}
+      isKill={hit.isKill}
     />
   ) : (
     <GainLine kind={hit.kind} amount={hit.amount} typical={hit.typical} />

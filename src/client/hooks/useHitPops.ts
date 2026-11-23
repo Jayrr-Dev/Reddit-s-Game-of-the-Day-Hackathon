@@ -42,6 +42,8 @@ export type Hit = {
   source?: CardType | undefined;
   /** True when only the effect over the character shows (no number). */
   isQuiet?: boolean;
+  /** True when this hit took the target from alive to 0 HP. */
+  isKill?: boolean;
 };
 
 /**
@@ -60,6 +62,7 @@ export type HitPop = PlayerHitPop & {
 type HeroLook = {
   hp: number;
   shroud: number;
+  damageTaken: number;
   wrath: number;
   hex: number;
   dread: number;
@@ -69,7 +72,15 @@ type HeroLook = {
 // --- CONSTANTS ---
 /** How long a damage number stays on screen (matches --animate-hit-pop). */
 const HIT_POP_MS = 1400;
-const GONE = { hp: 0, shroud: 0, wrath: 0, hex: 0, dread: 0 };
+/** How a hero that left the field looks: it lost whatever HP it had. */
+const goneAfter = (old: HeroLook): Omit<HeroLook, 'point'> => ({
+  hp: 0,
+  shroud: 0,
+  damageTaken: old.damageTaken + old.hp,
+  wrath: 0,
+  hex: 0,
+  dread: 0,
+});
 /** Debuffs that pop (quietly) when laid on anyone. */
 const DEBUFFS: readonly DebuffKind[] = ['hex', 'dread'];
 /** Fight-long statuses the villain can gain from cards; each pops "+N". */
@@ -83,20 +94,27 @@ const VILLAIN_GAINS: readonly (StatusId & PopKind)[] = [
 ];
 
 // --- HELPERS ---
+/** The numbers a hit is read from (HP, Guard, and damage taken). */
+type HitLook = { hp: number; shroud: number; damageTaken: number };
+
 /**
- * The hit between two looks, or null if there was none. Lost HP is
- * plain; lost shroud counts as blocked only when `countsBlocked` (shroud
- * also fades on its own at turn changes, which is not a hit).
+ * The hit between two looks, or null if there was none. The damage is
+ * what got past Guard, overkill included (from damageTaken, since HP
+ * stops at 0); lost shroud counts as blocked only when `countsBlocked`
+ * (shroud also fades on its own at turn changes, which is not a hit).
  */
 const hitBetween = (
-  before: { hp: number; shroud: number },
-  after: { hp: number; shroud: number },
+  before: HitLook,
+  after: HitLook,
   countsBlocked: boolean
 ): Hit | null => {
-  const amount = Math.max(0, before.hp - after.hp);
+  const amount = Math.max(0, after.damageTaken - before.damageTaken);
   const shroudLost = Math.max(0, before.shroud - after.shroud);
   const blocked = countsBlocked ? shroudLost : 0;
-  return amount > 0 || blocked > 0 ? { kind: 'hit', amount, blocked } : null;
+  const isKill = before.hp > 0 && after.hp <= 0;
+  return amount > 0 || blocked > 0
+    ? { kind: 'hit', amount, blocked, isKill }
+    : null;
 };
 
 /** What a hero gained between two looks (heal, Shroud, Wrath). */
@@ -147,6 +165,7 @@ const lookAt = (
       {
         hp: unit.hp,
         shroud: unit.shroud,
+        damageTaken: unit.damageTaken,
         wrath: unit.statuses.wrath,
         hex: unit.statuses.hex,
         dread: unit.statuses.dread,
@@ -157,7 +176,7 @@ const lookAt = (
 
 /**
  * Hero pops since the last look: hits, and on the heroes' turn what
- * their moves gave them. A fallen hero counts as 0 HP.
+ * their moves gave them. A hero gone from the field lost all its HP.
  */
 const heroPopsSince = (
   before: ReadonlyMap<number, HeroLook>,
@@ -172,11 +191,12 @@ const heroPopsSince = (
       ? {
           hp: unit.hp,
           shroud: unit.shroud,
+          damageTaken: unit.damageTaken,
           wrath: unit.statuses.wrath,
           hex: unit.statuses.hex,
           dread: unit.statuses.dread,
         }
-      : GONE;
+      : goneAfter(old);
     const found = hitBetween(old, now, countsBlocked);
     const hit = found ? { ...found, source } : null;
     const gains = isHeroTurn && unit ? gainsBetween(old, now) : [];

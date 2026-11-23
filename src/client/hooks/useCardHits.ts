@@ -3,12 +3,15 @@
 // Lets a multi-hit card land one hit at a time. The engine resolves a
 // card in one go; playCardSteps() also returns the state after each
 // hit, so this hook shows those beats a moment apart (each one pops its
-// own number) and only then sends the real playCard action. Single-hit
-// cards go straight through with no delay.
+// own number) and only then sends the real playCard action. A single
+// hit that fells nobody goes straight through with no delay; one that
+// fells a hero shows its beat first, so the full blow (overkill and
+// all) pops before the hero leaves the field.
 // ===================================================================
 
 import { useCallback, useEffect, useState } from 'react';
 import { playCardSteps } from '../../shared/game/combat';
+import { isDefeated } from '../../shared/game/combatant';
 import type { PlayCardAction, RunAction } from '../../shared/game/run';
 import type { CombatState } from '../../shared/game/types';
 
@@ -62,7 +65,10 @@ export const useCardHits = (
         action.targetUids
       );
       const beats = steps.slice(0, -1);
-      if (beats.length === 0) {
+      const fellsSomeone = beats.some((beat) =>
+        beat.heroes.some((unit) => isDefeated(unit))
+      );
+      if (beats.length <= 1 && !fellsSomeone) {
         onAction(action);
         return;
       }

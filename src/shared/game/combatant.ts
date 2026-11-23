@@ -38,6 +38,7 @@ export const createCombatant = (hp: number, maxHp: number): Combatant => ({
   maxHp,
   shroud: 0,
   statuses: NO_STATUSES,
+  damageTaken: 0,
 });
 
 // --- QUERIES ---
@@ -78,10 +79,12 @@ export const takeDamage = <T extends Combatant>(
   amount: number
 ): T => {
   const absorbed = Math.min(target.shroud, amount);
+  const dealt = amount - absorbed;
   return {
     ...target,
     shroud: target.shroud - absorbed,
-    hp: Math.max(0, target.hp - (amount - absorbed)),
+    hp: Math.max(0, target.hp - dealt),
+    damageTaken: target.damageTaken + dealt,
   };
 };
 
@@ -89,6 +92,7 @@ export const takeDamage = <T extends Combatant>(
 export const loseHp = <T extends Combatant>(target: T, amount: number): T => ({
   ...target,
   hp: Math.max(0, target.hp - amount),
+  damageTaken: target.damageTaken + amount,
 });
 
 /** Restores HP up to max. */

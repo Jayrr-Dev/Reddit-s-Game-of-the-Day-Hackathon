@@ -216,7 +216,8 @@ void test('buff cards grant their buff for the rest of the fight', () => {
 void test('playCardSteps shows each hit and ends on the real play', () => {
   const start = withHand(fightWith(['backhand']), ['flurry']);
   const steps = playCardSteps(start, 0, squireUid(start));
-  assert.equal(steps.length, 3);
+  // One beat per hit, then the real play.
+  assert.equal(steps.length, 4);
   assert.deepEqual(steps.at(-1), playCard(start, 0, squireUid(start)));
   const hpOf = (state: CombatState) => state.heroes[0]?.hp ?? 0;
   assert.ok(hpOf(steps[0] as CombatState) > hpOf(steps[1] as CombatState));
@@ -268,7 +269,7 @@ void test('a Target N card shows one beat per pick and ends on the real play', (
   const [squire, archer] = start.heroes.map((unit) => unit.uid);
   const picks = [squire ?? -1, archer ?? -1];
   const steps = playCardSteps(start, 0, picks[0] ?? -1, picks);
-  assert.equal(steps.length, 2);
+  assert.equal(steps.length, 3);
   assert.deepEqual(steps.at(-1), playCard(start, 0, picks[0] ?? -1, picks));
 });
 

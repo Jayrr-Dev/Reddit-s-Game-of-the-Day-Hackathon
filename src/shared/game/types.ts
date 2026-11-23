@@ -36,6 +36,12 @@ export type Combatant = {
   /** Absorbs damage before HP. Clears at the start of the owner's turn. */
   shroud: number;
   statuses: Statuses;
+  /**
+   * All damage that got past Guard this fight, overkill included (HP
+   * stops at 0, this does not). Display only: hit numbers diff it, so a
+   * 40-damage blow on a 10 HP hero still reads 40.
+   */
+  damageTaken: number;
 };
 
 // --- CARDS ---

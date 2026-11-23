@@ -531,10 +531,10 @@ export const playCard = (
 
 /**
  * Plays a card beat by beat, so the view can show each hit (of each
- * pick) land on its own. The middle states are for display only (a
- * felled hero still stands at 0 HP); the last step is exactly
- * playCard()'s result, which is what the server replays. Empty when
- * the play is illegal.
+ * pick) land on its own: one state per beat, then exactly playCard()'s
+ * result, which is what the server replays. The beats are for display
+ * only (a felled hero still stands at 0 HP, so its overkill can show).
+ * Empty when the play is illegal.
  */
 export const playCardSteps = (
   state: CombatState,
@@ -546,10 +546,7 @@ export const playCardSteps = (
   if (cardId === undefined || !canPlayCard(state, handIndex)) return [];
   const picks = requestedPicks(getCard(cardId), targetUid, targetUids);
   const beats = cardBeats(payForCard(state, handIndex), cardId, picks);
-  return [
-    ...beats.slice(0, -1),
-    playCard(state, handIndex, targetUid, targetUids),
-  ];
+  return [...beats, playCard(state, handIndex, targetUid, targetUids)];
 };
 
 // --- HERO TURN ---
