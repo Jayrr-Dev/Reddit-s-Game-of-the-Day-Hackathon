@@ -6,6 +6,7 @@
 // ===================================================================
 
 import type { HitPop } from '../../../hooks/useHitPops';
+import { popFontPx } from '../../../lib/popSize';
 import { Glyph } from '../../ui/Glyph';
 
 // --- CONSTANTS ---
@@ -13,14 +14,20 @@ import { Glyph } from '../../ui/Glyph';
 const NUMBER_CLASS =
   'font-display font-black [-webkit-text-stroke:1.5px_var(--color-hp)] [text-shadow:0_0_10px_var(--color-hp)]';
 
+/** Blocked damage is drawn smaller than damage dealt. */
+const BLOCKED_SCALE = 0.65;
+
 // --- SUBCOMPONENTS ---
 /** The faded, struck-through blocked amount with its shield. */
 const BlockedPart = ({ blocked }: { blocked: number }) => (
   <span className="flex items-center gap-0.5 opacity-70 drop-shadow-[0_0_2px_black]">
-    <span className="font-display text-2xl font-black text-ink [-webkit-text-stroke:1px_var(--color-surface-sunken)] line-through decoration-hp decoration-[3px]">
+    <span
+      className="font-display font-black text-ink [-webkit-text-stroke:1px_var(--color-surface-sunken)] line-through decoration-hp decoration-[3px]"
+      style={{ fontSize: popFontPx(blocked, BLOCKED_SCALE) }}
+    >
       {blocked}
     </span>
-    <Glyph name="shield" className="size-5 text-ink" />
+    <Glyph name="shield" className="size-[0.8em] text-ink" />
   </span>
 );
 
@@ -32,7 +39,10 @@ const Pop = ({ pop }: { pop: HitPop }) => (
   >
     <div className="flex items-center gap-1 animate-hit-pop">
       {pop.amount > 0 && (
-        <span className={`${NUMBER_CLASS} text-4xl text-surface-sunken`}>
+        <span
+          className={`${NUMBER_CLASS} text-surface-sunken`}
+          style={{ fontSize: popFontPx(pop.amount) }}
+        >
           {pop.amount}
         </span>
       )}

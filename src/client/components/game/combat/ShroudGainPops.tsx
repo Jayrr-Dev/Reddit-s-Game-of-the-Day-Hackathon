@@ -6,7 +6,12 @@
 
 import { STATUS_LOOK } from '../../../content/visuals';
 import { useGainPops } from '../../../hooks/useGainPops';
+import { popFontPx } from '../../../lib/popSize';
 import { Glyph } from '../../ui/Glyph';
+
+// --- CONSTANTS ---
+/** Gains are drawn smaller than damage numbers of the same amount. */
+const GAIN_SCALE = 0.6;
 
 // --- COMPONENT ---
 /** Renders the floating "+N" Shroud gains, anchored above their parent. */
@@ -17,9 +22,10 @@ export const ShroudGainPops = ({ shroud }: { shroud: number }) => {
       {pops.map((pop) => (
         <span
           key={pop.id}
-          className={`absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-0.5 font-display text-xl font-black whitespace-nowrap animate-gain-float drop-shadow-[0_0_3px_black] [-webkit-text-stroke:1px_var(--color-surface-sunken)] ${STATUS_LOOK.shroud.toneClass}`}
+          className={`absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-0.5 font-display font-black whitespace-nowrap animate-gain-float drop-shadow-[0_0_3px_black] [-webkit-text-stroke:1px_var(--color-surface-sunken)] ${STATUS_LOOK.shroud.toneClass}`}
+          style={{ fontSize: popFontPx(pop.amount, GAIN_SCALE) }}
         >
-          <Glyph name={STATUS_LOOK.shroud.glyph} className="size-5" />
+          <Glyph name={STATUS_LOOK.shroud.glyph} className="size-[0.9em]" />
           {`+${pop.amount}`}
         </span>
       ))}
