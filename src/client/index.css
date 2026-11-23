@@ -36,6 +36,8 @@
   --color-card-curse: #5a2a86;
   --color-card-guard: #2c4675;
   --color-card-power: #7a5a1c;
+  --color-parchment: #dccaa2;
+  --color-on-parchment: #2b1b12;
 
   /* --- TYPOGRAPHY --- */
   --font-display: 'Georgia', 'Times New Roman', ui-serif, serif;

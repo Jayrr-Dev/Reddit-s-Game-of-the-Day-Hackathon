@@ -47,7 +47,7 @@ export const FanHand = ({
 }: FanHandProps) => {
   const middle = (combat.hand.length - 1) / 2;
   return (
-    <div className="relative z-20 flex h-32 shrink-0 items-end justify-center px-4 pb-1">
+    <div className="relative z-20 flex h-32 shrink-0 items-end justify-center px-4 pb-3">
       {combat.hand.map((cardId, index) => {
         const offset = index - middle;
         const isHeld = index === heldIndex;

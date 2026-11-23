@@ -1,15 +1,22 @@
 // ===================================================================
 // CARD VIEW
-// One card face: cost, name, art glyph and rules text. Used in the hand
-// and in reward offers. The text comes from describeCard, so it always
-// matches what the card really does (including live wrath/dread math).
+// One card face, laid out top to bottom like a classic battler card:
+//   cost orb      energy cost, top-left, overlapping the frame
+//   art window    an arched window with the family's glyph
+//   name banner   the name across the middle in the display font
+//   rules panel   parchment with the rules text, keywords in bold
+//   type ribbon   the family (Strike, Curse ...) and a rarity gem
+// The frame and outer glow are coloured by family (see CARD_LOOK).
+// The text comes from describeCard, so it always matches what the card
+// really does (including live wrath/dread math).
 // ===================================================================
 
+import { Fragment } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { cardCategory, describeCard } from '../../../shared/game/describe';
 import type { Combatant } from '../../../shared/game/types';
-import { CARD_LOOK } from '../../content/visuals';
-import { Glyph } from '../ui/Glyph';
+import { CARD_LOOK, RARITY_GEM, RULES_KEYWORDS } from '../../content/visuals';
+import { Glyph, type GlyphName } from '../ui/Glyph';
 
 // --- TYPES ---
 export type CardViewProps = {
@@ -26,24 +33,101 @@ export type CardViewProps = {
 
 export type CardSize = 'fan' | 'offer';
 
+/** Tailwind classes for each part of the card at one size. */
+type SizeLook = {
+  box: string;
+  orb: string;
+  art: string;
+  glyph: string;
+  name: string;
+  rules: string;
+  ribbon: string;
+};
+
 // --- CONSTANTS ---
-const SIZE_CLASSES: Record<CardSize, string> = {
-  fan: 'h-28 w-[4.25rem] shrink-0',
-  offer: 'h-36 w-24 shrink-0',
+/** Fan cards are small (the held one is scaled up by the hand). */
+const SIZE_LOOK: Record<CardSize, SizeLook> = {
+  fan: {
+    box: 'h-28 w-[4.25rem]',
+    orb: 'size-5 text-[11px] -left-1.5 -top-1.5',
+    art: 'h-7',
+    glyph: 'size-5',
+    name: 'text-[7.5px] py-0.5',
+    rules: 'text-[8px] leading-[1.15] px-0.5',
+    ribbon: 'text-[6px] px-1.5 gap-0.5',
+  },
+  offer: {
+    box: 'h-40 w-[6.5rem]',
+    orb: 'size-7 text-sm -left-2 -top-2',
+    art: 'h-12',
+    glyph: 'size-8',
+    name: 'text-[10px] py-0.5',
+    rules: 'text-[10px] leading-snug px-1',
+    ribbon: 'text-[8px] px-2 gap-1',
+  },
 };
 
-/** Rules text size: fanned hand cards are smaller than offers. */
-const TEXT_CLASSES: Record<CardSize, string> = {
-  fan: 'text-[9px] leading-tight',
-  offer: 'text-[10px] leading-snug',
-};
+/** Splits rules text into plain words and bold keywords or numbers. */
+const KEYWORD_PATTERN = new RegExp(`(\\d+|${RULES_KEYWORDS.join('|')})`, 'g');
 
-const RARITY_RING: Record<string, string> = {
-  starter: 'ring-edge',
-  common: 'ring-edge',
-  uncommon: 'ring-shroud',
-  rare: 'ring-accent',
-};
+// --- SUBCOMPONENTS ---
+/** One rules line with keywords and numbers in bold. */
+const RulesLine = ({ text }: { text: string }) => (
+  <span className="block">
+    {text.split(KEYWORD_PATTERN).map((part, index) =>
+      index % 2 === 1 ? (
+        <b key={index} className="font-black">
+          {part}
+        </b>
+      ) : (
+        <Fragment key={index}>{part}</Fragment>
+      )
+    )}
+  </span>
+);
+
+/** The arched art window with the family's glyph. */
+const ArtWindow = ({
+  glyph,
+  glowVar,
+  look,
+}: {
+  glyph: GlyphName;
+  glowVar: string;
+  look: SizeLook;
+}) => (
+  <span
+    className={`grid ${look.art} w-full shrink-0 place-items-center rounded-t-full bg-surface-sunken ring-1 ring-black/50`}
+    style={{
+      backgroundImage: `radial-gradient(circle at 50% 70%, color-mix(in srgb, ${glowVar} 55%, transparent), transparent 70%)`,
+    }}
+  >
+    <Glyph
+      name={glyph}
+      className={`${look.glyph} text-ink drop-shadow-[0_1px_1px_rgb(0_0_0/0.8)]`}
+    />
+  </span>
+);
+
+/** The ribbon under the rules: the card's family and its rarity gem. */
+const TypeRibbon = ({
+  typeName,
+  gemClass,
+  look,
+}: {
+  typeName: string;
+  gemClass: string | null;
+  look: SizeLook;
+}) => (
+  <span
+    className={`absolute bottom-0.5 left-1/2 flex -translate-x-1/2 items-center rounded-sm bg-surface-sunken py-px font-bold uppercase tracking-wider text-ink ring-1 ring-accent/50 ${look.ribbon}`}
+  >
+    {typeName}
+    {gemClass && (
+      <span className={`size-1.5 rotate-45 ${gemClass} ring-1 ring-black/50`} />
+    )}
+  </span>
+);
 
 // --- COMPONENT ---
 /** Renders a tappable card. */
@@ -56,33 +140,43 @@ export const CardView = ({
   onClick,
 }: CardViewProps) => {
   const cardDef = getCard(cardId);
-  const look = CARD_LOOK[cardCategory(cardId)];
-  const ringClass = isSelected
-    ? 'ring-accent -translate-y-4 shadow-[0_0_14px_var(--color-accent)]'
-    : (RARITY_RING[cardDef.rarity] ?? 'ring-edge');
+  const family = CARD_LOOK[cardCategory(cardId)];
+  const look = SIZE_LOOK[size];
+  // The family glow; brighter and gold-rimmed while the card is held.
+  const glow = isSelected
+    ? `0 0 0 2px var(--color-accent), 0 0 16px var(--color-accent)`
+    : `0 0 6px color-mix(in srgb, ${family.glowVar} 70%, transparent)`;
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={isDisabled}
-      className={`relative flex ${SIZE_CLASSES[size]} flex-col items-center gap-1 rounded-lg ${look.frameClass} p-1.5 text-center shadow-lg ring-2 ${ringClass} transition-transform enabled:hover:-translate-y-1 disabled:opacity-40 animate-rise`}
+      className={`relative flex ${look.box} shrink-0 flex-col rounded-lg ${family.frameClass} p-[3px] pb-3 text-center ring-1 ring-black/60 transition-transform enabled:hover:-translate-y-1 disabled:opacity-40 disabled:saturate-50 animate-rise`}
+      style={{ boxShadow: `${glow}, 0 6px 10px rgb(0 0 0 / 0.5)` }}
     >
-      <span className="absolute -left-1.5 -top-1.5 flex size-6 items-center justify-center rounded-full bg-energy text-xs font-black text-on-accent ring-2 ring-surface">
+      <span
+        className={`absolute z-10 flex ${look.orb} items-center justify-center rounded-full bg-energy font-display font-black text-on-accent ring-2 ring-surface-sunken shadow-[inset_0_-2px_3px_rgb(0_0_0/0.35)]`}
+      >
         {cardDef.cost}
       </span>
-      <span className="mt-2 font-display text-[11px] font-bold leading-tight">
+      <ArtWindow glyph={family.glyph} glowVar={family.glowVar} look={look} />
+      <span
+        className={`-mx-[3px] shrink-0 border-y border-black/50 ${family.frameClass} font-display font-black uppercase leading-none tracking-tight text-ink [text-shadow:0_1px_1px_rgb(0_0_0/0.8)] ${look.name}`}
+      >
         {cardDef.name}
       </span>
-      {size === 'offer' && (
-        <Glyph name={look.glyph} className="size-6 shrink-0 text-ink/80" />
-      )}
       <span
-        className={`flex w-full flex-1 flex-col justify-center rounded bg-surface-sunken/70 px-0.5 ${TEXT_CLASSES[size]}`}
+        className={`flex w-full min-h-0 flex-1 flex-col justify-center rounded-b-sm bg-parchment text-on-parchment ${look.rules}`}
       >
         {describeCard(cardId, attacker).map((line) => (
-          <span key={line}>{line}</span>
+          <RulesLine key={line} text={line} />
         ))}
       </span>
+      <TypeRibbon
+        typeName={family.typeName}
+        gemClass={RARITY_GEM[cardDef.rarity]}
+        look={look}
+      />
     </button>
   );
 };

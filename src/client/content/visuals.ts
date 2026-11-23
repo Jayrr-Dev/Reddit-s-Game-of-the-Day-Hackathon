@@ -7,7 +7,7 @@
 
 import type { CardCategory, IntentKind } from '../../shared/game/describe';
 import type { StopKind } from '../../shared/game/kingdom';
-import type { StatusId } from '../../shared/game/types';
+import type { CardRarity, StatusId } from '../../shared/game/types';
 import type { GlyphName } from '../components/ui/Glyph';
 
 // --- TYPES ---
@@ -31,15 +31,58 @@ export const INTENT_LOOK: Record<IntentKind, Look> = {
 };
 
 // --- CARDS ---
+/**
+ * One look per card family: the art glyph, the type shown on the
+ * ribbon, the frame and banner colour, and the outer glow (a CSS colour
+ * var, so the glow can be built with a shadow).
+ */
 export const CARD_LOOK: Record<
   CardCategory,
-  { glyph: GlyphName; frameClass: string }
+  { glyph: GlyphName; typeName: string; frameClass: string; glowVar: string }
 > = {
-  strike: { glyph: 'sword', frameClass: 'bg-card-strike' },
-  curse: { glyph: 'skull', frameClass: 'bg-card-curse' },
-  guard: { glyph: 'shield', frameClass: 'bg-card-guard' },
-  power: { glyph: 'flame', frameClass: 'bg-card-power' },
+  strike: {
+    glyph: 'sword',
+    typeName: 'Strike',
+    frameClass: 'bg-card-strike',
+    glowVar: 'var(--color-hp)',
+  },
+  curse: {
+    glyph: 'skull',
+    typeName: 'Curse',
+    frameClass: 'bg-card-curse',
+    glowVar: 'var(--color-hex)',
+  },
+  guard: {
+    glyph: 'shield',
+    typeName: 'Guard',
+    frameClass: 'bg-card-guard',
+    glowVar: 'var(--color-shroud)',
+  },
+  power: {
+    glyph: 'flame',
+    typeName: 'Power',
+    frameClass: 'bg-card-power',
+    glowVar: 'var(--color-wrath)',
+  },
 };
+
+/** The rarity gem on a card's ribbon (starters have none). */
+export const RARITY_GEM: Record<CardRarity, string | null> = {
+  starter: null,
+  common: 'bg-ink-muted',
+  uncommon: 'bg-heal',
+  rare: 'bg-accent',
+};
+
+/** Words drawn bold in rules text (statuses and card keywords). */
+export const RULES_KEYWORDS = [
+  'Hex',
+  'Dread',
+  'Shroud',
+  'Wrath',
+  'Reach',
+  'ALL',
+] as const;
 
 // --- STOPS ---
 export const STOP_LOOK: Record<StopKind, Look> = {
