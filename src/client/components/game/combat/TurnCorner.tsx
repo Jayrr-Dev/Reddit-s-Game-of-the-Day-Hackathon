@@ -1,10 +1,11 @@
 // ===================================================================
 // TURN CORNER
-// The bottom-right corner: the draw pile as a small card with its
+// The bottom-right corner: the draw pile as a small stack with its
 // count, and the big hourglass that ends your turn.
 // ===================================================================
 
 import { Glyph } from '../../ui/Glyph';
+import { PileStack } from './PileStack';
 
 // --- TYPES ---
 export type TurnCornerProps = {
@@ -16,12 +17,12 @@ export type TurnCornerProps = {
 /** Renders the deck count and the End Turn hourglass. */
 export const TurnCorner = ({ drawCount, onEndTurn }: TurnCornerProps) => (
   <div className="flex shrink-0 items-end gap-1.5">
-    <span
-      title="Cards left to draw"
-      className="mb-0.5 grid h-8 w-6 place-items-center rounded-sm bg-card-buff font-display text-xs font-black text-ink ring-1 ring-accent/50"
-    >
-      {drawCount}
-    </span>
+    <PileStack
+      count={drawCount}
+      label="Cards left to draw"
+      toneClass="bg-card-buff"
+      side="right"
+    />
     <button
       type="button"
       onClick={onEndTurn}

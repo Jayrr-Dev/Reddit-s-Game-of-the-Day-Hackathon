@@ -4,9 +4,10 @@
 // 512 px Reddit post. Layers, top to bottom:
 //   TopBar        a thin strip: where you are, score, and the pause gear
 //   Battlefield   3 x 2 parallax scene; every hero wears its own plate
-//   HitNumbers    big damage numbers that pop on a hit
-//   Bottom band   PlayerCorner (portrait + HP) | your effects + energy |
-//                 TurnCorner (deck count + End Turn), then the hand
+//   HitNumbers    damage numbers that pop over the hero that was hit
+//   Bottom band   PlayerCorner (portrait + HP) + discard pile | your
+//                 effects + energy | TurnCorner (draw pile + End Turn),
+//                 then the hand
 //   DraggedCard   the card under the finger while it is dragged
 //   AimArrow      the targeting line from that card to its target
 // All game state comes from the engine; this view only routes input.
@@ -25,6 +26,7 @@ import { DraggedCard } from './combat/DraggedCard';
 import { EnergyTray } from './combat/EnergyTray';
 import { FanHand } from './combat/FanHand';
 import { HitNumbers } from './combat/HitNumbers';
+import { PileStack } from './combat/PileStack';
 import { PlayerCorner } from './combat/PlayerCorner';
 import { TopBar } from './combat/TopBar';
 import { TurnCorner } from './combat/TurnCorner';
@@ -49,7 +51,12 @@ const cardTop = ({ center, height }: CardBox): Point => ({
 });
 
 // --- SUBCOMPONENTS ---
-/** The row above the hand: your portrait, effects + energy, End Turn. */
+/**
+ * The row above the hand: portrait + discard pile | effects + energy |
+ * draw pile + End Turn. A 3-column grid whose side columns share the
+ * leftover space equally, so the energy tray sits exactly on the
+ * screen's centre line (the hand's axis) whatever the corners' widths.
+ */
 const PlayerBar = ({
   combat,
   onEndTurn,
@@ -57,13 +64,23 @@ const PlayerBar = ({
   combat: CombatState;
   onEndTurn: () => void;
 }) => (
-  <div className="flex items-end justify-between gap-2 px-3">
-    <PlayerCorner player={combat.player} />
-    <div className="flex min-w-0 flex-1 flex-col items-center gap-1 pb-1">
+  <div className="grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-end gap-1 px-2">
+    <div className="flex items-end gap-4 justify-self-start">
+      <PlayerCorner player={combat.player} />
+      <PileStack
+        count={combat.discardPile.length}
+        label="Cards in the discard pile"
+        toneClass="bg-surface-raised"
+        side="left"
+      />
+    </div>
+    <div className="flex min-w-0 flex-col items-center gap-1 pb-1">
       <StatusRow combatant={combat.player} />
       <EnergyTray energy={combat.energy} />
     </div>
-    <TurnCorner drawCount={combat.drawPile.length} onEndTurn={onEndTurn} />
+    <div className="justify-self-end">
+      <TurnCorner drawCount={combat.drawPile.length} onEndTurn={onEndTurn} />
+    </div>
   </div>
 );
 
@@ -96,7 +113,7 @@ export const CombatView = ({
 }: CombatViewProps) => {
   const controls = useCombatControls(combat, onAction);
   const [isPaused, setIsPaused] = useState(false);
-  const pops = useHitPops(combat.heroes);
+  const pops = useHitPops(combat.heroes, combat.turn);
   const { drag } = controls;
   const draggedCardId = drag ? combat.hand[drag.handIndex] : undefined;
   // The arrow is hidden until it has a target, then flies out from the
