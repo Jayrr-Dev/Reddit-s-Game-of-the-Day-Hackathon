@@ -1,13 +1,16 @@
 // ===================================================================
 // USE COMBAT CONTROLS
-// Tap-only controls for a fight, safe inside the Reddit feed:
-//   1. Tap a card. Cards with no target play at once; others are held.
-//   2. While a card is held, legal heroes glow and illegal ones dim.
-//   3. Tap a glowing hero to play the held card at it.
-// Tapping any hero also focuses it (top HUD + camera lean).
+// Controls for a fight. Two ways to play a card, both safe in the feed:
+//   TAP   Tap a card. Cards with no target play at once; others are
+//         held. Tap a glowing hero to play the held card at it.
+//   DRAG  Press a card and drag. An arrow follows the finger; drop on a
+//         glowing hero (or anywhere on the field for untargeted cards).
+// While a card is held, legal heroes glow and illegal ones dim. Tapping
+// or dropping on a hero focuses it (top HUD + camera lean).
 // ===================================================================
 
 import { useState } from 'react';
+import { useCardDrag, type CardDrop } from './useCardDrag';
 import { targetRuleOf } from '../../shared/game/battlefield';
 import { canPlayCard, targetsFor } from '../../shared/game/combat';
 import type { RunAction } from '../../shared/game/run';
@@ -15,7 +18,7 @@ import type { CombatState } from '../../shared/game/types';
 
 // --- TYPES ---
 /** How a hero should look given the card the player is holding. */
-export type AimState = 'idle' | 'legal' | 'illegal';
+export type AimState = 'idle' | 'legal' | 'locked' | 'illegal';
 
 // --- HELPERS ---
 /** The focused hero if alive, else the first front-row hero. */
@@ -46,20 +49,57 @@ export const useCombatControls = (
     ? targetsFor(combat, heldCard).map((unit) => unit.uid)
     : [];
 
-  /** How a hero should look given the held card. */
+  /** Plays an untargeted card (aimed at the focus) or a targeted one. */
+  const playAt = (handIndex: number, targetUid: number | null) =>
+    onAction({ type: 'playCard', handIndex, targetUid: targetUid ?? 0 });
+
+  /** Drop: play at a legal hero (or the field, if untargeted), else cancel. */
+  const dropCard = ({ handIndex, overUid, isOverField }: CardDrop) => {
+    setHeldIndex(null);
+    const cardId = combat.hand[handIndex];
+    if (cardId === undefined || !canPlayCard(combat, handIndex)) return;
+    if (targetRuleOf(cardId) === 'none') {
+      if (isOverField) playAt(handIndex, focusUid);
+      return;
+    }
+    const legal = targetsFor(combat, cardId).map((unit) => unit.uid);
+    if (overUid !== null && legal.includes(overUid)) {
+      setChosenUid(overUid);
+      playAt(handIndex, overUid);
+    }
+  };
+
+  /** Drag start: hold the card so legal heroes light up. */
+  const startDrag = (handIndex: number) =>
+    setHeldIndex(canPlayCard(combat, handIndex) ? handIndex : null);
+
+  const { drag, pressCard, wasDrag } = useCardDrag(startDrag, dropCard);
+  const hoverUid = drag?.overUid ?? null;
+  const isHoverLegal = hoverUid !== null && legalUids.includes(hoverUid);
+  // Would letting go play the card? Untargeted cards: anywhere on the
+  // field. Targeted cards: over a legal hero.
+  const dragCard = drag ? combat.hand[drag.handIndex] : undefined;
+  const isDropLive =
+    drag !== null &&
+    dragCard !== undefined &&
+    (targetRuleOf(dragCard) === 'none' ? drag.isOverField : isHoverLegal);
+
+  /** How a hero should look given the held card and the drag. */
   const aimOf = (uid: number): AimState => {
     if (!isHolding) return 'idle';
-    return legalUids.includes(uid) ? 'legal' : 'illegal';
+    if (!legalUids.includes(uid)) return 'illegal';
+    return uid === hoverUid ? 'locked' : 'legal';
   };
 
   /** Plays a hand slot at a hero, then lets go of the card. */
   const play = (handIndex: number, targetUid: number) => {
-    onAction({ type: 'playCard', handIndex, targetUid });
+    playAt(handIndex, targetUid);
     setHeldIndex(null);
   };
 
   /** Card tap: play untargeted cards, otherwise hold or let go. */
   const tapCard = (handIndex: number) => {
+    if (wasDrag()) return; // the click a browser fires after a drag
     const cardId = combat.hand[handIndex];
     if (cardId === undefined || !canPlayCard(combat, handIndex)) return;
     if (targetRuleOf(cardId) === 'none') return play(handIndex, focusUid ?? 0);
@@ -80,9 +120,14 @@ export const useCombatControls = (
   };
 
   return {
+    // Focus stays put while dragging, so the camera never slides a hero
+    // out from under the finger; the drop focuses the target.
     focusUid,
     heldIndex: isHolding ? heldIndex : null,
+    drag,
+    isDropLive,
     aimOf,
+    pressCard,
     tapCard,
     tapHero,
     endTurn,

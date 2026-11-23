@@ -13,6 +13,7 @@ import { getHero } from '../../../../shared/game/heroes';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
 import type { HeroRow, HeroUnit } from '../../../../shared/game/types';
 import { INTENT_LOOK } from '../../../content/visuals';
+import { HERO_UID_ATTR } from '../../../hooks/useCardDrag';
 import type { AimState } from '../../../hooks/useCombatControls';
 import { Chip } from '../../ui/Chip';
 import { HeroFigure } from './HeroFigure';
@@ -35,6 +36,7 @@ const ROW_BOX: Record<HeroRow, { bottom: string; height: string }> = {
 const AIM_CLASS: Record<AimState, string> = {
   idle: '',
   legal: 'drop-shadow-[0_0_8px_var(--color-accent)]',
+  locked: 'scale-105 drop-shadow-[0_0_14px_var(--color-accent)]',
   illegal: 'opacity-35 grayscale',
 };
 
@@ -68,6 +70,7 @@ export const HeroOnField = ({
     <button
       type="button"
       onClick={() => onTap(unit.uid)}
+      {...{ [HERO_UID_ATTR]: unit.uid }}
       aria-label={`${hero.name}, ${unit.hp} of ${unit.maxHp} HP, ${unit.row} row`}
       className={`pointer-events-auto absolute flex flex-col items-center justify-end transition-all duration-700 ${isBack ? 'brightness-75' : ''} ${AIM_CLASS[aim]}`}
       style={boxStyle(unit)}
