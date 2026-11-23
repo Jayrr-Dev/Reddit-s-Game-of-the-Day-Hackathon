@@ -64,7 +64,9 @@ export type RunAction =
   | { type: 'playCard'; handIndex: number; targetUid: number }
   | { type: 'endTurn' }
   | { type: 'pickCard'; offerIndex: number | null }
-  | { type: 'graveChoice'; choice: GraveChoice };
+  | { type: 'graveChoice'; choice: GraveChoice }
+  /** Gives up the march; the score so far stands. */
+  | { type: 'abandon' };
 
 // --- CONSTANTS ---
 const EMPTY_STATS: RunStats = {
@@ -224,6 +226,10 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
         : state;
     case 'graveChoice':
       return phase.kind === 'grave' ? visitGrave(state, action.choice) : state;
+    case 'abandon':
+      return phase.kind === 'fallen'
+        ? state
+        : { ...state, phase: { kind: 'fallen' } };
   }
 };
 
@@ -266,6 +272,7 @@ export const isRunAction = (value: unknown): value is RunAction => {
         isIndex(value.targetUid)
       );
     case 'endTurn':
+    case 'abandon':
       return true;
     case 'pickCard':
       return (

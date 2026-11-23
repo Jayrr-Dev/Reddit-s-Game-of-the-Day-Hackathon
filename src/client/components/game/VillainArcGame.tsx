@@ -11,6 +11,7 @@ import {
   type RunState,
 } from '../../../shared/game/run';
 import { regionHue } from '../../content/visuals';
+import { AbandonRun } from './combat/AbandonRun';
 import { CombatView } from './CombatView';
 import { GraveView } from './GraveView';
 import { OfferView } from './OfferView';
@@ -40,6 +41,9 @@ const PhaseBody = ({ run, onAction }: VillainArcGameProps) => {
           where={`Wave ${run.stop} · ${regionName(region)}`}
           score={computeScore(run.stats)}
           onAction={onAction}
+          pauseActions={
+            <AbandonRun onConfirm={() => onAction({ type: 'abandon' })} />
+          }
         />
       );
     }

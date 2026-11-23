@@ -7,7 +7,12 @@
 // ===================================================================
 
 import type { HeroSize, HeroTier } from '../../../../shared/game/types';
-import { BODY_WIDTH } from '../../../lib/heroFigure';
+import {
+  BODY_HEIGHT,
+  BODY_WIDTH,
+  headCentreOf,
+  headRadiusOf,
+} from '../../../lib/heroFigure';
 
 // --- TYPES ---
 export type HeroFigureProps = {
@@ -16,18 +21,16 @@ export type HeroFigureProps = {
   size: HeroSize;
 };
 
-// --- CONSTANTS ---
-
 // --- COMPONENT ---
 /** Draws the hero, feet at the bottom edge, head near the top. */
 export const HeroFigure = ({ hue, tier, size }: HeroFigureProps) => {
   const width = BODY_WIDTH[size];
   const mid = width / 2;
   const shoulder = width * 0.42;
-  const headRadius = 9 + size * 2;
+  const headRadius = headRadiusOf(size);
   return (
     <svg
-      viewBox={`0 0 ${width} 100`}
+      viewBox={`0 0 ${width} ${BODY_HEIGHT}`}
       className="h-full w-full overflow-visible"
       aria-hidden="true"
     >
@@ -52,7 +55,7 @@ export const HeroFigure = ({ hue, tier, size }: HeroFigureProps) => {
       {/* HELMET */}
       <circle
         cx={mid}
-        cy={30 - headRadius * 0.6}
+        cy={headCentreOf(size)}
         r={headRadius}
         fill={`hsl(${hue} 12% 78%)`}
       />

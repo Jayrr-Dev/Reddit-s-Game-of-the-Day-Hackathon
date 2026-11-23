@@ -4,6 +4,7 @@
 // backdrop -> back row -> ground shade -> front row -> foreground. The
 // front row always draws over the back row. The camera (--cam) leans
 // toward the focused hero, and the stage sways gently on its own.
+// Heroes that change rows glide there (see useRowMoves).
 // ===================================================================
 
 import { useRef, type ReactNode } from 'react';
@@ -15,6 +16,7 @@ import { cssVars, depthStyle } from '../../../lib/cssVars';
 import { Backdrop, Foreground } from './Backdrop';
 import type { AimState } from '../../../hooks/useCombatControls';
 import { usePlateSpacing } from '../../../hooks/usePlateSpacing';
+import { ROW_LAYER_ATTR, useRowMoves } from '../../../hooks/useRowMoves';
 import { HeroOnField } from './HeroOnField';
 
 // --- TYPES ---
@@ -53,6 +55,7 @@ const RowLayer = ({
   <div
     className="parallax-layer pointer-events-none absolute -inset-x-8 inset-y-0"
     style={depthStyle(depth)}
+    {...{ [ROW_LAYER_ATTR]: true }}
   >
     <div className="absolute inset-y-0 left-10 right-10">{children}</div>
   </div>
@@ -69,6 +72,7 @@ export const BattlefieldView = ({
 }: BattlefieldViewProps) => {
   const fieldRef = useRef<HTMLDivElement>(null);
   usePlateSpacing(fieldRef, heroes);
+  useRowMoves(fieldRef, heroes);
   const focused = heroes.find((unit) => unit.uid === focusUid);
   /** Renders the heroes standing in one row. */
   const renderRow = (row: HeroRow) =>

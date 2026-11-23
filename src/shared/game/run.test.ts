@@ -9,6 +9,7 @@ import {
   computeScore,
   createRun,
   isRunAction,
+  isRunOver,
   replayRun,
   runReducer,
 } from './run.ts';
@@ -79,4 +80,13 @@ void test('isRunAction accepts real actions and rejects junk', () => {
   );
   assert.equal(isRunAction({ type: 'graveChoice', choice: 'cry' }), false);
   assert.equal(isRunAction('endTurn'), false);
+});
+
+void test('abandoning ends the run and keeps the score so far', () => {
+  const run = replayRun('2026-11-23', [{ type: 'chooseStop', option: 0 }]);
+  const abandoned = runReducer(run, { type: 'abandon' });
+  assert.equal(abandoned.phase.kind, 'fallen');
+  assert.ok(isRunOver(abandoned));
+  assert.deepEqual(abandoned.stats, run.stats);
+  assert.ok(isRunAction({ type: 'abandon' }));
 });

@@ -16,3 +16,14 @@ export const BODY_HEIGHT = 100;
 /** Width / height of a hero's drawing, for laying it out. */
 export const figureAspect = (size: HeroSize): number =>
   BODY_WIDTH[size] / BODY_HEIGHT;
+
+/** Helmet radius in viewBox units (bigger heroes, bigger heads). */
+export const headRadiusOf = (size: HeroSize): number => 9 + size * 2;
+
+/** Helmet centre height in viewBox units. */
+export const headCentreOf = (size: HeroSize): number =>
+  30 - headRadiusOf(size) * 0.6;
+
+/** How far down the drawing (0..1) the top of the helmet sits. */
+export const headTopShare = (size: HeroSize): number =>
+  (headCentreOf(size) - headRadiusOf(size)) / BODY_HEIGHT;

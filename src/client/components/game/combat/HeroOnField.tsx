@@ -10,14 +10,18 @@ import type { CSSProperties } from 'react';
 import { sizeOf } from '../../../../shared/game/battlefield';
 import { getHero } from '../../../../shared/game/heroes';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
-import type { HeroRow, HeroUnit } from '../../../../shared/game/types';
+import type {
+  HeroRow,
+  HeroSize,
+  HeroUnit,
+} from '../../../../shared/game/types';
 import {
   HERO_ANCHOR_ATTR,
   HERO_ROW_ATTR,
   HERO_UID_ATTR,
 } from '../../../hooks/useCardDrag';
 import type { AimState } from '../../../hooks/useCombatControls';
-import { figureAspect } from '../../../lib/heroFigure';
+import { figureAspect, headTopShare } from '../../../lib/heroFigure';
 import { HeroFigure } from './HeroFigure';
 import { HeroPlate } from './HeroPlate';
 
@@ -38,6 +42,9 @@ const ROW_BOX: Record<HeroRow, { bottom: string; height: string }> = {
   back: { bottom: '46%', height: '26%' },
 };
 
+/** Gap (px) kept between the plate and the top of the drawing space. */
+const PLATE_REST_PX = 2;
+
 const AIM_CLASS: Record<AimState, string> = {
   idle: '',
   legal: 'drop-shadow-[0_0_8px_var(--color-accent)]',
@@ -57,6 +64,17 @@ const boxStyle = (unit: HeroUnit): CSSProperties => {
     ...ROW_BOX[unit.row],
   };
 };
+
+/**
+ * Seats the plate just above the helmet. The drawing has empty space
+ * above the head (headTopShare of its height); the plate sinks into
+ * half of it, so the plate sits half as far above the head as it would
+ * resting on the drawing's top edge (PLATE_REST_PX is the old 4 px gap,
+ * halved too). Percentages are of the drawing's height.
+ */
+const plateStyle = (size: HeroSize): CSSProperties => ({
+  bottom: `calc(${100 - (headTopShare(size) * 100) / 2}% + ${PLATE_REST_PX}px)`,
+});
 
 // --- COMPONENT ---
 /**
@@ -102,7 +120,10 @@ export const HeroOnField = ({
           >
             <HeroFigure hue={hero.hue} tier={hero.tier} size={size} />
           </div>
-          <div className="absolute bottom-full left-1/2 mb-1 flex -translate-x-1/2 justify-center">
+          <div
+            className="absolute left-1/2 flex -translate-x-1/2 justify-center"
+            style={plateStyle(size)}
+          >
             <HeroPlate unit={unit} isFocused={isFocused} />
           </div>
         </div>
