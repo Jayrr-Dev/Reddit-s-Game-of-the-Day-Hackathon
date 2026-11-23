@@ -13,6 +13,9 @@ export const STORY_LINES = [
   'Take the throne. Make them remember her name.',
 ] as const;
 
+/** The short line under the logo on the title screen. */
+export const LOGO_SUBTITLE = 'A daily deckbuilder of revenge';
+
 export const TAGLINE =
   'An endless march of vengeance. Same horde for everyone, every day.';
 
