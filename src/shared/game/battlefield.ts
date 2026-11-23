@@ -10,8 +10,13 @@
 //     someone stands there, the front row slides sideways to make room,
 //     so a pull only fails when the front row has no space left. A push
 //     is the mirror image.
-//   - When the front row empties, the back row steps forward, so a
-//     fight can never stall behind a healer nobody can reach.
+//   - A new horde forms up in the back row as far as it has room
+//     (overflow stays in front), out of melee reach. At the end of each heroes' turn, every
+//     melee-minded hero (one whose home row is the front) in the back
+//     row steps up if there is room. Ranged heroes hold the back row
+//     until the villain Charges.
+//   - Back Step: with the back row empty, the villain falls back and
+//     the whole front row ends up in the back row.
 // ===================================================================
 
 import { getCard, type CardId } from './cards.ts';
@@ -102,9 +107,30 @@ const placeHero = (
   return { ...unit, row, col: 0 };
 };
 
+/** True for a hero whose home is the front row (it closes in to fight). */
+export const isMeleeMinded = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
+  getHero(unit.heroId).row === 'front';
+
 /**
- * Lines a horde up on the battlefield. Big heroes are placed first so
- * they always find room; the result keeps the original order (uids).
+ * A new horde marches in from the back: each melee-minded hero placed in
+ * the front row drops back while the back row has room, in uid order
+ * (imperative: each move changes the room left for the next).
+ */
+const marchInFromBack = (heroes: HeroUnit[]): HeroUnit[] => {
+  let field = heroes;
+  for (const unit of heroes) {
+    const current = field.find((hero) => hero.uid === unit.uid);
+    if (current && isMeleeMinded(current) && canPush(field, current))
+      field = pushHero(field, current.uid);
+  }
+  return field;
+};
+
+/**
+ * Lines a horde up on the battlefield. Everyone first takes their home
+ * row (big heroes placed first so they always find room), then the
+ * melee heroes drop back as far as the back row has room, so a new wave
+ * starts out of melee reach. The result keeps the original order (uids).
  */
 export const formUp = (units: readonly UnplacedHero[]): HeroUnit[] => {
   const bySizeDesc = [...units].sort((a, b) => sizeOf(b) - sizeOf(a));
@@ -116,13 +142,12 @@ export const formUp = (units: readonly UnplacedHero[]): HeroUnit[] => {
     (unit) =>
       placed.find((hero) => hero.uid === unit.uid) ?? placeHero([], unit)
   );
-  return stepForward(ordered);
+  return marchInFromBack(ordered);
 };
 
 /**
  * When the front row is empty, every back-row hero steps forward. Used
- * when a horde forms up (a horde of archers still starts in front) and
- * when the villain Charges; heroes never step up on their own mid-fight.
+ * when the villain Charges.
  */
 export const stepForward = (heroes: HeroUnit[]): HeroUnit[] => {
   const hasFront = heroes.some((unit) => unit.row === 'front');
@@ -245,6 +270,25 @@ export const pullHero = (heroes: HeroUnit[], uid: number) =>
 /** Push: the hero falls back into the back row (no-op if blocked). */
 export const pushHero = (heroes: HeroUnit[], uid: number) =>
   moveTo(heroes, uid, 'back');
+
+/**
+ * End of the heroes' turn: each melee-minded hero in the back row steps
+ * up if the front row has room, in uid order (imperative: each step
+ * changes the room left for the next).
+ */
+export const advanceMelee = (heroes: HeroUnit[]): HeroUnit[] => {
+  let field = heroes;
+  for (const unit of heroes) {
+    const current = field.find((hero) => hero.uid === unit.uid);
+    if (current && isMeleeMinded(current) && canPull(field, current))
+      field = pullHero(field, current.uid);
+  }
+  return field;
+};
+
+/** Back Step: the whole field (all in the front row) falls back a row. */
+export const fallBack = (heroes: readonly HeroUnit[]): HeroUnit[] =>
+  heroes.map((unit) => ({ ...unit, row: 'back' }));
 
 // --- TARGETING ---
 

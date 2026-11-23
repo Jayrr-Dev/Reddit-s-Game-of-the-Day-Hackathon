@@ -20,7 +20,7 @@
 
 import { useCallback, useState, type ReactNode } from 'react';
 import { getCard } from '../../../shared/game/cards';
-import { canCharge } from '../../../shared/game/combat';
+import { canBackStep, canCharge } from '../../../shared/game/combat';
 import type { RunAction } from '../../../shared/game/run';
 import type { CardType, CombatState } from '../../../shared/game/types';
 import type { CardBox, Point } from '../../hooks/useCardDrag';
@@ -36,7 +36,7 @@ import { useSmoothPoint } from '../../hooks/useSmoothPoint';
 import { HitHistory } from '../../lib/popSize';
 import { AimArrow } from './combat/AimArrow';
 import { BattlefieldView } from './combat/BattlefieldView';
-import { ChargeButton } from './combat/ChargeButton';
+import { FieldMoveButton, type FieldMove } from './combat/FieldMoveButton';
 import { DraggedCard } from './combat/DraggedCard';
 import { EnergyTray } from './combat/EnergyTray';
 import { FanHand } from './combat/FanHand';
@@ -70,12 +70,20 @@ const cardTop = ({ center, height }: CardBox): Point => ({
 });
 
 /**
- * True while the Charge button should show: the front row is empty and
- * heroes hold the back (whether you can afford it is canCharge's call).
+ * The field move on offer, if any: Charge while every hero holds the
+ * back row, Back Step while every hero stands in the front row (whether
+ * you can afford it is canCharge / canBackStep's call).
  */
-const isChargeOffered = (combat: CombatState): boolean =>
-  combat.heroes.length > 0 &&
-  combat.heroes.every((unit) => unit.row === 'back');
+const fieldMoveOffered = (combat: CombatState): FieldMove | null => {
+  if (combat.heroes.length === 0) return null;
+  if (combat.heroes.every((unit) => unit.row === 'back')) return 'charge';
+  if (combat.heroes.every((unit) => unit.row === 'front')) return 'backStep';
+  return null;
+};
+
+/** True when you can pay for a field move right now. */
+const canAfford = (combat: CombatState, move: FieldMove): boolean =>
+  move === 'charge' ? canCharge(combat) : canBackStep(combat);
 
 // --- SUBCOMPONENTS ---
 /**
@@ -88,39 +96,47 @@ const PlayerBar = ({
   combat,
   hits,
   onEndTurn,
-  onCharge,
+  onFieldMove,
 }: {
   combat: CombatState;
   hits: readonly PlayerHitPop[];
   onEndTurn: () => void;
-  onCharge: () => void;
-}) => (
-  <div className="grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-end gap-1 px-2">
-    <div className="flex items-end gap-5 justify-self-start">
-      <PlayerCorner player={combat.player} hits={hits} />
-      <PileStack
-        count={combat.discardPile.length}
-        label="Cards in the discard pile"
-        toneClass="bg-surface-raised"
-        side="left"
-      />
+  onFieldMove: (move: FieldMove) => void;
+}) => {
+  const fieldMove = fieldMoveOffered(combat);
+  return (
+    <div className="grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-end gap-1 px-2">
+      <div className="flex items-end gap-5 justify-self-start">
+        <PlayerCorner player={combat.player} hits={hits} />
+        <PileStack
+          count={combat.discardPile.length}
+          label="Cards in the discard pile"
+          toneClass="bg-surface-raised"
+          side="left"
+        />
+      </div>
+      <div className="relative flex min-w-0 flex-col items-center gap-1 pb-1">
+        {/* CHARGE / BACK STEP float above the chips, so showing one never
+          moves the bar */}
+        {fieldMove && (
+          <div className="absolute bottom-full mb-2">
+            <FieldMoveButton
+              move={fieldMove}
+              isAffordable={canAfford(combat, fieldMove)}
+              onPress={() => onFieldMove(fieldMove)}
+            />
+          </div>
+        )}
+        <ShroudGainPops shroud={combat.player.shroud} />
+        <StatusRow combatant={combat.player} />
+        <EnergyTray energy={combat.energy} />
+      </div>
+      <div className="justify-self-end">
+        <TurnCorner drawCount={combat.drawPile.length} onEndTurn={onEndTurn} />
+      </div>
     </div>
-    <div className="relative flex min-w-0 flex-col items-center gap-1 pb-1">
-      {/* CHARGE floats above the chips, so showing it never moves the bar */}
-      {isChargeOffered(combat) && (
-        <div className="absolute bottom-full mb-2">
-          <ChargeButton isAffordable={canCharge(combat)} onCharge={onCharge} />
-        </div>
-      )}
-      <ShroudGainPops shroud={combat.player.shroud} />
-      <StatusRow combatant={combat.player} />
-      <EnergyTray energy={combat.energy} />
-    </div>
-    <div className="justify-self-end">
-      <TurnCorner drawCount={combat.drawPile.length} onEndTurn={onEndTurn} />
-    </div>
-  </div>
-);
+  );
+};
 
 /** The pause sheet: where you are, your score, and Back to resume. */
 const PauseSheet = ({
@@ -190,7 +206,12 @@ export const CombatView = ({
     lastCardType,
     hitHistory
   );
-  const playerHits = usePlayerHits(combat.player, combat.turn, hitHistory);
+  const playerHits = usePlayerHits(
+    combat.player,
+    combat.turn,
+    heroTurn.attackType,
+    hitHistory
+  );
   const { drag } = controls;
   const draggedCardId = drag ? combat.hand[drag.handIndex] : undefined;
   // The arrow is hidden until it has a target, then flies out from the
@@ -227,7 +248,7 @@ export const CombatView = ({
           combat={combat}
           hits={playerHits}
           onEndTurn={controls.endTurn}
-          onCharge={() => routeAction({ type: 'charge' })}
+          onFieldMove={(type) => routeAction({ type })}
         />
         <FanHand
           combat={combat}

@@ -8,11 +8,12 @@
 import { targetRuleOf } from './battlefield.ts';
 import { getCard, type CardId } from './cards.ts';
 import { attackDamage, guardAmount } from './combatant.ts';
-import { nextHeroMove, scaleByMight } from './combat.ts';
+import { heroAttackOf, plannedHeroMove, scaleByMight } from './combat.ts';
 import type {
   CardDef,
   CardEffect,
   Combatant,
+  HeroAttackType,
   HeroEffect,
   HeroUnit,
   StatusId,
@@ -130,7 +131,28 @@ export const cardNeedsTarget = (cardId: CardId): boolean =>
 
 // --- HERO INTENTS ---
 export type IntentKind =
-  'attack' | 'curse' | 'dread' | 'guard' | 'buff' | 'heal';
+  | 'attack'
+  | 'range'
+  | 'magic'
+  | 'curse'
+  | 'dread'
+  | 'guard'
+  | 'buff'
+  | 'heal'
+  | 'advance';
+
+/** The intent chip for each way a hero attack can land. */
+const ATTACK_INTENT: Record<HeroAttackType, IntentKind> = {
+  melee: 'attack',
+  range: 'range',
+  magic: 'magic',
+};
+/** How each attack type reads in a tooltip. */
+const ATTACK_NAME: Record<HeroAttackType, string> = {
+  melee: 'Melee',
+  range: 'Range',
+  magic: 'Magic',
+};
 /**
  * One intent chip: `text` is just the number (the icon says what it
  * is); `label` spells it out for the tooltip.
@@ -144,9 +166,13 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
     who === 'allies' ? ' to every hero' : '';
   switch (effect.kind) {
     case 'attack': {
-      const perHit = attackDamage(scaled(effect.amount), unit);
+      const { type, perHit } = heroAttackOf(unit, effect);
       const text = effect.hits > 1 ? `${perHit}×${effect.hits}` : `${perHit}`;
-      return { kind: 'attack', text, label: `Attack for ${text}` };
+      return {
+        kind: ATTACK_INTENT[type],
+        text,
+        label: `${ATTACK_NAME[type]} attack for ${text}`,
+      };
     }
     case 'hex': {
       const amount = scaled(effect.amount);
@@ -183,11 +209,22 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
   }
 };
 
-/** What a hero will do next: the move's name plus one chip per effect. */
+/** The chip for a hero with no move it can make from the back row. */
+const ADVANCE_INTENT: Intent = {
+  kind: 'advance',
+  text: '',
+  label: 'Steps up to the front row',
+};
+
+/**
+ * What a hero will do next: the move's name plus one chip per effect,
+ * or "Advance" when it has no move it can make from where it stands.
+ */
 export const describeHeroIntent = (
   unit: HeroUnit
 ): { name: string; intents: Intent[] } => {
-  const heroMove = nextHeroMove(unit);
+  const heroMove = plannedHeroMove(unit)?.move;
+  if (!heroMove) return { name: 'Advance', intents: [ADVANCE_INTENT] };
   return {
     name: heroMove.name,
     intents: heroMove.effects.map((effect) => describeHeroEffect(unit, effect)),

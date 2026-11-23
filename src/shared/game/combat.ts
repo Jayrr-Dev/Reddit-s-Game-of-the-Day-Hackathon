@@ -14,9 +14,11 @@
 // ===================================================================
 
 import {
+  advanceMelee,
   affectsSelf,
   areaTargets,
   cardAreaTargets,
+  fallBack,
   formUp,
   legalTargets,
   pullHero,
@@ -43,8 +45,10 @@ import {
 import { getHero, type HeroId } from './heroes.ts';
 import { shuffle, type RngState } from './rng.ts';
 import {
+  BACK_STEP_COST,
   CARDS_PER_TURN,
   CHARGE_COST,
+  CLOSE_RANGE_DAMAGE_FACTOR,
   ENERGY_PER_TURN,
   MAX_HAND_SIZE,
 } from './rules.ts';
@@ -54,8 +58,10 @@ import type {
   CardTarget,
   CombatOutcome,
   CombatState,
+  HeroAttackType,
   HeroEffect,
   HeroMove,
+  HeroRow,
   HeroUnit,
 } from './types.ts';
 
@@ -114,12 +120,51 @@ export const combatOutcome = (state: CombatState): CombatOutcome => {
   return state.heroes.length === 0 ? 'won' : 'ongoing';
 };
 
-/** The move a hero will make on its next action. */
-export const nextHeroMove = (unit: HeroUnit): HeroMove => {
+/** A hero's next move and its place in the hero's move cycle. */
+export type PlannedMove = { move: HeroMove; index: number };
+
+/** True when a move can be made from `row` (Melee needs the front row). */
+const canMakeMoveFrom = (heroMove: HeroMove, row: HeroRow): boolean =>
+  row === 'front' ||
+  heroMove.effects.every(
+    (effect) => effect.kind !== 'attack' || effect.type !== 'melee'
+  );
+
+/**
+ * The move a hero will make next: the next one in its cycle that it can
+ * make from where it stands (a knight in the back row skips its Melee
+ * moves for a Guard or Magic one). Null when it has none: it only
+ * advances this turn.
+ */
+export const plannedHeroMove = (unit: HeroUnit): PlannedMove | null => {
   const { moves } = getHero(unit.heroId);
-  const heroMove = moves[unit.moveIndex % moves.length];
-  if (!heroMove) throw new Error(`Hero ${unit.heroId} has no moves`);
-  return heroMove;
+  return (
+    moves
+      .map((_, step) => {
+        const index = unit.moveIndex + step;
+        return { move: moves[index % moves.length], index };
+      })
+      .find(
+        (planned): planned is PlannedMove =>
+          planned.move !== undefined && canMakeMoveFrom(planned.move, unit.row)
+      ) ?? null
+  );
+};
+
+/**
+ * How one hero attack lands from where the hero stands: its type and
+ * damage per hit. A Range attack made up close (from the front row)
+ * lands as Melee, for CLOSE_RANGE_DAMAGE_FACTOR of the damage.
+ */
+export const heroAttackOf = (
+  unit: HeroUnit,
+  effect: Extract<HeroEffect, { kind: 'attack' }>
+): { type: HeroAttackType; perHit: number } => {
+  const perHit = attackDamage(scaleByMight(effect.amount, unit.might), unit);
+  const isUpClose = unit.row === 'front';
+  return effect.type === 'range' && isUpClose
+    ? { type: 'melee', perHit: Math.floor(perHit * CLOSE_RANGE_DAMAGE_FACTOR) }
+    : { type: effect.type, perHit };
 };
 
 /** Heroes this card may be aimed at now (every hero for untargeted cards). */
@@ -193,8 +238,8 @@ const updateHeroes = (
 
 /**
  * Takes defeated heroes off the field and counts them as slain. An
- * emptied front row stays empty: the back row holds its ground (and
- * keeps acting) until the villain Charges.
+ * emptied front row stays empty for now: melee heroes step up at the
+ * end of the heroes' turn, ranged ones hold until the villain Charges.
  */
 const removeFallen = (state: CombatState): CombatState => {
   const standing = state.heroes.filter((unit) => !isDefeated(unit));
@@ -232,6 +277,32 @@ export const charge = (state: CombatState): CombatState =>
       }
     : state;
 
+// --- BACK STEP ---
+/**
+ * True when the villain can Back Step: the fight is on, the back row is
+ * empty (everyone is up close), and there is energy to pay.
+ */
+export const canBackStep = (state: CombatState): boolean =>
+  combatOutcome(state) === 'ongoing' &&
+  state.energy >= BACK_STEP_COST &&
+  state.heroes.length > 0 &&
+  state.heroes.every((unit) => unit.row === 'front');
+
+/**
+ * Backs off from the front row: pays BACK_STEP_COST and the whole field
+ * falls back a row. Their intents change at once (Melee heroes can't
+ * reach; Range heroes shoot at full damage) until melee heroes step up
+ * again at the end of the heroes' turn.
+ */
+export const backStep = (state: CombatState): CombatState =>
+  canBackStep(state)
+    ? {
+        ...state,
+        energy: state.energy - BACK_STEP_COST,
+        heroes: fallBack(state.heroes),
+      }
+    : state;
+
 /**
  * Resolves who an effect hits. `one` is the aimed hero (if still alive);
  * `all` is everyone for Reach cards and curses, the front row for melee.
@@ -250,6 +321,16 @@ const resolveTargets = (
 
 // --- CARD EFFECTS ---
 
+/** One villain hit on a hero: a Range card up close deals less. */
+const villainHitOn = (
+  unit: HeroUnit,
+  perHit: number,
+  cardDef: CardDef
+): number =>
+  cardDef.type === 'range' && unit.row === 'front'
+    ? Math.floor(perHit * CLOSE_RANGE_DAMAGE_FACTOR)
+    : perHit;
+
 /** Deals `hits` hits of villain attack damage to the targets. */
 const villainAttack = (
   state: CombatState,
@@ -264,7 +345,7 @@ const villainAttack = (
       updateHeroes(
         current,
         resolveTargets(current, effect.target, targetUid, isMelee),
-        (unit) => takeDamage(unit, perHit)
+        (unit) => takeDamage(unit, villainHitOn(unit, perHit, cardDef))
       ),
     state
   );
@@ -489,7 +570,7 @@ const applyHeroEffect = (
   const scaled = (amount: number) => scaleByMight(amount, actor.might);
   switch (effect.kind) {
     case 'attack': {
-      const perHit = attackDamage(scaled(effect.amount), actor);
+      const { perHit } = heroAttackOf(actor, effect);
       return Array.from({ length: effect.hits }).reduce<CombatState>(
         (current) => ({
           ...current,
@@ -530,15 +611,17 @@ const applyHeroEffect = (
 };
 
 /**
- * One hero takes its turn: performs its move, then its own upkeep, then
- * advances to its next move. The actor is re-read after each effect so a
+ * One hero takes its turn: performs its planned move (if it has one it
+ * can make from where it stands), then its own upkeep, then moves on in
+ * its cycle past that move. The actor is re-read after each effect so a
  * wrath gained mid-move applies to the attacks that follow it.
  */
 const heroActs = (state: CombatState, uid: number): CombatState => {
   const actor = state.heroes.find((unit) => unit.uid === uid);
   if (!actor || isDefeated(state.player)) return state;
+  const planned = plannedHeroMove(actor);
 
-  const acted = nextHeroMove(actor).effects.reduce<CombatState>(
+  const acted = (planned?.move.effects ?? []).reduce<CombatState>(
     (current, effect) => {
       const freshActor =
         current.heroes.find((unit) => unit.uid === uid) ?? actor;
@@ -551,7 +634,7 @@ const heroActs = (state: CombatState, uid: number): CombatState => {
 
   const settled = updateHeroes(acted, [uid], (unit) => ({
     ...endOfTurnUpkeep(unit),
-    moveIndex: unit.moveIndex + 1,
+    moveIndex: planned ? planned.index + 1 : unit.moveIndex,
   }));
   return removeFallen(settled);
 };
@@ -581,10 +664,23 @@ const startPlayerTurn = (state: CombatState): CombatState =>
   );
 
 /**
- * One beat of the end of a turn: the state right after it, and the hero
- * who just acted (null for the villain's upkeep and the new turn).
+ * One beat of the end of a turn: the state right after it, the hero who
+ * just made a move (null for upkeep, a hero with no move, and the new
+ * turn), and how that move's attacks landed (null if it had none).
  */
-export type TurnStep = { actorUid: number | null; state: CombatState };
+export type TurnStep = {
+  actorUid: number | null;
+  attackType: HeroAttackType | null;
+  state: CombatState;
+};
+
+/** How a hero's planned move attacks from where it stands, if it does. */
+const plannedAttackType = (unit: HeroUnit): HeroAttackType | null => {
+  const attack = plannedHeroMove(unit)?.move.effects.find(
+    (effect) => effect.kind === 'attack'
+  );
+  return attack?.kind === 'attack' ? heroAttackOf(unit, attack).type : null;
+};
 
 /**
  * Ends the villain's turn, beat by beat, so the view can play the
@@ -603,22 +699,32 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
     player: endOfTurnUpkeep(state.player),
     heroes: state.heroes.map(clearShroud),
   };
-  const steps: TurnStep[] = [{ actorUid: null, state: discarded }];
+  const steps: TurnStep[] = [
+    { actorUid: null, attackType: null, state: discarded },
+  ];
   if (combatOutcome(discarded) === 'lost') return steps;
 
   // 2. THE HORDE ACTS, FASTEST FIRST (imperative: each step builds on
   //    the last, and fallen heroes or a fallen villain end it early)
   let current = discarded;
   for (const { uid } of heroTurnOrder(discarded.heroes)) {
+    const actor = current.heroes.find((unit) => unit.uid === uid);
+    const hasMove = actor !== undefined && plannedHeroMove(actor) !== null;
+    const attackType = actor ? plannedAttackType(actor) : null;
     const next = heroActs(current, uid);
     if (next === current) continue;
-    steps.push({ actorUid: uid, state: next });
+    steps.push({ actorUid: hasMove ? uid : null, attackType, state: next });
     current = next;
     if (combatOutcome(current) !== 'ongoing') return steps;
   }
 
-  // 3. NEXT VILLAIN TURN
-  steps.push({ actorUid: null, state: startPlayerTurn(current) });
+  // 3. MELEE HEROES IN THE BACK ROW STEP UP, THEN THE NEXT VILLAIN TURN
+  const advanced = { ...current, heroes: advanceMelee(current.heroes) };
+  steps.push({
+    actorUid: null,
+    attackType: null,
+    state: startPlayerTurn(advanced),
+  });
   return steps;
 };
 

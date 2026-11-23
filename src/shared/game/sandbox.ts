@@ -10,6 +10,7 @@
 import { sizeOf } from './battlefield.ts';
 import { ALL_CARD_IDS } from './cards.ts';
 import {
+  backStep,
   charge,
   combatOutcome,
   endTurn,
@@ -25,7 +26,10 @@ import type { CombatState } from './types.ts';
 // --- TYPES ---
 /** What the sandbox accepts: the two combat inputs. */
 export type SandboxAction =
-  PlayCardAction | { type: 'endTurn' } | { type: 'charge' };
+  | PlayCardAction
+  | { type: 'endTurn' }
+  | { type: 'charge' }
+  | { type: 'backStep' };
 
 // --- CONSTANTS ---
 /** So much HP the heroes can't win; you test, you don't lose. */
@@ -112,6 +116,8 @@ const applyAction = (state: CombatState, action: SandboxAction) => {
       return endTurn(state);
     case 'charge':
       return charge(state);
+    case 'backStep':
+      return backStep(state);
   }
 };
 

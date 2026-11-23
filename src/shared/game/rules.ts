@@ -17,6 +17,13 @@ export const MAX_HAND_SIZE = 10;
 export const CHARGE_COST = 1;
 /** Momentum (gained by charging) multiplies the next Melee card's damage. */
 export const MOMENTUM_DAMAGE_FACTOR = 1.5;
+/**
+ * Energy it costs the villain to Back Step: with the back row empty, the
+ * whole front row is pushed back to the back row (out of melee reach).
+ */
+export const BACK_STEP_COST = 1;
+/** Range attacks made up close (at or from the front row) deal this share. */
+export const CLOSE_RANGE_DAMAGE_FACTOR = 0.7;
 
 // --- BATTLEFIELD ---
 /** Columns in each row of the hero battlefield (rows are front and back). */

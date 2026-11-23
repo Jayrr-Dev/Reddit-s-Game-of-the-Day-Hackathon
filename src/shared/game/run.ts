@@ -16,6 +16,7 @@
 
 import { STARTER_DECK, type CardId } from './cards.ts';
 import {
+  backStep,
   charge,
   combatOutcome,
   endTurn,
@@ -83,6 +84,8 @@ export type RunAction =
   | { type: 'endTurn' }
   /** Charges an empty front row: the back row steps up (costs energy). */
   | { type: 'charge' }
+  /** Backs off from a full front row: it falls back a row (costs energy). */
+  | { type: 'backStep' }
   | { type: 'pickCard'; offerIndex: number | null }
   | { type: 'graveChoice'; choice: GraveChoice }
   /** Gives up the march; the score so far stands. */
@@ -249,6 +252,10 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
       return phase.kind === 'combat'
         ? settleCombat(state, phase.stop, charge(phase.combat))
         : state;
+    case 'backStep':
+      return phase.kind === 'combat'
+        ? settleCombat(state, phase.stop, backStep(phase.combat))
+        : state;
     case 'pickCard':
       return phase.kind === 'reward' || phase.kind === 'altar'
         ? takeOffer(state, phase.offers, action.offerIndex)
@@ -313,6 +320,7 @@ export const isRunAction = (value: unknown): value is RunAction => {
       );
     case 'endTurn':
     case 'charge':
+    case 'backStep':
     case 'abandon':
       return true;
     case 'pickCard':

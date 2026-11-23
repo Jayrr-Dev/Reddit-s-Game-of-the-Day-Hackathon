@@ -4,7 +4,8 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { CardId } from './cards.ts';
+import { advanceMelee } from './battlefield.ts';
+import { getCard, type CardId } from './cards.ts';
 import {
   attackDamage,
   endOfTurnUpkeep,
@@ -13,6 +14,8 @@ import {
   NO_STATUSES,
 } from './combatant.ts';
 import {
+  backStep,
+  canBackStep,
   canPlayCard,
   combatOutcome,
   endTurn,
@@ -22,21 +25,34 @@ import {
   playCardSteps,
   startCombat,
 } from './combat.ts';
-import { describeCard } from './describe.ts';
-import { CARDS_PER_TURN, ENERGY_PER_TURN } from './rules.ts';
-import type { CombatState } from './types.ts';
+import { describeCard, describeHeroIntent } from './describe.ts';
+import {
+  BACK_STEP_COST,
+  CARDS_PER_TURN,
+  CLOSE_RANGE_DAMAGE_FACTOR,
+  ENERGY_PER_TURN,
+} from './rules.ts';
+import type { CombatState, HeroUnit } from './types.ts';
 
 // --- FIXTURES ---
-/** A fight against one Squire with the given deck. */
+/** A fight's lines once settled: melee heroes have stepped up. */
+const settled = (state: CombatState): CombatState => ({
+  ...state,
+  heroes: advanceMelee(state.heroes),
+});
+
+/** A fight against one Squire (in the front row) with the given deck. */
 const fightWith = (deck: CardId[]): CombatState =>
-  startCombat({
-    hp: 60,
-    maxHp: 60,
-    deck,
-    heroIds: ['squire'],
-    might: 1,
-    seed: 7,
-  });
+  settled(
+    startCombat({
+      hp: 60,
+      maxHp: 60,
+      deck,
+      heroIds: ['squire'],
+      might: 1,
+      seed: 7,
+    })
+  );
 
 /** Puts a specific card in hand slot 0 so a test controls what is played. */
 const withHand = (state: CombatState, hand: CardId[]): CombatState => ({
@@ -130,14 +146,16 @@ void test('ending the turn lets the hero act and deals a new hand', () => {
 });
 
 void test('heroes act fastest first, ties by uid, beat by beat', () => {
-  const state = startCombat({
-    hp: 60,
-    maxHp: 60,
-    deck: ['backhand'],
-    heroIds: ['squire', 'rogue', 'archer', 'shieldmaiden'],
-    might: 1,
-    seed: 3,
-  });
+  const state = settled(
+    startCombat({
+      hp: 60,
+      maxHp: 60,
+      deck: ['backhand'],
+      heroIds: ['squire', 'rogue', 'archer', 'shieldmaiden'],
+      might: 1,
+      seed: 3,
+    })
+  );
   const order = heroTurnOrder(state.heroes).map((unit) => unit.heroId);
   assert.deepEqual(order, ['rogue', 'archer', 'squire', 'shieldmaiden']);
   const steps = endTurnSteps(state);
@@ -169,7 +187,8 @@ const damageWith = (cardId: CardId, buffs: Partial<typeof NO_STATUSES>) => {
 void test('Might, Surge and Piercing each power up only their own card type', () => {
   assert.equal(damageWith('backhand', { might: 2 }), 8);
   assert.equal(damageWith('backhand', { surge: 2, piercing: 2 }), 6);
-  assert.equal(damageWith('spiteBolt', { piercing: 3 }), 9);
+  // 9, but a Range card up close (the Squire is in front) deals 70%.
+  assert.equal(damageWith('spiteBolt', { piercing: 3 }), 6);
   assert.equal(damageWith('hexfire', { surge: 1 }), 7);
   assert.equal(damageWith('mourningCurse', { might: 5, surge: 5 }), 4);
 });
@@ -207,14 +226,16 @@ void test('playCardSteps shows each hit and ends on the real play', () => {
 /** A fight against a Squire (front) and an Archer (back). */
 const squireAndArcher = (hand: CardId[]): CombatState =>
   withHand(
-    startCombat({
-      hp: 60,
-      maxHp: 60,
-      deck: ['backhand'],
-      heroIds: ['squire', 'archer'],
-      might: 1,
-      seed: 7,
-    }),
+    settled(
+      startCombat({
+        hp: 60,
+        maxHp: 60,
+        deck: ['backhand'],
+        heroIds: ['squire', 'archer'],
+        might: 1,
+        seed: 7,
+      })
+    ),
     hand
   );
 
@@ -230,7 +251,8 @@ void test('a Target N card can pick the same hero more than once', () => {
   const [squire, archer] = start.heroes.map((unit) => unit.uid);
   const picks = [archer ?? -1, archer ?? -1, squire ?? -1];
   const after = playCard(start, 0, picks[0] ?? -1, picks);
-  assert.deepEqual(hpLost(start, after), [3, 6]);
+  // Up close the Squire takes 70% of 3 (2); the Archer takes 3 + 3.
+  assert.deepEqual(hpLost(start, after), [2, 6]);
 });
 
 void test('every pick follows reach: a melee pick at the back row hits the front', () => {
@@ -271,8 +293,69 @@ void test('card text damage always equals the damage the engine deals', () => {
       const [line = ''] = describeCard(cardId, player);
       const perHit = Number(/Deal (\d+)/.exec(line)?.[1]);
       const hits = Number(/(\d+) times/.exec(line)?.[1] ?? 1);
+      // The Squire stands in front, so a Range card lands up close.
+      const isUpClose = getCard(cardId).type === 'range';
+      const landed = isUpClose
+        ? Math.floor(perHit * CLOSE_RANGE_DAMAGE_FACTOR)
+        : perHit;
       const dealt = damageWith(cardId, buffs);
-      assert.equal(dealt, Math.min(perHit * hits, 14), `${cardId} ${line}`);
+      assert.equal(dealt, Math.min(landed * hits, 14), `${cardId} ${line}`);
     }
   }
+});
+
+// --- DISTANCE ---
+/** The hero with `heroId` in a state. */
+const heroNamed = (state: CombatState, heroId: string) =>
+  state.heroes.find((unit) => unit.heroId === heroId);
+
+void test('a melee hero in the back row skips to a move it can make, or advances', () => {
+  const fresh = startCombat({
+    hp: 60,
+    maxHp: 60,
+    deck: ['backhand'],
+    heroIds: ['squire', 'shieldmaiden'],
+    might: 1,
+    seed: 3,
+  });
+  const maiden = heroNamed(fresh, 'shieldmaiden');
+  const squire = heroNamed(fresh, 'squire');
+  assert.equal(maiden?.row, 'back');
+  // Brace (Guard only) works from the back; the Squire's moves all melee.
+  assert.equal(describeHeroIntent(maiden as HeroUnit).name, 'Brace');
+  assert.equal(describeHeroIntent(squire as HeroUnit).name, 'Advance');
+  const after = endTurn(fresh);
+  assert.equal(after.player.hp, 60);
+  assert.equal(heroNamed(after, 'squire')?.row, 'front');
+  assert.equal(heroNamed(after, 'squire')?.moveIndex, 0);
+});
+
+void test('a Range hero shoots from the back and strikes for less up close', () => {
+  const fresh = startCombat({
+    hp: 60,
+    maxHp: 60,
+    deck: ['backhand'],
+    heroIds: ['archer'],
+    might: 1,
+    seed: 3,
+  });
+  const archer = heroNamed(fresh, 'archer') as HeroUnit;
+  assert.equal(describeHeroIntent(archer).intents[0]?.kind, 'range');
+  const upClose = { ...archer, row: 'front' as const };
+  const [intent] = describeHeroIntent(upClose).intents;
+  // Volley 2x3 up close: Melee, 70% of 2 rounds down to 1.
+  assert.deepEqual([intent?.kind, intent?.text], ['attack', '1×3']);
+});
+
+void test('Back Step pushes a full front row back for 1 energy', () => {
+  const state = fightWith(['backhand']);
+  assert.ok(canBackStep(state));
+  const after = backStep(state);
+  assert.ok(after.heroes.every((unit) => unit.row === 'back'));
+  assert.equal(after.energy, state.energy - BACK_STEP_COST);
+  assert.equal(canBackStep(after), false);
+  // The Squire can't reach, so the heroes' turn costs no HP; it steps up.
+  const next = endTurn(after);
+  assert.equal(next.player.hp, 60);
+  assert.equal(next.heroes[0]?.row, 'front');
 });

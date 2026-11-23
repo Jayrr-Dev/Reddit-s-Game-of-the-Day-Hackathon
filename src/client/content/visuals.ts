@@ -36,6 +36,10 @@ export const STATUS_LOOK: Record<StatusId | 'shroud', Look> = {
 // --- HERO INTENTS ---
 export const INTENT_LOOK: Record<IntentKind, Look> = {
   attack: { glyph: 'sword', toneClass: 'text-hp' },
+  // Hero attacks wear their type's colour, like the villain's cards.
+  range: { glyph: 'bow', toneClass: 'text-heal' },
+  magic: { glyph: 'swirl', toneClass: 'text-shroud' },
+  advance: { glyph: 'march', toneClass: 'text-ink' },
   curse: { glyph: 'skull', toneClass: 'text-hex' },
   dread: STATUS_LOOK.dread,
   guard: { glyph: 'shield', toneClass: 'text-shroud' },

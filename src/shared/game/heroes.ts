@@ -7,6 +7,7 @@
 // ===================================================================
 
 import type {
+  HeroAttackType,
   HeroDef,
   HeroEffect,
   HeroMove,
@@ -16,11 +17,21 @@ import type {
 } from './types.ts';
 
 // --- EFFECT BUILDERS ---
-const attack = (amount: number, hits = 1): HeroEffect => ({
-  kind: 'attack',
-  amount,
-  hits,
-});
+/** Builds an attack of one type (see HeroAttackType for the reach rules). */
+const attackOf =
+  (type: HeroAttackType) =>
+  (amount: number, hits = 1): HeroEffect => ({
+    kind: 'attack',
+    amount,
+    hits,
+    type,
+  });
+/** A Melee attack: only from the front row. */
+const strike = attackOf('melee');
+/** A Range attack: full damage from the back row, weaker up close. */
+const shoot = attackOf('range');
+/** A Magic attack: the same from either row. */
+const spell = attackOf('magic');
 const hex = (amount: number): HeroEffect => ({ kind: 'hex', amount });
 const dread = (amount: number): HeroEffect => ({ kind: 'dread', amount });
 const shroud = (
@@ -84,38 +95,38 @@ const hero = (
 export const HEROES = {
   // GRUNTS (THE HORDE)
   squire: hero('Squire', 'grunt', 14, 210, 4, FRONT, [
-    move('Swing', attack(5)),
-    move('Raise Shield', shroud(4), attack(3)),
+    move('Swing', strike(5)),
+    move('Raise Shield', shroud(4), strike(3)),
   ]),
   bard: hero('Bard', 'grunt', 11, 300, 6, BACK, [
     move('Rousing Ballad', wrath(1, 'allies')),
-    move('Mocking Verse', dread(1), attack(2)),
+    move('Mocking Verse', dread(1), spell(2)),
   ]),
   archer: hero('Archer', 'grunt', 10, 110, 7, BACK, [
-    move('Volley', attack(2, 3)),
-    move('Aimed Shot', attack(7)),
+    move('Volley', shoot(2, 3)),
+    move('Aimed Shot', shoot(7)),
   ]),
   priest: hero('Priest', 'grunt', 12, 50, 5, BACK, [
-    move('Smite', attack(4)),
+    move('Smite', spell(4)),
     move('Mend', heal(5)),
   ]),
   shieldmaiden: hero('Shieldmaiden', 'grunt', 18, 190, 3, FRONT, [
     move('Brace', shroud(7)),
-    move('Shield Bash', attack(6)),
+    move('Shield Bash', strike(6)),
   ]),
-  rogue: hero('Rogue', 'grunt', 12, 140, 9, FRONT, [
-    move('Poisoned Blade', hex(2), attack(3)),
-    move('Flurry', attack(3, 2)),
+  rogue: hero('Rogue', 'grunt', 12, 140, 9, BACK, [
+    move('Poisoned Dart', hex(2), shoot(3)),
+    move('Throwing Knives', shoot(3, 2)),
   ]),
 
   // ELITES
   paladin: hero('Paladin', 'elite', 40, 45, 4, WIDE_FRONT, [
-    move('Holy Shield', shroud(10), attack(5)),
-    move('Judgment', attack(13)),
+    move('Holy Shield', shroud(10), strike(5)),
+    move('Judgment', strike(13)),
     move('Consecrate', wrath(2)),
   ]),
   archmage: hero('Archmage', 'elite', 32, 260, 6, WIDE_BACK, [
-    move('Arcane Bolts', attack(4, 3)),
+    move('Arcane Bolts', spell(4, 3)),
     move('Curse of Light', hex(4), dread(1)),
     move('Mana Shield', shroud(12)),
   ]),
@@ -123,34 +134,34 @@ export const HEROES = {
   // CHAMPIONS (ONE PER REGION, IN REGION ORDER)
   holt: hero('Sergeant Holt', 'champion', 50, 20, 5, HUGE, [
     move('Rally', wrath(1), shroud(6)),
-    move('Halberd Sweep', attack(10)),
-    move('Twin Thrust', attack(6, 2)),
+    move('Halberd Sweep', strike(10)),
+    move('Twin Thrust', strike(6, 2)),
   ]),
   lysa: hero('Ranger Lysa', 'champion', 46, 120, 8, HUGE, [
-    move('Hail of Arrows', attack(3, 4)),
+    move('Hail of Arrows', shoot(3, 4)),
     move('Snare', dread(2), shroud(6)),
-    move('Piercing Shot', attack(12)),
+    move('Piercing Shot', shoot(12)),
   ]),
   maren: hero('High Priestess Maren', 'champion', 55, 55, 4, HUGE, [
     move('Sanctuary', shroud(10), heal(6, 'self')),
     move('Holy Fire', hex(5)),
-    move('Smite the Wicked', attack(11)),
+    move('Smite the Wicked', spell(11)),
   ]),
   brannoc: hero('Sir Brannoc', 'champion', 70, 220, 3, HUGE, [
     move('Iron Wall', shroud(15)),
-    move('Gatebreaker', attack(18)),
-    move('Hammer Blows', attack(8, 2)),
+    move('Gatebreaker', strike(18)),
+    move('Hammer Blows', strike(8, 2)),
   ]),
   seris: hero("Seris, the Queen's Blade", 'champion', 58, 330, 9, HUGE, [
-    move('Dance of Blades', attack(4, 4)),
+    move('Dance of Blades', strike(4, 4)),
     move('Feint', dread(2), shroud(8)),
-    move('Execution', attack(20)),
+    move('Execution', strike(20)),
   ]),
   valen: hero('Valen the Radiant', 'champion', 90, 48, 6, HUGE, [
     move('Radiance', wrath(2), shroud(12)),
-    move('Lightbringer', attack(9, 2)),
+    move('Lightbringer', spell(9, 2)),
     move('Brand of Light', hex(6)),
-    move('Final Verdict', attack(25)),
+    move('Final Verdict', strike(25)),
   ]),
 } as const satisfies Record<string, HeroDef>;
 

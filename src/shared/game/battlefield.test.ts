@@ -5,7 +5,13 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { canPull, legalTargets, sizeOf, targetRuleOf } from './battlefield.ts';
+import {
+  advanceMelee,
+  canPull,
+  legalTargets,
+  sizeOf,
+  targetRuleOf,
+} from './battlefield.ts';
 import { ALL_CARD_IDS, getCard, type CardId } from './cards.ts';
 import {
   canCharge,
@@ -21,19 +27,25 @@ import { ELITE_IDS, GRUNT_IDS } from './heroes.ts';
 import type { CombatState, HeroUnit } from './types.ts';
 
 // --- FIXTURES ---
-/** A fight against `heroIds` with a big hand of the given cards. */
-const fight = (heroIds: HeroId[], hand: CardId[]): CombatState => ({
-  ...startCombat({
+/** A fresh fight against `heroIds`, as it forms up (in the back row). */
+const freshFight = (heroIds: HeroId[]): CombatState =>
+  startCombat({
     hp: 60,
     maxHp: 60,
     deck: ['darkCloak'],
     heroIds,
     might: 1,
     seed: 3,
-  }),
-  hand,
-  energy: 9,
-});
+  });
+
+/**
+ * A fight against `heroIds` once the lines have settled (melee heroes
+ * stepped up), with a big hand of the given cards.
+ */
+const fight = (heroIds: HeroId[], hand: CardId[]): CombatState => {
+  const fresh = freshFight(heroIds);
+  return { ...fresh, heroes: advanceMelee(fresh.heroes), hand, energy: 9 };
+};
 
 /** Finds a hero on the field by catalog id. */
 const unitOf = (state: CombatState, heroId: HeroId): HeroUnit => {
@@ -43,25 +55,39 @@ const unitOf = (state: CombatState, heroId: HeroId): HeroUnit => {
 };
 
 // --- FORMATION ---
-void test('fighters take the front row and support heroes the back', () => {
-  const state = fight(['bard', 'squire', 'archer'], []);
-  assert.equal(unitOf(state, 'squire').row, 'front');
-  assert.equal(unitOf(state, 'squire').col, 1);
-  assert.equal(unitOf(state, 'bard').row, 'back');
-  assert.equal(unitOf(state, 'archer').row, 'back');
+void test('a new horde forms up in the back row, overflow in front', () => {
+  const fresh = freshFight(['bard', 'squire', 'archer']);
+  assert.ok(fresh.heroes.every((unit) => unit.row === 'back'));
+  const crowded = freshFight(['paladin', 'shieldmaiden', 'archer', 'rogue']);
+  // The back row has one seat left after the ranged heroes: the
+  // Shieldmaiden drops back into it; the Paladin (size 2) stays in front.
+  assert.equal(unitOf(crowded, 'archer').row, 'back');
+  assert.equal(unitOf(crowded, 'rogue').row, 'back');
+  assert.equal(unitOf(crowded, 'shieldmaiden').row, 'back');
+  assert.equal(unitOf(crowded, 'paladin').row, 'front');
 });
 
-void test('a champion fills the whole front row', () => {
-  const state = fight(['valen'], []);
+void test('melee heroes step up at the end of the heroes turn; ranged hold', () => {
+  const after = endTurn(freshFight(['bard', 'squire', 'archer']));
+  assert.equal(unitOf(after, 'squire').row, 'front');
+  assert.equal(unitOf(after, 'bard').row, 'back');
+  assert.equal(unitOf(after, 'archer').row, 'back');
+});
+
+void test('a champion forms up in the back row and then fills the front', () => {
+  const fresh = freshFight(['valen']);
+  assert.equal(unitOf(fresh, 'valen').row, 'back');
+  const after = endTurn(fresh);
   assert.deepEqual(
-    { row: unitOf(state, 'valen').row, col: unitOf(state, 'valen').col },
+    { row: unitOf(after, 'valen').row, col: unitOf(after, 'valen').col },
     { row: 'front', col: 0 }
   );
 });
 
-void test('an all-back horde steps forward so it can be fought', () => {
-  const state = fight(['archer', 'priest'], []);
-  assert.ok(state.heroes.every((unit) => unit.row === 'front'));
+void test('an all-ranged horde holds the back row until a Charge', () => {
+  const state = endTurn(fight(['archer', 'priest'], []));
+  assert.ok(state.heroes.every((unit) => unit.row === 'back'));
+  assert.ok(canCharge(state));
 });
 
 void test('every horde the kingdom can roll fits on the field', () => {
@@ -184,10 +210,10 @@ void test('a full front row blocks the pull', () => {
 });
 
 void test('a push sends a front-row hero back and the field re-forms', () => {
-  const state = fight(['squire', 'rogue'], ['hurlAside']);
-  const rogue = unitOf(state, 'rogue');
-  const after = playCard(state, 0, rogue.uid);
-  assert.equal(unitOf(after, 'rogue').row, 'back');
+  const state = fight(['squire', 'shieldmaiden'], ['hurlAside']);
+  const maiden = unitOf(state, 'shieldmaiden');
+  const after = playCard(state, 0, maiden.uid);
+  assert.equal(unitOf(after, 'shieldmaiden').row, 'back');
   assert.equal(unitOf(after, 'squire').row, 'front');
 });
 

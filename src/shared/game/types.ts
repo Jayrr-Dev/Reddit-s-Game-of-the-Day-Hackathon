@@ -93,9 +93,15 @@ export type CardDef = {
 };
 
 // --- HEROES ---
+/**
+ * How a hero attack lands. Melee only works from the front row; Range
+ * made up close (front row) lands as Melee for less; Magic works anywhere.
+ */
+export type HeroAttackType = Extract<CardType, 'melee' | 'range' | 'magic'>;
+
 /** One step of a hero's move. `allies` means every living hero. */
 export type HeroEffect =
-  | { kind: 'attack'; amount: number; hits: number }
+  | { kind: 'attack'; amount: number; hits: number; type: HeroAttackType }
   | { kind: 'hex'; amount: number }
   | { kind: 'dread'; amount: number }
   | { kind: 'shroud'; amount: number; who: 'self' | 'allies' }

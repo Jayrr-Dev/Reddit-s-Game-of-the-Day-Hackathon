@@ -289,10 +289,13 @@ const villainGainsBetween = (before: Combatant, after: Combatant): Hit[] => {
 /**
  * The numbers to show over the villain right now: hits taken, "+N" for
  * every buff or Wrath gained, and quiet pops for Guard and debuffs.
+ * `source` is how the hero attack landing now lands (Melee, Range or
+ * Magic), which colours the hit; null for untyped harm such as Hex.
  */
 export const usePlayerHits = (
   player: Combatant,
   turn: number,
+  source: CardType | null,
   history: HitHistory
 ): PlayerHitPop[] => {
   const [pops, add] = usePopQueue<Hit>(history);
@@ -301,13 +304,14 @@ export const usePlayerHits = (
   // VILLAIN CHANGES -> NEW POPS
   useEffect(() => {
     const last = lastRef.current;
-    const hit = hitBetween(last.player, player, last.turn === turn);
+    const found = hitBetween(last.player, player, last.turn === turn);
+    const hit = found ? { ...found, source: source ?? undefined } : null;
     const gains = villainGainsBetween(last.player, player);
     const debuffs = debuffsBetween(last.player.statuses, player.statuses);
     lastRef.current = { player, turn };
     const fresh = [...(hit ? [hit] : []), ...gains, ...debuffs];
     if (fresh.length > 0) add(fresh);
-  }, [player, turn, add]);
+  }, [player, turn, source, add]);
 
   return pops;
 };

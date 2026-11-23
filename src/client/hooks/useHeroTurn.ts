@@ -87,6 +87,8 @@ export const useHeroTurn = (
   return {
     shown: step?.state ?? combat,
     actingUids: playback ? actingAt(playback.steps, playback.index) : [],
+    /** How the attack on screen right now lands (it colours your hits). */
+    attackType: step?.attackType ?? null,
     isPlaying: playback !== null,
     endTurn,
   } as const;
