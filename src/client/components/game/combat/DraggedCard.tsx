@@ -46,7 +46,7 @@ export const DraggedCard = ({
   glow,
 }: DraggedCardProps) => (
   <div
-    className="pointer-events-none fixed z-40"
+    className="pointer-events-none fixed z-40 transition-[filter] duration-150"
     style={{
       left: box.center.x,
       top: box.center.y,

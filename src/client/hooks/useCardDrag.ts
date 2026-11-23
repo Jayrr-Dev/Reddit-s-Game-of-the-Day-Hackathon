@@ -10,9 +10,10 @@
 //      (it stays low, near the hand) and the AIM TIP runs ahead of the
 //      finger (AIM_GAIN times the drag). So the arrow aims on its own:
 //      a short drag reaches the front row, a longer one the back row.
-//   4. Dragging back DOWN cancels the aim at once: the lock and glow go
-//      and the arrow pulls back into the card, so letting go returns the
-//      card to the hand. Moving up again re-aims.
+//   4. Dragging back DOWN cancels the aim at once: the lock goes and the
+//      arrow pulls back into the card, so letting go returns the card to
+//      the hand. A glowing (self) card instead fades as it comes down,
+//      since its glow and play follow height. Moving up again re-aims.
 //   5. Pointer up reports the drop (card, heroes under the tip, and
 //      whether the tip is on the battlefield) and the drag ends.
 // The cards themselves use `touch-action: none`, so only a press that
@@ -193,17 +194,18 @@ const dragAt = (
   const tip = clampTip(
     liftTip(extend(press.grab, pointer, AIM_GAIN), isMovingUp)
   );
-  // Pulled back: nothing is aimed at, so no lock, no arrow, no glow.
+  // The glow follows height both ways, so a pull-back fades it smoothly.
+  const lift = Math.max(0, -shift.y);
+  // Pulled back: no hero is aimed at, so the lock and arrow go at once.
   if (isPulledBack)
     return {
       handIndex: press.handIndex,
       card,
       tip,
-      lift: 0,
+      lift,
       nearHeroes: [],
       isOverField: false,
     };
-  const lift = Math.max(0, -shift.y);
   return { handIndex: press.handIndex, card, tip, lift, ...probe(tip) };
 };
 
