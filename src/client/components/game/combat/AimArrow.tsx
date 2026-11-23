@@ -35,13 +35,26 @@ const HEAD_HALF_WIDTH = 12;
 const LOCK_RING_RADIUS = 16;
 
 // --- GEOMETRY ---
+/** How far along the rise (share of the height) the bend sits. */
+const BEND_RISE = 0.6;
+/** How far toward the target's side (share of the width) it sits. */
+const BEND_SIDE = 0.25;
+
 /**
- * A point on the quadratic curve at t (0..1). The bend sits straight
- * above the card, so the line rises out of the hand before swinging
- * toward the target.
+ * The curve's control point. It sits mostly above the card and only a
+ * little toward the target's side, so the bend grows with the sideways
+ * offset: a target straight above gets a straight line, one off to the
+ * side gets a gentle arc. (Putting it level with the target made the
+ * line rise then turn sharply sideways, with the head coming in flat.)
  */
+const controlOf = (from: Point, to: Point): Point => ({
+  x: from.x + (to.x - from.x) * BEND_SIDE,
+  y: from.y + (to.y - from.y) * BEND_RISE,
+});
+
+/** A point on the quadratic curve at t (0..1). */
 const curveAt = (from: Point, to: Point, t: number): Point => {
-  const control = { x: from.x, y: to.y };
+  const control = controlOf(from, to);
   const u = 1 - t;
   return {
     x: u * u * from.x + 2 * u * t * control.x + t * t * to.x,
@@ -52,27 +65,38 @@ const curveAt = (from: Point, to: Point, t: number): Point => {
 /** Linear blend between two numbers. */
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
+/** Where the body stops (t), so it ends at the head's base. */
+const bodyEndT = (from: Point, to: Point): number => {
+  const length = Math.hypot(to.x - from.x, to.y - from.y);
+  return length > HEAD_LENGTH ? 1 - HEAD_LENGTH / length : 0;
+};
+
 /**
- * The dashes along the curve, stopping short of the head. Every other
- * step is a gap; each dash is wider than the one before.
+ * The dashes along the curve, stopping at the head. Every other step is
+ * a gap; each dash is wider than the one before.
  */
-const dashesFor = (from: Point, to: Point): Dash[] =>
-  Array.from({ length: STEPS }, (_, step) => step)
+const dashesFor = (from: Point, to: Point): Dash[] => {
+  const endT = bodyEndT(from, to);
+  return Array.from({ length: STEPS }, (_, step) => step)
     .filter((step) => step % 2 === 0)
     .map((step) => {
       const t0 = step / STEPS;
       const t1 = (step + 1) / STEPS;
       return {
-        start: curveAt(from, to, t0 * 0.92),
-        end: curveAt(from, to, t1 * 0.92),
+        start: curveAt(from, to, t0 * endT),
+        end: curveAt(from, to, t1 * endT),
         width: lerp(WIDTH_AT_CARD, WIDTH_AT_HEAD, t1),
       };
     });
+};
 
-/** The arrow head: a triangle pointing along the curve's last stretch. */
+/**
+ * The arrow head: a triangle along the curve's final tangent, which for
+ * a quadratic curve runs from the control point to the end point.
+ */
 const headPoints = (from: Point, to: Point): string => {
-  const back = curveAt(from, to, 0.9);
-  const angle = Math.atan2(to.y - back.y, to.x - back.x);
+  const control = controlOf(from, to);
+  const angle = Math.atan2(to.y - control.y, to.x - control.x);
   const base = {
     x: to.x - Math.cos(angle) * HEAD_LENGTH,
     y: to.y - Math.sin(angle) * HEAD_LENGTH,
