@@ -14,7 +14,9 @@
 // ===================================================================
 
 import {
+  affectsSelf,
   areaTargets,
+  cardAreaTargets,
   formUp,
   legalTargets,
   pullHero,
@@ -125,15 +127,31 @@ export const targetsFor = (state: CombatState, cardId: CardId): HeroUnit[] =>
   legalTargets(state.heroes, targetRuleOf(cardId));
 
 /**
+ * True when an untargeted card would be wasted: it only acts on heroes,
+ * through area effects, and none of them reach anyone (a front-row
+ * sweep like Cleave while the front row stands empty).
+ */
+const isAreaCardWasted = (state: CombatState, cardId: CardId): boolean =>
+  !affectsSelf(cardId) &&
+  getCard(cardId).effects.some(
+    (effect) => 'target' in effect && effect.target === 'all'
+  ) &&
+  cardAreaTargets(state.heroes, cardId).length === 0;
+
+/**
  * True when the card in that hand slot can be played right now: it is
- * affordable and, if it needs a target, a legal one exists (a pull with
- * every back-row hero blocked cannot be played).
+ * affordable and has someone to act on. A targeted card needs a legal
+ * target (a pull with every back-row hero blocked cannot be played,
+ * nor a Melee strike with the front row empty); an area card needs
+ * someone in its reach.
  */
 export const canPlayCard = (state: CombatState, handIndex: number): boolean => {
   const cardId = state.hand[handIndex];
   if (cardId === undefined || combatOutcome(state) !== 'ongoing') return false;
   const hasTarget =
-    targetRuleOf(cardId) === 'none' || targetsFor(state, cardId).length > 0;
+    targetRuleOf(cardId) === 'none'
+      ? !isAreaCardWasted(state, cardId)
+      : targetsFor(state, cardId).length > 0;
   return getCard(cardId).cost <= state.energy && hasTarget;
 };
 

@@ -274,7 +274,7 @@ export const targetRuleOf = (cardId: CardId): TargetRule => {
 // --- WHO A CARD AFFECTS ---
 /** Effect kinds that land on the villain (the player), not a hero. */
 const SELF_EFFECT_KINDS: ReadonlySet<CardDef['effects'][number]['kind']> =
-  new Set(['shroud', 'wrath', 'draw', 'energy', 'heal']);
+  new Set(['shroud', 'wrath', 'buff', 'draw', 'energy', 'heal']);
 
 /** True when a card does something to the villain (shroud, draw ...). */
 export const affectsSelf = (cardId: CardId): boolean =>

@@ -230,3 +230,16 @@ void test('charging gives Momentum: the next Melee card hits 50% harder, once', 
   assert.equal(priest.hp - unitOf(struck, 'priest').hp, 9);
   assert.equal(struck.player.statuses.momentum, 0);
 });
+
+void test('a front-row sweep cannot be played while the front row is empty', () => {
+  const felled = playCard(
+    fight(['squire', 'priest'], ['undyingHatred', 'cleave', 'plague', 'drain']),
+    0,
+    unitOf(fight(['squire', 'priest'], []), 'squire').uid
+  );
+  // Hand is now Cleave, Plague, Drain; only the Priest (back row) is left.
+  assert.equal(canPlayCard(felled, 0), false);
+  assert.equal(canPlayCard(felled, 1), true);
+  assert.equal(canPlayCard(felled, 2), false);
+  assert.equal(playCard(felled, 0, -1), felled);
+});
