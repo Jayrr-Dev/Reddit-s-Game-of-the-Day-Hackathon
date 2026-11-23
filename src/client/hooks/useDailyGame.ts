@@ -1,11 +1,13 @@
 // ===================================================================
 // USE DAILY GAME
 // Loads the player's state for this post (day, best score, streak) and
-// exposes submitScore. All server calls go through apiClient.
+// exposes the two run calls: start (claims the ranked run) and finish
+// (sends the action log for the server to replay and score).
 // ===================================================================
 
 import { useCallback, useEffect, useState } from 'react';
-import type { InitResponse, SubmitScoreResponse } from '../../shared/types/api';
+import type { RunAction } from '../../shared/game/run';
+import type { FinishRunResponse, InitResponse } from '../../shared/types/api';
 import { apiClient } from '../lib/apiClient';
 
 // --- TYPES ---
@@ -14,8 +16,20 @@ type DailyGameState =
   | { status: 'error'; message: string }
   | { status: 'ready'; data: InitResponse };
 
+// --- HELPERS ---
+
+/** Merges a finished run's results into the loaded player data. */
+const mergeFinish = (
+  data: InitResponse,
+  result: FinishRunResponse
+): InitResponse => ({
+  ...data,
+  bestScoreToday: result.bestScoreToday,
+  streak: result.streak,
+});
+
 // --- HOOK ---
-/** Returns the current game state and an action to save a finished run. */
+/** Returns the current game state plus actions to start and finish a run. */
 export const useDailyGame = () => {
   const [state, setState] = useState<DailyGameState>({ status: 'loading' });
 
@@ -32,20 +46,27 @@ export const useDailyGame = () => {
       );
   }, []);
 
-  /** Saves a score and merges the server's answer into local state. */
-  const submitScore = useCallback(
-    async (score: number): Promise<SubmitScoreResponse> => {
-      const result = await apiClient.submitScore({ score });
+  /** Claims a run with the server; returns true when it is the ranked run. */
+  const startRun = useCallback(async (): Promise<boolean> => {
+    const { isRanked } = await apiClient.startRun();
+    setState((previous) =>
+      previous.status === 'ready'
+        ? {
+            status: 'ready',
+            data: { ...previous.data, hasStartedRankedRun: true },
+          }
+        : previous
+    );
+    return isRanked;
+  }, []);
+
+  /** Sends the finished run's log and merges the server's answer. */
+  const finishRun = useCallback(
+    async (actions: RunAction[]): Promise<FinishRunResponse> => {
+      const result = await apiClient.finishRun({ actions });
       setState((previous) =>
         previous.status === 'ready'
-          ? {
-              status: 'ready',
-              data: {
-                ...previous.data,
-                bestScoreToday: result.bestScoreToday,
-                streak: result.streak,
-              },
-            }
+          ? { status: 'ready', data: mergeFinish(previous.data, result) }
           : previous
       );
       return result;
@@ -53,5 +74,5 @@ export const useDailyGame = () => {
     []
   );
 
-  return { state, submitScore } as const;
+  return { state, startRun, finishRun } as const;
 };

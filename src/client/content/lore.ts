@@ -1,0 +1,45 @@
+// ===================================================================
+// LORE AND COPY
+// Story text and labels shown to the player. Kept apart from components
+// so the voice of the game can be edited in one place.
+// ===================================================================
+
+import type { StopKind } from '../../shared/game/kingdom';
+
+// --- STORY ---
+export const STORY_LINES = [
+  'They called themselves heroes when they cut her down.',
+  'Now you march on their kingdom, one village, one road, one gate at a time.',
+  'Take the throne. Make them remember her name.',
+] as const;
+
+export const TAGLINE =
+  'An endless march of vengeance. Same horde for everyone, every day.';
+
+// --- HOW TO PLAY ---
+export const HOW_TO_PLAY = [
+  'Spend 3 energy a turn on cards. Tap a hero to aim.',
+  'Heroes show their next move. Shroud up before big hits.',
+  'Every 5th stop a champion guards the region. Beat them to conquer it.',
+  'The heroes never stop coming. Push as deep as you can.',
+] as const;
+
+// --- STOPS ---
+export const STOP_COPY: Record<StopKind, { title: string; blurb: string }> = {
+  horde: { title: 'Hero Horde', blurb: 'Break the line. Earn a card.' },
+  elite: { title: 'Elite Hero', blurb: 'A veteran. Better spoils.' },
+  champion: { title: 'Champion', blurb: 'Defeat them to conquer the region.' },
+  grave: { title: 'Her Grave', blurb: 'Mourn to heal, or swear vengeance.' },
+  altar: { title: 'Dark Altar', blurb: 'Claim a forbidden card.' },
+};
+
+// --- ENDINGS ---
+/** The line shown when the run ends, based on how far the villain got. */
+export const fallenLine = (regionsConquered: number): string => {
+  if (regionsConquered >= 6) return 'You sat upon the throne. Still they came.';
+  if (regionsConquered >= 3)
+    return 'The castle trembled. The heroes held, barely.';
+  if (regionsConquered >= 1)
+    return 'A region burns in your name. Rest, and return.';
+  return 'The heroes cheer. Tomorrow, they will not.';
+};

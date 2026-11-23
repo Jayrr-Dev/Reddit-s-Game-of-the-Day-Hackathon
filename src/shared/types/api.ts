@@ -5,6 +5,8 @@
 // both sides instead of failing at runtime.
 // ===================================================================
 
+import type { RunAction, RunStats } from '../game/run.ts';
+
 // --- SHARED SHAPES ---
 /** A single row on the daily leaderboard. */
 export type LeaderboardEntry = {
@@ -27,16 +29,31 @@ export type InitResponse = {
   username: string | null;
   bestScoreToday: number | null;
   streak: StreakSummary;
+  /** True once the player has started today's ranked run. */
+  hasStartedRankedRun: boolean;
 };
 
-// --- POST /api/score ---
-export type SubmitScoreRequest = {
+// --- POST /api/run/start ---
+// Called when the player begins a run. The first run of the day is the
+// ranked one; any later run is practice and never touches the board.
+export type StartRunResponse = {
+  type: 'runStart';
+  isRanked: boolean;
+};
+
+// --- POST /api/run/finish ---
+// The client sends its action log, not a score. The server replays the
+// log with the shared engine and computes the score itself.
+export type FinishRunRequest = {
+  actions: RunAction[];
+};
+
+export type FinishRunResponse = {
+  type: 'runFinish';
   score: number;
-};
-
-export type SubmitScoreResponse = {
-  type: 'score';
-  bestScoreToday: number;
+  stats: RunStats;
+  isRanked: boolean;
+  bestScoreToday: number | null;
   rank: number | null;
   streak: StreakSummary;
 };

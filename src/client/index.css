@@ -3,31 +3,78 @@
    The single design system for the app. Components use these tokens
    through Tailwind utilities (bg-surface, text-ink, bg-accent ...),
    never raw hex values, so a re-theme is a change to this block only.
+   Villain Arc is always dark: crimson and violet with gold accents.
    =================================================================== */
 @import 'tailwindcss';
 
 @theme {
-  /* --- COLORS --- */
-  --color-surface: #ffffff;
-  --color-surface-raised: #f2f4f5;
-  --color-ink: #1c1c1c;
-  --color-ink-muted: #576f76;
-  --color-accent: #d93900;
-  --color-accent-hover: #b83000;
-  --color-on-accent: #ffffff;
+  /* --- SURFACES AND TEXT --- */
+  --color-surface: #110a10;
+  --color-surface-raised: #1f1220;
+  --color-surface-sunken: #0a0609;
+  --color-edge: #3a2338;
+  --color-ink: #f3e9dc;
+  --color-ink-muted: #a99aa6;
+
+  /* --- BRAND --- */
+  --color-accent: #d4a24c;
+  --color-accent-hover: #e8bb66;
+  --color-on-accent: #1a0f0a;
+  --color-blood: #b3263e;
+
+  /* --- STATS AND STATUSES --- */
+  --color-hp: #c8324a;
+  --color-shroud: #7a93d6;
+  --color-hex: #a463e8;
+  --color-dread: #6f7f9e;
+  --color-wrath: #e0663a;
+  --color-heal: #5fbf7f;
+  --color-energy: #e8bb66;
+
+  /* --- CARD CATEGORIES --- */
+  --color-card-strike: #8e1f33;
+  --color-card-curse: #5a2a86;
+  --color-card-guard: #2c4675;
+  --color-card-power: #7a5a1c;
 
   /* --- TYPOGRAPHY --- */
-  --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Georgia', 'Times New Roman', ui-serif, serif;
+  --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* --- MOTION --- */
+  --animate-rise: rise 180ms ease-out;
+  --animate-shake: shake 260ms ease-in-out;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-4px);
+    }
+    75% {
+      transform: translateX(4px);
+    }
+  }
 }
 
-/* --- DARK MODE: same token names, darker values --- */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-surface: #0e1113;
-    --color-surface-raised: #1a1f22;
-    --color-ink: #f2f4f5;
-    --color-ink-muted: #8ba2ad;
-    --color-accent: #ff4500;
-    --color-accent-hover: #ff6a33;
-  }
+/* --- BASE --- */
+html,
+body {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-tap-highlight-color: transparent;
 }
