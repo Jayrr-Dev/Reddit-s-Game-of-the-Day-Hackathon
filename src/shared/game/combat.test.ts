@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { advanceMelee } from './battlefield.ts';
-import { getCard, type CardId } from './cards.ts';
+import { ALL_CARD_IDS, getCard, type CardId } from './cards.ts';
 import {
   attackDamage,
   endOfTurnUpkeep,
@@ -359,4 +359,21 @@ void test('Back Step pushes a full front row back for 1 energy', () => {
   const next = endTurn(after);
   assert.equal(next.player.hp, 60);
   assert.equal(next.heroes[0]?.row, 'front');
+});
+
+// --- CARD TEXT FITS ---
+/**
+ * A card face holds about three short lines. Keep cards to two or three
+ * effects so the text never spills off the card.
+ */
+const MAX_CARD_LINES = 3;
+const MAX_CARD_TEXT_CHARS = 48;
+
+void test('every card text fits on the card face', () => {
+  for (const cardId of ALL_CARD_IDS) {
+    const lines = describeCard(cardId);
+    const text = lines.join(' ');
+    assert.ok(lines.length <= MAX_CARD_LINES, `${cardId}: ${text}`);
+    assert.ok(text.length <= MAX_CARD_TEXT_CHARS, `${cardId}: ${text}`);
+  }
 });

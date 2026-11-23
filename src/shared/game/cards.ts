@@ -167,7 +167,7 @@ export const CARDS = {
     'buff',
     1,
     'uncommon',
-    [buff('might', 1), buff('protection', 2), draw(1)],
+    [buff('might', 2), buff('protection', 2)],
     FADES
   ),
 
@@ -182,12 +182,7 @@ export const CARDS = {
     'buff',
     2,
     'rare',
-    [
-      buff('might', 2),
-      buff('surge', 2),
-      buff('piercing', 2),
-      buff('protection', 2),
-    ],
+    [buff('might', 3), buff('surge', 3)],
     FADES
   ),
 } as const satisfies Record<string, CardDef>;
