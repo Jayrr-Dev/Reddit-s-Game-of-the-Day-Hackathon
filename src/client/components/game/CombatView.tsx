@@ -1,77 +1,67 @@
 // ===================================================================
 // COMBAT VIEW
-// The battlefield: the horde on top, the villain and the hand below.
-// The only local state is which hero is targeted; everything else is
-// the engine's CombatState passed down from the run.
+// One fight, laid out to fit the 512 px Reddit post (top to bottom):
+//   FocusHud      location, focused hero's HP emblem, intent, statuses
+//   Battlefield   3 x 2 parallax scene with every hero
+//   VillainDock   portrait + HP, energy, statuses, draw pile, End Turn
+//   FanHand       the cards in hand
+// All game state comes from the engine; this view only routes taps.
 // ===================================================================
 
-import { useState } from 'react';
 import type { RunAction } from '../../../shared/game/run';
 import type { CombatState } from '../../../shared/game/types';
-import { Button } from '../ui/Button';
-import { HandView } from './HandView';
-import { HeroUnitView } from './HeroUnitView';
-import { PlayerPanel } from './PlayerPanel';
+import { useCombatControls } from '../../hooks/useCombatControls';
+import { BattlefieldView } from './combat/BattlefieldView';
+import { FanHand } from './combat/FanHand';
+import { FocusHud } from './combat/FocusHud';
+import { VillainDock } from './combat/VillainDock';
 
 // --- TYPES ---
 export type CombatViewProps = {
   combat: CombatState;
+  /** Backdrop hue of the current region. */
+  hue: number;
+  where: string;
+  score: number;
   onAction: (action: RunAction) => void;
-};
-
-// --- HOOKS ---
-/**
- * Tracks the targeted hero. If the target falls, the first living hero
- * becomes the target, derived on render so it never points at a ghost.
- */
-const useTarget = (combat: CombatState) => {
-  const [chosenUid, setChosenUid] = useState<number | null>(null);
-  const isChosenAlive = combat.heroes.some((unit) => unit.uid === chosenUid);
-  const targetUid = isChosenAlive ? chosenUid : (combat.heroes[0]?.uid ?? null);
-  return { targetUid, setTargetUid: setChosenUid } as const;
 };
 
 // --- COMPONENT ---
 /** Renders one fight. */
-export const CombatView = ({ combat, onAction }: CombatViewProps) => {
-  const { targetUid, setTargetUid } = useTarget(combat);
-
-  /** Plays a hand slot at the current target. */
-  const handlePlay = (handIndex: number) =>
-    onAction({ type: 'playCard', handIndex, targetUid: targetUid ?? 0 });
+export const CombatView = ({
+  combat,
+  hue,
+  where,
+  score,
+  onAction,
+}: CombatViewProps) => {
+  const controls = useCombatControls(combat, onAction);
+  const focused = combat.heroes.find((unit) => unit.uid === controls.focusUid);
+  const isHolding = controls.heldIndex !== null;
 
   return (
-    <div className="flex w-full flex-1 flex-col justify-between gap-3">
-      <section
-        className="flex flex-wrap justify-center gap-2"
-        aria-label="Heroes"
-      >
-        {combat.heroes.map((unit) => (
-          <HeroUnitView
-            key={unit.uid}
-            unit={unit}
-            isTargeted={unit.uid === targetUid}
-            onSelect={setTargetUid}
-          />
-        ))}
-      </section>
-
-      <section className="flex flex-col gap-2" aria-label="Your turn">
-        <div className="flex items-end gap-2 px-2">
-          <PlayerPanel player={combat.player} energy={combat.energy} />
-          <Button
-            onClick={() => onAction({ type: 'endTurn' })}
-            className="shrink-0"
-          >
-            End turn
-          </Button>
-        </div>
-        <HandView combat={combat} onPlay={handlePlay} />
-        <p className="text-center text-[10px] text-ink-muted">
-          Turn {combat.turn} · Draw {combat.drawPile.length} · Discard{' '}
-          {combat.discardPile.length}
-        </p>
-      </section>
+    <div className="flex h-full w-full flex-col">
+      <FocusHud where={where} score={score} unit={focused} />
+      <div className="relative -mt-12 flex min-h-0 flex-1 flex-col">
+        <BattlefieldView
+          heroes={combat.heroes}
+          hue={hue}
+          focusUid={controls.focusUid}
+          aimOf={controls.aimOf}
+          onTapHero={controls.tapHero}
+        />
+        {isHolding && (
+          <p className="pointer-events-none absolute inset-x-0 bottom-1 z-30 text-center text-[11px] font-semibold text-accent drop-shadow">
+            Tap a glowing hero
+          </p>
+        )}
+      </div>
+      <VillainDock combat={combat} onEndTurn={controls.endTurn} />
+      <FanHand
+        combat={combat}
+        heldIndex={controls.heldIndex}
+        onTapCard={controls.tapCard}
+      />
     </div>
   );
 };

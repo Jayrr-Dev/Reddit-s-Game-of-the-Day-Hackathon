@@ -8,13 +8,15 @@ import type { LeaderboardEntry } from '../../shared/types/api';
 
 export type LeaderboardListProps = {
   entries: LeaderboardEntry[];
+  /** Show only the first N rows, so the list fits the inline post. */
+  limit?: number;
 };
 
 /** Renders the ranked list, or an empty-state message. */
-export const LeaderboardList = ({ entries }: LeaderboardListProps) => {
+export const LeaderboardList = ({ entries, limit }: LeaderboardListProps) => {
   if (entries.length === 0) {
     return (
-      <p className="text-sm text-ink-muted">
+      <p className="text-xs text-ink-muted">
         No scores yet. Be the first today.
       </p>
     );
@@ -22,8 +24,11 @@ export const LeaderboardList = ({ entries }: LeaderboardListProps) => {
 
   return (
     <ol className="w-full max-w-xs divide-y divide-surface-raised">
-      {entries.map((entry) => (
-        <li key={entry.username} className="flex justify-between py-1 text-sm">
+      {entries.slice(0, limit).map((entry) => (
+        <li
+          key={entry.username}
+          className="flex justify-between py-0.5 text-xs"
+        >
           <span>
             {entry.rank}. u/{entry.username}
           </span>

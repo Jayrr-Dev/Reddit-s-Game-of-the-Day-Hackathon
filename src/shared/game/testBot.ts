@@ -5,7 +5,7 @@
 // ===================================================================
 
 import { getCard } from './cards.ts';
-import { canPlayCard } from './combat.ts';
+import { canPlayCard, targetsFor } from './combat.ts';
 import { describeHeroIntent } from './describe.ts';
 import {
   createRun,
@@ -24,9 +24,12 @@ const isUnderAttack = (combat: CombatState): boolean =>
     describeHeroIntent(unit).intents.some((intent) => intent.kind === 'attack')
   );
 
-/** The weakest hero's uid (finish off targets first). */
-const weakestUid = (combat: CombatState): number =>
-  [...combat.heroes].sort((a, b) => a.hp - b.hp)[0]?.uid ?? 0;
+/** The weakest hero this card may hit (finish off targets first). */
+const weakestUid = (combat: CombatState, handIndex: number): number => {
+  const cardId = combat.hand[handIndex];
+  const legal = cardId === undefined ? [] : targetsFor(combat, cardId);
+  return [...legal].sort((a, b) => a.hp - b.hp)[0]?.uid ?? 0;
+};
 
 /** Picks a hand slot to play, preferring shroud when attacked. */
 const pickHandIndex = (combat: CombatState): number | null => {
@@ -59,7 +62,11 @@ export const botAction = (state: RunState): RunAction => {
       const handIndex = pickHandIndex(phase.combat);
       return handIndex === null
         ? { type: 'endTurn' }
-        : { type: 'playCard', handIndex, targetUid: weakestUid(phase.combat) };
+        : {
+            type: 'playCard',
+            handIndex,
+            targetUid: weakestUid(phase.combat, handIndex),
+          };
     }
     case 'reward':
     case 'altar':

@@ -5,6 +5,7 @@
 // the UI can never disagree with the rules.
 // ===================================================================
 
+import { targetRuleOf } from './battlefield.ts';
 import { getCard, type CardId } from './cards.ts';
 import { attackDamage } from './combatant.ts';
 import { nextHeroMove, scaleByMight } from './combat.ts';
@@ -37,17 +38,21 @@ export const STATUS_INFO: Record<StatusId | 'shroud', StatusInfo> = {
 
 // --- CARD TEXT ---
 
-/** "to all heroes" suffix for area effects. */
-const areaSuffix = (target: 'one' | 'all'): string =>
-  target === 'all' ? ' to ALL heroes' : '';
+/** "to all heroes" suffix for area effects; melee sweeps the front only. */
+const areaSuffix = (target: 'one' | 'all', isMelee = false): string => {
+  if (target === 'one') return '';
+  return isMelee ? ' to the front row' : ' to ALL heroes';
+};
 
 /**
  * One line of card text. When `attacker` is given, damage shows the real
  * number after the villain's wrath and dread, like a live preview.
+ * `isMelee` is true for cards without Reach.
  */
 export const describeCardEffect = (
   effect: CardEffect,
-  attacker?: Combatant
+  attacker?: Combatant,
+  isMelee = false
 ): string => {
   switch (effect.kind) {
     case 'damage': {
@@ -55,7 +60,7 @@ export const describeCardEffect = (
         ? attackDamage(effect.amount, attacker)
         : effect.amount;
       const times = effect.hits > 1 ? ` ${effect.hits} times` : '';
-      return `Deal ${amount} damage${times}${areaSuffix(effect.target)}.`;
+      return `Deal ${amount} damage${times}${areaSuffix(effect.target, isMelee)}.`;
     }
     case 'hex':
       return `Apply ${effect.amount} Hex${areaSuffix(effect.target)}.`;
@@ -73,31 +78,35 @@ export const describeCardEffect = (
       return `Gain ${effect.amount} energy.`;
     case 'heal':
       return `Heal ${effect.amount} HP.`;
+    case 'pull':
+      return 'Pull a hero to the front.';
+    case 'push':
+      return 'Push it to the back.';
   }
 };
 
-/** All text lines for a card, ending with "Fades." when it does. */
+/**
+ * All text lines for a card: "Reach." first when it has it, the effects,
+ * then "Fades." when it does.
+ */
 export const describeCard = (
   cardId: CardId,
   attacker?: Combatant
 ): string[] => {
   const cardDef = getCard(cardId);
   const lines = cardDef.effects.map((effect) =>
-    describeCardEffect(effect, attacker)
+    describeCardEffect(effect, attacker, !cardDef.reach)
   );
-  return cardDef.fades ? [...lines, 'Fades.'] : lines;
+  return [
+    ...(cardDef.reach ? ['Reach.'] : []),
+    ...lines,
+    ...(cardDef.fades ? ['Fades.'] : []),
+  ];
 };
 
 /** True when playing this card needs the player to pick a hero. */
 export const cardNeedsTarget = (cardId: CardId): boolean =>
-  getCard(cardId).effects.some(
-    (effect) =>
-      effect.kind === 'reap' ||
-      ((effect.kind === 'damage' ||
-        effect.kind === 'hex' ||
-        effect.kind === 'dread') &&
-        effect.target === 'one')
-  );
+  targetRuleOf(cardId) !== 'none';
 
 // --- CARD CATEGORY (FOR ART AND COLOUR) ---
 export type CardCategory = 'strike' | 'curse' | 'guard' | 'power';
@@ -106,6 +115,7 @@ export type CardCategory = 'strike' | 'curse' | 'guard' | 'power';
 export const cardCategory = (cardId: CardId): CardCategory => {
   const kinds = getCard(cardId).effects.map((effect) => effect.kind);
   if (kinds.includes('damage') || kinds.includes('reap')) return 'strike';
+  if (kinds.includes('pull') || kinds.includes('push')) return 'curse';
   if (kinds.includes('hex') || kinds.includes('dread')) return 'curse';
   if (kinds.includes('shroud')) return 'guard';
   return 'power';
