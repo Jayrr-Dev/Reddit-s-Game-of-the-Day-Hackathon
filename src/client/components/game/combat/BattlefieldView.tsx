@@ -4,7 +4,8 @@
 // backdrop -> back row -> ground shade -> front row -> foreground. The
 // front row always draws over the back row. The camera (--cam) leans
 // toward the focused hero, and the stage sways gently on its own.
-// Heroes that change rows glide there (see useRowMoves).
+// Heroes that change rows glide there (see useRowMoves); fallen heroes
+// play their death in place first (see useFallenHeroes).
 // ===================================================================
 
 import { useRef, type ReactNode } from 'react';
@@ -15,6 +16,7 @@ import { FIELD_ATTR } from '../../../hooks/useCardDrag';
 import { cssVars, depthStyle } from '../../../lib/cssVars';
 import { Backdrop, Foreground } from './Backdrop';
 import type { AimState } from '../../../hooks/useCombatControls';
+import { useFallenHeroes } from '../../../hooks/useFallenHeroes';
 import { usePlateSpacing } from '../../../hooks/usePlateSpacing';
 import { ROW_LAYER_ATTR, useRowMoves } from '../../../hooks/useRowMoves';
 import { HeroOnField } from './HeroOnField';
@@ -76,10 +78,11 @@ export const BattlefieldView = ({
   const fieldRef = useRef<HTMLDivElement>(null);
   usePlateSpacing(fieldRef, heroes);
   useRowMoves(fieldRef, heroes);
+  const ghosts = useFallenHeroes(heroes);
   const focused = heroes.find((unit) => unit.uid === focusUid);
-  /** Renders the heroes standing in one row. */
-  const renderRow = (row: HeroRow) =>
-    heroes
+  /** Renders the heroes standing in one row, then any falling there. */
+  const renderRow = (row: HeroRow) => [
+    ...heroes
       .filter((unit) => unit.row === row)
       .map((unit) => (
         <HeroOnField
@@ -90,7 +93,21 @@ export const BattlefieldView = ({
           isActing={actingUids.includes(unit.uid)}
           onTap={onTapHero}
         />
-      ));
+      )),
+    ...ghosts
+      .filter((unit) => unit.row === row)
+      .map((unit) => (
+        <HeroOnField
+          key={`fallen-${unit.uid}`}
+          unit={unit}
+          isFocused={false}
+          aim="idle"
+          isActing={false}
+          isDying
+          onTap={onTapHero}
+        />
+      )),
+  ];
 
   return (
     <div

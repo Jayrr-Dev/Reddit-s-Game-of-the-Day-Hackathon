@@ -32,6 +32,8 @@ export type HeroOnFieldProps = {
   aim: AimState;
   /** True while this hero's attack animation plays. */
   isActing: boolean;
+  /** True for a fallen hero playing its death (display only). */
+  isDying?: boolean;
   onTap: (uid: number) => void;
 };
 
@@ -78,6 +80,60 @@ const plateStyle = (size: HeroSize): CSSProperties => ({
   bottom: `calc(${100 - (headTopShare(size) * 100) / 2}% + ${PLATE_REST_PX}px)`,
 });
 
+// --- SUBCOMPONENTS ---
+/** Embers that rise off a falling hero: [left %, delay ms, drift px]. */
+const EMBERS: readonly (readonly [number, number, number])[] = [
+  [30, 0, -10],
+  [45, 60, 6],
+  [55, 20, -4],
+  [65, 90, 12],
+  [38, 120, 8],
+  [60, 150, -12],
+];
+
+/**
+ * A fallen hero's death, in its last spot: a white hit flash, a stagger,
+ * then it slumps and burns away while embers rise. No uid, so nothing
+ * can target or tap it.
+ */
+const DyingHero = ({ unit }: { unit: HeroUnit }) => {
+  const hero = getHero(unit.heroId);
+  const size = sizeOf(unit);
+  return (
+    <div
+      className="pointer-events-none absolute"
+      style={boxStyle(unit)}
+      aria-hidden="true"
+    >
+      <div className="relative h-full w-full [container-type:size]">
+        <div
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 origin-bottom animate-hero-death"
+          style={bodyStyleOf(size)}
+        >
+          <HeroFigure hue={hero.hue} tier={hero.tier} size={size} />
+        </div>
+        {EMBERS.map(([left, delay, drift]) => (
+          <span
+            key={`${left}-${delay}`}
+            className="absolute bottom-[35%] size-1.5 rounded-full bg-wrath shadow-[0_0_6px_var(--color-wrath)] animate-ember"
+            style={{
+              left: `${left}%`,
+              animationDelay: `${delay}ms`,
+              ['--drift' as string]: `${drift}px`,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/** The drawing's size: as tall as fits the box at its aspect ratio. */
+const bodyStyleOf = (size: HeroSize): CSSProperties => ({
+  height: `min(100cqh, ${100 / figureAspect(size)}cqw)`,
+  aspectRatio: figureAspect(size),
+});
+
 // --- COMPONENT ---
 /**
  * Renders the hero with its health plate sitting on its head.
@@ -91,18 +147,17 @@ export const HeroOnField = ({
   isFocused,
   aim,
   isActing,
+  isDying = false,
   onTap,
 }: HeroOnFieldProps) => {
+  if (isDying) return <DyingHero unit={unit} />;
   const hero = getHero(unit.heroId);
   const size = sizeOf(unit);
   const isBack = unit.row === 'back';
   const focusClass = isFocused
     ? 'drop-shadow-[0_0_10px_var(--color-accent)]'
     : '';
-  const bodyStyle: CSSProperties = {
-    height: `min(100cqh, ${100 / figureAspect(size)}cqw)`,
-    aspectRatio: figureAspect(size),
-  };
+  const bodyStyle = bodyStyleOf(size);
   return (
     <button
       type="button"

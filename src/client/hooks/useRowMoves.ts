@@ -32,6 +32,9 @@ const MOVE_TIMING: Record<MoveKind, KeyframeAnimationOptions> = {
   pull: { duration: 420, easing: 'cubic-bezier(0.55, 0, 0.25, 1.35)' },
 };
 
+/** Wait (ms) after a death before the row steps up (most of the death). */
+const MOVE_AFTER_DEATH_MS = 380;
+
 /** How far the scenery swells while the villain advances. */
 const ADVANCE_ZOOM = 1.12;
 
@@ -82,7 +85,8 @@ const flyFrom = (
   body: HTMLElement,
   from: BodySpot,
   to: BodySpot,
-  kind: MoveKind
+  kind: MoveKind,
+  delay: number
 ) => {
   if (to.height === 0) return;
   const dx = from.x - to.x;
@@ -94,19 +98,20 @@ const flyFrom = (
       { transform: `translate(${dx}px, ${dy}px) scale(${scale})` },
       { transform: 'none' },
     ],
-    MOVE_TIMING[kind]
+    // fill 'backwards' holds the old spot during the delay.
+    { ...MOVE_TIMING[kind], delay, fill: 'backwards' }
   );
 };
 
 /** Swells the scenery (not the heroes) and settles it back. */
-const lungeScenery = (field: HTMLElement) => {
+const lungeScenery = (field: HTMLElement, delay: number) => {
   const scenery = field.querySelectorAll<HTMLElement>(
     `:scope > :not([${ROW_LAYER_ATTR}])`
   );
   scenery.forEach((layer) =>
     layer.animate(
       [{ scale: '1' }, { scale: String(ADVANCE_ZOOM) }, { scale: '1' }],
-      { ...MOVE_TIMING.advance, duration: 900 }
+      { ...MOVE_TIMING.advance, duration: 900, delay }
     )
   );
 };
@@ -133,12 +138,17 @@ export const useRowMoves = (
     // 2. PLAY ROW CHANGES FROM THE LAST SPOT TO THE NEW ONE
     const moved = movedHeroes(heroes, lastRows);
     const kind = kindOfMove(heroes, lastRows);
-    if (moved.length > 0 && kind === 'advance') lungeScenery(field);
+    // A hero just fell: let its death play before anyone moves up.
+    const hasDeath = [...lastRows.keys()].some(
+      (uid) => !heroes.some((unit) => unit.uid === uid)
+    );
+    const delay = hasDeath ? MOVE_AFTER_DEATH_MS : 0;
+    if (moved.length > 0 && kind === 'advance') lungeScenery(field, delay);
     bodies
       .filter(({ unit }) => moved.includes(unit))
       .forEach(({ unit, body, spot }) => {
         const from = spotsRef.current.get(unit.uid);
-        if (from) flyFrom(body, from, spot, kind);
+        if (from) flyFrom(body, from, spot, kind, delay);
       });
     // 3. REMEMBER THIS LAYOUT FOR NEXT TIME
     lastRowsRef.current = new Map(heroes.map((unit) => [unit.uid, unit.row]));

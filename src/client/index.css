@@ -50,6 +50,8 @@
   --animate-hit-pop: hit-pop 1400ms ease-out forwards;
   --animate-gain-float: gain-float 1100ms ease-out forwards;
   --animate-hero-lunge: hero-lunge 420ms ease-in-out;
+  --animate-hero-death: hero-death 520ms ease-in forwards;
+  --animate-ember: ember 480ms ease-out forwards;
 
   @keyframes rise {
     from {
@@ -117,6 +119,45 @@
     55% {
       scale: 1.14;
       translate: -50% 8%;
+    }
+  }
+
+  /* A hero falls: white hit flash, stagger back, then slump, char and
+     fade. Transform composes with the body's centring translate. */
+  @keyframes hero-death {
+    0% {
+      filter: brightness(3) saturate(0);
+      transform: scale(1.06);
+      opacity: 1;
+    }
+    20% {
+      filter: brightness(1.6);
+      transform: rotate(-5deg) translateX(-3%);
+    }
+    45% {
+      filter: brightness(0.7) sepia(0.6);
+      transform: rotate(3deg) scaleY(0.92);
+      opacity: 1;
+    }
+    100% {
+      filter: brightness(0.2) blur(2px);
+      transform: translateY(6%) scaleY(0.55) scaleX(1.08);
+      opacity: 0;
+    }
+  }
+
+  /* An ember off a falling hero: rises, drifts by --drift and burns out. */
+  @keyframes ember {
+    0% {
+      opacity: 0;
+      transform: translate(0, 0) scale(1);
+    }
+    20% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translate(var(--drift, 0px), -60px) scale(0.3);
     }
   }
 
