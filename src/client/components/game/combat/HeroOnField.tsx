@@ -42,8 +42,8 @@ export type HeroOnFieldProps = {
 // Boxes include the plate on top. Front plates end below where back
 // plates begin, so the two rows' plates never cover each other.
 const ROW_BOX: Record<HeroRow, { bottom: string; height: string }> = {
-  front: { bottom: '2%', height: '58%' },
-  back: { bottom: '46%', height: '26%' },
+  front: { bottom: '2%', height: '56%' },
+  back: { bottom: '63%', height: '25%' },
 };
 
 /** Gap (px) kept between the plate and the top of the drawing space. */
