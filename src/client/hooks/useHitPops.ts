@@ -30,7 +30,7 @@ type HeroLook = { hp: number; shroud: number; point: Point | null };
 
 // --- CONSTANTS ---
 /** How long a damage number stays on screen (matches --animate-hit-pop). */
-const HIT_POP_MS = 750;
+const HIT_POP_MS = 1400;
 const UNHURT = { hp: 0, shroud: 0 };
 
 // --- HELPERS ---

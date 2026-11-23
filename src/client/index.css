@@ -47,7 +47,7 @@
   /* --- MOTION --- */
   --animate-rise: rise 180ms ease-out;
   --animate-shake: shake 260ms ease-in-out;
-  --animate-hit-pop: hit-pop 750ms ease-out forwards;
+  --animate-hit-pop: hit-pop 1400ms ease-out forwards;
   --animate-gain-float: gain-float 1100ms ease-out forwards;
   --animate-hero-lunge: hero-lunge 420ms ease-in-out;
 
@@ -62,23 +62,24 @@
     }
   }
 
-  /* A big damage number: punches in, holds, drifts up and fades. */
+  /* A damage number: punches in, lingers, then floats up while it
+     shrinks and fades. */
   @keyframes hit-pop {
     0% {
       opacity: 0;
       transform: scale(1.8);
     }
-    15% {
+    10% {
       opacity: 1;
       transform: scale(1);
     }
-    70% {
+    55% {
       opacity: 1;
-      transform: translateY(-6px);
+      transform: translateY(-4px) scale(1);
     }
     100% {
       opacity: 0;
-      transform: translateY(-18px);
+      transform: translateY(-36px) scale(0.55);
     }
   }
 
