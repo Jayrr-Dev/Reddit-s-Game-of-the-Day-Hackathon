@@ -685,6 +685,8 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
   const scaled = (amount: number) => scaleByMight(amount, unit.might);
   const toWhom = (who: 'self' | 'allies') =>
     who === 'allies' ? ' to every hero' : '';
+  // ALL on the chip, like a card's "Damage ALL": it lands on every hero.
+  const allTag = (who: 'self' | 'allies') => (who === 'allies' ? 'ALL ' : '');
   switch (effect.kind) {
     case 'attack': {
       const { type, perHit } = heroAttackOf(unit, effect);
@@ -722,28 +724,28 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
       const amount = scaled(effect.amount);
       return {
         kind: 'guard',
-        text: `${amount}`,
+        text: `${allTag(effect.who)}${amount}`,
         label: `Guard ${amount}${toWhom(effect.who)}`,
       };
     }
     case 'wrath':
       return {
         kind: 'buff',
-        text: `+${effect.amount}`,
+        text: `${allTag(effect.who)}+${effect.amount}`,
         label: `Wrath +${effect.amount}${toWhom(effect.who)}`,
       };
     case 'heal': {
       const amount = scaled(effect.amount);
       return {
         kind: 'heal',
-        text: `${amount}`,
+        text: `${allTag(effect.who)}${amount}`,
         label: `Heal ${amount}${toWhom(effect.who)}`,
       };
     }
     case 'cleanse':
       return {
         kind: 'cleanse',
-        text: '',
+        text: effect.who === 'allies' ? 'ALL' : '',
         label: `Cleanses 1 affliction from ${effect.who === 'allies' ? 'every hero' : 'itself'}`,
       };
     case 'revive':

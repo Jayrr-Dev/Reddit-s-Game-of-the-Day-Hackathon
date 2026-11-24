@@ -1534,6 +1534,25 @@ void test('Blunt cards land single heavy blows with Knockback and Rampage; multi
   assert.ok(rampages.length >= 3, 'so is Rampage');
 });
 
+// --- ALL-ALLY HERO MOVES ---
+void test('hero moves can buff, guard or heal every hero (chip reads ALL)', () => {
+  const rally = getHero('holt').moves.find((m) => m.name === 'Rally')!;
+  assert.ok(
+    rally.effects.some((e) => e.kind === 'wrath' && e.who === 'allies'),
+    'Rally: Buff All'
+  );
+  const sanctuary = getHero('maren').moves.find((m) => m.name === 'Sanctuary')!;
+  assert.ok(
+    sanctuary.effects.some((e) => e.kind === 'guard' && e.who === 'allies'),
+    'Sanctuary: Guard All'
+  );
+  const start = fightWith([]);
+  const unit = { ...start.heroes[0]!, heroId: 'holt' as const, moveIndex: 0 };
+  const [lead] = describeHeroIntent(unit, [unit]).intents;
+  assert.equal(lead?.text, 'ALL +1');
+  assert.ok(lead?.label.includes('every hero'));
+});
+
 // --- HOLD ---
 void test('a Hold card stays in hand at end of turn; the rest are discarded', () => {
   // A deck of Dark Cloaks, so the new hand never redraws the Backhand.

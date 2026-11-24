@@ -231,7 +231,7 @@ export const HEROES = {
 
   // CHAMPIONS (ONE PER REGION, IN REGION ORDER)
   holt: hero('Sergeant Holt', 'champion', 50, 20, 5, CHAMPION, [
-    move('Rally', wrath(1), guard(6)),
+    move('Rally', wrath(1, 'allies'), guard(6)),
     move('Halberd Sweep', strike(10)),
     move('Twin Thrust', strike(6, 2)),
   ]),
@@ -241,7 +241,7 @@ export const HEROES = {
     move('Piercing Shot', shoot(12)),
   ]),
   maren: hero('High Priestess Maren', 'champion', 55, 55, 4, CHAMPION, [
-    move('Sanctuary', guard(10), heal(6, 'self')),
+    move('Sanctuary', guard(6, 'allies'), heal(6, 'self')),
     move('Holy Fire', burn(5)),
     move('Smite the Wicked', spell(11)),
   ]),
