@@ -63,7 +63,7 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   wrath: false,
   might: false,
   surge: false,
-  piercing: false,
+  hone: false,
   reinforce: false,
   momentum: false,
   protection: false,
@@ -79,6 +79,11 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
  */
 export const TIERED_CUT_BY_TIER = [0, 0.25, 0.5, 0.75] as const;
 export const TIERED_MAX_TIER = 3;
+/**
+ * PIERCING: the share of each hit that also lands on the hero directly
+ * behind the target (1 = full damage; lower it for a falloff).
+ */
+export const PIERCE_DAMAGE_FACTOR = 1;
 /** An even Hex (it does not burn) grows by this much each turn. */
 export const HEX_GROWTH = 1;
 /** After an odd Hex burns, it loses this share of itself (rounded up). */

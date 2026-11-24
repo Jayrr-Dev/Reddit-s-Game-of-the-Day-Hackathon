@@ -32,6 +32,7 @@ import {
   cellsOf,
   isAloft,
   isCellOpen,
+  heroesBehind,
   summonSeats,
 } from './battlefield.ts';
 import { getCard, type CardId } from './cards.ts';
@@ -59,6 +60,7 @@ import {
 import { getHero, type HeroId } from './heroes.ts';
 import {
   addToHand,
+  cardHasKeyword,
   discardHand,
   imbueEffectOf,
   imbuedEffects,
@@ -74,6 +76,7 @@ import {
   LONG_RANGE_DAMAGE_FACTOR,
   ENERGY_PER_TURN,
   MAX_HAND_SIZE,
+  PIERCE_DAMAGE_FACTOR,
 } from './rules.ts';
 import type {
   CardDef,
@@ -449,25 +452,48 @@ const villainAttack = (
   state: CombatState,
   effect: Extract<CardEffect, { kind: 'damage' }>,
   targetUid: number,
-  cardDef: CardDef
+  cardDef: CardDef,
+  isPiercing: boolean
 ): CombatState => {
   const isMelee = !cardDef.reach;
   const perHit = attackDamage(effect.amount, state.player, cardDef.type);
   const isFollowThrough = effect.target === 'one';
-  return Array.from({ length: effect.hits }).reduce<CombatState>(
-    (current) =>
-      updateHeroes(
+  const pierceHit = Math.floor(perHit * PIERCE_DAMAGE_FACTOR);
+  return Array.from({ length: effect.hits }).reduce<CombatState>((current) => {
+    const struck = updateHeroes(
+      current,
+      resolveTargets(
         current,
-        resolveTargets(
-          current,
-          effect.target,
-          targetUid,
-          isMelee,
-          isFollowThrough
-        ),
-        (unit) => takeHit(unit, cardHitOn(unit, perHit, cardDef), cardDef.type)
+        effect.target,
+        targetUid,
+        isMelee,
+        isFollowThrough
       ),
-    state
+      (unit) => takeHit(unit, cardHitOn(unit, perHit, cardDef), cardDef.type)
+    );
+    return isPiercing && effect.target === 'one'
+      ? pierceBehind(struck, targetUid, pierceHit, cardDef)
+      : struck;
+  }, state);
+};
+
+/**
+ * A Piercing hit's second half: the same hit (scaled by
+ * PIERCE_DAMAGE_FACTOR) on every living hero directly behind the target
+ * (see heroesBehind). Nobody behind, nothing happens.
+ */
+const pierceBehind = (
+  state: CombatState,
+  targetUid: number,
+  amount: number,
+  cardDef: CardDef
+): CombatState => {
+  const target = state.heroes.find((unit) => unit.uid === targetUid);
+  if (!target) return state;
+  const living = state.heroes.filter((unit) => !isDefeated(unit));
+  const behindUids = heroesBehind(living, target).map((unit) => unit.uid);
+  return updateHeroes(state, behindUids, (unit) =>
+    takeHit(unit, cardHitOn(unit, amount, cardDef), cardDef.type)
   );
 };
 
@@ -487,20 +513,23 @@ const reapHex = (
   );
 };
 
+/** How this play differs from the printed card: imbue slot, Piercing. */
+type PlayContext = { slot: number; isPiercing: boolean };
+
 /**
  * Resolves one effect of the card `cardDef` (its type picks the buff).
- * `imbueSlot` is the hand slot an Imbue effect goes on.
+ * `play.slot` is the hand slot an Imbue effect goes on.
  */
 const applyCardEffect = (
   state: CombatState,
   effect: CardEffect,
   targetUid: number,
   cardDef: CardDef,
-  slot: number
+  play: PlayContext
 ): CombatState => {
   switch (effect.kind) {
     case 'damage':
-      return villainAttack(state, effect, targetUid, cardDef);
+      return villainAttack(state, effect, targetUid, cardDef, play.isPiercing);
     case 'hex':
     case 'poison':
     case 'burn':
@@ -551,7 +580,7 @@ const applyCardEffect = (
     case 'push':
       return { ...state, heroes: pushHero(state.heroes, targetUid) };
     case 'imbue':
-      return imbueSlot(state, slot, {
+      return imbueSlot(state, play.slot, {
         gift: effect.gift,
         duration: effect.duration,
       });
@@ -640,10 +669,9 @@ const requestedPicks = (
  * imbued on it, and (for an Imbue card) the slot it imbues, counted in
  * the hand after the card itself has left it.
  */
-type PlayPlan = {
+type PlayPlan = PlayContext & {
   picks: readonly number[];
   imbued: readonly CardEffect[];
-  slot: number;
 };
 
 /**
@@ -668,11 +696,20 @@ const cardBeats = (
     const aimed = aimCard(current, cardId, requested);
     const pickBeats = pick === 0 ? [...beats, ...imbuedBeats] : beats;
     for (const effect of pickBeats) {
-      current = applyCardEffect(current, effect, aimed, cardDef, plan.slot);
+      current = applyCardEffect(current, effect, aimed, cardDef, plan);
       states.push(current);
     }
   });
   return states;
+};
+
+/** True when the card in that hand slot pierces (printed or imbued). */
+const isPiercingPlay = (state: CombatState, handIndex: number): boolean => {
+  const cardId = state.hand[handIndex];
+  return (
+    cardId !== undefined &&
+    cardHasKeyword(cardId, imbuesAt(state, handIndex), 'piercing')
+  );
 };
 
 /**
@@ -697,6 +734,7 @@ const planPlay = (
     picks: requestedPicks(getCard(cardId), targetUid, targetUids),
     imbued: imbuedEffects(imbuesAt(state, handIndex)),
     slot: asked > handIndex ? asked - 1 : asked,
+    isPiercing: isPiercingPlay(state, handIndex),
   };
 };
 
@@ -753,6 +791,7 @@ export const wouldFell = (
     picks,
     imbued: imbuedEffects(imbuesAt(state, handIndex)),
     slot: -1,
+    isPiercing: isPiercingPlay(state, handIndex),
   };
   const beats = cardBeats(payForCard(state, handIndex), cardId, plan);
   const target = beats.at(-1)?.heroes.find((unit) => unit.uid === uid);

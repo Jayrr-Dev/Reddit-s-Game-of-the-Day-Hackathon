@@ -9,6 +9,7 @@ import type {
   BuffId,
   CardDef,
   CardEffect,
+  CardKeyword,
   CardRarity,
   CardType,
   ImbuableEffect,
@@ -88,12 +89,17 @@ const pull: CardEffect = { kind: 'pull' };
 const push: CardEffect = { kind: 'push' };
 
 /**
- * Optional card traits: fading, Hold (stays in hand at end of turn;
- * both default no) and Target N (default 1).
+ * Optional card traits: fading (default no), keywords such as Hold and
+ * Piercing (default none) and Target N (default 1).
  */
-type CardTraits = { fades?: boolean; holds?: boolean; targets?: number };
+type CardTraits = {
+  fades?: boolean;
+  keywords?: readonly CardKeyword[];
+  targets?: number;
+};
 const FADES: CardTraits = { fades: true };
-const HOLDS: CardTraits = { holds: true };
+const HOLDS: CardTraits = { keywords: ['hold'] };
+const PIERCES: CardTraits = { keywords: ['piercing'] };
 
 /** Card types that can hit the back row (Melee only hits the front). */
 const REACHING_TYPES: ReadonlySet<CardType> = new Set([
@@ -109,7 +115,7 @@ const card = (
   cost: number,
   rarity: CardRarity,
   effects: CardEffect[],
-  { fades = false, holds = false, targets = 1 }: CardTraits = {}
+  { fades = false, keywords = [], targets = 1 }: CardTraits = {}
 ): CardDef => ({
   name,
   type,
@@ -117,7 +123,7 @@ const card = (
   rarity,
   effects,
   fades,
-  holds,
+  keywords,
   reach: REACHING_TYPES.has(type),
   targets,
 });
@@ -152,7 +158,7 @@ export const CARDS = {
   barbedVolley: card('Barbed Volley', 'range', 1, 'common', [hit(2, 3)]),
   flurry: card('Flurry', 'melee', 1, 'common', [hit(3, 3)]),
   spikedGuard: card('Spiked Guard', 'melee', 1, 'common', [hit(5), guard(5)]),
-  blackArrow: card('Black Arrow', 'range', 1, 'common', [hit(7)]),
+  blackArrow: card('Black Arrow', 'range', 1, 'common', [hit(7)], PIERCES),
   retreatingShot: card('Retreating Shot', 'range', 1, 'common', [
     hit(4),
     guard(4),
@@ -160,6 +166,9 @@ export const CARDS = {
   wardingBolt: card('Warding Bolt', 'magic', 1, 'common', [hit(4), guard(4)]),
   // IMBUE: grant another card in hand a keyword or an effect
   holdFast: card('Hold Fast', 'buff', 0, 'common', [imbue(giftHold, 'turn')]),
+  barbedTip: card('Barbed Tip', 'buff', 0, 'common', [
+    imbue({ kind: 'keyword', keyword: 'piercing' }, 'turn'),
+  ]),
   emberRune: card('Ember Rune', 'buff', 0, 'common', [
     imbue(giftOf({ kind: 'burn', amount: 3, target: 'one' }), 'turn'),
   ]),
@@ -177,7 +186,7 @@ export const CARDS = {
     bleed(4),
   ]),
   // Fight-long buffs. One type each, so they hit harder than Wrath per
-  // stack; Piercing and Surge are a bit bigger because fewer cards use them.
+  // stack; Hone and Surge are a bit bigger because fewer cards use them.
   // TARGET N: pick a hero per shot (the same one again is fine)
   scatterShot: card('Scatter Shot', 'range', 1, 'common', [hit(3)], {
     targets: 3,
@@ -190,7 +199,7 @@ export const CARDS = {
   }),
   bloodlust: card('Bloodlust', 'buff', 1, 'common', [buff('might', 2)], FADES),
   darkSurge: card('Dark Surge', 'buff', 1, 'common', [buff('surge', 3)], FADES),
-  deadeye: card('Deadeye', 'buff', 1, 'common', [buff('piercing', 3)], FADES),
+  deadeye: card('Deadeye', 'buff', 1, 'common', [buff('hone', 3)], FADES),
   bulwark: card('Bulwark', 'buff', 1, 'common', [protect]),
   purge: card('Purge', 'buff', 0, 'common', [cleanse]),
   ironHide: card(
@@ -214,6 +223,7 @@ export const CARDS = {
   ]),
   reap: card('Reap', 'magic', 1, 'uncommon', [reap(2)]),
   seethe: card('Seethe', 'buff', 1, 'uncommon', [wrath(2)], FADES),
+  impale: card('Impale', 'melee', 2, 'uncommon', [hit(10)], PIERCES),
   ruin: card('Ruin', 'melee', 2, 'uncommon', [hit(16)], HOLDS),
   coldResolve: card('Cold Resolve', 'defend', 1, 'uncommon', [
     guard(6),
@@ -272,6 +282,10 @@ export function isCardId(value: unknown): value is CardId {
 
 /** Looks up a card definition. */
 export const getCard = (id: CardId): CardDef => CARDS[id];
+
+/** True when the card is printed with `keyword`. */
+export const hasKeyword = (id: CardId, keyword: CardKeyword): boolean =>
+  CARDS[id].keywords.includes(keyword);
 
 /** Card ids of one rarity, used to build reward offers. */
 export const cardsOfRarity = (rarity: CardRarity): CardId[] =>

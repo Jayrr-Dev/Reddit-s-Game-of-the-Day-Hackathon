@@ -591,11 +591,11 @@ const damageWith = (cardId: CardId, buffs: Partial<typeof NO_STATUSES>) => {
   return before - (after.heroes[0]?.hp ?? 0);
 };
 
-void test('Might, Surge and Piercing each power up only their own card type', () => {
+void test('Might, Surge and Hone each power up only their own card type', () => {
   assert.equal(damageWith('backhand', { might: 2 }), 8);
-  assert.equal(damageWith('backhand', { surge: 2, piercing: 2 }), 6);
+  assert.equal(damageWith('backhand', { surge: 2, hone: 2 }), 6);
   // The Squire is in front: no long-range bonus.
-  assert.equal(damageWith('spiteBolt', { piercing: 3 }), 9);
+  assert.equal(damageWith('spiteBolt', { hone: 3 }), 9);
   assert.equal(damageWith('hexfire', { surge: 1 }), 7);
   assert.equal(damageWith('mourningCurse', { might: 5, surge: 5 }), 4);
 });
@@ -809,7 +809,7 @@ void test('card text damage always equals the damage the engine deals', () => {
     {},
     { wrath: 2 },
     { might: 3 },
-    { surge: 2, piercing: 1 },
+    { surge: 2, hone: 1 },
     { momentum: 1, might: 1 },
     { wrath: 1, weaken: 1 },
   ];
@@ -901,7 +901,7 @@ void test('card text shows the damage for the aimed-at hero', () => {
   const start = squireAndArcher(['blackArrow']);
   const player = {
     ...start.player,
-    statuses: { ...start.player.statuses, wrath: 2, piercing: 3 },
+    statuses: { ...start.player.statuses, wrath: 2, hone: 3 },
   };
   const archer = heroNamed(start, 'archer') as HeroUnit;
   // (7 + 2 + 3) x 1.3 long range = 15.6, rounded to 16.
@@ -914,10 +914,10 @@ void test('card text in hand shows only buffs; Weaken waits for an aim', () => {
   const start = squireAndArcher(['spiteBolt']);
   const player = {
     ...start.player,
-    statuses: { ...start.player.statuses, wrath: 2, piercing: 2, weaken: 1 },
+    statuses: { ...start.player.statuses, wrath: 2, hone: 2, weaken: 1 },
   };
   const squire = heroNamed(start, 'squire') as HeroUnit;
-  // In hand: 6 + 2 Wrath + 2 Piercing, Weaken left out.
+  // In hand: 6 + 2 Wrath + 2 Hone, Weaken left out.
   assert.match(describeCard('spiteBolt', player).join(' '), /Deal 10 /);
   // Aimed at the Squire (in front, no long-range bonus): 10 x 0.75.
   assert.match(describeCard('spiteBolt', player, squire).join(' '), /Deal 7 /);
@@ -1219,8 +1219,8 @@ void test('a Hold card stays in hand at end of turn; the rest are discarded', ()
 });
 
 void test('Hold is a card trait, printed on the card', () => {
-  assert.equal(getCard('ruin').holds, true);
-  assert.equal(getCard('backhand').holds, false);
+  assert.ok(getCard('ruin').keywords.includes('hold'));
+  assert.ok(!getCard('backhand').keywords.includes('hold'));
   assert.ok(describeCard('ruin').includes('Hold.'));
 });
 
@@ -1355,4 +1355,69 @@ void test('Enfeeble lasts one turn: it lapses unless reapplied', () => {
 
 void test('Enfeeble is an affliction Cleanse can remove', () => {
   assert.equal(STATUS_IS_AFFLICTION.enfeeble, true);
+});
+
+// --- PIERCING ---
+/** A Squire up front in lane 0, archers behind it (lane 0) and beside (lane 1). */
+const laneFight = (hand: CardId[]): CombatState => {
+  const state = startCombat({
+    hp: 60,
+    maxHp: 60,
+    deck: Array.from({ length: 12 }, (): CardId => 'darkCloak'),
+    heroIds: ['squire', 'archer', 'archer'],
+    might: 1,
+    seed: 7,
+  });
+  const spots = [
+    { row: 'front', col: 0 },
+    { row: 'back', col: 0 },
+    { row: 'back', col: 1 },
+  ] as const;
+  return {
+    ...state,
+    hand,
+    energy: 5,
+    heroes: state.heroes.map((unit, index) => ({
+      ...unit,
+      ...(spots[index] ?? spots[0]),
+    })),
+  };
+};
+
+void test('a Piercing hit also strikes the hero directly behind, in the same lane', () => {
+  const state = laneFight(['impale']);
+  const front = state.heroes[0]?.uid ?? -1;
+  const after = playCard(state, 0, front);
+  const [frontLost, behindLost, besideLost] = hpLost(state, after);
+  assert.ok((frontLost ?? 0) > 0);
+  assert.equal(behindLost, frontLost, 'full damage to the hero behind');
+  assert.equal(besideLost, 0, 'the next lane is left alone');
+});
+
+void test('a Piercing hit on the back row has nobody behind to hit', () => {
+  const state = laneFight(['blackArrow']);
+  const back = state.heroes[2]?.uid ?? -1;
+  const after = playCard(state, 0, back);
+  const [frontLost, behindLost] = hpLost(state, after);
+  assert.equal(frontLost, 0);
+  assert.equal(behindLost, 0);
+});
+
+void test('a plain hit does not pierce', () => {
+  const state = laneFight(['cruelSlash']);
+  const after = playCard(state, 0, state.heroes[0]?.uid ?? -1);
+  assert.equal(hpLost(state, after)[1], 0);
+});
+
+void test('Piercing can be imbued onto a single-target attack, for the turn', () => {
+  const state = laneFight(['barbedTip', 'cruelSlash', 'darkCloak']);
+  assert.equal(
+    playCard(state, 0, 0, undefined, 2),
+    state,
+    'not onto a Guard card'
+  );
+  const imbued = playCard(state, 0, 0, undefined, 1);
+  const after = playCard(imbued, 0, state.heroes[0]?.uid ?? -1);
+  assert.ok((hpLost(state, after)[1] ?? 0) > 0);
+  assert.ok(describeCard('impale').includes('Piercing.'));
 });

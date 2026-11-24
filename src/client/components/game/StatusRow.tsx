@@ -62,7 +62,7 @@ const STATUS_ORDER: readonly StatusId[] = [
   // ATTACK
   'wrath',
   'might',
-  'piercing',
+  'hone',
   'momentum',
   // MAGIC
   'surge',

@@ -28,7 +28,7 @@ import type { RngState } from './rng.ts';
  * Buffs, gained from the villain's Buff cards, also last the whole fight:
  * - might:      adds this much to every Melee hit
  * - surge:      adds this much to every Magic hit
- * - piercing:   adds this much to every Range hit
+ * - hone:   adds this much to every Range hit
  * - reinforce: adds this much to every Guard a card gives
  * Momentum comes from charging: while above 0 the next Melee card deals
  * 50% more damage (every hit of it), then it is spent; it is lost at
@@ -37,7 +37,7 @@ import type { RngState } from './rng.ts';
  * aim at or hit the hero; its next move comes down from the sky and
  * clears it.
  */
-export type BuffId = 'might' | 'surge' | 'piercing' | 'reinforce';
+export type BuffId = 'might' | 'surge' | 'hone' | 'reinforce';
 export type StatusId =
   | 'hex'
   | 'poison'
@@ -115,7 +115,7 @@ export type BaseCardEffect =
 
 // --- IMBUE ---
 /** A keyword a card can be printed with or imbued with. */
-export type CardKeyword = 'hold';
+export type CardKeyword = 'hold' | 'piercing';
 /** How long an imbue lasts: to the end of this turn, or the whole fight. */
 export type ImbueDuration = 'turn' | 'battle';
 /**
@@ -155,8 +155,11 @@ export type CardDef = {
   effects: readonly CardEffect[];
   /** A fading card leaves the fight after it is played. */
   fades: boolean;
-  /** A Hold card stays in hand at the end of the turn instead of being discarded. */
-  holds: boolean;
+  /**
+   * Its printed keywords: Hold stays in hand at the end of the turn;
+   * Piercing hits also strike the hero right behind the target.
+   */
+  keywords: readonly CardKeyword[];
   /**
    * Reach cards can hit the back row. Without Reach, damage is melee and
    * only reaches the front row (curses and Hex always reach). Derived

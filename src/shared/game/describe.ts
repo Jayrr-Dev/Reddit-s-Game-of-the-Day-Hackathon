@@ -74,8 +74,8 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   wrath: { label: 'Wrath', description: 'Adds this much damage to every hit.' },
   might: { label: 'Might', description: 'Adds this much to every Melee hit.' },
   surge: { label: 'Surge', description: 'Adds this much to every Magic hit.' },
-  piercing: {
-    label: 'Piercing',
+  hone: {
+    label: 'Hone',
     description: 'Adds this much to every Range hit.',
   },
   momentum: {
@@ -197,7 +197,10 @@ export const describeCardEffect = (
 
 // --- IMBUE TEXT ---
 /** How each keyword reads on a card. */
-const KEYWORD_LABEL: Record<CardKeyword, string> = { hold: 'Hold' };
+const KEYWORD_LABEL: Record<CardKeyword, string> = {
+  hold: 'Hold',
+  piercing: 'Piercing',
+};
 /** How each imbue duration reads. */
 export const DURATION_LABEL: Record<ImbueDuration, string> = {
   turn: 'this turn',
@@ -272,7 +275,7 @@ export const describeCard = (
   );
   const targetLine = cardDef.targets > 1 ? [`Target ${cardDef.targets}.`] : [];
   const traitLines = [
-    ...(cardDef.holds ? ['Hold.'] : []),
+    ...cardDef.keywords.map((keyword) => `${KEYWORD_LABEL[keyword]}.`),
     ...(cardDef.fades ? ['Fades.'] : []),
   ];
   return [...targetLine, ...lines, ...traitLines];

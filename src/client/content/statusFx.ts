@@ -92,8 +92,8 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     ],
     hasGlow: true,
   },
-  /** Piercing (+Range): the bow flashes and arrows loose upward. */
-  piercing: {
+  /** Hone (+Range): the bow flashes and arrows loose upward. */
+  hone: {
     layers: [
       { shape: 'icon', motion: 'flash', count: 1, size: 42 },
       { shape: 'arrow', motion: 'rise', count: 3, size: 16 },

@@ -38,7 +38,7 @@ export const NO_STATUSES: Statuses = {
   wrath: 0,
   might: 0,
   surge: 0,
-  piercing: 0,
+  hone: 0,
   reinforce: 0,
   momentum: 0,
   protection: 0,
@@ -50,7 +50,7 @@ export const NO_STATUSES: Statuses = {
 const DAMAGE_BUFF_OF: Partial<Record<CardType, BuffId>> = {
   melee: 'might',
   magic: 'surge',
-  range: 'piercing',
+  range: 'hone',
 };
 
 /** Makes a fresh combatant at the given HP. */
@@ -95,7 +95,7 @@ export const damageFactorOf = (
 
 /**
  * Damage per hit after the attacker's wrath, type buff, Momentum and
- * weaken. Wrath and the buff (Might, Surge or Piercing, by card type) add
+ * weaken. Wrath and the buff (Might, Surge or Hone, by card type) add
  * first, then Momentum (Melee only) and weaken scale, matching the UI.
  */
 /**

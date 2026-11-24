@@ -16,9 +16,10 @@
 // ===================================================================
 
 import { isSelfEffect, targetRuleOf } from './battlefield.ts';
-import { getCard, type CardId } from './cards.ts';
+import { getCard, hasKeyword, type CardId } from './cards.ts';
 import type {
   CardEffect,
+  CardKeyword,
   CombatState,
   Imbue,
   ImbuableEffect,
@@ -44,19 +45,47 @@ export const imbueEffectOf = (cardId: CardId): ImbueEffect | undefined =>
 export const imbuedEffects = (imbues: readonly Imbue[]): ImbuableEffect[] =>
   imbues.flatMap(({ gift }) => (gift.kind === 'effect' ? [gift.effect] : []));
 
+/** True when a card has `keyword`, printed or imbued. */
+export const cardHasKeyword = (
+  cardId: CardId,
+  imbues: readonly Imbue[],
+  keyword: CardKeyword
+): boolean =>
+  hasKeyword(cardId, keyword) ||
+  imbues.some(
+    ({ gift }) => gift.kind === 'keyword' && gift.keyword === keyword
+  );
+
 /** True when a card stays in hand at end of turn (printed or imbued). */
-export const holdsCard = (cardId: CardId, imbues: readonly Imbue[]): boolean =>
-  getCard(cardId).holds ||
-  imbues.some(({ gift }) => gift.kind === 'keyword' && gift.keyword === 'hold');
+const holdsCard = (cardId: CardId, imbues: readonly Imbue[]): boolean =>
+  cardHasKeyword(cardId, imbues, 'hold');
+
+/** True when a card aims a single-target hit at one hero. */
+const hitsOneHero = (cardId: CardId): boolean =>
+  getCard(cardId).effects.some(
+    (effect) => effect.kind === 'damage' && effect.target === 'one'
+  );
 
 /**
- * True when `gift` may go on `cardId`. Hold goes on a card without it;
- * a self effect goes on any card; a hero effect only on a card that
+ * Which cards each keyword may go on (besides one already printed with
+ * it): Hold on any card, Piercing on a card that hits one hero.
+ */
+const KEYWORD_FITS: Record<CardKeyword, (cardId: CardId) => boolean> = {
+  hold: () => true,
+  piercing: hitsOneHero,
+};
+
+/**
+ * True when `gift` may go on `cardId`. A keyword goes on a card that
+ * lacks it and fits it (KEYWORD_FITS); a self effect goes on any card; a hero effect only on a card that
  * already aims at one hero (and never as an area effect), so the
  * card's aim stays the same.
  */
 export const canImbueOnto = (gift: ImbueGift, cardId: CardId): boolean => {
-  if (gift.kind === 'keyword') return !getCard(cardId).holds;
+  if (gift.kind === 'keyword')
+    return (
+      !hasKeyword(cardId, gift.keyword) && KEYWORD_FITS[gift.keyword](cardId)
+    );
   if (isSelfEffect(gift.effect)) return true;
   const isArea = 'target' in gift.effect && gift.effect.target === 'all';
   return !isArea && targetRuleOf(cardId) !== 'none';
