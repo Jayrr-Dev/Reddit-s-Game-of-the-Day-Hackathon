@@ -1,9 +1,9 @@
 // ===================================================================
 // HEX AURA
-// The Hex sigil turning over a unit for as long as it carries Hex, so a
-// curse reads on the body, not just on its chip. It grows with the
-// threat (see hexBurnAmount):
-//   waiting  even Hex, no burn next turn       faint, slow
+// The Hex sigil turning over a unit only while its Hex is about to go
+// off (odd: it burns before the unit's next turn), so the warning means
+// something. An even Hex shows on its chip alone. Two levels (see
+// hexBurnAmount):
 //   primed   odd Hex, burns before its turn    bright
 //   doubled  odd and ends in 3, burns double   brightest, fast, throbbing
 // PERFORMANCE: one element, transform and opacity only (index.css
@@ -14,24 +14,25 @@ import { hexBurnAmount } from '../../../../shared/game/combatant';
 import { HexSigil } from './HexSigil';
 
 // --- TYPES ---
-type HexAuraState = 'waiting' | 'primed' | 'doubled';
+type HexAuraState = 'primed' | 'doubled';
 
 // --- HELPERS ---
-/** How threatening a Hex of this size is right now. */
-const auraStateOf = (hex: number): HexAuraState => {
+/** How loud the aura is, or null when the Hex won't burn next turn. */
+const auraStateOf = (hex: number): HexAuraState | null => {
   const burn = hexBurnAmount(hex);
-  if (burn > hex) return 'doubled';
-  return burn > 0 ? 'primed' : 'waiting';
+  if (burn <= 0) return null;
+  return burn > hex ? 'doubled' : 'primed';
 };
 
 // --- COMPONENT ---
-/** Renders the aura over its parent's box, or nothing when not hexed. */
+/** Renders the aura over its parent's box, or nothing unless primed. */
 export const HexAura = ({ hex }: { hex: number }) => {
-  if (hex <= 0) return null;
+  const state = auraStateOf(hex);
+  if (!state) return null;
   return (
     <span
       className="hex-aura pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[78%] text-hex"
-      data-state={auraStateOf(hex)}
+      data-state={state}
       aria-hidden="true"
     >
       <svg

@@ -2020,17 +2020,14 @@ textarea,
 }
 
 /* -------------------------------------------------------------------
-   HEX AURA: the Hex sigil turning over a hexed unit (HexAura.tsx). Its
-   data-state sets how loud it is: waiting (even Hex) faint and slow,
-   primed (odd) bright, doubled (ends in 3) brightest, fast and
-   throbbing. Transform and opacity only; reduced motion holds it still.
+   HEX AURA: the Hex sigil turning over a unit whose Hex is about to
+   burn (HexAura.tsx; an even Hex shows none). Its data-state sets how
+   loud it is: primed (odd) bright, doubled (ends in 3) brightest, fast
+   and throbbing. Transform and opacity only; reduced motion holds it still.
    ------------------------------------------------------------------- */
 .hex-aura {
   transform: translate(-50%, -50%);
   transition: opacity 300ms ease-out;
-}
-.hex-aura[data-state='waiting'] {
-  opacity: 0.28;
 }
 .hex-aura[data-state='primed'] {
   opacity: 0.6;
