@@ -34,6 +34,8 @@ import type { RngState } from './rng.ts';
  * - surge:      adds this much to every Magic hit
  * - hone:   adds this much to every Range hit
  * - reinforce: adds this much to every Guard a card gives
+ * - instinct:  a chance to dodge each hero hit or affliction (Hex never;
+ *              see INSTINCT_DODGE_CHANCES)
  * - bane:      adds this much to every affliction your cards lay (Hex,
  *              Poison, Burn, Frost, Bleed, Shock; see BANE_AFFLICTIONS)
  * - sharpshooter: on or off; your shots ignore Out of Range and Range
@@ -46,7 +48,13 @@ import type { RngState } from './rng.ts';
  * clears it.
  */
 export type BuffId =
-  'might' | 'surge' | 'hone' | 'reinforce' | 'sharpshooter' | 'bane';
+  | 'might'
+  | 'surge'
+  | 'hone'
+  | 'reinforce'
+  | 'sharpshooter'
+  | 'bane'
+  | 'instinct';
 export type StatusId =
   | 'hex'
   | 'poison'
@@ -95,6 +103,8 @@ export type Combatant = {
    * the view diffs it to pop "Miss". Missing on older saves (0).
    */
   missedShots?: number;
+  /** Hits and afflictions dodged (Instinct), for the "Dodge" pop. */
+  dodgedHits?: number;
   /** Non-Magic hits taken in a row while shocked (see Shock). */
   shockHits?: number;
   /** True when Protection was cast this turn (else it lapses at turn end). */

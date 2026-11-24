@@ -44,7 +44,8 @@ export type GlyphName =
   | 'targeting'
   | 'flask'
   | 'crackedShield'
-  | 'heartbeat';
+  | 'heartbeat'
+  | 'dodging';
 
 export type GlyphProps = {
   name: GlyphName;

@@ -46,6 +46,7 @@ export const NO_STATUSES: Statuses = {
   reinforce: 0,
   sharpshooter: 0,
   bane: 0,
+  instinct: 0,
   momentum: 0,
   protection: 0,
   enfeeble: 0,
@@ -179,6 +180,12 @@ export const takeDamage = <T extends Combatant>(
 export const missShot = <T extends Combatant>(target: T): T => ({
   ...target,
   missedShots: (target.missedShots ?? 0) + 1,
+});
+
+/** Counts a dodged hit or affliction (Instinct), for the "Dodge" pop. */
+export const dodge = <T extends Combatant>(target: T): T => ({
+  ...target,
+  dodgedHits: (target.dodgedHits ?? 0) + 1,
 });
 
 /**

@@ -24,6 +24,7 @@ import {
   SHARPSHOOTER_BONUS_TEXT,
   STATUS_INFO,
 } from '../../../shared/game/describe';
+import { dodgeChanceOf } from '../../../shared/game/combat';
 import { hexAfterTurn, hexBurnAmount } from '../../../shared/game/combatant';
 import {
   SHOCK_HITS,
@@ -76,6 +77,7 @@ const TIERED_STATUSES: ReadonlySet<StatusId> = new Set([
 const STATUS_ORDER: readonly StatusId[] = [
   // DEFENCE
   'aloft',
+  'instinct',
   'protection',
   'reinforce',
   'brace',
@@ -113,6 +115,7 @@ const POPOVER_MIN_ROOM_ABOVE = 200;
 const chipText = (id: StatusId, value: number): string => {
   if (id === 'momentum') return '+50%';
   if (id === 'sharpshooter') return SHARPSHOOTER_BONUS_TEXT;
+  if (id === 'instinct') return `${Math.round(dodgeChanceOf(value) * 100)}%`;
   if (TIERED_STATUSES.has(id)) return TIER_NUMERALS[value] ?? '';
   return id === 'aloft' ? '' : String(value);
 };

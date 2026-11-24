@@ -49,6 +49,8 @@ export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
   sharpshooter: { glyph: 'targeting', toneClass: 'text-range' },
   // Bane boosts afflictions, so it wears the Curse colour (Hex purple).
   bane: { glyph: 'flask', toneClass: 'text-hex' },
+  // Instinct is defence (it turns hits aside): Guard blue.
+  instinct: { glyph: 'dodging', toneClass: 'text-guard' },
   reinforce: { glyph: 'shield', toneClass: 'text-guard' },
   brace: { glyph: 'anchor', toneClass: 'text-guard' },
   momentum: { glyph: 'bolt', toneClass: 'text-hp' },
@@ -252,6 +254,7 @@ export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   hone: STATUS_LOOK.hone,
   sharpshooter: STATUS_LOOK.sharpshooter,
   bane: STATUS_LOOK.bane,
+  instinct: STATUS_LOOK.instinct,
   reinforce: STATUS_LOOK.reinforce,
   brace: STATUS_LOOK.brace,
   momentum: STATUS_LOOK.momentum,
@@ -264,6 +267,7 @@ export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   bleed: STATUS_LOOK.bleed,
   shockBurst: STATUS_LOOK.shock,
   miss: { glyph: 'eye', toneClass: 'text-ink-muted' },
+  dodge: { glyph: 'dodging', toneClass: 'text-guard' },
   weaken: STATUS_LOOK.weaken,
   vex: STATUS_LOOK.vex,
   enfeeble: STATUS_LOOK.enfeeble,

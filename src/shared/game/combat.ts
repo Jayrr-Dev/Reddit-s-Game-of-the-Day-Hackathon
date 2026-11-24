@@ -60,6 +60,7 @@ import {
   hasMomentumFor,
   heal,
   isDefeated,
+  dodge,
   missShot,
   takeHit,
   typeBonus,
@@ -89,7 +90,9 @@ import {
   LONG_RANGE_DAMAGE_FACTOR,
   ENERGY_PER_TURN,
   MAX_HAND_SIZE,
+  INSTINCT_DODGE_CHANCES,
   OUT_OF_RANGE_HIT_CHANCE,
+  ULTRA_INSTINCT_STACKS,
   OUT_OF_RANGE_ROW,
   OUT_OF_RANGE_TYPES,
   PIERCE_DAMAGE_FACTOR,
@@ -110,6 +113,7 @@ import type {
   CardKeyword,
   MovementId,
   PassiveId,
+  StatusId,
   TimedBuff,
   UsesSpent,
 } from './types.ts';
@@ -1251,15 +1255,9 @@ const applyHeroEffect = (
     case 'frost':
     case 'bleed':
     case 'shock':
-      return {
-        ...state,
-        player: addStatus(state.player, effect.kind, scaled(effect.amount)),
-      };
+      return afflictVillain(state, effect.kind, scaled(effect.amount));
     case 'weaken':
-      return {
-        ...state,
-        player: addStatus(state.player, 'weaken', effect.amount),
-      };
+      return afflictVillain(state, 'weaken', effect.amount);
     case 'guard':
       return updateHeroes(
         state,
@@ -1291,6 +1289,40 @@ const applyHeroEffect = (
   }
 };
 
+// --- INSTINCT (DODGE) ---
+/** The chance (0..1) to dodge at `stacks` of Instinct. */
+export const dodgeChanceOf = (stacks: number): number =>
+  INSTINCT_DODGE_CHANCES[Math.min(stacks, ULTRA_INSTINCT_STACKS)] ?? 0;
+
+/**
+ * Rolls the villain's Instinct on the fight's seeded rng: true when it
+ * dodges. No Instinct, no roll (the rng stays put).
+ */
+const rollDodge = (state: CombatState): [boolean, CombatState] => {
+  const chance = dodgeChanceOf(state.player.statuses.instinct);
+  if (chance <= 0) return [false, state];
+  const [roll, rng] = nextFloat(state.rng);
+  return [roll < chance, { ...state, rng }];
+};
+
+/**
+ * Lays a hero's affliction on the villain unless Instinct dodges it
+ * (counted for the "Dodge" pop). Hex can't be dodged.
+ */
+const afflictVillain = (
+  state: CombatState,
+  status: StatusId,
+  amount: number
+): CombatState => {
+  const [dodged, rolled] = status === 'hex' ? [false, state] : rollDodge(state);
+  return {
+    ...rolled,
+    player: dodged
+      ? dodge(rolled.player)
+      : addStatus(rolled.player, status, amount),
+  };
+};
+
 /** True for a hero whose shots ignore Out of Range (Longrange). */
 export const hasLongRangePassive = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
   passivesOf(unit).includes('longRange');
@@ -1311,11 +1343,15 @@ const heroShoots = (
   let current = state;
   for (let hit = 0; hit < effect.hits; hit += 1) {
     const [lands, rolled] = mayMiss ? rollShot(current) : [true, current];
+    // A hit that would land may still be dodged (Instinct).
+    const [dodged, ready] = lands ? rollDodge(rolled) : [false, rolled];
     current = {
-      ...rolled,
-      player: lands
-        ? takeHit(rolled.player, perHit, type)
-        : missShot(rolled.player),
+      ...ready,
+      player: !lands
+        ? missShot(ready.player)
+        : dodged
+          ? dodge(ready.player)
+          : takeHit(ready.player, perHit, type),
     };
   }
   return current;

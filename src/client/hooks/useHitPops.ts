@@ -54,7 +54,8 @@ export type PopKind =
   /** Shock went off: a spray of blood over the unit (quiet). */
   | 'shockBurst'
   /** A shot Out of Range missed: "Miss" floats up, nothing is drawn. */
-  | 'miss';
+  | 'miss'
+  | 'dodge';
 
 /**
  * One pop's numbers: for a hit, HP lost and damage the guard soaked up;
@@ -155,6 +156,7 @@ const VILLAIN_GAINS: readonly (StatusId & PopKind)[] = [
   'brace',
   'sharpshooter',
   'bane',
+  'instinct',
 ];
 
 // --- HELPERS ---
@@ -194,6 +196,18 @@ const missesBetween = (
       length: Math.max(0, (after.missedShots ?? 0) - (before.missedShots ?? 0)),
     },
     () => ({ kind: 'miss' as const, amount: 0, blocked: 0 })
+  );
+
+/** Hits and afflictions dodged between two looks (Instinct), one "Dodge" pop each. */
+const dodgesBetween = (
+  before: Pick<Combatant, 'dodgedHits'>,
+  after: Pick<Combatant, 'dodgedHits'>
+): Hit[] =>
+  Array.from(
+    {
+      length: Math.max(0, (after.dodgedHits ?? 0) - (before.dodgedHits ?? 0)),
+    },
+    () => ({ kind: 'dodge' as const, amount: 0, blocked: 0 })
   );
 
 /**
@@ -501,10 +515,12 @@ export const usePlayerHits = (
     const gains = villainGainsBetween(last.player, player);
     const debuffs = debuffsBetween(last.player.statuses, player.statuses);
     const misses = missesBetween(last.player, player);
+    const dodges = dodgesBetween(last.player, player);
     lastRef.current = { player, turn };
     const fresh = [
       ...(firstBlow ? [firstBlow] : []),
       ...misses,
+      ...dodges,
       ...gains,
       ...debuffs,
     ];

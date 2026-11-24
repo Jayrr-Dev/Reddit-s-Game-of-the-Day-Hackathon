@@ -66,6 +66,11 @@ const BURIED_OPACITY = 0.55;
 const BLOCKED_SCALE = 0.65;
 /** Gains (heal, Guard, Wrath) are drawn a little smaller than hits. */
 const GAIN_SCALE = 0.75;
+/** Pops that show a word instead of a number. */
+const WORD_POPS: Partial<Record<PopKind, string>> = {
+  miss: 'Miss',
+  dodge: 'Dodge',
+};
 
 // --- SUBCOMPONENTS ---
 /**
@@ -167,14 +172,15 @@ const GainLine = ({
 }) => {
   if (kind === 'hit') return null;
   const look = POP_LOOK[kind];
-  // OUT OF RANGE: the shot missed, so the word replaces a number.
-  if (kind === 'miss')
+  // A MISS (Out of Range) or a DODGE (Instinct): a word, not a number.
+  const word = WORD_POPS[kind];
+  if (word)
     return (
       <div
         className={`font-display font-black uppercase whitespace-nowrap animate-hit-pop drop-shadow-[0_1px_2px_black] ${look.toneClass}`}
         style={{ fontSize: popFontPx(typical, typical, GAIN_SCALE) }}
       >
-        Miss
+        {word}
       </div>
     );
   return (

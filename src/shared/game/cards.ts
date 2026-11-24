@@ -283,6 +283,14 @@ export const CARDS = {
   adrenaline: card('Adrenaline', 'buff', 0, 'common', [
     { kind: 'rush', amount: 2 },
   ]),
+  instinct: card(
+    'Instinct',
+    'buff',
+    1,
+    'uncommon',
+    [buff('instinct', 1)],
+    REMOVES
+  ),
   bane: card('Bane', 'buff', 1, 'uncommon', [buff('bane', 3)], REMOVES),
   sharpshooter: card(
     'Sharpshooter',

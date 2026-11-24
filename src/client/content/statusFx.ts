@@ -72,6 +72,7 @@ export type FxKind = Exclude<PopKind, 'hit'>;
 export const STATUS_FX: Record<FxKind, FxSpec> = {
   /** A miss (Out of Range): nothing lands, so nothing is drawn. */
   miss: { layers: [], hasGlow: false },
+  dodge: { layers: [], hasGlow: false },
   heal: {
     layers: [{ shape: 'plus', motion: 'rise', count: 4, size: 16 }],
     hasGlow: true,
@@ -122,6 +123,14 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     layers: [
       { shape: 'icon', motion: 'flash', count: 1, size: 42 },
       { shape: 'arrow', motion: 'rise', count: 3, size: 16 },
+    ],
+    hasGlow: true,
+  },
+  /** Instinct (dodge): the dodging figure flashes, chevrons rise. */
+  instinct: {
+    layers: [
+      { shape: 'icon', motion: 'flash', count: 1, size: 44 },
+      { shape: 'chevron', motion: 'rise', count: 2, size: 16 },
     ],
     hasGlow: true,
   },

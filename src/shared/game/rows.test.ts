@@ -21,6 +21,7 @@ import {
 import { type CardId } from './cards.ts';
 import {
   aimHitChance,
+  dodgeChanceOf,
   endTurn,
   endTurnSteps,
   hasLongRangePassive,
@@ -512,4 +513,50 @@ void test('heroes never fill more than the cell cap: summons fizzle', () => {
   assert.equal(freeHeroCells(state.heroes), MAX_HERO_CELLS - 5);
   const priest = unitAt(state, 2);
   assert.equal(summonSeats(state.heroes, priest, 1, 2).length, 1);
+});
+
+// --- INSTINCT (DODGE) ---
+/** The fight with the villain at `instinct` stacks of Instinct. */
+const withInstinct = (state: CombatState, instinct: number): CombatState => ({
+  ...state,
+  player: {
+    ...state.player,
+    statuses: { ...state.player.statuses, instinct },
+  },
+});
+
+void test('Instinct dodge chance by stacks: 25%, 50%, 50%, 75%, then 99%', () => {
+  assert.deepEqual(
+    [0, 1, 2, 3, 4, 5, 9].map(dodgeChanceOf),
+    [0, 0.25, 0.5, 0.5, 0.75, 0.99, 0.99]
+  );
+});
+
+void test('Ultra Instinct dodges nearly every hit, and each dodge is counted', () => {
+  const results = Array.from({ length: 40 }, (_, index) => {
+    const state = withInstinct(
+      fightAt([['squire', 'front', 0]], [], index + 1),
+      5
+    );
+    const after = endTurn(state);
+    return {
+      hp: state.player.hp - after.player.hp,
+      dodged: after.player.dodgedHits ?? 0,
+    };
+  });
+  assert.ok(results.filter((r) => r.dodged > 0).length >= 35);
+  assert.ok(results.every((r) => r.dodged > 0 || r.hp > 0));
+});
+
+void test('Hex can not be dodged', () => {
+  const base = withInstinct(fightAt([['archmage', 'back', 0]]), 5);
+  // Its Curse of Light (Hex 4, Weaken 1) is move 1.
+  const state = {
+    ...base,
+    heroes: base.heroes.map((unit) => ({ ...unit, moveIndex: 1 })),
+  };
+  const hexed = endTurnSteps(state).some(
+    (step) => step.state.player.statuses.hex > 0
+  );
+  assert.ok(hexed);
 });

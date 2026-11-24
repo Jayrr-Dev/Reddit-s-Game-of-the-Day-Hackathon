@@ -41,6 +41,15 @@ export const BANE_AFFLICTIONS: ReadonlySet<StatusId> = new Set([
   'bleed',
   'shock',
 ]);
+/**
+ * INSTINCT: the chance to dodge, by stacks (index = stacks, the last
+ * entry for that many or more). 5+ is Ultra Instinct.
+ */
+export const INSTINCT_DODGE_CHANCES: readonly number[] = [
+  0, 0.25, 0.5, 0.5, 0.75, 0.99,
+];
+/** Stacks at which Instinct becomes Ultra Instinct. */
+export const ULTRA_INSTINCT_STACKS = INSTINCT_DODGE_CHANCES.length - 1;
 /** Buffs that are on or off: their stacks are never printed or shown. */
 export const ON_OFF_BUFFS: ReadonlySet<BuffId> = new Set(['sharpshooter']);
 /**
@@ -137,6 +146,7 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   reinforce: false,
   sharpshooter: false,
   bane: false,
+  instinct: false,
   momentum: false,
   protection: false,
   aloft: false,
