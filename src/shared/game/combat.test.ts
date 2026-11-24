@@ -719,6 +719,7 @@ void test('afflictions are the harmful statuses, flagged in one table', () => {
     'hex',
     'poison',
     'shock',
+    'vex',
     'weaken',
   ]);
 });
@@ -1959,4 +1960,42 @@ void test('Sharpshooter: Range hits deal 20% more, other types are unchanged', (
   ]);
   assert.deepEqual(describeCard('backhand', after.player), ['Damage 6']);
   assert.deepEqual(describeCard('sharpshooter'), ['Sharpshooter', 'Remove']);
+});
+
+// --- BANE ---
+void test('Bane adds its stacks to every affliction a card lays', () => {
+  const state = withHand(fightWith([]), ['bane', 'venomDart', 'darkCloak']);
+  const uid = state.heroes[0]?.uid ?? -1;
+  const baned = playCard(state, 0, uid);
+  assert.equal(baned.player.statuses.bane, 3);
+  assert.deepEqual(describeCard('venomDart', baned.player), [
+    'Damage 3',
+    'Poison 7',
+  ]);
+  const after = playCard(baned, 0, uid);
+  const hero = after.heroes.find((unit) => unit.uid === uid);
+  assert.equal(hero?.statuses.poison, 4 + 3);
+  assert.deepEqual(describeCard('bane'), ['Bane 3', 'Remove']);
+});
+
+// --- VEX ---
+void test('Vex adds its stacks to every affliction laid on the unit, with Bane', () => {
+  const state = withHand(fightWith([]), ['vexingWord', 'venomDart', 'bane']);
+  const uid = state.heroes[0]?.uid ?? -1;
+  const vexed = playCard(state, 0, uid);
+  const hero = vexed.heroes.find((unit) => unit.uid === uid);
+  assert.equal(hero?.statuses.vex, 3);
+  const baned = playCard(vexed, 1, uid);
+  const after = playCard(baned, 0, uid);
+  const poisoned = after.heroes.find((unit) => unit.uid === uid);
+  // Poison 4, +3 Bane, +3 Vex.
+  assert.equal(poisoned?.statuses.poison, 10);
+});
+
+void test("Vex wears off by 1 at the end of the unit's turn", () => {
+  const vexed = {
+    ...createCombatant(20, 20),
+    statuses: { ...NO_STATUSES, vex: 2 },
+  };
+  assert.equal(endOfTurnUpkeep(vexed).statuses.vex, 1);
 });

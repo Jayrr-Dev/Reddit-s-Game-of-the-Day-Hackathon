@@ -34,6 +34,7 @@ export type DebuffKind =
   | 'shock'
   | 'bleed'
   | 'weaken'
+  | 'vex'
   | 'enfeeble';
 
 /** A status that deals damage on its own when it goes off (a tick). */
@@ -101,6 +102,7 @@ type HeroLook = {
   shock: number;
   bleed: number;
   weaken: number;
+  vex: number;
   enfeeble: number;
   point: Point | null;
 };
@@ -122,6 +124,7 @@ const goneAfter = (old: HeroLook): Omit<HeroLook, 'point'> => ({
   shock: 0,
   bleed: 0,
   weaken: 0,
+  vex: 0,
   enfeeble: 0,
 });
 /**
@@ -135,6 +138,8 @@ const DEBUFFS: readonly DebuffKind[] = [
   'poison',
   'burn',
   'frost',
+  'bleed',
+  'vex',
   'weaken',
   'enfeeble',
 ];
@@ -148,6 +153,8 @@ const VILLAIN_GAINS: readonly (StatusId & PopKind)[] = [
   'hone',
   'reinforce',
   'brace',
+  'sharpshooter',
+  'bane',
 ];
 
 // --- HELPERS ---
@@ -301,6 +308,7 @@ const lookAt = (
         shock: unit.statuses.shock,
         bleed: unit.statuses.bleed,
         weaken: unit.statuses.weaken,
+        vex: unit.statuses.vex,
         enfeeble: unit.statuses.enfeeble,
         point: bodyPointOf(unit.uid) ?? before.get(unit.uid)?.point ?? null,
       },
@@ -335,6 +343,7 @@ const heroPopsSince = (
           shock: unit.statuses.shock,
           bleed: unit.statuses.bleed,
           weaken: unit.statuses.weaken,
+          vex: unit.statuses.vex,
           enfeeble: unit.statuses.enfeeble,
         }
       : goneAfter(old);

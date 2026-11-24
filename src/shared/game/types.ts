@@ -25,6 +25,8 @@ import type { RngState } from './rng.ts';
  *           move; the villain's whole turn), then drops by 1
  * - hex:    right before its turn, loses this much HP if it is odd
  *           (nothing when even), then hex drops by 1
+ * - vex:    every affliction laid on it gets this many more stacks;
+ *           drops by 1 at the end of its turn
  * - weaken: deals 25% less attack damage; drops by 1 at the end of its turn
  * - wrath: adds this much to every hit; lasts the whole fight
  * Buffs, gained from the villain's Buff cards, also last the whole fight:
@@ -32,6 +34,8 @@ import type { RngState } from './rng.ts';
  * - surge:      adds this much to every Magic hit
  * - hone:   adds this much to every Range hit
  * - reinforce: adds this much to every Guard a card gives
+ * - bane:      adds this much to every affliction your cards lay (Hex,
+ *              Poison, Burn, Frost, Bleed, Shock; see BANE_AFFLICTIONS)
  * - sharpshooter: on or off; your shots ignore Out of Range and Range
  *   hits deal SHARPSHOOTER_DAMAGE_FACTOR times as much
  * Momentum comes from charging: while above 0 the next Melee card deals
@@ -41,7 +45,8 @@ import type { RngState } from './rng.ts';
  * aim at or hit the hero; its next move comes down from the sky and
  * clears it.
  */
-export type BuffId = 'might' | 'surge' | 'hone' | 'reinforce' | 'sharpshooter';
+export type BuffId =
+  'might' | 'surge' | 'hone' | 'reinforce' | 'sharpshooter' | 'bane';
 export type StatusId =
   | 'hex'
   | 'poison'
@@ -49,6 +54,8 @@ export type StatusId =
   | 'frost'
   | 'shock'
   | 'bleed'
+  /** Afflictions laid on it get this many more stacks; -1 a turn. */
+  | 'vex'
   | 'weaken'
   | 'wrath'
   | 'momentum'
@@ -102,6 +109,7 @@ export type CardTarget = 'one' | 'all';
 export type BaseCardEffect =
   | { kind: 'damage'; amount: number; hits: number; target: CardTarget }
   | { kind: 'hex'; amount: number; target: CardTarget }
+  | { kind: 'vex'; amount: number; target: CardTarget }
   | { kind: 'poison'; amount: number; target: CardTarget }
   | { kind: 'burn'; amount: number; target: CardTarget }
   | { kind: 'frost'; amount: number; target: CardTarget }

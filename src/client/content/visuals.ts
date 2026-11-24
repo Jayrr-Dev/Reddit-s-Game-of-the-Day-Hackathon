@@ -37,6 +37,7 @@ export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
   shock: { glyph: 'bolt', toneClass: 'text-shock' },
   bleed: { glyph: 'drop', toneClass: 'text-bleed' },
   weaken: { glyph: 'eye', toneClass: 'text-weaken' },
+  vex: { glyph: 'crackedShield', toneClass: 'text-vex' },
   enfeeble: { glyph: 'shatter', toneClass: 'text-enfeeble' },
   // Each buff wears the colour of what it boosts: Melee red, Range
   // silver, Magic sky blue, Guard and defence blue. Wrath boosts every
@@ -46,6 +47,8 @@ export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
   surge: { glyph: 'swirl', toneClass: 'text-magic' },
   hone: { glyph: 'bow', toneClass: 'text-range' },
   sharpshooter: { glyph: 'targeting', toneClass: 'text-range' },
+  // Bane boosts afflictions, so it wears the Curse colour (Hex purple).
+  bane: { glyph: 'flask', toneClass: 'text-hex' },
   reinforce: { glyph: 'shield', toneClass: 'text-guard' },
   brace: { glyph: 'anchor', toneClass: 'text-guard' },
   momentum: { glyph: 'bolt', toneClass: 'text-hp' },
@@ -246,6 +249,7 @@ export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   surge: STATUS_LOOK.surge,
   hone: STATUS_LOOK.hone,
   sharpshooter: STATUS_LOOK.sharpshooter,
+  bane: STATUS_LOOK.bane,
   reinforce: STATUS_LOOK.reinforce,
   brace: STATUS_LOOK.brace,
   momentum: STATUS_LOOK.momentum,
@@ -259,6 +263,7 @@ export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   shockBurst: STATUS_LOOK.shock,
   miss: { glyph: 'eye', toneClass: 'text-ink-muted' },
   weaken: STATUS_LOOK.weaken,
+  vex: STATUS_LOOK.vex,
   enfeeble: STATUS_LOOK.enfeeble,
 };
 

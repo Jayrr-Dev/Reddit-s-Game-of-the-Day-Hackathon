@@ -125,6 +125,14 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     ],
     hasGlow: true,
   },
+  /** Bane (stronger afflictions): the flask flashes and bubbles rise. */
+  bane: {
+    layers: [
+      { shape: 'icon', motion: 'flash', count: 1, size: 42 },
+      { shape: 'bubble', motion: 'rise', count: 5, size: 12 },
+    ],
+    hasGlow: true,
+  },
   /** Reinforce (+Guard from cards): the shield flashes, boosted up. */
   reinforce: {
     layers: [
@@ -205,6 +213,14 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     layers: [
       { shape: 'icon', motion: 'slam', count: 1, size: 46 },
       { shape: 'shard', motion: 'fall', count: 5, size: 12 },
+    ],
+    hasGlow: true,
+  },
+  /** Vex (afflictions hit harder): the shield cracks, shards fall. */
+  vex: {
+    layers: [
+      { shape: 'icon', motion: 'slam', count: 1, size: 44 },
+      { shape: 'shard', motion: 'fall', count: 4, size: 10 },
     ],
     hasGlow: true,
   },

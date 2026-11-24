@@ -179,6 +179,10 @@ export const CARDS = {
   twinDaggers: card('Twin Daggers', 'melee', 1, 'common', [hit(4, 2)]),
   boneWard: card('Bone Ward', 'defend', 1, 'common', [guard(8)]),
   whisperHex: card('Whisper Hex', 'curse', 0, 'common', [hex(3)]),
+  vexingWord: card('Vexing Word', 'curse', 1, 'common', [
+    hex(1),
+    { kind: 'vex', amount: 3, target: 'one' },
+  ]),
   quickJab: card('Quick Jab', 'melee', 0, 'common', [hit(3), draw(1)]),
   sneer: card('Sneer', 'curse', 1, 'common', [guard(5), weaken(1), hex(1)]),
   fortressOfSpite: card('Fortress of Spite', 'defend', 2, 'common', [
@@ -276,6 +280,7 @@ export const CARDS = {
     REMOVES
   ),
   deadeye: card('Deadeye', 'buff', 1, 'common', [buff('hone', 3)], REMOVES),
+  bane: card('Bane', 'buff', 1, 'uncommon', [buff('bane', 3)], REMOVES),
   sharpshooter: card(
     'Sharpshooter',
     'buff',

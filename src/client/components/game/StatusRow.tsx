@@ -84,6 +84,7 @@ const STATUS_ORDER: readonly StatusId[] = [
   'might',
   'hone',
   'sharpshooter',
+  'bane',
   'momentum',
   // MAGIC
   'surge',
@@ -95,6 +96,7 @@ const STATUS_ORDER: readonly StatusId[] = [
   'shock',
   'bleed',
   'weaken',
+  'vex',
   'enfeeble',
 ];
 

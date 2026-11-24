@@ -68,6 +68,8 @@
   /* Buff's glow, a bright amber. */
   --color-buff: #f59a3c;
   --color-weaken: #6f7f9e;
+  /* Vex (afflictions laid on it hit harder): a sickly magenta. */
+  --color-vex: #d24fb3;
   /* Enfeeble: a sickly ochre, the colour of a blade gone dull. */
   --color-enfeeble: #b59a5a;
   /* Wrath is a Buff: it wears the Buff card type's orange. */

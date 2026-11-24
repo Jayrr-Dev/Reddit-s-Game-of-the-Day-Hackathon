@@ -13,6 +13,7 @@ import {
   HEX_EMPOWERED_DIGIT,
   HEX_EMPOWERED_MULTIPLIER,
   HEX_GROWTH,
+  BANE_AFFLICTIONS,
   MOMENTUM_DAMAGE_FACTOR,
   SHARPSHOOTER_DAMAGE_FACTOR,
   TIERED_CUT_BY_TIER,
@@ -36,6 +37,7 @@ export const NO_STATUSES: Statuses = {
   frost: 0,
   shock: 0,
   bleed: 0,
+  vex: 0,
   weaken: 0,
   wrath: 0,
   might: 0,
@@ -43,6 +45,7 @@ export const NO_STATUSES: Statuses = {
   hone: 0,
   reinforce: 0,
   sharpshooter: 0,
+  bane: 0,
   momentum: 0,
   protection: 0,
   enfeeble: 0,
@@ -77,6 +80,20 @@ export const damageBuffOf = (type?: CardType): BuffId | undefined =>
 export const typeBonus = (attacker: Combatant, type?: CardType): number => {
   const buff = damageBuffOf(type);
   return buff ? attacker.statuses[buff] : 0;
+};
+
+/**
+ * How many stacks of `status` land: the base, plus the attacker's Bane
+ * and the target's Vex when given (both only boost BANE_AFFLICTIONS).
+ */
+export const afflictionAmount = (
+  base: number,
+  attacker: Combatant,
+  status: StatusId,
+  target?: Combatant
+): number => {
+  if (!BANE_AFFLICTIONS.has(status)) return base;
+  return base + attacker.statuses.bane + (target?.statuses.vex ?? 0);
 };
 
 /** True when a card of `type` is boosted by the attacker's Momentum. */
@@ -415,7 +432,7 @@ export const afterAction = <T extends Combatant>(target: T): T =>
  * permanent for the fight (Hex runs before the turn: see hexBurn).
  */
 export const endOfTurnUpkeep = <T extends Combatant>(target: T): T => {
-  const { poison, weaken } = target.statuses;
+  const { poison, weaken, vex } = target.statuses;
   const poisoned = loseHp(target, poison);
   return {
     ...poisoned,
@@ -423,6 +440,7 @@ export const endOfTurnUpkeep = <T extends Combatant>(target: T): T => {
       ...poisoned.statuses,
       poison: Math.max(0, poison - 1),
       weaken: Math.max(0, weaken - 1),
+      vex: Math.max(0, vex - 1),
       momentum: 0,
       // Protection cast this turn covers the turn ahead; else it lapses.
       protection: renewedTier(

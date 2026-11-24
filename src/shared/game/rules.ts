@@ -29,6 +29,18 @@ export const CHARGE_COST = 1;
 export const MOMENTUM_DAMAGE_FACTOR = 1.5;
 /** Sharpshooter multiplies every Range hit (and its shots never miss). */
 export const SHARPSHOOTER_DAMAGE_FACTOR = 1.2;
+/**
+ * The afflictions Bane strengthens: those counted in stacks. (Weaken
+ * counts turns and Enfeeble tiers, so Bane leaves them alone.)
+ */
+export const BANE_AFFLICTIONS: ReadonlySet<StatusId> = new Set([
+  'hex',
+  'poison',
+  'burn',
+  'frost',
+  'bleed',
+  'shock',
+]);
 /** Buffs that are on or off: their stacks are never printed or shown. */
 export const ON_OFF_BUFFS: ReadonlySet<BuffId> = new Set(['sharpshooter']);
 /**
@@ -114,6 +126,7 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   frost: true,
   shock: true,
   bleed: true,
+  vex: true,
   weaken: true,
   enfeeble: true,
   brace: false,
@@ -123,6 +136,7 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   hone: false,
   reinforce: false,
   sharpshooter: false,
+  bane: false,
   momentum: false,
   protection: false,
   aloft: false,

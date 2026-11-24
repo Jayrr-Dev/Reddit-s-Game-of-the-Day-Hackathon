@@ -8,6 +8,7 @@
 import { targetRuleOf } from './battlefield.ts';
 import { getCard, isKeywordOn, type CardId } from './cards.ts';
 import {
+  afflictionAmount,
   attackDamage,
   buffedAttackDamage,
   guardAmount,
@@ -132,6 +133,16 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
     label: 'Reinforce',
     description: 'Every **Guard** your cards give is this much bigger',
   },
+  vex: {
+    label: 'Vex',
+    description:
+      'Every **affliction** laid on it gets this many more stacks\nGoes down by **1** each turn',
+  },
+  bane: {
+    label: 'Bane',
+    description:
+      'Every **affliction** your cards lay gets this many more stacks\n**Hex**, **Poison**, **Burn**, **Frost**, **Bleed** and **Shock**',
+  },
   sharpshooter: {
     label: 'Sharpshooter',
     description: `Your shots ignore **Out of Range**\nEvery **Range** hit deals **${SHARPSHOOTER_BONUS_TEXT}**`,
@@ -207,8 +218,9 @@ export const describeCardEffect = (
     case 'frost':
     case 'bleed':
     case 'shock':
+    case 'vex':
     case 'weaken':
-      return describeStatusLine(effect);
+      return describeStatusLine(effect, attacker);
     case 'enfeeble':
       return `Enfeeble${areaWord(effect.target)}`;
     case 'reap': {
@@ -429,6 +441,7 @@ export const imbueTag = (gift: ImbueGift): string => {
     case 'frost':
     case 'bleed':
     case 'shock':
+    case 'vex':
     case 'weaken':
     case 'guard':
     case 'wrath':
@@ -462,12 +475,29 @@ const describeImbueEffect = ({ gift }: Imbue): string =>
 /** Card effects that lay a status on heroes. */
 type AppliedStatus = Extract<
   CardEffect,
-  { kind: 'hex' | 'poison' | 'burn' | 'frost' | 'shock' | 'bleed' | 'weaken' }
+  {
+    kind:
+      | 'hex'
+      | 'poison'
+      | 'burn'
+      | 'frost'
+      | 'shock'
+      | 'bleed'
+      | 'vex'
+      | 'weaken';
+  }
 >;
 
 /** A status laid on heroes, as its name and number: "Hex 2", "Hex ALL 4". */
-const describeStatusLine = (effect: AppliedStatus): string =>
-  `${STATUS_INFO[effect.kind].label}${areaWord(effect.target)} ${effect.amount}`;
+const describeStatusLine = (
+  effect: AppliedStatus,
+  attacker?: Combatant
+): string => {
+  const amount = attacker
+    ? afflictionAmount(effect.amount, attacker, effect.kind)
+    : effect.amount;
+  return `${STATUS_INFO[effect.kind].label}${areaWord(effect.target)} ${amount}`;
+};
 
 /** The line for what a card's element lays on each hit, if anything. */
 const elementLines = (cardDef: CardDef): string[] => {

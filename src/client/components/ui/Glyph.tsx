@@ -41,7 +41,9 @@ export type GlyphName =
   | 'sprint'
   | 'potion'
   | 'plus'
-  | 'targeting';
+  | 'targeting'
+  | 'flask'
+  | 'crackedShield';
 
 export type GlyphProps = {
   name: GlyphName;

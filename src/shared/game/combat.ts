@@ -43,6 +43,7 @@ import { getCard, type CardId } from './cards.ts';
 import {
   addGuard,
   addStatus,
+  afflictionAmount,
   castProtection,
   dropProtection,
   enfeeble,
@@ -651,11 +652,17 @@ const applyCardEffect = (
     case 'frost':
     case 'bleed':
     case 'shock':
+    case 'vex':
     case 'weaken':
       return updateHeroes(
         state,
         resolveTargets(state, effect.target, targetUid),
-        (unit) => addStatus(unit, effect.kind, effect.amount)
+        (unit) =>
+          addStatus(
+            unit,
+            effect.kind,
+            afflictionAmount(effect.amount, state.player, effect.kind, unit)
+          )
       );
     case 'enfeeble':
       return updateHeroes(
