@@ -257,17 +257,21 @@ const removeFallen = (state: CombatState): CombatState => {
 /**
  * Resolves who an effect hits. `one` is the aimed hero (if still alive);
  * `all` is everyone for Reach cards and curses, the front row for melee.
+ * With `isFollowThrough`, a `one` hit also lands on the aimed hero after
+ * it fell to an earlier hit of the same card (see villainAttack).
  */
 const resolveTargets = (
   state: CombatState,
   target: CardTarget,
   targetUid: number,
-  isMelee = false
+  isMelee = false,
+  isFollowThrough = false
 ): number[] => {
   const living = state.heroes.filter((unit) => !isDefeated(unit));
   if (target === 'all')
     return areaTargets(living, isMelee).map((unit) => unit.uid);
-  return living.some((unit) => unit.uid === targetUid) ? [targetUid] : [];
+  const pool = isFollowThrough ? state.heroes : living;
+  return pool.some((unit) => unit.uid === targetUid) ? [targetUid] : [];
 };
 
 // --- CARD EFFECTS ---
@@ -282,7 +286,13 @@ export const cardHitOn = (
     ? longRangeHit(perHit)
     : perHit;
 
-/** Deals `hits` hits of villain attack damage to the targets. */
+/**
+ * Deals `hits` hits of villain attack damage to the targets. FOLLOW
+ * THROUGH: a volley at one hero keeps landing after the hero falls,
+ * until the card is done. HP stays at 0, so this changes no outcome;
+ * it only adds overkill to damageTaken, so every hit of the volley still
+ * shows its number. Fallen heroes leave when the card resolves.
+ */
 const villainAttack = (
   state: CombatState,
   effect: Extract<CardEffect, { kind: 'damage' }>,
@@ -291,11 +301,18 @@ const villainAttack = (
 ): CombatState => {
   const isMelee = !cardDef.reach;
   const perHit = attackDamage(effect.amount, state.player, cardDef.type);
+  const isFollowThrough = effect.target === 'one';
   return Array.from({ length: effect.hits }).reduce<CombatState>(
     (current) =>
       updateHeroes(
         current,
-        resolveTargets(current, effect.target, targetUid, isMelee),
+        resolveTargets(
+          current,
+          effect.target,
+          targetUid,
+          isMelee,
+          isFollowThrough
+        ),
         (unit) => takeDamage(unit, cardHitOn(unit, perHit, cardDef))
       ),
     state

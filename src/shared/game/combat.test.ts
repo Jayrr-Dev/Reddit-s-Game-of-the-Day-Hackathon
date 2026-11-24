@@ -217,6 +217,24 @@ void test('playCardSteps shows each hit and ends on the real play', () => {
   assert.ok(hpOf(steps[0] as CombatState) > hpOf(steps[1] as CombatState));
 });
 
+void test('a volley keeps landing on a hero it fells, for the numbers', () => {
+  const fresh = withHand(fightWith(['backhand']), ['flurry']);
+  // A 1 HP Squire: Flurry's first hit fells it; hits 2 and 3 still land.
+  const start = {
+    ...fresh,
+    heroes: fresh.heroes.map((unit) => ({ ...unit, hp: 1, shroud: 0 })),
+  };
+  const steps = playCardSteps(start, 0, squireUid(start));
+  const taken = steps
+    .slice(0, 3)
+    .map((state) => state.heroes[0]?.damageTaken ?? 0);
+  assert.deepEqual(taken, [3, 6, 9]);
+  // HP never goes below 0, and the hero leaves once the card resolves.
+  assert.equal(steps[2]?.heroes[0]?.hp, 0);
+  assert.equal(steps.at(-1)?.heroes.length, 0);
+  assert.equal(steps.at(-1)?.slain, 1);
+});
+
 // --- TARGET N ---
 /** A fight against a Squire (front) and an Archer (back). */
 const squireAndArcher = (hand: CardId[]): CombatState =>
