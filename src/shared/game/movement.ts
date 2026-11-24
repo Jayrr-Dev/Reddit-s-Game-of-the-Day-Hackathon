@@ -111,13 +111,21 @@ export const offeredMovement = (state: CombatState): MovementId | null =>
 
 /**
  * Why an offered move can't be made at all (cost aside), or null. A
- * boss that reaches into the back row (see isDeep) never moves row:
- * there is nowhere to fall back to, so Back Step is shown but locked.
+ * boss that reaches into the row behind it (see isDeep) moves as a
+ * whole only when the field has a row for its reach. On a field too
+ * shallow (two rows) the move would change nothing: shown but locked.
  */
 export const movementBlockReason = (
   state: CombatState,
   move: MovementId
-): string | null => (state.heroes.some(isDeep) ? BLOCKED_BY_BOSS[move] : null);
+): string | null => {
+  const isBossHere = state.heroes.some(isDeep);
+  const reshaped = MOVEMENTS[move].reshape(state.heroes);
+  const isStuck = reshaped.every(
+    (unit, index) => unit.row === state.heroes[index]?.row
+  );
+  return isBossHere && isStuck ? BLOCKED_BY_BOSS[move] : null;
+};
 
 /**
  * True when the field has room for `move`: fight on, the formation fits

@@ -3,10 +3,11 @@
 // Where heroes stand. The field is a grid BATTLEFIELD_COLUMNS wide and
 // BATTLEFIELD_ROWS deep (nearest first: the Front line, the Backline,
 // the Horizon); each hero fills `size` neighbouring columns in one row.
-// A hero with `backCols` (a boss) stands in the front row and also fills
-// those columns of the back row, so its footprint can be any shape (all
-// six cells, or a T: the front row plus the back centre). It never
-// changes row. Bosses are immovable: a pull or push aimed at them fails.
+// A hero with `backCols` (a boss) stands in its row and also fills
+// those columns of the row behind it, so its footprint can be any shape
+// (a T: a whole row plus the centre behind it). Bosses are immovable: a
+// pull or push aimed at them fails. Charge and Back Step still move a
+// deep boss as a whole when the field has a row for its reach.
 //
 // RULES (every move shifts by whole rows, never sideways on its own)
 //   - Melee cards hit the front row only. Reach cards, curses and Hex
@@ -22,8 +23,9 @@
 //     row toward it if there is room.
 //   - Charge: with the front row empty, the field closes in by up to
 //     CHARGE_ROWS rows, until someone stands in the front row.
-//   - Back Step: with everyone in the front row, the field falls back
-//     BACK_STEP_ROWS row.
+//   - Back Step: with someone in the front row, every hero with room
+//     behind falls back BACK_STEP_ROWS row (a deep boss too, as a whole,
+//     when there is a row behind its reach).
 //   - Piercing runs down the target's whole column, every row.
 // ===================================================================
 
@@ -92,7 +94,7 @@ export const sizeOf = (unit: Pick<HeroUnit, 'heroId'>): HeroSize =>
 const backColsOf = (unit: Pick<HeroUnit, 'heroId'>): readonly number[] =>
   getHero(unit.heroId).backCols ?? [];
 
-/** True for a hero that reaches into the back row too (it never moves row). */
+/** True for a hero that also fills cells in the row behind its own. */
 export const isDeep = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
   backColsOf(unit).length > 0;
 
@@ -117,10 +119,14 @@ export const cellsOf = (
 ): Cell[] => [
   ...spanOf(unit.col, sizeOf(unit)).map((col) => ({ row: unit.row, col })),
   ...backColsOf(unit).map((offset) => ({
-    row: 'back' as const,
+    row: reachRowOf(unit),
     col: unit.col + offset,
   })),
 ];
+
+/** The row a deep hero's reach fills: the one behind its own. */
+const reachRowOf = (unit: Pick<HeroUnit, 'row'>): HeroRow =>
+  rowShifted(unit.row, 1) ?? unit.row;
 
 /**
  * The lane a Piercing hit goes through: a hero's middle lane (for a
@@ -158,9 +164,9 @@ export const heroesPiercedPast = (
     .sort((a, b) => nearestDepthInLane(a) - nearestDepthInLane(b));
 };
 
-/** The rows a hero stands in: its own, plus the back for a deep one. */
+/** The rows a hero stands in: its own, plus the one behind for a deep one. */
 export const rowsOf = (unit: Pick<HeroUnit, 'heroId' | 'row'>): HeroRow[] =>
-  isDeep(unit) ? ['front', 'back'] : [unit.row];
+  isDeep(unit) ? [unit.row, reachRowOf(unit)] : [unit.row];
 
 /** How many battlefield cells a hero fills. */
 export const cellCountOf = (unit: Pick<HeroUnit, 'heroId'>): number =>
@@ -305,15 +311,47 @@ export const formUp = (units: readonly UnplacedHero[]): HeroUnit[] => {
 };
 
 /**
+ * The row a hero would stand in `steps` rows away, or null when it (or a
+ * deep hero's reach, one row behind) would run off the field.
+ */
+const shiftedRowOf = (unit: HeroUnit, steps: number): HeroRow | null => {
+  const row = rowShifted(unit.row, steps);
+  if (row === null || !isDeep(unit)) return row;
+  return rowShifted(row, 1) === null ? null : row;
+};
+
+/**
  * Shifts every hero `steps` rows (negative: nearer), keeping columns.
- * Deep heroes (bosses) never change row. The caller makes sure nobody
- * runs off the field; anyone who would just stays put.
+ * The caller makes sure nobody runs off the field; anyone who would
+ * (a deep boss whose reach has no row) just stays put.
  */
 const shiftField = (heroes: readonly HeroUnit[], steps: number): HeroUnit[] =>
   heroes.map((unit) => {
-    const row = rowShifted(unit.row, steps);
-    return isDeep(unit) || row === null ? unit : { ...unit, row };
+    const row = shiftedRowOf(unit, steps);
+    return row === null ? unit : { ...unit, row };
   });
+
+/**
+ * A deep hero (a boss) moves `steps` rows as a whole, when its new
+ * cells are on the field and free; otherwise the field is unchanged.
+ */
+const shiftDeep = (
+  heroes: HeroUnit[],
+  uid: number,
+  steps: number
+): HeroUnit[] => {
+  const unit = heroes.find((hero) => hero.uid === uid);
+  const row = unit && shiftedRowOf(unit, steps);
+  if (!unit || !row) return heroes;
+  const moved = { ...unit, row };
+  const taken = heroes.filter((hero) => hero.uid !== uid).flatMap(cellsOf);
+  const isClear = cellsOf(moved).every(
+    (cell) => !taken.some((t) => t.row === cell.row && t.col === cell.col)
+  );
+  return isClear
+    ? heroes.map((hero) => (hero.uid === uid ? moved : hero))
+    : heroes;
+};
 
 /** The depth of the nearest row anyone stands in (0: the front row). */
 const nearestDepth = (heroes: readonly HeroUnit[]): number =>
@@ -517,8 +555,10 @@ export const advanceHeroes = (heroes: HeroUnit[]): HeroUnit[] => {
   let field = heroes;
   for (const unit of heroes) {
     const current = field.find((hero) => hero.uid === unit.uid);
-    if (current && rowsBehindHome(current) > 0 && canPull(field, current))
-      field = pullHero(field, current.uid);
+    if (!current || rowsBehindHome(current) <= 0) continue;
+    // A deep boss walks back in as a whole; anyone else is pulled.
+    if (isDeep(current)) field = shiftDeep(field, current.uid, -1);
+    else if (canPull(field, current)) field = pullHero(field, current.uid);
   }
   return field;
 };
@@ -539,7 +579,10 @@ export const fallBack = (
     const farthestFirst = [...field].sort(
       (a, b) => rowDepth(b.row) - rowDepth(a.row)
     );
-    for (const unit of farthestFirst) field = pushHero(field, unit.uid);
+    for (const unit of farthestFirst)
+      field = isDeep(unit)
+        ? shiftDeep(field, unit.uid, 1)
+        : pushHero(field, unit.uid);
   }
   return field;
 };

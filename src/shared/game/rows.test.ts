@@ -11,6 +11,7 @@ import {
   advanceHeroes,
   canPull,
   canPush,
+  cellsOf,
   freeHeroCells,
   heroesPiercedPast,
   pullHero,
@@ -28,7 +29,7 @@ import {
 import { FEATURES } from './features.ts';
 import { canImbueOnto } from './imbue.ts';
 import { getHero, type HeroId } from './heroes.ts';
-import { canMove, move } from './movement.ts';
+import { canMove, move, movementBlockReason } from './movement.ts';
 import { MAX_HERO_CELLS, OUT_OF_RANGE_HIT_CHANCE } from './rules.ts';
 import type { CombatState, HeroRow, HeroUnit } from './types.ts';
 
@@ -196,6 +197,24 @@ void test('with nobody on Line 1 there is no Back Step (Charge instead)', () => 
   const state = fightAt([['squire', 'back', 0]]);
   assert.equal(canMove(state, 'backStep'), false);
   assert.ok(canMove(state, 'charge'));
+});
+
+void test('a deep boss Back Steps as a whole, then walks back in', () => {
+  const state = fightAt([['grandGriffon', 'front', 1]]);
+  assert.ok(canMove(state, 'backStep'));
+  assert.equal(movementBlockReason(state, 'backStep'), null);
+  const after = move(state, 'backStep');
+  const griffon = unitAt(after, 0);
+  assert.deepEqual(
+    cellsOf(griffon).map((cell) => `${cell.row}:${cell.col}`),
+    ['back:1', 'horizon:1']
+  );
+  // Still immovable by Force Pull / Push.
+  assert.equal(canPull(after.heroes, griffon), false);
+  assert.equal(
+    unitAt({ heroes: advanceHeroes(after.heroes) } as CombatState, 0).row,
+    'front'
+  );
 });
 
 // --- PIERCING ---
