@@ -41,14 +41,14 @@ const SCATTER_Y = 16;
 /** Slash angles, taken in turn so a flurry crosses itself. */
 const SLASH_ANGLES = [-28, 24, -52, 8, 44, -12] as const;
 /** Blood red: every hurt's outer edge (and all of a Melee one). */
-const HURT_TONE = 'rgb(200 20 40 / 0.85)';
+const HURT_TONE = 'rgb(200 20 40 / 0.6)';
 /**
  * The inner band of the vignette, by attack type, fading out into the
  * blood-red edge: Magic blue, Range a steel grey.
  */
 const TYPE_TONE: Partial<Record<string, string>> = {
-  magic: 'rgb(60 130 255 / 0.75)',
-  range: 'rgb(150 155 165 / 0.75)',
+  magic: 'rgb(60 130 255 / 0.3)',
+  range: 'rgb(150 155 165 / 0.3)',
 };
 /** A fully blocked hit only shades the edges a faint black. */
 const BLOCKED_TONE = 'rgb(0 0 0 / 0.55)';
@@ -56,8 +56,8 @@ const BLOCKED_PEAK = 0.5;
 /** A curse's vignette: Hex purple. */
 const CURSE_TONE = 'rgb(130 60 200 / 0.8)';
 /** How strong the vignette gets: at least this, more for big hits. */
-const VIGNETTE_MIN = 0.45;
-const VIGNETTE_PER_SCALE = 0.3;
+const VIGNETTE_MIN = 0.3;
+const VIGNETTE_PER_SCALE = 0.2;
 /** The shake: pixels per unit of hit size, and how long it lasts. */
 const SHAKE_PX_PER_SCALE = 6;
 const SHAKE_MS = 360;
@@ -154,11 +154,40 @@ const toneStopsOf = (pop: PlayerHitPop): string => {
   if (isBlockedOnly(pop)) return `${BLOCKED_TONE} 100%`;
   if (isCurse(pop)) return `${CURSE_TONE} 100%`;
   const typeTone = TYPE_TONE[pop.source ?? ''];
-  return typeTone ? `${typeTone} 70%, ${HURT_TONE} 100%` : `${HURT_TONE} 100%`;
+  return typeTone ? `${typeTone} 78%, ${HURT_TONE} 100%` : `${HURT_TONE} 100%`;
 };
 
-/** The edges closing in, in the hit's tones (see toneStopsOf). */
+/** How many streaks the vignette's edge breaks into. */
+const STREAK_COUNT = 64;
+
+/**
+ * The vignette's texture: a mask of streaks around the centre, each of
+ * its own width and strength (seeded by the hit), so the edge closes in
+ * as ragged rays instead of a smooth ring, and no two hits match.
+ * A static mask, so it costs nothing while the vignette fades.
+ */
+const streakMaskOf = (seed: number): string => {
+  const widths = Array.from(
+    { length: STREAK_COUNT },
+    (_, index) => 0.4 + seeded(seed + index, 11)
+  );
+  const total = widths.reduce((sum, width) => sum + width, 0);
+  let angle = 0;
+  const stops = widths.map((width, index) => {
+    const from = angle;
+    angle += (width / total) * 360;
+    const alpha = (0.15 + 0.85 * seeded(seed + index, 12)).toFixed(2);
+    return `rgb(0 0 0 / ${alpha}) ${from.toFixed(1)}deg ${angle.toFixed(1)}deg`;
+  });
+  return `conic-gradient(from ${seeded(seed, 13) * 360}deg, ${stops.join(', ')})`;
+};
+
+/**
+ * The edges closing in, in the hit's tones (see toneStopsOf), torn into
+ * streaks (see streakMaskOf).
+ */
 const Vignette = ({ pop }: { pop: PlayerHitPop }) => {
+  const mask = streakMaskOf(seedOf(pop));
   const peak = isBlockedOnly(pop)
     ? BLOCKED_PEAK
     : Math.min(1, VIGNETTE_MIN + VIGNETTE_PER_SCALE * sizeOf(pop));
@@ -167,7 +196,9 @@ const Vignette = ({ pop }: { pop: PlayerHitPop }) => {
       className="pov-vignette absolute inset-0"
       style={
         {
-          background: `radial-gradient(ellipse at center, transparent 42%, ${toneStopsOf(pop)})`,
+          background: `radial-gradient(ellipse at center, transparent 52%, ${toneStopsOf(pop)})`,
+          maskImage: mask,
+          WebkitMaskImage: mask,
           '--pov-peak': peak,
         } as CSSProperties
       }
