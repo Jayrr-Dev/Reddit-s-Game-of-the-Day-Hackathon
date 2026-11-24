@@ -28,6 +28,7 @@ import {
   type HeroAction,
   type HeroActionStyle,
 } from '../../../content/heroLooks';
+import { bossEntranceOf } from '../../../content/bossEntrances';
 import { figureAspect, headTopShare } from '../../../lib/heroFigure';
 import { moodOf } from '../../../lib/heroMood';
 import { seeded } from '../../../lib/seeded';
@@ -200,6 +201,33 @@ const swayStyle = (unit: HeroUnit): CSSProperties => {
 };
 
 // --- SUBCOMPONENTS ---
+/** Dust puffs a landing boss kicks up: [left %, drift as % of the box]. */
+const BOSS_DUST: readonly (readonly [number, string])[] = [
+  [30, '-40cqw'],
+  [40, '-22cqw'],
+  [48, '-8cqw'],
+  [52, '8cqw'],
+  [60, '22cqw'],
+  [70, '40cqw'],
+];
+
+/**
+ * A boss's landing, played once as its entrance ends (index.css, BOSS
+ * ENTRANCE): its halo flares around it and dust kicks up at its feet.
+ */
+const BossLanding = () => (
+  <>
+    <span className="boss-flare pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[95%] rounded-full bg-[radial-gradient(circle,var(--color-accent-hover)_0%,transparent_62%)] mix-blend-screen" />
+    {BOSS_DUST.map(([left, dx]) => (
+      <span
+        key={left}
+        className="boss-dust pointer-events-none absolute bottom-0 aspect-[2/1] w-[22%] rounded-full bg-[radial-gradient(ellipse,rgb(214_200_176/0.7)_0%,transparent_70%)]"
+        style={{ left: `${left}%`, ['--dx' as string]: dx }}
+      />
+    ))}
+  </>
+);
+
 /** Embers that rise off a falling hero: [left %, delay ms, drift px]. */
 const EMBERS: readonly (readonly [number, number, number])[] = [
   [30, 0, -10],
@@ -396,11 +424,20 @@ export const HeroOnField = ({
       style={boxStyle(unit)}
       data-aloft={isAloft(unit) ? '' : undefined}
     >
-      {/* MARCHES IN ONCE, WHEN THE HERO FIRST APPEARS (A NEW WAVE) */}
+      {/* ENTERS ONCE, WHEN THE HERO FIRST APPEARS: A WAVE MARCHES IN, A
+          BOSS DESCENDS OR RISES (its entrance, see BossEntrance) */}
       <div
-        className="relative h-full w-full origin-bottom animate-hero-march [container-type:size]"
-        style={{ animationDelay: `${marchDelayMs(unit)}ms` }}
+        className={`relative h-full w-full origin-bottom [container-type:size] ${isBoss(unit) ? 'boss-arrive' : 'animate-hero-march'}`}
+        style={
+          isBoss(unit)
+            ? undefined
+            : { animationDelay: `${marchDelayMs(unit)}ms` }
+        }
+        data-arrival={
+          isBoss(unit) ? bossEntranceOf(unit.heroId).arrival : undefined
+        }
       >
+        {isBoss(unit) && <BossLanding />}
         <GroundShadow unit={unit} style={bodyStyle} />
         <div
           className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${action ? bodyActionClass(action) : ''}`}

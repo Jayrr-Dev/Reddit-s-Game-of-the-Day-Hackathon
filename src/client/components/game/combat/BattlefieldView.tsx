@@ -5,7 +5,8 @@
 // front row always draws over the back row. The camera (--cam) leans
 // toward the focused hero, and the stage sways gently on its own.
 // Heroes that change rows glide there (see useRowMoves); fallen heroes
-// play their death in place first (see useFallenHeroes).
+// play their death in place first (see useFallenHeroes). A boss's first
+// appearance plays its entrance over the field (see useBossEntrance).
 // ===================================================================
 
 import { useRef, type ReactNode } from 'react';
@@ -17,9 +18,11 @@ import { FIELD_ATTR } from '../../../hooks/useCardDrag';
 import { cssVars, depthStyle } from '../../../lib/cssVars';
 import { Backdrop, Foreground } from './Backdrop';
 import type { AimState, PickMarker } from '../../../hooks/useCombatControls';
+import { useBossEntrance } from '../../../hooks/useBossEntrance';
 import { useFallenHeroes } from '../../../hooks/useFallenHeroes';
 import { usePlateSpacing } from '../../../hooks/usePlateSpacing';
 import { ROW_LAYER_ATTR, useRowMoves } from '../../../hooks/useRowMoves';
+import { BossEntrance } from './BossEntrance';
 import { HeroOnField } from './HeroOnField';
 
 // --- TYPES ---
@@ -86,6 +89,7 @@ export const BattlefieldView = ({
   usePlateSpacing(fieldRef, heroes);
   useRowMoves(fieldRef, heroes);
   const ghosts = useFallenHeroes(heroes);
+  const bossEntrance = useBossEntrance(heroes);
   // A boss's death shakes the whole field and flashes it white.
   const isBossFalling = ghosts.some(isBoss);
   // A signature blow struck in Melee (a dive from the sky) lands hard.
@@ -96,7 +100,10 @@ export const BattlefieldView = ({
     ? 'animate-field-shake'
     : isHeavyBlow
       ? 'animate-dive-shake'
-      : '';
+      : bossEntrance.entering
+        ? 'boss-entrance-shake'
+        : '';
+  const skipClass = bossEntrance.isSkipped ? 'boss-entrance-skipped' : '';
   const focused = heroes.find((unit) => unit.uid === focusUid);
   /** Renders the heroes standing in one row, then any falling there. */
   const renderRow = (row: HeroRow) => [
@@ -136,7 +143,7 @@ export const BattlefieldView = ({
   return (
     <div
       ref={fieldRef}
-      className={`parallax-stage relative min-h-0 flex-1 overflow-hidden ${shakeClass}`}
+      className={`parallax-stage relative min-h-0 flex-1 overflow-hidden ${shakeClass} ${skipClass}`}
       {...{ [FIELD_ATTR]: true }}
       style={cssVars({ '--cam': cameraFor(focused) })}
     >
@@ -151,6 +158,9 @@ export const BattlefieldView = ({
       />
       <RowLayer depth={ROW_DEPTH.front}>{renderRow('front')}</RowLayer>
       <Foreground hue={hue} />
+      {bossEntrance.entering && (
+        <BossEntrance boss={bossEntrance.entering} onSkip={bossEntrance.skip} />
+      )}
       {isBossFalling && (
         <div className="pointer-events-none absolute inset-0 bg-[#fffbe8] opacity-0 animate-boss-flash" />
       )}
