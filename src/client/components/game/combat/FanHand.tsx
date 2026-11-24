@@ -41,10 +41,8 @@ export type FanHandProps = {
 };
 
 // --- CONSTANTS ---
-/** Degrees of tilt per card away from the middle of the fan. */
-const TILT_PER_CARD = 4;
-/** Pixels each card drops per step away from the middle. */
-const DROP_PER_CARD = 3;
+/** Pixels each card drops per step away from the middle (whole pixels). */
+const DROP_PER_CARD = 4;
 /** The held card is raised out of the fan, upright and enlarged. */
 const HELD_TRANSFORM = 'translateY(-34px) scale(1.4)';
 /** Widest gap between card centres; tighter when the hand is big. */
@@ -55,18 +53,25 @@ const RETURN_MS = 240;
 const RETURN_EASING = 'cubic-bezier(0.25, 0.8, 0.35, 1)';
 
 // --- HELPERS ---
-/** Where a slot sits in the fan; the held card stands up out of it. */
+/**
+ * Where a slot sits in the fan; the held card stands up out of it.
+ * No tilt and whole-pixel steps only: a rotated card (or one on a
+ * half pixel) rasterizes its small text blurry, so the fan is an
+ * upright arc. translateX(-50%) centres the slot on its `left` spot
+ * (a whole pixel too: the fan card is an even 68px wide).
+ */
 const slotTransform = (offset: number, isHeld: boolean): string => {
-  const fan = isHeld
-    ? HELD_TRANSFORM
-    : `translateY(${Math.abs(offset) * DROP_PER_CARD}px) rotate(${offset * TILT_PER_CARD}deg)`;
-  // translateX(-50%) centres the slot on its `left` spot.
+  const drop = Math.round(Math.abs(offset) * DROP_PER_CARD);
+  const fan = isHeld ? HELD_TRANSFORM : `translateY(${drop}px)`;
   return `translateX(-50%) ${fan}`;
 };
 
-/** A slot's `left`: the fan's middle plus its offset in slot widths. */
+/**
+ * A slot's `left`: the fan's middle plus its offset in slot widths,
+ * snapped to a whole pixel so the card's text sits on the pixel grid.
+ */
 const slotLeft = (offset: number): string =>
-  `calc(50% + ${offset} * var(--slot))`;
+  `round(calc(50% + ${offset} * var(--slot)), 1px)`;
 
 // --- SUBCOMPONENTS ---
 type HandSlotProps = {
