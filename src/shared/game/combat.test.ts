@@ -722,3 +722,21 @@ void test('a turn later the griffon dives down with one crushing blow', () => {
   // Back on the ground it can be hit again.
   assert.equal(canPlayCard({ ...landed, hand: ['backhand'] }, 0), true);
 });
+
+void test('a move with two effects is one action; only a boss has two', () => {
+  const fight = startCombat({
+    hp: 60,
+    maxHp: 60,
+    deck: ['backhand'],
+    heroIds: ['holt', 'holyDragon'],
+    might: 1,
+    seed: 3,
+  });
+  const holt = fight.heroes.find((unit) => unit.heroId === 'holt')!;
+  const rally = describeHeroIntent(holt, fight.heroes);
+  // Rally: Wrath and Guard, two chips but one move.
+  assert.equal(rally.moves.length, 1);
+  assert.equal(rally.moves[0]?.intents.length, 2);
+  const dragon = fight.heroes.find((unit) => unit.heroId === 'holyDragon')!;
+  assert.equal(describeHeroIntent(dragon, fight.heroes).moves.length, 2);
+});

@@ -26,6 +26,7 @@ import type {
   Combatant,
   HeroAttackType,
   HeroEffect,
+  HeroMove,
   HeroUnit,
   StatusId,
 } from './types.ts';
@@ -270,23 +271,52 @@ const ADVANCE_INTENT: Intent = {
 };
 
 /**
+ * One move a hero will make: its name, whether it is the hero's
+ * signature, and one chip per effect. The view draws a move as ONE
+ * action (a hero with two actions a turn, a boss, shows two), so a
+ * move with two effects (Guard and Wrath) never reads as two actions.
+ */
+export type MoveIntent = {
+  name: string;
+  isSignature: boolean;
+  intents: Intent[];
+};
+
+/** The chips for one move: one per effect, in order. */
+const describeMove = (unit: HeroUnit, heroMove: HeroMove): MoveIntent => ({
+  name: heroMove.name,
+  isSignature: heroMove.isSignature ?? false,
+  intents: heroMove.effects.map((effect) => ({
+    ...describeHeroEffect(unit, effect),
+    ...(heroMove.isSignature ? { isSignature: true } : {}),
+  })),
+});
+
+/** What a hero with no move it can make does: it steps up. */
+const ADVANCE_MOVE: MoveIntent = {
+  name: 'Advance',
+  isSignature: false,
+  intents: [ADVANCE_INTENT],
+};
+
+/**
  * What a hero will do this turn: its moves' names ("A, then B" for a
- * boss with two actions) plus one chip per effect, in order, or
- * "Advance" when it has no move it can make from where it stands.
+ * boss with two actions), each move with its chips (`moves`), and
+ * every chip in order (`intents`), or "Advance" when it has no move it
+ * can make from where it stands.
  */
 export const describeHeroIntent = (
   unit: HeroUnit,
   heroes: readonly HeroUnit[]
-): { name: string; intents: Intent[] } => {
-  const moves = plannedHeroMoves(unit, heroes).map((planned) => planned.move);
-  if (moves.length === 0) return { name: 'Advance', intents: [ADVANCE_INTENT] };
+): { name: string; moves: MoveIntent[]; intents: Intent[] } => {
+  const planned = plannedHeroMoves(unit, heroes).map((p) => p.move);
+  const moves =
+    planned.length === 0
+      ? [ADVANCE_MOVE]
+      : planned.map((heroMove) => describeMove(unit, heroMove));
   return {
-    name: moves.map((heroMove) => heroMove.name).join(', then '),
-    intents: moves.flatMap((heroMove) =>
-      heroMove.effects.map((effect) => ({
-        ...describeHeroEffect(unit, effect),
-        ...(heroMove.isSignature ? { isSignature: true } : {}),
-      }))
-    ),
+    name: moves.map((move) => move.name).join(', then '),
+    moves,
+    intents: moves.flatMap((move) => move.intents),
   };
 };

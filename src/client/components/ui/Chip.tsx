@@ -23,7 +23,15 @@ export type ChipProps = {
   shape?: ChipShape;
   /** An arrow's fill (a CSS colour); its tone's colour when left out. */
   fill?: string;
+  /**
+   * More icon + value pairs drawn inside the same badge, after the
+   * first (an intent's secondary effects: one move, one arrow).
+   */
+  extras?: readonly ChipPart[];
 };
+
+/** One icon + value inside a badge. */
+export type ChipPart = { glyph: GlyphName; text: string };
 
 export type ChipShape = 'arrow' | 'square';
 
@@ -73,6 +81,7 @@ const Badge = ({
   toneClass,
   shape = 'arrow',
   fill,
+  extras = [],
 }: Omit<ChipProps, 'info'>) =>
   shape === 'square' ? (
     <span
@@ -87,6 +96,14 @@ const Badge = ({
         style={{ backgroundColor: fill ?? toneVarOf({ glyph, toneClass }) }}
       >
         <BadgeContent glyph={glyph} text={text} iconClass="" />
+        {extras.map((part, index) => (
+          <span
+            key={`${part.glyph}-${index}`}
+            className="ml-0.5 inline-flex items-center gap-0.5 border-l border-black/40 pl-1"
+          >
+            <BadgeContent glyph={part.glyph} text={part.text} iconClass="" />
+          </span>
+        ))}
       </span>
     </span>
   );

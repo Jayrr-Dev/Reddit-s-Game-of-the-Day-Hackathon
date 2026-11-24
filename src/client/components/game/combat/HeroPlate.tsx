@@ -11,7 +11,10 @@
 // one. Back-row plates are drawn smaller again to match their depth.
 // ===================================================================
 
-import { describeHeroIntent } from '../../../../shared/game/describe';
+import {
+  describeHeroIntent,
+  type MoveIntent,
+} from '../../../../shared/game/describe';
 import { getHero } from '../../../../shared/game/heroes';
 import type { HeroSize, HeroUnit } from '../../../../shared/game/types';
 import { drawSizeOf } from '../../../content/heroLooks';
@@ -67,32 +70,50 @@ const BOSS_NAME_CLASS =
   'text-accent [paint-order:stroke_fill] [-webkit-text-stroke:2px_black]';
 
 // --- SUBCOMPONENTS ---
-/** A signature move's chips are gold, whatever they do. */
+/** A signature move's arrow is gold, whatever it does. */
 const SIGNATURE_FILL = 'var(--color-accent)';
 
-/** The hero's next move as small chips, coloured by what each does. */
+/**
+ * One planned move as ONE arrow: its first effect sets the colour and
+ * leads, the rest follow inside it (Guard 6 | Wrath +1 is one action).
+ */
+const MoveArrow = ({ move }: { move: MoveIntent }) => {
+  const [lead, ...rest] = move.intents;
+  if (!lead) return null;
+  return (
+    <Chip
+      {...INTENT_LOOK[lead.kind]}
+      {...(move.isSignature ? { fill: SIGNATURE_FILL } : {})}
+      text={lead.text}
+      extras={rest.map((intent) => ({
+        glyph: INTENT_LOOK[intent.kind].glyph,
+        text: intent.text,
+      }))}
+      info={{
+        title: move.name,
+        description: move.intents.map((intent) => intent.label).join('. '),
+      }}
+    />
+  );
+};
+
+/**
+ * The hero's next moves, one arrow per move: one for most heroes, two
+ * for a boss that acts twice a turn.
+ */
 export const IntentChips = ({
   unit,
   field,
 }: {
   unit: HeroUnit;
   field: readonly HeroUnit[];
-}) => {
-  const { name, intents } = describeHeroIntent(unit, field);
-  return (
-    <div className="flex flex-nowrap items-center gap-0.5">
-      {intents.map((intent, index) => (
-        <Chip
-          key={`${intent.kind}-${index}`}
-          {...INTENT_LOOK[intent.kind]}
-          {...(intent.isSignature ? { fill: SIGNATURE_FILL } : {})}
-          text={intent.text}
-          info={{ title: intent.label, description: `Next move: ${name}` }}
-        />
-      ))}
-    </div>
-  );
-};
+}) => (
+  <div className="flex flex-nowrap items-center gap-0.5">
+    {describeHeroIntent(unit, field).moves.map((move, index) => (
+      <MoveArrow key={`${move.name}-${index}`} move={move} />
+    ))}
+  </div>
+);
 
 // --- COMPONENT ---
 /** Renders one hero's plate; the focused hero's name is lit gold. */
