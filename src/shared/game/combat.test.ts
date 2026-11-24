@@ -2089,3 +2089,20 @@ void test('every Melee card is Sharp or Blunt; no other card has an edge', () =>
   assert.equal(getCard('cruelSlash').edge, 'sharp');
   assert.equal(getCard('ruin').edge, 'blunt');
 });
+
+void test('a card hit for 0 (all Armor) lays none of its on-hit effects', () => {
+  const state = withHand(fightWith(['darkCloak']), ['sear']);
+  const armored: CombatState = {
+    ...state,
+    heroes: state.heroes.map((unit) =>
+      addStatus({ ...unit, guard: 0 }, 'armor', 20)
+    ),
+  };
+  const uid = armored.heroes[0]?.uid ?? -1;
+  const hero = playCard(armored, 0, uid).heroes[0];
+  assert.equal(hero?.damageTaken, 0);
+  assert.equal(hero?.statuses.burn, 0, 'Sear lays no Burn on a 0 hit');
+  // A hit that lands still burns.
+  const landed = playCard(state, 0, uid).heroes[0];
+  assert.ok((landed?.statuses.burn ?? 0) > 0);
+});

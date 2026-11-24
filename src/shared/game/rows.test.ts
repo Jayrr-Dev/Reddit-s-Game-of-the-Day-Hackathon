@@ -595,3 +595,22 @@ void test('Homing hits can not be dodged (Arcane Bolts)', () => {
   const [bolts] = describeHeroIntent(state.heroes[0]!, state.heroes).moves;
   assert.ok(bolts?.intents[0]?.label.includes('Homing'));
 });
+
+// --- A HIT FOR 0 PROCS NOTHING ---
+void test('a hero attack fully stopped by Armor lays none of its on-hit effects', () => {
+  const base = fightAt([['ballista', 'back', 0]]);
+  const fireBolt = getHero('ballista').moves.findIndex(
+    (heroMove) => heroMove.name === 'Fire Bolt'
+  );
+  const state: CombatState = {
+    ...base,
+    player: {
+      ...base.player,
+      statuses: { ...base.player.statuses, armor: 20 },
+    },
+    heroes: base.heroes.map((unit) => ({ ...unit, moveIndex: fireBolt })),
+  };
+  const after = endTurn(state);
+  assert.equal(after.player.hp, state.player.hp, 'the bolt does 0');
+  assert.equal(after.player.statuses.burn, 0, 'so it sets no Burn');
+});

@@ -36,6 +36,7 @@ import {
   isAloft,
   isCellOpen,
   heroesPiercedPast,
+  isSelfEffect,
   rowDepth,
   summonSeats,
 } from './battlefield.ts';
@@ -616,8 +617,10 @@ const elementalHit = (
   isPiercing: boolean
 ): HeroUnit => {
   const hit = takeHit(unit, amount, cardDef.type, isPiercing);
+  // A hit for 0 (all Armor or Protection) carries no element.
+  const isLanded = hit.damageTaken > unit.damageTaken || hit.guard < unit.guard;
   const onHit = cardDef.element ? ELEMENT_ON_HIT[cardDef.element] : null;
-  return onHit ? addStatus(hit, onHit.status, onHit.amount) : hit;
+  return onHit && isLanded ? addStatus(hit, onHit.status, onHit.amount) : hit;
 };
 
 /**
@@ -909,15 +912,22 @@ const cardBeats = (
   // and each imbue proc waits to see whether the hit before it landed.
   plan.picks.forEach((requested, pick) => {
     const aimed = aimCard(current, cardId, requested);
+    // A HIT FOR 0 PROCS NOTHING: until one of this pick's hits lands
+    // (HP or Guard lost), its effects on heroes (Burn, Knockback ...)
+    // are skipped; effects on the villain (Guard, Draw) still apply.
+    let hasLanded = false;
     const apply = (effect: CardEffect) => {
       current = applyCardEffect(current, effect, aimed, cardDef, plan);
       states.push(current);
     };
     for (const effect of beats) {
       const before = current;
+      const isOnHit = isProcPerHit && effect.kind !== 'damage';
+      if (isOnHit && !hasLanded && !isSelfEffect(effect)) continue;
       apply(effect);
       const isLandedHit =
         effect.kind === 'damage' && hasLandedHit(before, current);
+      hasLanded ||= isLandedHit;
       if (isLandedHit) imbuedBeats.forEach(apply);
     }
     if (!isProcPerHit && pick === 0) imbuedBeats.forEach(apply);
@@ -1400,16 +1410,21 @@ const heroActs = (
   if (!actor || isDefeated(state.player)) return state;
   const planned = plannedHeroMove(actor, state.heroes);
 
-  const acted = (planned?.move.effects ?? []).reduce<CombatState>(
-    (current, effect) => {
-      const freshActor =
-        current.heroes.find((unit) => unit.uid === uid) ?? actor;
-      return isDefeated(current.player)
-        ? current
-        : applyHeroEffect(current, freshActor, effect);
-    },
-    state
-  );
+  const effects = planned?.move.effects ?? [];
+  const hasAttack = effects.some((effect) => effect.kind === 'attack');
+  // A HIT FOR 0 PROCS NOTHING: a move whose attacks all came to 0 (missed,
+  // dodged, or stopped by Armor) lays none of its effects on the villain.
+  let hasLanded = false;
+  const acted = effects.reduce<CombatState>((current, effect) => {
+    const freshActor = current.heroes.find((unit) => unit.uid === uid) ?? actor;
+    if (isDefeated(current.player)) return current;
+    const isSkipped = hasAttack && !hasLanded && isOnVillain(effect);
+    if (isSkipped) return current;
+    const next = applyHeroEffect(current, freshActor, effect);
+    if (effect.kind === 'attack')
+      hasLanded ||= villainWasHit(current.player, next.player);
+    return next;
+  }, state);
 
   const isDiving = planned !== null && isAloft(actor);
   const settled = updateHeroes(acted, [uid], (unit) => {
@@ -1422,6 +1437,26 @@ const heroActs = (
   });
   return removeFallen(settled);
 };
+
+/** Hero effects that land on the villain (afflictions, Knockback). */
+const VILLAIN_EFFECT_KINDS: ReadonlySet<HeroEffect['kind']> = new Set([
+  'hex',
+  'poison',
+  'burn',
+  'frost',
+  'bleed',
+  'shock',
+  'weaken',
+  'knockBack',
+]);
+
+/** True for a hero effect that lands on the villain. */
+const isOnVillain = (effect: HeroEffect): boolean =>
+  VILLAIN_EFFECT_KINDS.has(effect.kind);
+
+/** True when the villain lost HP or Guard between two looks. */
+const villainWasHit = (before: Combatant, after: Combatant): boolean =>
+  after.damageTaken > before.damageTaken || after.guard < before.guard;
 
 /**
  * The order heroes act in: fastest first; equal speeds go by uid (the
