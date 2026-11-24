@@ -154,7 +154,15 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     layers: [{ shape: 'drop', motion: 'burst', count: 9, size: 9 }],
     hasGlow: true,
   },
-  dread: {
+  /** Enfeeble (cuts damage dealt): a blade shatters and drops, shards fall. */
+  enfeeble: {
+    layers: [
+      { shape: 'icon', motion: 'slam', count: 1, size: 46 },
+      { shape: 'shard', motion: 'fall', count: 5, size: 12 },
+    ],
+    hasGlow: true,
+  },
+  weaken: {
     layers: [
       { shape: 'eye', motion: 'flash', count: 1, size: 46 },
       { shape: 'ring', motion: 'flash', count: 1, size: 90 },

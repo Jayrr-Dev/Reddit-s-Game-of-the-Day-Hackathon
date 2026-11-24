@@ -4,7 +4,7 @@
 // floats over them for a moment: the HP lost, and the part their guard
 // blocked. Heroes also pop what they gain from their own moves (healing,
 // Guard, Wrath) in the same spot, and anyone pops a debuff (Hex,
-// Dread ...) when one is laid on them. A hit that no attack dealt names
+// Weaken ...) when one is laid on them. A hit that no attack dealt names
 // the status that ticked (Hex, Poison, Burn), so it draws that effect. Each pop also drives the effect drawn
 // over the character (see ImpactOverlay). Two hooks share the same rules:
 //   useHitPops     every hero, each pop placed over that hero's body
@@ -26,7 +26,7 @@ import { HERO_ANCHOR_ATTR, HERO_UID_ATTR, type Point } from './useCardDrag';
 // --- TYPES ---
 /** A status that harms whoever carries it. */
 export type DebuffKind =
-  'hex' | 'poison' | 'burn' | 'frost' | 'bleed' | 'dread';
+  'hex' | 'poison' | 'burn' | 'frost' | 'bleed' | 'weaken' | 'enfeeble';
 
 /** A status that deals damage on its own when it goes off (a tick). */
 export type TickKind = 'hex' | 'poison' | 'burn';
@@ -85,7 +85,8 @@ type HeroLook = {
   burn: number;
   frost: number;
   bleed: number;
-  dread: number;
+  weaken: number;
+  enfeeble: number;
   point: Point | null;
 };
 
@@ -103,7 +104,8 @@ const goneAfter = (old: HeroLook): Omit<HeroLook, 'point'> => ({
   burn: 0,
   frost: 0,
   bleed: 0,
-  dread: 0,
+  weaken: 0,
+  enfeeble: 0,
 });
 /**
  * Time between the blows of a multi-hit attack on the villain: each
@@ -116,7 +118,8 @@ const DEBUFFS: readonly DebuffKind[] = [
   'poison',
   'burn',
   'frost',
-  'dread',
+  'weaken',
+  'enfeeble',
 ];
 /** Fight-long statuses the villain can gain from cards; each pops "+N". */
 const VILLAIN_GAINS: readonly (StatusId & PopKind)[] = [
@@ -261,7 +264,8 @@ const lookAt = (
         burn: unit.statuses.burn,
         frost: unit.statuses.frost,
         bleed: unit.statuses.bleed,
-        dread: unit.statuses.dread,
+        weaken: unit.statuses.weaken,
+        enfeeble: unit.statuses.enfeeble,
         point: bodyPointOf(unit.uid) ?? before.get(unit.uid)?.point ?? null,
       },
     ])
@@ -291,7 +295,8 @@ const heroPopsSince = (
           burn: unit.statuses.burn,
           frost: unit.statuses.frost,
           bleed: unit.statuses.bleed,
-          dread: unit.statuses.dread,
+          weaken: unit.statuses.weaken,
+          enfeeble: unit.statuses.enfeeble,
         }
       : goneAfter(old);
     const found = hitBetween(old, now, countsBlocked);

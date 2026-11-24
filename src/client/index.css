@@ -64,7 +64,9 @@
   --color-defend: #5b86ff;
   /* Buff's glow, a bright amber. */
   --color-buff: #f59a3c;
-  --color-dread: #6f7f9e;
+  --color-weaken: #6f7f9e;
+  /* Enfeeble: a sickly ochre, the colour of a blade gone dull. */
+  --color-enfeeble: #b59a5a;
   /* Wrath is a Buff: it wears the Buff card type's orange. */
   --color-wrath: var(--color-buff);
   --color-heal: #5fbf7f;

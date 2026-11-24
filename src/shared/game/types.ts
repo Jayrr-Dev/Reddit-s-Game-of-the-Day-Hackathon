@@ -23,7 +23,7 @@ import type { RngState } from './rng.ts';
  *           Magic hit resets the count; see Combatant.bleedHits)
  * - hex:    right before its turn, loses this much HP if it is odd
  *           (nothing when even), then hex drops by 1
- * - dread: deals 25% less attack damage; drops by 1 at the end of its turn
+ * - weaken: deals 25% less attack damage; drops by 1 at the end of its turn
  * - wrath: adds this much to every hit; lasts the whole fight
  * Buffs, gained from the villain's Buff cards, also last the whole fight:
  * - might:      adds this much to every Melee hit
@@ -44,10 +44,12 @@ export type StatusId =
   | 'burn'
   | 'frost'
   | 'bleed'
-  | 'dread'
+  | 'weaken'
   | 'wrath'
   | 'momentum'
   | 'protection'
+  /** Cuts the damage its bearer deals by tier; lapses unless reapplied. */
+  | 'enfeeble'
   | 'aloft'
   | BuffId;
 export type Statuses = Record<StatusId, number>;
@@ -74,6 +76,8 @@ export type Combatant = {
   bleedHits?: number;
   /** True when Protection was cast this turn (else it lapses at turn end). */
   protectionCast?: boolean;
+  /** True when Enfeeble was laid on this unit this villain turn. */
+  enfeebleApplied?: boolean;
 };
 
 // --- CARDS ---
@@ -88,7 +92,9 @@ export type BaseCardEffect =
   | { kind: 'burn'; amount: number; target: CardTarget }
   | { kind: 'frost'; amount: number; target: CardTarget }
   | { kind: 'bleed'; amount: number; target: CardTarget }
-  | { kind: 'dread'; amount: number; target: CardTarget }
+  | { kind: 'weaken'; amount: number; target: CardTarget }
+  /** Enfeebles the target: one tier up when reapplied turn after turn. */
+  | { kind: 'enfeeble'; target: CardTarget }
   /** Deals damage equal to the target's hex times `multiplier`. */
   | { kind: 'reap'; multiplier: number }
   | { kind: 'guard'; amount: number }
@@ -181,7 +187,7 @@ export type HeroEffect =
   | { kind: 'burn'; amount: number }
   | { kind: 'frost'; amount: number }
   | { kind: 'bleed'; amount: number }
-  | { kind: 'dread'; amount: number }
+  | { kind: 'weaken'; amount: number }
   | { kind: 'guard'; amount: number; who: 'self' | 'allies' }
   | { kind: 'wrath'; amount: number; who: 'self' | 'allies' }
   | { kind: 'heal'; amount: number; who: 'self' | 'allies' }

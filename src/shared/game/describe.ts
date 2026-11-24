@@ -67,8 +67,8 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
     label: 'Poison',
     description: 'Lose this much HP each turn, then -1.',
   },
-  dread: {
-    label: 'Dread',
+  weaken: {
+    label: 'Weaken',
     description: '25% less damage. -1 each turn.',
   },
   wrath: { label: 'Wrath', description: 'Adds this much damage to every hit.' },
@@ -86,6 +86,11 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
     label: 'Protection',
     description:
       'Cuts each hit: I 25%, II 50%, III 75%. Recast next turn to raise it, or it lapses.',
+  },
+  enfeeble: {
+    label: 'Enfeeble',
+    description:
+      'Cuts the damage it deals: I 25%, II 50%, III 75%. Lasts a turn; reapply next turn to deepen it.',
   },
   reinforce: {
     label: 'Reinforce',
@@ -115,7 +120,7 @@ const areaSuffix = (target: 'one' | 'all', isMelee = false): string => {
 
 /**
  * One line of card text. When `attacker` is given, numbers are a live
- * preview: damage after the villain's wrath, type buff and dread, and
+ * preview: damage after the villain's wrath, type buff and weaken, and
  * Guard with Reinforce added. When `target` is given too (the hero
  * the card is aimed at), single-target numbers are for that hero: a
  * Range card's long-range bonus, and Reap's damage from its Hex.
@@ -130,7 +135,7 @@ export const describeCardEffect = (
   const isMelee = !cardDef.reach;
   switch (effect.kind) {
     case 'damage': {
-      // In hand (no target) only the villain's own buffs count; Dread
+      // In hand (no target) only the villain's own buffs count; Weaken
       // and the target's own modifiers join once the card is aimed.
       const damageOf = target ? attackDamage : buffedAttackDamage;
       const perHit = attacker
@@ -151,8 +156,10 @@ export const describeCardEffect = (
       return `Apply ${effect.amount} Frost${areaSuffix(effect.target)}.`;
     case 'bleed':
       return `Apply ${effect.amount} Bleed${areaSuffix(effect.target)}.`;
-    case 'dread':
-      return `Apply ${effect.amount} Dread${areaSuffix(effect.target)}.`;
+    case 'weaken':
+      return `Apply ${effect.amount} Weaken${areaSuffix(effect.target)}.`;
+    case 'enfeeble':
+      return `Enfeeble${areaSuffix(effect.target)}. Reapply to deepen.`;
     case 'reap': {
       if (!target)
         return `Deal damage equal to ${effect.multiplier}× the target's Hex.`;
@@ -218,12 +225,14 @@ export const imbueTag = (gift: ImbueGift): string => {
     case 'burn':
     case 'frost':
     case 'bleed':
-    case 'dread':
+    case 'weaken':
     case 'guard':
     case 'wrath':
       return `${effect.amount} ${STATUS_INFO[effect.kind].label}`;
     case 'buff':
       return `${effect.amount} ${STATUS_INFO[effect.buff].label}`;
+    case 'enfeeble':
+      return 'Enfeeble';
     case 'reap':
       return 'Reap';
     case 'cleanse':
@@ -283,7 +292,7 @@ export type IntentKind =
   | 'burn'
   | 'frost'
   | 'bleed'
-  | 'dread'
+  | 'weaken'
   | 'guard'
   | 'buff'
   | 'heal'
@@ -348,11 +357,11 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
         label: `${label} ${amount}`,
       };
     }
-    case 'dread':
+    case 'weaken':
       return {
-        kind: 'dread',
+        kind: 'weaken',
         text: `${effect.amount}`,
-        label: `Dread ${effect.amount}`,
+        label: `Weaken ${effect.amount}`,
       };
     case 'guard': {
       const amount = scaled(effect.amount);

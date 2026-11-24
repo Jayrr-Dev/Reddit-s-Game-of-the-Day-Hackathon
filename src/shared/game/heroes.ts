@@ -37,7 +37,7 @@ const spell = attackOf('magic');
 const hex = (amount: number): HeroEffect => ({ kind: 'hex', amount });
 const poison = (amount: number): HeroEffect => ({ kind: 'poison', amount });
 const burn = (amount: number): HeroEffect => ({ kind: 'burn', amount });
-const dread = (amount: number): HeroEffect => ({ kind: 'dread', amount });
+const weaken = (amount: number): HeroEffect => ({ kind: 'weaken', amount });
 const guard = (
   amount: number,
   who: 'self' | 'allies' = 'self'
@@ -149,7 +149,7 @@ export const HEROES = {
   ]),
   bard: hero('Bard', 'grunt', 11, 300, 6, BACK, [
     move('Rousing Ballad', wrath(1, 'allies')),
-    move('Mocking Verse', dread(1), spell(2)),
+    move('Mocking Verse', weaken(1), spell(2)),
   ]),
   archer: hero('Archer', 'grunt', 10, 110, 7, BACK, [
     move('Volley', shoot(2, 3)),
@@ -188,7 +188,7 @@ export const HEROES = {
   ]),
   archmage: hero('Archmage', 'elite', 32, 260, 6, WIDE_BACK, [
     move('Arcane Bolts', spell(4, 3)),
-    move('Curse of Light', hex(4), dread(1)),
+    move('Curse of Light', hex(4), weaken(1)),
     move('Mana Shield', guard(12)),
   ]),
 
@@ -200,7 +200,7 @@ export const HEROES = {
   ]),
   lysa: hero('Ranger Lysa', 'champion', 46, 120, 8, HUGE, [
     move('Hail of Arrows', shoot(3, 4)),
-    move('Snare', dread(2), guard(6)),
+    move('Snare', weaken(2), guard(6)),
     move('Piercing Shot', shoot(12)),
   ]),
   maren: hero('High Priestess Maren', 'champion', 55, 55, 4, HUGE, [
@@ -215,7 +215,7 @@ export const HEROES = {
   ]),
   seris: hero("Seris, the Queen's Blade", 'champion', 58, 330, 9, HUGE, [
     move('Dance of Blades', strike(4, 4)),
-    move('Feint', dread(2), guard(8)),
+    move('Feint', weaken(2), guard(8)),
     move('Execution', strike(20)),
   ]),
   valen: hero('Valen the Radiant', 'champion', 90, 48, 6, HUGE, [

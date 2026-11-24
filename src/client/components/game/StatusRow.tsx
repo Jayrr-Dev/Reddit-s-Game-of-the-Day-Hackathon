@@ -43,8 +43,13 @@ type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
   };
 
 // --- CONSTANTS ---
-/** Protection's tier as its chip shows it (index = tier). */
-const PROTECTION_TIER_NUMERALS = ['', 'I', 'II', 'III'] as const;
+/** A tiered status's tier as its chip shows it (index = tier). */
+const TIER_NUMERALS = ['', 'I', 'II', 'III'] as const;
+/** Statuses whose value is a tier (see TIERED_CUT_BY_TIER). */
+const TIERED_STATUSES: ReadonlySet<StatusId> = new Set([
+  'protection',
+  'enfeeble',
+]);
 /**
  * Left to right, grouped by what they do (Guard itself is drawn first):
  * defence, then attack, then magic, then debuffs.
@@ -67,7 +72,8 @@ const STATUS_ORDER: readonly StatusId[] = [
   'burn',
   'frost',
   'bleed',
-  'dread',
+  'weaken',
+  'enfeeble',
 ];
 
 /** The popover's width (px), and the room it needs to open upward. */
@@ -81,7 +87,7 @@ const POPOVER_MIN_ROOM_ABOVE = 200;
  */
 const chipText = (id: StatusId, value: number): string => {
   if (id === 'momentum') return '+50%';
-  if (id === 'protection') return PROTECTION_TIER_NUMERALS[value] ?? '';
+  if (TIERED_STATUSES.has(id)) return TIER_NUMERALS[value] ?? '';
   return id === 'aloft' ? '' : String(value);
 };
 

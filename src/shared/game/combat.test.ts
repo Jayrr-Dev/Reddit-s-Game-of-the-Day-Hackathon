@@ -80,14 +80,14 @@ void test('guard absorbs damage before HP', () => {
   assert.equal(hit.hp, 17);
 });
 
-void test('wrath adds to each hit and dread cuts damage by 25%', () => {
+void test('wrath adds to each hit and weaken cuts damage by 25%', () => {
   const base = createCombatant(10, 10);
   assert.equal(
     attackDamage(6, { ...base, statuses: { ...NO_STATUSES, wrath: 2 } }),
     8
   );
   assert.equal(
-    attackDamage(8, { ...base, statuses: { ...NO_STATUSES, dread: 1 } }),
+    attackDamage(8, { ...base, statuses: { ...NO_STATUSES, weaken: 1 } }),
     6
   );
 });
@@ -95,7 +95,7 @@ void test('wrath adds to each hit and dread cuts damage by 25%', () => {
 void test('poison deals its damage at end of turn and then drops by one', () => {
   const poisoned = {
     ...createCombatant(20, 20),
-    statuses: { ...NO_STATUSES, poison: 3, dread: 1 },
+    statuses: { ...NO_STATUSES, poison: 3, weaken: 1 },
   };
   const after = endOfTurnUpkeep(poisoned);
   assert.equal(after.hp, 17);
@@ -657,10 +657,11 @@ void test('afflictions are the harmful statuses, flagged in one table', () => {
   assert.deepEqual(afflictions, [
     'bleed',
     'burn',
-    'dread',
+    'enfeeble',
     'frost',
     'hex',
     'poison',
+    'weaken',
   ]);
 });
 
@@ -688,11 +689,11 @@ void test('the Purge card cleanses one of your afflictions', () => {
     ...start,
     player: {
       ...start.player,
-      statuses: { ...NO_STATUSES, hex: 4, dread: 2 },
+      statuses: { ...NO_STATUSES, hex: 4, weaken: 2 },
     },
   };
   const after = playCard(sick, 0, -1).player.statuses;
-  assert.equal([after.hex, after.dread].filter((v) => v === 0).length, 1);
+  assert.equal([after.hex, after.weaken].filter((v) => v === 0).length, 1);
 });
 
 void test("the Priest's Mend also cleanses an affliction from each ally", () => {
@@ -704,16 +705,16 @@ void test("the Priest's Mend also cleanses an affliction from each ally", () => 
     might: 1,
     seed: 7,
   });
-  const dreaded: CombatState = {
+  const weakenedHero: CombatState = {
     ...fight,
     heroes: fight.heroes.map((unit) => ({
       ...unit,
       moveIndex: 1,
-      statuses: { ...unit.statuses, dread: 2 },
+      statuses: { ...unit.statuses, weaken: 2 },
     })),
   };
-  // Without the cleanse, Dread 2 would only tick down to 1.
-  assert.equal(endTurn(dreaded).heroes[0]?.statuses.dread, 0);
+  // Without the cleanse, Weaken 2 would only tick down to 1.
+  assert.equal(endTurn(weakenedHero).heroes[0]?.statuses.weaken, 0);
 });
 
 void test('buff cards grant their buff for the rest of the fight', () => {
@@ -810,7 +811,7 @@ void test('card text damage always equals the damage the engine deals', () => {
     { might: 3 },
     { surge: 2, piercing: 1 },
     { momentum: 1, might: 1 },
-    { wrath: 1, dread: 1 },
+    { wrath: 1, weaken: 1 },
   ];
   const cards: CardId[] = ['backhand', 'spiteBolt', 'hexfire', 'twinDaggers'];
   for (const buffs of buffSets) {
@@ -820,7 +821,7 @@ void test('card text damage always equals the damage the engine deals', () => {
         ...start.player,
         statuses: { ...NO_STATUSES, ...buffs },
       };
-      // Aimed at the Squire, so Dread counts too.
+      // Aimed at the Squire, so Weaken counts too.
       const squire = start.heroes[0];
       const [line = ''] = describeCard(cardId, player, squire);
       const perHit = Number(/Deal (\d+)/.exec(line)?.[1]);
@@ -909,14 +910,14 @@ void test('card text shows the damage for the aimed-at hero', () => {
   assert.match(describeCard('blackArrow', player).join(' '), /12/);
 });
 
-void test('card text in hand shows only buffs; Dread waits for an aim', () => {
+void test('card text in hand shows only buffs; Weaken waits for an aim', () => {
   const start = squireAndArcher(['spiteBolt']);
   const player = {
     ...start.player,
-    statuses: { ...start.player.statuses, wrath: 2, piercing: 2, dread: 1 },
+    statuses: { ...start.player.statuses, wrath: 2, piercing: 2, weaken: 1 },
   };
   const squire = heroNamed(start, 'squire') as HeroUnit;
-  // In hand: 6 + 2 Wrath + 2 Piercing, Dread left out.
+  // In hand: 6 + 2 Wrath + 2 Piercing, Weaken left out.
   assert.match(describeCard('spiteBolt', player).join(' '), /Deal 10 /);
   // Aimed at the Squire (in front, no long-range bonus): 10 x 0.75.
   assert.match(describeCard('spiteBolt', player, squire).join(' '), /Deal 7 /);
@@ -956,7 +957,7 @@ void test('every movement shares one streak; a full turn off resets it', () => {
   assert.equal(movementCost({ ...mixed, turn: mixed.turn + 2 }, 'charge'), 1);
 });
 
-void test('playDamageFactor combines Charge, Dread and the target bonus', () => {
+void test('playDamageFactor combines Charge, Weaken and the target bonus', () => {
   const [squire] = startCombat({
     hp: 60,
     maxHp: 60,
@@ -974,11 +975,11 @@ void test('playDamageFactor combines Charge, Dread and the target bonus', () => 
   const melee = getCard('backhand');
   assert.equal(playDamageFactor(villain, squire, melee), 1);
   assert.equal(playDamageFactor(charged, squire, melee), 1.5);
-  const chargedAndDreaded = {
+  const chargedAndWeakened = {
     ...charged,
-    statuses: { ...charged.statuses, dread: 1 },
+    statuses: { ...charged.statuses, weaken: 1 },
   };
-  assert.equal(playDamageFactor(chargedAndDreaded, squire, melee), 1.13);
+  assert.equal(playDamageFactor(chargedAndWeakened, squire, melee), 1.13);
 });
 
 /** A fresh fight against the Holy Dragon alone. */
@@ -1120,7 +1121,7 @@ const griffonFight = (): CombatState =>
   startCombat({
     hp: 999,
     maxHp: 999,
-    deck: ['backhand', 'soulLance', 'cleave', 'dreadGaze'],
+    deck: ['backhand', 'soulLance', 'cleave', 'weakeningGaze'],
     heroIds: ['grandGriffon'],
     might: 1,
     seed: 4,
@@ -1165,8 +1166,8 @@ void test('a hero Aloft cannot be aimed at or hit by any card', () => {
     assert.deepEqual(autoTargets(handOf(cardId), 0), [], cardId);
   }
   // A card that also helps the villain still plays, but misses it.
-  const gazed = playCard(handOf('dreadGaze'), 0, griffon.uid);
-  assert.equal(griffonOf(gazed).statuses.dread, 0);
+  const gazed = playCard(handOf('weakeningGaze'), 0, griffon.uid);
+  assert.equal(griffonOf(gazed).statuses.weaken, 0);
   assert.equal(griffonOf(gazed).hp, griffon.hp);
 });
 
@@ -1314,4 +1315,44 @@ void test('Imbue cards say what they grant and for how long', () => {
   assert.deepEqual(describeCard('venomCoat'), [
     'Imbue this battle: Apply 3 Poison.',
   ]);
+});
+
+// --- ENFEEBLE ---
+void test('Enfeeble cuts the damage a unit deals by its tier, like Protection', () => {
+  const unit = createCombatant(50, 50);
+  const tiers = [1, 2, 3].map((tier) => ({
+    ...unit,
+    statuses: { ...unit.statuses, enfeeble: tier },
+  }));
+  assert.deepEqual(
+    tiers.map((enfeebled) => attackDamage(20, enfeebled)),
+    [15, 10, 5]
+  );
+});
+
+void test('Enfeeble climbs a tier when reapplied the next turn, up to III', () => {
+  const deck: CardId[] = Array.from({ length: 12 }, () => 'sapStrength');
+  let state = fightWith(deck);
+  const uid = state.heroes[0]?.uid ?? -1;
+  const tierOf = (current: CombatState) =>
+    current.heroes.find((unit) => unit.uid === uid)?.statuses.enfeeble;
+  for (const expected of [1, 2, 3, 3]) {
+    state = endTurn(playCard(withHand(state, ['sapStrength']), 0, uid));
+    assert.equal(tierOf(state), expected);
+  }
+});
+
+void test('Enfeeble lasts one turn: it lapses unless reapplied', () => {
+  const deck: CardId[] = Array.from({ length: 12 }, () => 'darkCloak');
+  const state = withHand(fightWith(deck), ['sapStrength']);
+  const uid = state.heroes[0]?.uid ?? -1;
+  const once = endTurn(playCard(state, 0, uid));
+  const tierOf = (current: CombatState) =>
+    current.heroes.find((unit) => unit.uid === uid)?.statuses.enfeeble;
+  assert.equal(tierOf(once), 1, 'on for the heroes turn after it lands');
+  assert.equal(tierOf(endTurn(once)), 0, 'gone when not reapplied');
+});
+
+void test('Enfeeble is an affliction Cleanse can remove', () => {
+  assert.equal(STATUS_IS_AFFLICTION.enfeeble, true);
 });

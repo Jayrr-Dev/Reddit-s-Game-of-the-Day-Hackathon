@@ -40,8 +40,8 @@ export const MOVEMENT_STREAK_COST = 1;
 export const BATTLEFIELD_COLUMNS = 3;
 
 // --- STATUSES ---
-/** A combatant with dread deals this fraction of its attack damage. */
-export const DREAD_DAMAGE_FACTOR = 0.75;
+/** A combatant with weaken deals this fraction of its attack damage. */
+export const WEAKEN_DAMAGE_FACTOR = 0.75;
 /** Burn and Frost are divided by this after each action (a half rounds down). */
 export const AFTER_ACTION_DIVISOR = 2;
 /** Bleed bursts on this many non-Magic hits in a row. */
@@ -58,7 +58,8 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   burn: true,
   frost: true,
   bleed: true,
-  dread: true,
+  weaken: true,
+  enfeeble: true,
   wrath: false,
   might: false,
   surge: false,
@@ -70,12 +71,14 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
 };
 
 /**
- * Protection's share of each hit it stops, by tier (I, II, III). Cast
- * on back-to-back turns it climbs a tier, up to PROTECTION_MAX_TIER; a
- * turn without a recast and it lapses.
+ * TIERED STATUSES (Protection, Enfeeble): the share of damage each tier
+ * (I, II, III) cuts. Protection cuts hits taken; Enfeeble cuts the
+ * damage its bearer deals. Renewed on back-to-back turns a tiered status
+ * climbs a tier, up to TIERED_MAX_TIER; a turn without renewal and it
+ * lapses.
  */
-export const PROTECTION_CUT_BY_TIER = [0, 0.25, 0.5, 0.75] as const;
-export const PROTECTION_MAX_TIER = 3;
+export const TIERED_CUT_BY_TIER = [0, 0.25, 0.5, 0.75] as const;
+export const TIERED_MAX_TIER = 3;
 /** An even Hex (it does not burn) grows by this much each turn. */
 export const HEX_GROWTH = 1;
 /** After an odd Hex burns, it loses this share of itself (rounded up). */

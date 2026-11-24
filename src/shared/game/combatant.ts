@@ -7,15 +7,15 @@
 import {
   AFTER_ACTION_DIVISOR,
   BLEED_HITS,
-  DREAD_DAMAGE_FACTOR,
+  WEAKEN_DAMAGE_FACTOR,
   FROST_DAMAGE_PER_STACK,
   HEX_BURN_LOSS,
   HEX_EMPOWERED_DIGIT,
   HEX_EMPOWERED_MULTIPLIER,
   HEX_GROWTH,
   MOMENTUM_DAMAGE_FACTOR,
-  PROTECTION_CUT_BY_TIER,
-  PROTECTION_MAX_TIER,
+  TIERED_CUT_BY_TIER,
+  TIERED_MAX_TIER,
   STATUS_IS_AFFLICTION,
 } from './rules.ts';
 import { pickOne, type RngState } from './rng.ts';
@@ -34,7 +34,7 @@ export const NO_STATUSES: Statuses = {
   burn: 0,
   frost: 0,
   bleed: 0,
-  dread: 0,
+  weaken: 0,
   wrath: 0,
   might: 0,
   surge: 0,
@@ -42,6 +42,7 @@ export const NO_STATUSES: Statuses = {
   reinforce: 0,
   momentum: 0,
   protection: 0,
+  enfeeble: 0,
   aloft: 0,
 };
 
@@ -80,26 +81,27 @@ export const hasMomentumFor = (attacker: Combatant, type?: CardType) =>
 
 /**
  * The attacker's own damage multiplier for a card type: Momentum
- * (Melee only) times Dread. 1 when neither applies.
+ * (Melee only) times Weaken times Enfeeble. 1 when none applies.
  */
 export const damageFactorOf = (
   attacker: Combatant,
   type?: CardType
 ): number => {
   const momentum = hasMomentumFor(attacker, type) ? MOMENTUM_DAMAGE_FACTOR : 1;
-  const dread = attacker.statuses.dread > 0 ? DREAD_DAMAGE_FACTOR : 1;
-  return momentum * dread;
+  const weaken = attacker.statuses.weaken > 0 ? WEAKEN_DAMAGE_FACTOR : 1;
+  const enfeeble = 1 - tierCut(attacker.statuses.enfeeble);
+  return momentum * weaken * enfeeble;
 };
 
 /**
  * Damage per hit after the attacker's wrath, type buff, Momentum and
- * dread. Wrath and the buff (Might, Surge or Piercing, by card type) add
- * first, then Momentum (Melee only) and dread scale, matching the UI.
+ * weaken. Wrath and the buff (Might, Surge or Piercing, by card type) add
+ * first, then Momentum (Melee only) and weaken scale, matching the UI.
  */
 /**
  * A hit from the attacker's own buffs only (Wrath, its type's buff,
  * Momentum): what a card in hand shows before it is aimed. Debuffs on
- * the attacker (Dread) and anything about the target apply only once
+ * the attacker (Weaken) and anything about the target apply only once
  * it is aimed (attackDamage, then cardHitOn).
  */
 export const buffedAttackDamage = (
@@ -165,26 +167,63 @@ export const takeHit = <T extends Combatant>(
   return loseHp(cleared, bleed);
 };
 
-/**
- * A hit after Protection: its tier's share (PROTECTION_CUT_BY_TIER) is
- * stopped, rounded to the nearest whole. Ticks (loseHp) ignore it.
- */
-export const protectedAmount = (target: Combatant, amount: number): number => {
-  const cut = PROTECTION_CUT_BY_TIER[target.statuses.protection] ?? 0;
-  return Math.round(amount * (1 - cut));
-};
+// --- TIERED STATUSES (Protection, Enfeeble; see TIERED_CUT_BY_TIER) ---
+/** The share of damage a tier cuts (0 for no tier). */
+export const tierCut = (tier: number): number => TIERED_CUT_BY_TIER[tier] ?? 0;
+
+/** One tier up, capped at TIERED_MAX_TIER. */
+const raiseTier = (tier: number): number => Math.min(TIERED_MAX_TIER, tier + 1);
+
+/** A tier at its renewal check: kept when renewed, else it lapses. */
+const renewedTier = (tier: number, isRenewed: boolean): number =>
+  isRenewed ? tier : 0;
 
 /**
- * Casts Protection: tier I, or one tier up (to PROTECTION_MAX_TIER) when
- * it is still up from the turn before. Marked cast this turn, so the
- * end of the turn keeps it.
+ * A hit after Protection: its tier's share is stopped, rounded to the
+ * nearest whole. Ticks (loseHp) ignore it.
+ */
+export const protectedAmount = (target: Combatant, amount: number): number =>
+  Math.round(amount * (1 - tierCut(target.statuses.protection)));
+
+/**
+ * Casts Protection: tier I, or one tier up when it is still up from the
+ * turn before. Marked cast this turn, so the end of the turn keeps it.
  */
 export const castProtection = <T extends Combatant>(target: T): T => ({
   ...target,
   protectionCast: true,
   statuses: {
     ...target.statuses,
-    protection: Math.min(PROTECTION_MAX_TIER, target.statuses.protection + 1),
+    protection: raiseTier(target.statuses.protection),
+  },
+});
+
+/**
+ * Enfeebles a unit: tier I, or one tier up when it is still enfeebled
+ * from the turn before. Marked applied, so this turn's check keeps it.
+ */
+export const enfeeble = <T extends Combatant>(target: T): T => ({
+  ...target,
+  enfeebleApplied: true,
+  statuses: {
+    ...target.statuses,
+    enfeeble: raiseTier(target.statuses.enfeeble),
+  },
+});
+
+/**
+ * The end of the villain's turn for an enfeebled unit: Enfeeble laid on
+ * this turn holds through the heroes' turn ahead; otherwise it lapses.
+ */
+export const enfeebleCheck = <T extends Combatant>(target: T): T => ({
+  ...target,
+  enfeebleApplied: false,
+  statuses: {
+    ...target.statuses,
+    enfeeble: renewedTier(
+      target.statuses.enfeeble,
+      target.enfeebleApplied === true
+    ),
   },
 });
 
@@ -327,22 +366,25 @@ export const afterAction = <T extends Combatant>(target: T): T =>
   frostThaw(burnTick(target));
 
 /**
- * End-of-turn upkeep: poison deals its damage then weakens by 1, dread
+ * End-of-turn upkeep: poison deals its damage then weakens by 1, weaken
  * wears off by 1, and unused Momentum is lost. Wrath and buffs are
  * permanent for the fight (Hex runs before the turn: see hexBurn).
  */
 export const endOfTurnUpkeep = <T extends Combatant>(target: T): T => {
-  const { poison, dread } = target.statuses;
+  const { poison, weaken } = target.statuses;
   const poisoned = loseHp(target, poison);
   return {
     ...poisoned,
     statuses: {
       ...poisoned.statuses,
       poison: Math.max(0, poison - 1),
-      dread: Math.max(0, dread - 1),
+      weaken: Math.max(0, weaken - 1),
       momentum: 0,
       // Protection cast this turn covers the turn ahead; else it lapses.
-      protection: target.protectionCast ? target.statuses.protection : 0,
+      protection: renewedTier(
+        target.statuses.protection,
+        target.protectionCast === true
+      ),
     },
     protectionCast: false,
   };

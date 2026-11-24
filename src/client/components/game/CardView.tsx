@@ -8,7 +8,7 @@
 //   type ribbon   the type (Melee, Range, Magic, Defend, Buff, Curse) and rarity
 // The frame and outer glow are coloured by type (see CARD_LOOK).
 // The text comes from describeCard, so it always matches what the card
-// really does (including live wrath/dread math, and the hero it is
+// really does (including live wrath/weaken math, and the hero it is
 // aimed at while dragged).
 // ===================================================================
 
@@ -23,7 +23,7 @@ import { ImbueBadges } from './ImbueBadges';
 // --- TYPES ---
 export type CardViewProps = {
   cardId: CardId;
-  /** When given, damage numbers include this attacker's wrath and dread. */
+  /** When given, damage numbers include this attacker's wrath and weaken. */
   attacker?: Combatant;
   /**
    * The hero the card is aimed at, if any: numbers then show what it

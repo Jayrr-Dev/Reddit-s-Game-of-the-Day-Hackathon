@@ -39,6 +39,8 @@ import {
   addGuard,
   addStatus,
   castProtection,
+  enfeeble,
+  enfeebleCheck,
   cleanseOne,
   attackDamage,
   damageFactorOf,
@@ -416,7 +418,7 @@ export const targetDamageFactor = (unit: HeroUnit, cardDef: CardDef): number =>
 
 /**
  * Every multiplier on one play's damage at one hero, combined: the
- * villain's own (Charge's Momentum, Dread) times the target's (a long
+ * villain's own (Charge's Momentum, Weaken) times the target's (a long
  * Range shot). Rounded to 2 places for showing; 1 means none.
  */
 export const playDamageFactor = (
@@ -504,11 +506,17 @@ const applyCardEffect = (
     case 'burn':
     case 'frost':
     case 'bleed':
-    case 'dread':
+    case 'weaken':
       return updateHeroes(
         state,
         resolveTargets(state, effect.target, targetUid),
         (unit) => addStatus(unit, effect.kind, effect.amount)
+      );
+    case 'enfeeble':
+      return updateHeroes(
+        state,
+        resolveTargets(state, effect.target, targetUid),
+        enfeeble
       );
     case 'reap':
       return reapHex(state, effect.multiplier, targetUid, cardDef);
@@ -903,10 +911,10 @@ const applyHeroEffect = (
         ...state,
         player: addStatus(state.player, effect.kind, scaled(effect.amount)),
       };
-    case 'dread':
+    case 'weaken':
       return {
         ...state,
-        player: addStatus(state.player, 'dread', effect.amount),
+        player: addStatus(state.player, 'weaken', effect.amount),
       };
     case 'guard':
       return updateHeroes(
@@ -1056,7 +1064,8 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
     ...discardHand(state),
     // The villain's turn was its action: Burn and Frost, then upkeep.
     player: endOfTurnUpkeep(afterAction(state.player)),
-    heroes: state.heroes.map(clearGuard),
+    // Enfeeble laid on this turn holds; any older lapses.
+    heroes: state.heroes.map((unit) => enfeebleCheck(clearGuard(unit))),
   };
   const steps: TurnStep[] = [
     { actorUid: null, attackType: null, move: null, state: discarded },

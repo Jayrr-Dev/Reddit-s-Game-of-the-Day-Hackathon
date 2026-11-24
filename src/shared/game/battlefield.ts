@@ -424,7 +424,7 @@ const isSingleTarget = (effect: CardDef['effects'][number]): boolean =>
     effect.kind === 'burn' ||
     effect.kind === 'frost' ||
     effect.kind === 'bleed' ||
-    effect.kind === 'dread') &&
+    effect.kind === 'weaken') &&
     effect.target === 'one');
 
 /** Works out which heroes a card may be aimed at (see TargetRule). */
@@ -509,7 +509,7 @@ export const areaTargets = (
   heroes.filter((unit) => !isAloft(unit) && (!isMelee || unit.row === 'front'));
 
 /**
- * Every hero an area card would hit: hex and dread to ALL reach every
+ * Every hero an area card would hit: hex and weaken to ALL reach every
  * hero, damage to ALL reaches the front row only unless the card has
  * Reach (mirrors resolveTargets in combat.ts).
  */

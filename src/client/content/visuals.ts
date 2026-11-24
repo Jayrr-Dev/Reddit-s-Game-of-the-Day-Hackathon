@@ -33,7 +33,8 @@ export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
   burn: { glyph: 'flame', toneClass: 'text-burn' },
   frost: { glyph: 'snowflake', toneClass: 'text-frost' },
   bleed: { glyph: 'wound', toneClass: 'text-bleed' },
-  dread: { glyph: 'eye', toneClass: 'text-dread' },
+  weaken: { glyph: 'eye', toneClass: 'text-weaken' },
+  enfeeble: { glyph: 'shatter', toneClass: 'text-enfeeble' },
   // Every buff wears the Buff card type's orange (one token, --color-buff);
   // the icon says which kind of card it boosts.
   wrath: { glyph: 'fist', toneClass: 'text-buff' },
@@ -64,7 +65,7 @@ export const INTENT_LOOK: Record<IntentKind, Look> = {
   burn: STATUS_LOOK.burn,
   frost: STATUS_LOOK.frost,
   bleed: STATUS_LOOK.bleed,
-  dread: STATUS_LOOK.dread,
+  weaken: STATUS_LOOK.weaken,
   guard: { glyph: 'shield', toneClass: 'text-guard' },
   buff: STATUS_LOOK.wrath,
   heal: { glyph: 'heart', toneClass: 'text-heal' },
@@ -133,7 +134,8 @@ export const RARITY_GEM: Record<CardRarity, string | null> = {
 /** Words drawn bold in rules text (statuses and card keywords). */
 export const RULES_KEYWORDS = [
   'Hex',
-  'Dread',
+  'Weaken',
+  'Enfeeble',
   'Poison',
   'Burn',
   'Frost',
@@ -192,7 +194,8 @@ export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   frost: STATUS_LOOK.frost,
   bleed: STATUS_LOOK.bleed,
   bleedBurst: STATUS_LOOK.bleed,
-  dread: STATUS_LOOK.dread,
+  weaken: STATUS_LOOK.weaken,
+  enfeeble: STATUS_LOOK.enfeeble,
 };
 
 // --- MOVEMENTS ---
