@@ -127,7 +127,8 @@ const firesShots = (cardId: CardId): boolean =>
 /**
  * Which cards each keyword may go on (besides one that already has it):
  * Hold and Remove on any card, Piercing on a card that hits one hero,
- * the on-kill moves (Rampage, Distance) on any card that deals damage,
+ * the free moves (Rampage on kill, Distance on hit) on any card that
+ * deals damage,
  * Long Range on a card that fires Range or Magic damage.
  */
 const KEYWORD_FITS: Record<CardKeyword, (cardId: CardId) => boolean> = {

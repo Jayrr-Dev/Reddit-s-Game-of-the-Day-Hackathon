@@ -353,7 +353,7 @@ export type CombatState = {
   /** The last movement (its streak raises the next one's cost). */
   lastMovement: MovementRecord | null;
   /**
-   * The last free move an on-kill keyword made (Rampage, Distance): a
+   * The last free move a keyword made (Rampage on kill, Distance on hit): a
    * fresh object each time, so the view can play its speed lines. It
    * costs nothing and never counts toward the movement streak.
    */

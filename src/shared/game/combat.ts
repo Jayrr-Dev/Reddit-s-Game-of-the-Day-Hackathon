@@ -948,29 +948,59 @@ export const playCard = (
     ? { ...kept, removedPile: [...kept.removedPile, cardId] }
     : { ...kept, discardPile: [...kept.discardPile, cardId] };
   const cleared = removeFallen(settled);
-  const hasKilled = cleared.slain > state.slain;
-  return hasKilled ? moveOnKill(cleared, cardId, imbues) : cleared;
+  const outcome: PlayOutcome = {
+    hasKilled: cleared.slain > state.slain,
+    hasHit: hasLandedHit(state, cleared),
+  };
+  return moveOnTrigger(cleared, cardId, imbues, outcome);
 };
 
-// --- ON-KILL MOVES ---
-/** The keywords that make the villain move after a kill, and the move. */
-const KILL_MOVES: readonly { keyword: CardKeyword; move: MovementId }[] = [
-  { keyword: 'rampage', move: 'charge' },
-  { keyword: 'distance', move: 'backStep' },
+// --- FREE MOVES (RAMPAGE ON KILL, DISTANCE ON HIT) ---
+/** What a play did to the heroes: slew one, or landed a hit at all. */
+type PlayOutcome = { hasKilled: boolean; hasHit: boolean };
+
+/**
+ * The keywords that make the villain move for free, what sets each off
+ * and the move: Rampage Charges on a kill, Distance Back Steps on a hit.
+ */
+const FREE_MOVES: readonly {
+  keyword: CardKeyword;
+  trigger: keyof PlayOutcome;
+  move: MovementId;
+}[] = [
+  { keyword: 'rampage', trigger: 'hasKilled', move: 'charge' },
+  { keyword: 'distance', trigger: 'hasHit', move: 'backStep' },
 ];
 
 /**
- * After a card slays a hero, each on-kill keyword it has (printed or
- * imbued) makes its move for free, when there's room (see moveFree).
+ * True when a play landed a hit on some hero: one fell, lost HP or lost
+ * Guard to it. A shot that missed (Out of Range) is no hit.
  */
-const moveOnKill = (
+const hasLandedHit = (before: CombatState, after: CombatState): boolean =>
+  after.slain > before.slain ||
+  before.heroes.some((unit) => {
+    const now = after.heroes.find((hero) => hero.uid === unit.uid);
+    return (
+      now !== undefined &&
+      (now.damageTaken > unit.damageTaken || now.guard < unit.guard)
+    );
+  });
+
+/**
+ * After a card resolves, each free-move keyword it has (printed or
+ * imbued) whose trigger it met makes its move for free, when there's
+ * room (see moveFree).
+ */
+const moveOnTrigger = (
   state: CombatState,
   cardId: CardId,
-  imbues: readonly Imbue[]
+  imbues: readonly Imbue[],
+  outcome: PlayOutcome
 ): CombatState =>
-  KILL_MOVES.filter(({ keyword }) =>
-    cardHasKeyword(cardId, imbues, keyword)
-  ).reduce((moved, kill) => moveFree(moved, kill.move), state);
+  FREE_MOVES.filter(
+    ({ keyword, trigger }) =>
+      outcome[trigger] && cardHasKeyword(cardId, imbues, keyword)
+  ).reduce((moved, free) => moveFree(moved, free.move), state);
 
 /**
  * True when playing the card in `handIndex` with exactly these picks

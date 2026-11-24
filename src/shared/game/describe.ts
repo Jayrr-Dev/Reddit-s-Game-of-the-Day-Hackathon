@@ -245,7 +245,7 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
   },
   distance: {
     label: 'Distance',
-    description: "On kill: a free **Back Step**\nOnly if there's room",
+    description: "On hit: a free **Back Step**\nOnly if there's room",
   },
   longRange: {
     label: 'Long Range',

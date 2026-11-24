@@ -158,7 +158,7 @@ export const move = (state: CombatState, moveId: MovementId): CombatState => {
 };
 
 /**
- * Makes `move` for free (an on-kill keyword: Rampage, Distance): only
+ * Makes `move` for free (Rampage on a kill, Distance on a hit): only
  * when there's room, at no cost and outside the movement streak. Does
  * nothing when there's no room.
  */
