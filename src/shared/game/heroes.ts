@@ -160,7 +160,7 @@ export const HEROES = {
     move('Aimed Shot', shoot(7)),
   ]),
   priest: hero('Priest', 'grunt', 12, 50, 5, BACK, [
-    move('Smite', spell(4)),
+    move('Holy Light', spell(4)),
     move('Mend', heal(5), cleanse()),
   ]),
   shieldmaiden: hero('Shieldmaiden', 'grunt', 18, 190, 3, FRONT, [
@@ -231,7 +231,7 @@ export const HEROES = {
   maren: hero('High Priestess Maren', 'champion', 55, 55, 4, CHAMPION, [
     move('Sanctuary', guard(10), heal(6, 'self')),
     move('Holy Fire', burn(5)),
-    move('Smite the Wicked', spell(11)),
+    move('Judgement', spell(11)),
   ]),
   brannoc: hero('Sir Brannoc', 'champion', 70, 220, 3, CHAMPION, [
     move('Iron Wall', guard(15)),
