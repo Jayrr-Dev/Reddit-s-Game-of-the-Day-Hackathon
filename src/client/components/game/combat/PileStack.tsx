@@ -7,7 +7,9 @@
 // it opens the pile to see its cards (PileDialog).
 // ===================================================================
 
+import { PILE_ATTR } from '../../../hooks/useCardFlights';
 import { Tooltip } from '../../ui/Tooltip';
+import type { PileId } from './PileDialog';
 
 // --- TYPES ---
 export type PileStackProps = {
@@ -18,6 +20,8 @@ export type PileStackProps = {
   toneClass: string;
   /** Which way the back cards fan out, so the two piles mirror. */
   side: 'left' | 'right';
+  /** Which pile this is (cards fly to and from it). */
+  pile: PileId;
   /** Opens the pile to see its cards. */
   onOpen: () => void;
 };
@@ -41,6 +45,7 @@ export const PileStack = ({
   label,
   toneClass,
   side,
+  pile,
   onOpen,
 }: PileStackProps) => {
   const backCards = backCardsFor(count);
@@ -52,6 +57,7 @@ export const PileStack = ({
       <button
         type="button"
         onClick={onOpen}
+        {...{ [PILE_ATTR]: pile }}
         aria-label={`${label}: ${count}. Show the cards`}
         className="relative mb-0.5 block shrink-0 active:scale-95"
       >

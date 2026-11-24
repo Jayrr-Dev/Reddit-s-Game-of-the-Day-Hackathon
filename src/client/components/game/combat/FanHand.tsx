@@ -9,6 +9,7 @@
 
 import { useLayoutEffect, useRef } from 'react';
 import type { PointerEvent, ReactNode } from 'react';
+import { HAND_ATTR } from '../../../hooks/useCardFlights';
 import { canPlayCard } from '../../../../shared/game/combat';
 import type { CombatState } from '../../../../shared/game/types';
 import { HELD_CARD_ATTR, type CardBox } from '../../../hooks/useCardDrag';
@@ -147,6 +148,7 @@ export const FanHand = ({
     <div
       className="relative z-20 h-32 shrink-0"
       style={{ ['--slot' as string]: slotWidth }}
+      {...{ [HAND_ATTR]: true }}
     >
       {combat.hand.map((cardId, index) => {
         const isLifted = index === draggedIndex;

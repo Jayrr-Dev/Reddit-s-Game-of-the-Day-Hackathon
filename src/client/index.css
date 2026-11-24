@@ -110,6 +110,8 @@
   --animate-boss-death: boss-death 1800ms ease-in forwards;
   --animate-holy-mote: holy-mote 1100ms ease-out forwards;
   --animate-holy-arrival: holy-arrival 900ms ease-out forwards;
+  /* CARD_FLIGHT_MS = 380 in useCardFlights */
+  --animate-card-flight: card-flight 380ms cubic-bezier(0.4, 0, 0.2, 1) both;
   --animate-boss-flash: boss-flash 1800ms ease-out forwards;
   --animate-field-shake: field-shake 1800ms linear;
   --animate-impact-slash: impact-slash 1000ms ease-out forwards;
@@ -627,6 +629,32 @@
     100% {
       opacity: 0;
       transform: scaleY(1);
+    }
+  }
+
+  /* A card back flying between a pile and the hand: lifts as it leaves,
+     arcs up a little mid-way, and shrinks into its landing. */
+  @keyframes card-flight {
+    0% {
+      opacity: 0;
+      transform: translate(0, 0) scale(0.8) rotate(0deg);
+    }
+    12% {
+      opacity: 1;
+    }
+    50% {
+      transform: translate(
+          calc(var(--fly-dx) * 0.5),
+          calc(var(--fly-dy) * 0.5 - 24px)
+        )
+        scale(1.15) rotate(-8deg);
+    }
+    88% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translate(var(--fly-dx), var(--fly-dy)) scale(0.7) rotate(0deg);
     }
   }
 

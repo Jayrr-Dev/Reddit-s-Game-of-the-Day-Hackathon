@@ -27,6 +27,7 @@ export const TurnCorner = ({
       label="Cards left to draw"
       toneClass="bg-deck"
       side="right"
+      pile="draw"
       onOpen={onOpenDraw}
     />
     <button

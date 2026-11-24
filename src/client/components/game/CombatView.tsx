@@ -35,6 +35,7 @@ import type {
 } from '../../../shared/game/types';
 import type { CardBox, Point } from '../../hooks/useCardDrag';
 import { useCombatControls } from '../../hooks/useCombatControls';
+import { useCardFlights } from '../../hooks/useCardFlights';
 import { useCardHits } from '../../hooks/useCardHits';
 import { useHeroTurn } from '../../hooks/useHeroTurn';
 import { useMoveFailPops } from '../../hooks/useMoveFailPops';
@@ -48,6 +49,7 @@ import { useSmoothPoint } from '../../hooks/useSmoothPoint';
 import { HitHistory } from '../../lib/popSize';
 import { AimArrow } from './combat/AimArrow';
 import { AutoAimPreview } from './combat/AutoAimPreview';
+import { CardFlights } from './combat/CardFlights';
 import { BattlefieldView } from './combat/BattlefieldView';
 import { HeroShots } from './combat/HeroShots';
 import { MOVEMENT_LOOK } from '../../content/visuals';
@@ -127,6 +129,7 @@ const PlayerBar = ({
           label="Cards in the discard pile"
           toneClass="bg-surface-raised"
           side="left"
+          pile="discard"
           onOpen={() => onOpenPile('discard')}
         />
       </div>
@@ -232,6 +235,7 @@ export const CombatView = ({
     [playHeroTurn, playCardHits, onAction, realCombat, showMoveFail]
   );
   const controls = useCombatControls(combat, routeAction);
+  const cardFlights = useCardFlights(combat);
   const [isPaused, setIsPaused] = useState(false);
   // The pile whose cards are open in the dialog, if any.
   const [openPile, setOpenPile] = useState<PileId | null>(null);
@@ -332,6 +336,7 @@ export const CombatView = ({
           )}
         </>
       )}
+      <CardFlights flights={cardFlights} />
       {/* A TURN OR A CARD'S HITS ARE PLAYING: SWALLOW TAPS UNTIL DONE */}
       {isAnimating && <div className="absolute inset-0 z-50" />}
       {openPile && (
