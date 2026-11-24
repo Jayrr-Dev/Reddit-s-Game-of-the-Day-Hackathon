@@ -188,9 +188,15 @@ const ATTACK_NAME: Record<HeroAttackType, string> = {
 };
 /**
  * One intent chip: `text` is just the number (the icon says what it
- * is); `label` spells it out for the tooltip.
+ * is); `label` spells it out for the tooltip. `isSignature` marks a
+ * chip of the hero's signature move (drawn in gold).
  */
-export type Intent = { kind: IntentKind; text: string; label: string };
+export type Intent = {
+  kind: IntentKind;
+  text: string;
+  label: string;
+  isSignature?: boolean;
+};
 
 /** One intent chip for one effect of a hero's next move. */
 const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
@@ -277,7 +283,10 @@ export const describeHeroIntent = (
   return {
     name: moves.map((heroMove) => heroMove.name).join(', then '),
     intents: moves.flatMap((heroMove) =>
-      heroMove.effects.map((effect) => describeHeroEffect(unit, effect))
+      heroMove.effects.map((effect) => ({
+        ...describeHeroEffect(unit, effect),
+        ...(heroMove.isSignature ? { isSignature: true } : {}),
+      }))
     ),
   };
 };

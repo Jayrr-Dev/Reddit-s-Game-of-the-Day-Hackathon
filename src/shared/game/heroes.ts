@@ -244,7 +244,8 @@ export const HEROES = {
   /**
    * A haloed griffon boss down the centre column, flanked by open
    * slots. Two moves a turn, and it loves its Triple Slice. Its
-   * signature Heavenly Drive takes two turns: it flies up out of reach
+   * signature Heavenly Drive takes two turns (both signature moves): it
+   * flies up out of reach
    * (ending its turn, Aloft), then a turn later dives down with one
    * crushing blow. The cycle is even, so the take-off always falls on
    * its second action.
@@ -258,7 +259,7 @@ export const HEROES = {
     BOSS_COLUMN,
     [
       move('Triple Slice', strike(6, 3)),
-      move('Heavenly Drive', soar()),
+      signature(move('Heavenly Drive', soar())),
       signature(move('Heavenly Dive', strike(34))),
       move('Triple Slice', strike(6, 3)),
       move('Gale Wings', shroud(18)),

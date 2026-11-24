@@ -67,7 +67,10 @@ const BOSS_NAME_CLASS =
   'text-accent [paint-order:stroke_fill] [-webkit-text-stroke:2px_black]';
 
 // --- SUBCOMPONENTS ---
-/** The hero's next move as small chips. */
+/** A signature move's chips are gold, whatever they do. */
+const SIGNATURE_FILL = 'var(--color-accent)';
+
+/** The hero's next move as small chips, coloured by what each does. */
 export const IntentChips = ({
   unit,
   field,
@@ -82,6 +85,7 @@ export const IntentChips = ({
         <Chip
           key={`${intent.kind}-${index}`}
           {...INTENT_LOOK[intent.kind]}
+          {...(intent.isSignature ? { fill: SIGNATURE_FILL } : {})}
           text={intent.text}
           info={{ title: intent.label, description: `Next move: ${name}` }}
         />

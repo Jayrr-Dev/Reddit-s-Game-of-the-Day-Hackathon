@@ -1,12 +1,14 @@
 // ===================================================================
 // CHIP (ATOM)
 // A small icon + value badge. Two looks so they read apart at a glance:
-// what a hero is about to do (intents) are yellow arrowheads with a
-// black rim, pointed on the left and flat on the right ("< |"), like a
-// blow coming in; effects already in play (statuses such as Shroud,
+// what a hero is about to do (intents) are arrowheads with a black
+// rim, pointed on the left and flat on the right ("< |"), like a blow
+// coming in, filled with the colour of what they do (black icon and
+// number); effects already in play (statuses such as Shroud,
 // Hex, Wrath) are dark square tiles.
 // ===================================================================
 
+import { toneVarOf } from '../../content/visuals';
 import { Glyph, type GlyphName } from './Glyph';
 import { Tooltip, type TooltipContent } from './Tooltip';
 
@@ -19,6 +21,8 @@ export type ChipProps = {
   info?: TooltipContent;
   /** "arrow" for intents (default), "square" for active effects. */
   shape?: ChipShape;
+  /** An arrow's fill (a CSS colour); its tone's colour when left out. */
+  fill?: string;
 };
 
 export type ChipShape = 'arrow' | 'square';
@@ -59,15 +63,16 @@ export const Chip = ({ info, ...badge }: ChipProps) =>
   );
 
 /**
- * The badge itself. An intent's icon keeps its tone, darkened so the
- * light ones (Magic sky, Range silver, gold) stand out on yellow; its
- * number is black.
+ * The badge itself. A square keeps its icon and number in its tone on
+ * a dark tile; an arrow is filled with its tone (or `fill`), its icon
+ * and number solid black.
  */
 const Badge = ({
   glyph,
   text,
   toneClass,
   shape = 'arrow',
+  fill,
 }: Omit<ChipProps, 'info'>) =>
   shape === 'square' ? (
     <span
@@ -78,13 +83,10 @@ const Badge = ({
   ) : (
     <span className={`inline-flex bg-black p-px ${ARROW_CLIP}`}>
       <span
-        className={`inline-flex items-center gap-0.5 bg-[#f6d24a] py-px pl-[8px] pr-1.5 text-[11px] font-bold text-black ${ARROW_CLIP}`}
+        className={`inline-flex items-center gap-0.5 py-px pl-[8px] pr-1.5 text-[11px] font-bold text-black ${ARROW_CLIP}`}
+        style={{ backgroundColor: fill ?? toneVarOf({ glyph, toneClass }) }}
       >
-        <BadgeContent
-          glyph={glyph}
-          text={text}
-          iconClass={`${toneClass} brightness-[0.45] saturate-150`}
-        />
+        <BadgeContent glyph={glyph} text={text} iconClass="" />
       </span>
     </span>
   );

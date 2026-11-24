@@ -326,14 +326,14 @@
     16% {
       transform: scale(1);
     }
-    /* HOLD, THEN DRIFT UP, SHRINK AND FADE */
+    /* HOLD, THEN DRIFT UP, SWELL AND FADE */
     55% {
       opacity: 1;
       transform: translateY(-6px) scale(1);
     }
     100% {
       opacity: 0;
-      transform: translateY(-40px) scale(0.55);
+      transform: translateY(-40px) scale(1.6);
     }
   }
 

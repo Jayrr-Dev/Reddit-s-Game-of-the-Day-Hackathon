@@ -1,7 +1,7 @@
 // ===================================================================
 // HIT NUMBERS
 // The damage numbers that punch in over the hero that was hit, then
-// drift up and fade (see --animate-hit-pop). Several hits on one target
+// drift up, swelling as they fade (see --animate-hit-pop). Several hits on one target
 // pile up like in action games: each lands near the same spot with a
 // small random nudge and tilt, the newest drawn on top, while the ones
 // under it dim so the fresh number always reads first. The number is the HP
