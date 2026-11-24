@@ -33,6 +33,7 @@ import type {
 } from '../../../shared/game/types';
 import {
   CARD_LOOK,
+  EDGE_ART,
   EDGE_LOOK,
   ELEMENT_LOOK,
   RARITY_GEM,
@@ -351,7 +352,7 @@ export const CardView = ({
         <span className="num-center">{cardDef.cost}</span>
       </span>
       <ArtWindow
-        glyph={typeLook.glyph}
+        glyph={(cardDef.edge && EDGE_ART[cardDef.edge]) ?? typeLook.glyph}
         glowVar={typeLook.glowVar}
         look={look}
       />

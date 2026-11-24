@@ -195,6 +195,15 @@ export const EDGE_LOOK: Record<MeleeEdge, Look> = {
   blunt: { glyph: 'hammer', toneClass: 'text-burn' },
 };
 
+/**
+ * The art-window glyph a Melee edge swaps in for the type's sword
+ * (null keeps it): Blunt cards show a hammer.
+ */
+export const EDGE_ART: Record<MeleeEdge, GlyphName | null> = {
+  sharp: null,
+  blunt: 'hammer',
+};
+
 export const ELEMENT_LOOK: Record<MagicElement, ElementLook> = {
   fire: {
     glyph: 'flame',
