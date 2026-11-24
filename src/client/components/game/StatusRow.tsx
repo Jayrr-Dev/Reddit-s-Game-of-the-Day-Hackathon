@@ -18,6 +18,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { PASSIVE_INFO, STATUS_INFO } from '../../../shared/game/describe';
+import { BLEED_HITS } from '../../../shared/game/rules';
 import type {
   Combatant,
   PassiveId,
@@ -61,6 +62,7 @@ const STATUS_ORDER: readonly StatusId[] = [
   'poison',
   'burn',
   'frost',
+  'bleed',
   'dread',
 ];
 
@@ -106,6 +108,10 @@ const hexChipOf = (hex: number): Partial<StatusChip> => {
       };
 };
 
+/** Bleed's chip: its value and the hits in a row so far, "6 · 2/3". */
+const bleedText = (combatant: Combatant): string =>
+  `${combatant.statuses.bleed} · ${combatant.bleedHits ?? 0}/${BLEED_HITS}`;
+
 /** Every active effect on a combatant as chips, Guard first. */
 const statusChipsOf = (combatant: Combatant): StatusChip[] => {
   const shroud: StatusChip[] =
@@ -124,7 +130,10 @@ const statusChipsOf = (combatant: Combatant): StatusChip[] => {
     (id): StatusChip => ({
       key: id,
       ...STATUS_LOOK[id],
-      text: chipText(id, combatant.statuses[id]),
+      text:
+        id === 'bleed'
+          ? bleedText(combatant)
+          : chipText(id, combatant.statuses[id]),
       title: STATUS_INFO[id].label,
       description: STATUS_INFO[id].description,
       ...(id === 'hex' ? hexChipOf(combatant.statuses[id]) : {}),

@@ -14,6 +14,8 @@ import {
   frostThaw,
   hexBurn,
   takeDamage,
+  takeHit,
+  addStatus,
   createCombatant,
   NO_STATUSES,
 } from './combatant.ts';
@@ -274,6 +276,75 @@ void test('a frosted hero hits softer, then its frost halves', () => {
   assert.equal(frosted.player.hp - acted.state.player.hp, 2);
   const after = acted.state.heroes.find((unit) => unit.uid === squire.uid)!;
   assert.equal(after.statuses.frost, 1);
+});
+
+void test('bleed bursts and clears on the 3rd non-magic hit in a row', () => {
+  const bleeding = {
+    ...createCombatant(50, 50),
+    statuses: { ...NO_STATUSES, bleed: 6 },
+  };
+  const once = takeHit(bleeding, 2, 'melee');
+  const twice = takeHit(once, 2, 'range');
+  assert.equal(twice.bleedHits, 2);
+  assert.equal(twice.hp, 46);
+  const thrice = takeHit(twice, 2, 'melee');
+  // Three hits of 2, then the bleed (6).
+  assert.equal(thrice.hp, 38);
+  assert.equal(thrice.statuses.bleed, 0);
+  assert.equal(thrice.bleedHits ?? 0, 0);
+});
+
+void test('new bleed stacks on top and keeps the count', () => {
+  const bleeding = {
+    ...createCombatant(50, 50),
+    statuses: { ...NO_STATUSES, bleed: 2 },
+  };
+  const hit = takeHit(takeHit(bleeding, 1, 'melee'), 1, 'melee');
+  const stacked = addStatus(hit, 'bleed', 4);
+  assert.equal(stacked.bleedHits, 2);
+  const burst = takeHit(stacked, 1, 'melee');
+  assert.equal(burst.hp, 50 - 3 - 6);
+});
+
+void test('a magic hit resets the bleed count', () => {
+  const bleeding = {
+    ...createCombatant(50, 50),
+    statuses: { ...NO_STATUSES, bleed: 6 },
+  };
+  const hit = takeHit(takeHit(bleeding, 1, 'melee'), 1, 'melee');
+  const zapped = takeHit(hit, 1, 'magic');
+  assert.equal(zapped.bleedHits ?? 0, 0);
+  const again = takeHit(takeHit(zapped, 1, 'melee'), 1, 'melee');
+  assert.equal(again.statuses.bleed, 6, 'only 2 in a row since the zap');
+});
+
+void test('a hero bleeding out from the villain: three melee hits', () => {
+  const fight = settled(
+    startCombat({
+      hp: 999,
+      maxHp: 999,
+      deck: ['backhand'],
+      heroIds: ['shieldmaiden'],
+      might: 1,
+      seed: 7,
+    })
+  );
+  const bleeding: CombatState = {
+    ...fight,
+    hand: ['backhand', 'backhand', 'backhand'],
+    energy: 3,
+    heroes: fight.heroes.map((unit) => ({
+      ...unit,
+      hp: 99,
+      maxHp: 99,
+      statuses: { ...unit.statuses, bleed: 5 },
+    })),
+  };
+  const uid = bleeding.heroes[0]!.uid;
+  const after = [0, 0, 0].reduce((state) => playCard(state, 0, uid), bleeding);
+  const maiden = after.heroes.find((unit) => unit.uid === uid)!;
+  assert.equal(maiden.hp, 99 - 6 * 3 - 5);
+  assert.equal(maiden.statuses.bleed, 0);
 });
 
 void test("the Rogue's Poisoned Dart poisons instead of hexing", () => {

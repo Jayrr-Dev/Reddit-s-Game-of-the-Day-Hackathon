@@ -24,7 +24,8 @@ import { HERO_ANCHOR_ATTR, HERO_UID_ATTR, type Point } from './useCardDrag';
 
 // --- TYPES ---
 /** A status that harms whoever carries it. */
-export type DebuffKind = 'hex' | 'poison' | 'burn' | 'frost' | 'dread';
+export type DebuffKind =
+  'hex' | 'poison' | 'burn' | 'frost' | 'bleed' | 'dread';
 
 /** What a pop shows: a hit, something gained, or a debuff laid on. */
 export type PopKind =
@@ -68,6 +69,7 @@ type HeroLook = {
   poison: number;
   burn: number;
   frost: number;
+  bleed: number;
   dread: number;
   point: Point | null;
 };
@@ -85,6 +87,7 @@ const goneAfter = (old: HeroLook): Omit<HeroLook, 'point'> => ({
   poison: 0,
   burn: 0,
   frost: 0,
+  bleed: 0,
   dread: 0,
 });
 /**
@@ -214,6 +217,7 @@ const lookAt = (
         poison: unit.statuses.poison,
         burn: unit.statuses.burn,
         frost: unit.statuses.frost,
+        bleed: unit.statuses.bleed,
         dread: unit.statuses.dread,
         point: bodyPointOf(unit.uid) ?? before.get(unit.uid)?.point ?? null,
       },
@@ -243,6 +247,7 @@ const heroPopsSince = (
           poison: unit.statuses.poison,
           burn: unit.statuses.burn,
           frost: unit.statuses.frost,
+          bleed: unit.statuses.bleed,
           dread: unit.statuses.dread,
         }
       : goneAfter(old);

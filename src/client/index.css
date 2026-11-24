@@ -56,6 +56,8 @@
   --color-burn: #ff7a1a;
   --color-rage: #e8455e;
   --color-frost: #8fd8ff;
+  /* Bleed: a dark arterial red, apart from Wrath's crimson (rage). */
+  --color-bleed: #c0142e;
   /* Magic: a light sky blue, kept clear of Guard's deeper periwinkle. */
   --color-magic: #7fd8f5;
   /* Defend's glow, a clear bright blue. */

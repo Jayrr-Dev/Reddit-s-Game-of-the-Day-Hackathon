@@ -53,6 +53,11 @@ export const STATUS_INFO: Record<StatusId | 'shroud', StatusInfo> = {
     label: 'Frost',
     description: 'Every hit deals this much less. Halves after each action.',
   },
+  bleed: {
+    label: 'Bleed',
+    description:
+      'Stacks. The 3rd non-Magic hit in a row deals this much, then clears. Magic resets the count.',
+  },
   poison: {
     label: 'Poison',
     description: 'Lose this much HP each turn, then -1.',
@@ -134,6 +139,8 @@ export const describeCardEffect = (
       return `Apply ${effect.amount} Burn${areaSuffix(effect.target)}.`;
     case 'frost':
       return `Apply ${effect.amount} Frost${areaSuffix(effect.target)}.`;
+    case 'bleed':
+      return `Apply ${effect.amount} Bleed${areaSuffix(effect.target)}.`;
     case 'dread':
       return `Apply ${effect.amount} Dread${areaSuffix(effect.target)}.`;
     case 'reap': {
@@ -195,6 +202,7 @@ export type IntentKind =
   | 'poison'
   | 'burn'
   | 'frost'
+  | 'bleed'
   | 'dread'
   | 'guard'
   | 'buff'
@@ -249,7 +257,8 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
     }
     case 'poison':
     case 'burn':
-    case 'frost': {
+    case 'frost':
+    case 'bleed': {
       const amount = scaled(effect.amount);
       const label = STATUS_INFO[effect.kind].label;
       return {

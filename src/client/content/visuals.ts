@@ -32,6 +32,7 @@ export const STATUS_LOOK: Record<StatusId | 'shroud', Look> = {
   poison: { glyph: 'drop', toneClass: 'text-poison' },
   burn: { glyph: 'flame', toneClass: 'text-burn' },
   frost: { glyph: 'snowflake', toneClass: 'text-frost' },
+  bleed: { glyph: 'wound', toneClass: 'text-bleed' },
   dread: { glyph: 'eye', toneClass: 'text-dread' },
   wrath: { glyph: 'fist', toneClass: 'text-rage' },
   // Buffs wear their card type's icon and colour (see CARD_LOOK).
@@ -60,6 +61,7 @@ export const INTENT_LOOK: Record<IntentKind, Look> = {
   poison: STATUS_LOOK.poison,
   burn: STATUS_LOOK.burn,
   frost: STATUS_LOOK.frost,
+  bleed: STATUS_LOOK.bleed,
   dread: STATUS_LOOK.dread,
   guard: { glyph: 'shield', toneClass: 'text-shroud' },
   buff: STATUS_LOOK.wrath,
@@ -177,6 +179,7 @@ export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   poison: STATUS_LOOK.poison,
   burn: STATUS_LOOK.burn,
   frost: STATUS_LOOK.frost,
+  bleed: STATUS_LOOK.bleed,
   dread: STATUS_LOOK.dread,
 };
 

@@ -49,7 +49,7 @@ import {
   hasMomentumFor,
   heal,
   isDefeated,
-  takeDamage,
+  takeHit,
   typeBonus,
 } from './combatant.ts';
 import { getHero, type HeroId } from './heroes.ts';
@@ -432,7 +432,7 @@ const villainAttack = (
           isMelee,
           isFollowThrough
         ),
-        (unit) => takeDamage(unit, cardHitOn(unit, perHit, cardDef))
+        (unit) => takeHit(unit, cardHitOn(unit, perHit, cardDef), cardDef.type)
       ),
     state
   );
@@ -450,7 +450,7 @@ const reapHex = (
 ): CombatState => {
   const bonus = typeBonus(state.player, cardDef.type);
   return updateHeroes(state, resolveTargets(state, 'one', targetUid), (unit) =>
-    takeDamage(unit, unit.statuses.hex * multiplier + bonus)
+    takeHit(unit, unit.statuses.hex * multiplier + bonus, cardDef.type)
   );
 };
 
@@ -468,6 +468,7 @@ const applyCardEffect = (
     case 'poison':
     case 'burn':
     case 'frost':
+    case 'bleed':
     case 'dread':
       return updateHeroes(
         state,
@@ -788,11 +789,11 @@ const applyHeroEffect = (
   const scaled = (amount: number) => scaleByMight(amount, actor.might);
   switch (effect.kind) {
     case 'attack': {
-      const { perHit } = heroAttackOf(actor, effect);
+      const { type, perHit } = heroAttackOf(actor, effect);
       return Array.from({ length: effect.hits }).reduce<CombatState>(
         (current) => ({
           ...current,
-          player: takeDamage(current.player, perHit),
+          player: takeHit(current.player, perHit, type),
         }),
         state
       );
@@ -801,6 +802,7 @@ const applyHeroEffect = (
     case 'poison':
     case 'burn':
     case 'frost':
+    case 'bleed':
       return {
         ...state,
         player: addStatus(state.player, effect.kind, scaled(effect.amount)),

@@ -30,6 +30,7 @@ const DEBUFF_KINDS: readonly PlayerHitPop['kind'][] = [
   'poison',
   'burn',
   'frost',
+  'bleed',
   'dread',
 ];
 const BUFF_ARROW_TONE = 'var(--color-heal)';

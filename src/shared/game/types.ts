@@ -18,6 +18,9 @@ import type { RngState } from './rng.ts';
  *           move; the villain's whole turn), then halves (3 -> 1, 1 -> 0)
  * - frost:  every hit it deals is 1 lower per stack (never below 0);
  *           halves the same way after each of its actions
+ * - bleed:  stacks; on the BLEED_HITS-th non-Magic hit in a row it
+ *           takes, from anyone, it loses this much HP and clears (a
+ *           Magic hit resets the count; see Combatant.bleedHits)
  * - hex:    right before its turn, loses this much HP if it is odd
  *           (nothing when even), then hex grows by 1
  * - dread: deals 25% less attack damage; drops by 1 at the end of its turn
@@ -40,6 +43,7 @@ export type StatusId =
   | 'poison'
   | 'burn'
   | 'frost'
+  | 'bleed'
   | 'dread'
   | 'wrath'
   | 'momentum'
@@ -65,6 +69,8 @@ export type Combatant = {
    * 40-damage blow on a 10 HP hero still reads 40.
    */
   damageTaken: number;
+  /** Non-Magic hits taken in a row while bleeding (see Bleed). */
+  bleedHits?: number;
 };
 
 // --- CARDS ---
@@ -78,6 +84,7 @@ export type CardEffect =
   | { kind: 'poison'; amount: number; target: CardTarget }
   | { kind: 'burn'; amount: number; target: CardTarget }
   | { kind: 'frost'; amount: number; target: CardTarget }
+  | { kind: 'bleed'; amount: number; target: CardTarget }
   | { kind: 'dread'; amount: number; target: CardTarget }
   /** Deals damage equal to the target's hex times `multiplier`. */
   | { kind: 'reap'; multiplier: number }
@@ -141,6 +148,7 @@ export type HeroEffect =
   | { kind: 'poison'; amount: number }
   | { kind: 'burn'; amount: number }
   | { kind: 'frost'; amount: number }
+  | { kind: 'bleed'; amount: number }
   | { kind: 'dread'; amount: number }
   | { kind: 'shroud'; amount: number; who: 'self' | 'allies' }
   | { kind: 'wrath'; amount: number; who: 'self' | 'allies' }

@@ -6,6 +6,7 @@
 
 import {
   AFTER_ACTION_DIVISOR,
+  BLEED_HITS,
   DREAD_DAMAGE_FACTOR,
   FROST_DAMAGE_PER_STACK,
   HEX_GROWTH,
@@ -25,6 +26,7 @@ export const NO_STATUSES: Statuses = {
   poison: 0,
   burn: 0,
   frost: 0,
+  bleed: 0,
   dread: 0,
   wrath: 0,
   might: 0,
@@ -128,6 +130,31 @@ export const takeDamage = <T extends Combatant>(
     hp: Math.max(0, target.hp - dealt),
     damageTaken: target.damageTaken + dealt,
   };
+};
+
+/**
+ * Takes a hit of a type (a card's, or a hero attack's) and counts it
+ * toward Bleed: while bleeding, each non-Magic hit in a row adds one,
+ * and the BLEED_HITS-th bursts for the whole Bleed (past Guard) and
+ * clears it; a Magic hit resets the count.
+ */
+export const takeHit = <T extends Combatant>(
+  target: T,
+  amount: number,
+  type: CardType
+): T => {
+  const hit = takeDamage(target, amount);
+  const { bleed } = hit.statuses;
+  if (bleed <= 0) return hit;
+  if (type === 'magic') return { ...hit, bleedHits: 0 };
+  const inARow = (hit.bleedHits ?? 0) + 1;
+  if (inARow < BLEED_HITS) return { ...hit, bleedHits: inARow };
+  const cleared = {
+    ...hit,
+    bleedHits: 0,
+    statuses: { ...hit.statuses, bleed: 0 },
+  };
+  return loseHp(cleared, bleed);
 };
 
 /** Loses HP directly, ignoring shroud (hex, poison and burn). */
