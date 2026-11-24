@@ -85,7 +85,7 @@ const card = (
 export const CARDS = {
   // STARTER DECK
   backhand: card('Backhand', 'melee', 1, 'starter', [hit(6)]),
-  darkCloak: card('Dark Cloak', 'buff', 1, 'starter', [shroud(5)]),
+  darkCloak: card('Dark Cloak', 'defend', 1, 'starter', [shroud(5)]),
   mourningCurse: card('Mourning Curse', 'curse', 1, 'starter', [
     hit(4),
     hex(2),
@@ -95,11 +95,13 @@ export const CARDS = {
   // COMMON
   cruelSlash: card('Cruel Slash', 'melee', 1, 'common', [hit(9)]),
   twinDaggers: card('Twin Daggers', 'melee', 1, 'common', [hit(4, 2)]),
-  boneWard: card('Bone Ward', 'buff', 1, 'common', [shroud(8)]),
+  boneWard: card('Bone Ward', 'defend', 1, 'common', [shroud(8)]),
   whisperHex: card('Whisper Hex', 'curse', 0, 'common', [hex(3)]),
   quickJab: card('Quick Jab', 'melee', 0, 'common', [hit(3), draw(1)]),
   sneer: card('Sneer', 'curse', 1, 'common', [shroud(5), dread(1)]),
-  fortressOfSpite: card('Fortress of Spite', 'buff', 2, 'common', [shroud(14)]),
+  fortressOfSpite: card('Fortress of Spite', 'defend', 2, 'common', [
+    shroud(14),
+  ]),
   sear: card('Sear', 'melee', 1, 'common', [hit(5), hex(3)]),
   cleave: card('Cleave', 'melee', 1, 'common', [hitAll(6)]),
   spiteBolt: card('Spite Bolt', 'range', 1, 'common', [hit(6)]),
@@ -132,7 +134,7 @@ export const CARDS = {
   deadeye: card('Deadeye', 'buff', 1, 'common', [buff('piercing', 3)], FADES),
   ironHide: card(
     'Iron Hide',
-    'buff',
+    'defend',
     1,
     'common',
     [shroud(4), buff('protection', 2)],
@@ -143,7 +145,7 @@ export const CARDS = {
   reap: card('Reap', 'magic', 1, 'uncommon', [reap(2)]),
   seethe: card('Seethe', 'buff', 1, 'uncommon', [wrath(2)], FADES),
   ruin: card('Ruin', 'melee', 2, 'uncommon', [hit(16)]),
-  coldResolve: card('Cold Resolve', 'buff', 1, 'uncommon', [
+  coldResolve: card('Cold Resolve', 'defend', 1, 'uncommon', [
     shroud(6),
     draw(2),
   ]),
@@ -154,7 +156,7 @@ export const CARDS = {
   bloodPact: card('Blood Pact', 'buff', 0, 'uncommon', [energy(2)], FADES),
   stormOfBlades: card('Storm of Blades', 'melee', 2, 'uncommon', [hit(3, 4)]),
   plague: card('Plague', 'curse', 2, 'uncommon', [hex(4, 'all')]),
-  darkBulwark: card('Dark Bulwark', 'buff', 2, 'uncommon', [
+  darkBulwark: card('Dark Bulwark', 'defend', 2, 'uncommon', [
     shroud(10),
     wrath(1),
   ]),

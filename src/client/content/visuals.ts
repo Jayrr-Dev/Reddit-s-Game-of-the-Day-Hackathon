@@ -84,8 +84,14 @@ export const CARD_LOOK: Record<
     frameClass: 'bg-card-magic',
     glowVar: 'var(--color-magic)',
   },
-  buff: {
+  defend: {
     glyph: 'shield',
+    typeName: 'Defend',
+    frameClass: 'bg-card-defend',
+    glowVar: 'var(--color-defend)',
+  },
+  buff: {
+    glyph: 'flame',
     typeName: 'Buff',
     frameClass: 'bg-card-buff',
     glowVar: 'var(--color-buff)',

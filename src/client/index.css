@@ -53,6 +53,8 @@
   --color-hex: #a463e8;
   /* Magic: a light sky blue, kept clear of Guard's deeper periwinkle. */
   --color-magic: #7fd8f5;
+  /* Defend's glow, a clear bright blue. */
+  --color-defend: #5b86ff;
   /* Buff's glow, a bright amber. */
   --color-buff: #f59a3c;
   --color-dread: #6f7f9e;
@@ -69,6 +71,8 @@
   --color-card-melee: #8e1f33;
   --color-card-range: #5b636d;
   --color-card-magic: #2a7ea3;
+  /* Defend: a plain royal blue (deeper and less green than Magic). */
+  --color-card-defend: #2348b0;
   /* Buff: deep amber orange (yellower than Wrath's red-orange, more
      saturated than the gold accent). */
   --color-card-buff: #b4581a;

@@ -3,7 +3,8 @@
 // The health plate that floats above every hero on the battlefield:
 //   name                      (top left)
 //   ====[ HP ]====            drain bar, the number in a centre shield
-//   intent chips   statuses   (under the bar: next move left, statuses right)
+//   intent chips   statuses   (under the bar: next move left on white
+//                              pills, statuses right on dark tiles)
 // Each hero gets its own plate, so the whole horde reads at a glance.
 // The plate grows with the hero: it spans the hero's columns, and a big
 // hero (size 3, a champion) gets a bigger shield and bar than a small
@@ -119,7 +120,7 @@ export const HeroPlate = ({ unit, field, isFocused }: HeroPlateProps) => {
           up under the top bar). Drawn at 80%, so laid out 125% wide to
           span the plate; statuses take what the intents leave and fold
           the rest into "+N". */}
-      <div className="flex w-[125%] origin-top scale-[0.8] items-start gap-1 self-center">
+      <div className="flex w-[125%] origin-top scale-[0.8] items-start gap-2.5 self-center">
         <div className="shrink-0">
           <IntentChips unit={unit} field={field} />
         </div>

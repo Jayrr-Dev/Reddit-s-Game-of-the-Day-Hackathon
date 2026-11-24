@@ -1,8 +1,9 @@
 // ===================================================================
 // CHIP (ATOM)
-// A small icon + value badge. Two shapes so they read apart at a glance:
-// round pills for what a hero is about to do (intents), square tiles for
-// effects already in play (statuses such as Shroud, Hex, Wrath).
+// A small icon + value badge. Two looks so they read apart at a glance:
+// what a hero is about to do (intents) are round white pills with a
+// black rim; effects already in play (statuses such as Shroud, Hex,
+// Wrath) are dark square tiles.
 // ===================================================================
 
 import { Glyph, type GlyphName } from './Glyph';
@@ -21,9 +22,18 @@ export type ChipProps = {
 
 export type ChipShape = 'pill' | 'square';
 
+/**
+ * Each shape's look. On the white pill the number is black and the icon
+ * keeps its tone, darkened so the light ones (Magic sky, Range silver,
+ * gold) still stand out against white.
+ */
 const SHAPE_CLASS: Record<ChipShape, string> = {
-  pill: 'rounded-full px-1.5',
-  square: 'rounded-[3px] px-1',
+  pill: 'rounded-full px-1.5 bg-[#fbf8f1] text-black ring-black',
+  square: 'rounded-[3px] px-1 bg-surface-sunken ring-edge',
+};
+const ICON_CLASS: Record<ChipShape, string> = {
+  pill: 'brightness-[0.55] saturate-150',
+  square: '',
 };
 
 /** Renders one badge, with its tooltip when it has `info`. */
@@ -44,9 +54,11 @@ const Badge = ({
   shape = 'pill',
 }: Omit<ChipProps, 'info'>) => (
   <span
-    className={`inline-flex items-center gap-0.5 bg-surface-sunken ${SHAPE_CLASS[shape]} py-0.5 text-[11px] font-bold ring-1 ring-edge ${toneClass}`}
+    className={`inline-flex items-center gap-0.5 ${SHAPE_CLASS[shape]} py-0.5 text-[11px] font-bold ring-1 ${shape === 'square' ? toneClass : ''}`}
   >
-    <Glyph name={glyph} className="size-3" />
+    <span className={`inline-flex ${toneClass} ${ICON_CLASS[shape]}`}>
+      <Glyph name={glyph} className="size-3" />
+    </span>
     {text}
   </span>
 );

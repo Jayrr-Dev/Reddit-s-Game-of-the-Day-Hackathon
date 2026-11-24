@@ -5,7 +5,7 @@
 //   art window    an arched window with the type's glyph
 //   name banner   the name across the middle in the display font
 //   rules panel   parchment with the rules text, keywords in bold
-//   type ribbon   the type (Melee, Range, Magic, Buff, Curse) and rarity
+//   type ribbon   the type (Melee, Range, Magic, Defend, Buff, Curse) and rarity
 // The frame and outer glow are coloured by type (see CARD_LOOK).
 // The text comes from describeCard, so it always matches what the card
 // really does (including live wrath/dread math, and the hero it is

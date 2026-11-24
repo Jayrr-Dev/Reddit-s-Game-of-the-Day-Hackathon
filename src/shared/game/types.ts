@@ -76,9 +76,11 @@ export type CardRarity = 'starter' | 'common' | 'uncommon' | 'rare';
 /**
  * What kind of card it is. Shown on the card, and it decides reach:
  * Melee hits the front row only; Range, Magic and Curse reach any hero.
- * Buff cards act on the villain.
+ * Defend and Buff cards act on the villain: Defend cards are mainly
+ * Guard, Buff cards power the villain up (Wrath, buffs, energy, healing).
  */
-export type CardType = 'melee' | 'range' | 'magic' | 'buff' | 'curse';
+export type CardType =
+  'melee' | 'range' | 'magic' | 'defend' | 'buff' | 'curse';
 
 export type CardDef = {
   name: string;

@@ -128,10 +128,10 @@ void test('Reach and curses can hit the back row', () => {
   assert.equal(targetRuleOf('whisperHex'), 'any');
 });
 
-void test('a card type decides its reach: only Melee and Buff stay short', () => {
+void test('a card type decides its reach: Melee, Defend and Buff stay short', () => {
   for (const cardId of ALL_CARD_IDS) {
     const { type, reach } = getCard(cardId);
-    const isShort = type === 'melee' || type === 'buff';
+    const isShort = type === 'melee' || type === 'defend' || type === 'buff';
     assert.equal(reach, !isShort, `${cardId} (${type})`);
   }
   assert.equal(targetRuleOf('cruelSlash'), 'front');
@@ -275,4 +275,13 @@ void test('Momentum unused by the end of the turn is lost', () => {
   const charged = move({ ...felled, energy: 3 }, 'charge');
   assert.equal(charged.player.statuses.momentum, 1);
   assert.equal(endTurn(charged).player.statuses.momentum, 0);
+});
+
+void test('Guard cards are Defend; Buff keeps the true buffs', () => {
+  for (const cardId of ALL_CARD_IDS) {
+    const { type, effects } = getCard(cardId);
+    const isMainlyGuard = effects[0]?.kind === 'shroud';
+    if (type === 'defend' || type === 'buff')
+      assert.equal(type === 'defend', isMainlyGuard, cardId);
+  }
 });
