@@ -81,6 +81,11 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   bleed: {
     label: 'Bleed',
     description:
+      'Loses this much HP after each action\nGoes down by **1** each time',
+  },
+  smite: {
+    label: 'Smite',
+    description:
       'The **3rd** non-Magic hit in a row deals this much, then clears\n**Magic** hits reset the count',
   },
   poison: {
@@ -201,6 +206,7 @@ export const describeCardEffect = (
     case 'burn':
     case 'frost':
     case 'bleed':
+    case 'smite':
     case 'weaken':
       return describeStatusLine(effect);
     case 'enfeeble':
@@ -422,6 +428,7 @@ export const imbueTag = (gift: ImbueGift): string => {
     case 'burn':
     case 'frost':
     case 'bleed':
+    case 'smite':
     case 'weaken':
     case 'guard':
     case 'wrath':
@@ -455,7 +462,7 @@ const describeImbueEffect = ({ gift }: Imbue): string =>
 /** Card effects that lay a status on heroes. */
 type AppliedStatus = Extract<
   CardEffect,
-  { kind: 'hex' | 'poison' | 'burn' | 'frost' | 'bleed' | 'weaken' }
+  { kind: 'hex' | 'poison' | 'burn' | 'frost' | 'smite' | 'bleed' | 'weaken' }
 >;
 
 /** A status laid on heroes, as its name and number: "Hex 2", "Hex ALL 4". */
@@ -532,6 +539,7 @@ export type IntentKind =
   | 'poison'
   | 'burn'
   | 'frost'
+  | 'smite'
   | 'bleed'
   | 'weaken'
   | 'guard'
@@ -590,7 +598,8 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
     case 'poison':
     case 'burn':
     case 'frost':
-    case 'bleed': {
+    case 'bleed':
+    case 'smite': {
       const amount = scaled(effect.amount);
       const label = STATUS_INFO[effect.kind].label;
       return {

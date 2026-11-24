@@ -56,8 +56,10 @@
   /* Burn: fire orange. */
   --color-burn: #ff7a1a;
   --color-frost: #8fd8ff;
-  /* Bleed: a dark arterial red, apart from Melee's red (hp). */
-  --color-bleed: #c0142e;
+  /* Smite: a dark arterial red, apart from Melee's red (hp). */
+  --color-smite: #c0142e;
+  /* Bleed (HP lost after each action): a bright fresh-blood red. */
+  --color-bleed: #e8445c;
   /* Magic: a light sky blue, kept clear of Defend's (and Guard's) deeper blue. */
   --color-magic: #7fd8f5;
   /* Defend's glow, a clear bright blue. */
@@ -2251,7 +2253,7 @@ textarea,
   }
 }
 
-/* Drips down from the wound (Bleed laid on). */
+/* Drips down from the wound (Smite laid on). */
 @keyframes fx-fall {
   0% {
     opacity: 0;
@@ -2353,22 +2355,22 @@ textarea,
 }
 
 /* -------------------------------------------------------------------
-   BLEED DROP: Bleed's chip icon (BleedDrop.tsx). Full (primed, one hit
+   SMITE DROP: Smite's chip icon (SmiteDrop.tsx). Full (primed, one hit
    from bursting) it pulses; on the burst it swells and fades as five
    droplets fly off along --drop-angle. Transform and opacity only;
    reduced motion shows a steady drop.
    ------------------------------------------------------------------- */
-.bleed-drop[data-stage='full'] .bleed-drop-body {
-  animation: bleed-drop-pulse 800ms ease-in-out infinite;
+.smite-drop[data-stage='full'] .smite-drop-body {
+  animation: smite-drop-pulse 800ms ease-in-out infinite;
 }
-.bleed-drop[data-stage='splash'] .bleed-drop-body {
-  animation: bleed-drop-splash 600ms ease-out forwards;
+.smite-drop[data-stage='splash'] .smite-drop-body {
+  animation: smite-drop-splash 600ms ease-out forwards;
 }
-.bleed-drop-droplet {
+.smite-drop-droplet {
   opacity: 0;
-  animation: bleed-drop-fly 600ms ease-out forwards;
+  animation: smite-drop-fly 600ms ease-out forwards;
 }
-@keyframes bleed-drop-pulse {
+@keyframes smite-drop-pulse {
   0%,
   100% {
     transform: scale(1);
@@ -2377,7 +2379,7 @@ textarea,
     transform: scale(1.25);
   }
 }
-@keyframes bleed-drop-splash {
+@keyframes smite-drop-splash {
   0% {
     transform: scale(1);
     opacity: 1;
@@ -2391,7 +2393,7 @@ textarea,
     opacity: 0;
   }
 }
-@keyframes bleed-drop-fly {
+@keyframes smite-drop-fly {
   0% {
     opacity: 1;
     transform: translate(-50%, -50%) rotate(var(--drop-angle)) translateX(0);
@@ -2403,11 +2405,11 @@ textarea,
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .bleed-drop .bleed-drop-body,
-  .bleed-drop-droplet {
+  .smite-drop .smite-drop-body,
+  .smite-drop-droplet {
     animation: none;
   }
-  .bleed-drop-droplet {
+  .smite-drop-droplet {
     display: none;
   }
 }

@@ -99,8 +99,8 @@ export const BACK_STEP_ROWS = 1;
 export const WEAKEN_DAMAGE_FACTOR = 0.75;
 /** Burn and Frost are divided by this after each action (a half rounds down). */
 export const AFTER_ACTION_DIVISOR = 2;
-/** Bleed bursts on this many non-Magic hits in a row. */
-export const BLEED_HITS = 3;
+/** Smite bursts on this many non-Magic hits in a row. */
+export const SMITE_HITS = 3;
 /** Each stack of Frost takes this much off every hit its bearer deals. */
 export const FROST_DAMAGE_PER_STACK = 1;
 /**
@@ -112,6 +112,7 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   poison: true,
   burn: true,
   frost: true,
+  smite: true,
   bleed: true,
   weaken: true,
   enfeeble: true,

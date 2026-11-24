@@ -11,6 +11,7 @@ import {
   attackDamage,
   endOfTurnUpkeep,
   burnTick,
+  afterAction,
   frostThaw,
   hexBurn,
   hexBurnAmount,
@@ -351,47 +352,76 @@ void test('a frosted hero hits softer, then its frost halves', () => {
   assert.equal(after.statuses.frost, 1);
 });
 
-void test('bleed bursts and clears on the 3rd non-magic hit in a row', () => {
+void test('Bleed takes its value after each action, then drops by 1', () => {
   const bleeding = {
     ...createCombatant(50, 50),
-    statuses: { ...NO_STATUSES, bleed: 6 },
+    statuses: { ...NO_STATUSES, bleed: 3 },
   };
-  const once = takeHit(bleeding, 2, 'melee');
-  const twice = takeHit(once, 2, 'range');
-  assert.equal(twice.bleedHits, 2);
-  assert.equal(twice.hp, 46);
-  const thrice = takeHit(twice, 2, 'melee');
-  // Three hits of 2, then the bleed (6).
-  assert.equal(thrice.hp, 38);
+  const once = afterAction(bleeding);
+  assert.equal(once.hp, 47);
+  assert.equal(once.statuses.bleed, 2);
+  const thrice = afterAction(afterAction(once));
+  assert.equal(thrice.hp, 50 - 3 - 2 - 1);
   assert.equal(thrice.statuses.bleed, 0);
-  assert.equal(thrice.bleedHits ?? 0, 0);
 });
 
-void test('new bleed stacks on top and keeps the count', () => {
-  const bleeding = {
-    ...createCombatant(50, 50),
-    statuses: { ...NO_STATUSES, bleed: 2 },
+void test('a Bleeding hero loses HP after its move', () => {
+  const fight = settled(withHand(fightWith([]), []));
+  const bled: CombatState = {
+    ...fight,
+    heroes: fight.heroes.map((unit) => ({
+      ...unit,
+      statuses: { ...unit.statuses, bleed: 4 },
+    })),
   };
-  const hit = takeHit(takeHit(bleeding, 1, 'melee'), 1, 'melee');
-  const stacked = addStatus(hit, 'bleed', 4);
-  assert.equal(stacked.bleedHits, 2);
+  const hero = bled.heroes[0]!;
+  const acted = endTurnSteps(bled).find((step) => step.actorUid === hero.uid)!;
+  const after = acted.state.heroes.find((unit) => unit.uid === hero.uid)!;
+  assert.equal(after.statuses.bleed, 3);
+  assert.ok(after.hp <= hero.hp - 4);
+});
+
+void test('smite bursts and clears on the 3rd non-magic hit in a row', () => {
+  const smitten = {
+    ...createCombatant(50, 50),
+    statuses: { ...NO_STATUSES, smite: 6 },
+  };
+  const once = takeHit(smitten, 2, 'melee');
+  const twice = takeHit(once, 2, 'range');
+  assert.equal(twice.smiteHits, 2);
+  assert.equal(twice.hp, 46);
+  const thrice = takeHit(twice, 2, 'melee');
+  // Three hits of 2, then the smite (6).
+  assert.equal(thrice.hp, 38);
+  assert.equal(thrice.statuses.smite, 0);
+  assert.equal(thrice.smiteHits ?? 0, 0);
+});
+
+void test('new smite stacks on top and keeps the count', () => {
+  const smitten = {
+    ...createCombatant(50, 50),
+    statuses: { ...NO_STATUSES, smite: 2 },
+  };
+  const hit = takeHit(takeHit(smitten, 1, 'melee'), 1, 'melee');
+  const stacked = addStatus(hit, 'smite', 4);
+  assert.equal(stacked.smiteHits, 2);
   const burst = takeHit(stacked, 1, 'melee');
   assert.equal(burst.hp, 50 - 3 - 6);
 });
 
-void test('a magic hit resets the bleed count', () => {
-  const bleeding = {
+void test('a magic hit resets the smite count', () => {
+  const smitten = {
     ...createCombatant(50, 50),
-    statuses: { ...NO_STATUSES, bleed: 6 },
+    statuses: { ...NO_STATUSES, smite: 6 },
   };
-  const hit = takeHit(takeHit(bleeding, 1, 'melee'), 1, 'melee');
+  const hit = takeHit(takeHit(smitten, 1, 'melee'), 1, 'melee');
   const zapped = takeHit(hit, 1, 'magic');
-  assert.equal(zapped.bleedHits ?? 0, 0);
+  assert.equal(zapped.smiteHits ?? 0, 0);
   const again = takeHit(takeHit(zapped, 1, 'melee'), 1, 'melee');
-  assert.equal(again.statuses.bleed, 6, 'only 2 in a row since the zap');
+  assert.equal(again.statuses.smite, 6, 'only 2 in a row since the zap');
 });
 
-void test('a hero bleeding out from the villain: three melee hits', () => {
+void test('a hero smitten by the villain: three melee hits', () => {
   const fight = settled(
     startCombat({
       hp: 999,
@@ -402,7 +432,7 @@ void test('a hero bleeding out from the villain: three melee hits', () => {
       seed: 7,
     })
   );
-  const bleeding: CombatState = {
+  const smitten: CombatState = {
     ...fight,
     hand: ['backhand', 'backhand', 'backhand'],
     energy: 3,
@@ -410,14 +440,14 @@ void test('a hero bleeding out from the villain: three melee hits', () => {
       ...unit,
       hp: 99,
       maxHp: 99,
-      statuses: { ...unit.statuses, bleed: 5 },
+      statuses: { ...unit.statuses, smite: 5 },
     })),
   };
-  const uid = bleeding.heroes[0]!.uid;
-  const after = [0, 0, 0].reduce((state) => playCard(state, 0, uid), bleeding);
+  const uid = smitten.heroes[0]!.uid;
+  const after = [0, 0, 0].reduce((state) => playCard(state, 0, uid), smitten);
   const maiden = after.heroes.find((unit) => unit.uid === uid)!;
   assert.equal(maiden.hp, 99 - 6 * 3 - 5);
-  assert.equal(maiden.statuses.bleed, 0);
+  assert.equal(maiden.statuses.smite, 0);
 });
 
 void test("the Rogue's Poisoned Dart poisons instead of hexing", () => {
@@ -688,6 +718,7 @@ void test('afflictions are the harmful statuses, flagged in one table', () => {
     'frost',
     'hex',
     'poison',
+    'smite',
     'weaken',
   ]);
 });
@@ -1252,11 +1283,11 @@ void test('Hold is a card trait, printed on the card', () => {
 });
 
 // --- AFFLICTION CARDS ---
-void test('Venom Dart poisons, Frost Bolt frosts and Serrated Slash bleeds', () => {
-  const cases: readonly [CardId, 'poison' | 'frost' | 'bleed'][] = [
+void test('Venom Dart poisons, Frost Bolt frosts and Serrated Slash smites', () => {
+  const cases: readonly [CardId, 'poison' | 'frost' | 'smite'][] = [
     ['venomDart', 'poison'],
     ['frostBolt', 'frost'],
-    ['serratedSlash', 'bleed'],
+    ['serratedSlash', 'smite'],
   ];
   cases.forEach(([cardId, status]) => {
     const state = withHand(fightWith([]), [cardId]);

@@ -26,7 +26,7 @@ import {
 } from '../../../shared/game/describe';
 import { hexAfterTurn, hexBurnAmount } from '../../../shared/game/combatant';
 import {
-  BLEED_HITS,
+  SMITE_HITS,
   OUT_OF_RANGE_HIT_CHANCE,
 } from '../../../shared/game/rules';
 import type {
@@ -45,17 +45,17 @@ import {
   type FloatingPlacement,
 } from '../../lib/floatingPlacement';
 import { useFitCount } from '../../hooks/useFitCount';
-import { useBleedSplash } from '../../hooks/useBleedSplash';
+import { useSmiteSplash } from '../../hooks/useSmiteSplash';
 import { Chip, type ChipProps } from '../ui/Chip';
-import { bleedStageOf, type BleedStage } from '../../lib/bleedStage';
-import { BleedDrop } from './BleedDrop';
+import { smiteStageOf, type SmiteStage } from '../../lib/smiteStage';
+import { SmiteDrop } from './SmiteDrop';
 
 // --- TYPES ---
 /** One status as a chip, with its tooltip text. */
 type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
   Pick<ChipProps, 'fill'> & {
-    /** Bleed's drop stage, drawn in place of its glyph. */
-    bleedStage?: BleedStage;
+    /** Smite's drop stage, drawn in place of its glyph. */
+    smiteStage?: SmiteStage;
     key: StatusId | PassiveId | 'guard' | 'outOfRange';
     title: string;
     description: string;
@@ -92,6 +92,7 @@ const STATUS_ORDER: readonly StatusId[] = [
   'poison',
   'burn',
   'frost',
+  'smite',
   'bleed',
   'weaken',
   'enfeeble',
@@ -162,40 +163,40 @@ const hexChipOf = (hex: number): Partial<StatusChip> => {
 };
 
 /**
- * Bleed's chip: its value, with a drop that fills as the hits in a row
- * add up (see BleedDrop). One hit from bursting it is PRIMED: full and
+ * Smite's chip: its value, with a drop that fills as the hits in a row
+ * add up (see SmiteDrop). One hit from bursting it is PRIMED: full and
  * pulsing.
  */
-const bleedChipOf = (combatant: Combatant): Partial<StatusChip> => {
-  const hits = combatant.bleedHits ?? 0;
-  const isPrimed = hits >= BLEED_HITS - 1;
+const smiteChipOf = (combatant: Combatant): Partial<StatusChip> => {
+  const hits = combatant.smiteHits ?? 0;
+  const isPrimed = hits >= SMITE_HITS - 1;
   return {
-    bleedStage: bleedStageOf(hits),
+    smiteStage: smiteStageOf(hits),
     ...(isPrimed
       ? {
-          description: `Primed: the next non-Magic hit bursts it for ${combatant.statuses.bleed}.`,
+          description: `Primed: the next non-Magic hit bursts it for ${combatant.statuses.smite}.`,
         }
       : {}),
   };
 };
 
-/** The chip a burst Bleed leaves for a moment: its drop splashing. */
+/** The chip a burst Smite leaves for a moment: its drop splashing. */
 const splashChipOf = (value: number): StatusChip => ({
-  key: 'bleed',
-  ...STATUS_LOOK.bleed,
+  key: 'smite',
+  ...STATUS_LOOK.smite,
   text: String(value),
-  title: STATUS_INFO.bleed.label,
+  title: STATUS_INFO.smite.label,
   description: `Burst for ${value}.`,
-  bleedStage: 'splash',
+  smiteStage: 'splash',
 });
 
 /** A chip's own drawing in place of its glyph, if it has one. */
 const chipIconOf = (chip: StatusChip) =>
-  chip.bleedStage ? <BleedDrop stage={chip.bleedStage} /> : undefined;
+  chip.smiteStage ? <SmiteDrop stage={chip.smiteStage} /> : undefined;
 
 /**
  * Every active effect on a combatant as chips, Guard first; `splashed`
- * adds a Bleed that just burst, splashing (see useBleedSplash).
+ * adds a Smite that just burst, splashing (see useSmiteSplash).
  */
 const statusChipsOf = (
   combatant: Combatant,
@@ -221,11 +222,11 @@ const statusChipsOf = (
       title: STATUS_INFO[id].label,
       description: STATUS_INFO[id].description,
       ...(id === 'hex' ? hexChipOf(combatant.statuses[id]) : {}),
-      ...(id === 'bleed' ? bleedChipOf(combatant) : {}),
+      ...(id === 'smite' ? smiteChipOf(combatant) : {}),
     })
   );
   const splash =
-    splashed !== null && combatant.statuses.bleed === 0
+    splashed !== null && combatant.statuses.smite === 0
       ? [splashChipOf(splashed)]
       : [];
   return [...guard, ...statuses, ...splash];
@@ -369,7 +370,7 @@ export const StatusRow = ({
   /** Lines the chips may wrap onto before folding into +N. */
   rows?: number;
 }) => {
-  const splashed = useBleedSplash(combatant);
+  const splashed = useSmiteSplash(combatant);
   const chips = [
     ...(isOutOfRange ? [OUT_OF_RANGE_CHIP] : []),
     ...passiveChipsOf(passives),

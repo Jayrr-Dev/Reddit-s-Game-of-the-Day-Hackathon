@@ -27,10 +27,17 @@ import { HERO_ANCHOR_ATTR, HERO_UID_ATTR, type Point } from './useCardDrag';
 // --- TYPES ---
 /** A status that harms whoever carries it. */
 export type DebuffKind =
-  'hex' | 'poison' | 'burn' | 'frost' | 'bleed' | 'weaken' | 'enfeeble';
+  | 'hex'
+  | 'poison'
+  | 'burn'
+  | 'frost'
+  | 'smite'
+  | 'bleed'
+  | 'weaken'
+  | 'enfeeble';
 
 /** A status that deals damage on its own when it goes off (a tick). */
-export type TickKind = 'hex' | 'poison' | 'burn';
+export type TickKind = 'hex' | 'poison' | 'burn' | 'bleed';
 
 /** What a pop shows: a hit, something gained, or a debuff laid on. */
 export type PopKind =
@@ -43,8 +50,8 @@ export type PopKind =
   | 'brace'
   | BuffId
   | DebuffKind
-  /** Bleed went off: a spray of blood over the unit (quiet). */
-  | 'bleedBurst'
+  /** Smite went off: a spray of blood over the unit (quiet). */
+  | 'smiteBurst'
   /** A shot Out of Range missed: "Miss" floats up, nothing is drawn. */
   | 'miss';
 
@@ -91,6 +98,7 @@ type HeroLook = {
   poison: number;
   burn: number;
   frost: number;
+  smite: number;
   bleed: number;
   weaken: number;
   enfeeble: number;
@@ -111,6 +119,7 @@ const goneAfter = (old: HeroLook): Omit<HeroLook, 'point'> => ({
   poison: 0,
   burn: 0,
   frost: 0,
+  smite: 0,
   bleed: 0,
   weaken: 0,
   enfeeble: 0,
@@ -190,6 +199,7 @@ const tickCauseOf = (
   after: Record<TickKind, number>
 ): TickKind | undefined => {
   if (after.burn < before.burn) return 'burn';
+  if (after.bleed < before.bleed) return 'bleed';
   if (after.poison < before.poison) return 'poison';
   if (after.hex !== before.hex) return 'hex';
   return undefined;
@@ -237,7 +247,7 @@ const gainsBetween = (
 };
 
 /**
- * Debuffs laid on between two looks, plus a Bleed that went off (it
+ * Debuffs laid on between two looks, plus a Smite that went off (it
  * had stacks and now has none): effect only, no number.
  */
 const debuffsBetween = (
@@ -250,10 +260,10 @@ const debuffsBetween = (
     blocked: 0,
     isQuiet: true,
   })).filter((debuff) => debuff.amount > 0);
-  const hasBurst = before.bleed > 0 && after.bleed === 0;
+  const hasBurst = before.smite > 0 && after.smite === 0;
   const burst: Hit = {
-    kind: 'bleedBurst',
-    amount: before.bleed,
+    kind: 'smiteBurst',
+    amount: before.smite,
     blocked: 0,
     isQuiet: true,
   };
@@ -288,6 +298,7 @@ const lookAt = (
         poison: unit.statuses.poison,
         burn: unit.statuses.burn,
         frost: unit.statuses.frost,
+        smite: unit.statuses.smite,
         bleed: unit.statuses.bleed,
         weaken: unit.statuses.weaken,
         enfeeble: unit.statuses.enfeeble,
@@ -321,6 +332,7 @@ const heroPopsSince = (
           poison: unit.statuses.poison,
           burn: unit.statuses.burn,
           frost: unit.statuses.frost,
+          smite: unit.statuses.smite,
           bleed: unit.statuses.bleed,
           weaken: unit.statuses.weaken,
           enfeeble: unit.statuses.enfeeble,

@@ -33,7 +33,7 @@ export type ChipProps = {
    * first (an intent's secondary effects: one move, one arrow).
    */
   extras?: readonly ChipPart[];
-  /** A drawing in place of the glyph (e.g. Bleed's filling drop). */
+  /** A drawing in place of the glyph (e.g. Smite's filling drop). */
   icon?: ReactNode;
 };
 

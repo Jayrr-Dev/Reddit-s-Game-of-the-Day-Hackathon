@@ -6,7 +6,7 @@
 
 import {
   AFTER_ACTION_DIVISOR,
-  BLEED_HITS,
+  SMITE_HITS,
   WEAKEN_DAMAGE_FACTOR,
   FROST_DAMAGE_PER_STACK,
   HEX_BURN_LOSS,
@@ -34,6 +34,7 @@ export const NO_STATUSES: Statuses = {
   poison: 0,
   burn: 0,
   frost: 0,
+  smite: 0,
   bleed: 0,
   weaken: 0,
   wrath: 0,
@@ -164,8 +165,8 @@ export const missShot = <T extends Combatant>(target: T): T => ({
 
 /**
  * Takes a hit of a type (a card's, or a hero attack's) and counts it
- * toward Bleed: while bleeding, each non-Magic hit in a row adds one,
- * and the BLEED_HITS-th bursts for the whole Bleed (past Guard) and
+ * toward Smite: while smitten, each non-Magic hit in a row adds one,
+ * and the SMITE_HITS-th bursts for the whole Smite (past Guard) and
  * clears it; a Magic hit resets the count.
  */
 export const takeHit = <T extends Combatant>(
@@ -174,17 +175,17 @@ export const takeHit = <T extends Combatant>(
   type: CardType
 ): T => {
   const hit = takeDamage(target, protectedAmount(target, amount));
-  const { bleed } = hit.statuses;
-  if (bleed <= 0) return hit;
-  if (type === 'magic') return { ...hit, bleedHits: 0 };
-  const inARow = (hit.bleedHits ?? 0) + 1;
-  if (inARow < BLEED_HITS) return { ...hit, bleedHits: inARow };
+  const { smite } = hit.statuses;
+  if (smite <= 0) return hit;
+  if (type === 'magic') return { ...hit, smiteHits: 0 };
+  const inARow = (hit.smiteHits ?? 0) + 1;
+  if (inARow < SMITE_HITS) return { ...hit, smiteHits: inARow };
   const cleared = {
     ...hit,
-    bleedHits: 0,
-    statuses: { ...hit.statuses, bleed: 0 },
+    smiteHits: 0,
+    statuses: { ...hit.statuses, smite: 0 },
   };
-  return loseHp(cleared, bleed);
+  return loseHp(cleared, smite);
 };
 
 // --- TIERED STATUSES (Protection, Enfeeble; see TIERED_CUT_BY_TIER) ---
@@ -272,7 +273,7 @@ export const cleanseOne = <T extends Combatant>(
   const cleansed = {
     ...target,
     statuses: { ...target.statuses, [removed]: 0 },
-    ...(removed === 'bleed' ? { bleedHits: 0 } : {}),
+    ...(removed === 'smite' ? { smiteHits: 0 } : {}),
   };
   return [cleansed, next];
 };
@@ -393,9 +394,20 @@ export const frostThaw = <T extends Combatant>(target: T): T => {
   return { ...target, statuses: { ...target.statuses, frost: left } };
 };
 
-/** Everything that runs right after a unit's action: Burn, then Frost. */
+/** Bleed, right after an action: it deals its value, then drops by 1. */
+export const bleedTick = <T extends Combatant>(target: T): T => {
+  const { bleed } = target.statuses;
+  if (bleed <= 0) return target;
+  const bled = loseHp(target, bleed);
+  return { ...bled, statuses: { ...bled.statuses, bleed: bleed - 1 } };
+};
+
+/**
+ * Everything that runs right after a unit's action: Burn, Bleed, then
+ * Frost thaws.
+ */
 export const afterAction = <T extends Combatant>(target: T): T =>
-  frostThaw(burnTick(target));
+  frostThaw(bleedTick(burnTick(target)));
 
 /**
  * End-of-turn upkeep: poison deals its damage then weakens by 1, weaken
