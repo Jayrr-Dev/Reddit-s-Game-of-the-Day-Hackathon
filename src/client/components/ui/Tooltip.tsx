@@ -3,7 +3,10 @@
 // A small label that names what you're pointing at, styled like a
 // shadcn tooltip: dark, rounded, thin border, soft shadow, with an
 // arrow. It shows after a short hover with a mouse, or on a long press
-// with a finger, and hides when the pointer leaves or lifts. Rendered
+// with a finger, and hides when the pointer leaves or lifts. A
+// click-to-open one (opensOn "click", e.g. unit chips) is a popover:
+// one click or tap opens it, clicking it again or anywhere else
+// closes it. Rendered
 // in a portal with fixed positioning so the battlefield's clipping
 // can't cut it off; it sits above the trigger (below when there's no
 // room) and is kept inside the screen.
@@ -16,6 +19,7 @@ import {
   type MouseEvent,
   type PointerEvent,
   type ReactNode,
+  type RefObject,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { Glyph } from './Glyph';
@@ -47,6 +51,8 @@ const LONG_PRESS_MS = 400;
 const MAX_WIDTH = 200;
 /** Below this much room above the trigger, show it underneath. */
 const MIN_ROOM_ABOVE = 70;
+/** A popover (a glossary entry, several lines) needs more room above. */
+const POPOVER_MIN_ROOM_ABOVE = 150;
 
 // --- SUBCOMPONENTS ---
 /** The bold title, in its term's colour with its icon when it has one. */
@@ -100,12 +106,36 @@ const TooltipLabel = ({
   </div>
 );
 
+// --- HOOKS ---
+/**
+ * Closes an open popover when the pointer goes down anywhere outside
+ * its trigger (a press on the trigger itself toggles it instead).
+ */
+const useCloseOnOutsidePress = (
+  isOpen: boolean,
+  triggerRef: RefObject<HTMLSpanElement | null>,
+  close: () => void
+) => {
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onPress = (event: globalThis.PointerEvent) => {
+      if (!triggerRef.current?.contains(event.target as Node)) close();
+    };
+    document.addEventListener('pointerdown', onPress, true);
+    return () => document.removeEventListener('pointerdown', onPress, true);
+  }, [isOpen, triggerRef, close]);
+};
+
 // --- COMPONENT ---
-/** Wraps `children` so hovering or long-pressing shows `content`. */
+/**
+ * Wraps `children` so hovering or long-pressing shows `content`, or
+ * (opensOn "click") so a click or tap opens it as a popover.
+ */
 export const Tooltip = ({
   content,
   children,
   isInline = false,
+  opensOn = 'hover',
 }: {
   content: TooltipContent;
   children: ReactNode;
@@ -114,6 +144,8 @@ export const Tooltip = ({
    * line never breaks between it and the full stop after it.
    */
   isInline?: boolean;
+  /** "hover" (default): hover or long press. "click": a popover. */
+  opensOn?: 'hover' | 'click';
 }) => {
   const [placement, setPlacement] = useState<Placement | null>(null);
   const triggerRef = useRef<HTMLSpanElement>(null);
@@ -124,6 +156,10 @@ export const Tooltip = ({
 
   // NEVER LEAVE A PENDING TIMER BEHIND
   useEffect(() => () => window.clearTimeout(timerRef.current), []);
+  const isPopover = opensOn === 'click';
+  useCloseOnOutsidePress(isPopover && placement !== null, triggerRef, () =>
+    setPlacement(null)
+  );
 
   /** Shows the label after `delayMs`, unless the pointer leaves first. */
   const showAfter = (delayMs: number) => {
@@ -161,6 +197,25 @@ export const Tooltip = ({
       showAfter(HOVER_DELAY_MS);
   };
 
+  /** A popover's click: toggles it, and is not a tap on what's behind. */
+  const onPopoverClick = (event: MouseEvent) => {
+    event.stopPropagation();
+    const rect = triggerRef.current?.getBoundingClientRect();
+    setPlacement((open) =>
+      open || !rect
+        ? null
+        : placeFloating(rect, MAX_WIDTH, POPOVER_MIN_ROOM_ABOVE)
+    );
+  };
+  const hoverHandlers = {
+    onPointerEnter,
+    onPointerDown,
+    onPointerLeave: hide,
+    onPointerUp: hide,
+    onPointerCancel: hide,
+    onClickCapture,
+  };
+
   return (
     <>
       <span
@@ -170,12 +225,7 @@ export const Tooltip = ({
             ? `${content.title}: ${content.description}`
             : content.title
         }
-        onPointerEnter={onPointerEnter}
-        onPointerDown={onPointerDown}
-        onPointerLeave={hide}
-        onPointerUp={hide}
-        onPointerCancel={hide}
-        onClickCapture={onClickCapture}
+        {...(isPopover ? { onClick: onPopoverClick } : hoverHandlers)}
         onContextMenu={(event) => event.preventDefault()}
         className={`pointer-events-auto ${isInline ? 'inline' : 'inline-flex'}`}
       >

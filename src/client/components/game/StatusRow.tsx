@@ -18,15 +18,27 @@ import {
   type MouseEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { PASSIVE_INFO, STATUS_INFO } from '../../../shared/game/describe';
+import {
+  OUT_OF_RANGE_INFO,
+  PASSIVE_INFO,
+  STATUS_INFO,
+} from '../../../shared/game/describe';
 import { hexAfterTurn, hexBurnAmount } from '../../../shared/game/combatant';
-import { BLEED_HITS } from '../../../shared/game/rules';
+import {
+  BLEED_HITS,
+  OUT_OF_RANGE_HIT_CHANCE,
+} from '../../../shared/game/rules';
 import type {
   Combatant,
   PassiveId,
   StatusId,
 } from '../../../shared/game/types';
-import { PASSIVE_LOOK, STATUS_LOOK, toneVarOf } from '../../content/visuals';
+import {
+  OUT_OF_RANGE_LOOK,
+  PASSIVE_LOOK,
+  STATUS_LOOK,
+  toneVarOf,
+} from '../../content/visuals';
 import {
   placeFloating,
   type FloatingPlacement,
@@ -43,7 +55,7 @@ type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
   Pick<ChipProps, 'fill'> & {
     /** Bleed's drop stage, drawn in place of its glyph. */
     bleedStage?: BleedStage;
-    key: StatusId | PassiveId | 'guard';
+    key: StatusId | PassiveId | 'guard' | 'outOfRange';
     title: string;
     description: string;
   };
@@ -107,6 +119,15 @@ const passiveChipsOf = (passives: readonly PassiveId[]): StatusChip[] =>
     title: PASSIVE_INFO[id].label,
     description: PASSIVE_INFO[id].description,
   }));
+
+/** The Out of Range chip: the chance a shot lands, e.g. "50%". */
+const OUT_OF_RANGE_CHIP: StatusChip = {
+  key: 'outOfRange',
+  ...OUT_OF_RANGE_LOOK,
+  text: `${Math.round(OUT_OF_RANGE_HIT_CHANCE * 100)}%`,
+  title: OUT_OF_RANGE_INFO.label,
+  description: OUT_OF_RANGE_INFO.description,
+};
 
 /**
  * Hex fires only on odd counts, so its chip says which turn this is:
@@ -332,10 +353,13 @@ const ALIGN_CLASS = { center: 'justify-center', end: 'justify-end' } as const;
 export const StatusRow = ({
   combatant,
   passives = [],
+  isOutOfRange = false,
   align = 'center',
   rows = 1,
 }: {
   combatant: Combatant;
+  /** True for a hero in Out of Range (its first chip says so). */
+  isOutOfRange?: boolean;
   /** A boss's passives, drawn first as gold chips. */
   passives?: readonly PassiveId[];
   align?: keyof typeof ALIGN_CLASS;
@@ -344,6 +368,7 @@ export const StatusRow = ({
 }) => {
   const splashed = useBleedSplash(combatant);
   const chips = [
+    ...(isOutOfRange ? [OUT_OF_RANGE_CHIP] : []),
     ...passiveChipsOf(passives),
     ...statusChipsOf(combatant, splashed),
   ];

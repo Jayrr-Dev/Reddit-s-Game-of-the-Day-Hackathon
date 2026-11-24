@@ -15,7 +15,11 @@ import {
   describeHeroIntent,
   type MoveIntent,
 } from '../../../../shared/game/describe';
-import { passivesOf } from '../../../../shared/game/combat';
+import {
+  hasLongRangePassive,
+  isOutOfRangeShot,
+  passivesOf,
+} from '../../../../shared/game/combat';
 import { getHero } from '../../../../shared/game/heroes';
 import type {
   HeroRow,
@@ -169,6 +173,11 @@ export const HeroPlate = ({ unit, field, isFocused }: HeroPlateProps) => {
           <StatusRow
             combatant={unit}
             passives={passivesOf(unit)}
+            isOutOfRange={isOutOfRangeShot(
+              'range',
+              unit.row,
+              hasLongRangePassive(unit)
+            )}
             align="end"
             rows={HERO_STATUS_ROWS}
           />

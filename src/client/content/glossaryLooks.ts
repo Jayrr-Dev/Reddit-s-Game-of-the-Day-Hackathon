@@ -22,6 +22,7 @@ import {
 import {
   INTENT_LOOK,
   KEYWORD_LOOK,
+  OUT_OF_RANGE_LOOK,
   PASSIVE_LOOK,
   STATUS_LOOK,
   type Look,
@@ -55,7 +56,7 @@ const GLOSSARY_LOOK: ReadonlyMap<string, Look> = new Map([
     info.label,
     { glyph: 'march', toneClass: 'text-ink-muted' },
   ]),
-  [OUT_OF_RANGE_INFO.label, { glyph: 'eye', toneClass: 'text-ink-muted' }],
+  [OUT_OF_RANGE_INFO.label, OUT_OF_RANGE_LOOK],
 ]);
 
 /** The look of a glossary word, if it is one. */

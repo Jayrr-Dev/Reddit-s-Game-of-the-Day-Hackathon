@@ -62,6 +62,16 @@ export const KEYWORD_LOOK: Record<CardKeyword, Look> = {
   longRange: { glyph: 'eye', toneClass: 'text-range' },
 };
 
+// --- OUT OF RANGE ---
+/**
+ * The chip on a hero standing in Out of Range (Line 3 without
+ * Longrange): its shots, and shots at it, land only some of the time.
+ */
+export const OUT_OF_RANGE_LOOK: Look = {
+  glyph: 'arrowhead',
+  toneClass: 'text-range',
+};
+
 // --- BOSS PASSIVES ---
 /** Boss passives are gold tiles (see StatusRow), so they read as innate. */
 export const PASSIVE_LOOK: Record<PassiveId, Look & { text: string }> = {

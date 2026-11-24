@@ -19,7 +19,7 @@ export type ChipProps = {
   text: string;
   /** Tailwind text colour class, e.g. "text-hex". */
   toneClass: string;
-  /** What the chip means, shown in a tooltip on hover or long press. */
+  /** What the chip means, shown in a popover when clicked or tapped. */
   info?: TooltipContent;
   /** "arrow" for intents (default), "square" for active effects. */
   shape?: ChipShape;
@@ -72,7 +72,7 @@ const BadgeContent = ({
 /** Renders one badge, with its tooltip when it has `info`. */
 export const Chip = ({ info, ...badge }: ChipProps) =>
   info ? (
-    <Tooltip content={info}>
+    <Tooltip content={info} opensOn="click">
       <Badge {...badge} />
     </Tooltip>
   ) : (
