@@ -13,7 +13,8 @@ import type { RngState } from './rng.ts';
  * Lingering effects on a combatant (guard, the block value, shown to
  * players as "Guard", lives on the
  * combatant itself because it resets every turn):
- * - poison: loses this much HP at the end of its turn, then drops by 1
+ * - poison: loses this much HP right before each of its actions (a hero
+ *           move; the villain's turn start), then drops by 1
  * - burn:   loses this much HP right after each of its actions (a hero
  *           move; the villain's whole turn), then halves (3 -> 1, 1 -> 0)
  * - frost:  every hit it deals is 1 lower per stack (never below 0);

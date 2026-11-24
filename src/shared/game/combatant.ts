@@ -514,19 +514,31 @@ export const afterAction = <T extends Combatant>(target: T): T =>
   shockFade(frostThaw(bleedTick(burnTick(target))));
 
 /**
- * End-of-turn upkeep: poison deals its damage then weakens by 1, weaken
- * wears off by 1, unused Momentum is lost, and Shock's hit count
+ * Poison right before an action (a hero's move; the villain's turn
+ * start): loses this much HP, then Poison drops by 1.
+ */
+export const poisonTick = <T extends Combatant>(target: T): T => {
+  const { poison } = target.statuses;
+  if (poison <= 0) return target;
+  const poisoned = loseHp(target, poison);
+  return {
+    ...poisoned,
+    statuses: { ...poisoned.statuses, poison: poison - 1 },
+  };
+};
+
+/**
+ * End-of-turn upkeep: weaken wears off by 1 (Poison ticks before
+ * actions instead: see poisonTick), unused Momentum is lost, and Shock's hit count
  * starts over (its 3 hits must come within one turn). Wrath and buffs are
  * permanent for the fight (Hex runs before the turn: see hexBurn).
  */
 export const endOfTurnUpkeep = <T extends Combatant>(target: T): T => {
-  const { poison, weaken, vex } = target.statuses;
-  const poisoned = loseHp(target, poison);
+  const { weaken, vex } = target.statuses;
   return {
-    ...poisoned,
+    ...target,
     statuses: {
-      ...poisoned.statuses,
-      poison: Math.max(0, poison - 1),
+      ...target.statuses,
       weaken: Math.max(0, weaken - 1),
       vex: Math.max(0, vex - 1),
       momentum: 0,

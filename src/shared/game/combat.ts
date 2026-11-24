@@ -59,6 +59,7 @@ import {
   afterAction,
   endOfTurnUpkeep,
   hexBurn,
+  poisonTick,
   guardAmount,
   hasMomentumFor,
   heal,
@@ -1569,7 +1570,8 @@ const startPlayerTurn = (state: CombatState): CombatState =>
   drawCards(
     {
       ...state,
-      player: hexBurn(dropRoundBuffs(expireGuard(state.player))),
+      // Hex and Poison run before the villain's action (its turn).
+      player: poisonTick(hexBurn(dropRoundBuffs(expireGuard(state.player)))),
       energy: ENERGY_PER_TURN + state.reserve,
       reserve: 0,
       turn: state.turn + 1,
@@ -1613,6 +1615,17 @@ const hexBurnStep = (state: CombatState, uid: number): TurnStep | null => {
 };
 
 /**
+ * A hero's Poison ticking right before one of its actions, as a beat
+ * of its own, or null when it carries no Poison.
+ */
+const poisonStep = (state: CombatState, uid: number): TurnStep | null => {
+  const unit = state.heroes.find((hero) => hero.uid === uid);
+  if (!unit || unit.statuses.poison <= 0) return null;
+  const next = removeFallen(updateHeroes(state, [uid], poisonTick));
+  return { actorUid: null, attackType: null, move: null, state: next };
+};
+
+/**
  * Ends the villain's turn, beat by beat, so the view can play the
  * heroes' attacks one at a time. The last step is the final state.
  * Empty when the fight is already over.
@@ -1620,8 +1633,7 @@ const hexBurnStep = (state: CombatState, uid: number): TurnStep | null => {
 export const endTurnSteps = (state: CombatState): TurnStep[] => {
   if (combatOutcome(state) !== 'ongoing') return [];
 
-  // 1. DISCARD THE HAND (HOLD CARDS STAY), THE VILLAIN'S UPKEEP (POISON
-  //    TICKS), AND THE HEROES' GUARD FROM LAST ROUND FADES
+  // 1. DISCARD THE HAND (HOLD CARDS STAY), THE VILLAIN'S UPKEEP, AND THE HEROES' GUARD FROM LAST ROUND FADES
   // Timed buffs ("this turn", "this action") lapse first.
   const lapsed: CombatState = {
     ...state,
@@ -1657,6 +1669,13 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
     }
     const actions = actionsOf({ heroId });
     for (let action = 1; action <= actions; action += 1) {
+      // ITS POISON TICKS BEFORE EACH ACTION, AS ITS OWN BEAT
+      const poisoned = poisonStep(current, uid);
+      if (poisoned) {
+        steps.push(poisoned);
+        current = poisoned.state;
+        if (combatOutcome(current) !== 'ongoing') return steps;
+      }
       const actor = current.heroes.find((unit) => unit.uid === uid);
       if (!actor) break;
       const planned = plannedHeroMove(actor, current.heroes);

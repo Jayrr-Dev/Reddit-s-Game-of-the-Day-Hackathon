@@ -11,6 +11,7 @@ import {
   attackDamage,
   endOfTurnUpkeep,
   burnTick,
+  poisonTick,
   afterAction,
   burstShock,
   frostThaw,
@@ -111,14 +112,45 @@ void test('wrath adds to each hit and weaken cuts damage by 25%', () => {
   );
 });
 
-void test('poison deals its damage at end of turn and then drops by one', () => {
+void test('poison ticks before an action, then drops by one', () => {
   const poisoned = {
     ...createCombatant(20, 20),
     statuses: { ...NO_STATUSES, poison: 3, weaken: 1 },
   };
-  const after = endOfTurnUpkeep(poisoned);
-  assert.equal(after.hp, 17);
-  assert.deepEqual(after.statuses, { ...NO_STATUSES, poison: 2 });
+  const ticked = poisonTick(poisoned);
+  assert.equal(ticked.hp, 17);
+  assert.equal(ticked.statuses.poison, 2);
+  // Upkeep (after the turn) leaves it alone now.
+  const upkept = endOfTurnUpkeep(poisoned);
+  assert.equal(upkept.hp, 20);
+  assert.deepEqual(upkept.statuses, { ...NO_STATUSES, poison: 3 });
+});
+
+void test('a poisoned hero loses HP right before it acts; the villain at turn start', () => {
+  const start = squireAndArcher([]);
+  const squire = start.heroes[0]!;
+  const state: CombatState = {
+    ...start,
+    player: {
+      ...start.player,
+      statuses: { ...start.player.statuses, poison: 4 },
+    },
+    heroes: start.heroes.map((unit) =>
+      unit.uid === squire.uid
+        ? { ...unit, statuses: { ...unit.statuses, poison: 3 } }
+        : unit
+    ),
+  };
+  const steps = endTurnSteps(state);
+  const moveAt = steps.findIndex((step) => step.actorUid === squire.uid);
+  const before = steps[moveAt - 1]!.state.heroes.find(
+    (unit) => unit.uid === squire.uid
+  )!;
+  assert.equal(before.hp, squire.hp - 3, 'its poison beat comes first');
+  assert.equal(before.statuses.poison, 2);
+  // The villain's poison ticks when its next turn starts.
+  assert.equal(steps[0]!.state.player.statuses.poison, 4, 'not at its end');
+  assert.equal(steps.at(-1)!.state.player.statuses.poison, 3);
 });
 
 void test('hex is left alone by end-of-turn upkeep', () => {
