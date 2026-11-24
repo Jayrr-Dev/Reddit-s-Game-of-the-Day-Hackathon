@@ -8,13 +8,13 @@
 // ===================================================================
 
 import { advanceHeroes, cellCountOf } from './battlefield.ts';
-import { ALL_CARD_IDS, isCardInPlay } from './cards.ts';
 import { combatOutcome, endTurn, playCard, startCombat } from './combat.ts';
 import { CHAMPION_IDS, ELITE_IDS, GRUNT_IDS, type HeroId } from './heroes.ts';
 import { move } from './movement.ts';
 import { nextInt, pickWeighted, type RngState } from './rng.ts';
 import { BATTLEFIELD_ROWS, ENERGY_PER_TURN } from './rules.ts';
 import type { MoveAction, PlayCardAction } from './run.ts';
+import { sandboxDeckCards, type SandboxDeckId } from './sandboxDecks.ts';
 import type { CombatState, HeroUnit } from './types.ts';
 
 // --- TYPES ---
@@ -144,10 +144,14 @@ export const rollDummies = (seed: RngState): [HeroId[], RngState] => {
 };
 
 /** The startCombat setup for a sandbox fight. */
-const sandboxSetup = (heroIds: readonly HeroId[], seed: RngState) => ({
+const sandboxSetup = (
+  heroIds: readonly HeroId[],
+  seed: RngState,
+  deckId: SandboxDeckId = 'all'
+) => ({
   hp: SANDBOX_HP,
   maxHp: SANDBOX_HP,
-  deck: ALL_CARD_IDS.filter(isCardInPlay),
+  deck: sandboxDeckCards(deckId),
   heroIds,
   might: 1,
   seed,
@@ -200,10 +204,13 @@ const applyAction = (state: CombatState, action: SandboxAction) => {
 };
 
 // --- PUBLIC API ---
-/** A new sandbox fight from `seed`. */
-export const createSandbox = (seed: RngState): CombatState => {
+/** A new sandbox fight from `seed`, with a test deck (default: every card). */
+export const createSandbox = (
+  seed: RngState,
+  deckId: SandboxDeckId = 'all'
+): CombatState => {
   const [heroIds, rng] = rollDummies(seed);
-  return refillEnergy(startCombat(sandboxSetup(heroIds, rng)));
+  return refillEnergy(startCombat(sandboxSetup(heroIds, rng, deckId)));
 };
 
 /**
@@ -214,9 +221,10 @@ export const createSandbox = (seed: RngState): CombatState => {
 export const createSandboxWith = (
   seed: RngState,
   heroIds: readonly HeroId[],
-  startsInPlace = false
+  startsInPlace = false,
+  deckId: SandboxDeckId = 'all'
 ): CombatState => {
-  const fresh = startCombat(sandboxSetup(heroIds, seed));
+  const fresh = startCombat(sandboxSetup(heroIds, seed, deckId));
   const placed = startsInPlace
     ? { ...fresh, heroes: walkHome(fresh.heroes) }
     : fresh;

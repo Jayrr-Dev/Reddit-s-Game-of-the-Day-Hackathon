@@ -16,6 +16,8 @@ import {
   sandboxReducer,
 } from './sandbox.ts';
 import { ENERGY_PER_TURN } from './rules.ts';
+import { isCardInPlay } from './cards.ts';
+import { SANDBOX_DECKS, sandboxDeckCards } from './sandboxDecks.ts';
 import { movementFailsOn } from './combat.ts';
 import { canMove, movementBlockReason, offeredMovement } from './movement.ts';
 import type { HeroUnit } from './types.ts';
@@ -154,4 +156,21 @@ void test('Grand Griffon Rio holds the centre column, front and back', () => {
   assert.ok(griffon);
   assert.deepEqual(cellNamesOf(griffon), ['front:1', 'back:1']);
   assert.equal(canPush(heroes, griffon), false);
+});
+
+// --- TEST DECKS ---
+void test('every test deck holds at least 4 cards, all in play', () => {
+  for (const deck of SANDBOX_DECKS) {
+    const cards = sandboxDeckCards(deck.id);
+    assert.ok(new Set(cards).size >= 4, deck.id);
+    assert.ok(cards.every(isCardInPlay), deck.id);
+  }
+});
+
+void test('a test deck leans on its theme: Lightning has Serrated Slash', () => {
+  assert.ok(sandboxDeckCards('lightning').includes('serratedSlash'));
+  assert.ok(!sandboxDeckCards('lightning').includes('darkCloak'));
+  const fight = createSandbox(7, 'lightning');
+  const all = [...fight.hand, ...fight.drawPile];
+  assert.ok(all.every((id) => sandboxDeckCards('lightning').includes(id)));
 });
