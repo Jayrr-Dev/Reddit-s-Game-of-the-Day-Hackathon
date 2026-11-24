@@ -23,6 +23,7 @@ import {
   playCard,
   playCardSteps,
   startCombat,
+  wouldFell,
 } from './combat.ts';
 import {
   describeCard,
@@ -104,6 +105,20 @@ void test('playing a card spends energy and damages the target', () => {
   assert.equal(after.energy, ENERGY_PER_TURN - 1);
   assert.equal(after.heroes[0]?.hp, 14 - 6);
   assert.deepEqual(after.discardPile, ['backhand']);
+});
+
+void test('wouldFell counts Guard and leaves the state untouched', () => {
+  const base = withHand(fightWith(['backhand']), ['backhand']);
+  /** The squire (uid 1) set to `hp` HP behind `shroud` Guard. */
+  const squireAt = (hp: number, shroud: number): CombatState => ({
+    ...base,
+    heroes: base.heroes.map((unit) =>
+      unit.uid === 1 ? { ...unit, hp, shroud } : unit
+    ),
+  });
+  assert.equal(wouldFell(squireAt(14, 0), 0, [1], 1), false);
+  assert.equal(wouldFell(squireAt(6, 0), 0, [1], 1), true);
+  assert.equal(wouldFell(squireAt(6, 1), 0, [1], 1), false);
 });
 
 void test('a card that costs too much is refused', () => {

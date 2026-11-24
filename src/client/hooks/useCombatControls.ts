@@ -35,7 +35,7 @@ import {
   targetRuleOf,
 } from '../../shared/game/battlefield';
 import { getCard, type CardId } from '../../shared/game/cards';
-import { canPlayCard, targetsFor } from '../../shared/game/combat';
+import { canPlayCard, targetsFor, wouldFell } from '../../shared/game/combat';
 import type { RunAction } from '../../shared/game/run';
 import type { CombatState } from '../../shared/game/types';
 
@@ -253,6 +253,15 @@ export const useCombatControls = (
   const isDropLive = dropState.isLive;
   // The lock lets go as soon as a pull-back starts.
   const hoverUid = isDropLive ? (dropState.target?.uid ?? null) : null;
+  /**
+   * True when letting go here would kill the locked hero: the picks
+   * already made for this card plus this one, run through the engine.
+   */
+  const priorPicks = drag?.handIndex === heldIndex ? pickedUids : [];
+  const isLethal =
+    drag !== null &&
+    hoverUid !== null &&
+    wouldFell(combat, drag.handIndex, [...priorPicks, hoverUid], hoverUid);
   /** How far the arrow has shrunk back toward the card (0..1). */
   const arrowRetract = drag?.pullBack ?? 0;
   /** How brightly the dragged card glows (self cards only). */
@@ -330,6 +339,7 @@ export const useCombatControls = (
     drag,
     aimPoint,
     isDropLive,
+    isLethal,
     arrowRetract,
     selfGlow,
     aimOf,

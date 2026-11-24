@@ -5,6 +5,7 @@
 // thicker toward the head, drawn as a chain of dashes whose width
 // increases along the curve. It turns gold (with a lock ring) when
 // letting go would play the card, and stays grey when it would not.
+// When the play would kill the locked hero, a skull replaces the ring.
 // Drawn in viewport pixels on a fixed, click-through layer.
 // ===================================================================
 
@@ -16,6 +17,8 @@ export type AimArrowProps = {
   to: Point;
   /** True when dropping here would play the card. */
   isLive: boolean;
+  /** True when dropping here would kill the hero (skull, not ring). */
+  isLethal?: boolean;
   /** 0 = full arrow; toward 1 it shrinks into the card and fades out. */
   retract?: number;
 };
@@ -150,9 +153,46 @@ const ArrowBody = ({
   </g>
 );
 
+/**
+ * A skull centred on the tip, in place of the lock ring: a round cranium
+ * over a narrower jaw, dark eye sockets and nose, and tooth gaps. Drawn
+ * on a 32-unit box and scaled to the ring's size.
+ */
+const LethalSkull = ({ at, color }: { at: Point; color: string }) => {
+  const size = LOCK_RING_RADIUS * 2.2;
+  return (
+    <g
+      transform={`translate(${at.x - size / 2} ${at.y - size / 2}) scale(${size / 32})`}
+    >
+      <path
+        d="M16 2C8.8 2 4 7 4 13.5c0 3.6 1.6 6 3.8 7.4V26a2 2 0 0 0 2 2h12.4a2 2 0 0 0 2-2v-5.1c2.2-1.4 3.8-3.8 3.8-7.4C28 7 23.2 2 16 2Z"
+        fill={color}
+        stroke="black"
+        strokeOpacity="0.6"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <g fill="#1b1022">
+        <ellipse cx="11" cy="14" rx="3.4" ry="3.8" />
+        <ellipse cx="21" cy="14" rx="3.4" ry="3.8" />
+        <path d="M16 18.5l-2 3.5h4Z" />
+        <rect x="12.6" y="24" width="1.4" height="4" />
+        <rect x="15.3" y="24" width="1.4" height="4" />
+        <rect x="18" y="24" width="1.4" height="4" />
+      </g>
+    </g>
+  );
+};
+
 // --- COMPONENT ---
-/** Renders the tapered arrow, its head and (when live) a lock ring. */
-export const AimArrow = ({ from, to, isLive, retract = 0 }: AimArrowProps) => {
+/** Renders the tapered arrow, its head and (when live) a ring or skull. */
+export const AimArrow = ({
+  from,
+  to,
+  isLive,
+  isLethal = false,
+  retract = 0,
+}: AimArrowProps) => {
   if (retract >= 1) return null;
   // PULL-BACK: the tip slides back toward the card while the arrow thins
   // and fades, all by the same share.
@@ -179,7 +219,8 @@ export const AimArrow = ({ from, to, isLive, retract = 0 }: AimArrowProps) => {
       />
       <ArrowBody dashes={dashes} color={color} />
       <polygon points={head} fill={color} />
-      {isLive && (
+      {isLive && isLethal && <LethalSkull at={to} color={color} />}
+      {isLive && !isLethal && (
         <circle
           cx={to.x}
           cy={to.y}

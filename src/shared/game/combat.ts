@@ -499,6 +499,26 @@ export const playCard = (
 };
 
 /**
+ * True when playing the card in `handIndex` with exactly these picks
+ * (no padding: a Target N card still short of picks counts only the
+ * ones made) would drop the hero `uid` to 0 HP. It runs the real card
+ * resolution, so Guard, buffs, range and every hit count just as they
+ * will when the card fires. Used to warn that an aim is lethal.
+ */
+export const wouldFell = (
+  state: CombatState,
+  handIndex: number,
+  picks: readonly number[],
+  uid: number
+): boolean => {
+  const cardId = state.hand[handIndex];
+  if (cardId === undefined || !canPlayCard(state, handIndex)) return false;
+  const beats = cardBeats(payForCard(state, handIndex), cardId, picks);
+  const target = beats.at(-1)?.heroes.find((unit) => unit.uid === uid);
+  return target !== undefined && target.hp <= 0;
+};
+
+/**
  * Plays a card beat by beat, so the view can show each hit (of each
  * pick) land on its own: one state per beat, then exactly playCard()'s
  * result, which is what the server replays. The beats are for display

@@ -278,6 +278,7 @@ export const CombatView = ({
               from={cardTop(drag.card)}
               to={aimShown}
               isLive={controls.isDropLive}
+              isLethal={controls.isLethal}
               retract={controls.arrowRetract}
             />
           )}
