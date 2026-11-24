@@ -25,7 +25,7 @@ type Playback = {
 
 // --- CONSTANTS ---
 /** Gap between one hit landing and the next (ms). Quick, so it stays snappy. */
-const HIT_STAGGER_MS = 110;
+export const HIT_STAGGER_MS = 110;
 
 // --- HOOK ---
 /**

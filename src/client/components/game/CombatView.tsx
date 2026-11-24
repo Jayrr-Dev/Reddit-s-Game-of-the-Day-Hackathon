@@ -40,6 +40,11 @@ import { useCardHits } from '../../hooks/useCardHits';
 import { useHeroTurn } from '../../hooks/useHeroTurn';
 import { useMoveFailPops } from '../../hooks/useMoveFailPops';
 import {
+  PLAYER_SHOT_FLIGHT_MS,
+  shotPlanOf,
+  usePlayerShots,
+} from '../../hooks/usePlayerShots';
+import {
   useHitPops,
   usePlayerHits,
   type HitPop,
@@ -62,6 +67,7 @@ import { HitNumbers } from './combat/HitNumbers';
 import { PileDialog, type PileId } from './combat/PileDialog';
 import { PileStack } from './combat/PileStack';
 import { PlayerCorner } from './combat/PlayerCorner';
+import { PlayerShots } from './combat/PlayerShots';
 import { ShroudGainPops } from './combat/ShroudGainPops';
 import { SpeedLines } from './combat/SpeedLines';
 import { TopBar } from './combat/TopBar';
@@ -210,6 +216,9 @@ export const CombatView = ({
   // Recent hits, so damage numbers are sized against a typical hit.
   const [hitHistory] = useState(() => new HitHistory());
   const { pops: moveFails, show: showMoveFail } = useMoveFailPops();
+  const { shots, fire: fireShots } = usePlayerShots();
+  // True while your shots fly, before the card lands.
+  const [isShooting, setIsShooting] = useState(false);
   const routeAction = useCallback(
     (action: RunAction) => {
       if (action.type === 'endTurn') return playHeroTurn();
@@ -228,11 +237,21 @@ export const CombatView = ({
           movementFailsOn(realCombat, cardId, targetUid)
         )
           showMoveFail(targetUid);
+        // Range and Magic cards fire first; the hits land on arrival.
+        const plan = shotPlanOf(realCombat, action);
+        if (plan && fireShots(plan)) {
+          setIsShooting(true);
+          window.setTimeout(() => {
+            setIsShooting(false);
+            playCardHits(action);
+          }, PLAYER_SHOT_FLIGHT_MS);
+          return;
+        }
         return playCardHits(action);
       }
       onAction(action);
     },
-    [playHeroTurn, playCardHits, onAction, realCombat, showMoveFail]
+    [playHeroTurn, playCardHits, onAction, realCombat, showMoveFail, fireShots]
   );
   const controls = useCombatControls(combat, routeAction);
   const cardFlights = useCardFlights(combat);
@@ -282,6 +301,7 @@ export const CombatView = ({
           onTapHero={controls.tapHero}
         />
         <HeroShots acting={heroTurn.acting} />
+        <PlayerShots shots={shots} />
         {burst && (
           <SpeedLines
             key={burst.count}
@@ -338,7 +358,7 @@ export const CombatView = ({
       )}
       <CardFlights flights={cardFlights} />
       {/* A TURN OR A CARD'S HITS ARE PLAYING: SWALLOW TAPS UNTIL DONE */}
-      {isAnimating && <div className="absolute inset-0 z-50" />}
+      {(isAnimating || isShooting) && <div className="absolute inset-0 z-50" />}
       {openPile && (
         <PileDialog
           pile={openPile}

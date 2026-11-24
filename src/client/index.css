@@ -1681,3 +1681,45 @@ textarea,
 [data-action] .angel-flare {
   animation: angel-flare 560ms ease-out;
 }
+
+/* --- SCROLLBARS ---
+   One themed scrollbar for every scroll area in the game: a thin dark
+   track with a rounded gold thumb (bevelled with a darker gold), which
+   brightens on hover and when dragged. Firefox (no ::-webkit-scrollbar)
+   gets the closest match through scrollbar-color. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface-sunken);
+  border-radius: 9999px;
+  box-shadow: inset 0 0 0 1px var(--color-edge);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    to right,
+    var(--color-accent),
+    color-mix(in srgb, var(--color-accent) 60%, black)
+  );
+  border: 2px solid var(--color-surface-sunken);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+  background: var(--color-accent);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-accent) var(--color-surface-sunken);
+  }
+}

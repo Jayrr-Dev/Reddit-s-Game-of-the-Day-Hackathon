@@ -9,7 +9,7 @@
 // SHOT_RELEASE_MS (the release point in the draw) before it flies.
 // ===================================================================
 
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { HeroAction } from '../../../content/heroLooks';
 import {
   HERO_UID_ATTR,
@@ -17,9 +17,17 @@ import {
   type Point,
 } from '../../../hooks/useCardDrag';
 import { HERO_ATTACK_MS } from '../../../hooks/useHeroTurn';
+import { Projectile, type ProjectileFlight } from './Projectile';
 
 // --- TYPES ---
 type Shot = { id: number; from: Point; to: Point };
+
+/** A hero's shot as a projectile: an arrow, loosed at the release. */
+const asFlight = (shot: Shot): ProjectileFlight => ({
+  ...shot,
+  kind: 'arrow',
+  delayMs: SHOT_RELEASE_MS,
+});
 
 // --- CONSTANTS ---
 /** When in the draw the string is loosed (matches arrow-loose, 57%). */
@@ -43,17 +51,6 @@ const shotPath = (uid: number): { from: Point; to: Point } | null => {
   const to = centreOf(document.querySelector(`[${VILLAIN_ANCHOR_ATTR}]`));
   return from && to ? { from, to } : null;
 };
-
-/** Lays the flying arrow along its path (CSS animates the flight). */
-const shotStyle = ({ from, to }: Shot): CSSProperties =>
-  ({
-    left: from.x,
-    top: from.y,
-    '--shot-dx': `${to.x - from.x}px`,
-    '--shot-dy': `${to.y - from.y}px`,
-    '--shot-angle': `${Math.atan2(to.y - from.y, to.x - from.x)}rad`,
-    animationDelay: `${SHOT_RELEASE_MS}ms`,
-  }) as CSSProperties;
 
 // --- HOOKS ---
 /**
@@ -104,22 +101,7 @@ export const HeroShots = ({
   return (
     <div className="pointer-events-none fixed inset-0 z-40">
       {shots.map((shot) => (
-        <div
-          key={shot.id}
-          className="absolute animate-hero-shot"
-          style={shotStyle(shot)}
-        >
-          {/* THE ARROW, pointing along its path */}
-          <svg
-            viewBox="0 0 40 8"
-            className="h-2.5 w-10 -translate-x-full -translate-y-1/2 [transform-origin:100%_50%] [rotate:var(--shot-angle)]"
-            aria-hidden="true"
-          >
-            <path d="M2 4h30" stroke="#5a3a22" strokeWidth="2" />
-            <path d="M40 4 31 0.5v7z" fill="#d8d2d8" />
-            <path d="M0 0.5h6l3 3.5H3zM0 7.5h6l3-3.5H3z" fill="#e8e0c8" />
-          </svg>
-        </div>
+        <Projectile key={shot.id} flight={asFlight(shot)} />
       ))}
     </div>
   );
