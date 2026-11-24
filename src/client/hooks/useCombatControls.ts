@@ -3,6 +3,10 @@
 // Controls for a fight. Two ways to play a card, both safe in the feed:
 //   TAP   Tap a card. Cards with no target play at once; others are
 //         held. Tap a glowing hero to play the held card at it.
+//         Tap the held card again to let the game aim it: it plays at
+//         the toughest hero it would kill, else the weakest (for a
+//         Target N card, the best N; see autoTargets). So a double tap
+//         plays a card in one go.
 //   DRAG  Press a card and drag up. How it aims depends on who it hits:
 //         ONE HERO  an arrow appears and snaps to a legal hero; drop to
 //                   play. (With a self effect too, the card also glows.)
@@ -16,8 +20,8 @@
 // tap on one while the card is held) adds a pick and keeps the card
 // held, and the last pick plays it after LAST_PICK_HOLD_MS, so its mark
 // is seen before the card fires. The same hero may be picked again.
-// Tapping the card or dropping it anywhere else cancels; nothing is
-// spent until the card fires.
+// Dropping the card anywhere else (or tapping another card) cancels;
+// nothing is spent until the card fires.
 // ===================================================================
 
 import { useEffect, useRef, useState } from 'react';
@@ -36,6 +40,7 @@ import {
 } from '../../shared/game/battlefield';
 import { getCard, type CardId } from '../../shared/game/cards';
 import {
+  autoTargets,
   canPlayCard,
   targetDamageFactor,
   targetsFor,
@@ -306,15 +311,30 @@ export const useCombatControls = (
     return uid === hoverUid ? 'locked' : 'legal';
   };
 
-  /** Card tap: play untargeted cards, otherwise hold or let go. */
+  /** Plays the card at the heroes the game picks (see autoTargets). */
+  const autoPlay = (handIndex: number, cardId: CardId) => {
+    const uids = autoTargets(combat, handIndex, pickedUids);
+    if (uids.length === 0) return release();
+    if (uids.length > 1) return fireAfterHold(handIndex, cardId, uids);
+    release();
+    playAt(handIndex, uids[0] ?? null);
+  };
+
+  /**
+   * Card tap: play untargeted cards, otherwise hold it; tapping the held
+   * card again plays it at the best target (autoPlay).
+   */
   const tapCard = (handIndex: number) => {
     if (wasDrag() || isFiring) return; // a post-drag click, or mid-fire
     const cardId = combat.hand[handIndex];
     if (cardId === undefined || !canPlayCard(combat, handIndex)) return;
-    const wasHeld = heldIndex === handIndex;
+    if (targetRuleOf(cardId) === 'none') {
+      release();
+      return playAt(handIndex, focusUid);
+    }
+    if (heldIndex === handIndex) return autoPlay(handIndex, cardId);
     release();
-    if (targetRuleOf(cardId) === 'none') return playAt(handIndex, focusUid);
-    if (!wasHeld) setHeldIndex(handIndex);
+    setHeldIndex(handIndex);
   };
 
   /** Hero tap: focus it, and pick it for the held card if it may hit it. */

@@ -526,6 +526,41 @@ export const wouldFell = (
 };
 
 /**
+ * Every hero a card would be played at when the player lets the game
+ * choose (tapping a held card again), one per pick. Heroes the card
+ * would kill come first, toughest first, so a kill is worth the most;
+ * then the rest, weakest first. Ties keep board order. Picks the
+ * player already made (`chosen`) stay first; the rest are filled with
+ * heroes not yet picked, wrapping round if there are too few. Empty
+ * when nothing can be hit.
+ */
+export const autoTargets = (
+  state: CombatState,
+  handIndex: number,
+  chosen: readonly number[] = []
+): number[] => {
+  const cardId = state.hand[handIndex];
+  if (cardId === undefined) return [];
+  const legal = targetsFor(state, cardId);
+  if (legal.length === 0) return [];
+  const isLethal = (unit: HeroUnit) =>
+    wouldFell(state, handIndex, [unit.uid], unit.uid);
+  // RANKING: sort is stable, so equal HP keeps board order.
+  const ranked = [
+    ...legal.filter(isLethal).sort((a, b) => b.hp - a.hp),
+    ...legal.filter((unit) => !isLethal(unit)).sort((a, b) => a.hp - b.hp),
+  ];
+  const fresh = ranked.filter((unit) => !chosen.includes(unit.uid));
+  const pool = fresh.length > 0 ? fresh : ranked;
+  const missing = Math.max(0, getCard(cardId).targets - chosen.length);
+  const fill = Array.from(
+    { length: missing },
+    (_, pick) => pool[pick % pool.length]?.uid ?? -1
+  );
+  return [...chosen, ...fill];
+};
+
+/**
  * Plays a card beat by beat, so the view can show each hit (of each
  * pick) land on its own: one state per beat, then exactly playCard()'s
  * result, which is what the server replays. The beats are for display

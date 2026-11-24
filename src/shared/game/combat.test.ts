@@ -24,6 +24,7 @@ import {
   playCardSteps,
   startCombat,
   wouldFell,
+  autoTargets,
 } from './combat.ts';
 import { describeCard, describeHeroIntent } from './describe.ts';
 import { BACK_STEP_COST, CARDS_PER_TURN, ENERGY_PER_TURN } from './rules.ts';
@@ -115,6 +116,69 @@ void test('wouldFell counts Guard and leaves the state untouched', () => {
   assert.equal(wouldFell(squireAt(14, 0), 0, [1], 1), false);
   assert.equal(wouldFell(squireAt(6, 0), 0, [1], 1), true);
   assert.equal(wouldFell(squireAt(6, 1), 0, [1], 1), false);
+});
+
+void test('autoTargets kills the toughest it can, else hits the weakest', () => {
+  const base = withHand(
+    settled(
+      startCombat({
+        hp: 60,
+        maxHp: 60,
+        deck: ['backhand'],
+        heroIds: ['squire', 'squire', 'squire'],
+        might: 1,
+        seed: 7,
+      })
+    ),
+    ['backhand']
+  );
+  /** The field with each hero (by board order) set to these HP. */
+  const withHp = (...hps: number[]): CombatState => ({
+    ...base,
+    heroes: base.heroes.map((unit, index) => ({
+      ...unit,
+      hp: hps[index] ?? unit.hp,
+      shroud: 0,
+    })),
+  });
+  const uidAt = (state: CombatState, index: number) =>
+    state.heroes[index]?.uid ?? -1;
+  // Backhand deals 6: no kill possible -> lowest HP.
+  const noKill = withHp(14, 9, 12);
+  assert.deepEqual(autoTargets(noKill, 0), [uidAt(noKill, 1)]);
+  // Two killable (5 and 6 HP) -> the tougher of them, 6.
+  const kills = withHp(5, 14, 6);
+  assert.deepEqual(autoTargets(kills, 0), [uidAt(kills, 2)]);
+});
+
+void test('autoTargets fills a Target N card with distinct best heroes', () => {
+  const base = withHand(
+    settled(
+      startCombat({
+        hp: 60,
+        maxHp: 60,
+        deck: ['reapingCuts'],
+        heroIds: ['squire', 'squire', 'squire'],
+        might: 1,
+        seed: 7,
+      })
+    ),
+    ['reapingCuts']
+  );
+  const state: CombatState = {
+    ...base,
+    heroes: base.heroes.map((unit, index) => ({
+      ...unit,
+      hp: [14, 3, 9][index] ?? unit.hp,
+      shroud: 0,
+    })),
+  };
+  const uids = state.heroes.map((unit) => unit.uid);
+  // Reaping Cuts (4 each, Target 2): kills the 3 HP one, then the
+  // weakest of the rest (9 HP).
+  assert.deepEqual(autoTargets(state, 0), [uids[1], uids[2]]);
+  // A pick already made stays first; the fill skips it.
+  assert.deepEqual(autoTargets(state, 0, [uids[0] ?? -1]), [uids[0], uids[1]]);
 });
 
 void test('a card that costs too much is refused', () => {
