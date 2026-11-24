@@ -18,7 +18,8 @@ export const EnergyTray = ({ energy }: { energy: number }) => {
   const pipCount = Math.max(ENERGY_PER_TURN, energy);
   return (
     <div
-      className="flex gap-1.5 px-6 py-2.5"
+      // pt > pb: the pips sit a step lower, nearer the hand.
+      className="flex gap-1.5 px-6 pb-1.5 pt-3.5"
       style={{ background: TRAY_BACKING }}
       aria-label={`${energy} energy`}
     >

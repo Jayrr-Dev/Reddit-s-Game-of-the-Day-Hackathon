@@ -167,7 +167,7 @@ const PlayerBar = ({
         {/* CHARGE / BACK STEP float above the chips, so showing one never
           moves the bar */}
         {movement && (
-          <div className="absolute bottom-full mb-2">
+          <div className="absolute bottom-full mb-1">
             <MovementButton
               move={movement}
               cost={movementCost(combat, movement)}
