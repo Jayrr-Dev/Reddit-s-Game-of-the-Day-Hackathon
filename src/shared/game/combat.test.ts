@@ -407,6 +407,18 @@ void test('shock bursts and clears on the 4th hit', () => {
   assert.equal(burst.shockHits ?? 0, 0);
 });
 
+void test('Shock fades by 1 after each action, like Bleed', () => {
+  const shocked = {
+    ...createCombatant(50, 50),
+    statuses: { ...NO_STATUSES, shock: 3 },
+  };
+  const once = afterAction(shocked);
+  assert.equal(once.statuses.shock, 2);
+  assert.equal(once.hp, 50, 'fading deals no damage');
+  assert.equal(afterAction(afterAction(once)).statuses.shock, 0);
+  assert.equal(afterAction(afterAction(afterAction(once))).statuses.shock, 0);
+});
+
 void test('new shock stacks on top and keeps the count', () => {
   const shocked = {
     ...createCombatant(50, 50),
@@ -1307,7 +1319,8 @@ void test('the griffon calls lightning: Shock its triple hits charge', () => {
     (step) => step.actorUid === griffon.uid
   )!.state;
   assert.equal(sliced.player.shockHits, 3);
-  assert.equal(sliced.player.statuses.shock, 6);
+  // 6, less the 1 that faded after the villain's own turn.
+  assert.equal(sliced.player.statuses.shock, 5);
 });
 
 void test('the griffon Smites (sets off Shock) and swipes Crossed Talon 3x6', () => {
@@ -1327,10 +1340,11 @@ void test('the griffon Smites (sets off Shock) and swipes Crossed Talon 3x6', ()
   });
   const actOf = (state: CombatState) =>
     endTurnSteps(state).find((step) => step.actorUid === griffon.uid)!.state;
-  // Smite: no hits, the Shock goes off at once (doubled).
+  // Smite: no hits, the Shock goes off at once (doubled). The villain's
+  // own turn faded it 5 -> 4 first.
   const smitten = actOf(shocked(indexOf('Smite')));
   assert.equal(smitten.player.statuses.shock, 0);
-  assert.equal(start.player.hp - smitten.player.hp, 5 * SHOCK_BURST_FACTOR);
+  assert.equal(start.player.hp - smitten.player.hp, 4 * SHOCK_BURST_FACTOR);
   // Crossed Talon: 6 hits of 3, which also set the Shock off.
   const crossed = moves[indexOf('Crossed Talon')]!;
   assert.deepEqual(crossed.effects[0], {
@@ -1343,7 +1357,7 @@ void test('the griffon Smites (sets off Shock) and swipes Crossed Talon 3x6', ()
   assert.equal(swiped.player.statuses.shock, 0);
   assert.equal(
     start.player.hp - swiped.player.hp,
-    3 * 6 + 5 * SHOCK_BURST_FACTOR
+    3 * 6 + 4 * SHOCK_BURST_FACTOR
   );
 });
 

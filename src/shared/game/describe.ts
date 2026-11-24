@@ -101,7 +101,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   },
   shock: {
     label: 'Shock',
-    description: `The **${ordinal(SHOCK_HITS)}** hit taken in one turn sets it off: **${SHOCK_BURST_FACTOR}×** this much damage, then it clears\nAny hit counts: Melee, Range or Magic`,
+    description: `The **${ordinal(SHOCK_HITS)}** hit taken in one turn sets it off: **${SHOCK_BURST_FACTOR}×** this much damage, then it clears\nAny hit counts: Melee, Range or Magic\nGoes down by **1** after each action`,
   },
   poison: {
     label: 'Poison',

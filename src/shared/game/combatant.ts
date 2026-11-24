@@ -472,12 +472,21 @@ export const bleedTick = <T extends Combatant>(target: T): T => {
   return { ...bled, statuses: { ...bled.statuses, bleed: bleed - 1 } };
 };
 
+/** After an action, Shock fades by 1 (no damage; Sam, 2026-11-24). */
+const shockFade = <T extends Combatant>(target: T): T =>
+  target.statuses.shock > 0
+    ? {
+        ...target,
+        statuses: { ...target.statuses, shock: target.statuses.shock - 1 },
+      }
+    : target;
+
 /**
- * Everything that runs right after a unit's action: Burn, Bleed, then
- * Frost thaws.
+ * Everything that runs right after a unit's action (a hero's move, the
+ * villain's whole turn): Burn, Bleed, Frost thaws, Shock fades by 1.
  */
 export const afterAction = <T extends Combatant>(target: T): T =>
-  frostThaw(bleedTick(burnTick(target)));
+  shockFade(frostThaw(bleedTick(burnTick(target))));
 
 /**
  * End-of-turn upkeep: poison deals its damage then weakens by 1, weaken
