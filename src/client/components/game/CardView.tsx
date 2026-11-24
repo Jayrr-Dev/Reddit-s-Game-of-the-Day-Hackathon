@@ -99,7 +99,7 @@ const SIZE_LOOK: Record<CardSize, SizeLook> = {
     rules: 'text-[8px] leading-[1.15] px-0.5',
     ribbon: 'text-[6px] px-1.5 gap-0.5',
     ribbonIcon: 'size-2',
-    gem: 'h-[5px] w-[7px]',
+    gem: 'h-[8px] w-[11px]',
   },
   offer: {
     box: 'h-40 w-[6.5rem]',
@@ -110,7 +110,7 @@ const SIZE_LOOK: Record<CardSize, SizeLook> = {
     rules: 'text-[10px] leading-snug px-1',
     ribbon: 'text-[8px] px-2 gap-1',
     ribbonIcon: 'size-2.5',
-    gem: 'h-[7px] w-[9px]',
+    gem: 'h-[10px] w-[14px]',
   },
 };
 

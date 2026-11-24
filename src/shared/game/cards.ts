@@ -151,13 +151,13 @@ const card = (
 // --- CATALOG ---
 export const CARDS = {
   // STARTER DECK
-  backhand: card('Backhand', 'melee', 1, 'starter', [hit(6)], BLUNT),
-  darkCloak: card('Dark Cloak', 'defend', 1, 'starter', [guard(5)]),
+  backhand: card('Backhand', 'melee', 1, 'basic', [hit(6)], BLUNT),
+  darkCloak: card('Dark Cloak', 'defend', 1, 'basic', [guard(5)]),
   healingPotion: card(
     'Healing Potion',
     'utility',
     0,
-    'starter',
+    'basic',
     [heal(10)],
     EXHAUSTS
   ),
@@ -180,8 +180,8 @@ export const CARDS = {
   ),
   // Curses never strike: they lay Hex (an odd Hex burns before the
   // hero's next turn; see hexBurn), so their damage arrives a turn late.
-  mourningCurse: card('Mourning Curse', 'curse', 1, 'starter', [hex(3)]),
-  chainsOfGrief: card('Chains of Grief', 'curse', 1, 'starter', [
+  mourningCurse: card('Mourning Curse', 'curse', 1, 'basic', [hex(3)]),
+  chainsOfGrief: card('Chains of Grief', 'curse', 1, 'basic', [
     pull(1),
     hex(2),
   ]),

@@ -219,12 +219,16 @@ export const ELEMENT_LOOK: Record<MagicElement, ElementLook> = {
   },
 };
 
-/** The rarity gem on a card (starters have none). */
+/**
+ * The rarity gem on a card, one colour per tier: Basic (the starter
+ * deck) has none, then Common grey, Uncommon green, Rare blue,
+ * Legendary orange.
+ */
 export const RARITY_GEM: Record<CardRarity, string | null> = {
-  starter: null,
+  basic: null,
   common: 'bg-ink-muted',
   uncommon: 'bg-heal',
-  rare: 'bg-accent',
+  rare: 'bg-guard',
   legendary: 'bg-burn',
 };
 

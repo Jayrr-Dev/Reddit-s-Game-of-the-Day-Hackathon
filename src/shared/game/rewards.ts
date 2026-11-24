@@ -11,7 +11,7 @@ import { OFFER_SIZE } from './rules.ts';
 import type { CardRarity } from './types.ts';
 
 // --- ODDS ---
-type RarityWeights = { item: Exclude<CardRarity, 'starter'>; weight: number }[];
+type RarityWeights = { item: Exclude<CardRarity, 'basic'>; weight: number }[];
 
 /** Rarity odds per kind of stop (grave never offers cards). */
 const RARITY_ODDS: Record<Exclude<StopKind, 'grave'>, RarityWeights> = {
