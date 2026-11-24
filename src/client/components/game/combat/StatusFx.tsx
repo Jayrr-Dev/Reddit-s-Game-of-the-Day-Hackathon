@@ -20,6 +20,7 @@ import {
 } from '../../../content/statusFx';
 import { POP_LOOK, toneVarOf } from '../../../content/visuals';
 import { seeded, spread } from '../../../lib/seeded';
+import { Glyph, type GlyphName } from '../../ui/Glyph';
 
 // --- CONSTANTS ---
 /** Time between particles of one layer starting (ms). */
@@ -28,7 +29,18 @@ const PARTICLE_STAGGER_MS = 70;
 const BURST_REACH = 42;
 
 /** Each shape as SVG on a 10 x 10 box, drawn in currentColor. */
-const SHAPE_PATHS: Record<FxShape, ReactNode> = {
+const SHAPE_PATHS: Record<Exclude<FxShape, 'icon'>, ReactNode> = {
+  arrow: <path d="M5 .5 7.4 3.4H5.7V9.5H4.3V3.4H2.6Z" fill="currentColor" />,
+  spark: <path d="M5 0 6 4 10 5 6 6 5 10 4 6 0 5 4 4Z" fill="currentColor" />,
+  streak: (
+    <path
+      d="M0 5h10"
+      stroke="currentColor"
+      strokeWidth="0.8"
+      strokeLinecap="round"
+      opacity="0.7"
+    />
+  ),
   bubble: (
     <>
       <circle cx="5" cy="5" r="3.8" fill="currentColor" fillOpacity="0.35" />
@@ -137,7 +149,14 @@ const placeParticle = (
       '--fx-turn': `${(deg + 90).toFixed(0)}deg`,
     } as CSSProperties;
   }
-  if (motion === 'spin' || motion === 'flash')
+  if (motion === 'dash')
+    // In from the left, at its own height (speed lines stack up).
+    return {
+      left: '50%',
+      top: `${50 + (index - (count - 1) / 2) * 14}%`,
+      animationDelay: `${index * 30}ms`,
+    };
+  if (motion !== 'rise' && motion !== 'fall')
     return {
       left: '50%',
       top: '50%',
@@ -158,10 +177,12 @@ const Layer = ({
   layer,
   id,
   salt,
+  glyph,
 }: {
   layer: FxLayer;
   id: number;
   salt: number;
+  glyph: GlyphName;
 }) => (
   <>
     {Array.from({ length: layer.count }, (_, index) => (
@@ -173,13 +194,20 @@ const Layer = ({
           ...placeParticle(layer.motion, id, index, layer.count, salt),
         }}
       >
-        <svg
-          viewBox="0 0 10 10"
-          className={`block size-full overflow-visible drop-shadow-[0_0_3px_currentColor] ${layer.shape === 'flame' ? 'status-fx-flicker' : ''}`}
-          aria-hidden="true"
-        >
-          {SHAPE_PATHS[layer.shape]}
-        </svg>
+        {layer.shape === 'icon' ? (
+          <Glyph
+            name={glyph}
+            className="block size-full drop-shadow-[0_0_4px_currentColor]"
+          />
+        ) : (
+          <svg
+            viewBox="0 0 10 10"
+            className={`block size-full overflow-visible drop-shadow-[0_0_3px_currentColor] ${layer.shape === 'flame' ? 'status-fx-flicker' : ''}`}
+            aria-hidden="true"
+          >
+            {SHAPE_PATHS[layer.shape]}
+          </svg>
+        )}
       </span>
     ))}
   </>
@@ -199,12 +227,19 @@ const Glow = ({ tone }: { tone: string }) => (
 /** Renders the effect for one status pop (applied, gained or ticking). */
 export const StatusFx = ({ kind, id }: { kind: FxKind; id: number }) => {
   const spec = STATUS_FX[kind];
-  const tone = toneVarOf(POP_LOOK[kind]);
+  const look = POP_LOOK[kind];
+  const tone = toneVarOf(look);
   return (
     <span className="absolute inset-0" style={{ color: tone }}>
       {spec.hasGlow && <Glow tone={tone} />}
       {spec.layers.map((layer, salt) => (
-        <Layer key={salt} layer={layer} id={id} salt={salt} />
+        <Layer
+          key={salt}
+          layer={layer}
+          id={id}
+          salt={salt}
+          glyph={look.glyph}
+        />
       ))}
     </span>
   );

@@ -22,14 +22,21 @@ export type FxShape =
   | 'chevron'
   | 'shield'
   | 'ring'
-  | 'eye';
+  | 'eye'
+  /** The status's own icon (its POP_LOOK glyph: fist, sword, bow ...). */
+  | 'icon'
+  | 'arrow'
+  | 'spark'
+  | 'streak';
 
 /**
  * How a particle moves (index.css "STATUS FX"): rise floats up, fall
  * drips down, burst flies out from the middle, spin turns in place,
- * flash swells and fades in place.
+ * flash swells and fades in place, slam drops in big and hits down,
+ * swing chops down from raised, dash shoots in from the left.
  */
-export type FxMotion = 'rise' | 'fall' | 'burst' | 'spin' | 'flash';
+export type FxMotion =
+  'rise' | 'fall' | 'burst' | 'spin' | 'flash' | 'slam' | 'swing' | 'dash';
 
 /** One layer of identical particles. */
 export type FxLayer = {
@@ -46,16 +53,6 @@ export type FxSpec = { layers: readonly FxLayer[]; hasGlow: boolean };
 /** Every pop kind that has its own effect (a plain hit has marks instead). */
 export type FxKind = Exclude<PopKind, 'hit'>;
 
-// --- SHARED LAYERS ---
-/** Every buff flares the same way, in its own (Buff orange) tone. */
-const BUFF_FLARE: FxSpec = {
-  layers: [
-    { shape: 'ring', motion: 'flash', count: 1, size: 70 },
-    { shape: 'chevron', motion: 'rise', count: 3, size: 20 },
-  ],
-  hasGlow: true,
-};
-
 // --- TABLE ---
 export const STATUS_FX: Record<FxKind, FxSpec> = {
   heal: {
@@ -69,13 +66,54 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     ],
     hasGlow: false,
   },
-  wrath: BUFF_FLARE,
-  might: BUFF_FLARE,
-  surge: BUFF_FLARE,
-  piercing: BUFF_FLARE,
-  protection: BUFF_FLARE,
+  // BUFFS: each built around its own icon, in Buff orange.
+  /** Wrath (+damage to every hit): a fist slams down, a shockwave rings out. */
+  wrath: {
+    layers: [
+      { shape: 'icon', motion: 'slam', count: 1, size: 46 },
+      { shape: 'ring', motion: 'flash', count: 1, size: 92 },
+      { shape: 'spark', motion: 'burst', count: 6, size: 10 },
+    ],
+    hasGlow: true,
+  },
+  /** Might (+Melee): a sword chops down, striking sparks. */
+  might: {
+    layers: [
+      { shape: 'icon', motion: 'swing', count: 1, size: 54 },
+      { shape: 'spark', motion: 'burst', count: 4, size: 9 },
+    ],
+    hasGlow: true,
+  },
+  /** Surge (+Magic): the swirl spins up, throwing off sparks. */
+  surge: {
+    layers: [
+      { shape: 'icon', motion: 'spin', count: 1, size: 50 },
+      { shape: 'spark', motion: 'burst', count: 8, size: 8 },
+    ],
+    hasGlow: true,
+  },
+  /** Piercing (+Range): the bow flashes and arrows loose upward. */
+  piercing: {
+    layers: [
+      { shape: 'icon', motion: 'flash', count: 1, size: 42 },
+      { shape: 'arrow', motion: 'rise', count: 3, size: 16 },
+    ],
+    hasGlow: true,
+  },
+  /** Protection (+Guard from cards): the shield flashes, boosted up. */
+  protection: {
+    layers: [
+      { shape: 'icon', motion: 'flash', count: 1, size: 48 },
+      { shape: 'chevron', motion: 'rise', count: 2, size: 16 },
+    ],
+    hasGlow: true,
+  },
+  /** Momentum (Charge: next Melee +50%): a bolt dashes in on speed lines. */
   momentum: {
-    layers: [{ shape: 'chevron', motion: 'rise', count: 4, size: 22 }],
+    layers: [
+      { shape: 'streak', motion: 'dash', count: 3, size: 34 },
+      { shape: 'icon', motion: 'dash', count: 1, size: 40 },
+    ],
     hasGlow: true,
   },
   hex: {

@@ -2088,6 +2088,81 @@ textarea,
 .status-fx-flash {
   animation-name: fx-flash;
 }
+.status-fx-slam {
+  animation-name: fx-slam;
+}
+.status-fx-swing {
+  animation-name: fx-swing;
+}
+.status-fx-dash {
+  animation-name: fx-dash;
+  animation-duration: 650ms;
+}
+
+/* Drops in big from above and hits down hard, then fades (Wrath's fist). */
+@keyframes fx-slam {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(-30cqh) scale(1.8);
+  }
+  30% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  42% {
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Chops down from raised, pivoting on its hilt (Might's sword). */
+@keyframes fx-swing {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-70deg) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+  }
+  40% {
+    transform: translate(-50%, -50%) rotate(25deg) scale(1.05);
+  }
+  55% {
+    transform: translate(-50%, -50%) rotate(15deg) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(15deg) scale(1);
+  }
+}
+
+/* Shoots in from the left and stops short (Momentum's bolt, speed lines). */
+@keyframes fx-dash {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateX(-45cqw) scaleX(1.6);
+  }
+  35% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scaleX(1);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateX(6cqw);
+  }
+}
 
 /* Floats up, swelling in, then fades (bubbles, flames, chevrons, pluses). */
 @keyframes fx-rise {
