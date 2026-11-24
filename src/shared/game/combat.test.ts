@@ -2079,3 +2079,13 @@ void test('Piercing ignores Armor and Protection (not Guard)', () => {
   assert.ok(takeHit(tough, 8, 'range').hp > 23, 'unpierced is reduced');
   assert.ok(KEYWORD_INFO.piercing.description.includes('Armor'));
 });
+
+// --- MELEE EDGE (COSMETIC) ---
+void test('every Melee card is Sharp or Blunt; no other card has an edge', () => {
+  for (const id of ALL_CARD_IDS) {
+    const { type, edge } = getCard(id);
+    assert.equal(edge !== undefined, type === 'melee', id);
+  }
+  assert.equal(getCard('cruelSlash').edge, 'sharp');
+  assert.equal(getCard('ruin').edge, 'blunt');
+});

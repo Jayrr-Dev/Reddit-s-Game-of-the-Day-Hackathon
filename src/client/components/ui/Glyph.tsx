@@ -46,6 +46,8 @@ export type GlyphName =
   | 'crackedShield'
   | 'heartbeat'
   | 'breastplate'
+  | 'dagger'
+  | 'hammer'
   | 'dodging';
 
 export type GlyphProps = {

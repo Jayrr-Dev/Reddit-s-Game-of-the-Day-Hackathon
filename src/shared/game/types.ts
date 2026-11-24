@@ -211,6 +211,13 @@ export type CardRarity = 'starter' | 'common' | 'uncommon' | 'rare';
 export type MagicElement = 'fire' | 'ice' | 'healing';
 
 /**
+ * A Melee card's edge: Sharp (blades: a slice lands) or Blunt (fists,
+ * shields, hammers: a crushing thud lands). Cosmetic only: its icon on
+ * the type ribbon and its hit effect; the rules never read it.
+ */
+export type MeleeEdge = 'sharp' | 'blunt';
+
+/**
  * What kind of card it is. Shown on the card, and it decides reach:
  * Melee hits the front row only; Range, Magic and Curse reach any hero.
  * Defend and Buff cards act on the villain: Defend cards are mainly
@@ -235,6 +242,8 @@ export type CardDef = {
   keywords: readonly CardKeyword[];
   /** A Magic card's element (its look and on-hit rule), if any. */
   element?: MagicElement;
+  /** A Melee card's edge (cosmetic: ribbon icon and hit effect). */
+  edge?: MeleeEdge;
   /** An Exhaust card's own number of uses (default EXHAUST_USES). */
   uses?: number;
   /**

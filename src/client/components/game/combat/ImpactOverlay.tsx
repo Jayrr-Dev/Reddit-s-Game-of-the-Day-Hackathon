@@ -3,6 +3,7 @@
 // Quick effects drawn over a character for each pop (see useHitPops),
 // so you can read what just happened to them without reading numbers:
 //   HIT     Melee (and the heroes' own attacks)  a thin red slice
+//           Blunt Melee (fists, hammers)          a crushing thud
 //           Range                                 an arrow hole with cracks
 //           Magic                                 an arcane burst (rays, curls, sparks)
 //           Curse (curse cards)                   a purple glow
@@ -23,6 +24,7 @@ import { MagicBurst } from './MagicBurst';
 import { Puncture } from './Puncture';
 import { Slice } from './Slice';
 import { StatusFx } from './StatusFx';
+import { Thud } from './Thud';
 import type { PlayerHitPop } from '../../../hooks/useHitPops';
 
 // --- CONSTANTS ---
@@ -106,6 +108,13 @@ const Burst = ({ pop }: { pop: PlayerHitPop }) => (
   </span>
 );
 
+/** A Blunt Melee blow: a crushing thud, not a cut. */
+const Crush = ({ id }: { id: number }) => (
+  <span className="absolute aspect-square w-[110%]" style={placeAt(id, 0, 40)}>
+    <Thud id={id} />
+  </span>
+);
+
 /** A soft wash of colour over the character (status applied). */
 const Glow = ({ tone }: { tone: string }) => (
   <span
@@ -122,6 +131,7 @@ const HitMark = ({ pop }: { pop: PlayerHitPop }) => {
   if (pop.source === 'range') return <Hole id={pop.id} />;
   if (pop.source === 'magic') return <Burst pop={pop} />;
   if (pop.source === 'curse') return <Glow tone={CURSE_GLOW} />;
+  if (pop.edge === 'blunt') return <Crush id={pop.id} />;
   return <Slash pop={pop} />;
 };
 

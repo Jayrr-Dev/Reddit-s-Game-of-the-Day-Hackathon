@@ -32,6 +32,7 @@ import type { RunAction } from '../../../shared/game/run';
 import type {
   CardType,
   MagicElement,
+  MeleeEdge,
   CombatState,
   MovementId,
 } from '../../../shared/game/types';
@@ -236,6 +237,7 @@ export const CombatView = ({
   const [lastCard, setLastCard] = useState<{
     type: CardType;
     element?: MagicElement | undefined;
+    edge?: MeleeEdge | undefined;
   }>();
   // Speed lines for every movement, Rampage Charges included.
   const burst = useMovementBurst(combat);
@@ -311,6 +313,7 @@ export const CombatView = ({
     heroTurn.isPlaying,
     lastCard?.type,
     lastCard?.element,
+    lastCard?.edge,
     hitHistory
   );
   const playerHits = usePlayerHits(

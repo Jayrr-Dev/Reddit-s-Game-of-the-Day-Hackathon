@@ -29,8 +29,14 @@ import type {
   HeroUnit,
   Imbue,
   MagicElement,
+  MeleeEdge,
 } from '../../../shared/game/types';
-import { CARD_LOOK, ELEMENT_LOOK, RARITY_GEM } from '../../content/visuals';
+import {
+  CARD_LOOK,
+  EDGE_LOOK,
+  ELEMENT_LOOK,
+  RARITY_GEM,
+} from '../../content/visuals';
 import { Glyph, type GlyphName } from '../ui/Glyph';
 import { cardBadgesOf } from '../../content/cardBadges';
 import { Tooltip } from '../ui/Tooltip';
@@ -228,28 +234,40 @@ const ArtWindow = ({
   </span>
 );
 
-/** The ribbon under the rules: a Magic card's element icon and its type. */
+/**
+ * The ribbon under the rules: its type, after an icon for a Magic
+ * card's element or a Melee card's edge (Sharp or Blunt).
+ */
 const TypeRibbon = ({
   typeName,
   element,
+  edge,
   look,
 }: {
   typeName: string;
   element: MagicElement | undefined;
+  edge: MeleeEdge | undefined;
   look: SizeLook;
-}) => (
-  <span
-    className={`absolute bottom-0.5 left-1/2 flex -translate-x-1/2 items-center rounded-sm bg-surface-sunken py-px font-bold uppercase tracking-wider text-ink ring-1 ring-accent/50 ${look.ribbon}`}
-  >
-    {element && (
-      <Glyph
-        name={ELEMENT_LOOK[element].glyph}
-        className={`${look.ribbonIcon} ${ELEMENT_LOOK[element].toneClass}`}
-      />
-    )}
-    {typeName}
-  </span>
-);
+}) => {
+  const iconLook = element
+    ? ELEMENT_LOOK[element]
+    : edge
+      ? EDGE_LOOK[edge]
+      : null;
+  return (
+    <span
+      className={`absolute bottom-0.5 left-1/2 flex -translate-x-1/2 items-center rounded-sm bg-surface-sunken py-px font-bold uppercase tracking-wider text-ink ring-1 ring-accent/50 ${look.ribbon}`}
+    >
+      {iconLook && (
+        <Glyph
+          name={iconLook.glyph}
+          className={`${look.ribbonIcon} ${iconLook.toneClass}`}
+        />
+      )}
+      {typeName}
+    </span>
+  );
+};
 
 /**
  * The rarity gem: a small downward triangle (a "V") in its rarity's
@@ -366,6 +384,7 @@ export const CardView = ({
       <TypeRibbon
         typeName={typeLook.typeName}
         element={cardDef.element}
+        edge={cardDef.edge}
         look={look}
       />
     </button>

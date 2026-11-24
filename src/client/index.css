@@ -141,6 +141,8 @@
   --animate-dive-shake: dive-shake 420ms linear 240ms;
   --animate-impact-slash: impact-slash 1000ms ease-out forwards;
   --animate-impact-puncture: impact-puncture 1000ms ease-out forwards;
+  --animate-impact-thud: impact-thud 1000ms ease-out forwards;
+  --animate-impact-shockwave: impact-shockwave 520ms ease-out forwards;
   --animate-magic-flash: magic-flash 760ms ease-out both;
   --animate-magic-rays: magic-rays 760ms ease-out both;
   --animate-magic-curls: magic-curls 760ms ease-out both;
@@ -171,6 +173,38 @@
   }
   /* A Range shot: the hole punches in (a quick overshoot), holds, then
      fades. Transform and opacity only, so it stays on the compositor. */
+  /* A Blunt blow: slams in oversized, squashes, settles, fades. */
+  @keyframes impact-thud {
+    0% {
+      opacity: 0;
+      transform: scale(1.5);
+    }
+    7% {
+      opacity: 1;
+      transform: scale(0.85);
+    }
+    16% {
+      transform: scale(1);
+    }
+    60% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1);
+    }
+  }
+  /* Its shockwave: a ring rolling outward as it fades. */
+  @keyframes impact-shockwave {
+    0% {
+      opacity: 0.9;
+      transform: scale(0.25);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.35);
+    }
+  }
   @keyframes impact-puncture {
     0% {
       opacity: 0;

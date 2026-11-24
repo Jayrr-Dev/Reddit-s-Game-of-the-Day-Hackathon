@@ -17,6 +17,7 @@ import type {
   ImbuableEffect,
   ImbueGift,
   MagicElement,
+  MeleeEdge,
 } from './types.ts';
 
 // --- EFFECT BUILDERS ---
@@ -97,6 +98,8 @@ type CardTraits = {
   keywords?: readonly CardKeyword[];
   targets?: number;
   element?: MagicElement;
+  /** A Melee card's edge: Sharp or Blunt (cosmetic). */
+  edge?: MeleeEdge;
   /** An Exhaust card's own number of uses (default EXHAUST_USES). */
   uses?: number;
 };
@@ -107,6 +110,9 @@ const FIRE: CardTraits = { element: 'fire' };
 const ICE: CardTraits = { element: 'ice' };
 /** Healing magic: a green + on its type ribbon. */
 const HEALING: CardTraits = { element: 'healing' };
+/** Melee edges (cosmetic): blades slice, fists and hammers thud. */
+const SHARP: CardTraits = { edge: 'sharp' };
+const BLUNT: CardTraits = { edge: 'blunt' };
 const HOLDS: CardTraits = { keywords: ['hold'] };
 const PIERCES: CardTraits = { keywords: ['piercing'] };
 const RAMPAGES: CardTraits = { keywords: ['rampage'] };
@@ -127,7 +133,7 @@ const card = (
   cost: number,
   rarity: CardRarity,
   effects: CardEffect[],
-  { keywords = [], targets = 1, element, uses }: CardTraits = {}
+  { keywords = [], targets = 1, element, edge, uses }: CardTraits = {}
 ): CardDef => ({
   name,
   type,
@@ -136,6 +142,7 @@ const card = (
   effects,
   keywords,
   ...(element ? { element } : {}),
+  ...(edge ? { edge } : {}),
   ...(uses ? { uses } : {}),
   reach: REACHING_TYPES.has(type),
   targets,
@@ -144,7 +151,7 @@ const card = (
 // --- CATALOG ---
 export const CARDS = {
   // STARTER DECK
-  backhand: card('Backhand', 'melee', 1, 'starter', [hit(6)]),
+  backhand: card('Backhand', 'melee', 1, 'starter', [hit(6)], BLUNT),
   darkCloak: card('Dark Cloak', 'defend', 1, 'starter', [guard(5)]),
   healingPotion: card(
     'Healing Potion',
@@ -180,29 +187,46 @@ export const CARDS = {
   ]),
 
   // COMMON
-  cruelSlash: card('Cruel Slash', 'melee', 1, 'common', [hit(9)]),
-  twinDaggers: card('Twin Daggers', 'melee', 1, 'common', [hit(4, 2)]),
+  cruelSlash: card('Cruel Slash', 'melee', 1, 'common', [hit(9)], SHARP),
+  twinDaggers: card('Twin Daggers', 'melee', 1, 'common', [hit(4, 2)], SHARP),
   boneWard: card('Bone Ward', 'defend', 1, 'common', [guard(8)]),
   whisperHex: card('Whisper Hex', 'curse', 0, 'common', [hex(3)]),
   vexingWord: card('Vexing Word', 'curse', 1, 'common', [
     hex(1),
     { kind: 'vex', amount: 3, target: 'one' },
   ]),
-  quickJab: card('Quick Jab', 'melee', 0, 'common', [hit(3), draw(1)]),
+  quickJab: card('Quick Jab', 'melee', 0, 'common', [hit(3), draw(1)], BLUNT),
   sneer: card('Sneer', 'curse', 1, 'common', [guard(5), weaken(1), hex(1)]),
   fortressOfSpite: card('Fortress of Spite', 'defend', 2, 'common', [
     guard(14),
   ]),
-  sear: card('Sear', 'melee', 1, 'common', [hit(5), burn(3)]),
-  cleave: card('Cleave', 'melee', 1, 'common', [hitAll(6)], RAMPAGES),
+  sear: card('Sear', 'melee', 1, 'common', [hit(5), burn(3)], SHARP),
+  cleave: card('Cleave', 'melee', 1, 'common', [hitAll(6)], {
+    ...RAMPAGES,
+    ...SHARP,
+  }),
   spiteBolt: card('Spite Bolt', 'range', 1, 'common', [hit(6)], DISTANCES),
-  hurlAside: card('Hurl Aside', 'melee', 1, 'common', [hit(5), knockback(1)]),
+  hurlAside: card(
+    'Hurl Aside',
+    'melee',
+    1,
+    'common',
+    [hit(5), knockback(1)],
+    BLUNT
+  ),
   beckon: card('Beckon', 'curse', 0, 'common', [pull(1), weaken(1), hex(1)]),
   repulse: card('Repulse', 'magic', 1, 'common', [hit(5), knockback(1)]),
   hexfire: card('Hexfire', 'magic', 1, 'common', [hit(6), hex(1)], FIRE),
   barbedVolley: card('Barbed Volley', 'range', 1, 'common', [hit(2, 3)]),
-  flurry: card('Flurry', 'melee', 1, 'common', [hit(3, 3)]),
-  spikedGuard: card('Spiked Guard', 'melee', 1, 'common', [hit(5), guard(5)]),
+  flurry: card('Flurry', 'melee', 1, 'common', [hit(3, 3)], BLUNT),
+  spikedGuard: card(
+    'Spiked Guard',
+    'melee',
+    1,
+    'common',
+    [hit(5), guard(5)],
+    BLUNT
+  ),
   blackArrow: card('Black Arrow', 'range', 1, 'common', [hit(7)], PIERCES),
   retreatingShot: card(
     'Retreating Shot',
@@ -256,10 +280,14 @@ export const CARDS = {
     [heal(14), cleanse],
     HEALING
   ),
-  serratedSlash: card('Serrated Slash', 'melee', 1, 'common', [
-    hit(4),
-    shock(4),
-  ]),
+  serratedSlash: card(
+    'Serrated Slash',
+    'melee',
+    1,
+    'common',
+    [hit(4), shock(4)],
+    SHARP
+  ),
   // Fight-long buffs. One type each, so they hit harder than Wrath per
   // stack; Hone and Surge are a bit bigger because fewer cards use them.
   // TARGET N: pick a hero per shot (the same one again is fine)
@@ -271,6 +299,7 @@ export const CARDS = {
   }),
   reapingCuts: card('Reaping Cuts', 'melee', 1, 'common', [hit(4)], {
     targets: 2,
+    ...SHARP,
   }),
   bloodlust: card(
     'Bloodlust',
@@ -367,8 +396,11 @@ export const CARDS = {
   ]),
   reap: card('Reap', 'magic', 1, 'uncommon', [reap(2)]),
   seethe: card('Seethe', 'buff', 1, 'uncommon', [wrath(2)], REMOVES),
-  impale: card('Impale', 'melee', 2, 'uncommon', [hit(10)], PIERCES),
-  ruin: card('Ruin', 'melee', 2, 'uncommon', [hit(16)], HOLDS),
+  impale: card('Impale', 'melee', 2, 'uncommon', [hit(10)], {
+    ...PIERCES,
+    ...SHARP,
+  }),
+  ruin: card('Ruin', 'melee', 2, 'uncommon', [hit(16)], { ...HOLDS, ...BLUNT }),
   coldResolve: card('Cold Resolve', 'defend', 1, 'uncommon', [
     guard(6),
     draw(2),
@@ -379,13 +411,20 @@ export const CARDS = {
     draw(1),
   ]),
   bloodPact: card('Blood Pact', 'buff', 0, 'uncommon', [energy(2)], REMOVES),
-  stormOfBlades: card('Storm of Blades', 'melee', 2, 'uncommon', [hit(3, 4)]),
+  stormOfBlades: card(
+    'Storm of Blades',
+    'melee',
+    2,
+    'uncommon',
+    [hit(3, 4)],
+    SHARP
+  ),
   plague: card('Plague', 'curse', 2, 'uncommon', [hex(4, 'all')]),
   darkBulwark: card('Dark Bulwark', 'defend', 2, 'uncommon', [
     guard(10),
     wrath(1),
   ]),
-  drain: card('Drain', 'melee', 1, 'uncommon', [hit(6), heal(3)]),
+  drain: card('Drain', 'melee', 1, 'uncommon', [hit(6), heal(3)], SHARP),
   shadowBarrage: card('Shadow Barrage', 'magic', 2, 'uncommon', [hit(3, 4)]),
   rainOfThorns: card(
     'Rain of Thorns',
@@ -415,14 +454,10 @@ export const CARDS = {
   vengeance: card('Vengeance', 'buff', 1, 'rare', [wrath(3)], REMOVES),
   gravePact: card('Grave Pact', 'buff', 1, 'rare', [heal(8)], REMOVES),
   doom: card('Doom', 'curse', 2, 'rare', [hex(9)], REMOVES),
-  undyingHatred: card(
-    'Undying Hatred',
-    'melee',
-    2,
-    'rare',
-    [hit(20)],
-    RAMPAGES
-  ),
+  undyingHatred: card('Undying Hatred', 'melee', 2, 'rare', [hit(20)], {
+    ...RAMPAGES,
+    ...BLUNT,
+  }),
   ascendance: card(
     'Ascendance',
     'buff',

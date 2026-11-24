@@ -12,6 +12,7 @@ import type {
   CardRarity,
   CardType,
   MagicElement,
+  MeleeEdge,
   MovementId,
   PassiveId,
   StatusId,
@@ -186,6 +187,12 @@ export type ElementLook = Look & {
   energy: string;
   core: string;
   burst: 'curls' | 'ring';
+};
+
+/** A Melee card's edge icon on its type ribbon (cosmetic). */
+export const EDGE_LOOK: Record<MeleeEdge, Look> = {
+  sharp: { glyph: 'dagger', toneClass: 'text-range' },
+  blunt: { glyph: 'hammer', toneClass: 'text-burn' },
 };
 
 export const ELEMENT_LOOK: Record<MagicElement, ElementLook> = {
