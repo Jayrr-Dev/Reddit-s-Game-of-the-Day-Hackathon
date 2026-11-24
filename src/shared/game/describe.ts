@@ -232,7 +232,7 @@ export const describeCardEffect = (
     case 'weaken':
       return describeStatusLine(effect, attacker);
     case 'enfeeble':
-      return `Enfeeble${areaWord(effect.target)}`;
+      return `Enfeeble${timesSuffix(effect.times)}${areaWord(effect.target)}`;
     case 'reap': {
       if (!target) return `Damage ${effect.multiplier}× Hex`;
       const bonus = attacker ? typeBonus(attacker, cardDef.type) : 0;
@@ -269,6 +269,9 @@ export const describeCardEffect = (
       return describeImbueEffect(effect);
   }
 };
+
+/** " ×N" for an effect cast more than once, else nothing. */
+const timesSuffix = (times = 1): string => (times > 1 ? ` ×${times}` : '');
 
 // --- IMBUE TEXT ---
 /** Each keyword's name and what it does (its badge's tooltip). */

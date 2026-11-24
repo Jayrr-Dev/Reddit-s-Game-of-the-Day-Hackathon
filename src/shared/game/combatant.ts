@@ -264,6 +264,13 @@ export const enfeeble = <T extends Combatant>(target: T): T => ({
   },
 });
 
+/** Enfeeble cast `times` times in a row (Sap: Enfeeble ×3). */
+export const enfeebleTimes = <T extends Combatant>(
+  target: T,
+  times: number
+): T =>
+  Array.from({ length: times }).reduce<T>((unit) => enfeeble(unit), target);
+
 /**
  * The end of the villain's turn for an enfeebled unit: Enfeeble laid on
  * this turn holds through the heroes' turn ahead; otherwise it lapses.

@@ -46,7 +46,7 @@ import {
   afflictionAmount,
   castProtection,
   dropProtection,
-  enfeeble,
+  enfeebleTimes,
   enfeebleCheck,
   cleanseOne,
   attackDamage,
@@ -672,7 +672,7 @@ const applyCardEffect = (
       return updateHeroes(
         state,
         resolveTargets(state, effect.target, targetUid),
-        enfeeble
+        (unit) => enfeebleTimes(unit, effect.times ?? 1)
       );
     case 'reap':
       return reapHex(

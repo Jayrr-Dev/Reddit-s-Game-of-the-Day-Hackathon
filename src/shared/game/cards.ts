@@ -232,6 +232,10 @@ export const CARDS = {
     { kind: 'enfeeble', target: 'one' },
     hex(1),
   ]),
+  sap: card('Sap', 'curse', 2, 'uncommon', [
+    { kind: 'enfeeble', target: 'one', times: 3 },
+    hex(1),
+  ]),
   venomDart: card('Venom Dart', 'range', 1, 'common', [hit(3), poison(4)]),
   frostBolt: card('Frost Bolt', 'magic', 1, 'common', [hit(3, 2)], ICE),
   // HEALING SPELLS: reusable Magic heals (unlike the Exhaust potions)

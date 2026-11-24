@@ -1479,6 +1479,18 @@ void test('Enfeeble climbs a tier when reapplied the next turn, up to III', () =
   }
 });
 
+void test('Sap casts Enfeeble x3: tier III at once', () => {
+  const deck: CardId[] = Array.from({ length: 12 }, () => 'darkCloak');
+  const state = withHand(fightWith(deck), ['sap']);
+  const uid = state.heroes[0]?.uid ?? -1;
+  const after = playCard(state, 0, uid);
+  assert.equal(
+    after.heroes.find((unit) => unit.uid === uid)?.statuses.enfeeble,
+    3
+  );
+  assert.ok(describeCard('sap').includes('Enfeeble ×3'));
+});
+
 void test('Enfeeble lasts one turn: it lapses unless reapplied', () => {
   const deck: CardId[] = Array.from({ length: 12 }, () => 'darkCloak');
   const state = withHand(fightWith(deck), ['sapStrength']);

@@ -131,7 +131,8 @@ export type BaseCardEffect =
   | { kind: 'bleed'; amount: number; target: CardTarget }
   | { kind: 'weaken'; amount: number; target: CardTarget }
   /** Enfeebles the target: one tier up when reapplied turn after turn. */
-  | { kind: 'enfeeble'; target: CardTarget }
+  /** Enfeeble ×N: cast `times` times (default 1), a tier each, to III. */
+  | { kind: 'enfeeble'; target: CardTarget; times?: number }
   /** Deals damage equal to the target's hex times `multiplier`. */
   | { kind: 'reap'; multiplier: number }
   | { kind: 'guard'; amount: number }
