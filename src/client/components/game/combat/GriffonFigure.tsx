@@ -7,7 +7,8 @@
 // It moves through data-action hooks (index.css, "GRAND GRIFFON"):
 //   every move   the wings beat once
 //   melee        three claw streaks rake down in quick succession
-//                (Triple Slice)
+//                (Triple Slice); a two-handed move (data-two-handed,
+//                Crossed Talon) rakes a mirrored set too, so they cross
 //   support      the halo flares
 //   signature    Heavenly Dive: the halo blazes as it drops
 //   aloft        (data-aloft on the field) the wings beat without rest
@@ -425,6 +426,17 @@ const ClawStreaks = () => (
         fill={CLAW_LIGHT}
         opacity="0"
         style={{ animationDelay: `${index * 150}ms` }}
+      />
+    ))}
+    {/* CROSSED TALON: the other hand rakes the mirrored way, crossing */}
+    {CLAW_STREAKS.map((streak, index) => (
+      <polygon
+        key={`cross-${streak[0]?.[0]}`}
+        className="griffon-claw-cross"
+        points={pts(mirrored(streak))}
+        fill={CLAW_LIGHT}
+        opacity="0"
+        style={{ animationDelay: `${75 + index * 150}ms` }}
       />
     ))}
   </g>

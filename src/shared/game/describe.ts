@@ -753,7 +753,30 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
         text: `${effect.count}`,
         label: `Summons ${effect.count} ${getHero(effect.heroId).name}${effect.count > 1 ? 's' : ''}`,
       };
+    case 'detonate':
+      return {
+        kind: 'shock',
+        text: '',
+        label: `Sets off your Shock now: ${SHOCK_BURST_FACTOR}× its stacks`,
+      };
   }
+};
+
+/**
+ * The extra chip for an attack that lays an affliction on every hit
+ * (Thunder Talons: Shock 6 ×3). None for other effects.
+ */
+const perHitIntents = (unit: HeroUnit, effect: HeroEffect): Intent[] => {
+  if (effect.kind !== 'attack' || !effect.perHit) return [];
+  const { status, amount } = effect.perHit;
+  const scaled = scaleByMight(amount, unit.might);
+  return [
+    {
+      kind: status,
+      text: effect.hits > 1 ? `${scaled}×${effect.hits}` : `${scaled}`,
+      label: `${STATUS_INFO[status].label} ${scaled} on every hit`,
+    },
+  ];
 };
 
 /** The chip for a hero with no move it can make from where it stands. */
@@ -779,10 +802,15 @@ export type MoveIntent = {
 const describeMove = (unit: HeroUnit, heroMove: HeroMove): MoveIntent => ({
   name: heroMove.name,
   isSignature: heroMove.isSignature ?? false,
-  intents: heroMove.effects.map((effect) => ({
-    ...describeHeroEffect(unit, effect),
-    ...(heroMove.isSignature ? { isSignature: true } : {}),
-  })),
+  intents: heroMove.effects
+    .flatMap((effect) => [
+      describeHeroEffect(unit, effect),
+      ...perHitIntents(unit, effect),
+    ])
+    .map((intent) => ({
+      ...intent,
+      ...(heroMove.isSignature ? { isSignature: true } : {}),
+    })),
 });
 
 /** What a hero with no move it can make does: it steps up. */

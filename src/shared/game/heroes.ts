@@ -97,6 +97,8 @@ const knockBack = (lines: number): HeroEffect => ({ kind: 'knockBack', lines });
 
 /** Flies up out of reach; the next move dives back down. */
 const soar = (): HeroEffect => ({ kind: 'soar' });
+/** Sets off the villain's Shock at once (Smite). */
+const detonate = (): HeroEffect => ({ kind: 'detonate' });
 
 /** Builds a named move. */
 const move = (name: string, ...effects: HeroEffect[]): HeroMove => ({
@@ -302,8 +304,13 @@ export const HEROES = {
     signature(move('Heavenly Drive', soar())),
     signature(move('Heavenly Dive', strike(34))),
     // LIGHTNING: it lays Shock, and its own triple hits set it off
-    move('Thunder Talons', strike(5, 3), shock(6)),
+    move('Thunder Talons', {
+      ...strike(5, 3),
+      perHit: { status: 'shock', amount: 6 },
+    }),
+    move('Smite', detonate()),
     move('Storm Wings', guard(18), shock(4)),
+    { ...move('Crossed Talon', strike(3, 6)), isTwoHanded: true },
     move('Proud Cry', wrath(2)),
   ]),
 } as const satisfies Record<string, HeroDef>;

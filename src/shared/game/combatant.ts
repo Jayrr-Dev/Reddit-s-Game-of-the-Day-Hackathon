@@ -223,14 +223,24 @@ export const takeHit = <T extends Combatant>(
       : target,
     reduced
   );
-  const { shock } = hit.statuses;
-  if (shock <= 0) return hit;
+  if (hit.statuses.shock <= 0) return hit;
   const inARow = (hit.shockHits ?? 0) + 1;
   if (inARow < SHOCK_HITS) return { ...hit, shockHits: inARow };
+  return burstShock(hit);
+};
+
+/**
+ * Shock goes off: SHOCK_BURST_FACTOR times its stacks (past Guard),
+ * then it clears. The SHOCK_HITS-th hit does this, and so does a
+ * Smite (a hero's `detonate`) at once. No Shock, nothing happens.
+ */
+export const burstShock = <T extends Combatant>(target: T): T => {
+  const { shock } = target.statuses;
+  if (shock <= 0) return target;
   const cleared = {
-    ...hit,
+    ...target,
     shockHits: 0,
-    statuses: { ...hit.statuses, shock: 0 },
+    statuses: { ...target.statuses, shock: 0 },
   };
   return loseHp(cleared, shock * SHOCK_BURST_FACTOR);
 };

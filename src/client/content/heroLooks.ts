@@ -383,4 +383,6 @@ export type HeroAction = {
   style: HeroActionStyle;
   swing: MeleeSwing;
   isSignature: boolean;
+  /** A two-handed swipe: the claws cross (Crossed Talon). */
+  isTwoHanded: boolean;
 };

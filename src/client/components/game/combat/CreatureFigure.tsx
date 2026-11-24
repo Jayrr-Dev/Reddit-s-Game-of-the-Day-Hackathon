@@ -679,6 +679,7 @@ export const CreatureFigure = ({
       className="h-full w-full overflow-visible"
       data-action={action?.style}
       data-signature={action?.isSignature ? '' : undefined}
+      data-two-handed={action?.isTwoHanded ? '' : undefined}
       aria-hidden="true"
     >
       <Drawing mood={mood} />

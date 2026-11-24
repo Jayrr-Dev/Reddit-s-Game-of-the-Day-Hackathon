@@ -287,6 +287,9 @@ export type CardDef = {
 export type HeroAttackType = Extract<CardType, 'melee' | 'range' | 'magic'>;
 
 /** One step of a hero's move. `allies` means every living hero. */
+/** The afflictions a hero attack can lay on every hit (Thunder Talons). */
+export type HeroHitAffliction = 'shock' | 'burn' | 'poison' | 'bleed';
+
 export type HeroEffect =
   | {
       kind: 'attack';
@@ -295,6 +298,8 @@ export type HeroEffect =
       type: HeroAttackType;
       /** Homing: its hits can't be dodged (they skip Instinct). */
       isHoming?: boolean;
+      /** An affliction laid on the villain by every hit that lands. */
+      perHit?: { status: HeroHitAffliction; amount: number };
     }
   | { kind: 'hex'; amount: number }
   | { kind: 'poison'; amount: number }
@@ -328,7 +333,9 @@ export type HeroEffect =
    * Knocks the villain back `lines` lines: every hero ends up that much
    * farther, as with a Back Step (and nobody walks in that turn).
    */
-  | { kind: 'knockBack'; lines: number };
+  | { kind: 'knockBack'; lines: number }
+  /** Sets off the villain's Shock now, however many hits it has taken. */
+  | { kind: 'detonate' };
 
 /**
  * Heroes that only ever join a fight by being summoned. Named here, not
@@ -342,6 +349,8 @@ export type HeroMove = {
   effects: readonly HeroEffect[];
   /** The hero's signature move: it plays its own special animation. */
   isSignature?: boolean;
+  /** Cosmetic: a two-handed swipe (claws cross; see GriffonFigure). */
+  isTwoHanded?: boolean;
 };
 
 export type HeroTier = 'grunt' | 'elite' | 'champion' | 'boss';

@@ -48,6 +48,7 @@ import {
   afflictionAmount,
   castProtection,
   dropRoundBuffs,
+  burstShock,
   enfeebleTimes,
   enfeebleCheck,
   cleanseOne,
@@ -1385,6 +1386,8 @@ const applyHeroEffect = (
       return updateHeroes(state, [actor.uid], (unit) => withAloft(unit, 1));
     case 'knockBack':
       return { ...state, heroes: fallBack(state.heroes, effect.lines) };
+    case 'detonate':
+      return { ...state, player: burstShock(state.player) };
   }
 };
 
@@ -1447,7 +1450,8 @@ const heroShoots = (
     // A hit that would land may still be dodged (Instinct), unless Homing.
     const mayDodge = lands && !effect.isHoming;
     const [dodged, ready] = mayDodge ? rollDodge(rolled) : [false, rolled];
-    current = {
+    const isStruck = lands && !dodged;
+    const struck = {
       ...ready,
       player: !lands
         ? missShot(ready.player)
@@ -1455,6 +1459,15 @@ const heroShoots = (
           ? dodge(ready.player)
           : takeHit(ready.player, perHit, type),
     };
+    // PER HIT: a landed hit lays its affliction too (Thunder Talons).
+    current =
+      isStruck && effect.perHit
+        ? afflictVillain(
+            struck,
+            effect.perHit.status,
+            scaleByMight(effect.perHit.amount, actor.might)
+          )
+        : struck;
   }
   return current;
 };
@@ -1520,6 +1533,7 @@ const VILLAIN_EFFECT_KINDS: ReadonlySet<HeroEffect['kind']> = new Set([
   'shock',
   'weaken',
   'knockBack',
+  'detonate',
 ]);
 
 /** True for a hero effect that lands on the villain. */

@@ -1821,6 +1821,7 @@ textarea,
 }
 
 .griffon-claw,
+.griffon-claw-cross,
 .griffon-feather {
   transform-box: fill-box;
   transform-origin: center;
@@ -1842,6 +1843,9 @@ textarea,
   animation: griffon-flap-right 380ms ease-in-out infinite;
 }
 
+[data-action='melee'][data-two-handed] .griffon-claw-cross {
+  animation: griffon-claw 260ms ease-out both;
+}
 [data-action='melee'] .griffon-claw {
   animation: griffon-claw 260ms ease-out both;
 }

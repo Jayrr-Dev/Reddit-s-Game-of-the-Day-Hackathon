@@ -65,6 +65,7 @@ const actionOf = (step: TurnStep, uid: number): HeroAction => {
     swing:
       MELEE_SWINGS[(uid + step.state.turn) % MELEE_SWINGS.length] ?? 'slash',
     isSignature: step.move?.isSignature ?? false,
+    isTwoHanded: step.move?.isTwoHanded ?? false,
   };
 };
 

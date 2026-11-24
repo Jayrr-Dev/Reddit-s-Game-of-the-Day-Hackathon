@@ -1289,7 +1289,8 @@ void test('the griffon calls lightning: Shock its triple hits charge', () => {
   const names = getHero('grandGriffon').moves.map((m) => m.name);
   // Thunder Talons rakes three times, then leaves Shock on the villain.
   const talons = endTurn(atMove(names.indexOf('Thunder Talons')));
-  assert.ok(talons.player.statuses.shock > 0);
+  // Shock 6 on every one of its 3 hits.
+  assert.equal(talons.player.statuses.shock, 6 * 3);
   // Storm Wings guards and charges more Shock without attacking.
   const wings = endTurn(atMove(names.indexOf('Storm Wings')));
   assert.ok(wings.player.statuses.shock > 0);
@@ -1307,6 +1308,43 @@ void test('the griffon calls lightning: Shock its triple hits charge', () => {
   )!.state;
   assert.equal(sliced.player.shockHits, 3);
   assert.equal(sliced.player.statuses.shock, 6);
+});
+
+void test('the griffon Smites (sets off Shock) and swipes Crossed Talon 3x6', () => {
+  const start = griffonFight();
+  const griffon = griffonOf(start);
+  const moves = getHero('grandGriffon').moves;
+  const indexOf = (name: string) => moves.findIndex((m) => m.name === name);
+  const shocked = (moveIndex: number): CombatState => ({
+    ...start,
+    player: {
+      ...start.player,
+      statuses: { ...start.player.statuses, shock: 5 },
+    },
+    heroes: start.heroes.map((unit) =>
+      unit.uid === griffon.uid ? { ...unit, moveIndex } : unit
+    ),
+  });
+  const actOf = (state: CombatState) =>
+    endTurnSteps(state).find((step) => step.actorUid === griffon.uid)!.state;
+  // Smite: no hits, the Shock goes off at once (doubled).
+  const smitten = actOf(shocked(indexOf('Smite')));
+  assert.equal(smitten.player.statuses.shock, 0);
+  assert.equal(start.player.hp - smitten.player.hp, 5 * SHOCK_BURST_FACTOR);
+  // Crossed Talon: 6 hits of 3, which also set the Shock off.
+  const crossed = moves[indexOf('Crossed Talon')]!;
+  assert.deepEqual(crossed.effects[0], {
+    kind: 'attack',
+    amount: 3,
+    hits: 6,
+    type: 'melee',
+  });
+  const swiped = actOf(shocked(indexOf('Crossed Talon')));
+  assert.equal(swiped.player.statuses.shock, 0);
+  assert.equal(
+    start.player.hp - swiped.player.hp,
+    3 * 6 + 5 * SHOCK_BURST_FACTOR
+  );
 });
 
 void test('a turn later the griffon dives down with one crushing blow', () => {
