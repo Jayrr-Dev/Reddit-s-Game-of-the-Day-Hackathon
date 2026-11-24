@@ -21,7 +21,12 @@ type SandboxState = { combat: CombatState; round: number };
 type SandboxEvent =
   | { type: 'act'; action: RunAction }
   | { type: 'reshuffle'; seed: number }
-  | { type: 'summon'; seed: number; heroIds: readonly HeroId[] };
+  | {
+      type: 'summon';
+      seed: number;
+      heroIds: readonly HeroId[];
+      startsInPlace: boolean;
+    };
 
 // --- HELPERS ---
 /** A fresh seed; practice fights don't need to be reproducible. */
@@ -34,7 +39,7 @@ const reduce = (state: SandboxState, event: SandboxEvent): SandboxState => {
     return { combat: createSandbox(event.seed), round: state.round + 1 };
   if (event.type === 'summon')
     return {
-      combat: createSandboxWith(event.seed, event.heroIds),
+      combat: createSandboxWith(event.seed, event.heroIds, event.startsInPlace),
       round: state.round + 1,
     };
   const { action } = event;
@@ -66,10 +71,13 @@ export const useSandbox = () => {
     []
   );
 
-  /** Starts a fight against chosen heroes (e.g. a test creature). */
+  /**
+   * Starts a fight against chosen heroes (e.g. a test creature), marched
+   * in as usual or (startsInPlace) already in their home lines.
+   */
   const summon = useCallback(
-    (heroIds: readonly HeroId[]) =>
-      send({ type: 'summon', seed: freshSeed(), heroIds }),
+    (heroIds: readonly HeroId[], startsInPlace = false) =>
+      send({ type: 'summon', seed: freshSeed(), heroIds, startsInPlace }),
     []
   );
 

@@ -284,9 +284,10 @@ const rowsBehindHome = (unit: HeroUnit): number =>
  */
 const anchorFarBack = (heroes: HeroUnit[], uid: number): HeroUnit[] => {
   let field = heroes;
-  // Imperative: step it back a row at a time until it can't go farther.
+  // Imperative: step it back a row at a time until it can't go farther
+  // (that row's heroes slide aside for it, as for a push).
   for (let step = 0; step < BATTLEFIELD_ROWS.length; step += 1) {
-    const moved = shiftWhole(field, uid, 1);
+    const moved = moveRows(field, uid, 1, true);
     if (moved === field) break;
     field = moved;
   }
@@ -555,9 +556,15 @@ export const canPush = (heroes: readonly HeroUnit[], unit: HeroUnit) =>
  * Moves one hero `steps` rows (-1 nearer, 1 farther), sliding that row
  * over to make room. No-op when blocked.
  */
-const moveRows = (heroes: HeroUnit[], uid: number, steps: number) => {
+const moveRows = (
+  heroes: HeroUnit[],
+  uid: number,
+  steps: number,
+  isSettingUp = false
+) => {
   const unit = heroes.find((hero) => hero.uid === uid);
-  if (!unit || isImmovable(unit)) return heroes;
+  // Only an Anchored hero's own set-up may move an immovable hero.
+  if (!unit || (isImmovable(unit) && !isSettingUp)) return heroes;
   const row = rowShifted(unit.row, steps);
   const seating = seatInRow(heroes, unit, row);
   if (!seating || row === null) return heroes;

@@ -195,7 +195,7 @@ export const HEROES = {
     move('Mana Shield', guard(12)),
   ]),
 
-  // A siege engine: two cells wide, Anchored where it stands (it never
+  // A siege engine: one cell (drawn 1.5 wide, see CreatureFigure), Anchored where it stands (it never
   // moves and nothing moves it), and its bolts never fall short
   // (Longrange: it hits from Line 3 too).
   ballista: hero(
@@ -204,7 +204,7 @@ export const HEROES = {
     100,
     30,
     2,
-    WIDE_BACK,
+    BACK,
     [
       move('Heavy Bolt', shoot(9), knockBack(1)),
       move('Winch Back', guard(6)),

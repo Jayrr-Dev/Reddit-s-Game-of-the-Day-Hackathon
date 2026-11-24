@@ -160,7 +160,7 @@ const CREATURE_SHADOW: Record<CreatureId, GroundShadow> = {
   holyDragon: { halfWidthShare: 0.39, opacity: 0.45 },
   angelArcher: { halfWidthShare: 0.2, opacity: 0.3 },
   grandGriffon: { halfWidthShare: 0.28, opacity: 0.45 },
-  ballista: { halfWidthShare: 0.36, opacity: 0.45 },
+  ballista: { halfWidthShare: 0.55, opacity: 0.45 },
 };
 
 /** The ground shadow a hero casts. */

@@ -30,6 +30,7 @@ import { FEATURES } from './features.ts';
 import { canImbueOnto } from './imbue.ts';
 import { getHero, type HeroId } from './heroes.ts';
 import { canMove, move, movementBlockReason } from './movement.ts';
+import { SANDBOX_SCENARIOS, createSandboxWith } from './sandbox.ts';
 import { MAX_HERO_CELLS, OUT_OF_RANGE_HIT_CHANCE } from './rules.ts';
 import type { CombatState, HeroRow, HeroUnit } from './types.ts';
 
@@ -138,7 +139,7 @@ void test('Force Pull and Force Push move a hero exactly one row', () => {
 });
 
 // --- CHARGE AND BACK STEP ---
-void test('Charge closes up to two rows, until someone is in front', () => {
+void test('Charge closes exactly one row', () => {
   const farOff = move(
     fightAt([
       ['squire', 'horizon', 0],
@@ -146,7 +147,7 @@ void test('Charge closes up to two rows, until someone is in front', () => {
     ]),
     'charge'
   );
-  assert.deepEqual(placesOf(farOff.heroes), ['front:0', 'front:2']);
+  assert.deepEqual(placesOf(farOff.heroes), ['back:0', 'back:2']);
   const split = move(
     fightAt([
       ['squire', 'back', 0],
@@ -349,11 +350,11 @@ void test('the Archer has no Longrange: it misses from the Horizon too', () => {
   assert.ok(shots.some((shot) => shot.missed));
 });
 
-void test('the Ballista fills 2 cells side by side and has Longrange', () => {
+void test('the Ballista fills 1 cell (drawn wider) and has Longrange', () => {
   const state = fightAt([['ballista', 'back', 0]]);
   const ballista = unitAt(state, 0);
-  assert.equal(getHero('ballista').size, 2);
-  assert.equal(freeHeroCells(state.heroes), MAX_HERO_CELLS - 2);
+  assert.equal(getHero('ballista').size, 1);
+  assert.equal(freeHeroCells(state.heroes), MAX_HERO_CELLS - 1);
   assert.ok(hasLongRangePassive(ballista));
   // Its bolts land from Line 3, where other shooters miss.
   const shots = Array.from({ length: 30 }, (_, index) => {
@@ -423,6 +424,17 @@ void test('the Siege Bolt hits harder and knocks you back 2 lines', () => {
   assert.ok(start - siege.player.hp > start - plain.player.hp);
   assert.equal(unitAt(siege, 0).row, 'horizon');
   assert.equal(getHero('ballista').moves[2]?.isSignature, true);
+});
+
+void test('the Ballista scenario: tanks in front, archers, 2 Ballistas', () => {
+  const scenario = SANDBOX_SCENARIOS.find((entry) => entry.id === 'ballista');
+  assert.ok(scenario?.startsInPlace);
+  const { heroes } = createSandboxWith(9, scenario.heroIds, true);
+  const rowOf = (heroId: HeroId) =>
+    heroes.filter((unit) => unit.heroId === heroId).map((unit) => unit.row);
+  assert.deepEqual(rowOf('shieldmaiden'), ['front', 'front']);
+  assert.deepEqual(rowOf('archer'), ['back', 'back']);
+  assert.deepEqual(rowOf('ballista'), ['horizon', 'horizon']);
 });
 
 // --- CELL CAP ---

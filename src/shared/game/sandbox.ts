@@ -7,15 +7,15 @@
 // Pure functions like the rest of the engine; never scored or logged.
 // ===================================================================
 
-import { cellCountOf } from './battlefield.ts';
+import { advanceHeroes, cellCountOf } from './battlefield.ts';
 import { ALL_CARD_IDS, isCardInPlay } from './cards.ts';
 import { combatOutcome, endTurn, playCard, startCombat } from './combat.ts';
 import { CHAMPION_IDS, ELITE_IDS, GRUNT_IDS, type HeroId } from './heroes.ts';
 import { move } from './movement.ts';
 import { nextInt, pickWeighted, type RngState } from './rng.ts';
-import { ENERGY_PER_TURN } from './rules.ts';
+import { BATTLEFIELD_ROWS, ENERGY_PER_TURN } from './rules.ts';
 import type { MoveAction, PlayCardAction } from './run.ts';
-import type { CombatState } from './types.ts';
+import type { CombatState, HeroUnit } from './types.ts';
 
 // --- TYPES ---
 /** What the sandbox accepts: the combat inputs. */
@@ -49,6 +49,11 @@ export type SandboxScenario = {
   blurb: string;
   /** Heroes in the fight; the battlefield rules place them. */
   heroIds: readonly HeroId[];
+  /**
+   * True to start with everyone already in their home line (no march
+   * in), to show a set formation from the first turn.
+   */
+  startsInPlace?: boolean;
 };
 
 /**
@@ -102,8 +107,17 @@ export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
   {
     id: 'ballista',
     name: 'Ballista',
-    blurb: 'A two-slot siege engine with Longrange, behind a Squire.',
-    heroIds: ['ballista', 'squire'],
+    blurb:
+      'Shieldmaidens in front, Archers in the middle, two Ballistas at the back.',
+    heroIds: [
+      'shieldmaiden',
+      'shieldmaiden',
+      'archer',
+      'archer',
+      'ballista',
+      'ballista',
+    ],
+    startsInPlace: true,
   },
 ];
 
@@ -199,8 +213,22 @@ export const createSandbox = (seed: RngState): CombatState => {
  */
 export const createSandboxWith = (
   seed: RngState,
-  heroIds: readonly HeroId[]
-): CombatState => refillEnergy(startCombat(sandboxSetup(heroIds, seed)));
+  heroIds: readonly HeroId[],
+  startsInPlace = false
+): CombatState => {
+  const fresh = startCombat(sandboxSetup(heroIds, seed));
+  const placed = startsInPlace
+    ? { ...fresh, heroes: walkHome(fresh.heroes) }
+    : fresh;
+  return refillEnergy(placed);
+};
+
+/**
+ * Every hero walks in until no one can step nearer home (one step per
+ * pass, as at the end of a heroes' turn). Bounded by the field's depth.
+ */
+const walkHome = (heroes: HeroUnit[]): HeroUnit[] =>
+  BATTLEFIELD_ROWS.reduce((field) => advanceHeroes(field), heroes);
 
 /** Applies one input; refills energy and brings a new horde when cleared. */
 export const sandboxReducer = (

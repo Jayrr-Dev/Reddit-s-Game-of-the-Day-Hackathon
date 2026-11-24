@@ -30,7 +30,7 @@
 //
 // BALLISTA
 //   Sam's painted art (assets/heroes/ballista.png, its backdrop keyed
-//   out), standing on the bottom edge across its two cells. A machine:
+//   out), standing on the bottom edge, 1.5 cells wide. A machine:
 //   no face, so it takes no moods.
 // ===================================================================
 
@@ -631,14 +631,20 @@ const AngelArcher = ({ mood }: { mood: HeroMood }) => (
 /** The art's width / height (480 x 393), to fit it on the ground. */
 const BALLISTA_ASPECT = 480 / 393;
 
-/** The ballista: Sam's art, as wide as its two cells, base on the ground. */
+/**
+ * How many cells wide the ballista is drawn: it fills one cell but its
+ * bow spills half a cell past it, centred (the svg doesn't clip).
+ */
+const BALLISTA_DRAW_SPAN = 1.5;
+
+/** The ballista: Sam's art, 1.5 cells wide, base on the ground. */
 const Ballista = () => {
-  const width = BODY_WIDTH[2];
+  const width = BODY_WIDTH[1] * BALLISTA_DRAW_SPAN;
   const height = width / BALLISTA_ASPECT;
   return (
     <image
       href={ballistaArt}
-      x={0}
+      x={(BODY_WIDTH[1] - width) / 2}
       y={BODY_HEIGHT - height}
       width={width}
       height={height}

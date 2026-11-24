@@ -36,7 +36,11 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
             >
               New dummies
             </Button>
-            <ScenarioPicker onPick={(scenario) => summon(scenario.heroIds)} />
+            <ScenarioPicker
+              onPick={(scenario) =>
+                summon(scenario.heroIds, scenario.startsInPlace)
+              }
+            />
             <Button variant="menu" className="max-w-60" onClick={onExit}>
               Leave practice
             </Button>
