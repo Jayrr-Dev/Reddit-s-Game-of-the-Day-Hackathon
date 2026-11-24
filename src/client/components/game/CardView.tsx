@@ -6,7 +6,7 @@
 //   name banner   the name across the middle in the display font
 //   rules panel   parchment with the rules text, glossary words in
 //                 bold, and the card's own keywords on the last line
-//   rarity gem    a bead just under the banner (starters have none)
+//   rarity gem    a small V under the banner (starters have none)
 //   type ribbon   the type (Melee, Range, Magic, Defend, Buff, Curse),
 //                 with a Magic card's element icon (Fire, Ice) before it
 // The frame and outer glow are coloured by type (see CARD_LOOK).
@@ -91,7 +91,7 @@ const SIZE_LOOK: Record<CardSize, SizeLook> = {
     rules: 'text-[8px] leading-[1.15] px-0.5',
     ribbon: 'text-[6px] px-1.5 gap-0.5',
     ribbonIcon: 'size-2',
-    gem: 'size-[4px]',
+    gem: 'h-[5px] w-[7px]',
   },
   offer: {
     box: 'h-40 w-[6.5rem]',
@@ -102,7 +102,7 @@ const SIZE_LOOK: Record<CardSize, SizeLook> = {
     rules: 'text-[10px] leading-snug px-1',
     ribbon: 'text-[8px] px-2 gap-1',
     ribbonIcon: 'size-2.5',
-    gem: 'size-[5px]',
+    gem: 'h-[7px] w-[9px]',
   },
 };
 
@@ -250,9 +250,11 @@ const TypeRibbon = ({
 );
 
 /**
- * The rarity gem: a small round bead in its rarity's colour, lit from
- * straight above (so it reads as centred), with a black outline. It hangs just under the name
- * banner, centred, so it never touches the letters of a long name.
+ * The rarity gem: a small downward triangle (a "V") in its rarity's
+ * colour with a black outline, hanging just under the name banner,
+ * centred. Drawn as two clipped triangles: black behind, the colour
+ * inset inside it (a ring can't follow a clip-path), plus a faint
+ * highlight near the top so it reads as a cut gem.
  */
 const RarityGem = ({
   gemClass,
@@ -263,9 +265,13 @@ const RarityGem = ({
 }) => (
   <span
     aria-hidden
-    className={`absolute left-1/2 top-full z-10 mt-px ${sizeClass} -translate-x-1/2 overflow-hidden rounded-full ${gemClass} ring-1 ring-black`}
+    className={`absolute left-1/2 top-full z-10 mt-px ${sizeClass} -translate-x-1/2 bg-black [clip-path:polygon(0_0,100%_0,50%_100%)]`}
   >
-    <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgb(255_255_255/0.7),transparent_65%)]" />
+    <span
+      className={`absolute inset-0 ${gemClass} [clip-path:polygon(17%_14%,83%_14%,50%_80%)]`}
+    >
+      <span className="absolute inset-0 bg-[linear-gradient(rgb(255_255_255/0.55),transparent_60%)]" />
+    </span>
   </span>
 );
 
