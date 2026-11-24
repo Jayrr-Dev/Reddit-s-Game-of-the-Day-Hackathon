@@ -18,16 +18,15 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
+import {
+  placeFloating,
+  type FloatingPlacement,
+} from '../../lib/floatingPlacement';
 
 // --- TYPES ---
 export type TooltipContent = { title: string; description?: string };
 
-type Placement = {
-  left: number;
-  top: number;
-  arrowLeft: number;
-  isAbove: boolean;
-};
+type Placement = FloatingPlacement;
 
 // --- CONSTANTS ---
 /** Hover delay before showing with a mouse (ms). */
@@ -36,26 +35,8 @@ const HOVER_DELAY_MS = 150;
 const LONG_PRESS_MS = 400;
 /** Most the label may be wide (px); it is placed before it renders. */
 const MAX_WIDTH = 200;
-/** Space kept from the screen edges and from the trigger (px). */
-const EDGE_GAP = 8;
-const TRIGGER_GAP = 6;
 /** Below this much room above the trigger, show it underneath. */
 const MIN_ROOM_ABOVE = 70;
-
-// --- HELPERS ---
-/** Where to put the label for a trigger at `rect`. */
-const placeFor = (rect: DOMRect): Placement => {
-  const centre = rect.left + rect.width / 2;
-  const maxLeft = window.innerWidth - MAX_WIDTH - EDGE_GAP;
-  const left = Math.min(maxLeft, Math.max(EDGE_GAP, centre - MAX_WIDTH / 2));
-  const isAbove = rect.top >= MIN_ROOM_ABOVE;
-  return {
-    left,
-    top: isAbove ? rect.top - TRIGGER_GAP : rect.bottom + TRIGGER_GAP,
-    arrowLeft: centre - left,
-    isAbove,
-  };
-};
 
 // --- SUBCOMPONENTS ---
 /**
@@ -114,7 +95,7 @@ export const Tooltip = ({
     window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => {
       const rect = triggerRef.current?.getBoundingClientRect();
-      if (rect) setPlacement(placeFor(rect));
+      if (rect) setPlacement(placeFloating(rect, MAX_WIDTH, MIN_ROOM_ABOVE));
     }, delayMs);
   };
 

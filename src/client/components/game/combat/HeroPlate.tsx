@@ -28,28 +28,31 @@ export type HeroPlateProps = {
 
 // --- CONSTANTS ---
 /**
- * Plate proportions per hero size: the name class, and the
- * plate width as a share of the hero's box (cqw = 1% of that box),
+ * Plate proportions per hero size: the name class, how many status
+ * chips fit before the rest fold into "+N", and the plate width as a share of the hero's box (cqw = 1% of that box),
  * capped so only big heroes get a long bar on wide screens.
  */
 const PLATE_LOOK: Record<
   HeroSize,
-  { name: string; width: string; maxWidth: string }
+  { name: string; width: string; maxWidth: string; maxChips: number }
 > = {
   1: {
     name: 'text-[9px]',
     width: '85cqw',
     maxWidth: '7.5rem',
+    maxChips: 2,
   },
   2: {
     name: 'text-[10px]',
     width: '80cqw',
     maxWidth: '11rem',
+    maxChips: 3,
   },
   3: {
     name: 'text-xs',
     width: '78cqw',
     maxWidth: '16rem',
+    maxChips: 4,
   },
 };
 
@@ -93,7 +96,7 @@ export const HeroPlate = ({ unit, isFocused }: HeroPlateProps) => {
           up under the top bar); a long row spills out evenly sideways. */}
       <div className="flex w-max min-w-full origin-top scale-[0.8] items-start justify-between gap-1 self-center">
         <IntentChips unit={unit} />
-        <StatusRow combatant={unit} />
+        <StatusRow combatant={unit} maxChips={look.maxChips} />
       </div>
     </div>
   );

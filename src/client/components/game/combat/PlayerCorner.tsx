@@ -26,47 +26,52 @@ export const PlayerCorner = ({
   // Keyed on the newest hit, so the portrait shakes once per hit.
   const latestHitId = hits.findLast((hit) => hit.kind === 'hit')?.id ?? -1;
   return (
-    <div
-      className="relative size-14 shrink-0"
-      {...{ [VILLAIN_ANCHOR_ATTR]: true }}
-      aria-label={`Your health ${player.hp} of ${player.maxHp}`}
-    >
+    // The HP badge sits in the row (tucked over the ring's edge by a
+    // negative margin), so whatever follows starts after the badge,
+    // however many digits it shows.
+    <div className="flex shrink-0 items-end">
       <div
-        key={latestHitId}
-        className={`size-full rounded-full p-[3px] shadow-lg ${latestHitId >= 0 ? 'animate-shake' : ''}`}
-        style={{
-          background: `conic-gradient(var(--color-hp) ${degrees}deg, var(--color-surface-sunken) 0)`,
-        }}
+        className="relative size-14 shrink-0"
+        {...{ [VILLAIN_ANCHOR_ATTR]: true }}
+        aria-label={`Your health ${player.hp} of ${player.maxHp}`}
       >
-        <svg
-          viewBox="0 0 40 40"
-          className={`size-full origin-bottom rounded-full bg-surface-raised ${latestHitId >= 0 ? 'animate-flinch' : ''}`}
-          aria-hidden="true"
+        <div
+          key={latestHitId}
+          className={`size-full rounded-full p-[3px] shadow-lg ${latestHitId >= 0 ? 'animate-shake' : ''}`}
+          style={{
+            background: `conic-gradient(var(--color-hp) ${degrees}deg, var(--color-surface-sunken) 0)`,
+          }}
         >
-          <path
-            d="M6 40c1-11 7-16 14-16s13 5 14 16z"
-            className="fill-card-curse"
-          />
-          <path
-            d="M11 20c0-9 4-15 9-15s9 6 9 15l-3 5H14z"
-            className="fill-surface-sunken"
-          />
-          {/* EYES: blink now and then (see villain-blink) */}
-          <g className="origin-center animate-villain-blink [transform-box:fill-box]">
-            <circle cx="17" cy="18" r="1.4" className="fill-hp" />
-            <circle cx="23" cy="18" r="1.4" className="fill-hp" />
-          </g>
-        </svg>
+          <svg
+            viewBox="0 0 40 40"
+            className={`size-full origin-bottom rounded-full bg-surface-raised ${latestHitId >= 0 ? 'animate-flinch' : ''}`}
+            aria-hidden="true"
+          >
+            <path
+              d="M6 40c1-11 7-16 14-16s13 5 14 16z"
+              className="fill-card-curse"
+            />
+            <path
+              d="M11 20c0-9 4-15 9-15s9 6 9 15l-3 5H14z"
+              className="fill-surface-sunken"
+            />
+            {/* EYES: blink now and then (see villain-blink) */}
+            <g className="origin-center animate-villain-blink [transform-box:fill-box]">
+              <circle cx="17" cy="18" r="1.4" className="fill-hp" />
+              <circle cx="23" cy="18" r="1.4" className="fill-hp" />
+            </g>
+          </svg>
+        </div>
+        {/* HIT MARKS, ARROWS AND GLOWS OVER THE PORTRAIT */}
+        <ImpactOverlay pops={hits} />
+        {/* HITS PILE UP ABOVE THE PORTRAIT, NUDGED RIGHT (AWAY FROM THE EDGE) */}
+        <div className="pointer-events-none absolute bottom-full left-1 z-40 mb-1">
+          <HitStack hits={hits} align="start" />
+        </div>
       </div>
-      {/* HIT MARKS, ARROWS AND GLOWS OVER THE PORTRAIT */}
-      <ImpactOverlay pops={hits} />
-      <span className="absolute -bottom-1 left-[calc(100%-1.25rem)] flex h-7 min-w-8 items-center justify-center px-1.5 bg-surface-raised pb-1 font-display text-sm font-black text-ink ring-1 ring-accent/70 [clip-path:polygon(0_0,100%_0,100%_60%,50%_100%,0_60%)]">
+      <span className="relative -mb-1 -ml-5 flex h-7 min-w-8 items-center justify-center px-1.5 bg-surface-raised pb-1 font-display text-sm font-black text-ink ring-1 ring-accent/70 [clip-path:polygon(0_0,100%_0,100%_60%,50%_100%,0_60%)]">
         <span className="num-center">{player.hp}</span>
       </span>
-      {/* HITS PILE UP ABOVE THE PORTRAIT, NUDGED RIGHT (AWAY FROM THE EDGE) */}
-      <div className="pointer-events-none absolute bottom-full left-1 z-40 mb-1">
-        <HitStack hits={hits} align="start" />
-      </div>
     </div>
   );
 };
