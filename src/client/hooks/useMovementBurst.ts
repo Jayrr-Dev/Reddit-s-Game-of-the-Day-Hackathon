@@ -2,7 +2,7 @@
 // USE MOVEMENT BURST
 // The speed-lines burst for each villain movement. It fires when the
 // shown fight records a new movement, so a move made by hand and one an
-// on-kill keyword (Berserk, Distance) makes on its own, once the card's
+// on-kill keyword (Rampage, Distance) makes on its own, once the card's
 // hits have played out, get the same burst.
 // ===================================================================
 

@@ -138,7 +138,7 @@ export type TimedBuff = {
 // --- IMBUE ---
 /** A keyword a card can be printed with or imbued with. */
 export type CardKeyword =
-  'hold' | 'piercing' | 'remove' | 'berserk' | 'distance';
+  'hold' | 'piercing' | 'remove' | 'rampage' | 'distance';
 /**
  * Effects an imbue may grant. Pull and Push are left out: they change
  * who a card may aim at, and an imbue never changes a card's aim.

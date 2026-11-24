@@ -6,7 +6,7 @@
 //   Battlefield   3 x 2 parallax scene; every hero wears its own plate
 //   HitNumbers    damage numbers that pop over the hero that was hit
 // Charge (when the front row is empty) brings the back row up with a
-// speed-lines burst (SpeedLines) and grants Momentum. A Berserk kill
+// speed-lines burst (SpeedLines) and grants Momentum. A Rampage kill
 // Charges on its own (a Distance kill Back Steps), with the same burst.
 // End Turn plays the heroes' turn out (useHeroTurn): heroes attack in
 // speed order, staggered, before the real state takes over.
@@ -236,7 +236,7 @@ export const CombatView = ({
     type: CardType;
     element?: MagicElement | undefined;
   }>();
-  // Speed lines for every movement, Berserk Charges included.
+  // Speed lines for every movement, Rampage Charges included.
   const burst = useMovementBurst(combat);
   // Recent hits, so damage numbers are sized against a typical hit.
   const [hitHistory] = useState(() => new HitHistory());

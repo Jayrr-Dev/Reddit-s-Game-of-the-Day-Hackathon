@@ -112,7 +112,7 @@ const FIRE: CardTraits = { element: 'fire' };
 const ICE: CardTraits = { element: 'ice' };
 const HOLDS: CardTraits = { keywords: ['hold'] };
 const PIERCES: CardTraits = { keywords: ['piercing'] };
-const BERSERKS: CardTraits = { keywords: ['berserk'] };
+const RAMPAGES: CardTraits = { keywords: ['rampage'] };
 const DISTANCES: CardTraits = { keywords: ['distance'] };
 
 /** Card types that can hit the back row (Melee only hits the front). */
@@ -163,7 +163,7 @@ export const CARDS = {
     guard(14),
   ]),
   sear: card('Sear', 'melee', 1, 'common', [hit(5), burn(3)]),
-  cleave: card('Cleave', 'melee', 1, 'common', [hitAll(6)], BERSERKS),
+  cleave: card('Cleave', 'melee', 1, 'common', [hitAll(6)], RAMPAGES),
   spiteBolt: card('Spite Bolt', 'range', 1, 'common', [hit(6)], DISTANCES),
   hurlAside: card('Hurl Aside', 'melee', 1, 'common', [hit(5), push]),
   beckon: card('Beckon', 'curse', 0, 'common', [pull, weaken(1), hex(1)]),
@@ -278,7 +278,7 @@ export const CARDS = {
     draw(1),
   ]),
   redMist: card('Red Mist', 'buff', 0, 'uncommon', [
-    imbue({ kind: 'keyword', keyword: 'berserk' }),
+    imbue({ kind: 'keyword', keyword: 'rampage' }),
   ]),
   vanish: card('Vanish', 'buff', 0, 'uncommon', [
     imbue({ kind: 'keyword', keyword: 'distance' }),
@@ -330,7 +330,7 @@ export const CARDS = {
     2,
     'rare',
     [hit(20)],
-    BERSERKS
+    RAMPAGES
   ),
   ascendance: card(
     'Ascendance',

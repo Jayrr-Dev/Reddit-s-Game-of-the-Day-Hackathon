@@ -850,7 +850,7 @@ export const playCard = (
 // --- ON-KILL MOVES ---
 /** The keywords that make the villain move after a kill, and the move. */
 const KILL_MOVES: readonly { keyword: CardKeyword; move: MovementId }[] = [
-  { keyword: 'berserk', move: 'charge' },
+  { keyword: 'rampage', move: 'charge' },
   { keyword: 'distance', move: 'backStep' },
 ];
 

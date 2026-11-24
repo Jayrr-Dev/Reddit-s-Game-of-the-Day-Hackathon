@@ -1617,9 +1617,9 @@ void test('Buff cards can not be imbued', () => {
   assert.deepEqual(imbueSlotsFor(state, 0), [3]);
 });
 
-// --- BERSERK ---
+// --- RAMPAGE ---
 /** Squire (front, 1 HP) and Archer (back): one kill empties the front. */
-const berserkFight = (hand: CardId[]): CombatState => {
+const rampageFight = (hand: CardId[]): CombatState => {
   const state = squireAndArcher(hand);
   return {
     ...state,
@@ -1629,8 +1629,8 @@ const berserkFight = (hand: CardId[]): CombatState => {
   };
 };
 
-void test('a Berserk kill that empties the front row Charges, paying its cost', () => {
-  const state = berserkFight(['cleave']);
+void test('a Rampage kill that empties the front row Charges, paying its cost', () => {
+  const state = rampageFight(['cleave']);
   const after = playCard(state, 0, state.heroes[0]?.uid ?? -1);
   const archer = after.heroes.find((unit) => unit.heroId === 'archer');
   assert.equal(archer?.row, 'front', 'the back row stepped up');
@@ -1639,28 +1639,28 @@ void test('a Berserk kill that empties the front row Charges, paying its cost', 
   assert.equal(after.lastMovement?.streak, 1);
 });
 
-void test('Berserk does nothing without a kill, or when Charge is not possible', () => {
+void test('Rampage does nothing without a kill, or when Charge is not possible', () => {
   // No kill: the Squire stands.
   const tough = squireAndArcher(['cleave']);
   const unhurt = playCard(tough, 0, tough.heroes[0]?.uid ?? -1);
   assert.equal(unhurt.lastMovement, null);
   // A kill, but no energy left to pay for the Charge.
-  const broke = { ...berserkFight(['cleave']), energy: 1 };
+  const broke = { ...rampageFight(['cleave']), energy: 1 };
   const after = playCard(broke, 0, broke.heroes[0]?.uid ?? -1);
   assert.equal(after.lastMovement, null);
   assert.equal(after.energy, 0);
   // A plain card kills without charging.
-  const plain = berserkFight(['backhand']);
+  const plain = rampageFight(['backhand']);
   const plainAfter = playCard(plain, 0, plain.heroes[0]?.uid ?? -1);
   assert.equal(plainAfter.lastMovement, null);
 });
 
-void test('Berserk can be imbued onto an attack', () => {
-  const state = berserkFight(['redMist', 'backhand']);
+void test('Rampage can be imbued onto an attack', () => {
+  const state = rampageFight(['redMist', 'backhand']);
   const imbued = playCard(state, 0, 0, undefined, 1);
   const after = playCard(imbued, 0, imbued.heroes[0]?.uid ?? -1);
   assert.ok(after.lastMovement, 'the imbued Backhand charged');
-  assert.ok(describeCard('cleave').includes('Berserk.'));
+  assert.ok(describeCard('cleave').includes('Rampage.'));
 });
 
 // --- DISTANCE ---

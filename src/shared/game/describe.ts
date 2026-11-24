@@ -218,8 +218,8 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
     description:
       'Once played, goes to the Remove pile until the fight is over.',
   },
-  berserk: {
-    label: 'Berserk',
+  rampage: {
+    label: 'Rampage',
     description: 'On kill: Charge if possible (paying its usual cost).',
   },
   distance: {

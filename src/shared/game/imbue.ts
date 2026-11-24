@@ -126,13 +126,13 @@ const dealsDamage = (cardId: CardId): boolean =>
 /**
  * Which cards each keyword may go on (besides one that already has it):
  * Hold and Remove on any card, Piercing on a card that hits one hero,
- * the on-kill moves (Berserk, Distance) on any card that deals damage.
+ * the on-kill moves (Rampage, Distance) on any card that deals damage.
  */
 const KEYWORD_FITS: Record<CardKeyword, (cardId: CardId) => boolean> = {
   hold: () => true,
   piercing: hitsOneHero,
   remove: () => true,
-  berserk: dealsDamage,
+  rampage: dealsDamage,
   distance: dealsDamage,
 };
 
