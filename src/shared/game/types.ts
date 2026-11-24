@@ -43,9 +43,9 @@ import type { RngState } from './rng.ts';
  * Momentum comes from charging: while above 0 the next Melee card deals
  * 50% more damage (every hit of it), then it is spent; it is lost at
  * the end of the turn if no Melee card used it.
- * Aloft (heroes only): flown up out of reach. While above 0 no card can
- * aim at or hit the hero; its next move comes down from the sky and
- * clears it.
+ * Aloft (heroes only): flown up into the sky. While above 0 Melee can't
+ * reach the hero, Range and Magic hits mostly miss (ALOFT_EVASION) and
+ * Curses always land; its next move comes down from the sky and clears it.
  */
 export type BuffId =
   | 'might'

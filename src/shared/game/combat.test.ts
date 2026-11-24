@@ -37,6 +37,7 @@ import {
   autoTargets,
   playDamageFactor,
   plannedHeroMoves,
+  aimHitChance,
 } from './combat.ts';
 import {
   describeCard,
@@ -45,7 +46,7 @@ import {
   KEYWORD_INFO,
 } from './describe.ts';
 import { imbueSlotsFor } from './imbue.ts';
-import { EXHAUST_USES } from './rules.ts';
+import { ALOFT_EVASION, EXHAUST_USES } from './rules.ts';
 import { getHero } from './heroes.ts';
 import {
   BACK_STEP_COST,
@@ -1224,22 +1225,38 @@ void test('Heavenly Drive flies the griffon up and ends its turn', () => {
   assert.equal(describeHeroIntent(griffon, after.heroes).name, 'Heavenly Dive');
 });
 
-void test('a hero Aloft cannot be aimed at or hit by any card', () => {
+void test('a hero Aloft is out of Melee reach', () => {
+  const aloft = griffonAloft();
+  for (const cardId of ['backhand', 'cleave'] as const) {
+    const state = { ...aloft, hand: [cardId], energy: 3 };
+    assert.equal(canPlayCard(state, 0), false, cardId);
+    assert.deepEqual(autoTargets(state, 0), [], cardId);
+  }
+});
+
+void test('a Curse always lands on a hero Aloft', () => {
   const aloft = griffonAloft();
   const griffon = griffonOf(aloft);
-  const handOf = (cardId: CardId) => ({
-    ...aloft,
-    hand: [cardId],
-    energy: 3,
-  });
-  for (const cardId of ['backhand', 'soulLance', 'cleave'] as const) {
-    assert.equal(canPlayCard(handOf(cardId), 0), false, cardId);
-    assert.deepEqual(autoTargets(handOf(cardId), 0), [], cardId);
+  const state = { ...aloft, hand: ['mourningCurse' as CardId], energy: 3 };
+  assert.equal(canPlayCard(state, 0), true);
+  assert.equal(aimHitChance(state, 0, griffon), 1);
+  const cursed = playCard(state, 0, griffon.uid);
+  assert.equal(griffonOf(cursed).statuses.hex, 3);
+});
+
+void test('Range and Magic reach a hero Aloft but it evades most shots', () => {
+  const aloft = griffonAloft();
+  const griffon = griffonOf(aloft);
+  for (const cardId of ['spiteBolt', 'soulLance'] as const) {
+    const state = { ...aloft, hand: [cardId], energy: 3 };
+    assert.equal(canPlayCard(state, 0), true, cardId);
+    assert.equal(aimHitChance(state, 0, griffon), 1 - ALOFT_EVASION, cardId);
   }
-  // A card that also helps the villain still plays, but misses it.
-  const gazed = playCard(handOf('weakeningGaze'), 0, griffon.uid);
-  assert.equal(griffonOf(gazed).statuses.weaken, 0);
-  assert.equal(griffonOf(gazed).hp, griffon.hp);
+  // Rolled on the seeded rng: over many seeds most shots miss.
+  const landed = Array.from({ length: 60 }, (_, rng) =>
+    playCard({ ...aloft, rng, hand: ['spiteBolt'], energy: 3 }, 0, griffon.uid)
+  ).filter((after) => griffonOf(after).hp < griffon.hp).length;
+  assert.ok(landed > 0 && landed < 25, `landed ${landed} of 60`);
 });
 
 void test('a turn later the griffon dives down with one crushing blow', () => {

@@ -36,9 +36,16 @@ import {
   BASE_ROW_COUNT,
   BATTLEFIELD_ROWS,
   MAX_HERO_CELLS,
+  ALOFT_REACHABLE_TYPES,
 } from './rules.ts';
 import { FEATURES } from './features.ts';
-import type { CardDef, HeroRow, HeroSize, HeroUnit } from './types.ts';
+import type {
+  CardDef,
+  CardType,
+  HeroRow,
+  HeroSize,
+  HeroUnit,
+} from './types.ts';
 
 // --- TYPES ---
 /** A hero that has not been placed yet (no row or column). */
@@ -115,9 +122,18 @@ export const isImmovable = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
 export const isAnchored = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
   getHero(unit.heroId).passives?.includes('anchored') ?? false;
 
-/** True for a hero flown up out of reach (Aloft): no card can touch it. */
+/** True for a hero flown up into the sky (Aloft): out of Melee reach. */
 export const isAloft = (unit: Pick<HeroUnit, 'statuses'>): boolean =>
   unit.statuses.aloft > 0;
+
+/**
+ * True when a card of `type` can reach `unit`: anyone on the ground, and
+ * a hero Aloft only for Range, Magic and Curse (ALOFT_REACHABLE_TYPES).
+ */
+export const canReach = (
+  unit: Pick<HeroUnit, 'statuses'>,
+  type: CardType
+): boolean => !isAloft(unit) || ALOFT_REACHABLE_TYPES.has(type);
 
 /** One battlefield cell. */
 export type Cell = { row: HeroRow; col: number };
@@ -707,14 +723,15 @@ export const affectsHeroes = (cardId: CardId): boolean =>
   getCard(cardId).effects.some((effect) => !isSelfEffect(effect));
 
 /**
- * The heroes that fit a target rule, in battlefield order. A hero
- * Aloft is out of reach of every rule.
+ * The heroes that fit a target rule, in battlefield order, for a card
+ * of `type`. A hero Aloft fits only cards that can reach it (canReach).
  */
 export const legalTargets = (
   heroes: readonly HeroUnit[],
-  rule: TargetRule
+  rule: TargetRule,
+  type: CardType
 ): HeroUnit[] => {
-  const reachable = heroes.filter((unit) => !isAloft(unit));
+  const reachable = heroes.filter((unit) => canReach(unit, type));
   switch (rule) {
     case 'none':
     case 'any':
@@ -736,14 +753,18 @@ export const legalTargets = (
 };
 
 /**
- * Heroes an area attack hits: melee sweeps the front row, Reach all.
- * A hero Aloft is above it all.
+ * Heroes an area effect of a `type` card hits: melee sweeps the front
+ * row, Reach all. A hero Aloft is hit only by types that reach it
+ * (canReach; a Range or Magic hit then rolls its evasion).
  */
 export const areaTargets = (
   heroes: readonly HeroUnit[],
-  isMelee: boolean
+  isMelee: boolean,
+  type: CardType
 ): HeroUnit[] =>
-  heroes.filter((unit) => !isAloft(unit) && (!isMelee || unit.row === 'front'));
+  heroes.filter(
+    (unit) => canReach(unit, type) && (!isMelee || unit.row === 'front')
+  );
 
 /**
  * Every hero an area card would hit: hex and weaken to ALL reach every
@@ -754,7 +775,7 @@ export const cardAreaTargets = (
   heroes: readonly HeroUnit[],
   cardId: CardId
 ): HeroUnit[] => {
-  const { effects, reach } = getCard(cardId);
+  const { effects, reach, type } = getCard(cardId);
   const areaEffects = effects.filter(
     (effect) => 'target' in effect && effect.target === 'all'
   );
@@ -762,5 +783,5 @@ export const cardAreaTargets = (
     (effect) => effect.kind !== 'damage' || reach
   );
   if (areaEffects.length === 0) return [];
-  return areaTargets(heroes, !hitsEveryone);
+  return areaTargets(heroes, !hitsEveryone, type);
 };

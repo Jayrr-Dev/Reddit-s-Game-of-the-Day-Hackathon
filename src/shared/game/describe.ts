@@ -20,6 +20,7 @@ import {
   ELEMENT_ON_HIT,
   ON_OFF_BUFFS,
   OUT_OF_RANGE_HIT_CHANCE,
+  ALOFT_EVASION,
   SHARPSHOOTER_DAMAGE_FACTOR,
   OUT_OF_RANGE_ROW,
   EXHAUST_USES,
@@ -154,7 +155,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   },
   aloft: {
     label: 'Aloft',
-    description: 'Out of reach until it dives',
+    description: `Out of **Melee** reach until it dives\nEvades **${Math.round(ALOFT_EVASION * 100)}%** of **Range** and **Magic** hits\n**Curses** always land`,
   },
   armor: {
     label: 'Armor',

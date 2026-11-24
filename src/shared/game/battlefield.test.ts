@@ -129,7 +129,7 @@ void test('every horde the kingdom can roll fits on the field', () => {
 // --- TARGETING ---
 void test('melee cards only reach the front row', () => {
   const state = fight(['squire', 'priest'], ['backhand']);
-  const legal = legalTargets(state.heroes, targetRuleOf('backhand'));
+  const legal = legalTargets(state.heroes, targetRuleOf('backhand'), 'melee');
   assert.deepEqual(
     legal.map((unit) => unit.heroId),
     ['squire']

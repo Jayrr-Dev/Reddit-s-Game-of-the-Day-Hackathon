@@ -93,6 +93,24 @@ export const BASE_ROW_COUNT = 2;
 export const OUT_OF_RANGE_ROW: HeroRow = 'horizon';
 export const OUT_OF_RANGE_HIT_CHANCE = 0.5;
 
+// --- ALOFT ---
+/**
+ * A hero Aloft is out of Melee reach. Only these card types may aim at
+ * or hit it: a Curse always lands (a hex can't be dodged), while a
+ * Range or Magic shot (ALOFT_EVADING_TYPES) lands only 1 - ALOFT_EVASION
+ * of the time, rolled per hit on the fight's seeded rng.
+ */
+export const ALOFT_REACHABLE_TYPES: ReadonlySet<CardType> = new Set([
+  'range',
+  'magic',
+  'curse',
+]);
+export const ALOFT_EVADING_TYPES: ReadonlySet<CardType> = new Set([
+  'range',
+  'magic',
+]);
+export const ALOFT_EVASION = 0.85;
+
 // --- EXHAUST ---
 /**
  * How many times an Exhaust card can be played in a run (unless the

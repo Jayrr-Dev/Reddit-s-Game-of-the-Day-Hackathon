@@ -23,6 +23,7 @@ import {
   canPush,
   affectsSelf,
   areaTargets,
+  canReach,
   cardAreaTargets,
   formUp,
   legalTargets,
@@ -93,6 +94,8 @@ import {
   MAX_HAND_SIZE,
   INSTINCT_DODGE_CHANCES,
   OUT_OF_RANGE_HIT_CHANCE,
+  ALOFT_EVADING_TYPES,
+  ALOFT_EVASION,
   ULTRA_INSTINCT_STACKS,
   OUT_OF_RANGE_ROW,
   OUT_OF_RANGE_TYPES,
@@ -112,6 +115,7 @@ import type {
   Imbue,
   ImbuableEffect,
   CardKeyword,
+  CardType,
   MovementId,
   PassiveId,
   StatusId,
@@ -312,7 +316,7 @@ export const heroAttackOf = (
 
 /** Heroes this card may be aimed at now (every hero for untargeted cards). */
 export const targetsFor = (state: CombatState, cardId: CardId): HeroUnit[] =>
-  legalTargets(state.heroes, targetRuleOf(cardId));
+  legalTargets(state.heroes, targetRuleOf(cardId), getCard(cardId).type);
 
 /**
  * True when an untargeted card would be wasted: it only acts on heroes,
@@ -429,6 +433,7 @@ const removeFallen = (state: CombatState): CombatState => {
 /**
  * Resolves who an effect hits. `one` is the aimed hero (if still alive);
  * `all` is everyone for Reach cards and curses, the front row for melee.
+ * Either way only heroes a `type` card can reach (a hero Aloft: see canReach).
  * With `isFollowThrough`, a `one` hit also lands on the aimed hero after
  * it fell to an earlier hit of the same card (see villainAttack).
  */
@@ -436,14 +441,17 @@ const resolveTargets = (
   state: CombatState,
   target: CardTarget,
   targetUid: number,
+  type: CardType,
   isMelee = false,
   isFollowThrough = false
 ): number[] => {
   const living = state.heroes.filter((unit) => !isDefeated(unit));
   if (target === 'all')
-    return areaTargets(living, isMelee).map((unit) => unit.uid);
+    return areaTargets(living, isMelee, type).map((unit) => unit.uid);
   const pool = isFollowThrough ? state.heroes : living;
-  return pool.some((unit) => unit.uid === targetUid) ? [targetUid] : [];
+  // A hero Aloft is out of reach of a Melee card (see canReach).
+  const aimed = pool.find((unit) => unit.uid === targetUid);
+  return aimed && canReach(aimed, type) ? [targetUid] : [];
 };
 
 // --- CARD EFFECTS ---
@@ -470,18 +478,40 @@ export const isOutOfRangeShot = (
   !hasLongRange && OUT_OF_RANGE_TYPES.has(type) && row === OUT_OF_RANGE_ROW;
 
 /**
- * Rolls one Out of Range shot on the fight's seeded rng (so the server's
- * replay rolls the same): true when it lands.
+ * The chance (0..1) that one villain hit of a `type` card lands on
+ * `unit`: Out of Range (OUT_OF_RANGE_HIT_CHANCE, unless Longrange)
+ * times a hero Aloft's evasion against Range and Magic (ALOFT_EVASION;
+ * Longrange is about distance, so it does not help against flight).
  */
-const rollShot = (state: CombatState): [boolean, CombatState] => {
-  const [roll, rng] = nextFloat(state.rng);
-  return [roll < OUT_OF_RANGE_HIT_CHANCE, { ...state, rng }];
+export const shotHitChance = (
+  type: CardType,
+  unit: HeroUnit,
+  hasLongRange: boolean
+): number => {
+  const rangeChance = isOutOfRangeShot(type, unit.row, hasLongRange)
+    ? OUT_OF_RANGE_HIT_CHANCE
+    : 1;
+  const isEvaded = isAloft(unit) && ALOFT_EVADING_TYPES.has(type);
+  return rangeChance * (isEvaded ? 1 - ALOFT_EVASION : 1);
 };
 
 /**
- * One villain shot at each hero in `uids`, in order. A shot that is Out
- * of Range rolls first; a miss lays nothing (no damage, no element) and
- * counts on the hero (missedShots) so the view can pop "Miss".
+ * Rolls one shot on the fight's seeded rng (so the server's replay
+ * rolls the same): true when it lands.
+ */
+const rollShot = (
+  state: CombatState,
+  chance: number
+): [boolean, CombatState] => {
+  const [roll, rng] = nextFloat(state.rng);
+  return [roll < chance, { ...state, rng }];
+};
+
+/**
+ * One villain shot at each hero in `uids`, in order. A shot that may
+ * miss (Out of Range or Aloft, see shotHitChance) rolls first; a miss
+ * lays nothing (no damage, no element) and counts on the hero
+ * (missedShots) so the view can pop "Miss".
  * Imperative: each roll moves the rng on for the next.
  */
 const shootHeroes = (
@@ -495,11 +525,12 @@ const shootHeroes = (
   for (const uid of uids) {
     const unit = current.heroes.find((hero) => hero.uid === uid);
     if (!unit) continue;
-    if (!isOutOfRangeShot(cardDef.type, unit.row, hasLongRange)) {
+    const chance = shotHitChance(cardDef.type, unit, hasLongRange);
+    if (chance >= 1) {
       current = updateHeroes(current, [uid], land);
       continue;
     }
-    const [lands, rolled] = rollShot(current);
+    const [lands, rolled] = rollShot(current, chance);
     current = updateHeroes(rolled, [uid], lands ? land : missShot);
   }
   return current;
@@ -559,6 +590,7 @@ const villainAttack = (
         current,
         effect.target,
         targetUid,
+        cardDef.type,
         isMelee,
         isFollowThrough
       ),
@@ -637,7 +669,7 @@ const reapHex = (
   const bonus = typeBonus(state.player, cardDef.type);
   return shootHeroes(
     state,
-    resolveTargets(state, 'one', targetUid),
+    resolveTargets(state, 'one', targetUid, cardDef.type),
     (unit) =>
       takeHit(unit, unit.statuses.hex * multiplier + bonus, cardDef.type),
     cardDef,
@@ -675,7 +707,7 @@ const applyCardEffect = (
     case 'weaken':
       return updateHeroes(
         state,
-        resolveTargets(state, effect.target, targetUid),
+        resolveTargets(state, effect.target, targetUid, cardDef.type),
         (unit) =>
           addStatus(
             unit,
@@ -686,7 +718,7 @@ const applyCardEffect = (
     case 'enfeeble':
       return updateHeroes(
         state,
-        resolveTargets(state, effect.target, targetUid),
+        resolveTargets(state, effect.target, targetUid, cardDef.type),
         (unit) => enfeebleTimes(unit, effect.times ?? 1)
       );
     case 'reap':
@@ -958,8 +990,8 @@ const ignoresOutOfRange = (state: CombatState, handIndex: number): boolean =>
 
 /**
  * The chance (0..1) that each shot of the card in `handIndex` lands on
- * `unit`: OUT_OF_RANGE_HIT_CHANCE for a Range or Magic shot touching the
- * Horizon (see isOutOfRangeShot), else 1. Shown on the aim arrow.
+ * `unit` (see shotHitChance: Out of Range and Aloft). Shown on the aim
+ * arrow.
  */
 export const aimHitChance = (
   state: CombatState,
@@ -968,12 +1000,11 @@ export const aimHitChance = (
 ): number => {
   const cardId = state.hand[handIndex];
   if (cardId === undefined) return 1;
-  const mayMiss = isOutOfRangeShot(
+  return shotHitChance(
     getCard(cardId).type,
-    unit.row,
+    unit,
     ignoresOutOfRange(state, handIndex)
   );
-  return mayMiss ? OUT_OF_RANGE_HIT_CHANCE : 1;
 };
 
 /**
@@ -1371,7 +1402,9 @@ const heroShoots = (
   const mayMiss = isOutOfRangeShot(type, actor.row, hasLongRangePassive(actor));
   let current = state;
   for (let hit = 0; hit < effect.hits; hit += 1) {
-    const [lands, rolled] = mayMiss ? rollShot(current) : [true, current];
+    const [lands, rolled] = mayMiss
+      ? rollShot(current, OUT_OF_RANGE_HIT_CHANCE)
+      : [true, current];
     // A hit that would land may still be dodged (Instinct), unless Homing.
     const mayDodge = lands && !effect.isHoming;
     const [dodged, ready] = mayDodge ? rollDodge(rolled) : [false, rolled];
