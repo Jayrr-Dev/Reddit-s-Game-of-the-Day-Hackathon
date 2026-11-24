@@ -17,8 +17,15 @@ export type ShockCharge = { stage: ShockStage; fill: number };
  * The bolt for a number of hits in a row: empty at 0, filling a step
  * per hit, full (primed) at SHOCK_HITS - 1, the hit before the burst.
  */
-export const shockChargeOf = (hits: number): ShockCharge => {
-  const fill = Math.min(1, Math.max(0, hits) / (SHOCK_HITS - 1));
+export const shockChargeOf = (hits: number): ShockCharge =>
+  chargeOf(hits, SHOCK_HITS);
+
+/**
+ * A charge toward a burst that the `needed`-th count sets off (Shock's
+ * hits, Bleed's attacks): full (primed) one count before it.
+ */
+export const chargeOf = (count: number, needed: number): ShockCharge => {
+  const fill = Math.min(1, Math.max(0, count) / (needed - 1));
   if (fill === 0) return { stage: 'empty', fill };
   return { stage: fill < 1 ? 'charging' : 'full', fill };
 };

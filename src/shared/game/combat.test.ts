@@ -12,6 +12,7 @@ import {
   endOfTurnUpkeep,
   burnTick,
   poisonTick,
+  bleedBiteOf,
   afterAction,
   burstShock,
   frostThaw,
@@ -52,6 +53,7 @@ import {
   ALOFT_EVASION,
   BANE_AFFLICTIONS,
   BLEED_BITE_FACTOR,
+  BLEED_BURST_ATTACKS,
   EXHAUST_USES,
   RESERVE_ENERGY_SLOTS,
 } from './rules.ts';
@@ -470,6 +472,38 @@ const withBleed = <T extends { statuses: typeof NO_STATUSES }>(
   unit: T,
   bleed: number
 ): T => ({ ...unit, statuses: { ...unit.statuses, bleed } });
+
+void test('Bleed bursts on the 4th attack landed on it: full Bleed, then clears', () => {
+  assert.equal(BLEED_BURST_ATTACKS, 4);
+  const start = withHand(fightWith([]), []);
+  const uid = start.heroes[0]?.uid ?? -1;
+  const bleeding: CombatState = {
+    ...start,
+    energy: 99,
+    heroes: start.heroes.map((unit) =>
+      unit.uid === uid ? withBleed({ ...unit, hp: 500, maxHp: 500 }, 20) : unit
+    ),
+  };
+  // Three attacks (one is a 2x3 volley: still ONE attack) count up.
+  const play = (state: CombatState, card: CardId) =>
+    playCard(withHand(state, [card]), 0, uid);
+  const heroOf = (state: CombatState) =>
+    state.heroes.find((unit) => unit.uid === uid)!;
+  const third = play(
+    play(play(bleeding, 'barbedVolley'), 'backhand'),
+    'backhand'
+  );
+  assert.equal(heroOf(third).bleedAttacks, 3);
+  // A Magic attack doesn't count.
+  assert.equal(heroOf(play(third, 'chaosBolt')).bleedAttacks, 3);
+  // The 4th: its hit and bite, then the whole Bleed at once, and it clears.
+  const before = heroOf(third);
+  const fourth = heroOf(play(third, 'backhand'));
+  const bite = bleedBiteOf(before.statuses.bleed);
+  assert.equal(fourth.hp, before.hp - 6 - bite - (before.statuses.bleed - 1));
+  assert.equal(fourth.statuses.bleed, 0);
+  assert.equal(fourth.bleedAttacks ?? 0, 0);
+});
 
 void test('Bleed: each Melee or Range hit taken bites for a third, then -1', () => {
   const bleeding = {

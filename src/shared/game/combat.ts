@@ -47,6 +47,7 @@ import {
   addStatus,
   afflictionAmount,
   castProtection,
+  countBleedAttack,
   dropRoundBuffs,
   burstShock,
   enfeebleTimes,
@@ -103,6 +104,7 @@ import {
   ULTRA_INSTINCT_STACKS,
   OUT_OF_RANGE_ROW,
   OUT_OF_RANGE_TYPES,
+  PHYSICAL_TYPES,
   PIERCE_DAMAGE_FACTOR,
   STATUS_IS_AFFLICTION,
 } from './rules.ts';
@@ -1025,7 +1027,38 @@ const cardBeats = (
     }
     if (!isProcPerHit && pick === 0) imbuedBeats.forEach(apply);
   });
+  // BLEED BURST: one attack landed per hero struck (a whole card, not
+  // its hits), as a last beat of its own when it changes anything.
+  const counted = countBleedAttacks(paid, current, cardDef);
+  if (counted !== current) states.push(counted);
   return states;
+};
+
+/**
+ * After a physical attack card resolves, counts one attack on every
+ * hero it landed on (HP or Guard lost) for Bleed (see countBleedAttack).
+ */
+const countBleedAttacks = (
+  before: CombatState,
+  after: CombatState,
+  cardDef: CardDef
+): CombatState => {
+  const isAttack = cardDef.effects.some((effect) => effect.kind === 'damage');
+  if (!isAttack || !PHYSICAL_TYPES.has(cardDef.type)) return after;
+  const struck = after.heroes.filter((unit) => {
+    const old = before.heroes.find((hero) => hero.uid === unit.uid);
+    return (
+      old !== undefined && unit.statuses.bleed > 0 && villainWasHit(old, unit)
+    );
+  });
+  if (struck.length === 0) return after;
+  return removeFallen(
+    updateHeroes(
+      after,
+      struck.map((unit) => unit.uid),
+      countBleedAttack
+    )
+  );
 };
 
 /** True when the card in that hand slot has `keyword` (printed or imbued). */
@@ -1470,6 +1503,7 @@ const heroShoots = (
   const { type, perHit } = heroAttackOf(actor, effect);
   const mayMiss = isOutOfRangeShot(type, actor.row, hasLongRangePassive(actor));
   let current = state;
+  let hasLandedAny = false;
   for (let hit = 0; hit < effect.hits; hit += 1) {
     const [lands, rolled] = mayMiss
       ? rollShot(current, OUT_OF_RANGE_HIT_CHANCE)
@@ -1489,6 +1523,7 @@ const heroShoots = (
     // PER HIT: a landed hit (one that took HP or Guard; a hit for 0
     // procs nothing) lays the attack's afflictions too.
     const hasLanded = isStruck && villainWasHit(ready.player, struck.player);
+    hasLandedAny ||= hasLanded;
     current = hasLanded
       ? (effect.perHit ?? []).reduce(
           (laid, proc) =>
@@ -1497,7 +1532,10 @@ const heroShoots = (
         )
       : struck;
   }
-  return current;
+  // BLEED BURST: the whole attack counts once, if any hit landed.
+  return hasLandedAny && PHYSICAL_TYPES.has(type)
+    ? { ...current, player: countBleedAttack(current.player) }
+    : current;
 };
 
 /** A per-hit affliction's stacks: scaled by might (Weaken counts turns). */

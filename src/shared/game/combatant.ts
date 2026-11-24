@@ -19,6 +19,7 @@ import {
   SHARPSHOOTER_DAMAGE_FACTOR,
   PHYSICAL_TYPES,
   BLEED_BITE_FACTOR,
+  BLEED_BURST_ATTACKS,
   TIERED_CUT_BY_TIER,
   TIERED_MAX_TIER,
   STATUS_IS_AFFLICTION,
@@ -247,7 +248,30 @@ const bleedOnHit = <T extends Combatant>(target: T): T => {
   return {
     ...bled,
     bleedTaken: (target.bleedTaken ?? 0) + bite,
+    // Bleed run dry: its attack count starts over.
+    ...(bleed - 1 <= 0 ? { bleedAttacks: 0 } : {}),
     statuses: { ...bled.statuses, bleed: bleed - 1 },
+  };
+};
+
+/**
+ * One physical attack landed on this unit (call once per attack, after
+ * all its hits): while it bleeds, the count goes up, and the
+ * BLEED_BURST_ATTACKS-th deals its whole Bleed (past Guard) and clears it.
+ */
+export const countBleedAttack = <T extends Combatant>(target: T): T => {
+  const { bleed } = target.statuses;
+  if (bleed <= 0) return target;
+  const attacks = (target.bleedAttacks ?? 0) + 1;
+  if (attacks < BLEED_BURST_ATTACKS)
+    return { ...target, bleedAttacks: attacks };
+  const burst = loseHp(target, bleed);
+  return {
+    ...burst,
+    bleedAttacks: 0,
+    // The burst counts with Bleed's bites: it pops as Bleed's red number.
+    bleedTaken: (target.bleedTaken ?? 0) + bleed,
+    statuses: { ...burst.statuses, bleed: 0 },
   };
 };
 

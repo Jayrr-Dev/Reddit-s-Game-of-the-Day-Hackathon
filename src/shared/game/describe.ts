@@ -26,6 +26,7 @@ import {
   EXHAUST_USES,
   SHOCK_BURST_FACTOR,
   SHOCK_HITS,
+  BLEED_BURST_ATTACKS,
   STATUS_IS_AFFLICTION,
 } from './rules.ts';
 import { usesOf } from './uses.ts';
@@ -97,8 +98,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   },
   bleed: {
     label: 'Bleed',
-    description:
-      'Each **Melee** or **Range** hit it takes deals **⅓** of this more (rounded up)\nThen goes down by **1**',
+    description: `Each **Melee** or **Range** hit it takes deals **⅓** of this more (rounded up), then it goes down by **1**\nThe **${ordinal(BLEED_BURST_ATTACKS)}** Melee or Range attack landed on it deals all of it, then it clears`,
   },
   shock: {
     label: 'Shock',

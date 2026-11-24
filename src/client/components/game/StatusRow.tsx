@@ -29,6 +29,7 @@ import { hexAfterTurn, hexBurnAmount } from '../../../shared/game/combatant';
 import {
   SHOCK_BURST_FACTOR,
   SHOCK_HITS,
+  BLEED_BURST_ATTACKS,
   OUT_OF_RANGE_HIT_CHANCE,
 } from '../../../shared/game/rules';
 import type {
@@ -51,10 +52,11 @@ import { useShockSplash } from '../../hooks/useShockSplash';
 import { Chip, type ChipProps } from '../ui/Chip';
 import {
   SHOCK_SPLASH,
+  chargeOf,
   shockChargeOf,
   type ShockCharge as Charge,
 } from '../../lib/shockStage';
-import { ShockCharge } from './ShockCharge';
+import { DROP_PATH, ShockCharge } from './ShockCharge';
 
 // --- TYPES ---
 /** One status as a chip, with its tooltip text. */
@@ -62,6 +64,8 @@ type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
   Pick<ChipProps, 'fill'> & {
     /** Shock's drop stage, drawn in place of its glyph. */
     shockCharge?: Charge;
+    /** The charge's shape when not Shock's bolt (Bleed: a drop). */
+    chargePath?: string;
     key: StatusId | PassiveId | 'guard' | 'outOfRange';
     title: string;
     description: string;
@@ -193,6 +197,20 @@ const shockChipOf = (combatant: Combatant): Partial<StatusChip> => {
   };
 };
 
+/**
+ * Bleed's chip: its value, with a drop that fills as the attacks landed
+ * on it add up toward the burst (BLEED_BURST_ATTACKS); primed one before.
+ */
+const bleedChipOf = (combatant: Combatant): Partial<StatusChip> => {
+  const attacks = combatant.bleedAttacks ?? 0;
+  const isPrimed = attacks >= BLEED_BURST_ATTACKS - 1;
+  return {
+    shockCharge: chargeOf(attacks, BLEED_BURST_ATTACKS),
+    chargePath: DROP_PATH,
+    description: `${STATUS_INFO.bleed.description}\nAttacks landed: **${attacks}/${BLEED_BURST_ATTACKS}**${isPrimed ? `\nPrimed: the next attack bursts it for ${combatant.statuses.bleed}.` : ''}`,
+  };
+};
+
 /** The chip a burst Shock leaves for a moment: its drop splashing. */
 const splashChipOf = (value: number): StatusChip => ({
   key: 'shock',
@@ -205,7 +223,12 @@ const splashChipOf = (value: number): StatusChip => ({
 
 /** A chip's own drawing in place of its glyph, if it has one. */
 const chipIconOf = (chip: StatusChip) =>
-  chip.shockCharge ? <ShockCharge charge={chip.shockCharge} /> : undefined;
+  chip.shockCharge ? (
+    <ShockCharge
+      charge={chip.shockCharge}
+      {...(chip.chargePath ? { path: chip.chargePath } : {})}
+    />
+  ) : undefined;
 
 /**
  * Every active effect on a combatant as chips, Guard first; `splashed`
@@ -236,6 +259,7 @@ const statusChipsOf = (
       description: STATUS_INFO[id].description,
       ...(id === 'hex' ? hexChipOf(combatant.statuses[id]) : {}),
       ...(id === 'shock' ? shockChipOf(combatant) : {}),
+      ...(id === 'bleed' ? bleedChipOf(combatant) : {}),
     })
   );
   const splash =
