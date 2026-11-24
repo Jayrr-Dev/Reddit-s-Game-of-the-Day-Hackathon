@@ -38,14 +38,14 @@ const SIZE_LOOK: Record<
     stem: 'h-[3px]',
     socket: 'size-[14px]',
     icon: 'size-2.5',
-    count: 'min-w-2.5 h-2.5 text-[7px] -right-1 -bottom-1',
+    count: 'min-w-[9px] h-[9px] text-[6px] -right-[3px] -top-[3px]',
   },
   offer: {
     column: 'left-1.5 top-5 w-[17px] -translate-x-1/2',
     stem: 'h-[4px]',
     socket: 'size-[17px]',
     icon: 'size-3',
-    count: 'min-w-3 h-3 text-[8px] -right-1 -bottom-1',
+    count: 'min-w-[11px] h-[11px] text-[7px] -right-1 -top-1',
   },
 };
 
@@ -58,7 +58,7 @@ const Stem = ({ heightClass }: { heightClass: string }) => (
 /**
  * One socket: a dark gem setting with a gold rim, its icon centred in
  * its tone, a faint teal glow inside, and a gift's number in a gold
- * corner badge.
+ * corner badge (top right, like a notification count).
  */
 const Socket = ({ badge, size }: { badge: CardBadge; size: BadgeSize }) => {
   const look = SIZE_LOOK[size];
