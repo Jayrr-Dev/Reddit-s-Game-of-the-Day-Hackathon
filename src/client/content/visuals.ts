@@ -134,6 +134,10 @@ export const RARITY_GEM: Record<CardRarity, string | null> = {
 export const RULES_KEYWORDS = [
   'Hex',
   'Dread',
+  'Poison',
+  'Burn',
+  'Frost',
+  'Bleed',
   'Guard',
   'Wrath',
   'Might',

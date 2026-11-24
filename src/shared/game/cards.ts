@@ -37,6 +37,21 @@ const burn = (amount: number, target: 'one' | 'all' = 'one'): CardEffect => ({
   amount,
   target,
 });
+const poison = (amount: number): CardEffect => ({
+  kind: 'poison',
+  amount,
+  target: 'one',
+});
+const frost = (amount: number): CardEffect => ({
+  kind: 'frost',
+  amount,
+  target: 'one',
+});
+const bleed = (amount: number): CardEffect => ({
+  kind: 'bleed',
+  amount,
+  target: 'one',
+});
 const dread = (amount: number, target: 'one' | 'all' = 'one'): CardEffect => ({
   kind: 'dread',
   amount,
@@ -129,6 +144,13 @@ export const CARDS = {
     guard(4),
   ]),
   wardingBolt: card('Warding Bolt', 'magic', 1, 'common', [hit(4), guard(4)]),
+  // AFFLICTIONS: one card each for Poison, Frost and Bleed
+  venomDart: card('Venom Dart', 'range', 1, 'common', [hit(3), poison(4)]),
+  frostBolt: card('Frost Bolt', 'magic', 1, 'common', [hit(5), frost(2)]),
+  serratedSlash: card('Serrated Slash', 'melee', 1, 'common', [
+    hit(4),
+    bleed(4),
+  ]),
   // Fight-long buffs. One type each, so they hit harder than Wrath per
   // stack; Piercing and Surge are a bit bigger because fewer cards use them.
   // TARGET N: pick a hero per shot (the same one again is fine)

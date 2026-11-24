@@ -56,6 +56,7 @@ export const SWEEP_STYLE_IDS = Object.keys(SWEEP_STYLES) as SweepStyleId[];
 export const CARD_SWEEPS: Partial<Record<CardId, SweepStyleId>> = {
   backhand: 'backhand',
   cruelSlash: 'downSlash',
+  serratedSlash: 'backhand',
   twinDaggers: 'cross',
   quickJab: 'thrust',
   cleave: 'sweep',

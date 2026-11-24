@@ -1222,3 +1222,19 @@ void test('Hold is a card trait, printed on the card', () => {
   assert.equal(getCard('backhand').holds, false);
   assert.ok(describeCard('ruin').includes('Hold.'));
 });
+
+// --- AFFLICTION CARDS ---
+void test('Venom Dart poisons, Frost Bolt frosts and Serrated Slash bleeds', () => {
+  const cases: readonly [CardId, 'poison' | 'frost' | 'bleed'][] = [
+    ['venomDart', 'poison'],
+    ['frostBolt', 'frost'],
+    ['serratedSlash', 'bleed'],
+  ];
+  cases.forEach(([cardId, status]) => {
+    const state = withHand(fightWith([]), [cardId]);
+    const uid = state.heroes[0]?.uid ?? -1;
+    const after = playCard(state, 0, uid);
+    const hero = after.heroes.find((unit) => unit.uid === uid);
+    assert.ok((hero?.statuses[status] ?? 0) > 0, `${cardId} applies ${status}`);
+  });
+});
