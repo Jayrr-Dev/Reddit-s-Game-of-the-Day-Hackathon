@@ -9,9 +9,10 @@
 //            lunges toward you and the heroes grow into the front row,
 //            as if the villain marched closer.
 //   PULL     one hero is dragged forward: a fast yank with a little
-//            overshoot. (A push plays the same move in reverse.) Cartoon
-//            motion lines streak out behind the hero as it flies and
-//            fade as it lands.
+//            overshoot. (A push plays the same move in reverse.) Anime
+//            style: the figure smears along its path, two fading
+//            afterimages chase it, and motion lines streak out behind
+//            it, all gone as it lands.
 // ===================================================================
 
 import { useLayoutEffect, useRef, type RefObject } from 'react';
@@ -50,6 +51,15 @@ const MOTION_LINES: readonly (readonly [number, number, number])[] = [
 const MOTION_LINE_GAP_PX = 30;
 /** How long (ms) the lines outlast the move itself as they fade. */
 const MOTION_LINE_LINGER_MS = 180;
+
+/** How far the smeared figure stretches along / squashes across travel. */
+const SMEAR_STRETCH = 1.22;
+const SMEAR_SQUASH = 0.9;
+/** The afterimages: how far (ms) each lags the hero, and how faint. */
+const AFTERIMAGES: readonly { lagMs: number; opacity: number }[] = [
+  { lagMs: 35, opacity: 0.45 },
+  { lagMs: 70, opacity: 0.25 },
+];
 
 /** Wait (ms) after a death before the row steps up (most of the death). */
 const MOVE_AFTER_DEATH_MS = 380;
@@ -120,7 +130,71 @@ const flyFrom = (
     // fill 'backwards' holds the old spot during the delay.
     { ...MOVE_TIMING[kind], delay, fill: 'backwards' }
   );
-  if (kind === 'pull') trailLines(body, dx, dy, delay);
+  if (kind !== 'pull') return;
+  trailLines(body, dx, dy, delay);
+  smearBody(body, dx, dy, delay);
+  AFTERIMAGES.forEach((ghost) => afterimage(body, dx, dy, scale, delay, ghost));
+};
+
+/**
+ * Anime smear: through the fast middle of a pull or push the figure
+ * stretches along its line of travel and thins across it, then snaps
+ * back as it lands. Runs on the body's first child, so it stacks on top
+ * of the fly-in (which moves the body itself).
+ */
+const smearBody = (
+  body: HTMLElement,
+  dx: number,
+  dy: number,
+  delay: number
+) => {
+  const inner = body.firstElementChild;
+  if (!(inner instanceof HTMLElement)) return;
+  const angle = Math.atan2(dy, dx);
+  const along = (stretch: number, squash: number) =>
+    `rotate(${angle}rad) scale(${stretch}, ${squash}) rotate(${-angle}rad)`;
+  inner.animate(
+    [
+      { transform: along(1, 1) },
+      { transform: along(SMEAR_STRETCH, SMEAR_SQUASH), offset: 0.35 },
+      { transform: along(1, 1), offset: 0.75 },
+    ],
+    { ...MOVE_TIMING.pull, delay }
+  );
+};
+
+/**
+ * One afterimage: a see-through copy of the figure that runs the same
+ * flight a beat behind, so the hero leaves a fading trail of itself.
+ * The copy is inert (no ids for hit-testing, no pointer events) and
+ * removes itself when its flight ends.
+ */
+const afterimage = (
+  body: HTMLElement,
+  dx: number,
+  dy: number,
+  scale: number,
+  delay: number,
+  { lagMs, opacity }: { lagMs: number; opacity: number }
+) => {
+  const copy = body.cloneNode(true) as HTMLElement;
+  copy.removeAttribute(HERO_ANCHOR_ATTR);
+  copy.setAttribute('aria-hidden', 'true');
+  copy.style.pointerEvents = 'none';
+  copy.style.opacity = '0';
+  body.before(copy);
+  const flight = copy.animate(
+    [
+      {
+        transform: `translate(${dx}px, ${dy}px) scale(${scale})`,
+        opacity,
+      },
+      { transform: 'none', opacity: 0 },
+    ],
+    { ...MOVE_TIMING.pull, delay: delay + lagMs, easing: 'ease-out' }
+  );
+  flight.onfinish = () => copy.remove();
+  flight.oncancel = () => copy.remove();
 };
 
 /**
