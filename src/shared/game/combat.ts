@@ -47,7 +47,7 @@ import {
   addStatus,
   afflictionAmount,
   castProtection,
-  countBleedAttack,
+  bleedOnAttack,
   dropRoundBuffs,
   burstShock,
   enfeebleTimes,
@@ -1027,28 +1027,30 @@ const cardBeats = (
     }
     if (!isProcPerHit && pick === 0) imbuedBeats.forEach(apply);
   });
-  // BLEED BURST: one attack landed per hero struck (a whole card, not
-  // its hits), as a last beat of its own when it changes anything.
-  const counted = countBleedAttacks(paid, current, cardDef);
+  // BLEED: one bite per hero struck (a whole card, not its hits), as a
+  // last beat of its own when it changes anything.
+  const counted = biteBleedOnAttack(paid, current, cardDef);
   if (counted !== current) states.push(counted);
   return states;
 };
 
 /**
- * After a physical attack card resolves, counts one attack on every
- * hero it landed on (HP or Guard lost) for Bleed (see countBleedAttack).
+ * After a physical attack card resolves, Bleed bites once on every hero
+ * it landed on (HP or Guard lost) that bled before it (see bleedOnAttack).
  */
-const countBleedAttacks = (
+const biteBleedOnAttack = (
   before: CombatState,
   after: CombatState,
   cardDef: CardDef
 ): CombatState => {
   const isAttack = cardDef.effects.some((effect) => effect.kind === 'damage');
   if (!isAttack || !PHYSICAL_TYPES.has(cardDef.type)) return after;
+  const priorBleedOf = (uid: number): number =>
+    before.heroes.find((hero) => hero.uid === uid)?.statuses.bleed ?? 0;
   const struck = after.heroes.filter((unit) => {
     const old = before.heroes.find((hero) => hero.uid === unit.uid);
     return (
-      old !== undefined && unit.statuses.bleed > 0 && villainWasHit(old, unit)
+      old !== undefined && old.statuses.bleed > 0 && villainWasHit(old, unit)
     );
   });
   if (struck.length === 0) return after;
@@ -1056,7 +1058,7 @@ const countBleedAttacks = (
     updateHeroes(
       after,
       struck.map((unit) => unit.uid),
-      countBleedAttack
+      (unit) => bleedOnAttack(unit, priorBleedOf(unit.uid))
     )
   );
 };
@@ -1532,9 +1534,12 @@ const heroShoots = (
         )
       : struck;
   }
-  // BLEED BURST: the whole attack counts once, if any hit landed.
+  // BLEED: the whole attack bites once, if any hit landed.
   return hasLandedAny && PHYSICAL_TYPES.has(type)
-    ? { ...current, player: countBleedAttack(current.player) }
+    ? {
+        ...current,
+        player: bleedOnAttack(current.player, state.player.statuses.bleed),
+      }
     : current;
 };
 

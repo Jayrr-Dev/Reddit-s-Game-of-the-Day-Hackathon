@@ -58,16 +58,10 @@ export const INSTINCT_DODGE_CHANCES: readonly number[] = [
 /** Stacks at which Instinct becomes Ultra Instinct. */
 export const ULTRA_INSTINCT_STACKS = INSTINCT_DODGE_CHANCES.length - 1;
 /**
- * BLEED: a Melee or Range hit on a bleeding unit bites for this share of
+ * BLEED: a Melee or Range attack landed on a bleeding unit bites for this share of
  * its Bleed, rounded up (so even Bleed 1 bites for 1), then Bleed -1.
  */
 export const BLEED_BITE_FACTOR = 1 / 3;
-/**
- * BLEED BURST: the Nth physical attack landed on a bleeding unit (whole
- * attacks, not hits; need not be in a row or in one turn) deals its full
- * Bleed and clears it.
- */
-export const BLEED_BURST_ATTACKS = 4;
 /** Buffs that are on or off: their stacks are never printed or shown. */
 export const ON_OFF_BUFFS: ReadonlySet<BuffId> = new Set([
   'sharpshooter',

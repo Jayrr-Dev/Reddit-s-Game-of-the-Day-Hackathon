@@ -19,7 +19,6 @@ import {
   SHARPSHOOTER_DAMAGE_FACTOR,
   PHYSICAL_TYPES,
   BLEED_BITE_FACTOR,
-  BLEED_BURST_ATTACKS,
   TIERED_CUT_BY_TIER,
   TIERED_MAX_TIER,
   STATUS_IS_AFFLICTION,
@@ -226,9 +225,7 @@ export const takeHit = <T extends Combatant>(
       : target,
     reduced
   );
-  // Bleed opens only on a physical (Melee, Range) hit for more than 0.
-  const bleeds = amount > 0 && PHYSICAL_TYPES.has(type);
-  return countShockHit(bleeds ? bleedOnHit(hit) : hit);
+  return countShockHit(hit);
 };
 
 /** What a Bleed bites for: BLEED_BITE_FACTOR of it, rounded up. */
@@ -237,42 +234,24 @@ export const bleedBiteOf = (bleed: number): number =>
   bleed > 0 ? Math.ceil(bleed * BLEED_BITE_FACTOR - 1e-9) : 0;
 
 /**
- * Bleed on a physical hit taken: the unit loses its bite (a third of its
- * Bleed, past Guard), counted in bleedTaken, then Bleed drops by 1.
+ * Bleed on a physical attack landed (call once per attack, after all its
+ * hits): if the unit bled before the attack (`priorBleed`), it loses a
+ * bite of that Bleed (past Guard), counted in bleedTaken, then Bleed -1.
+ * Using the Bleed from before means an attack never bites with the
+ * stacks it just laid itself.
  */
-const bleedOnHit = <T extends Combatant>(target: T): T => {
+export const bleedOnAttack = <T extends Combatant>(
+  target: T,
+  priorBleed: number
+): T => {
   const { bleed } = target.statuses;
-  if (bleed <= 0) return target;
-  const bite = bleedBiteOf(bleed);
+  if (priorBleed <= 0 || bleed <= 0) return target;
+  const bite = bleedBiteOf(priorBleed);
   const bled = loseHp(target, bite);
   return {
     ...bled,
     bleedTaken: (target.bleedTaken ?? 0) + bite,
-    // Bleed run dry: its attack count starts over.
-    ...(bleed - 1 <= 0 ? { bleedAttacks: 0 } : {}),
     statuses: { ...bled.statuses, bleed: bleed - 1 },
-  };
-};
-
-/**
- * One physical attack landed on this unit (call once per attack, after
- * all its hits): while it bleeds, the count goes up, and the
- * BLEED_BURST_ATTACKS-th deals its whole Bleed (past Guard) and clears it.
- */
-export const countBleedAttack = <T extends Combatant>(target: T): T => {
-  const { bleed } = target.statuses;
-  if (bleed <= 0) return target;
-  const attacks = (target.bleedAttacks ?? 0) + 1;
-  if (attacks < BLEED_BURST_ATTACKS)
-    return { ...target, bleedAttacks: attacks };
-  const burst = loseHp(target, bleed);
-  return {
-    ...burst,
-    bleedAttacks: 0,
-    // Counted apart from the bites: the view gives it its own burst.
-    bleedBursts: (target.bleedBursts ?? 0) + 1,
-    bleedBurstTaken: (target.bleedBurstTaken ?? 0) + bleed,
-    statuses: { ...burst.statuses, bleed: 0 },
   };
 };
 
@@ -532,7 +511,7 @@ const shockFade = <T extends Combatant>(target: T): T =>
 /**
  * Everything that runs right after a unit's action (a hero's move, the
  * villain's whole turn): Burn, Frost thaws, Shock fades by 1. (Bleed
- * goes off on hits taken instead: see bleedOnHit.)
+ * goes off on attacks landed instead: see bleedOnAttack.)
  */
 export const afterAction = <T extends Combatant>(target: T): T =>
   shockFade(frostThaw(burnTick(target)));

@@ -216,13 +216,8 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     layers: [{ shape: 'spark', motion: 'burst', count: 5, size: 9 }],
     hasGlow: false,
   },
-  /** Bleed bursting: drawn by its own BleedBurst sequence instead. */
-  bleedBurst: { layers: [], hasGlow: false },
-  /** Bleed opening on a hit: a quick red drip off the wound. */
-  bleedBite: {
-    layers: [{ shape: 'drop', motion: 'fall', count: 5, size: 11 }],
-    hasGlow: true,
-  },
+  /** Bleed biting (once per attack): drawn by its own BleedBurst sequence. */
+  bleedBite: { layers: [], hasGlow: false },
   /** Bleed laid on: heavier drops run down. */
   bleed: {
     layers: [{ shape: 'drop', motion: 'fall', count: 6, size: 12 }],

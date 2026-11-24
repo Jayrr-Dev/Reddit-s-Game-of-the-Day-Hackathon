@@ -1,6 +1,6 @@
 // ===================================================================
 // BLEED BURST
-// Bleed going off (its Nth attack): one ~1.3 s sequence over the body,
+// Bleed going off (once per physical attack landed): one ~1.3 s sequence over the body,
 //   0-30%   two thin dark-red slashes fly in from the upper corners
 //   20-45%  a red star flares inside a soft glow
 //   30-55%  the slashes cross into an X over the flare

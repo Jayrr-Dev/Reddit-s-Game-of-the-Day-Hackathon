@@ -139,7 +139,7 @@ const HitMark = ({ pop }: { pop: PlayerHitPop }) => {
 /** The effect for one pop: a hit's mark, or the status's own effect. */
 const Impact = ({ pop }: { pop: PlayerHitPop }) => {
   if (pop.kind === 'hit') return <HitMark pop={pop} />;
-  if (pop.kind === 'bleedBurst') return <BleedBurst />;
+  if (pop.kind === 'bleedBite') return <BleedBurst />;
   return <StatusFx kind={pop.kind} id={pop.id} />;
 };
 

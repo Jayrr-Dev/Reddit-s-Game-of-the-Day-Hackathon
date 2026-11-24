@@ -12,7 +12,7 @@ import {
   endOfTurnUpkeep,
   burnTick,
   poisonTick,
-  bleedBiteOf,
+  bleedOnAttack,
   afterAction,
   burstShock,
   frostThaw,
@@ -53,7 +53,6 @@ import {
   ALOFT_EVASION,
   BANE_AFFLICTIONS,
   BLEED_BITE_FACTOR,
-  BLEED_BURST_ATTACKS,
   EXHAUST_USES,
   RESERVE_ENERGY_SLOTS,
 } from './rules.ts';
@@ -473,68 +472,42 @@ const withBleed = <T extends { statuses: typeof NO_STATUSES }>(
   bleed: number
 ): T => ({ ...unit, statuses: { ...unit.statuses, bleed } });
 
-void test('Bleed bursts on the 4th attack landed on it: full Bleed, then clears', () => {
-  assert.equal(BLEED_BURST_ATTACKS, 4);
-  const start = withHand(fightWith([]), []);
-  const uid = start.heroes[0]?.uid ?? -1;
-  const bleeding: CombatState = {
-    ...start,
-    energy: 99,
-    heroes: start.heroes.map((unit) =>
-      unit.uid === uid ? withBleed({ ...unit, hp: 500, maxHp: 500 }, 20) : unit
-    ),
-  };
-  // Three attacks (one is a 2x3 volley: still ONE attack) count up.
-  const play = (state: CombatState, card: CardId) =>
-    playCard(withHand(state, [card]), 0, uid);
-  const heroOf = (state: CombatState) =>
-    state.heroes.find((unit) => unit.uid === uid)!;
-  const third = play(
-    play(play(bleeding, 'barbedVolley'), 'backhand'),
-    'backhand'
-  );
-  assert.equal(heroOf(third).bleedAttacks, 3);
-  // A Magic attack doesn't count.
-  assert.equal(heroOf(play(third, 'chaosBolt')).bleedAttacks, 3);
-  // The 4th: its hit and bite, then the whole Bleed at once, and it clears.
-  const before = heroOf(third);
-  const fourth = heroOf(play(third, 'backhand'));
-  const bite = bleedBiteOf(before.statuses.bleed);
-  assert.equal(fourth.hp, before.hp - 6 - bite - (before.statuses.bleed - 1));
-  assert.equal(fourth.statuses.bleed, 0);
-  assert.equal(fourth.bleedAttacks ?? 0, 0);
-  // Counted apart from the bites, for its own number and burst effect.
-  assert.equal(fourth.bleedBursts, 1);
-  assert.equal(
-    (fourth.bleedBurstTaken ?? 0) - (before.bleedBurstTaken ?? 0),
-    before.statuses.bleed - 1
-  );
-});
-
-void test('Bleed: each Melee or Range hit taken bites for a third, then -1', () => {
+void test('Bleed bites once per physical attack landed, not per hit', () => {
+  // A hit alone no longer sets it off.
   const bleeding = {
     ...createCombatant(50, 50),
-    statuses: { ...NO_STATUSES, bleed: 3 },
+    statuses: { ...NO_STATUSES, bleed: 9 },
   };
-  // A bite deals a third of the Bleed, rounded up (3 -> 1, 2 -> 1).
+  const hit = takeHit(bleeding, 2, 'melee');
+  assert.equal(hit.hp, 48);
+  assert.equal(hit.statuses.bleed, 9);
+  // The whole attack: one bite for a third (rounded up), then Bleed -1.
   assert.equal(BLEED_BITE_FACTOR, 1 / 3);
-  assert.equal(takeHit(withBleed(bleeding, 9), 2, 'melee').hp, 50 - 2 - 3);
-  const once = takeHit(bleeding, 2, 'melee');
-  assert.equal(once.hp, 50 - 2 - 1);
-  assert.equal(once.statuses.bleed, 2);
-  assert.equal(once.bleedTaken, 1, 'counted for the bleed number');
-  const twice = takeHit(once, 2, 'range');
-  assert.equal(twice.hp, 47 - 2 - 1);
-  assert.equal(twice.statuses.bleed, 1);
-  // A hit for 0 sets nothing off, nor does Magic (physical hits only).
-  assert.equal(takeHit(twice, 0, 'melee').statuses.bleed, 1);
-  const spell = takeHit(twice, 2, 'magic');
-  assert.equal(spell.statuses.bleed, 1);
-  assert.equal(spell.hp, twice.hp - 2);
-  // It no longer ticks between actions.
-  const rested = afterAction(twice);
-  assert.equal(rested.statuses.bleed, 1);
-  assert.equal(rested.hp, twice.hp);
+  const bitten = bleedOnAttack(bleeding, 9);
+  assert.equal(bitten.hp, 50 - 3);
+  assert.equal(bitten.statuses.bleed, 8);
+  assert.equal(bitten.bleedTaken, 3, 'counted for the bleed number');
+  // Played: a 2x3 volley on Bleed 9 bites once, for 3.
+  const start = withHand(fightWith([]), []);
+  const uid = start.heroes[0]?.uid ?? -1;
+  const state: CombatState = {
+    ...start,
+    heroes: start.heroes.map((unit) =>
+      unit.uid === uid ? withBleed({ ...unit, hp: 500, maxHp: 500 }, 9) : unit
+    ),
+  };
+  const play = (card: CardId) =>
+    playCard(withHand(state, [card]), 0, uid).heroes.find(
+      (unit) => unit.uid === uid
+    )!;
+  const volleyed = play('barbedVolley');
+  assert.equal(volleyed.hp, 500 - 6 - 3);
+  assert.equal(volleyed.bleedTaken, 3);
+  // Its own 3 x Bleed 2 land too: 9 + 6, then -1 for the bite.
+  assert.equal(volleyed.statuses.bleed, 14);
+  // Magic doesn't set it off, nor does it tick between actions.
+  assert.equal(play('chaosBolt').statuses.bleed, 9);
+  assert.equal(afterAction(bleeding).statuses.bleed, 9);
   assert.ok(BANE_AFFLICTIONS.has('bleed'));
   assert.ok(!('venom' in NO_STATUSES), 'Venom is gone');
 });
@@ -1013,8 +986,8 @@ void test('every pick follows reach: a melee pick at the back row hits the front
   const [squire, archer] = start.heroes.map((unit) => unit.uid);
   const picks = [squire ?? -1, archer ?? -1];
   const after = playCard(start, 0, picks[0] ?? -1, picks);
-  // 4 + 4, and the second cut bites the first one's Bleed 2 for 1.
-  assert.deepEqual(hpLost(start, after), [9, 0]);
+  // 4 + 4, and no bite: Bleed bites once per attack, on Bleed from before.
+  assert.deepEqual(hpLost(start, after), [8, 0]);
 });
 
 void test('a Target N card shows one beat per pick and ends on the real play', () => {
@@ -1582,11 +1555,10 @@ void test("an attack card's afflictions land on every hit that lands", () => {
   const uid = state.heroes[0]?.uid ?? -1;
   const after = playCard(state, 0, uid);
   const hero = after.heroes.find((unit) => unit.uid === uid);
-  // Barbed Volley: Damage 2 x3, Bleed 2 on each hit. Each later hit also
-  // opens the Bleed so far (-1 each time): 2, then 2-1+2 = 3, then 3-1+2 = 4.
-  assert.equal(hero?.statuses.bleed, 4);
-  // Bites: a third of 2, then of 3, each rounded up: 1 + 1.
-  assert.equal(hero?.bleedTaken, 1 + 1);
+  // Barbed Volley: Damage 2 x3, Bleed 2 on each hit. It had no Bleed
+  // before the attack, so it doesn't bite this time.
+  assert.equal(hero?.statuses.bleed, 6);
+  assert.equal(hero?.bleedTaken ?? 0, 0);
   assert.ok(describeCard('barbedVolley').includes('Bleed 2 per hit'));
   // One hit, one proc (and no "per hit" on the text).
   assert.ok(describeCard('cruelSlash').includes('Bleed 3'));

@@ -114,11 +114,6 @@ export type Combatant = {
   dodgedHits?: number;
   /** HP Bleed has cost in the fight, for the bleed number on a hit. */
   bleedTaken?: number;
-  /** Physical attacks landed on it while bleeding (see BLEED_BURST_ATTACKS). */
-  bleedAttacks?: number;
-  /** Times its Bleed has burst, and the HP those bursts cost (own pop). */
-  bleedBursts?: number;
-  bleedBurstTaken?: number;
   /** Hits taken this turn while shocked (see Shock). */
   shockHits?: number;
   /**

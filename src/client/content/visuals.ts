@@ -301,7 +301,6 @@ export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   bleed: STATUS_LOOK.bleed,
   shockBurst: STATUS_LOOK.shock,
   bleedBite: STATUS_LOOK.bleed,
-  bleedBurst: STATUS_LOOK.bleed,
   miss: { glyph: 'eye', toneClass: 'text-ink-muted' },
   dodge: { glyph: 'dodging', toneClass: 'text-guard' },
   weaken: STATUS_LOOK.weaken,
