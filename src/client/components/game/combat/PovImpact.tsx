@@ -2,9 +2,9 @@
 // POV IMPACT
 // When a hero's attack lands on you, it lands on the screen itself, as
 // if you were looking out of the villain's eyes. Every hit draws:
-//   HURT LAYER   a vignette closing in from the edges (blood red, or
-//                Hex purple for a curse), a glitch flash
-//                of red and cyan bands, and a shake of the whole view,
+//   HURT LAYER   a vignette closing in from the edges (blood red; Magic
+//                blue and Range grey running into red; Hex purple for a
+//                curse), and a shake of the whole view,
 //                all scaled to the damage
 //   MARK         one per blow (a multi-hit pops once per blow, see
 //                usePlayerHits), scattered around the centre of the
@@ -40,10 +40,18 @@ const SCATTER_X = 20;
 const SCATTER_Y = 16;
 /** Slash angles, taken in turn so a flurry crosses itself. */
 const SLASH_ANGLES = [-28, 24, -52, 8, 44, -12] as const;
-/** The vignette's colour for a hit that hurt, and one fully blocked. */
+/** Blood red: every hurt's outer edge (and all of a Melee one). */
 const HURT_TONE = 'rgb(200 20 40 / 0.85)';
+/**
+ * The inner band of the vignette, by attack type, fading out into the
+ * blood-red edge: Magic blue, Range a steel grey.
+ */
+const TYPE_TONE: Partial<Record<string, string>> = {
+  magic: 'rgb(60 130 255 / 0.75)',
+  range: 'rgb(150 155 165 / 0.75)',
+};
+/** A fully blocked hit only shades the edges a faint black. */
 const BLOCKED_TONE = 'rgb(0 0 0 / 0.55)';
-/** A fully blocked hit only shades the edges faintly. */
 const BLOCKED_PEAK = 0.5;
 /** A curse's vignette: Hex purple. */
 const CURSE_TONE = 'rgb(130 60 200 / 0.8)';
@@ -137,15 +145,20 @@ const Mark = ({ pop }: { pop: PlayerHitPop }) => {
   );
 };
 
-/** The edges closing in: red for a hurt, purple for a curse, faint black for a blocked hit. */
-const toneOf = (pop: PlayerHitPop): string => {
-  if (isBlockedOnly(pop)) return BLOCKED_TONE;
-  return isCurse(pop) ? CURSE_TONE : HURT_TONE;
+/**
+ * The vignette's colour stops, centre outward: a faint black for a
+ * blocked hit, purple for a curse, else the attack type's tone (if
+ * any) running into blood red.
+ */
+const toneStopsOf = (pop: PlayerHitPop): string => {
+  if (isBlockedOnly(pop)) return `${BLOCKED_TONE} 100%`;
+  if (isCurse(pop)) return `${CURSE_TONE} 100%`;
+  const typeTone = TYPE_TONE[pop.source ?? ''];
+  return typeTone ? `${typeTone} 70%, ${HURT_TONE} 100%` : `${HURT_TONE} 100%`;
 };
 
-/** The edges closing in, in the hit's tone (see toneOf). */
+/** The edges closing in, in the hit's tones (see toneStopsOf). */
 const Vignette = ({ pop }: { pop: PlayerHitPop }) => {
-  const tone = toneOf(pop);
   const peak = isBlockedOnly(pop)
     ? BLOCKED_PEAK
     : Math.min(1, VIGNETTE_MIN + VIGNETTE_PER_SCALE * sizeOf(pop));
@@ -154,27 +167,13 @@ const Vignette = ({ pop }: { pop: PlayerHitPop }) => {
       className="pov-vignette absolute inset-0"
       style={
         {
-          background: `radial-gradient(ellipse at center, transparent 42%, ${tone} 100%)`,
+          background: `radial-gradient(ellipse at center, transparent 42%, ${toneStopsOf(pop)})`,
           '--pov-peak': peak,
         } as CSSProperties
       }
     />
   );
 };
-
-/** A glitch flash: a red and a cyan band tearing sideways. */
-const Glitch = ({ id }: { id: number }) => (
-  <>
-    <span
-      className="pov-glitch absolute inset-x-0 h-[7%] bg-[rgb(255_40_70/0.55)] mix-blend-screen"
-      style={{ top: `${25 + seeded(id, 8) * 40}%` }}
-    />
-    <span
-      className="pov-glitch absolute inset-x-0 h-[4%] bg-[rgb(60_230_255/0.45)] mix-blend-screen [animation-direction:reverse]"
-      style={{ top: `${30 + seeded(id, 9) * 40}%` }}
-    />
-  </>
-);
 
 /**
  * The damage number, popping on top of the blow's mark and floating off
@@ -197,8 +196,8 @@ const HitNumber = ({ pop }: { pop: PlayerHitPop }) => (
 
 /**
  * Everything one hit draws on the screen, its number on top. A hit
- * your Guard took whole only shades the edges a faint black: no mark,
- * glitch or shake.
+ * your Guard took whole only shades the edges a faint black: no mark
+ * or shake.
  */
 const PovHit = ({ pop }: { pop: PlayerHitPop }) =>
   isBlockedOnly(pop) ? (
@@ -209,7 +208,6 @@ const PovHit = ({ pop }: { pop: PlayerHitPop }) =>
   ) : (
     <>
       <Vignette pop={pop} />
-      {!isCurse(pop) && <Glitch id={pop.id} />}
       <Mark pop={pop} />
       <HitNumber pop={pop} />
     </>

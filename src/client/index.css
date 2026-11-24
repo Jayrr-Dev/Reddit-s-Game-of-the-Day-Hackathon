@@ -1828,7 +1828,7 @@ textarea,
 
 /* --- POV IMPACT ---
    A hit on you, drawn over the whole view (PovImpact): the vignette
-   closes in to its peak (--pov-peak, set per hit) and fades; the glitch
+   closes in to its peak (--pov-peak, set per hit) and fades.
    bands tear sideways and vanish. Transform and opacity only. */
 @keyframes pov-vignette {
   0% {
@@ -1842,34 +1842,9 @@ textarea,
   }
 }
 
-@keyframes pov-glitch {
-  0% {
-    opacity: 0;
-    transform: translateX(-8%);
-  }
-  15% {
-    opacity: 1;
-    transform: translateX(6%);
-  }
-  35% {
-    opacity: 0.8;
-    transform: translateX(-4%);
-  }
-  55%,
-  100% {
-    opacity: 0;
-    transform: translateX(2%);
-  }
-}
-
 .pov-vignette {
   opacity: 0;
   animation: pov-vignette 1000ms ease-out forwards;
-}
-
-.pov-glitch {
-  opacity: 0;
-  animation: pov-glitch 280ms linear forwards;
 }
 
 /* --- SCROLLBARS ---
