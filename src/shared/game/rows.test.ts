@@ -118,6 +118,30 @@ void test('heroes step one row toward home per turn, never past it', () => {
   ]);
 });
 
+// --- PULL N AND KNOCKBACK N ---
+void test('Pull 2 and Knockback 2 move a hero two rows', () => {
+  const heroes = fightAt([
+    ['squire', 'front', 1],
+    ['priest', 'horizon', 1],
+  ]).heroes;
+  const [squire, priest] = heroes;
+  assert.ok(squire && priest);
+  const rowAfter = (field: typeof heroes, uid: number) =>
+    unitAt({ heroes: field } as CombatState, uid).row;
+  assert.equal(rowAfter(pullHero(heroes, priest.uid, 2), priest.uid), 'front');
+  assert.equal(
+    rowAfter(pushHero(heroes, squire.uid, 2), squire.uid),
+    'horizon'
+  );
+  // Only one row of room: it goes as far as it can.
+  assert.equal(rowAfter(pullHero(heroes, squire.uid, 2), squire.uid), 'front');
+  const backPriest = pullHero(heroes, priest.uid);
+  assert.equal(
+    rowAfter(pullHero(backPriest, priest.uid, 2), priest.uid),
+    'front'
+  );
+});
+
 // --- PULL AND PUSH (ONE ROW AT A TIME) ---
 void test('Force Pull and Force Push move a hero exactly one row', () => {
   const heroes = fightAt([

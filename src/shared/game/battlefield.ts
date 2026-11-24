@@ -577,13 +577,30 @@ const moveRows = (
   });
 };
 
-/** Pull: the hero steps one row nearer (no-op if blocked). */
-export const pullHero = (heroes: HeroUnit[], uid: number) =>
-  moveRows(heroes, uid, -1);
+/**
+ * Moves one hero up to `rows` rows, one row at a time, stopping where
+ * it is blocked (Pull 2 with one row of room moves it one row).
+ * Imperative: each step changes the room left for the next.
+ */
+const moveRowsUpTo = (
+  heroes: HeroUnit[],
+  uid: number,
+  direction: -1 | 1,
+  rows: number
+) => {
+  let field = heroes;
+  for (let step = 0; step < rows; step += 1)
+    field = moveRows(field, uid, direction);
+  return field;
+};
 
-/** Push: the hero falls one row back (no-op if blocked). */
-export const pushHero = (heroes: HeroUnit[], uid: number) =>
-  moveRows(heroes, uid, 1);
+/** Pull N: the hero steps up to `rows` rows nearer (stops if blocked). */
+export const pullHero = (heroes: HeroUnit[], uid: number, rows = 1) =>
+  moveRowsUpTo(heroes, uid, -1, rows);
+
+/** Knockback N: the hero falls up to `rows` rows back (stops if blocked). */
+export const pushHero = (heroes: HeroUnit[], uid: number, rows = 1) =>
+  moveRowsUpTo(heroes, uid, 1, rows);
 
 /**
  * End of the heroes' turn: each hero standing behind its home row steps

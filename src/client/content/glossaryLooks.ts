@@ -10,8 +10,8 @@
 
 import {
   CLEANSE_INFO,
-  FORCE_PULL_INFO,
-  FORCE_PUSH_INFO,
+  PULL_INFO,
+  KNOCKBACK_INFO,
   IMBUE_INFO,
   KEYWORD_INFO,
   OUT_OF_RANGE_INFO,
@@ -43,8 +43,8 @@ const GLOSSARY_LOOK: ReadonlyMap<string, Look> = new Map([
   ...byLabel(PASSIVE_INFO, PASSIVE_LOOK),
   [IMBUE_INFO.label, { glyph: 'cards', toneClass: 'text-imbue' }],
   [CLEANSE_INFO.label, INTENT_LOOK.cleanse],
-  [FORCE_PULL_INFO.label, { glyph: 'march', toneClass: 'text-hex' }],
-  [FORCE_PUSH_INFO.label, { glyph: 'march', toneClass: 'text-guard' }],
+  [PULL_INFO.label, { glyph: 'march', toneClass: 'text-hex' }],
+  [KNOCKBACK_INFO.label, { glyph: 'march', toneClass: 'text-guard' }],
   // Card types and movements tooltips mention.
   ['Melee', INTENT_LOOK.attack],
   ['Range', INTENT_LOOK.range],

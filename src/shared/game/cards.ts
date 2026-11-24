@@ -84,8 +84,10 @@ const giftOf = (effect: ImbuableEffect): ImbueGift => ({
   kind: 'effect',
   effect,
 });
-const pull: CardEffect = { kind: 'pull' };
-const push: CardEffect = { kind: 'push' };
+/** Pull N: drags the target hero up to N lines nearer. */
+const pull = (rows: number): CardEffect => ({ kind: 'pull', rows });
+/** Knockback N: shoves the target hero up to N lines back. */
+const knockback = (rows: number): CardEffect => ({ kind: 'push', rows });
 
 /**
  * Optional card traits: keywords such as Hold, Piercing and Remove
@@ -172,7 +174,10 @@ export const CARDS = {
   // Curses never strike: they lay Hex (an odd Hex burns before the
   // hero's next turn; see hexBurn), so their damage arrives a turn late.
   mourningCurse: card('Mourning Curse', 'curse', 1, 'starter', [hex(3)]),
-  chainsOfGrief: card('Chains of Grief', 'curse', 1, 'starter', [pull, hex(2)]),
+  chainsOfGrief: card('Chains of Grief', 'curse', 1, 'starter', [
+    pull(1),
+    hex(2),
+  ]),
 
   // COMMON
   cruelSlash: card('Cruel Slash', 'melee', 1, 'common', [hit(9)]),
@@ -191,9 +196,9 @@ export const CARDS = {
   sear: card('Sear', 'melee', 1, 'common', [hit(5), burn(3)]),
   cleave: card('Cleave', 'melee', 1, 'common', [hitAll(6)], RAMPAGES),
   spiteBolt: card('Spite Bolt', 'range', 1, 'common', [hit(6)], DISTANCES),
-  hurlAside: card('Hurl Aside', 'melee', 1, 'common', [hit(5), push]),
-  beckon: card('Beckon', 'curse', 0, 'common', [pull, weaken(1), hex(1)]),
-  repulse: card('Repulse', 'magic', 1, 'common', [hit(5), push]),
+  hurlAside: card('Hurl Aside', 'melee', 1, 'common', [hit(5), knockback(1)]),
+  beckon: card('Beckon', 'curse', 0, 'common', [pull(1), weaken(1), hex(1)]),
+  repulse: card('Repulse', 'magic', 1, 'common', [hit(5), knockback(1)]),
   hexfire: card('Hexfire', 'magic', 1, 'common', [hit(6), hex(1)], FIRE),
   barbedVolley: card('Barbed Volley', 'range', 1, 'common', [hit(2, 3)]),
   flurry: card('Flurry', 'melee', 1, 'common', [hit(3, 3)]),
@@ -292,6 +297,9 @@ export const CARDS = {
     REMOVES
   ),
   bane: card('Bane', 'buff', 1, 'uncommon', [buff('bane', 3)], REMOVES),
+  // Move a hero two lines while cursing it.
+  forcePull: card('Force Pull', 'curse', 1, 'uncommon', [pull(2), hex(2)]),
+  forcePush: card('Force Push', 'curse', 1, 'uncommon', [knockback(2), hex(2)]),
   sharpshooter: card(
     'Sharpshooter',
     'buff',

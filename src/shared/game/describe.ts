@@ -176,7 +176,7 @@ export const PASSIVE_INFO: Record<PassiveId, StatusInfo> = {
   anchored: {
     label: 'Anchored',
     description:
-      "Never walks on its own\n**Force Pull** and **Force Push** can't move it",
+      "Never walks on its own\n**Pull** and **Knockback** can't move it",
   },
 };
 
@@ -262,9 +262,9 @@ export const describeCardEffect = (
     case 'heal':
       return `Heal ${effect.amount}`;
     case 'pull':
-      return FORCE_PULL_INFO.label;
+      return `${PULL_INFO.label} ${effect.rows}`;
     case 'push':
-      return FORCE_PUSH_INFO.label;
+      return `${KNOCKBACK_INFO.label} ${effect.rows}`;
     case 'imbue':
       return describeImbueEffect(effect);
   }
@@ -334,14 +334,16 @@ export const IMBUE_INFO: StatusInfo = {
   description:
     'Gives another card in your hand this keyword or effect\nAn effect lands on every hit that lands\nThen **Remove** this card',
 };
-/** What Force Pull and Force Push mean, wherever they show. */
-export const FORCE_PULL_INFO: StatusInfo = {
-  label: 'Force Pull',
-  description: 'Pulls the target hero **one line** nearer',
+/** What Pull N and Knockback N mean, wherever they show. */
+export const PULL_INFO: StatusInfo = {
+  label: 'Pull',
+  description:
+    'Pulls the target hero **N lines** nearer\nStops early if the way is blocked',
 };
-export const FORCE_PUSH_INFO: StatusInfo = {
-  label: 'Force Push',
-  description: 'Pushes the target hero **one line** back',
+export const KNOCKBACK_INFO: StatusInfo = {
+  label: 'Knockback',
+  description:
+    'Knocks the target hero **N lines** back\nStops early if the way is blocked',
 };
 /** What Cleanse means, wherever it shows. */
 export const CLEANSE_INFO: StatusInfo = {
@@ -394,8 +396,8 @@ export const GLOSSARY: Readonly<Record<string, StatusInfo>> =
       ...Object.values(KEYWORD_INFO),
       IMBUE_INFO,
       CLEANSE_INFO,
-      FORCE_PULL_INFO,
-      FORCE_PUSH_INFO,
+      PULL_INFO,
+      KNOCKBACK_INFO,
       ...Object.values(ROW_INFO),
       OUT_OF_RANGE_INFO,
     ].map((info) => [info.label, info])

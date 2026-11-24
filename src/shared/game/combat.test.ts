@@ -1621,8 +1621,10 @@ void test('Curse cards never deal direct damage, and all of them lay Hex', () =>
 
 void test('each status reads as its name and number, one per line', () => {
   assert.deepEqual(describeCard('sneer'), ['Guard 5', 'Weaken 1', 'Hex 1']);
-  assert.deepEqual(describeCard('beckon'), ['Force Pull', 'Weaken 1', 'Hex 1']);
-  assert.ok(describeCard('hurlAside').includes('Force Push'));
+  assert.deepEqual(describeCard('beckon'), ['Pull 1', 'Weaken 1', 'Hex 1']);
+  assert.ok(describeCard('hurlAside').includes('Knockback 1'));
+  assert.deepEqual(describeCard('forcePull'), ['Pull 2', 'Hex 2']);
+  assert.deepEqual(describeCard('forcePush'), ['Knockback 2', 'Hex 2']);
   assert.ok(describeCard('plague').includes('Hex ALL 4'));
   for (const id of ALL_CARD_IDS)
     assert.ok(!describeCard(id).join(' ').includes('Apply'), id);

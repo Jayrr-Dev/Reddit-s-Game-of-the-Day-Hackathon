@@ -147,10 +147,10 @@ export type BaseCardEffect =
   | { kind: 'draw'; amount: number }
   | { kind: 'energy'; amount: number }
   | { kind: 'heal'; amount: number }
-  /** Drags the target one row nearer (Force Pull). */
-  | { kind: 'pull' }
-  /** Shoves the target one row farther (Force Push). */
-  | { kind: 'push' };
+  /** Pull N: drags the target up to `rows` rows nearer. */
+  | { kind: 'pull'; rows: number }
+  /** Knockback N: shoves the target up to `rows` rows farther. */
+  | { kind: 'push'; rows: number };
 
 // --- DURATION ---
 /**

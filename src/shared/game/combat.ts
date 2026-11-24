@@ -712,9 +712,15 @@ const applyCardEffect = (
       return { ...state, player, rng };
     }
     case 'pull':
-      return { ...state, heroes: pullHero(state.heroes, targetUid) };
+      return {
+        ...state,
+        heroes: pullHero(state.heroes, targetUid, effect.rows),
+      };
     case 'push':
-      return { ...state, heroes: pushHero(state.heroes, targetUid) };
+      return {
+        ...state,
+        heroes: pushHero(state.heroes, targetUid, effect.rows),
+      };
     case 'imbue':
       return imbueSlot(state, play.slot, { gift: effect.gift });
   }
