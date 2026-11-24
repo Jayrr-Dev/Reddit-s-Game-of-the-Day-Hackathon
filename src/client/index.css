@@ -80,10 +80,10 @@
   --animate-shake: shake 260ms ease-in-out;
   --animate-hit-pop: hit-pop 1400ms ease-out forwards;
   --animate-gain-float: gain-float 1100ms ease-out forwards;
-  --animate-hero-lunge: hero-lunge 420ms ease-in-out;
-  --animate-hero-recoil: hero-recoil 420ms ease-out;
-  --animate-hero-cast: hero-cast 420ms ease-in-out;
-  --animate-hero-pulse: hero-pulse 420ms ease-in-out;
+  --animate-hero-lunge: hero-lunge 560ms ease-in-out;
+  --animate-hero-recoil: hero-recoil 560ms ease-out;
+  --animate-hero-cast: hero-cast 560ms ease-in-out;
+  --animate-hero-pulse: hero-pulse 560ms ease-in-out;
   --animate-hero-sway: hero-sway 4s ease-in-out infinite;
   --animate-hero-death: hero-death 520ms ease-in forwards;
   --animate-tooltip-in: tooltip-in 120ms ease-out;
@@ -570,51 +570,181 @@
 /* --- HERO ACTIONS ---
    HeroFigure sets data-action on its drawing while a move plays, and
    these rules animate the parts inside it (the body's own motion is an
-   animate-hero-* class on its box). Every animation runs 420ms, the
+   animate-hero-* class on its box). Every animation runs 560ms, the
    same as HERO_ATTACK_MS, and touches only transform and opacity.
-     melee    the weapon winds back, swings through, and returns
-     range    the string draws back, then snaps forward (bow kicks)
-     magic    the staff rises and its tip flares
+   Distances use --k (the prop's scale, set on the drawing) so a big
+   champion's bow draws as far, for its size, as a grunt's.
+     melee    one of four swings (data-swing): a sideways slash, an
+              overhead chop, a levelled stab, or a rising upcut
+     range    the arrow appears, the string halves pivot into a V as it
+              is drawn and the bow bends; on release the string snaps
+              past straight and the arrow flies off
+     magic    the staff rises, a rune ring spins open at its tip while
+              sparks gather in, then a flare and a ring burst out, and
+              a dashed sigil flashes on the ground
      support  a soft aura glows around the hero */
-@keyframes prop-swing {
+/* MELEE SWINGS: each winds up slowly, holds, then strikes fast and
+   overshoots before settling, so the oversized weapons feel heavy.
+   Angles turn the weapon around the hand (0 = blade straight up). */
+@keyframes swing-slash {
+  0%,
+  100% {
+    transform: rotate(0deg);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1);
+  }
+  35% {
+    transform: rotate(-75deg);
+    animation-timing-function: cubic-bezier(0.7, 0, 0.9, 0.6);
+  }
+  52% {
+    transform: rotate(105deg);
+  }
+  62% {
+    transform: rotate(92deg);
+  }
+}
+
+@keyframes swing-chop {
+  0%,
+  100% {
+    transform: rotate(0deg);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1);
+  }
+  38% {
+    transform: rotate(-140deg) translateY(-3px);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 0.5);
+  }
+  50% {
+    transform: rotate(150deg);
+  }
+  58% {
+    transform: rotate(140deg) translateY(2px);
+  }
+  72% {
+    transform: rotate(140deg);
+  }
+}
+
+@keyframes swing-stab {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1);
+  }
+  30% {
+    transform: rotate(95deg) translateY(calc(var(--k) * 8px));
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 0.6);
+  }
+  46% {
+    transform: rotate(95deg) translateY(calc(var(--k) * -16px));
+  }
+  64% {
+    transform: rotate(95deg) translateY(calc(var(--k) * -12px));
+  }
+}
+
+@keyframes swing-upcut {
+  0%,
+  100% {
+    transform: rotate(0deg);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1);
+  }
+  35% {
+    transform: rotate(150deg);
+    animation-timing-function: cubic-bezier(0.7, 0, 0.9, 0.6);
+  }
+  52% {
+    transform: rotate(-60deg);
+  }
+  62% {
+    transform: rotate(-48deg);
+  }
+}
+
+/* RANGE: draw (0-55%), hold a beat, loose (62%), settle. */
+@keyframes prop-shoot {
   0%,
   100% {
     transform: rotate(0deg);
   }
-  30% {
-    transform: rotate(-50deg);
+  55% {
+    transform: rotate(-4deg);
   }
-  60% {
-    transform: rotate(65deg);
-  }
-}
-
-@keyframes prop-shoot {
-  0%,
-  100% {
-    transform: translateX(0) rotate(0deg);
-  }
-  45% {
-    transform: translateX(-2px) rotate(-6deg);
-  }
-  60% {
-    transform: translateX(3px) rotate(4deg);
+  64% {
+    transform: rotate(3deg);
   }
 }
 
-@keyframes string-draw {
+@keyframes bow-bend {
   0%,
   100% {
-    transform: translateX(0);
-  }
-  45% {
-    transform: translateX(-6px);
+    transform: scale(1, 1);
   }
   55% {
-    transform: translateX(1px);
+    transform: scale(1.2, 0.96);
+  }
+  64% {
+    transform: scale(0.95, 1.01);
   }
 }
 
+@keyframes string-top {
+  0%,
+  100% {
+    transform: rotate(0deg) scaleY(1);
+  }
+  55% {
+    transform: rotate(20deg) scaleY(1.07);
+  }
+  62% {
+    transform: rotate(-5deg) scaleY(1);
+  }
+  72% {
+    transform: rotate(2deg) scaleY(1);
+  }
+}
+
+@keyframes string-bottom {
+  0%,
+  100% {
+    transform: rotate(0deg) scaleY(1);
+  }
+  55% {
+    transform: rotate(-20deg) scaleY(1.07);
+  }
+  62% {
+    transform: rotate(5deg) scaleY(1);
+  }
+  72% {
+    transform: rotate(-2deg) scaleY(1);
+  }
+}
+
+@keyframes arrow-loose {
+  0% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+  12% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  55% {
+    opacity: 1;
+    transform: translateX(calc(var(--k) * -8px));
+  }
+  80% {
+    opacity: 1;
+    transform: translateX(calc(var(--k) * 60px));
+  }
+  81%,
+  100% {
+    opacity: 0;
+    transform: translateX(calc(var(--k) * 60px));
+  }
+}
+
+/* MAGIC: gather (0-50%), release (50-75%), fade. */
 @keyframes prop-raise {
   0%,
   100% {
@@ -622,6 +752,9 @@
   }
   50% {
     transform: translateY(-10px) rotate(-12deg);
+  }
+  62% {
+    transform: translateY(-7px) rotate(6deg);
   }
 }
 
@@ -631,9 +764,87 @@
     opacity: 0;
     transform: scale(0.4);
   }
+  45% {
+    opacity: 0.7;
+    transform: scale(0.9);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(2);
+  }
+  75% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+@keyframes rune-spin {
+  0% {
+    opacity: 0;
+    transform: rotate(0deg) scale(0.3);
+  }
+  20% {
+    opacity: 1;
+  }
   50% {
-    opacity: 0.95;
-    transform: scale(1.4);
+    opacity: 1;
+    transform: rotate(160deg) scale(1.15);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: rotate(220deg) scale(1.6);
+  }
+}
+
+@keyframes spark-gather {
+  0% {
+    opacity: 0;
+    transform: translate(var(--sx), var(--sy)) scale(0.6);
+  }
+  15% {
+    opacity: 1;
+  }
+  48% {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+  }
+  55%,
+  100% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.2);
+  }
+}
+
+@keyframes burst-ring {
+  0%,
+  50% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  55% {
+    opacity: 1;
+  }
+  85%,
+  100% {
+    opacity: 0;
+    transform: scale(3);
+  }
+}
+
+@keyframes floor-sigil {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  45% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(1.15);
   }
 }
 
@@ -648,35 +859,86 @@
 }
 
 /* SVG parts scale and turn around their own box unless told otherwise;
-   the prop sets its origin (the hand) inline, the rest use their middle. */
+   the prop, bow and string halves set their pivots inline, the rest
+   use their middle. */
 .hero-glow,
-.hero-aura {
+.hero-aura,
+.hero-rune,
+.hero-spark,
+.hero-burst,
+.hero-floor-sigil {
   transform-box: fill-box;
   transform-origin: center;
 }
 
-[data-action='melee'] .hero-prop {
-  animation: prop-swing 420ms ease-in-out;
+/* Sparks start at their own offset, so they move in view-box units. */
+.hero-spark {
+  transform-box: view-box;
+  transform-origin: 0 0;
+}
+
+[data-swing='slash'] .hero-prop {
+  animation: swing-slash 560ms;
+}
+
+[data-swing='chop'] .hero-prop {
+  animation: swing-chop 560ms;
+}
+
+[data-swing='stab'] .hero-prop {
+  animation: swing-stab 560ms;
+}
+
+[data-swing='upcut'] .hero-prop {
+  animation: swing-upcut 560ms;
 }
 
 [data-action='range'] .hero-prop {
-  animation: prop-shoot 420ms ease-out;
+  animation: prop-shoot 560ms ease-out;
 }
 
-[data-action='range'] .hero-bowstring {
-  animation: string-draw 420ms ease-out;
+[data-action='range'] .hero-bow {
+  animation: bow-bend 560ms ease-out;
+}
+
+[data-action='range'] .hero-string-top {
+  animation: string-top 560ms ease-out;
+}
+
+[data-action='range'] .hero-string-bottom {
+  animation: string-bottom 560ms ease-out;
+}
+
+[data-action='range'] .hero-arrow {
+  animation: arrow-loose 560ms linear;
 }
 
 [data-action='magic'] .hero-prop {
-  animation: prop-raise 420ms ease-in-out;
+  animation: prop-raise 560ms ease-in-out;
 }
 
 [data-action='magic'] .hero-glow {
-  animation: glow-flare 420ms ease-out;
+  animation: glow-flare 560ms ease-out;
+}
+
+[data-action='magic'] .hero-rune {
+  animation: rune-spin 560ms ease-out;
+}
+
+[data-action='magic'] .hero-spark {
+  animation: spark-gather 560ms ease-in both;
+}
+
+[data-action='magic'] .hero-burst {
+  animation: burst-ring 560ms ease-out;
+}
+
+[data-action='magic'] .hero-floor-sigil {
+  animation: floor-sigil 560ms ease-out;
 }
 
 [data-action='support'] .hero-aura {
-  animation: aura-glow 420ms ease-in-out;
+  animation: aura-glow 560ms ease-in-out;
 }
 
 /* --- NUMBER BADGES ---

@@ -12,7 +12,7 @@ import { useRef, type ReactNode } from 'react';
 import { sizeOf } from '../../../../shared/game/battlefield';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
 import type { HeroRow, HeroUnit } from '../../../../shared/game/types';
-import type { HeroActionStyle } from '../../../content/heroLooks';
+import type { HeroAction } from '../../../content/heroLooks';
 import { FIELD_ATTR } from '../../../hooks/useCardDrag';
 import { cssVars, depthStyle } from '../../../lib/cssVars';
 import { Backdrop, Foreground } from './Backdrop';
@@ -32,7 +32,7 @@ export type BattlefieldViewProps = {
   /** The Target pick marker on a hero, if a held card picked it. */
   pickMarkerOf: (uid: number) => PickMarker | null;
   /** Heroes whose move is playing right now, with its style (hero turn). */
-  acting: ReadonlyMap<number, HeroActionStyle>;
+  acting: ReadonlyMap<number, HeroAction>;
   onTapHero: (uid: number) => void;
 };
 

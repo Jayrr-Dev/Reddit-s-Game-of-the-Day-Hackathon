@@ -21,7 +21,7 @@ import {
   HERO_UID_ATTR,
 } from '../../../hooks/useCardDrag';
 import type { AimState, PickMarker } from '../../../hooks/useCombatControls';
-import type { HeroActionStyle } from '../../../content/heroLooks';
+import type { HeroAction, HeroActionStyle } from '../../../content/heroLooks';
 import { figureAspect, headTopShare } from '../../../lib/heroFigure';
 import { seeded } from '../../../lib/seeded';
 import { HeroFigure } from './HeroFigure';
@@ -36,7 +36,7 @@ export type HeroOnFieldProps = {
   /** Set while a held Target card has picked this hero. */
   pickMarker: PickMarker | null;
   /** How this hero's move animates while it plays; null when idle. */
-  action: HeroActionStyle | null;
+  action: HeroAction | null;
   /** True for a fallen hero playing its death (display only). */
   isDying?: boolean;
   onTap: (uid: number) => void;
@@ -238,7 +238,7 @@ export const HeroOnField = ({
         style={{ animationDelay: `${marchDelayMs(unit)}ms` }}
       >
         <div
-          className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${action ? BODY_ACTION_CLASS[action] : ''}`}
+          className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${action ? BODY_ACTION_CLASS[action.style] : ''}`}
           style={bodyStyle}
           {...{ [HERO_ANCHOR_ATTR]: true }}
         >

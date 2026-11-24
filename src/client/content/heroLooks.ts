@@ -254,3 +254,21 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
 
 /** How a hero's attack animates (the type of move it is making). */
 export type HeroActionStyle = 'melee' | 'range' | 'magic' | 'support';
+
+/**
+ * The ways a melee weapon can be swung, so close-up attacks vary:
+ *   slash  a wide sideways sweep
+ *   chop   raised high behind, brought hard down
+ *   stab   levelled, pulled back, then thrust forward
+ *   upcut  from low, swept up and across
+ */
+export type MeleeSwing = 'slash' | 'chop' | 'stab' | 'upcut';
+export const MELEE_SWINGS: readonly MeleeSwing[] = [
+  'slash',
+  'chop',
+  'stab',
+  'upcut',
+];
+
+/** A move playing on a hero: its style and, for melee, which swing. */
+export type HeroAction = { style: HeroActionStyle; swing: MeleeSwing };

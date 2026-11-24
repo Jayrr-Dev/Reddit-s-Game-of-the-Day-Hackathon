@@ -13,7 +13,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { endTurnSteps, type TurnStep } from '../../shared/game/combat';
 import type { RunAction } from '../../shared/game/run';
 import type { CombatState } from '../../shared/game/types';
-import type { HeroActionStyle } from '../content/heroLooks';
+import {
+  HERO_LOOKS,
+  MELEE_SWINGS,
+  type HeroAction,
+} from '../content/heroLooks';
 
 // --- TYPES ---
 type Playback = { steps: TurnStep[]; index: number };
@@ -22,7 +26,7 @@ type Playback = { steps: TurnStep[]; index: number };
 /** Gap between one hero's attack starting and the next one's (ms). */
 const HERO_STAGGER_MS = 200;
 /** How long one attack animation runs (matches --animate-hero-lunge). */
-export const HERO_ATTACK_MS = 420;
+export const HERO_ATTACK_MS = 560;
 /** Upkeep at the start is a quick beat. */
 const QUIET_BEAT_MS = 150;
 
@@ -39,6 +43,23 @@ const beatMs = (steps: readonly TurnStep[], index: number): number => {
 };
 
 /**
+ * How one hero's move animates. The melee swing turns with the hero and
+ * the turn number, so a hero never swings the same way twice in a row
+ * and neighbours swinging together differ. An archer forced into Melee
+ * (a Range attack made up close) still looks like it shoots point-blank.
+ */
+const actionOf = (step: TurnStep, uid: number): HeroAction => {
+  const unit = step.state.heroes.find((hero) => hero.uid === uid);
+  const isBowman = unit && HERO_LOOKS[unit.heroId].prop === 'longbow';
+  const style = step.attackType ?? 'support';
+  return {
+    style: isBowman && style === 'melee' ? 'range' : style,
+    swing:
+      MELEE_SWINGS[(uid + step.state.turn) % MELEE_SWINGS.length] ?? 'slash',
+  };
+};
+
+/**
  * Heroes whose move is still playing at beat `index` (they overlap),
  * each with how it animates: its attack type, or 'support' for a move
  * with no attack (Shroud, heal, Wrath, debuffs).
@@ -46,19 +67,21 @@ const beatMs = (steps: readonly TurnStep[], index: number): number => {
 const actingAt = (
   steps: readonly TurnStep[],
   index: number
-): ReadonlyMap<number, HeroActionStyle> => {
+): ReadonlyMap<number, HeroAction> => {
   const overlap = Math.ceil(HERO_ATTACK_MS / HERO_STAGGER_MS);
   return new Map(
     steps
       .slice(Math.max(0, index - overlap + 1), index + 1)
-      .flatMap(({ actorUid, attackType }) =>
-        actorUid === null ? [] : [[actorUid, attackType ?? 'support'] as const]
+      .flatMap((step) =>
+        step.actorUid === null
+          ? []
+          : [[step.actorUid, actionOf(step, step.actorUid)] as const]
       )
   );
 };
 
 /** Nobody acting (shared so the empty case keeps one identity). */
-const NOBODY_ACTING: ReadonlyMap<number, HeroActionStyle> = new Map();
+const NOBODY_ACTING: ReadonlyMap<number, HeroAction> = new Map();
 
 // --- HOOK ---
 /**

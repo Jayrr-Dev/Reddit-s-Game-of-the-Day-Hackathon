@@ -17,14 +17,14 @@
 // opacity only.
 // ===================================================================
 
-import { useId, type ReactNode } from 'react';
+import { useId, type CSSProperties, type ReactNode } from 'react';
 import type { HeroId } from '../../../../shared/game/heroes';
 import type { HeroSize } from '../../../../shared/game/types';
 import {
   ARMOR_STEEL,
   HERO_LOOKS,
   MAIL,
-  type HeroActionStyle,
+  type HeroAction,
   type HeroLook,
   type Prop,
   type Tone,
@@ -41,7 +41,7 @@ export type HeroFigureProps = {
   heroId: HeroId;
   size: HeroSize;
   /** The attack playing right now, if any. */
-  action?: HeroActionStyle | null;
+  action?: HeroAction | null;
 };
 
 type Point = readonly [number, number];
@@ -69,6 +69,8 @@ type Frame = {
 const EYE_FILL = '#1a1014';
 const FEET_Y = 96;
 const LEATHER = '#3a2a26';
+/** How oversized the weapons are, against the hero's own scale. */
+const WEAPON_SCALE = 1.35;
 /** Mail ring spacing and dot radius (viewBox units). */
 const MAIL_STEP = 1.25;
 const MAIL_DOT = 0.36;
@@ -106,6 +108,14 @@ const frameOf = (size: HeroSize): Frame => {
     hand: [mid + sw * 1.02, 64],
   };
 };
+
+/**
+ * Moves the hand for props held high: a bow is raised to the chest, so
+ * the whole draw stays in view even on front-row heroes, whose lower
+ * body sits below the battlefield's edge.
+ */
+const withGrip = (f: Frame, prop: Prop): Frame =>
+  prop === 'longbow' ? { ...f, hand: [f.hand[0], f.shoulderY + f.r * 1.5] } : f;
 
 // --- SUBCOMPONENTS: SHAPES ---
 /**
@@ -804,24 +814,50 @@ const HEADGEAR: Record<
 /** A prop's drawing and the tip a spell flares from. */
 type PropDrawing = { shape: ReactNode; tip: Point };
 
-const STEEL_LIT = '#d8d2d8';
-const STEEL_SHADE = '#9c929e';
+const STEEL_LIT = '#c4bcc5';
+const STEEL_SHADE = '#8e8491';
 const WOOD = '#7a5131';
+const FULLER = '#5f5662';
 const WOOD_DARK = '#5a3a22';
 
 /** A blade from the hand up to `length` units, `width` wide. */
-const blade = ([x, y]: Point, length: number, width: number): ReactNode => (
-  <>
-    <polygon
-      points={pts([x - width / 2, y - 3], [x, y - length], [x, y - 3])}
-      fill={STEEL_LIT}
-    />
-    <polygon
-      points={pts([x, y - 3], [x, y - length], [x + width / 2, y - 3])}
-      fill={STEEL_SHADE}
-    />
-  </>
-);
+const blade = ([x, y]: Point, length: number, width: number): ReactNode => {
+  // A slab: straight parallel edges, then a short point, so a wide
+  // blade reads as heavy iron rather than a needle.
+  const shoulder = y - length + width * 0.9;
+  return (
+    <>
+      <polygon
+        points={pts(
+          [x - width / 2, y - 3],
+          [x - width / 2, shoulder],
+          [x, y - length],
+          [x, y - 3]
+        )}
+        fill={STEEL_LIT}
+      />
+      <polygon
+        points={pts(
+          [x, y - 3],
+          [x, y - length],
+          [x + width / 2, shoulder],
+          [x + width / 2, y - 3]
+        )}
+        fill={STEEL_SHADE}
+      />
+      {/* FULLER: a dark groove down the middle of a broad blade */}
+      {width > 5 && (
+        <rect
+          x={x - width * 0.07}
+          y={shoulder + width * 0.4}
+          width={width * 0.14}
+          height={y - 3 - shoulder - width * 0.6}
+          fill={FULLER}
+        />
+      )}
+    </>
+  );
+};
 
 /** A crossguard and grip under a blade. */
 const hilt = ([x, y]: Point, width: number, accent: string): ReactNode => (
@@ -850,8 +886,8 @@ const PROPS: Record<
   sword: (h, k, { accent }) => ({
     shape: (
       <>
-        {blade(h, 30 * k, 4 * k)}
-        {hilt(h, 8 * k, accent)}
+        {blade(h, 30 * k, 6 * k)}
+        {hilt(h, 10 * k, accent)}
       </>
     ),
     tip: [h[0], h[1] - 30 * k],
@@ -859,8 +895,8 @@ const PROPS: Record<
   greatsword: (h, k, { accent }) => ({
     shape: (
       <>
-        {blade(h, 44 * k, 6 * k)}
-        {hilt(h, 12 * k, accent)}
+        {blade(h, 46 * k, 10 * k)}
+        {hilt(h, 15 * k, accent)}
       </>
     ),
     tip: [h[0], h[1] - 44 * k],
@@ -945,29 +981,81 @@ const PROPS: Record<
       tip: [cx, y - 16 * k],
     };
   },
-  longbow: ([x, y], k, { accent }) => ({
-    shape: (
-      <>
-        <path
-          d={`M${x - 2 * k} ${y - 24 * k}Q${x + 10 * k} ${y} ${x - 2 * k} ${y + 24 * k}`}
-          fill="none"
-          stroke={WOOD}
-          strokeWidth={2.4 * k}
-          strokeLinecap="round"
-        />
-        <line
-          className="hero-bowstring"
-          x1={x - 2 * k}
-          y1={y - 24 * k}
-          x2={x - 2 * k}
-          y2={y + 24 * k}
-          stroke={accent}
-          strokeWidth="0.7"
-        />
-      </>
-    ),
-    tip: [x + 4 * k, y],
-  }),
+  /**
+   * A longbow with its string in two halves, each pivoting on its own
+   * bow tip: turning them in opposite directions pulls the middle back
+   * into a V (a drawn string) with transforms alone. The arrow sits on
+   * the string, hidden until a shot draws it back and looses it.
+   */
+  longbow: ([x, y], k, { accent }) => {
+    const tipX = x - 2 * k;
+    const top = y - 24 * k;
+    const bottom = y + 24 * k;
+    return {
+      shape: (
+        <>
+          <path
+            className="hero-bow"
+            style={{ transformOrigin: `${x + 4 * k}px ${y}px` }}
+            d={`M${tipX} ${top}Q${x + 10 * k} ${y} ${tipX} ${bottom}`}
+            fill="none"
+            stroke={WOOD}
+            strokeWidth={2.4 * k}
+            strokeLinecap="round"
+          />
+          <line
+            className="hero-string-top"
+            style={{ transformOrigin: `${tipX}px ${top}px` }}
+            x1={tipX}
+            y1={top}
+            x2={tipX}
+            y2={y}
+            stroke={accent}
+            strokeWidth="0.7"
+          />
+          <line
+            className="hero-string-bottom"
+            style={{ transformOrigin: `${tipX}px ${bottom}px` }}
+            x1={tipX}
+            y1={y}
+            x2={tipX}
+            y2={bottom}
+            stroke={accent}
+            strokeWidth="0.7"
+          />
+          {/* THE ARROW: shaft from the nock, head forward, fletching back */}
+          <g className="hero-arrow" opacity="0">
+            <line
+              x1={tipX}
+              y1={y}
+              x2={x + 14 * k}
+              y2={y}
+              stroke={WOOD_DARK}
+              strokeWidth={1.1 * k}
+            />
+            <polygon
+              points={pts(
+                [x + 17 * k, y],
+                [x + 13 * k, y - 1.8 * k],
+                [x + 13 * k, y + 1.8 * k]
+              )}
+              fill={STEEL_LIT}
+            />
+            <polygon
+              points={pts(
+                [tipX, y],
+                [tipX + 4 * k, y],
+                [tipX + 1.5 * k, y - 2 * k],
+                [tipX - 1 * k, y - 2 * k]
+              )}
+              fill={accent}
+            />
+          </g>
+        </>
+      ),
+      tip: [x + 4 * k, y],
+    };
+  },
   holyStaff: ([x, y], k, { accent }) => ({
     shape: (
       <>
@@ -1113,6 +1201,87 @@ const PROPS: Record<
   }),
 };
 
+// --- SUBCOMPONENTS: SPELL EFFECTS ---
+/** Where the sparks start, around the tip (share of the head size). */
+const SPARK_STARTS: readonly Point[] = [
+  [-2.2, -1.2],
+  [2.2, -1.6],
+  [-1.8, 2],
+  [2, 1.6],
+  [0, -2.6],
+];
+
+/**
+ * Drawn at a prop's tip, hidden until a spell is cast: a spinning rune
+ * ring that opens out, sparks that gather into the tip, and a burst
+ * that leaves it. Each spark carries its start offset as --sx / --sy
+ * (viewBox units) for the gather keyframes in index.css.
+ */
+const CastEffects = ({
+  at: [x, y],
+  r,
+  accent,
+}: {
+  at: Point;
+  r: number;
+  accent: string;
+}) => (
+  <>
+    <g className="hero-rune" opacity="0">
+      <circle
+        cx={x}
+        cy={y}
+        r={r * 1.1}
+        fill="none"
+        stroke={accent}
+        strokeWidth="0.9"
+        strokeDasharray="3 1.5"
+      />
+      <polygon
+        points={pts(
+          [x, y - r * 1.1],
+          [x + r * 0.95, y + r * 0.55],
+          [x - r * 0.95, y + r * 0.55]
+        )}
+        fill="none"
+        stroke={accent}
+        strokeWidth="0.6"
+      />
+    </g>
+    {SPARK_STARTS.map(([dx, dy], index) => (
+      <polygon
+        key={index}
+        className="hero-spark"
+        style={
+          {
+            '--sx': `${dx * r}px`,
+            '--sy': `${dy * r}px`,
+            animationDelay: `${index * 25}ms`,
+          } as CSSProperties
+        }
+        points={pts(
+          [x, y - r * 0.3],
+          [x + r * 0.15, y],
+          [x, y + r * 0.3],
+          [x - r * 0.15, y]
+        )}
+        fill="white"
+        opacity="0"
+      />
+    ))}
+    <circle
+      className="hero-burst"
+      cx={x}
+      cy={y}
+      r={r * 0.8}
+      fill="none"
+      stroke="white"
+      strokeWidth="1.4"
+      opacity="0"
+    />
+  </>
+);
+
 // --- COMPONENT ---
 /** Draws the hero, feet at the bottom edge, head near the top. */
 export const HeroFigure = ({
@@ -1121,12 +1290,15 @@ export const HeroFigure = ({
   action = null,
 }: HeroFigureProps) => {
   const look = HERO_LOOKS[heroId];
-  const f = frameOf(size);
+  const f = withGrip(frameOf(size), look.prop);
   const width = BODY_WIDTH[size];
-  const k = f.r / headRadiusOf(1);
+  // Weapons are drawn oversized and heavy, well past the body's scale.
+  const k = (f.r / headRadiusOf(1)) * WEAPON_SCALE;
   const prop = PROPS[look.prop](f.hand, k, look);
   const gear = HEADGEAR[look.headgear](f, look);
   const [handX, handY] = f.hand;
+  // --k lets the CSS animations move parts by the prop's own scale.
+  const scaleVar = { '--k': k } as CSSProperties;
   // Pattern ids must be unique per drawing and safe inside url(#...).
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const mail: MailFills = { lit: `mail-lit-${uid}`, shade: `mail-${uid}` };
@@ -1135,7 +1307,9 @@ export const HeroFigure = ({
     <svg
       viewBox={`0 0 ${width} ${BODY_HEIGHT}`}
       className="h-full w-full overflow-visible"
-      data-action={action ?? undefined}
+      data-action={action?.style}
+      data-swing={action?.style === 'melee' ? action.swing : undefined}
+      style={scaleVar}
       aria-hidden="true"
     >
       {/* SHADOW AND SUPPORT AURA */}
@@ -1154,6 +1328,19 @@ export const HeroFigure = ({
         rx={f.bw * 1.1}
         ry="42"
         fill={look.accent}
+        opacity="0"
+      />
+      {/* MAGIC: a rune circle flashes on the ground as the spell goes */}
+      <ellipse
+        className="hero-floor-sigil"
+        cx={f.mid}
+        cy={FEET_Y}
+        rx={f.bw * 1.15}
+        ry={f.bw * 0.22}
+        fill="none"
+        stroke={look.accent}
+        strokeWidth="1.2"
+        strokeDasharray="4 2"
         opacity="0"
       />
       {isArmored && <MailPatterns ids={mail} />}
@@ -1179,6 +1366,7 @@ export const HeroFigure = ({
           fill={look.accent}
           opacity="0"
         />
+        <CastEffects at={prop.tip} r={f.r} accent={look.accent} />
       </g>
       {/* THE HAND HOLDING IT */}
       <circle cx={handX} cy={handY} r={f.r * 0.28} fill={look.skin.shade} />
