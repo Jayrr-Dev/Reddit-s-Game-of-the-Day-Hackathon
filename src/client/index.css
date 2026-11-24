@@ -53,6 +53,8 @@
   --color-hex: #a463e8;
   /* Magic: a light sky blue, kept clear of Guard's deeper periwinkle. */
   --color-magic: #7fd8f5;
+  /* Buff's glow, a bright amber. */
+  --color-buff: #f59a3c;
   --color-dread: #6f7f9e;
   --color-wrath: #e0663a;
   --color-heal: #5fbf7f;
@@ -67,7 +69,11 @@
   --color-card-melee: #8e1f33;
   --color-card-range: #5b636d;
   --color-card-magic: #2a7ea3;
-  --color-card-buff: #2c4675;
+  /* Buff: deep amber orange (yellower than Wrath's red-orange, more
+     saturated than the gold accent). */
+  --color-card-buff: #b4581a;
+  /* The deck and the End Turn button keep the old night blue. */
+  --color-deck: #2c4675;
   --color-card-curse: #5a2a86;
   --color-parchment: #dccaa2;
   --color-on-parchment: #2b1b12;

@@ -11,7 +11,7 @@ import { attackDamage, guardAmount, typeBonus } from './combatant.ts';
 import {
   cardHitOn,
   heroAttackOf,
-  plannedHeroMove,
+  plannedHeroMoves,
   scaleByMight,
 } from './combat.ts';
 import type {
@@ -233,16 +233,19 @@ const ADVANCE_INTENT: Intent = {
 };
 
 /**
- * What a hero will do next: the move's name plus one chip per effect,
- * or "Advance" when it has no move it can make from where it stands.
+ * What a hero will do this turn: its moves' names ("A, then B" for a
+ * boss with two actions) plus one chip per effect, in order, or
+ * "Advance" when it has no move it can make from where it stands.
  */
 export const describeHeroIntent = (
   unit: HeroUnit
 ): { name: string; intents: Intent[] } => {
-  const heroMove = plannedHeroMove(unit)?.move;
-  if (!heroMove) return { name: 'Advance', intents: [ADVANCE_INTENT] };
+  const moves = plannedHeroMoves(unit).map((planned) => planned.move);
+  if (moves.length === 0) return { name: 'Advance', intents: [ADVANCE_INTENT] };
   return {
-    name: heroMove.name,
-    intents: heroMove.effects.map((effect) => describeHeroEffect(unit, effect)),
+    name: moves.map((heroMove) => heroMove.name).join(', then '),
+    intents: moves.flatMap((heroMove) =>
+      heroMove.effects.map((effect) => describeHeroEffect(unit, effect))
+    ),
   };
 };

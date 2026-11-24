@@ -56,6 +56,10 @@ const PLATE_LOOK: Record<
   },
 };
 
+/** A boss's name: always gold, with a thin black outline. */
+const BOSS_NAME_CLASS =
+  'text-accent [paint-order:stroke_fill] [-webkit-text-stroke:2px_black]';
+
 // --- SUBCOMPONENTS ---
 /** The hero's next move as small chips. */
 export const IntentChips = ({ unit }: { unit: HeroUnit }) => {
@@ -78,7 +82,12 @@ export const IntentChips = ({ unit }: { unit: HeroUnit }) => {
 /** Renders one hero's plate; the focused hero's name is lit gold. */
 export const HeroPlate = ({ unit, isFocused }: HeroPlateProps) => {
   const look = PLATE_LOOK[sizeOf(unit)];
-  const nameClass = isFocused ? 'text-accent' : 'text-ink';
+  const isBoss = getHero(unit.heroId).tier === 'boss';
+  const nameClass = isBoss
+    ? BOSS_NAME_CLASS
+    : isFocused
+      ? 'text-accent'
+      : 'text-ink';
   const scaleClass = unit.row === 'back' ? 'scale-[0.8]' : '';
   return (
     <div

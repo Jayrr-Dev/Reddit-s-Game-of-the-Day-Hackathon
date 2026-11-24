@@ -14,8 +14,10 @@
 //     every move   the wings beat once
 //     magic/range  a cone of holy fire pours from its jaws
 //     support      the halo flares
-//   Its mood changes the eyes: slits while attacking, ">" "<" squeezed
-//   shut when hit.
+//   It has a real face (brow ridges, gold slit-pupil eyes, a muzzle
+//   with nostrils) that takes the heroes' moods: jaws open and brows
+//   down when fierce, squeezed shut and teeth clenched in a wince,
+//   brows lifted and mouth turned down when worried.
 // ===================================================================
 
 import type { CSSProperties, JSX } from 'react';
@@ -53,7 +55,9 @@ const WING = {
   innerShade: '#5c4a68',
 };
 const GOLD = { lit: '#d2a64c', shade: '#a9822f' };
-const EYE = '#4a2a22';
+const FEATURE = '#4a2a22';
+const EYE_GOLD = '#f0c95a';
+const MUZZLE_TONE = { lit: '#f6eee0', shade: '#d8c9b0' };
 const HOLY_FIRE = '#fff0b0';
 
 // --- CONSTANTS: HOLY DRAGON SHAPES (ART COORDINATES, LEFT SIDE) ---
@@ -135,13 +139,40 @@ const CLAWS: readonly (readonly Point[])[] = [
     [635, 975],
   ],
 ];
-/** Half the head and neck. */
-const HEAD: readonly Point[] = [
-  [768, 225],
-  [655, 297],
-  [690, 330],
-  [650, 505],
+/** Half the neck, under the head. */
+const NECK: readonly Point[] = [
+  [768, 340],
+  [700, 350],
+  [652, 505],
   [768, 520],
+];
+/** Half the skull: a broad brow narrowing to the cheek. */
+const SKULL: readonly Point[] = [
+  [768, 212],
+  [700, 240],
+  [650, 292],
+  [668, 340],
+  [712, 360],
+  [768, 362],
+];
+/** A spike swept back from each cheek. */
+const CHEEK_SPIKE: readonly Point[] = [
+  [650, 292],
+  [596, 320],
+  [668, 332],
+];
+/** Half the muzzle, jutting down toward you, a shade lighter. */
+const MUZZLE: readonly Point[] = [
+  [768, 330],
+  [722, 342],
+  [730, 425],
+  [768, 445],
+];
+const NOSTRIL: readonly Point[] = [
+  [740, 404],
+  [757, 409],
+  [753, 420],
+  [738, 415],
 ];
 const HORN: readonly Point[] = [
   [530, 137],
@@ -152,16 +183,16 @@ const HORN: readonly Point[] = [
 const HALO_CENTRE: Point = [768, 230];
 const HALO_RADIUS = 170;
 const HALO_STROKE = 10;
-/** The left eye's box: left, top, width, height. */
-const EYE_BOX = { x: 733, y: 328, width: 12, height: 30 } as const;
+/** The left eye's centre; eye shapes are offsets from it. */
+const EYE_CENTRE: Point = [712, 318];
 /** Holy fire: a cone from the jaws down toward the villain. */
 const BREATH: readonly Point[] = [
-  [745, 480],
-  [791, 480],
+  [745, 440],
+  [791, 440],
   [990, 1060],
   [546, 1060],
 ];
-const JAW: Point = [768, 480];
+const JAW: Point = [768, 440];
 
 // --- HELPERS ---
 /** Concept-art units to viewBox units (one scale for both axes). */
@@ -219,29 +250,157 @@ const Wings = () => (
   </>
 );
 
-/** The eyes for a mood: slits when fierce, squeezed ">" "<" in a wince. */
-const DragonEyes = ({ mood }: { mood: HeroMood }) => {
-  if (mood === 'wince') {
-    const squint: readonly Point[] = [
-      [722, 325],
-      [752, 343],
-      [722, 361],
-      [722, 352],
-      [740, 343],
-      [722, 334],
-    ];
-    return <Pair left={squint} lit={EYE} shade={EYE} />;
-  }
-  const isFierce = mood === 'fierce';
-  const height = isFierce ? EYE_BOX.height * 0.4 : EYE_BOX.height;
-  const top = EYE_BOX.y + (EYE_BOX.height - height);
-  const box: readonly Point[] = [
-    [EYE_BOX.x, top],
-    [EYE_BOX.x + EYE_BOX.width, top + (isFierce ? 6 : 0)],
-    [EYE_BOX.x + EYE_BOX.width, top + height],
-    [EYE_BOX.x, top + height],
+// --- SUBCOMPONENTS: HOLY DRAGON FACE ---
+/** Offsets (art units) moved to the left eye's centre. */
+const atEye = (offsets: readonly Point[]): Point[] =>
+  offsets.map(([dx, dy]) => [EYE_CENTRE[0] + dx, EYE_CENTRE[1] + dy] as const);
+
+/**
+ * Each mood's eye: a gold almond with a slit pupil at rest, narrowed
+ * when fierce, lifted at the inner corner when worried, and squeezed
+ * shut (">" "<") in a wince. Offsets are for the left eye, +x inward.
+ */
+const DRAGON_EYE: Record<HeroMood, readonly Point[]> = {
+  calm: [
+    [-26, -2],
+    [-6, -12],
+    [20, -8],
+    [24, 4],
+    [2, 12],
+    [-22, 6],
+  ],
+  fierce: [
+    [-26, 0],
+    [22, -8],
+    [24, 2],
+    [-22, 6],
+  ],
+  worried: [
+    [-26, 0],
+    [-4, -8],
+    [20, -16],
+    [24, 4],
+    [2, 12],
+    [-22, 6],
+  ],
+  wince: [
+    [-22, -12],
+    [22, 0],
+    [-22, 12],
+    [-22, 5],
+    [6, 0],
+    [-22, -5],
+  ],
+};
+/** The slit pupil (hidden when the eye is shut). */
+const PUPIL: Record<HeroMood, readonly Point[] | null> = {
+  calm: [
+    [-3, -10],
+    [3, -10],
+    [3, 10],
+    [-3, 10],
+  ],
+  fierce: [
+    [-3, -6],
+    [3, -7],
+    [3, 4],
+    [-3, 5],
+  ],
+  worried: [
+    [-3, -8],
+    [3, -9],
+    [3, 10],
+    [-3, 10],
+  ],
+  wince: null,
+};
+
+/**
+ * The brow ridge over each eye. `tilt` drops its inner end (angry,
+ * pained) or lifts it (worried), like the heroes' brows.
+ */
+const BROW_TILT: Record<HeroMood, number> = {
+  calm: 0,
+  fierce: 16,
+  wince: 10,
+  worried: -16,
+};
+const browRidge = (mood: HeroMood): Point[] => {
+  const tilt = BROW_TILT[mood];
+  return [
+    [672, 290],
+    [754, 296 + tilt],
+    [754, 309 + tilt],
+    [676, 304],
   ];
-  return <Pair left={box} lit={EYE} shade={EYE} />;
+};
+
+/** Each mood's mouth along the muzzle's tip (left half, mirrored). */
+const DRAGON_MOUTH: Record<HeroMood, readonly Point[]> = {
+  // A faint closed smile.
+  calm: [
+    [734, 424],
+    [768, 436],
+    [768, 442],
+    [734, 430],
+  ],
+  // Jaws open.
+  fierce: [
+    [732, 420],
+    [768, 420],
+    [768, 466],
+    [748, 464],
+  ],
+  // Clenched: a short open bar (the teeth go over it).
+  wince: [
+    [736, 420],
+    [768, 420],
+    [768, 440],
+    [740, 438],
+  ],
+  // Corners pulled down.
+  worried: [
+    [734, 438],
+    [768, 426],
+    [768, 432],
+    [734, 444],
+  ],
+};
+/** Fangs (fierce) and a band of clenched teeth (wince). */
+const FANG: readonly Point[] = [
+  [738, 421],
+  [750, 421],
+  [744, 440],
+];
+const CLENCHED_TEETH: readonly Point[] = [
+  [739, 423],
+  [768, 423],
+  [768, 431],
+  [740, 430],
+];
+const TEETH = '#fbf6ea';
+
+/** The face: brow ridges, gold eyes, nostrils and a mood mouth. */
+const DragonFace = ({ mood }: { mood: HeroMood }) => {
+  const eye = atEye(DRAGON_EYE[mood]);
+  const pupil = PUPIL[mood];
+  const isShut = mood === 'wince';
+  return (
+    <>
+      <Pair left={MUZZLE} lit={MUZZLE_TONE.lit} shade={MUZZLE_TONE.shade} />
+      <Pair left={NOSTRIL} lit={FEATURE} shade={FEATURE} />
+      <Pair
+        left={eye}
+        lit={isShut ? FEATURE : EYE_GOLD}
+        shade={isShut ? FEATURE : EYE_GOLD}
+      />
+      {pupil && <Pair left={atEye(pupil)} lit={FEATURE} shade={FEATURE} />}
+      <Pair left={browRidge(mood)} lit={IVORY.shade} shade={HAUNCH} />
+      <Pair left={DRAGON_MOUTH[mood]} lit={FEATURE} shade={FEATURE} />
+      {mood === 'fierce' && <Pair left={FANG} lit={TEETH} shade={TEETH} />}
+      {isShut && <Pair left={CLENCHED_TEETH} lit={TEETH} shade={TEETH} />}
+    </>
+  );
 };
 
 /** The holy dragon, crouched, wings spread, haloed. */
@@ -282,9 +441,11 @@ const HolyDragon = ({ mood }: { mood: HeroMood }) => {
           shade={LIMB.shade}
         />
       ))}
+      <Pair left={NECK} lit={IVORY.lit} shade={IVORY.shade} />
       <Pair left={HORN} lit={GOLD.lit} shade={GOLD.shade} />
-      <Pair left={HEAD} lit={IVORY.lit} shade={IVORY.shade} />
-      <DragonEyes mood={mood} />
+      <Pair left={CHEEK_SPIKE} lit={LIMB.lit} shade={LIMB.shade} />
+      <Pair left={SKULL} lit={IVORY.lit} shade={IVORY.shade} />
+      <DragonFace mood={mood} />
       {/* HOLY FIRE POURS FROM THE JAWS (hidden until it breathes) */}
       <polygon
         className="dragon-breath"

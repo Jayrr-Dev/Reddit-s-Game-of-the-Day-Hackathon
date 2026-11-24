@@ -84,7 +84,7 @@ export const CARD_LOOK: Record<
     glyph: 'shield',
     typeName: 'Buff',
     frameClass: 'bg-card-buff',
-    glowVar: 'var(--color-energy)',
+    glowVar: 'var(--color-buff)',
   },
   curse: {
     glyph: 'skull',

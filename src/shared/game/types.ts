@@ -120,7 +120,7 @@ export type HeroMove = {
   effects: readonly HeroEffect[];
 };
 
-export type HeroTier = 'grunt' | 'elite' | 'champion';
+export type HeroTier = 'grunt' | 'elite' | 'champion' | 'boss';
 
 // --- BATTLEFIELD ---
 /**
@@ -130,6 +130,12 @@ export type HeroTier = 'grunt' | 'elite' | 'champion';
 export type HeroRow = 'front' | 'back';
 /** How many columns a hero fills: grunts 1, elites 2, champions 3. */
 export type HeroSize = 1 | 2 | 3;
+/**
+ * How many rows a hero fills: 1 for everyone but bosses. A 2-deep hero
+ * stands in the front row and fills the back row behind it too; it can
+ * never be pulled or pushed.
+ */
+export type HeroDepth = 1 | 2;
 
 export type HeroDef = {
   name: string;
@@ -142,6 +148,10 @@ export type HeroDef = {
   /** The row this hero takes when the fight starts. */
   row: HeroRow;
   size: HeroSize;
+  /** Rows filled (see HeroDepth); 1 when left out. */
+  depth?: HeroDepth;
+  /** Moves made each heroes' turn, in cycle order; 1 when left out. */
+  actions?: number;
   /** Who acts first on the heroes' turn: higher goes earlier. */
   speed: number;
 };

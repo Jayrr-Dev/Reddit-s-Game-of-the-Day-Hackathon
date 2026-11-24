@@ -9,6 +9,7 @@
 import type {
   HeroAttackType,
   HeroDef,
+  HeroDepth,
   HeroEffect,
   HeroMove,
   HeroRow,
@@ -66,7 +67,7 @@ const move = (name: string, ...effects: HeroEffect[]): HeroMove => ({
 });
 
 /** Where a hero stands: its starting row and how many columns it fills. */
-type Placement = { row: HeroRow; size: HeroSize };
+type Placement = { row: HeroRow; size: HeroSize; depth?: HeroDepth };
 
 // --- PLACEMENTS ---
 // Fighters hold the front; support and ranged heroes keep to the back.
@@ -76,6 +77,8 @@ const WIDE_FRONT: Placement = { row: 'front', size: 2 };
 const WIDE_BACK: Placement = { row: 'back', size: 2 };
 /** A champion fills the whole front row on its own. */
 const HUGE: Placement = { row: 'front', size: 3 };
+/** A boss fills the whole field, both rows, on its own. */
+const BOSS: Placement = { row: 'front', size: 3, depth: 2 };
 
 /**
  * Builds a hero definition. Speed sets the turn order (higher acts
@@ -88,8 +91,21 @@ const hero = (
   hue: number,
   speed: number,
   placement: Placement,
-  moves: HeroMove[]
-): HeroDef => ({ name, tier, maxHp, hue, speed, moves, ...placement });
+  moves: HeroMove[],
+  actions?: number
+): HeroDef => ({
+  name,
+  tier,
+  maxHp,
+  hue,
+  speed,
+  moves,
+  ...placement,
+  ...(actions === undefined ? {} : { actions }),
+});
+
+/** A boss makes two moves every heroes' turn. */
+const BOSS_ACTIONS = 2;
 
 // --- CATALOG ---
 export const HEROES = {
@@ -164,17 +180,27 @@ export const HEROES = {
     move('Final Verdict', strike(25)),
   ]),
 
-  // TEST CREATURES (SANDBOX ONLY UNTIL THEY JOIN A REGION)
+  // BOSSES (TARGET DUMMY SCENARIOS ONLY UNTIL THEY JOIN A REGION)
   /**
-   * A great ivory dragon that fills the whole front row: it shields
-   * the horde, breathes holy fire on you, and rouses everyone's Wrath.
+   * A great ivory dragon boss: it fills the whole field (all 6 slots)
+   * and makes two moves a turn, shielding itself, breathing holy fire,
+   * rending with its claws and roaring itself into a Wrath.
    */
-  holyDragon: hero('Holy Dragon', 'champion', 70, 280, 5, HUGE, [
-    move('Sanctuary Wings', shroud(8, 'allies')),
-    move('Holy Breath', spell(7, 2)),
-    move('Rending Claws', strike(16)),
-    move('Radiant Roar', wrath(2, 'allies')),
-  ]),
+  holyDragon: hero(
+    'Holy Dragon Unc',
+    'boss',
+    500,
+    280,
+    5,
+    BOSS,
+    [
+      move('Sanctuary Wings', shroud(20)),
+      move('Holy Breath', spell(8, 2)),
+      move('Rending Claws', strike(18)),
+      move('Radiant Roar', wrath(2)),
+    ],
+    BOSS_ACTIONS
+  ),
 } as const satisfies Record<string, HeroDef>;
 
 // --- DERIVED DATA ---
@@ -203,9 +229,3 @@ export const CHAMPION_IDS: readonly HeroId[] = [
   'seris',
   'valen',
 ];
-
-/**
- * New units being tried out: they turn up only as target dummies (and
- * in the practice menu's scenarios) until they join a run.
- */
-export const TEST_CREATURE_IDS: readonly HeroId[] = ['holyDragon'];

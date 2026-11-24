@@ -7,7 +7,7 @@
 // ===================================================================
 
 import type { CSSProperties } from 'react';
-import { sizeOf } from '../../../../shared/game/battlefield';
+import { isDeep, sizeOf } from '../../../../shared/game/battlefield';
 import { getHero } from '../../../../shared/game/heroes';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
 import type {
@@ -52,10 +52,18 @@ export type HeroOnFieldProps = {
 /** Where each row stands, as a share of the battlefield height. */
 // Boxes include the plate on top. Front plates end below where back
 // plates begin, so the two rows' plates never cover each other.
-const ROW_BOX: Record<HeroRow, { bottom: string; height: string }> = {
+type RowBox = { bottom: string; height: string };
+const ROW_BOX: Record<HeroRow, RowBox> = {
   front: { bottom: '2%', height: '56%' },
   back: { bottom: '63%', height: '25%' },
 };
+/** A boss fills both rows: from the front row's foot to the back's top. */
+const DEEP_BOX: RowBox = { bottom: '2%', height: '86%' };
+/**
+ * A boss may be drawn this much wider than the field, so it fills both
+ * rows' height; only its wingtips spill past the edges.
+ */
+const BOSS_OVERSPILL = 1.25;
 
 /**
  * How the whole body moves during each kind of move (the prop's own
@@ -124,7 +132,7 @@ const boxStyle = (unit: HeroUnit): CSSProperties => {
   return {
     left: `${unit.col * columnShare}%`,
     width: `${sizeOf(unit) * columnShare}%`,
-    ...ROW_BOX[unit.row],
+    ...(isDeep(unit) ? DEEP_BOX : ROW_BOX[unit.row]),
   };
 };
 
@@ -185,7 +193,7 @@ const DyingHero = ({ unit }: { unit: HeroUnit }) => {
       <div className="relative h-full w-full [container-type:size]">
         <div
           className="absolute bottom-0 left-1/2 -translate-x-1/2 origin-bottom animate-hero-death"
-          style={bodyStyleOf(size)}
+          style={bodyStyleOf(size, isDeep(unit))}
         >
           <HeroFigure heroId={unit.heroId} size={size} mood="wince" />
         </div>
@@ -206,8 +214,8 @@ const DyingHero = ({ unit }: { unit: HeroUnit }) => {
 };
 
 /** The drawing's size: as tall as fits the box at its aspect ratio. */
-const bodyStyleOf = (size: HeroSize): CSSProperties => ({
-  height: `min(100cqh, ${100 / figureAspect(size)}cqw)`,
+const bodyStyleOf = (size: HeroSize, isBoss = false): CSSProperties => ({
+  height: `min(100cqh, ${(isBoss ? BOSS_OVERSPILL : 1) * (100 / figureAspect(size))}cqw)`,
   aspectRatio: figureAspect(size),
 });
 
@@ -236,7 +244,7 @@ export const HeroOnField = ({
   const focusClass = isFocused
     ? 'drop-shadow-[0_0_10px_var(--color-accent)]'
     : '';
-  const bodyStyle = bodyStyleOf(size);
+  const bodyStyle = bodyStyleOf(size, isDeep(unit));
   const mood = moodOf({
     isHurt: lastHitId !== null,
     isActing: action !== null,

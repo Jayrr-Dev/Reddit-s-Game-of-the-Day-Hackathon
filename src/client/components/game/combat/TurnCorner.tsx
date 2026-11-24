@@ -20,14 +20,14 @@ export const TurnCorner = ({ drawCount, onEndTurn }: TurnCornerProps) => (
     <PileStack
       count={drawCount}
       label="Cards left to draw"
-      toneClass="bg-card-buff"
+      toneClass="bg-deck"
       side="right"
     />
     <button
       type="button"
       onClick={onEndTurn}
       aria-label="End turn"
-      className="grid size-14 place-items-center rounded-full bg-card-buff text-accent shadow-lg ring-2 ring-accent/70 active:scale-95"
+      className="grid size-14 place-items-center rounded-full bg-deck text-accent shadow-lg ring-2 ring-accent/70 active:scale-95"
     >
       <Glyph name="hourglass" className="size-7" />
     </button>

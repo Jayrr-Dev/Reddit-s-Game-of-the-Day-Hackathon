@@ -7,16 +7,10 @@
 // Pure functions like the rest of the engine; never scored or logged.
 // ===================================================================
 
-import { sizeOf } from './battlefield.ts';
+import { cellCountOf } from './battlefield.ts';
 import { ALL_CARD_IDS } from './cards.ts';
 import { combatOutcome, endTurn, playCard, startCombat } from './combat.ts';
-import {
-  CHAMPION_IDS,
-  ELITE_IDS,
-  GRUNT_IDS,
-  TEST_CREATURE_IDS,
-  type HeroId,
-} from './heroes.ts';
+import { CHAMPION_IDS, ELITE_IDS, GRUNT_IDS, type HeroId } from './heroes.ts';
 import { move } from './movement.ts';
 import { nextInt, pickWeighted, type RngState } from './rng.ts';
 import { ENERGY_PER_TURN } from './rules.ts';
@@ -31,9 +25,10 @@ export type SandboxAction = PlayCardAction | { type: 'endTurn' } | MoveAction;
 /** So much HP the heroes can't win; you test, you don't lose. */
 export const SANDBOX_HP = 999;
 /**
- * Most battlefield columns a horde may fill (the field has 6). Keeping
+ * Most battlefield cells a horde may fill (the field has 6). Keeping
  * one free guarantees every mix fits, e.g. a champion (3) + an elite
- * (2), or two elites + a grunt.
+ * (2), or two elites + a grunt. A boss (6 cells) never rolls; it has
+ * its own scenario.
  */
 const HORDE_SIZE_BUDGET = 5;
 const MIN_DUMMIES = 2;
@@ -43,7 +38,6 @@ const DUMMY_POOL: readonly { item: HeroId; weight: number }[] = [
   ...GRUNT_IDS.map((item) => ({ item, weight: 3 })),
   ...ELITE_IDS.map((item) => ({ item, weight: 2 })),
   ...CHAMPION_IDS.map((item) => ({ item, weight: 1 })),
-  ...TEST_CREATURE_IDS.map((item) => ({ item, weight: 1 })),
 ];
 
 // --- SCENARIOS ---
@@ -65,9 +59,9 @@ export type SandboxScenario = {
 export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
   {
     id: 'holyDragon',
-    name: 'Holy Dragon',
-    blurb: 'The dragon fills the front; a priest, archer and bard behind.',
-    heroIds: ['holyDragon', 'priest', 'bard', 'archer'],
+    name: 'Holy Dragon Unc',
+    blurb: 'A boss that fills all six slots on its own.',
+    heroIds: ['holyDragon'],
   },
   {
     id: 'mixedRows',
@@ -112,12 +106,12 @@ export const rollDummies = (seed: RngState): [HeroId[], RngState] => {
   // Imperative on purpose: each pick shrinks the room for the next one.
   while (heroIds.length < wanted) {
     const fitting = DUMMY_POOL.filter(
-      (entry) => sizeOf({ heroId: entry.item }) <= budget
+      (entry) => cellCountOf({ heroId: entry.item }) <= budget
     );
     if (fitting.length === 0) break;
     const [heroId, next] = pickWeighted(rng, fitting);
     heroIds.push(heroId);
-    budget -= sizeOf({ heroId });
+    budget -= cellCountOf({ heroId });
     rng = next;
   }
   return [heroIds, rng];

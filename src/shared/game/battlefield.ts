@@ -1,7 +1,9 @@
 // ===================================================================
 // BATTLEFIELD
 // Where heroes stand. The field is a grid BATTLEFIELD_COLUMNS wide and
-// two rows deep; each hero fills `size` neighbouring columns in one row.
+// two rows deep; each hero fills `size` neighbouring columns in one row,
+// or in both rows for a 2-deep boss (see HeroDepth), which stands in the
+// front row and can never be pulled, pushed or moved by Back Step.
 //
 // RULES
 //   - Melee cards hit the front row only. Reach cards, curses and Hex
@@ -22,7 +24,13 @@
 import { getCard, type CardId } from './cards.ts';
 import { getHero } from './heroes.ts';
 import { BATTLEFIELD_COLUMNS } from './rules.ts';
-import type { CardDef, HeroRow, HeroSize, HeroUnit } from './types.ts';
+import type {
+  CardDef,
+  HeroDepth,
+  HeroRow,
+  HeroSize,
+  HeroUnit,
+} from './types.ts';
 
 // --- TYPES ---
 /** A hero that has not been placed yet (no row or column). */
@@ -48,6 +56,22 @@ const spanOf = (col: number, size: number): number[] =>
 export const sizeOf = (unit: Pick<HeroUnit, 'heroId'>): HeroSize =>
   getHero(unit.heroId).size;
 
+/** How many rows a hero fills (1, or 2 for a boss). */
+export const depthOf = (unit: Pick<HeroUnit, 'heroId'>): HeroDepth =>
+  getHero(unit.heroId).depth ?? 1;
+
+/** True for a hero that fills both rows (it never changes row). */
+export const isDeep = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
+  depthOf(unit) === 2;
+
+/** The rows a hero stands in: its own, plus the back for a deep one. */
+export const rowsOf = (unit: Pick<HeroUnit, 'heroId' | 'row'>): HeroRow[] =>
+  isDeep(unit) ? ['front', 'back'] : [unit.row];
+
+/** Every battlefield cell (rows x columns) a hero fills. */
+export const cellCountOf = (unit: Pick<HeroUnit, 'heroId'>): number =>
+  sizeOf(unit) * depthOf(unit);
+
 /** The row a hero is not in. */
 const otherRow = (row: HeroRow): HeroRow =>
   row === 'front' ? 'back' : 'front';
@@ -62,7 +86,7 @@ const isSpanOpen = (
   heroes.every(
     (unit) =>
       unit.uid === ignoreUid ||
-      unit.row !== row ||
+      !rowsOf(unit).includes(row) ||
       !spanOf(unit.col, sizeOf(unit)).some((col) => span.includes(col))
   );
 
@@ -79,17 +103,25 @@ const PREFERRED_COLUMNS: Record<
   back: { 1: [0, 2, 1], 2: [1, 0], 3: [0] },
 };
 
-/** The first column where a hero of `size` fits in `row`, or null. */
+/**
+ * The first column where a hero of `size` fits in `row` (and, for a
+ * 2-deep hero, in the back row behind it too), or null.
+ */
 const firstOpenColumn = (
   heroes: readonly HeroUnit[],
   row: HeroRow,
-  size: HeroSize
-): number | null =>
-  PREFERRED_COLUMNS[row][size].find(
-    (col) =>
-      col + size <= BATTLEFIELD_COLUMNS &&
-      isSpanOpen(heroes, row, spanOf(col, size))
-  ) ?? null;
+  size: HeroSize,
+  depth: HeroDepth = 1
+): number | null => {
+  const rows: HeroRow[] = depth === 2 ? ['front', 'back'] : [row];
+  return (
+    PREFERRED_COLUMNS[row][size].find(
+      (col) =>
+        col + size <= BATTLEFIELD_COLUMNS &&
+        rows.every((each) => isSpanOpen(heroes, each, spanOf(col, size)))
+    ) ?? null
+  );
+};
 
 // --- FORMATION ---
 
@@ -98,7 +130,12 @@ const placeHero = (
   placed: readonly HeroUnit[],
   unit: UnplacedHero
 ): HeroUnit => {
-  const { row, size } = getHero(unit.heroId);
+  const { row, size, depth = 1 } = getHero(unit.heroId);
+  // A boss only ever stands in the front row (filling the back too).
+  if (depth === 2) {
+    const col = firstOpenColumn(placed, 'front', size, depth);
+    return { ...unit, row: 'front', col: col ?? 0 };
+  }
   for (const candidate of [row, otherRow(row)]) {
     const col = firstOpenColumn(placed, candidate, size);
     if (col !== null) return { ...unit, row: candidate, col };
@@ -133,7 +170,7 @@ const marchInFromBack = (heroes: HeroUnit[]): HeroUnit[] => {
  * starts out of melee reach. The result keeps the original order (uids).
  */
 export const formUp = (units: readonly UnplacedHero[]): HeroUnit[] => {
-  const bySizeDesc = [...units].sort((a, b) => sizeOf(b) - sizeOf(a));
+  const bySizeDesc = [...units].sort((a, b) => cellCountOf(b) - cellCountOf(a));
   const placed = bySizeDesc.reduce<HeroUnit[]>(
     (field, unit) => [...field, placeHero(field, unit)],
     []
@@ -163,12 +200,19 @@ type Seating = Map<number, number>;
 const startColumns = (size: HeroSize): number[] =>
   Array.from({ length: BATTLEFIELD_COLUMNS - size + 1 }, (_, col) => col);
 
-/** True when no two seated heroes share a column. */
+/**
+ * True when no two seated heroes share a column, and none stands in a
+ * `blocked` column (held by a boss that cannot slide).
+ */
 const isSeatingValid = (
-  seats: readonly { col: number; size: number }[]
+  seats: readonly { col: number; size: number }[],
+  blocked: readonly number[] = []
 ): boolean => {
   const cells = seats.flatMap(({ col, size }) => spanOf(col, size));
-  return new Set(cells).size === cells.length;
+  return (
+    new Set(cells).size === cells.length &&
+    cells.every((col) => !blocked.includes(col))
+  );
 };
 
 /** Every way to give each hero in `units` a leftmost column. */
@@ -213,10 +257,15 @@ const seatInOtherRow = (
   heroes: readonly HeroUnit[],
   unit: HeroUnit
 ): Seating | null => {
+  if (isDeep(unit)) return null;
   const row = otherRow(unit.row);
   const rowHeroes = heroes
-    .filter((other) => other.row === row)
+    .filter((other) => other.row === row && !isDeep(other))
     .sort((a, b) => a.col - b.col);
+  // Bosses fill both rows and never slide aside: their columns are taken.
+  const blocked = heroes
+    .filter((other) => isDeep(other) && other.uid !== unit.uid)
+    .flatMap((boss) => spanOf(boss.col, sizeOf(boss)));
   const rowOrder = rowHeroes.map((hero) => hero.uid);
   const movers = [unit, ...rowHeroes];
   const startOf = new Map(movers.map((hero) => [hero.uid, hero.col]));
@@ -229,7 +278,9 @@ const seatInOtherRow = (
       0
     );
   const best = allSeatings(movers)
-    .filter((seats) => isSeatingValid(seats) && keepsOrder(seats, rowOrder))
+    .filter(
+      (seats) => isSeatingValid(seats, blocked) && keepsOrder(seats, rowOrder)
+    )
     .reduce<{ uid: number; col: number }[] | null>(
       (cheapest, seats) =>
         cheapest === null || costOf(seats) < costOf(cheapest)
@@ -288,7 +339,7 @@ export const advanceMelee = (heroes: HeroUnit[]): HeroUnit[] => {
 
 /** Back Step: the whole field (all in the front row) falls back a row. */
 export const fallBack = (heroes: readonly HeroUnit[]): HeroUnit[] =>
-  heroes.map((unit) => ({ ...unit, row: 'back' }));
+  heroes.map((unit) => (isDeep(unit) ? unit : { ...unit, row: 'back' }));
 
 // --- TARGETING ---
 

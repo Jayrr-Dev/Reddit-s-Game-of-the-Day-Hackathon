@@ -150,6 +150,28 @@ export const plannedHeroMove = (unit: HeroUnit): PlannedMove | null => {
   );
 };
 
+/** How many moves a hero makes each heroes' turn (bosses make more). */
+export const actionsOf = (unit: Pick<HeroUnit, 'heroId'>): number =>
+  getHero(unit.heroId).actions ?? 1;
+
+/**
+ * Every move a hero will make this turn, in order: its next
+ * `actionsOf` moves that it can make from where it stands. Empty when
+ * it has none (it only advances).
+ */
+export const plannedHeroMoves = (unit: HeroUnit): PlannedMove[] => {
+  const planned: PlannedMove[] = [];
+  let cursor = unit;
+  // Imperative on purpose: each pick starts after the one before it.
+  for (let action = 0; action < actionsOf(unit); action += 1) {
+    const next = plannedHeroMove(cursor);
+    if (!next) break;
+    planned.push(next);
+    cursor = { ...cursor, moveIndex: next.index + 1 };
+  }
+  return planned;
+};
+
 /**
  * A Range hit at its proper range. Rounded (not floored) so even small
  * hits feel the bonus: 2 -> 3, 6 -> 8.
@@ -656,12 +678,17 @@ const applyHeroEffect = (
 };
 
 /**
- * One hero takes its turn: performs its planned move (if it has one it
- * can make from where it stands), then its own upkeep, then moves on in
- * its cycle past that move. The actor is re-read after each effect so a
- * wrath gained mid-move applies to the attacks that follow it.
+ * One hero takes one action: performs its planned move (if it has one
+ * it can make from where it stands) and moves on in its cycle past it;
+ * after its last action of the turn (`isLast`) its own upkeep runs too.
+ * The actor is re-read after each effect so a wrath gained mid-move
+ * applies to the attacks that follow it.
  */
-const heroActs = (state: CombatState, uid: number): CombatState => {
+const heroActs = (
+  state: CombatState,
+  uid: number,
+  isLast = true
+): CombatState => {
   const actor = state.heroes.find((unit) => unit.uid === uid);
   if (!actor || isDefeated(state.player)) return state;
   const planned = plannedHeroMove(actor);
@@ -678,7 +705,7 @@ const heroActs = (state: CombatState, uid: number): CombatState => {
   );
 
   const settled = updateHeroes(acted, [uid], (unit) => ({
-    ...endOfTurnUpkeep(unit),
+    ...(isLast ? endOfTurnUpkeep(unit) : unit),
     moveIndex: planned ? planned.index + 1 : unit.moveIndex,
   }));
   return removeFallen(settled);
@@ -749,18 +776,27 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
   ];
   if (combatOutcome(discarded) === 'lost') return steps;
 
-  // 2. THE HORDE ACTS, FASTEST FIRST (imperative: each step builds on
-  //    the last, and fallen heroes or a fallen villain end it early)
+  // 2. THE HORDE ACTS, FASTEST FIRST, EACH HERO ALL ITS ACTIONS IN A
+  //    ROW (imperative: each step builds on the last, and fallen heroes
+  //    or a fallen villain end it early)
   let current = discarded;
-  for (const { uid } of heroTurnOrder(discarded.heroes)) {
-    const actor = current.heroes.find((unit) => unit.uid === uid);
-    const hasMove = actor !== undefined && plannedHeroMove(actor) !== null;
-    const attackType = actor ? plannedAttackType(actor) : null;
-    const next = heroActs(current, uid);
-    if (next === current) continue;
-    steps.push({ actorUid: hasMove ? uid : null, attackType, state: next });
-    current = next;
-    if (combatOutcome(current) !== 'ongoing') return steps;
+  for (const { uid, heroId } of heroTurnOrder(discarded.heroes)) {
+    const actions = actionsOf({ heroId });
+    for (let action = 1; action <= actions; action += 1) {
+      const actor = current.heroes.find((unit) => unit.uid === uid);
+      if (!actor) break;
+      const hasMove = plannedHeroMove(actor) !== null;
+      // Out of moves early: this is its last action (upkeep runs now).
+      const isLast = action === actions || !hasMove;
+      const attackType = plannedAttackType(actor);
+      const next = heroActs(current, uid, isLast);
+      if (next !== current) {
+        steps.push({ actorUid: hasMove ? uid : null, attackType, state: next });
+        current = next;
+        if (combatOutcome(current) !== 'ongoing') return steps;
+      }
+      if (isLast) break;
+    }
   }
 
   // 3. MELEE HEROES IN THE BACK ROW STEP UP, THEN THE NEXT VILLAIN TURN

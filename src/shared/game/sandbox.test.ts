@@ -6,7 +6,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sizeOf } from './battlefield.ts';
+import { canPull, canPush, fallBack, rowsOf, sizeOf } from './battlefield.ts';
 import {
   SANDBOX_SCENARIOS,
   createSandbox,
@@ -20,7 +20,9 @@ import type { HeroUnit } from './types.ts';
 // --- HELPERS ---
 /** Every (row, column) cell a hero stands in, as "row:col". */
 const cellsOf = (unit: HeroUnit): string[] =>
-  Array.from({ length: sizeOf(unit) }, (_, i) => `${unit.row}:${unit.col + i}`);
+  rowsOf(unit).flatMap((row) =>
+    Array.from({ length: sizeOf(unit) }, (_, i) => `${row}:${unit.col + i}`)
+  );
 
 // --- TESTS ---
 void test('every rolled horde fits the field without overlap', () => {
@@ -59,25 +61,35 @@ void test('clearing the field brings a new horde with higher uids', () => {
   assert.ok(next.heroes.every((unit) => unit.uid > oldUid));
 });
 
-// --- TEST CREATURES ---
-void test('the Holy Dragon fills the whole front row on its own', () => {
-  const { heroes } = createSandboxWith(5, ['holyDragon', 'archer', 'priest']);
-  const dragon = heroes.find((unit) => unit.heroId === 'holyDragon');
+// --- BOSSES ---
+void test('the Holy Dragon fills all six slots on its own', () => {
+  const { heroes } = createSandboxWith(5, ['holyDragon']);
+  const [dragon] = heroes;
   assert.ok(dragon);
-  assert.equal(sizeOf(dragon), 3);
-  assert.deepEqual(cellsOf(dragon), ['front:0', 'front:1', 'front:2']);
-  const others = heroes.filter((unit) => unit !== dragon);
-  assert.ok(others.every((unit) => unit.row === 'back'));
-  const cells = heroes.flatMap(cellsOf);
-  assert.equal(new Set(cells).size, cells.length);
+  assert.equal(dragon.row, 'front');
+  assert.deepEqual(cellsOf(dragon).sort(), [
+    'back:0',
+    'back:1',
+    'back:2',
+    'front:0',
+    'front:1',
+    'front:2',
+  ]);
 });
 
-void test('a 3-slot creature can turn up among the random dummies', () => {
-  const seeds = Array.from({ length: 400 }, (_, i) => i + 1);
-  const isRolled = seeds.some((seed) =>
-    rollDummies(seed)[0].includes('holyDragon')
-  );
-  assert.ok(isRolled);
+void test('a boss is never pulled, pushed or moved by Back Step', () => {
+  const { heroes } = createSandboxWith(5, ['holyDragon']);
+  const [dragon] = heroes;
+  assert.ok(dragon);
+  assert.equal(canPull(heroes, dragon), false);
+  assert.equal(canPush(heroes, dragon), false);
+  assert.equal(fallBack(heroes)[0]?.row, 'front');
+});
+
+void test('random dummies never roll a boss', () => {
+  for (let seed = 1; seed <= 300; seed += 1) {
+    assert.ok(!rollDummies(seed)[0].includes('holyDragon'));
+  }
 });
 
 // --- SCENARIOS ---

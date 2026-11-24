@@ -13,7 +13,7 @@
 // turn 4 (3). Nothing on turn 5. Turn 6: back to 1.
 // ===================================================================
 
-import { fallBack, stepForward } from './battlefield.ts';
+import { fallBack, isDeep, stepForward } from './battlefield.ts';
 import { combatOutcome } from './combat.ts';
 import { BACK_STEP_COST, CHARGE_COST, MOVEMENT_STREAK_COST } from './rules.ts';
 import type {
@@ -79,10 +79,15 @@ const streakOf = (state: CombatState): number => {
 export const movementCost = (state: CombatState, move: MovementId): number =>
   MOVEMENTS[move].baseCost + streakOf(state) * MOVEMENT_STREAK_COST;
 
-/** True while the formation allows `move` (cost aside). */
+/**
+ * True while the formation allows `move` (cost aside). A boss filling
+ * both rows can't be moved, so no movement is offered while one stands.
+ */
 const isFormationFor = (state: CombatState, move: MovementId): boolean =>
   state.heroes.length > 0 &&
-  state.heroes.every((unit) => unit.row === MOVEMENTS[move].needsAllIn);
+  state.heroes.every(
+    (unit) => !isDeep(unit) && unit.row === MOVEMENTS[move].needsAllIn
+  );
 
 /** The movement the field offers right now, if any (cost aside). */
 export const offeredMovement = (state: CombatState): MovementId | null =>

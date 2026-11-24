@@ -26,6 +26,7 @@ import {
   wouldFell,
   autoTargets,
   playDamageFactor,
+  plannedHeroMoves,
 } from './combat.ts';
 import { describeCard, describeHeroIntent } from './describe.ts';
 import { BACK_STEP_COST, CARDS_PER_TURN, ENERGY_PER_TURN } from './rules.ts';
@@ -522,4 +523,32 @@ void test('playDamageFactor combines Charge, Dread and the target bonus', () => 
     statuses: { ...charged.statuses, dread: 1 },
   };
   assert.equal(playDamageFactor(chargedAndDreaded, squire, melee), 1.13);
+});
+
+void test('a boss makes two moves a turn, in cycle order', () => {
+  const start = startCombat({
+    hp: 999,
+    maxHp: 999,
+    deck: ['backhand'],
+    heroIds: ['holyDragon'],
+    might: 1,
+    seed: 4,
+  });
+  const [dragon] = start.heroes;
+  assert.ok(dragon);
+  assert.deepEqual(
+    plannedHeroMoves(dragon).map((planned) => planned.move.name),
+    ['Sanctuary Wings', 'Holy Breath']
+  );
+  assert.equal(
+    describeHeroIntent(dragon).name,
+    'Sanctuary Wings, then Holy Breath'
+  );
+  const steps = endTurnSteps(start);
+  const dragonSteps = steps.filter((step) => step.actorUid === dragon.uid);
+  assert.equal(dragonSteps.length, 2);
+  const after = steps.at(-1)?.state.heroes[0];
+  assert.equal(after?.moveIndex, 2);
+  // Holy Breath (Magic 8 x 2) landed on the villain.
+  assert.equal(steps.at(-1)?.state.player.hp, 999 - 16);
 });
