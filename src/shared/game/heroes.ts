@@ -292,8 +292,13 @@ export const HEROES = {
     BOSS_T,
     [
       move('Call the Host', summon('angelArcher', 2)),
-      move('Holy Breath', spell(8, 2)),
+      // A dragon breathes fire: its breaths lay Burn.
+      move('Holy Breath', spell(8, 2), burn(4)),
       move('Sanctuary Wings', guard(20)),
+      move('Dragonfire', {
+        ...spell(5, 3),
+        perHit: { status: 'burn', amount: 3 },
+      }),
       signature(move('Halo of Judgment', revive(), spell(26))),
       move('Radiant Roar', wrath(2)),
       // Blesses the whole host: Wrath and Protection on every hero.

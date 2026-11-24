@@ -1553,6 +1553,21 @@ void test('hero moves can buff, guard or heal every hero (chip reads ALL)', () =
   assert.ok(lead?.label.includes('every hero'));
 });
 
+void test('the Holy Dragon breathes fire: its breaths lay Burn', () => {
+  const moves = getHero('holyDragon').moves;
+  const burns = moves.filter((m) =>
+    m.effects.some(
+      (e) =>
+        e.kind === 'burn' ||
+        (e.kind === 'attack' && e.perHit?.status === 'burn')
+    )
+  );
+  assert.deepEqual(
+    burns.map((m) => m.name),
+    ['Holy Breath', 'Dragonfire']
+  );
+});
+
 void test('the Holy Dragon blesses its host; its angels cleanse it', () => {
   const dragon = getHero('holyDragon').moves.find(
     (m) => m.name === 'Blessing of the Host'
