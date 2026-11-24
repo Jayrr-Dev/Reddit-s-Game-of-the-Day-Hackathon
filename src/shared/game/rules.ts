@@ -226,6 +226,7 @@ export const ELEMENT_ON_HIT: Record<MagicElement, ElementOnHit | null> = {
   fire: null,
   ice: { status: 'frost', amount: 1 },
   healing: null,
+  lightning: null,
 };
 
 // --- THE KINGDOM ---

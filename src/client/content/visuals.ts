@@ -217,6 +217,13 @@ export const ELEMENT_LOOK: Record<MagicElement, ElementLook> = {
     core: 'color-mix(in oklab, var(--color-heal) 25%, white)',
     burst: 'ring',
   },
+  lightning: {
+    glyph: 'bolt',
+    toneClass: 'text-shock',
+    energy: 'var(--color-shock)',
+    core: 'white',
+    burst: 'ring',
+  },
 };
 
 /**

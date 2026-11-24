@@ -883,11 +883,11 @@ void test('every pick follows reach: a melee pick at the back row hits the front
 });
 
 void test('a Target N card shows one beat per pick and ends on the real play', () => {
-  const start = squireAndArcher(['forkedBolt']);
+  const start = squireAndArcher(['scatterShot']);
   const [squire, archer] = start.heroes.map((unit) => unit.uid);
-  const picks = [squire ?? -1, archer ?? -1];
+  const picks = [squire ?? -1, archer ?? -1, squire ?? -1];
   const steps = playCardSteps(start, 0, picks[0] ?? -1, picks);
-  assert.equal(steps.length, 3);
+  assert.equal(steps.length, 4);
   assert.deepEqual(steps.at(-1), playCard(start, 0, picks[0] ?? -1, picks));
 });
 
@@ -1848,7 +1848,8 @@ void test('every elemental card is a Magic card', () => {
       assert.equal(getCard(id).type, 'magic', `${id} has an element`);
   assert.equal(getCard('cataclysm').element, 'fire');
   assert.equal(getCard('frostBolt').element, 'ice');
-  assert.equal(getCard('wardingBolt').element, undefined, 'plain magic');
+  assert.equal(getCard('shadowBarrage').element, undefined, 'plain magic');
+  assert.equal(getCard('wardingBolt').element, 'lightning');
 });
 
 void test('Buff cards can not be imbued', () => {
@@ -2221,4 +2222,27 @@ void test('unspent energy carries over into the reserve, up to its slots', () =>
   // Ending with nothing left keeps nothing.
   const spent = endTurn({ ...next, energy: 0 });
   assert.equal(spent.energy, ENERGY_PER_TURN);
+});
+
+// --- LIGHTNING CARDS ---
+void test('lightning cards: Static Charge only shocks, Overcharge doubles it', () => {
+  assert.equal(getCard('forkedBolt').element, 'lightning');
+  assert.ok(getCard('forkedBolt').effects.some((e) => e.kind === 'shock'));
+  assert.ok(
+    getCard('staticCharge').effects.every((e) => e.kind === 'shock'),
+    'Static Charge deals no damage'
+  );
+  const state = fightWith(['backhand']);
+  const uid = state.heroes[0]!.uid;
+  const charged = playCard(
+    { ...state, hand: ['staticCharge', 'overcharge'], energy: 9 },
+    0,
+    uid
+  );
+  const shockOf = (s: CombatState) =>
+    s.heroes.find((unit) => unit.uid === uid)!.statuses.shock;
+  const laid = shockOf(charged);
+  assert.ok(laid > 0);
+  const doubled = playCard(charged, 0, uid);
+  assert.equal(shockOf(doubled), laid * 2);
 });

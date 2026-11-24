@@ -169,6 +169,8 @@ void test('every test deck holds at least 4 cards, all in play', () => {
 
 void test('a test deck leans on its theme: Lightning has Serrated Slash', () => {
   assert.ok(sandboxDeckCards('lightning').includes('serratedSlash'));
+  for (const id of ['staticCharge', 'stormFront', 'overcharge'] as const)
+    assert.ok(sandboxDeckCards('lightning').includes(id), id);
   assert.ok(!sandboxDeckCards('lightning').includes('darkCloak'));
   const fight = createSandbox(7, 'lightning');
   const all = [...fight.hand, ...fight.drawPile];

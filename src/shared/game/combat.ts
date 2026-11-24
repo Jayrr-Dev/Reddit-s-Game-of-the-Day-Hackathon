@@ -771,6 +771,19 @@ const applyCardEffect = (
         ...state,
         heroes: pushHero(state.heroes, targetUid, effect.rows),
       };
+    case 'amplify':
+      // OVERCHARGE: the status already on the target, multiplied.
+      return updateHeroes(
+        state,
+        resolveTargets(state, effect.target, targetUid, cardDef.type),
+        (unit) => ({
+          ...unit,
+          statuses: {
+            ...unit.statuses,
+            [effect.status]: unit.statuses[effect.status] * effect.factor,
+          },
+        })
+      );
     case 'imbue':
       return imbueSlot(state, play.slot, { gift: effect.gift });
   }

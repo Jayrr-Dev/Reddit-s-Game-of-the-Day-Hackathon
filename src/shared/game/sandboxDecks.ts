@@ -50,7 +50,7 @@ const hasEffect =
   (card: CardDef): boolean =>
     effectsOf(card).some((kind) => kinds.includes(kind));
 
-/** True when the card hits more than once (Shock needs 3 hits a turn). */
+/** True when the card hits more than once (Shock needs SHOCK_HITS a turn). */
 const isMultiHit = (card: CardDef): boolean =>
   card.targets > 1 ||
   card.effects.some((effect) => effect.kind === 'damage' && effect.hits > 1);
@@ -92,8 +92,12 @@ export const SANDBOX_DECKS: readonly SandboxDeck[] = [
   {
     id: 'lightning',
     name: 'Lightning',
-    blurb: 'Shock plus multi-hit cards to set it off.',
-    fits: anyOf(hasEffect('shock'), isMultiHit),
+    blurb: 'Lightning spells, Shock and multi-hit cards to set it off.',
+    fits: anyOf(
+      hasEffect('shock', 'amplify'),
+      (card) => card.element === 'lightning',
+      isMultiHit
+    ),
   },
   {
     id: 'hex',

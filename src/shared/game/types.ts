@@ -157,7 +157,9 @@ export type BaseCardEffect =
   /** Pull N: drags the target up to `rows` rows nearer. */
   | { kind: 'pull'; rows: number }
   /** Knockback N: shoves the target up to `rows` rows farther. */
-  | { kind: 'push'; rows: number };
+  | { kind: 'push'; rows: number }
+  /** Multiplies a status already on the target (Overcharge: Shock ×2). */
+  | { kind: 'amplify'; status: 'shock'; factor: number; target: CardTarget };
 
 // --- DURATION ---
 /**
@@ -190,7 +192,10 @@ export type CardKeyword =
  * Effects an imbue may grant. Pull and Push are left out: they change
  * who a card may aim at, and an imbue never changes a card's aim.
  */
-export type ImbuableEffect = Exclude<BaseCardEffect, { kind: 'pull' | 'push' }>;
+export type ImbuableEffect = Exclude<
+  BaseCardEffect,
+  { kind: 'pull' | 'push' | 'amplify' }
+>;
 /** What an imbue grants a card: a keyword, or one more effect. */
 export type ImbueGift =
   | { kind: 'keyword'; keyword: CardKeyword }
@@ -212,7 +217,7 @@ export type CardRarity = 'basic' | 'common' | 'uncommon' | 'rare' | 'legendary';
  * its burst and the icon on its type pill), and some elements add to
  * every hit (see ELEMENT_ON_HIT in rules.ts: Ice lays Frost).
  */
-export type MagicElement = 'fire' | 'ice' | 'healing';
+export type MagicElement = 'fire' | 'ice' | 'healing' | 'lightning';
 
 /**
  * A Melee card's edge: Sharp (blades: a slice lands) or Blunt (fists,

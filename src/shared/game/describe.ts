@@ -284,10 +284,16 @@ export const describeCardEffect = (
       return `${PULL_INFO.label} ${effect.rows}`;
     case 'push':
       return `${KNOCKBACK_INFO.label} ${effect.rows}`;
+    case 'amplify':
+      return amplifyLabel(effect.factor, STATUS_INFO[effect.status].label);
     case 'imbue':
       return describeImbueEffect(effect);
   }
 };
+
+/** "Double Shock" for ×2, else "Shock ×N" (Overcharge's line). */
+const amplifyLabel = (factor: number, label: string): string =>
+  factor === 2 ? `Double ${label}` : `${label} ×${factor}`;
 
 /** " ×N" for an effect cast more than once, else nothing. */
 const timesSuffix = (times = 1): string => (times > 1 ? ` ×${times}` : '');

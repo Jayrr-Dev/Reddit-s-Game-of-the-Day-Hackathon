@@ -49,9 +49,16 @@ const poison = (amount: number): CardEffect => ({
   amount,
   target: 'one',
 });
-const shock = (amount: number): CardEffect => ({
+const shock = (amount: number, target: 'one' | 'all' = 'one'): CardEffect => ({
   kind: 'shock',
   amount,
+  target,
+});
+/** Multiplies the target's Shock (Overcharge doubles it). */
+const amplifyShock = (factor: number): CardEffect => ({
+  kind: 'amplify',
+  status: 'shock',
+  factor,
   target: 'one',
 });
 const weaken = (amount: number, target: 'one' | 'all' = 'one'): CardEffect => ({
@@ -108,6 +115,8 @@ const REMOVES: CardTraits = { keywords: ['remove'] };
 const EXHAUSTS: CardTraits = { keywords: ['exhaust'] };
 const FIRE: CardTraits = { element: 'fire' };
 const ICE: CardTraits = { element: 'ice' };
+/** Lightning magic: a yellow bolt on its type ribbon; it lays Shock. */
+const LIGHTNING: CardTraits = { element: 'lightning' };
 /** Healing magic: a green + on its type ribbon. */
 const HEALING: CardTraits = { element: 'healing' };
 /** Melee edges (cosmetic): blades slice, fists and hammers thud. */
@@ -236,7 +245,39 @@ export const CARDS = {
     [hit(4), guard(4)],
     DISTANCES
   ),
-  wardingBolt: card('Warding Bolt', 'magic', 1, 'common', [hit(4), guard(4)]),
+  wardingBolt: card(
+    'Warding Bolt',
+    'magic',
+    1,
+    'common',
+    [hit(4), shock(2), guard(4)],
+    LIGHTNING
+  ),
+  // LIGHTNING: Shock only (no damage), and Overcharge to double it
+  staticCharge: card(
+    'Static Charge',
+    'magic',
+    1,
+    'common',
+    [shock(5)],
+    LIGHTNING
+  ),
+  stormFront: card(
+    'Storm Front',
+    'magic',
+    2,
+    'uncommon',
+    [shock(4, 'all')],
+    LIGHTNING
+  ),
+  overcharge: card(
+    'Overcharge',
+    'magic',
+    1,
+    'uncommon',
+    [amplifyShock(2)],
+    LIGHTNING
+  ),
   // IMBUE: grant another card in hand a keyword or an effect
   holdFast: card('Hold Fast', 'buff', 0, 'common', [imbue(giftHold)]),
   barbedTip: card('Barbed Tip', 'buff', 0, 'common', [
@@ -294,7 +335,8 @@ export const CARDS = {
   scatterShot: card('Scatter Shot', 'range', 1, 'common', [hit(3)], {
     targets: 3,
   }),
-  forkedBolt: card('Forked Bolt', 'magic', 1, 'common', [hit(5)], {
+  forkedBolt: card('Forked Bolt', 'magic', 1, 'common', [hit(4), shock(2)], {
+    ...LIGHTNING,
     targets: 2,
   }),
   reapingCuts: card('Reaping Cuts', 'melee', 1, 'common', [hit(4)], {
