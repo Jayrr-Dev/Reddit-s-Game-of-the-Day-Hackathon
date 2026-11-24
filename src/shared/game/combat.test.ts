@@ -2474,12 +2474,15 @@ void test('Plate Armor gives the villain Armor 2; Sir Brannoc starts armored', (
   assert.equal(maiden?.statuses.armor, 3);
 });
 
-void test('Piercing ignores Armor and Protection (not Guard)', () => {
+void test('Piercing ignores Armor, Protection and Guard', () => {
   const tough = castProtection(
     addStatus({ ...createCombatant(30, 30), guard: 1 }, 'armor', 2)
   );
-  assert.equal(takeHit(tough, 8, 'range', true).hp, 23, '8 - 1 Guard');
-  assert.ok(takeHit(tough, 8, 'range').hp > 23, 'unpierced is reduced');
+  const pierced = takeHit(tough, 8, 'range', true);
+  assert.equal(pierced.hp, 22, 'all 8, straight to HP');
+  assert.equal(pierced.guard, 1, 'Guard is left standing');
+  assert.ok(takeHit(tough, 8, 'range').hp > 22, 'unpierced is reduced');
+  assert.ok(KEYWORD_INFO.piercing.description.includes('Guard'));
   assert.ok(KEYWORD_INFO.piercing.description.includes('Armor'));
 });
 
