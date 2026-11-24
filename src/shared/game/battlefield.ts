@@ -90,26 +90,31 @@ export const cellsOf = (
 ];
 
 /**
- * The heroes directly behind `unit`: back-row heroes sharing a lane
- * (column) with it, for a Piercing hit. A wide front hero shields every
- * lane it fills; a hero already in the back row, or a deep one (a boss
- * filling both rows), has nobody behind it. Aloft heroes are out of
- * reach.
+ * The lane a Piercing hit goes through: a hero's middle lane (for a
+ * two-wide hero, its first), so a pierce is always one column.
+ */
+const pierceLaneOf = (unit: HeroUnit): number =>
+  unit.col + Math.floor((sizeOf(unit) - 1) / 2);
+
+/**
+ * The hero directly behind `unit` (as a list: none or one), for a
+ * Piercing hit: the back-row hero in its pierce lane (pierceLaneOf).
+ * A hero already in the back row, or a deep one (a boss filling both
+ * rows), has nobody behind it. Aloft heroes are out of reach.
  */
 export const heroesBehind = (
   heroes: readonly HeroUnit[],
   unit: HeroUnit
 ): HeroUnit[] => {
   if (unit.row !== 'front' || isDeep(unit)) return [];
-  const lanes = spanOf(unit.col, sizeOf(unit));
-  return heroes.filter(
+  const lane = pierceLaneOf(unit);
+  const behind = heroes.find(
     (other) =>
       other.uid !== unit.uid &&
       !isAloft(other) &&
-      cellsOf(other).some(
-        (cell) => cell.row === 'back' && lanes.includes(cell.col)
-      )
+      cellsOf(other).some((cell) => cell.row === 'back' && cell.col === lane)
   );
+  return behind ? [behind] : [];
 };
 
 /** The rows a hero stands in: its own, plus the back for a deep one. */

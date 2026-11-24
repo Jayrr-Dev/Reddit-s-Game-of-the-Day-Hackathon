@@ -5,7 +5,9 @@
 //   art window    an arched window with the type's glyph
 //   name banner   the name across the middle in the display font
 //   rules panel   parchment with the rules text, keywords in bold
-//   type ribbon   the type (Melee, Range, Magic, Defend, Buff, Curse) and rarity
+//   rarity gem    set into the banner's bottom edge (starters have none)
+//   type ribbon   the type (Melee, Range, Magic, Defend, Buff, Curse),
+//                 with a Magic card's element icon (Fire, Ice) before it
 // The frame and outer glow are coloured by type (see CARD_LOOK).
 // The text comes from describeCardRules, so it always matches what the
 // card really does (including live wrath/weaken math, and the hero it
@@ -21,8 +23,13 @@ import {
   DURATION_INFO,
   GLOSSARY,
 } from '../../../shared/game/describe';
-import type { Combatant, HeroUnit, Imbue } from '../../../shared/game/types';
-import { CARD_LOOK, RARITY_GEM } from '../../content/visuals';
+import type {
+  Combatant,
+  HeroUnit,
+  Imbue,
+  MagicElement,
+} from '../../../shared/game/types';
+import { CARD_LOOK, ELEMENT_LOOK, RARITY_GEM } from '../../content/visuals';
 import { Glyph, type GlyphName } from '../ui/Glyph';
 import { cardBadgesOf } from '../../content/cardBadges';
 import { Tooltip } from '../ui/Tooltip';
@@ -63,6 +70,10 @@ type SizeLook = {
   name: string;
   rules: string;
   ribbon: string;
+  /** The element icon on the ribbon. */
+  ribbonIcon: string;
+  /** The rarity gem under the name banner. */
+  gem: string;
 };
 
 // --- CONSTANTS ---
@@ -76,6 +87,8 @@ const SIZE_LOOK: Record<CardSize, SizeLook> = {
     name: 'text-[7.5px] py-0.5',
     rules: 'text-[8px] leading-[1.15] px-0.5',
     ribbon: 'text-[6px] px-1.5 gap-0.5',
+    ribbonIcon: 'size-2',
+    gem: 'size-1.5',
   },
   offer: {
     box: 'h-40 w-[6.5rem]',
@@ -85,6 +98,8 @@ const SIZE_LOOK: Record<CardSize, SizeLook> = {
     name: 'text-[10px] py-0.5',
     rules: 'text-[10px] leading-snug px-1',
     ribbon: 'text-[8px] px-2 gap-1',
+    ribbonIcon: 'size-2.5',
+    gem: 'size-2',
   },
 };
 
@@ -176,7 +191,10 @@ const MarkedPart = ({
   const info = GLOSSARY[part];
   if (!info) return bold;
   return (
-    <Tooltip content={{ title: info.label, description: info.description }}>
+    <Tooltip
+      content={{ title: info.label, description: info.description }}
+      isInline
+    >
       {bold}
     </Tooltip>
   );
@@ -205,22 +223,50 @@ const ArtWindow = ({
   </span>
 );
 
-/** The ribbon under the rules: the card's type and its rarity gem. */
+/** The ribbon under the rules: a Magic card's element icon and its type. */
 const TypeRibbon = ({
   typeName,
-  gemClass,
+  element,
   look,
 }: {
   typeName: string;
-  gemClass: string | null;
+  element: MagicElement | undefined;
   look: SizeLook;
 }) => (
   <span
     className={`absolute bottom-0.5 left-1/2 flex -translate-x-1/2 items-center rounded-sm bg-surface-sunken py-px font-bold uppercase tracking-wider text-ink ring-1 ring-accent/50 ${look.ribbon}`}
   >
+    {element && (
+      <Glyph
+        name={ELEMENT_LOOK[element].glyph}
+        className={`${look.ribbonIcon} ${ELEMENT_LOOK[element].toneClass}`}
+      />
+    )}
     {typeName}
+  </span>
+);
+
+/** The name banner, with the rarity gem set into its bottom edge. */
+const NameBanner = ({
+  name,
+  frameClass,
+  gemClass,
+  look,
+}: {
+  name: string;
+  frameClass: string;
+  gemClass: string | null;
+  look: SizeLook;
+}) => (
+  <span
+    className={`relative -mx-[3px] shrink-0 border-y border-black/50 ${frameClass} font-display font-black uppercase leading-none tracking-tight text-ink [text-shadow:0_1px_1px_rgb(0_0_0/0.8)] ${look.name}`}
+  >
+    {name}
     {gemClass && (
-      <span className={`size-1.5 rotate-45 ${gemClass} ring-1 ring-black/50`} />
+      <span
+        aria-hidden
+        className={`absolute left-1/2 top-full z-10 ${look.gem} -translate-x-1/2 -translate-y-1/2 rotate-45 ${gemClass} ring-1 ring-black/60 shadow-[0_0_3px_rgb(0_0_0/0.6)]`}
+      />
     )}
   </span>
 );
@@ -270,11 +316,12 @@ export const CardView = ({
         />
       )}
       <CardBadges badges={cardBadgesOf(cardId, imbues)} size={size} />
-      <span
-        className={`-mx-[3px] shrink-0 border-y border-black/50 ${typeLook.frameClass} font-display font-black uppercase leading-none tracking-tight text-ink [text-shadow:0_1px_1px_rgb(0_0_0/0.8)] ${look.name}`}
-      >
-        {cardDef.name}
-      </span>
+      <NameBanner
+        name={cardDef.name}
+        frameClass={typeLook.frameClass}
+        gemClass={RARITY_GEM[cardDef.rarity]}
+        look={look}
+      />
       <span
         className={`flex w-full min-h-0 flex-1 flex-col justify-center rounded-b-sm bg-parchment text-on-parchment ${look.rules}`}
       >
@@ -288,7 +335,7 @@ export const CardView = ({
       </span>
       <TypeRibbon
         typeName={typeLook.typeName}
-        gemClass={RARITY_GEM[cardDef.rarity]}
+        element={cardDef.element}
         look={look}
       />
     </button>

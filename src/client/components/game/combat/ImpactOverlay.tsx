@@ -96,10 +96,13 @@ const Hole = ({ id }: { id: number }) => (
   </span>
 );
 
-/** A Magic hit: an arcane burst, turned any which way. */
-const Burst = ({ id }: { id: number }) => (
-  <span className="absolute aspect-square w-[64%]" style={placeAt(id, 0, 180)}>
-    <MagicBurst id={id} />
+/** A Magic hit: a burst in its element's colours, turned any which way. */
+const Burst = ({ pop }: { pop: PlayerHitPop }) => (
+  <span
+    className="absolute aspect-square w-[64%]"
+    style={placeAt(pop.id, 0, 180)}
+  >
+    <MagicBurst id={pop.id} element={pop.element} />
   </span>
 );
 
@@ -117,7 +120,7 @@ const Glow = ({ tone }: { tone: string }) => (
 const HitMark = ({ pop }: { pop: PlayerHitPop }) => {
   if (pop.tick) return <StatusFx kind={pop.tick} id={pop.id} />;
   if (pop.source === 'range') return <Hole id={pop.id} />;
-  if (pop.source === 'magic') return <Burst id={pop.id} />;
+  if (pop.source === 'magic') return <Burst pop={pop} />;
   if (pop.source === 'curse') return <Glow tone={CURSE_GLOW} />;
   return <Slash pop={pop} />;
 };

@@ -43,6 +43,7 @@ import {
   BACK_STEP_COST,
   CARDS_PER_TURN,
   ENERGY_PER_TURN,
+  MAX_IMBUES_PER_CARD,
   STATUS_IS_AFFLICTION,
 } from './rules.ts';
 import type { CombatState, HeroUnit } from './types.ts';
@@ -1391,6 +1392,35 @@ void test('a Piercing hit also strikes the hero directly behind, in the same lan
   assert.equal(besideLost, 0, 'the next lane is left alone');
 });
 
+void test('a wide front hero is pierced through one lane only', () => {
+  const state = startCombat({
+    hp: 60,
+    maxHp: 60,
+    deck: Array.from({ length: 12 }, (): CardId => 'darkCloak'),
+    heroIds: ['paladin', 'archer', 'archer'],
+    might: 1,
+    seed: 7,
+  });
+  const spots = [
+    { row: 'front', col: 0 },
+    { row: 'back', col: 0 },
+    { row: 'back', col: 1 },
+  ] as const;
+  const placed: CombatState = {
+    ...state,
+    hand: ['blackArrow'],
+    energy: 5,
+    heroes: state.heroes.map((unit, index) => ({
+      ...unit,
+      ...(spots[index] ?? spots[0]),
+    })),
+  };
+  const after = playCard(placed, 0, placed.heroes[0]?.uid ?? -1);
+  const [, firstLost, secondLost] = hpLost(placed, after);
+  assert.ok((firstLost ?? 0) > 0, 'the hero behind its first lane is hit');
+  assert.equal(secondLost, 0, 'one column, not the whole back row');
+});
+
 void test('a Piercing hit on the back row has nobody behind to hit', () => {
   const state = laneFight(['blackArrow']);
   const back = state.heroes[2]?.uid ?? -1;
@@ -1555,4 +1585,25 @@ void test('a turn buff wears off at the end of the turn', () => {
   const later = endTurn(furious);
   assert.equal(later.player.statuses.might, before);
   assert.deepEqual(describeCard('battleFury'), ['Gain 3 Might this turn.']);
+});
+
+void test('a card holds at most MAX_IMBUES_PER_CARD imbues', () => {
+  const runes = Array.from(
+    { length: MAX_IMBUES_PER_CARD + 1 },
+    (): CardId => 'venomCoat'
+  );
+  let state: CombatState = { ...cloakFight(['backhand', ...runes]), energy: 9 };
+  // Imperative on purpose: each rune goes on the Backhand in slot 0.
+  for (let i = 0; i < MAX_IMBUES_PER_CARD; i++)
+    state = playCard(state, 1, 0, undefined, 0);
+  assert.equal(state.handImbues[0]?.length, MAX_IMBUES_PER_CARD);
+  assert.equal(canPlayCard(state, 1), false, 'the Backhand is full');
+});
+
+void test('every elemental card is a Magic card', () => {
+  for (const id of ALL_CARD_IDS)
+    if (getCard(id).element)
+      assert.equal(getCard(id).type, 'magic', `${id} has an element`);
+  assert.equal(getCard('cataclysm').element, 'fire');
+  assert.equal(getCard('frostBolt').element, 'ice');
 });

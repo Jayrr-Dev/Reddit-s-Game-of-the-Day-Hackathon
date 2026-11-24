@@ -12,6 +12,8 @@ export const ENERGY_PER_TURN = 3;
 export const CARDS_PER_TURN = 5;
 /** Cards drawn beyond this are discarded instead of added to the hand. */
 export const MAX_HAND_SIZE = 10;
+/** The most imbues one card in hand can hold; a full card takes no more. */
+export const MAX_IMBUES_PER_CARD = 3;
 /**
  * Energy it costs the villain to Charge: when the front row is empty,
  * the back row only steps up when the villain charges at them.

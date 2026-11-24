@@ -15,7 +15,7 @@ import { useCallback, useRef, useState } from 'react';
 import { cardAreaTargets } from '../../shared/game/battlefield';
 import { getCard, type CardId } from '../../shared/game/cards';
 import type { PlayCardAction } from '../../shared/game/run';
-import type { CombatState } from '../../shared/game/types';
+import type { CombatState, MagicElement } from '../../shared/game/types';
 import { sweepStyleFor, type SweepStyleId } from '../content/meleeSweeps';
 import { sweepAcross, type SweepFlight } from '../lib/meleeSweep';
 import { seeded } from '../lib/seeded';
@@ -47,6 +47,8 @@ export type ShotPlan = {
   handIndex: number;
   targetUids: number[];
   hits: number;
+  /** A Magic card's element (its bolts' colours). */
+  element?: MagicElement | undefined;
 };
 
 // --- CONSTANTS ---
@@ -71,7 +73,7 @@ export const shotPlanOf = (
 ): ShotPlan | null => {
   const cardId = combat.hand[action.handIndex];
   if (cardId === undefined) return null;
-  const { type, effects } = getCard(cardId);
+  const { type, effects, element } = getCard(cardId);
   const damage = effects.find((effect) => effect.kind === 'damage');
   if (!damage || (type !== 'range' && type !== 'magic')) return null;
   const targetUids =
@@ -83,6 +85,7 @@ export const shotPlanOf = (
     handIndex: action.handIndex,
     targetUids,
     hits: damage.hits,
+    element,
   };
 };
 
@@ -193,7 +196,14 @@ export const usePlayerShots = () => {
       if (!to) return [];
       const id = nextIdRef.current++;
       return [
-        { id, kind: plan.kind, from, to, delayMs: index * HIT_STAGGER_MS },
+        {
+          id,
+          kind: plan.kind,
+          from,
+          to,
+          delayMs: index * HIT_STAGGER_MS,
+          element: plan.element,
+        },
       ];
     });
     if (flights.length === 0) return false;

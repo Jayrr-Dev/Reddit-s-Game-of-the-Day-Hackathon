@@ -14,6 +14,7 @@
 //   DURATION an imbue may carry one (types.ts, Duration): "this action"
 //            lapses when another card is played first, "this turn" at
 //            the end of the turn, "this battle" survives being played.
+//   LIMIT    a card holds at most MAX_IMBUES_PER_CARD imbues.
 //   STACKING a gift the card already has (printed or imbued) only goes
 //            on again if it stacks (GIFT_STACKS): Poison 3 + Poison 3
 //            makes 6; a second Hold or Cleanse has nowhere to go.
@@ -24,6 +25,7 @@
 
 import { isSelfEffect, targetRuleOf } from './battlefield.ts';
 import { getCard, hasKeyword, type CardId } from './cards.ts';
+import { MAX_IMBUES_PER_CARD } from './rules.ts';
 import type {
   CardEffect,
   CardKeyword,
@@ -139,6 +141,7 @@ export const canImbueOnto = (
   cardId: CardId,
   imbues: readonly Imbue[] = []
 ): boolean => {
+  if (imbues.length >= MAX_IMBUES_PER_CARD) return false;
   if (gift.kind === 'keyword')
     return (
       !cardHasKeyword(cardId, imbues, gift.keyword) &&

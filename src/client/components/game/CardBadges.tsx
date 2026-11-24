@@ -1,6 +1,7 @@
 // ===================================================================
 // CARD BADGES
-// A column of small round icon badges under a card's cost coin: its
+// A column of round sockets joined under a card's cost coin, each
+// holding one icon: its
 // keywords and Imbue gifts (see content/cardBadges.ts). A gift's number
 // sits on its badge's bottom corner, and a timed gift ("this turn") has
 // a small hourglass on the top corner; an imbued badge has a teal rim.
@@ -28,14 +29,14 @@ const SIZE_LOOK: Record<
   }
 > = {
   fan: {
-    column: '-left-1.5 top-4 gap-0.5',
+    column: '-left-1 top-3',
     badge: 'size-4',
     icon: 'size-2.5',
     count: 'text-[7px] -right-1 -bottom-0.5',
     timer: 'size-2 -right-1 -top-0.5',
   },
   offer: {
-    column: '-left-2 top-6 gap-1',
+    column: '-left-1 top-[1.1rem]',
     badge: 'size-5',
     icon: 'size-3',
     count: 'text-[9px] -right-1 -bottom-0.5',
@@ -49,7 +50,7 @@ const Badge = ({ badge, size }: { badge: CardBadge; size: BadgeSize }) => {
   const look = SIZE_LOOK[size];
   return (
     <span
-      className={`relative grid ${look.badge} place-items-center rounded-full bg-surface-sunken ring-1 ${badge.isImbued ? 'ring-imbue shadow-[0_0_6px_var(--color-imbue)]' : 'ring-edge'} ${badge.toneClass}`}
+      className={`relative -mt-px grid ${look.badge} place-items-center rounded-full bg-surface-sunken ring-2 ${badge.isImbued ? 'ring-imbue/80 shadow-[0_0_6px_var(--color-imbue)]' : 'ring-surface-sunken'} ${badge.toneClass}`}
     >
       <Glyph name={badge.glyph} className={look.icon} />
       {badge.duration && (
@@ -80,7 +81,9 @@ export const CardBadges = ({
   size: BadgeSize;
 }) =>
   badges.length === 0 ? null : (
-    <span className={`absolute z-10 flex flex-col ${SIZE_LOOK[size].column}`}>
+    // z-[9]: tucked just under the coin (z-10), so the top socket
+    // reads as hanging from it.
+    <span className={`absolute z-[9] flex flex-col ${SIZE_LOOK[size].column}`}>
       {badges.map((badge) => (
         <Tooltip
           key={badge.key}

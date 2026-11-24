@@ -8,12 +8,15 @@
 //             (or, in the RING variant, a ring of short ticks)
 //   SPARKS    the strands break into tiny squiggles that drift and vanish
 // Ray count, lengths, rotation and variant come from the pop id, so each
-// burst is different but never changes on re-render.
+// burst is different but never changes on re-render. An element (Fire,
+// Ice) sets the colours and the variant (see ELEMENT_LOOK).
 // PERFORMANCE: static SVG layers with no filters; each layer animates
 // only transform and opacity (magic-* keyframes in index.css).
 // ===================================================================
 
 import { memo, type ReactNode } from 'react';
+import type { MagicElement } from '../../../../shared/game/types';
+import { ELEMENT_LOOK } from '../../../content/visuals';
 import { seeded } from '../../../lib/seeded';
 
 // --- CONSTANTS ---
@@ -23,10 +26,11 @@ const MIN_RAYS = 7;
 const EXTRA_RAYS = 5;
 const SPARK_COUNT = 14;
 const TICK_COUNT = 12;
-const ENERGY = 'color-mix(in oklab, var(--color-magic) 65%, #d8f7ff)';
+/** A plain (elementless) spell's colours. */
+const ARCANE_ENERGY = 'color-mix(in oklab, var(--color-magic) 65%, #d8f7ff)';
+const ARCANE_CORE = 'white';
 /** A dark underline so the energy reads on light and blue armour. */
 const SHADOW = 'rgb(10 6 20 / 0.7)';
-const CORE = 'white';
 
 // --- HELPERS ---
 /** A point at `radius` from the centre, at `angle` radians, as "x y". */
@@ -105,9 +109,18 @@ const Layer = ({
  * Renders one Magic burst filling its box (the box sets size and spot).
  * Memoised: its shape depends only on the id.
  */
-export const MagicBurst = memo(function MagicBurst({ id }: { id: number }) {
+export const MagicBurst = memo(function MagicBurst({
+  id,
+  element,
+}: {
+  id: number;
+  element?: MagicElement | undefined;
+}) {
+  const look = element ? ELEMENT_LOOK[element] : undefined;
+  const ENERGY = look?.energy ?? ARCANE_ENERGY;
+  const CORE = look?.core ?? ARCANE_CORE;
   const angles = rayAngles(id);
-  const isRing = seeded(id, 93) < 0.35;
+  const isRing = look ? look.burst === 'ring' : seeded(id, 93) < 0.35;
   const rays = angles.map((a, i) =>
     radial(a, 7, 26 + seeded(id, 130 + i) * 18)
   );

@@ -25,7 +25,17 @@ export type AimArrowProps = {
   damageFactor?: number;
   /** 0 = full arrow; toward 1 it shrinks into the card and fades out. */
   retract?: number;
+  /**
+   * The path's shape: 'rise' leaves the card upward and bends gently
+   * toward the target (aiming at heroes); 'lob' arcs up over the hand
+   * and comes down onto the target (one card imbuing another).
+   */
+  arc?: ArrowArc;
+  /** Draws the lock ring on a live target (off for card-to-card aims). */
+  hasLockRing?: boolean;
 };
+
+export type ArrowArc = 'rise' | 'lob';
 
 type Dash = { start: Point; end: Point; width: number };
 
@@ -52,6 +62,8 @@ const BONUS_GAP_PX = 6;
 const BEND_RISE = 0.6;
 /** How far toward the target's side (share of the width) it sits. */
 const BEND_SIDE = 0.25;
+/** How far (px) a lob's peak rises above the higher of its two ends. */
+const LOB_HEIGHT_PX = 90;
 
 /**
  * The curve's control point. It sits mostly above the card and only a
@@ -60,14 +72,31 @@ const BEND_SIDE = 0.25;
  * side gets a gentle arc. (Putting it level with the target made the
  * line rise then turn sharply sideways, with the head coming in flat.)
  */
-const controlOf = (from: Point, to: Point): Point => ({
+const riseControlOf = (from: Point, to: Point): Point => ({
   x: from.x + (to.x - from.x) * BEND_SIDE,
   y: from.y + (to.y - from.y) * BEND_RISE,
 });
 
+/**
+ * A lob's control point: midway across and well above both ends, so the
+ * arrow climbs out of the card, peaks, and drops onto the target.
+ */
+const lobControlOf = (from: Point, to: Point): Point => ({
+  x: (from.x + to.x) / 2,
+  y: Math.min(from.y, to.y) - LOB_HEIGHT_PX,
+});
+
+/** Each arc's control point (see ArrowArc). */
+const CONTROL_OF: Record<ArrowArc, (from: Point, to: Point) => Point> = {
+  rise: riseControlOf,
+  lob: lobControlOf,
+};
+
+/** A curve: its two ends and its control point. */
+type Curve = { from: Point; to: Point; control: Point };
+
 /** A point on the quadratic curve at t (0..1). */
-const curveAt = (from: Point, to: Point, t: number): Point => {
-  const control = controlOf(from, to);
+const curveAt = ({ from, to, control }: Curve, t: number): Point => {
   const u = 1 - t;
   return {
     x: u * u * from.x + 2 * u * t * control.x + t * t * to.x,
@@ -84,9 +113,16 @@ const lerpPoint = (a: Point, b: Point, t: number): Point => ({
   y: lerp(a.y, b.y, t),
 });
 
-/** Where the body stops (t), so it ends at the head's base. */
-const bodyEndT = (from: Point, to: Point): number => {
-  const length = Math.hypot(to.x - from.x, to.y - from.y);
+/**
+ * Where the body stops (t), so it ends at the head's base. The curve's
+ * length is roughly the path through its control point.
+ */
+const bodyEndT = ({ from, to, control }: Curve): number => {
+  const length =
+    (Math.hypot(control.x - from.x, control.y - from.y) +
+      Math.hypot(to.x - control.x, to.y - control.y) +
+      Math.hypot(to.x - from.x, to.y - from.y)) /
+    2;
   return length > HEAD_LENGTH ? 1 - HEAD_LENGTH / length : 0;
 };
 
@@ -94,16 +130,16 @@ const bodyEndT = (from: Point, to: Point): number => {
  * The dashes along the curve, stopping at the head. Every other step is
  * a gap; each dash is wider than the one before.
  */
-const dashesFor = (from: Point, to: Point, scale: number): Dash[] => {
-  const endT = bodyEndT(from, to);
+const dashesFor = (curve: Curve, scale: number): Dash[] => {
+  const endT = bodyEndT(curve);
   return Array.from({ length: STEPS }, (_, step) => step)
     .filter((step) => step % 2 === 0)
     .map((step) => {
       const t0 = step / STEPS;
       const t1 = (step + 1) / STEPS;
       return {
-        start: curveAt(from, to, t0 * endT),
-        end: curveAt(from, to, t1 * endT),
+        start: curveAt(curve, t0 * endT),
+        end: curveAt(curve, t1 * endT),
         width: lerp(WIDTH_AT_CARD, WIDTH_AT_HEAD, t1) * scale,
       };
     });
@@ -113,8 +149,7 @@ const dashesFor = (from: Point, to: Point, scale: number): Dash[] => {
  * The arrow head: a triangle along the curve's final tangent, which for
  * a quadratic curve runs from the control point to the end point.
  */
-const headPoints = (from: Point, to: Point, scale: number): string => {
-  const control = controlOf(from, to);
+const headPoints = ({ to, control }: Curve, scale: number): string => {
   const angle = Math.atan2(to.y - control.y, to.x - control.x);
   const base = {
     x: to.x - Math.cos(angle) * HEAD_LENGTH * scale,
@@ -214,6 +249,8 @@ export const AimArrow = ({
   isLethal = false,
   damageFactor = 1,
   retract = 0,
+  arc = 'rise',
+  hasLockRing = true,
 }: AimArrowProps) => {
   if (retract >= 1) return null;
   // PULL-BACK: the tip slides back toward the card while the arrow thins
@@ -221,8 +258,9 @@ export const AimArrow = ({
   const end = lerpPoint(from, to, 1 - retract);
   const scale = lerp(1, RETRACT_MIN_SCALE, retract);
   const color = isLive ? LIVE_COLOR : IDLE_COLOR;
-  const dashes = dashesFor(from, end, scale);
-  const head = headPoints(from, end, scale);
+  const curve = { from, to: end, control: CONTROL_OF[arc](from, end) };
+  const dashes = dashesFor(curve, scale);
+  const head = headPoints(curve, scale);
   return (
     <svg
       className="pointer-events-none fixed inset-0 z-50 h-full w-full"
@@ -245,7 +283,7 @@ export const AimArrow = ({
       {isLive && damageFactor !== 1 && (
         <BonusLabel at={to} factor={damageFactor} />
       )}
-      {isLive && !isLethal && (
+      {isLive && !isLethal && hasLockRing && (
         <circle
           cx={to.x}
           cy={to.y}

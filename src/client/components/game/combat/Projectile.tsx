@@ -1,13 +1,15 @@
 // ===================================================================
 // PROJECTILE (ATOM)
 // One shot flying in a straight line, drawn in viewport pixels on a
-// fixed layer: an arrow (Range) or a glowing sky-cyan bolt with a
-// trail (Magic). It points along its path and lands at `to`. Used by
+// fixed layer: an arrow (Range) or a glowing bolt with a trail (Magic),
+// sky-cyan, or in its element's colours (ELEMENT_LOOK). It points along its path and lands at `to`. Used by
 // the heroes' arrows (HeroShots) and your own shots (PlayerShots).
 // Transform and opacity only (see hero-shot in index.css).
 // ===================================================================
 
 import type { CSSProperties } from 'react';
+import type { MagicElement } from '../../../../shared/game/types';
+import { ELEMENT_LOOK } from '../../../content/visuals';
 import type { Point } from '../../../hooks/useCardDrag';
 
 // --- TYPES ---
@@ -20,6 +22,15 @@ export type ProjectileFlight = {
   to: Point;
   /** Wait before it leaves (ms). */
   delayMs: number;
+  /** A Magic bolt's element (its colours), if it has one. */
+  element?: MagicElement | undefined;
+};
+
+// --- CONSTANTS ---
+/** A plain (elementless) bolt's trail and head. */
+const ARCANE_BOLT = {
+  energy: 'color-mix(in oklab, var(--color-magic) 60%, transparent)',
+  core: '#eafaff',
 };
 
 // --- HELPERS ---
@@ -48,13 +59,17 @@ const Arrow = () => (
   </svg>
 );
 
-/** A magic bolt: a bright core with a fading cyan trail behind it. */
-const Bolt = () => (
-  <span
-    className="block h-2.5 w-12 -translate-x-full -translate-y-1/2 rounded-full bg-gradient-to-r from-transparent via-magic/60 to-[#eafaff] shadow-[0_0_10px_var(--color-magic)] [transform-origin:100%_50%] [rotate:var(--shot-angle)]"
-    aria-hidden="true"
-  />
-);
+/** A magic bolt: a bright core with a fading trail in its colours. */
+const Bolt = ({ element }: { element?: MagicElement | undefined }) => {
+  const { energy, core } = element ? ELEMENT_LOOK[element] : ARCANE_BOLT;
+  return (
+    <span
+      className="block h-2.5 w-12 -translate-x-full -translate-y-1/2 rounded-full bg-gradient-to-r from-transparent via-(--bolt-energy) to-(--bolt-core) shadow-[0_0_10px_var(--bolt-energy)] [transform-origin:100%_50%] [rotate:var(--shot-angle)]"
+      style={{ '--bolt-energy': energy, '--bolt-core': core } as CSSProperties}
+      aria-hidden="true"
+    />
+  );
+};
 
 // --- COMPONENT ---
 /** Renders one shot in flight (place it on a fixed, full-screen layer). */
@@ -67,6 +82,6 @@ export const Projectile = ({
   className?: string;
 }) => (
   <div className={`absolute ${className}`} style={flightStyle(flight)}>
-    {flight.kind === 'arrow' ? <Arrow /> : <Bolt />}
+    {flight.kind === 'arrow' ? <Arrow /> : <Bolt element={flight.element} />}
   </div>
 );

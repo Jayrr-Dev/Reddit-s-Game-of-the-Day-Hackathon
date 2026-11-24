@@ -19,7 +19,7 @@ import { passivesOf } from '../../../../shared/game/combat';
 import { getHero } from '../../../../shared/game/heroes';
 import type { HeroSize, HeroUnit } from '../../../../shared/game/types';
 import { drawSizeOf } from '../../../content/heroLooks';
-import { INTENT_LOOK } from '../../../content/visuals';
+import { HERO_STATUS_ROWS, INTENT_LOOK } from '../../../content/visuals';
 import { Chip } from '../../ui/Chip';
 import { StatusRow } from '../StatusRow';
 import { PLATE_UID_ATTR } from '../../../hooks/usePlateSpacing';
@@ -142,18 +142,25 @@ export const HeroPlate = ({ unit, field, isFocused }: HeroPlateProps) => {
         {getHero(unit.heroId).name}
       </span>
       <DrainBar hp={unit.hp} maxHp={unit.maxHp} size="small" />
-      {/* ONE ROW OF CHIPS: never wraps (a second row would push the plate
-          up under the top bar). Drawn at 80%, so laid out 125% wide to
-          span the plate; intents sit flush left under the bar's left
-          end, statuses flush right under its right end, and statuses
-          take what the intents leave, folding the rest into "+N". */}
+      {/* CHIPS: statuses wrap onto up to HERO_STATUS_ROWS lines (the
+          plate hangs from its top, so extra lines grow down over the
+          drawing, never up under the top bar). Drawn at 80%, so laid
+          out 125% wide to span the plate; intents sit flush left under
+          the bar's left end, statuses flush right under its right end,
+          and statuses take what the intents leave, folding the rest
+          into "+N". */}
       <div className="flex w-[125%] origin-top scale-[0.8] items-start justify-between gap-2.5 self-center">
         <div className="shrink-0">
           <IntentChips unit={unit} field={field} />
         </div>
         {/* Flush right: the row itself shrinks to its chips (max-w-max). */}
         <div className="flex min-w-0 flex-1 justify-end">
-          <StatusRow combatant={unit} passives={passivesOf(unit)} align="end" />
+          <StatusRow
+            combatant={unit}
+            passives={passivesOf(unit)}
+            align="end"
+            rows={HERO_STATUS_ROWS}
+          />
         </div>
       </div>
     </div>

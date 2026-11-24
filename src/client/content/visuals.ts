@@ -10,6 +10,7 @@ import type { StopKind } from '../../shared/game/kingdom';
 import type {
   CardRarity,
   CardType,
+  MagicElement,
   MovementId,
   PassiveId,
   StatusId,
@@ -124,7 +125,43 @@ export const CARD_LOOK: Record<
   },
 };
 
-/** The rarity gem on a card's ribbon (starters have none). */
+// --- STATUS CHIPS ---
+/** Lines a hero's status chips wrap onto before folding into "+N". */
+export const HERO_STATUS_ROWS = 2;
+
+// --- MAGIC ELEMENTS ---
+/**
+ * How a Magic element looks: its icon on the type pill, and the colours
+ * and shape of its bolt and burst.
+ *   energy  the bolt's trail and the burst's strokes
+ *   core    the bolt's head and the burst's white-hot centre
+ *   burst   'curls' (wavy wisps, like flame) or 'ring' (a crown of
+ *           short shards, like ice); a plain spell picks either
+ */
+export type ElementLook = Look & {
+  energy: string;
+  core: string;
+  burst: 'curls' | 'ring';
+};
+
+export const ELEMENT_LOOK: Record<MagicElement, ElementLook> = {
+  fire: {
+    glyph: 'flame',
+    toneClass: 'text-burn',
+    energy: 'var(--color-burn)',
+    core: 'color-mix(in oklab, var(--color-burn) 25%, white)',
+    burst: 'curls',
+  },
+  ice: {
+    glyph: 'snowflake',
+    toneClass: 'text-frost',
+    energy: 'var(--color-frost)',
+    core: 'white',
+    burst: 'ring',
+  },
+};
+
+/** The rarity gem on a card (starters have none). */
 export const RARITY_GEM: Record<CardRarity, string | null> = {
   starter: null,
   common: 'bg-ink-muted',

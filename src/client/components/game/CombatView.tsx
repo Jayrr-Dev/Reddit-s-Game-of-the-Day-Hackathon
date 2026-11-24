@@ -30,6 +30,7 @@ import {
 import type { RunAction } from '../../../shared/game/run';
 import type {
   CardType,
+  MagicElement,
   CombatState,
   MovementId,
 } from '../../../shared/game/types';
@@ -227,8 +228,12 @@ export const CombatView = ({
   const { playCard: playCardHits } = cardHits;
   const combat = cardHits.isPlaying ? cardHits.shown : heroTurn.shown;
   const isAnimating = heroTurn.isPlaying || cardHits.isPlaying;
-  // The type of the card played last colours its damage numbers.
-  const [lastCardType, setLastCardType] = useState<CardType>();
+  // The card played last: its type colours its damage numbers, and a
+  // Magic card's element shapes its bursts.
+  const [lastCard, setLastCard] = useState<{
+    type: CardType;
+    element?: MagicElement | undefined;
+  }>();
   // The last movement with a running count, so each one re-keys (and
   // replays) its speed lines.
   const [burst, setBurst] = useState<{ move: MovementId; count: number }>();
@@ -247,7 +252,7 @@ export const CombatView = ({
       }
       if (action.type === 'playCard') {
         const cardId = realCombat.hand[action.handIndex];
-        setLastCardType(cardId ? getCard(cardId).type : undefined);
+        setLastCard(cardId ? getCard(cardId) : undefined);
         // A knockback the target shrugs off shows a cancel sign on it.
         const { targetUid } = action;
         if (
@@ -300,7 +305,8 @@ export const CombatView = ({
     combat.heroes,
     combat.turn,
     heroTurn.isPlaying,
-    lastCardType,
+    lastCard?.type,
+    lastCard?.element,
     hitHistory
   );
   const playerHits = usePlayerHits(
@@ -416,6 +422,8 @@ export const CombatView = ({
           from={controls.imbueArrow.from}
           to={controls.imbueArrow.to}
           isLive={controls.imbueArrow.isLive}
+          arc="lob"
+          hasLockRing={false}
         />
       )}
       <CardFlights flights={cardFlights} />

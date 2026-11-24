@@ -162,6 +162,12 @@ export type CardEffect =
 export type CardRarity = 'starter' | 'common' | 'uncommon' | 'rare';
 
 /**
+ * A Magic card's element. For now it only changes how the spell looks
+ * (its bolt, its burst and the icon on its type pill), not what it does.
+ */
+export type MagicElement = 'fire' | 'ice';
+
+/**
  * What kind of card it is. Shown on the card, and it decides reach:
  * Melee hits the front row only; Range, Magic and Curse reach any hero.
  * Defend and Buff cards act on the villain: Defend cards are mainly
@@ -182,6 +188,8 @@ export type CardDef = {
    * goes to the Remove pile once played.
    */
   keywords: readonly CardKeyword[];
+  /** A Magic card's element (its look), if it has one. */
+  element?: MagicElement;
   /**
    * Reach cards can hit the back row. Without Reach, damage is melee and
    * only reaches the front row (curses and Hex always reach). Derived

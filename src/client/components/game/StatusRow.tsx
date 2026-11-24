@@ -3,9 +3,10 @@
 // A boss's passives (gold), then Guard and any active statuses on a
 // combatant, as square chips
 // (intents are round, so effects in play read apart from what's coming).
-// Always one row, as many chips as fit the space it is given (measured
-// live, see useFitCount); the rest fold into an overflow chip ("[icon]
-// +N", the icon of the first hidden status). Tapping it opens a popover
+// Up to `rows` lines of chips (wrapping), as many as fit the space it
+// is given (measured live, see useFitCount); only once the last line is
+// full do the rest fold into an overflow chip ("[icon] +N", the icon of
+// the first hidden status). Tapping it opens a popover
 // listing every status with what it does.
 // ===================================================================
 
@@ -323,7 +324,7 @@ const OverflowChip = ({
 const ALIGN_CLASS = { center: 'justify-center', end: 'justify-end' } as const;
 
 /**
- * Shows the statuses above zero in one row, as many as fit the space it
+ * Shows the statuses above zero in up to `rows` wrapping lines, as many as fit the space it
  * is given; any that don't fit fold into an overflow chip. The space's
  * natural width is the whole row's (the measure row sets it), so a
  * layout that has room gives it all.
@@ -332,11 +333,14 @@ export const StatusRow = ({
   combatant,
   passives = [],
   align = 'center',
+  rows = 1,
 }: {
   combatant: Combatant;
   /** A boss's passives, drawn first as gold chips. */
   passives?: readonly PassiveId[];
   align?: keyof typeof ALIGN_CLASS;
+  /** Lines the chips may wrap onto before folding into +N. */
+  rows?: number;
 }) => {
   const splashed = useBleedSplash(combatant);
   const chips = [
@@ -344,7 +348,8 @@ export const StatusRow = ({
     ...statusChipsOf(combatant, splashed),
   ];
   const { spaceRef, measureRef, overflowRef, fitCount } = useFitCount(
-    chips.length
+    chips.length,
+    rows
   );
   const isOverflowing = fitCount < chips.length;
   const shown = chips.slice(0, fitCount);
@@ -377,7 +382,7 @@ export const StatusRow = ({
       >
         <Chip glyph="eye" text="+9" toneClass="text-ink" shape="square" />
       </span>
-      <div className={`flex h-5 flex-nowrap gap-1 ${ALIGN_CLASS[align]}`}>
+      <div className={`flex min-h-5 flex-wrap gap-1 ${ALIGN_CLASS[align]}`}>
         {shown.map((chip) => (
           <StatusChipView key={chip.key} chip={chip} />
         ))}

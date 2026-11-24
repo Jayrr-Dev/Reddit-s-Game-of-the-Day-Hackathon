@@ -243,10 +243,10 @@ export const useCombatControls = (
     const cardId = combat.hand[handIndex];
     if (cardId === undefined || !canPlayCard(combat, handIndex))
       return release();
-    // An Imbue card let go anywhere goes on to choose its card.
+    // A dragged Imbue card imbues the glowing card it is let go over.
     if (imbueEffectOf(cardId)) {
       release();
-      return imbue.begin(handIndex);
+      return imbue.drop();
     }
     const legal = targetsFor(combat, cardId).map((unit) => unit.uid);
     const { isLive, target } = resolveDrop(cardId, drop, legal);
@@ -280,6 +280,13 @@ export const useCombatControls = (
   // SNAPPING AND GLOW: worked out fresh from the live drag each render.
   const dragCard = drag ? combat.hand[drag.handIndex] : undefined;
   const dragStyle = dragCard === undefined ? null : aimStyleOf(dragCard);
+  // IMBUE DRAG: an Imbue card being dragged aims at cards in hand.
+  const imbueDragIndex =
+    drag && dragCard !== undefined && imbueEffectOf(dragCard)
+      ? drag.handIndex
+      : null;
+  const { followDrag } = imbue;
+  useEffect(() => followDrag(imbueDragIndex), [followDrag, imbueDragIndex]);
   const dropState =
     drag && dragCard !== undefined
       ? resolveDrop(dragCard, drag, legalUids)

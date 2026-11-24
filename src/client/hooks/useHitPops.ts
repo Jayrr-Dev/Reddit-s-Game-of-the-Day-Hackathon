@@ -18,6 +18,7 @@ import type {
   CardType,
   Combatant,
   HeroUnit,
+  MagicElement,
   StatusId,
 } from '../../shared/game/types';
 import type { HitHistory } from '../lib/popSize';
@@ -55,6 +56,8 @@ export type Hit = {
   blocked: number;
   /** For a hit on a hero: the type of the card that dealt it (its colour). */
   source?: CardType | undefined;
+  /** For a Magic hit on a hero: the spell's element (its burst's look). */
+  element?: MagicElement | undefined;
   /** For a hit no attack dealt: the status that ticked (its own effect). */
   tick?: TickKind | undefined;
   /** True when only the effect over the character shows (no number). */
@@ -282,7 +285,8 @@ const heroPopsSince = (
   heroes: readonly HeroUnit[],
   countsBlocked: boolean,
   isHeroTurn: boolean,
-  source: CardType | undefined
+  source: CardType | undefined,
+  element: MagicElement | undefined
 ): Omit<HitPop, 'id' | 'typical'>[] =>
   [...before].flatMap(([uid, old]) => {
     const unit = heroes.find((hero) => hero.uid === uid);
@@ -304,7 +308,7 @@ const heroPopsSince = (
     const found = hitBetween(old, now, countsBlocked);
     // On the heroes' turn only statuses harm them: name the one that ticked.
     const tick = isHeroTurn ? tickCauseOf(old, now) : undefined;
-    const hit = found ? { ...found, source, tick } : null;
+    const hit = found ? { ...found, source, element, tick } : null;
     const gains = isHeroTurn && unit ? gainsBetween(old, now) : [];
     const debuffs = unit ? debuffsBetween(old, now) : [];
     const point = bodyPointOf(uid) ?? old.point;
@@ -361,7 +365,7 @@ const usePopQueue = <T extends Hit>(history: HitHistory) => {
  * while the heroes' turn plays out: their guard fading then is not a
  * block, and what their moves give them (heal, Guard, Wrath) pops.
  * `cardType` is the type of the card you played last, which colours
- * its hits; on the heroes' turn the only harm to them is Hex ticking,
+ * its hits (and `element`, a Magic card's, shapes its bursts); on the heroes' turn the only harm to them is Hex ticking,
  * so those hits take the Curse colour.
  */
 export const useHitPops = (
@@ -369,6 +373,7 @@ export const useHitPops = (
   turn: number,
   isHeroTurn: boolean,
   cardType: CardType | undefined,
+  element: MagicElement | undefined,
   history: HitHistory
 ): HitPop[] => {
   const [pops, add] = usePopQueue<Omit<HitPop, 'id' | 'typical'>>(history);
@@ -383,12 +388,13 @@ export const useHitPops = (
       heroes,
       countsBlocked,
       isHeroTurn,
-      isHeroTurn ? 'curse' : cardType
+      isHeroTurn ? 'curse' : cardType,
+      isHeroTurn ? undefined : element
     );
     lastLookRef.current = lookAt(heroes, lastLookRef.current);
     lastTurnRef.current = turn;
     if (hits.length > 0) add(hits);
-  }, [heroes, turn, isHeroTurn, cardType, add]);
+  }, [heroes, turn, isHeroTurn, cardType, element, add]);
 
   return pops;
 };

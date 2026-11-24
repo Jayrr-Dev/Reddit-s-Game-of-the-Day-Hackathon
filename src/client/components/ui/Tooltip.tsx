@@ -76,9 +76,15 @@ const TooltipLabel = ({
 export const Tooltip = ({
   content,
   children,
+  isInline = false,
 }: {
   content: TooltipContent;
   children: ReactNode;
+  /**
+   * True for a word in running text: the trigger flows as text, so the
+   * line never breaks between it and the full stop after it.
+   */
+  isInline?: boolean;
 }) => {
   const [placement, setPlacement] = useState<Placement | null>(null);
   const triggerRef = useRef<HTMLSpanElement>(null);
@@ -142,7 +148,7 @@ export const Tooltip = ({
         onPointerCancel={hide}
         onClickCapture={onClickCapture}
         onContextMenu={(event) => event.preventDefault()}
-        className="pointer-events-auto inline-flex"
+        className={`pointer-events-auto ${isInline ? 'inline' : 'inline-flex'}`}
       >
         {children}
       </span>

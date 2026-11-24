@@ -15,6 +15,7 @@ import type {
   CardType,
   ImbuableEffect,
   ImbueGift,
+  MagicElement,
 } from './types.ts';
 
 // --- EFFECT BUILDERS ---
@@ -104,8 +105,11 @@ const push: CardEffect = { kind: 'push' };
 type CardTraits = {
   keywords?: readonly CardKeyword[];
   targets?: number;
+  element?: MagicElement;
 };
 const REMOVES: CardTraits = { keywords: ['remove'] };
+const FIRE: CardTraits = { element: 'fire' };
+const ICE: CardTraits = { element: 'ice' };
 const HOLDS: CardTraits = { keywords: ['hold'] };
 const PIERCES: CardTraits = { keywords: ['piercing'] };
 
@@ -123,7 +127,7 @@ const card = (
   cost: number,
   rarity: CardRarity,
   effects: CardEffect[],
-  { keywords = [], targets = 1 }: CardTraits = {}
+  { keywords = [], targets = 1, element }: CardTraits = {}
 ): CardDef => ({
   name,
   type,
@@ -131,6 +135,7 @@ const card = (
   rarity,
   effects,
   keywords,
+  ...(element ? { element } : {}),
   reach: REACHING_TYPES.has(type),
   targets,
 });
@@ -160,7 +165,7 @@ export const CARDS = {
   spiteBolt: card('Spite Bolt', 'range', 1, 'common', [hit(6)]),
   hurlAside: card('Hurl Aside', 'melee', 1, 'common', [hit(5), push]),
   beckon: card('Beckon', 'curse', 0, 'common', [pull, weaken(1), hex(1)]),
-  hexfire: card('Hexfire', 'magic', 1, 'common', [hit(6), hex(1)]),
+  hexfire: card('Hexfire', 'magic', 1, 'common', [hit(6), hex(1)], FIRE),
   barbedVolley: card('Barbed Volley', 'range', 1, 'common', [hit(2, 3)]),
   flurry: card('Flurry', 'melee', 1, 'common', [hit(3, 3)]),
   spikedGuard: card('Spiked Guard', 'melee', 1, 'common', [hit(5), guard(5)]),
@@ -169,7 +174,14 @@ export const CARDS = {
     hit(4),
     guard(4),
   ]),
-  wardingBolt: card('Warding Bolt', 'magic', 1, 'common', [hit(4), guard(4)]),
+  wardingBolt: card(
+    'Warding Bolt',
+    'magic',
+    1,
+    'common',
+    [hit(4), guard(4)],
+    ICE
+  ),
   // IMBUE: grant another card in hand a keyword or an effect
   holdFast: card('Hold Fast', 'buff', 0, 'common', [imbue(giftHold)]),
   barbedTip: card('Barbed Tip', 'buff', 0, 'common', [
@@ -193,7 +205,7 @@ export const CARDS = {
     hex(1),
   ]),
   venomDart: card('Venom Dart', 'range', 1, 'common', [hit(3), poison(4)]),
-  frostBolt: card('Frost Bolt', 'magic', 1, 'common', [hit(5), frost(2)]),
+  frostBolt: card('Frost Bolt', 'magic', 1, 'common', [hit(5), frost(2)], ICE),
   serratedSlash: card('Serrated Slash', 'melee', 1, 'common', [
     hit(4),
     bleed(4),
@@ -300,7 +312,10 @@ export const CARDS = {
   ),
 
   // RARE
-  cataclysm: card('Cataclysm', 'magic', 3, 'rare', [hitAll(14)], HOLDS),
+  cataclysm: card('Cataclysm', 'magic', 3, 'rare', [hitAll(14)], {
+    ...HOLDS,
+    ...FIRE,
+  }),
   vengeance: card('Vengeance', 'buff', 1, 'rare', [wrath(3)], REMOVES),
   gravePact: card('Grave Pact', 'buff', 1, 'rare', [heal(8)], REMOVES),
   doom: card('Doom', 'curse', 2, 'rare', [hex(9)], REMOVES),
