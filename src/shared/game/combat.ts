@@ -1362,8 +1362,9 @@ const heroShoots = (
   let current = state;
   for (let hit = 0; hit < effect.hits; hit += 1) {
     const [lands, rolled] = mayMiss ? rollShot(current) : [true, current];
-    // A hit that would land may still be dodged (Instinct).
-    const [dodged, ready] = lands ? rollDodge(rolled) : [false, rolled];
+    // A hit that would land may still be dodged (Instinct), unless Homing.
+    const mayDodge = lands && !effect.isHoming;
+    const [dodged, ready] = mayDodge ? rollDodge(rolled) : [false, rolled];
     current = {
       ...ready,
       player: !lands

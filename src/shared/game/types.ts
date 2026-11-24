@@ -261,7 +261,14 @@ export type HeroAttackType = Extract<CardType, 'melee' | 'range' | 'magic'>;
 
 /** One step of a hero's move. `allies` means every living hero. */
 export type HeroEffect =
-  | { kind: 'attack'; amount: number; hits: number; type: HeroAttackType }
+  | {
+      kind: 'attack';
+      amount: number;
+      hits: number;
+      type: HeroAttackType;
+      /** Homing: its hits can't be dodged (they skip Instinct). */
+      isHoming?: boolean;
+    }
   | { kind: 'hex'; amount: number }
   | { kind: 'poison'; amount: number }
   | { kind: 'burn'; amount: number }

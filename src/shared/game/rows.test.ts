@@ -28,6 +28,7 @@ import {
   playCard,
   startCombat,
 } from './combat.ts';
+import { describeHeroIntent } from './describe.ts';
 import { FEATURES } from './features.ts';
 import { canImbueOnto } from './imbue.ts';
 import { getHero, type HeroId } from './heroes.ts';
@@ -583,4 +584,14 @@ void test('Hex can not be dodged', () => {
     (step) => step.state.player.statuses.hex > 0
   );
   assert.ok(hexed);
+});
+
+void test('Homing hits can not be dodged (Arcane Bolts)', () => {
+  const state = withInstinct(fightAt([['archmage', 'back', 0]]), 5);
+  // Arcane Bolts (Magic 4x3, Homing) is move 0.
+  const after = endTurn(state);
+  assert.equal(after.player.dodgedHits ?? 0, 0);
+  assert.ok(after.player.hp < state.player.hp);
+  const [bolts] = describeHeroIntent(state.heroes[0]!, state.heroes).moves;
+  assert.ok(bolts?.intents[0]?.label.includes('Homing'));
 });

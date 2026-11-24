@@ -355,6 +355,11 @@ export const KNOCKBACK_INFO: StatusInfo = {
   description:
     'Knocks the target hero **N lines** back\nStops early if the way is blocked',
 };
+/** What Homing means (a hero attack that can't be dodged). */
+export const HOMING_INFO: StatusInfo = {
+  label: 'Homing',
+  description: "Its hits can't be dodged",
+};
 /** What Cleanse means, wherever it shows. */
 export const CLEANSE_INFO: StatusInfo = {
   label: 'Cleanse',
@@ -408,6 +413,7 @@ export const GLOSSARY: Readonly<Record<string, StatusInfo>> =
       CLEANSE_INFO,
       PULL_INFO,
       KNOCKBACK_INFO,
+      HOMING_INFO,
       ...Object.values(ROW_INFO),
       OUT_OF_RANGE_INFO,
     ].map((info) => [info.label, info])
@@ -643,7 +649,7 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
       return {
         kind: ATTACK_INTENT[type],
         text,
-        label: `${ATTACK_NAME[type]} attack for ${text}`,
+        label: `${ATTACK_NAME[type]} attack for ${text}${effect.isHoming ? `\n${HOMING_INFO.label}: ${HOMING_INFO.description}` : ''}`,
       };
     }
     case 'hex': {

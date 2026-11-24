@@ -19,15 +19,21 @@ import type {
 } from './types.ts';
 
 // --- EFFECT BUILDERS ---
+type HeroAttack = Extract<HeroEffect, { kind: 'attack' }>;
 /** Builds an attack of one type (see HeroAttackType for the reach rules). */
 const attackOf =
   (type: HeroAttackType) =>
-  (amount: number, hits = 1): HeroEffect => ({
+  (amount: number, hits = 1): HeroAttack => ({
     kind: 'attack',
     amount,
     hits,
     type,
   });
+/** Homing: the attack's hits can't be dodged (Instinct). */
+const homing = (effect: HeroAttack): HeroAttack => ({
+  ...effect,
+  isHoming: true,
+});
 /** A Melee attack: only from the front row. */
 const strike = attackOf('melee');
 /** A Range attack: +30% from the back row, plain (still Range) up close. */
@@ -194,7 +200,7 @@ export const HEROES = {
     move('Consecrate', wrath(2)),
   ]),
   archmage: hero('Archmage', 'elite', 32, 260, 6, WIDE_BACK, [
-    move('Arcane Bolts', spell(4, 3)),
+    move('Arcane Bolts', homing(spell(4, 3))),
     move('Curse of Light', hex(4), weaken(1)),
     move('Mana Shield', guard(12)),
   ]),
