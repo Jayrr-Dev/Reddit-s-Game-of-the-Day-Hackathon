@@ -192,17 +192,18 @@ export const HEROES = {
     move('Mana Shield', guard(12)),
   ]),
 
-  // A siege engine: two cells wide, slow, and its bolts never fall
-  // short (Longrange: it hits from Line 3 too).
+  // A siege engine: two cells wide, Anchored where it stands (it never
+  // moves and nothing moves it), and its bolts never fall short
+  // (Longrange: it hits from Line 3 too).
   ballista: hero(
     'Ballista',
     'elite',
-    30,
+    100,
     30,
     2,
     WIDE_BACK,
     [move('Heavy Bolt', shoot(9)), move('Winch Back', guard(6))],
-    ['longRange']
+    ['longRange', 'anchored']
   ),
 
   // CHAMPIONS (ONE PER REGION, IN REGION ORDER)

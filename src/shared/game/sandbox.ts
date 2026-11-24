@@ -99,6 +99,12 @@ export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
     blurb: 'Valen the Radiant with a priest and a bard.',
     heroIds: ['valen', 'priest', 'bard'],
   },
+  {
+    id: 'ballista',
+    name: 'Ballista',
+    blurb: 'A two-slot siege engine with Longrange, behind a Squire.',
+    heroIds: ['ballista', 'squire'],
+  },
 ];
 
 // --- HORDE ---

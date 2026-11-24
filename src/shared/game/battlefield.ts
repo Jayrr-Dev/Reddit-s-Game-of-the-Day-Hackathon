@@ -104,7 +104,15 @@ export const isDeep = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
  * one keeps its place).
  */
 export const isImmovable = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
-  isDeep(unit) || getHero(unit.heroId).tier === 'boss';
+  isDeep(unit) || getHero(unit.heroId).tier === 'boss' || isAnchored(unit);
+
+/**
+ * True for a hero that never changes row at all (Anchored: the
+ * Ballista): not by pull or push, nor with the field on Charge or Back
+ * Step, nor walking in.
+ */
+export const isAnchored = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
+  getHero(unit.heroId).passives?.includes('anchored') ?? false;
 
 /** True for a hero flown up out of reach (Aloft): no card can touch it. */
 export const isAloft = (unit: Pick<HeroUnit, 'statuses'>): boolean =>
@@ -315,6 +323,7 @@ export const formUp = (units: readonly UnplacedHero[]): HeroUnit[] => {
  * deep hero's reach, one row behind) would run off the field.
  */
 const shiftedRowOf = (unit: HeroUnit, steps: number): HeroRow | null => {
+  if (isAnchored(unit)) return null;
   const row = rowShifted(unit.row, steps);
   if (row === null || !isDeep(unit)) return row;
   return rowShifted(row, 1) === null ? null : row;

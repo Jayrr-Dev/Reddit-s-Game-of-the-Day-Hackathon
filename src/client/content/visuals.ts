@@ -77,6 +77,7 @@ export const OUT_OF_RANGE_LOOK: Look = {
 export const PASSIVE_LOOK: Record<PassiveId, Look & { text: string }> = {
   vigor: { glyph: 'crown', toneClass: 'text-accent', text: '×2' },
   longRange: { glyph: 'eye', toneClass: 'text-range', text: '' },
+  anchored: { glyph: 'anchor', toneClass: 'text-ink', text: '' },
 };
 
 // --- HERO INTENTS ---

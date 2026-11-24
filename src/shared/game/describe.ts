@@ -137,6 +137,10 @@ export const PASSIVE_INFO: Record<PassiveId, StatusInfo> = {
     label: 'Longrange',
     description: 'Its shots ignore **Out of Range**',
   },
+  anchored: {
+    label: 'Anchored',
+    description: "Never moves, and can't be moved",
+  },
 };
 
 // --- CARD TEXT ---

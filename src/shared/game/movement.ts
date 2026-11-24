@@ -41,11 +41,15 @@ export type MovementDef = {
 };
 
 // --- HELPERS ---
+/** True when anyone stands in a different row after a move. */
+const changesRows = (
+  before: readonly HeroUnit[],
+  after: readonly HeroUnit[]
+): boolean => after.some((unit, index) => unit.row !== before[index]?.row);
+
 /** True when a Back Step would move anyone (someone has room behind). */
 const hasRoomToFallBack = (heroes: readonly HeroUnit[]): boolean =>
-  fallBack(heroes, BACK_STEP_ROWS).some(
-    (unit, index) => unit.row !== heroes[index]?.row
-  );
+  changesRows(heroes, fallBack(heroes, BACK_STEP_ROWS));
 
 // --- REGISTRY ---
 export const MOVEMENTS: Record<MovementId, MovementDef> = {
@@ -55,7 +59,10 @@ export const MOVEMENTS: Record<MovementId, MovementDef> = {
    */
   charge: {
     baseCost: CHARGE_COST,
-    fitsFormation: (heroes) => heroes.every((unit) => unit.row !== 'front'),
+    // Only when it would close in on someone (an Anchored hero stays).
+    fitsFormation: (heroes) =>
+      heroes.every((unit) => unit.row !== 'front') &&
+      changesRows(heroes, stepForward(heroes, CHARGE_ROWS)),
     reshape: (heroes) => stepForward(heroes, CHARGE_ROWS),
     grants: { status: 'momentum', amount: 1 },
   },

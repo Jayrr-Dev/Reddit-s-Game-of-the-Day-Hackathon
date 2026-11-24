@@ -58,9 +58,10 @@ export type Statuses = Record<StatusId, number>;
 /**
  * A boss's built-in trait: always on, never stacks or fades.
  * vigor      acts twice every heroes' turn
+ * anchored   never moves and can't be moved (the Ballista)
  * longRange  its shots ignore Out of Range (see OUT_OF_RANGE_HIT_CHANCE)
  */
-export type PassiveId = 'vigor' | 'longRange';
+export type PassiveId = 'vigor' | 'longRange' | 'anchored';
 
 /** Anything with HP that fights: the villain or a hero. */
 export type Combatant = {

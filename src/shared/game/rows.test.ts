@@ -364,6 +364,37 @@ void test('the Ballista fills 2 cells side by side and has Longrange', () => {
   assert.ok(shots.every(Boolean));
 });
 
+void test('the Ballista is Anchored: nothing moves it, and it never moves', () => {
+  const state = fightAt([
+    ['squire', 'front', 0],
+    ['ballista', 'back', 1],
+  ]);
+  const ballista = unitAt(state, 1);
+  assert.equal(canPull(state.heroes, ballista), false);
+  assert.equal(canPush(state.heroes, ballista), false);
+  // Back Step moves the Squire, not the Ballista.
+  assert.deepEqual(placesOf(move(state, 'backStep').heroes), [
+    'back:0',
+    'back:1',
+  ]);
+  // Charge closes in, the Ballista stays.
+  const far = fightAt([
+    ['squire', 'horizon', 0],
+    ['ballista', 'back', 1],
+  ]);
+  assert.equal(unitAt(move(far, 'charge'), 1).row, 'back');
+  // It spawns at home (Line 2) and never walks.
+  const fresh = startCombat({
+    hp: 60,
+    maxHp: 60,
+    deck: ['darkCloak'],
+    heroIds: ['ballista'],
+    might: 1,
+    seed: 1,
+  });
+  assert.equal(fresh.heroes[0]?.row, 'back');
+});
+
 // --- CELL CAP ---
 void test('heroes never fill more than the cell cap: summons fizzle', () => {
   const state = fightAt([
