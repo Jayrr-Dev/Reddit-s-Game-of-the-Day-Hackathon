@@ -35,6 +35,7 @@ const shoot = attackOf('range');
 /** A Magic attack: the same from either row. */
 const spell = attackOf('magic');
 const hex = (amount: number): HeroEffect => ({ kind: 'hex', amount });
+const poison = (amount: number): HeroEffect => ({ kind: 'poison', amount });
 const dread = (amount: number): HeroEffect => ({ kind: 'dread', amount });
 const shroud = (
   amount: number,
@@ -157,7 +158,7 @@ export const HEROES = {
     move('Shield Bash', strike(6)),
   ]),
   rogue: hero('Rogue', 'grunt', 12, 140, 9, BACK, [
-    move('Poisoned Dart', hex(2), shoot(3)),
+    move('Poisoned Dart', poison(2), shoot(3)),
     move('Throwing Knives', shoot(3, 2)),
   ]),
 

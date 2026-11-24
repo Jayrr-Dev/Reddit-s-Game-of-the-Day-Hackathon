@@ -4,7 +4,11 @@
 // heroes are Combatants, so one set of rules covers both sides.
 // ===================================================================
 
-import { DREAD_DAMAGE_FACTOR, MOMENTUM_DAMAGE_FACTOR } from './rules.ts';
+import {
+  DREAD_DAMAGE_FACTOR,
+  HEX_GROWTH,
+  MOMENTUM_DAMAGE_FACTOR,
+} from './rules.ts';
 import type {
   BuffId,
   CardType,
@@ -16,6 +20,7 @@ import type {
 // --- CONSTRUCTION ---
 export const NO_STATUSES: Statuses = {
   hex: 0,
+  poison: 0,
   dread: 0,
   wrath: 0,
   might: 0,
@@ -119,7 +124,7 @@ export const takeDamage = <T extends Combatant>(
   };
 };
 
-/** Loses HP directly, ignoring shroud (used by hex). */
+/** Loses HP directly, ignoring shroud (used by hex and poison). */
 export const loseHp = <T extends Combatant>(target: T, amount: number): T => ({
   ...target,
   hp: Math.max(0, target.hp - amount),
@@ -162,18 +167,33 @@ export const clearShroud = <T extends Combatant>(target: T): T => ({
 });
 
 /**
- * End-of-turn upkeep: hex deals its damage then weakens by 1, dread
+ * Hex, right before its bearer's turn: it burns for its value on odd
+ * counts only (1, 3, 5 ... nothing on 2, 4 ...), then grows by
+ * HEX_GROWTH. So a Hex of 1 deals 1, then 0, then 3, then 0, then 5.
+ */
+export const hexBurn = <T extends Combatant>(target: T): T => {
+  const { hex } = target.statuses;
+  if (hex <= 0) return target;
+  const burned = hex % 2 === 1 ? loseHp(target, hex) : target;
+  return {
+    ...burned,
+    statuses: { ...burned.statuses, hex: hex + HEX_GROWTH },
+  };
+};
+
+/**
+ * End-of-turn upkeep: poison deals its damage then weakens by 1, dread
  * wears off by 1, and unused Momentum is lost. Wrath and buffs are
- * permanent for the fight.
+ * permanent for the fight (Hex runs before the turn: see hexBurn).
  */
 export const endOfTurnUpkeep = <T extends Combatant>(target: T): T => {
-  const { hex, dread } = target.statuses;
-  const hexed = loseHp(target, hex);
+  const { poison, dread } = target.statuses;
+  const poisoned = loseHp(target, poison);
   return {
-    ...hexed,
+    ...poisoned,
     statuses: {
-      ...hexed.statuses,
-      hex: Math.max(0, hex - 1),
+      ...poisoned.statuses,
+      poison: Math.max(0, poison - 1),
       dread: Math.max(0, dread - 1),
       momentum: 0,
     },

@@ -29,6 +29,7 @@ export const toneVarOf = (look: Look): string =>
 export const STATUS_LOOK: Record<StatusId | 'shroud', Look> = {
   shroud: { glyph: 'shield', toneClass: 'text-shroud' },
   hex: { glyph: 'skull', toneClass: 'text-hex' },
+  poison: { glyph: 'drop', toneClass: 'text-poison' },
   dread: { glyph: 'eye', toneClass: 'text-dread' },
   wrath: { glyph: 'flame', toneClass: 'text-wrath' },
   // Buffs wear their card type's icon and colour (see CARD_LOOK).
@@ -54,6 +55,7 @@ export const INTENT_LOOK: Record<IntentKind, Look> = {
   magic: { glyph: 'swirl', toneClass: 'text-magic' },
   advance: { glyph: 'march', toneClass: 'text-ink' },
   curse: { glyph: 'skull', toneClass: 'text-hex' },
+  poison: STATUS_LOOK.poison,
   dread: STATUS_LOOK.dread,
   guard: { glyph: 'shield', toneClass: 'text-shroud' },
   buff: { glyph: 'flame', toneClass: 'text-wrath' },
@@ -168,6 +170,7 @@ export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   protection: STATUS_LOOK.protection,
   momentum: STATUS_LOOK.momentum,
   hex: STATUS_LOOK.hex,
+  poison: STATUS_LOOK.poison,
   dread: STATUS_LOOK.dread,
 };
 

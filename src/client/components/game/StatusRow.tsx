@@ -58,6 +58,7 @@ const STATUS_ORDER: readonly StatusId[] = [
   'surge',
   // DEBUFFS
   'hex',
+  'poison',
   'dread',
 ];
 
@@ -85,6 +86,24 @@ const passiveChipsOf = (passives: readonly PassiveId[]): StatusChip[] =>
     description: PASSIVE_INFO[id].description,
   }));
 
+/**
+ * Hex fires only on odd counts, so its chip says which turn this is:
+ * odd, it is PRIMED (a solid purple tile: it burns before the next
+ * turn); even, it is a plain dark tile and the tooltip says it waits.
+ * Adding a stack flips it, which is the choice: burst now or hold.
+ */
+const hexChipOf = (hex: number): Partial<StatusChip> => {
+  const isPrimed = hex % 2 === 1;
+  return isPrimed
+    ? {
+        fill: toneVarOf(STATUS_LOOK.hex),
+        description: `Odd: burns for ${hex} before its next turn, then +1.`,
+      }
+    : {
+        description: `Even: no burn this turn, just +1 (burns for ${hex + 1} the turn after).`,
+      };
+};
+
 /** Every active effect on a combatant as chips, Guard first. */
 const statusChipsOf = (combatant: Combatant): StatusChip[] => {
   const shroud: StatusChip[] =
@@ -106,6 +125,7 @@ const statusChipsOf = (combatant: Combatant): StatusChip[] => {
       text: chipText(id, combatant.statuses[id]),
       title: STATUS_INFO[id].label,
       description: STATUS_INFO[id].description,
+      ...(id === 'hex' ? hexChipOf(combatant.statuses[id]) : {}),
     })
   );
   return [...shroud, ...statuses];

@@ -7,10 +7,12 @@
 //
 // TURN ORDER
 //   Villain turn: play cards with energy, then End Turn.
-//   End Turn: discard hand -> villain upkeep (hex) -> heroes clear shroud
-//             -> each hero acts, fastest first (see heroTurnOrder), then
-//                takes its own upkeep
-//             -> new villain turn (clear shroud, refill energy, draw).
+//   End Turn: discard hand -> villain upkeep (poison) -> heroes clear
+//             shroud
+//             -> each hero, fastest first (see heroTurnOrder): its Hex
+//                burns (see hexBurn), it acts, then takes its own upkeep
+//             -> new villain turn (clear shroud, the villain's Hex
+//                burns, refill energy, draw).
 // ===================================================================
 
 import {
@@ -40,6 +42,7 @@ import {
   clearShroud,
   createCombatant,
   endOfTurnUpkeep,
+  hexBurn,
   guardAmount,
   hasMomentumFor,
   heal,
@@ -460,6 +463,7 @@ const applyCardEffect = (
     case 'damage':
       return villainAttack(state, effect, targetUid, cardDef);
     case 'hex':
+    case 'poison':
     case 'dread':
       return updateHeroes(
         state,
@@ -790,9 +794,10 @@ const applyHeroEffect = (
       );
     }
     case 'hex':
+    case 'poison':
       return {
         ...state,
-        player: addStatus(state.player, 'hex', scaled(effect.amount)),
+        player: addStatus(state.player, effect.kind, scaled(effect.amount)),
       };
     case 'dread':
       return {
@@ -883,12 +888,12 @@ export const heroTurnOrder = (heroes: readonly HeroUnit[]): HeroUnit[] =>
 
 // --- VILLAIN TURN ---
 
-/** Begins a villain turn: shroud fades, energy refills, new hand. */
+/** Begins a villain turn: shroud fades, Hex burns, energy refills, new hand. */
 const startPlayerTurn = (state: CombatState): CombatState =>
   drawCards(
     {
       ...state,
-      player: clearShroud(state.player),
+      player: hexBurn(clearShroud(state.player)),
       energy: ENERGY_PER_TURN,
       turn: state.turn + 1,
     },
@@ -920,6 +925,17 @@ const plannedAttackType = (
 };
 
 /**
+ * A hero's Hex burning right before it acts, as a beat of its own, or
+ * null when it carries no Hex.
+ */
+const hexBurnStep = (state: CombatState, uid: number): TurnStep | null => {
+  const unit = state.heroes.find((hero) => hero.uid === uid);
+  if (!unit || unit.statuses.hex <= 0) return null;
+  const next = removeFallen(updateHeroes(state, [uid], hexBurn));
+  return { actorUid: null, attackType: null, move: null, state: next };
+};
+
+/**
  * Ends the villain's turn, beat by beat, so the view can play the
  * heroes' attacks one at a time. The last step is the final state.
  * Empty when the fight is already over.
@@ -927,7 +943,7 @@ const plannedAttackType = (
 export const endTurnSteps = (state: CombatState): TurnStep[] => {
   if (combatOutcome(state) !== 'ongoing') return [];
 
-  // 1. DISCARD THE HAND, THE VILLAIN'S UPKEEP (HEX TICKS), AND THE
+  // 1. DISCARD THE HAND, THE VILLAIN'S UPKEEP (POISON TICKS), AND THE
   //    HEROES' SHROUD FROM LAST ROUND FADES
   const discarded: CombatState = {
     ...state,
@@ -946,6 +962,13 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
   //    or a fallen villain end it early)
   let current = discarded;
   for (const { uid, heroId } of heroTurnOrder(discarded.heroes)) {
+    // ITS HEX BURNS FIRST, AS ITS OWN BEAT (it may fall to it)
+    const burned = hexBurnStep(current, uid);
+    if (burned) {
+      steps.push(burned);
+      current = burned.state;
+      if (combatOutcome(current) !== 'ongoing') return steps;
+    }
     const actions = actionsOf({ heroId });
     for (let action = 1; action <= actions; action += 1) {
       const actor = current.heroes.find((unit) => unit.uid === uid);

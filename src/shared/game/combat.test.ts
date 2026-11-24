@@ -10,6 +10,7 @@ import { canMove, move, movementCost } from './movement.ts';
 import {
   attackDamage,
   endOfTurnUpkeep,
+  hexBurn,
   takeDamage,
   createCombatant,
   NO_STATUSES,
@@ -29,6 +30,7 @@ import {
   plannedHeroMoves,
 } from './combat.ts';
 import { describeCard, describeHeroIntent } from './describe.ts';
+import { getHero } from './heroes.ts';
 import { BACK_STEP_COST, CARDS_PER_TURN, ENERGY_PER_TURN } from './rules.ts';
 import type { CombatState, HeroUnit } from './types.ts';
 
@@ -78,14 +80,96 @@ void test('wrath adds to each hit and dread cuts damage by 25%', () => {
   );
 });
 
-void test('hex deals its damage at end of turn and then drops by one', () => {
+void test('poison deals its damage at end of turn and then drops by one', () => {
+  const poisoned = {
+    ...createCombatant(20, 20),
+    statuses: { ...NO_STATUSES, poison: 3, dread: 1 },
+  };
+  const after = endOfTurnUpkeep(poisoned);
+  assert.equal(after.hp, 17);
+  assert.deepEqual(after.statuses, { ...NO_STATUSES, poison: 2 });
+});
+
+void test('hex is left alone by end-of-turn upkeep', () => {
   const hexed = {
     ...createCombatant(20, 20),
-    statuses: { ...NO_STATUSES, hex: 3, dread: 1 },
+    statuses: { ...NO_STATUSES, hex: 3 },
   };
   const after = endOfTurnUpkeep(hexed);
-  assert.equal(after.hp, 17);
-  assert.deepEqual(after.statuses, { ...NO_STATUSES, hex: 2 });
+  assert.equal(after.hp, 20);
+  assert.equal(after.statuses.hex, 3);
+});
+
+void test('hex burns for its value only when odd, then grows by 1', () => {
+  for (const hex of [1, 2, 3, 4, 5]) {
+    const burned = hexBurn({
+      ...createCombatant(100, 100),
+      statuses: { ...NO_STATUSES, hex },
+    });
+    const loss = hex % 2 === 1 ? hex : 0;
+    assert.equal(burned.hp, 100 - loss, `hex ${hex} burns ${loss}`);
+    assert.equal(burned.statuses.hex, hex + 1, `hex ${hex} grows`);
+  }
+});
+
+void test('a hexed hero burns before it acts, and its hex grows', () => {
+  // Settled, so the Squire stands in the front row and can swing.
+  const fight = settled(
+    startCombat({
+      hp: 999,
+      maxHp: 999,
+      deck: ['backhand'],
+      heroIds: ['squire'],
+      might: 1,
+      seed: 7,
+    })
+  );
+  const hexed: CombatState = {
+    ...fight,
+    heroes: fight.heroes.map((unit) => ({
+      ...unit,
+      statuses: { ...unit.statuses, hex: 3 },
+    })),
+  };
+  const steps = endTurnSteps(hexed);
+  const squireUid = hexed.heroes[0]!.uid;
+  const burnIndex = steps.findIndex(
+    (step) =>
+      step.actorUid === null &&
+      step.state.heroes[0]?.hp === hexed.heroes[0]!.hp - 3
+  );
+  const actIndex = steps.findIndex((step) => step.actorUid === squireUid);
+  assert.ok(burnIndex > 0 && burnIndex < actIndex, 'burns, then acts');
+  assert.equal(steps.at(-1)!.state.heroes[0]!.statuses.hex, 4);
+});
+
+void test('a hexed villain burns at the start of its turn', () => {
+  const fight = startCombat({
+    hp: 50,
+    maxHp: 50,
+    deck: ['backhand'],
+    heroIds: ['bard'],
+    might: 1,
+    seed: 7,
+  });
+  const hexed: CombatState = {
+    ...fight,
+    player: { ...fight.player, statuses: { ...NO_STATUSES, hex: 5 } },
+  };
+  const next = endTurn(hexed);
+  // The Bard only sings (Wrath to allies): the 5 lost is the hex.
+  assert.equal(next.player.hp, 45);
+  assert.equal(next.player.statuses.hex, 6);
+  // Even now: the next turn it only grows.
+  const after = endTurn(next);
+  assert.equal(after.player.statuses.hex, 7);
+});
+
+void test("the Rogue's Poisoned Dart poisons instead of hexing", () => {
+  const dart = getHero('rogue').moves[0]!;
+  assert.equal(dart.name, 'Poisoned Dart');
+  assert.ok(dart.effects.some((effect) => effect.kind === 'poison'));
+  assert.ok(!dart.effects.some((effect) => effect.kind === 'hex'));
 });
 
 // --- TURN FLOW ---

@@ -42,6 +42,10 @@ export const STATUS_INFO: Record<StatusId | 'shroud', StatusInfo> = {
   },
   hex: {
     label: 'Hex',
+    description: 'Before its turn: burns for this much if odd, then +1.',
+  },
+  poison: {
+    label: 'Poison',
     description: 'Lose this much HP each turn, then -1.',
   },
   dread: {
@@ -115,6 +119,8 @@ export const describeCardEffect = (
     }
     case 'hex':
       return `Apply ${effect.amount} Hex${areaSuffix(effect.target)}.`;
+    case 'poison':
+      return `Apply ${effect.amount} Poison${areaSuffix(effect.target)}.`;
     case 'dread':
       return `Apply ${effect.amount} Dread${areaSuffix(effect.target)}.`;
     case 'reap': {
@@ -173,6 +179,7 @@ export type IntentKind =
   | 'range'
   | 'magic'
   | 'curse'
+  | 'poison'
   | 'dread'
   | 'guard'
   | 'buff'
@@ -224,6 +231,10 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
     case 'hex': {
       const amount = scaled(effect.amount);
       return { kind: 'curse', text: `${amount}`, label: `Hex ${amount}` };
+    }
+    case 'poison': {
+      const amount = scaled(effect.amount);
+      return { kind: 'poison', text: `${amount}`, label: `Poison ${amount}` };
     }
     case 'dread':
       return {

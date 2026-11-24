@@ -13,7 +13,9 @@ import type { RngState } from './rng.ts';
  * Lingering effects on a combatant (shroud, the block value, shown to
  * players as "Guard", lives on the
  * combatant itself because it resets every turn):
- * - hex:   loses this much HP at the end of its turn, then hex drops by 1
+ * - poison: loses this much HP at the end of its turn, then drops by 1
+ * - hex:    right before its turn, loses this much HP if it is odd
+ *           (nothing when even), then hex grows by 1
  * - dread: deals 25% less attack damage; drops by 1 at the end of its turn
  * - wrath: adds this much to every hit; lasts the whole fight
  * Buffs, gained from the villain's Buff cards, also last the whole fight:
@@ -30,7 +32,7 @@ import type { RngState } from './rng.ts';
  */
 export type BuffId = 'might' | 'surge' | 'piercing' | 'protection';
 export type StatusId =
-  'hex' | 'dread' | 'wrath' | 'momentum' | 'aloft' | BuffId;
+  'hex' | 'poison' | 'dread' | 'wrath' | 'momentum' | 'aloft' | BuffId;
 export type Statuses = Record<StatusId, number>;
 /**
  * A boss's built-in trait: always on, never stacks or fades.
@@ -61,6 +63,7 @@ export type CardTarget = 'one' | 'all';
 export type CardEffect =
   | { kind: 'damage'; amount: number; hits: number; target: CardTarget }
   | { kind: 'hex'; amount: number; target: CardTarget }
+  | { kind: 'poison'; amount: number; target: CardTarget }
   | { kind: 'dread'; amount: number; target: CardTarget }
   /** Deals damage equal to the target's hex times `multiplier`. */
   | { kind: 'reap'; multiplier: number }
@@ -121,6 +124,7 @@ export type HeroAttackType = Extract<CardType, 'melee' | 'range' | 'magic'>;
 export type HeroEffect =
   | { kind: 'attack'; amount: number; hits: number; type: HeroAttackType }
   | { kind: 'hex'; amount: number }
+  | { kind: 'poison'; amount: number }
   | { kind: 'dread'; amount: number }
   | { kind: 'shroud'; amount: number; who: 'self' | 'allies' }
   | { kind: 'wrath'; amount: number; who: 'self' | 'allies' }

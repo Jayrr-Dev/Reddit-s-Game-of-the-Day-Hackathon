@@ -25,7 +25,11 @@ import { Slice } from './Slice';
 import type { PlayerHitPop } from '../../../hooks/useHitPops';
 
 // --- CONSTANTS ---
-const DEBUFF_KINDS: readonly PlayerHitPop['kind'][] = ['hex', 'dread'];
+const DEBUFF_KINDS: readonly PlayerHitPop['kind'][] = [
+  'hex',
+  'poison',
+  'dread',
+];
 const BUFF_ARROW_TONE = 'var(--color-heal)';
 const DEBUFF_ARROW_TONE = 'var(--color-hp)';
 const CURSE_GLOW = 'var(--color-hex)';
