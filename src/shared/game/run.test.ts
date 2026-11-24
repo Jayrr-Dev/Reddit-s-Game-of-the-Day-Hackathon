@@ -74,6 +74,9 @@ void test('replaying the action log rebuilds the exact same run', () => {
 void test('isRunAction accepts real actions and rejects junk', () => {
   assert.ok(isRunAction({ type: 'playCard', handIndex: 0, targetUid: 1 }));
   assert.ok(isRunAction({ type: 'pickCard', offerIndex: null }));
+  assert.ok(isRunAction({ type: 'move', move: 'charge' }));
+  assert.ok(isRunAction({ type: 'charge' })); // legacy logs still replay
+  assert.equal(isRunAction({ type: 'move', move: 'teleport' }), false);
   assert.equal(
     isRunAction({ type: 'playCard', handIndex: -1, targetUid: 1 }),
     false

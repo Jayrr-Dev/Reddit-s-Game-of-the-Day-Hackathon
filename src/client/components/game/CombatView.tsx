@@ -21,15 +21,15 @@
 import { useCallback, useState, type ReactNode } from 'react';
 import { getCard } from '../../../shared/game/cards';
 import {
-  canBackStep,
-  canCharge,
-  fieldMoveCost,
-} from '../../../shared/game/combat';
+  canMove,
+  movementCost,
+  offeredMovement,
+} from '../../../shared/game/movement';
 import type { RunAction } from '../../../shared/game/run';
 import type {
   CardType,
   CombatState,
-  FieldMoveId,
+  MovementId,
 } from '../../../shared/game/types';
 import type { CardBox, Point } from '../../hooks/useCardDrag';
 import { useCombatControls } from '../../hooks/useCombatControls';
@@ -44,7 +44,8 @@ import { useSmoothPoint } from '../../hooks/useSmoothPoint';
 import { HitHistory } from '../../lib/popSize';
 import { AimArrow } from './combat/AimArrow';
 import { BattlefieldView } from './combat/BattlefieldView';
-import { FieldMoveButton } from './combat/FieldMoveButton';
+import { MOVEMENT_LOOK } from '../../content/visuals';
+import { MovementButton } from './combat/MovementButton';
 import { DraggedCard } from './combat/DraggedCard';
 import { EnergyTray } from './combat/EnergyTray';
 import { FanHand } from './combat/FanHand';
@@ -77,22 +78,6 @@ const cardTop = ({ center, height }: CardBox): Point => ({
   y: center.y - height / 2,
 });
 
-/**
- * The field move on offer, if any: Charge while every hero holds the
- * back row, Back Step while every hero stands in the front row (whether
- * you can afford it is canCharge / canBackStep's call).
- */
-const fieldMoveOffered = (combat: CombatState): FieldMoveId | null => {
-  if (combat.heroes.length === 0) return null;
-  if (combat.heroes.every((unit) => unit.row === 'back')) return 'charge';
-  if (combat.heroes.every((unit) => unit.row === 'front')) return 'backStep';
-  return null;
-};
-
-/** True when you can pay for a field move right now. */
-const canAfford = (combat: CombatState, move: FieldMoveId): boolean =>
-  move === 'charge' ? canCharge(combat) : canBackStep(combat);
-
 // --- SUBCOMPONENTS ---
 /**
  * The row above the hand: portrait + discard pile | effects + energy |
@@ -104,14 +89,14 @@ const PlayerBar = ({
   combat,
   hits,
   onEndTurn,
-  onFieldMove,
+  onMove,
 }: {
   combat: CombatState;
   hits: readonly PlayerHitPop[];
   onEndTurn: () => void;
-  onFieldMove: (move: FieldMoveId) => void;
+  onMove: (move: MovementId) => void;
 }) => {
-  const fieldMove = fieldMoveOffered(combat);
+  const movement = offeredMovement(combat);
   return (
     <div className="grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-end gap-1 px-2">
       <div className="flex items-end gap-5 justify-self-start">
@@ -126,13 +111,13 @@ const PlayerBar = ({
       <div className="relative flex min-w-0 flex-col items-center gap-1 pb-1">
         {/* CHARGE / BACK STEP float above the chips, so showing one never
           moves the bar */}
-        {fieldMove && (
+        {movement && (
           <div className="absolute bottom-full mb-2">
-            <FieldMoveButton
-              move={fieldMove}
-              cost={fieldMoveCost(combat, fieldMove)}
-              isAffordable={canAfford(combat, fieldMove)}
-              onPress={() => onFieldMove(fieldMove)}
+            <MovementButton
+              move={movement}
+              cost={movementCost(combat, movement)}
+              isAffordable={canMove(combat, movement)}
+              onPress={() => onMove(movement)}
             />
           </div>
         )}
@@ -189,16 +174,16 @@ export const CombatView = ({
   const isAnimating = heroTurn.isPlaying || cardHits.isPlaying;
   // The type of the card played last colours its damage numbers.
   const [lastCardType, setLastCardType] = useState<CardType>();
-  // The last field move (Charge or Back Step) with a running count, so
-  // each one re-keys (and replays) its speed lines.
-  const [burst, setBurst] = useState<{ move: FieldMoveId; count: number }>();
+  // The last movement with a running count, so each one re-keys (and
+  // replays) its speed lines.
+  const [burst, setBurst] = useState<{ move: MovementId; count: number }>();
   // Recent hits, so damage numbers are sized against a typical hit.
   const [hitHistory] = useState(() => new HitHistory());
   const routeAction = useCallback(
     (action: RunAction) => {
       if (action.type === 'endTurn') return playHeroTurn();
-      if (action.type === 'charge' || action.type === 'backStep') {
-        const move = action.type;
+      if (action.type === 'move') {
+        const { move } = action;
         setBurst((last) => ({ move, count: (last?.count ?? 0) + 1 }));
       }
       if (action.type === 'playCard') {
@@ -255,7 +240,7 @@ export const CombatView = ({
         {burst && (
           <SpeedLines
             key={burst.count}
-            direction={burst.move === 'charge' ? 'in' : 'out'}
+            direction={MOVEMENT_LOOK[burst.move].speedLines}
           />
         )}
         <HitNumbers pops={pops} />
@@ -266,7 +251,7 @@ export const CombatView = ({
           combat={combat}
           hits={playerHits}
           onEndTurn={controls.endTurn}
-          onFieldMove={(type) => routeAction({ type })}
+          onMove={(move) => routeAction({ type: 'move', move })}
         />
         <FanHand
           combat={combat}

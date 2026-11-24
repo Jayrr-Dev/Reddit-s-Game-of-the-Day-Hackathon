@@ -69,7 +69,7 @@ export const DrainBar = ({ hp, maxHp, size }: DrainBarProps) => {
       <div
         className={`absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center bg-surface-raised pb-1 font-display font-black ring-1 ring-accent/70 [clip-path:polygon(0_0,100%_0,100%_60%,50%_100%,0_60%)] ${look.emblem}`}
       >
-        {hp}
+        <span className="num-center">{hp}</span>
       </div>
     </div>
   );

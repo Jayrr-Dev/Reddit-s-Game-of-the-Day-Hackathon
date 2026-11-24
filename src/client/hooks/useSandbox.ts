@@ -29,8 +29,7 @@ const reduce = (state: SandboxState, event: SandboxEvent): SandboxState => {
   const isCombatInput =
     action.type === 'playCard' ||
     action.type === 'endTurn' ||
-    action.type === 'charge' ||
-    action.type === 'backStep';
+    action.type === 'move';
   if (!isCombatInput) return state;
   return { ...state, combat: sandboxReducer(state.combat, action) };
 };

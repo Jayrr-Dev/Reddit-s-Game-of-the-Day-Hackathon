@@ -28,10 +28,10 @@ export const BACK_STEP_COST = 1;
  */
 export const LONG_RANGE_DAMAGE_FACTOR = 1.3;
 /**
- * Each consecutive use of the same field move (this turn or the last)
- * costs this much more energy; a break in the streak resets it.
+ * Each movement in a row (Charge, Back Step ... all count together)
+ * costs this much more energy. A full turn without moving resets it.
  */
-export const FIELD_MOVE_STREAK_COST = 1;
+export const MOVEMENT_STREAK_COST = 1;
 
 // --- BATTLEFIELD ---
 /** Columns in each row of the hero battlefield (rows are front and back). */

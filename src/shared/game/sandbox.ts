@@ -9,27 +9,17 @@
 
 import { sizeOf } from './battlefield.ts';
 import { ALL_CARD_IDS } from './cards.ts';
-import {
-  backStep,
-  charge,
-  combatOutcome,
-  endTurn,
-  playCard,
-  startCombat,
-} from './combat.ts';
+import { combatOutcome, endTurn, playCard, startCombat } from './combat.ts';
 import { CHAMPION_IDS, ELITE_IDS, GRUNT_IDS, type HeroId } from './heroes.ts';
+import { move } from './movement.ts';
 import { nextInt, pickWeighted, type RngState } from './rng.ts';
 import { ENERGY_PER_TURN } from './rules.ts';
-import type { PlayCardAction } from './run.ts';
+import type { MoveAction, PlayCardAction } from './run.ts';
 import type { CombatState } from './types.ts';
 
 // --- TYPES ---
-/** What the sandbox accepts: the two combat inputs. */
-export type SandboxAction =
-  | PlayCardAction
-  | { type: 'endTurn' }
-  | { type: 'charge' }
-  | { type: 'backStep' };
+/** What the sandbox accepts: the combat inputs. */
+export type SandboxAction = PlayCardAction | { type: 'endTurn' } | MoveAction;
 
 // --- CONSTANTS ---
 /** So much HP the heroes can't win; you test, you don't lose. */
@@ -114,10 +104,8 @@ const applyAction = (state: CombatState, action: SandboxAction) => {
       );
     case 'endTurn':
       return endTurn(state);
-    case 'charge':
-      return charge(state);
-    case 'backStep':
-      return backStep(state);
+    case 'move':
+      return move(state, action.move);
   }
 };
 

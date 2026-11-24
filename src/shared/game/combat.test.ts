@@ -6,6 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { advanceMelee } from './battlefield.ts';
 import { ALL_CARD_IDS, type CardId } from './cards.ts';
+import { canMove, move, movementCost } from './movement.ts';
 import {
   attackDamage,
   endOfTurnUpkeep,
@@ -14,10 +15,6 @@ import {
   NO_STATUSES,
 } from './combatant.ts';
 import {
-  backStep,
-  canBackStep,
-  charge,
-  fieldMoveCost,
   canPlayCard,
   combatOutcome,
   endTurn,
@@ -346,11 +343,11 @@ void test('a Range hero shoots harder from the back and strikes plainly up close
 
 void test('Back Step pushes a full front row back for 1 energy', () => {
   const state = fightWith(['backhand']);
-  assert.ok(canBackStep(state));
-  const after = backStep(state);
+  assert.ok(canMove(state, 'backStep'));
+  const after = move(state, 'backStep');
   assert.ok(after.heroes.every((unit) => unit.row === 'back'));
   assert.equal(after.energy, state.energy - BACK_STEP_COST);
-  assert.equal(canBackStep(after), false);
+  assert.equal(canMove(after, 'backStep'), false);
   // The Squire can't reach, so the heroes' turn costs no HP; it steps up.
   const next = endTurn(after);
   assert.equal(next.player.hp, 60);
@@ -374,27 +371,19 @@ void test('every card text fits on the card face', () => {
   }
 });
 
-void test('a field move costs 1 more for each use in a row; a break resets it', () => {
+void test('every movement shares one streak; a full turn off resets it', () => {
   const start = { ...fightWith(['backhand']), energy: 9 };
-  assert.equal(fieldMoveCost(start, 'backStep'), 1);
-  // Back Step, then Charge (a different move breaks the streak), then
-  // Back Step again: each costs 1.
-  const mixed = backStep(charge(backStep(start)));
-  assert.equal(mixed.energy, 9 - 3);
-  // Two Back Steps in a row so far: the next costs 3.
-  const streak = {
-    ...start,
-    lastFieldMove: { move: 'backStep' as const, turn: start.turn, streak: 2 },
-  };
-  assert.equal(fieldMoveCost(streak, 'backStep'), 3);
-  assert.equal(fieldMoveCost(streak, 'charge'), 1);
-  // Last turn still counts as in a row; two turns later it is gone.
-  assert.equal(
-    fieldMoveCost({ ...streak, turn: start.turn + 1 }, 'backStep'),
-    3
-  );
-  assert.equal(
-    fieldMoveCost({ ...streak, turn: start.turn + 2 }, 'backStep'),
-    1
-  );
+  assert.equal(movementCost(start, 'backStep'), 1);
+  // Back Step, Charge, Back Step in one turn: a different move still
+  // counts toward the streak, so they cost 1, 2 and 3.
+  const mixed = move(move(move(start, 'backStep'), 'charge'), 'backStep');
+  assert.equal(mixed.energy, 9 - 6);
+  assert.equal(mixed.lastMovement?.streak, 3);
+  // Every kind of movement prices off the same streak.
+  assert.equal(movementCost(mixed, 'charge'), 4);
+  assert.equal(movementCost(mixed, 'backStep'), 4);
+  // The next turn doesn't reset it: the turn it was made never counts.
+  assert.equal(movementCost({ ...mixed, turn: mixed.turn + 1 }, 'charge'), 4);
+  // Only after one full turn without moving does it go back to base.
+  assert.equal(movementCost({ ...mixed, turn: mixed.turn + 2 }, 'charge'), 1);
 });

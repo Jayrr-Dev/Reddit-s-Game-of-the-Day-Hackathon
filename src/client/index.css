@@ -7,6 +7,31 @@
    =================================================================== */
 @import 'tailwindcss';
 
+/* --- LINING DIGITS ---
+   Georgia (the display font) draws old-style digits: a "1" is short
+   and sits low, a "3" drops below the line, so numbers never look
+   centred in a badge. This face swaps in a serif with lining digits for
+   the digits and number signs only; letters stay Georgia. If none of
+   these fonts exist, the browser simply falls back to Georgia. */
+@font-face {
+  font-family: 'Lining Digits';
+  src:
+    local('Times New Roman'), local('TimesNewRomanPSMT'),
+    local('Liberation Serif'), local('Noto Serif'), local('DejaVu Serif');
+  unicode-range: U+0030-0039, U+002B, U+002D, U+0025, U+00D7, U+2212;
+  font-weight: 100 500;
+}
+/* The bold cut, so heavy numbers (costs, HP) stay heavy. */
+@font-face {
+  font-family: 'Lining Digits';
+  src:
+    local('Times New Roman Bold'), local('TimesNewRomanPS-BoldMT'),
+    local('Liberation Serif Bold'), local('Noto Serif Bold'),
+    local('DejaVu Serif Bold');
+  unicode-range: U+0030-0039, U+002B, U+002D, U+0025, U+00D7, U+2212;
+  font-weight: 600 900;
+}
+
 @theme {
   /* --- SURFACES AND TEXT --- */
   --color-surface: #110a10;
@@ -46,7 +71,8 @@
   --color-on-parchment: #2b1b12;
 
   /* --- TYPOGRAPHY --- */
-  --font-display: 'Georgia', 'Times New Roman', ui-serif, serif;
+  --font-display:
+    'Lining Digits', 'Georgia', 'Times New Roman', ui-serif, serif;
   --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
 
   /* --- MOTION --- */
@@ -424,6 +450,18 @@
     animation: none;
     transition: none;
   }
+}
+
+/* --- NUMBER BADGES ---
+   For a number centred in a badge: the line box is trimmed to the
+   digits' own height (cap height to baseline), so flex centring puts
+   the digits, not the font's empty ascent and descent, in the middle.
+   Browsers without text-box fall back to a tight line height. */
+@utility num-center {
+  display: block;
+  line-height: 1;
+  font-variant-numeric: lining-nums tabular-nums;
+  text-box: trim-both cap alphabetic;
 }
 
 /* --- BASE --- */

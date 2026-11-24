@@ -13,14 +13,8 @@ import {
   targetRuleOf,
 } from './battlefield.ts';
 import { ALL_CARD_IDS, getCard, type CardId } from './cards.ts';
-import {
-  canCharge,
-  canPlayCard,
-  charge,
-  endTurn,
-  playCard,
-  startCombat,
-} from './combat.ts';
+import { canPlayCard, endTurn, playCard, startCombat } from './combat.ts';
+import { canMove, move } from './movement.ts';
 import { CHARGE_COST } from './rules.ts';
 import type { HeroId } from './heroes.ts';
 import { ELITE_IDS, GRUNT_IDS } from './heroes.ts';
@@ -87,7 +81,7 @@ void test('a champion forms up in the back row and then fills the front', () => 
 void test('an all-ranged horde holds the back row until a Charge', () => {
   const state = endTurn(fight(['archer', 'priest'], []));
   assert.ok(state.heroes.every((unit) => unit.row === 'back'));
-  assert.ok(canCharge(state));
+  assert.ok(canMove(state, 'charge'));
 });
 
 void test('every horde the kingdom can roll fits on the field', () => {
@@ -223,25 +217,25 @@ void test('when the front row falls, the back row holds until a Charge', () => {
   const after = playCard(state, 0, unitOf(state, 'squire').uid);
   assert.equal(after.heroes.length, 1);
   assert.equal(unitOf(after, 'priest').row, 'back');
-  assert.equal(canCharge(after), true);
-  const charged = charge(after);
+  assert.equal(canMove(after, 'charge'), true);
+  const charged = move(after, 'charge');
   assert.equal(unitOf(charged, 'priest').row, 'front');
   assert.equal(charged.energy, after.energy - CHARGE_COST);
-  assert.equal(canCharge(charged), false);
+  assert.equal(canMove(charged, 'charge'), false);
 });
 
 void test('Charge is refused while anyone holds the front or energy is short', () => {
   const state = fight(['squire', 'priest'], []);
-  assert.equal(canCharge(state), false);
-  assert.equal(charge(state), state);
+  assert.equal(canMove(state, 'charge'), false);
+  assert.equal(move(state, 'charge'), state);
   const felled = playCard(
     fight(['squire', 'priest'], ['undyingHatred']),
     0,
     unitOf(state, 'squire').uid
   );
   const broke = { ...felled, energy: 0 };
-  assert.equal(canCharge(broke), false);
-  assert.equal(charge(broke), broke);
+  assert.equal(canMove(broke, 'charge'), false);
+  assert.equal(move(broke, 'charge'), broke);
 });
 
 void test('charging gives Momentum: the next Melee card hits 50% harder, once', () => {
@@ -250,7 +244,7 @@ void test('charging gives Momentum: the next Melee card hits 50% harder, once', 
     0,
     unitOf(fight(['squire', 'priest'], []), 'squire').uid
   );
-  const charged = charge({ ...felled, energy: 3 });
+  const charged = move({ ...felled, energy: 3 }, 'charge');
   assert.equal(charged.player.statuses.momentum, 1);
   const priest = unitOf(charged, 'priest');
   // Backhand: 6 x 1.5 = 9, and Momentum is spent.
@@ -278,7 +272,7 @@ void test('Momentum unused by the end of the turn is lost', () => {
     0,
     unitOf(fight(['squire', 'priest'], []), 'squire').uid
   );
-  const charged = charge({ ...felled, energy: 3 });
+  const charged = move({ ...felled, energy: 3 }, 'charge');
   assert.equal(charged.player.statuses.momentum, 1);
   assert.equal(endTurn(charged).player.statuses.momentum, 0);
 });

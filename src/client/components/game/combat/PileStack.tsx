@@ -63,7 +63,7 @@ export const PileStack = ({
       <span
         className={`relative grid place-items-center font-display text-xs font-black ${CARD_CLASS} ${isEmpty ? 'border border-dashed border-accent/40 text-ink/50' : `${toneClass} text-ink ring-1 ring-accent/50`}`}
       >
-        {count}
+        <span className="num-center">{count}</span>
       </span>
     </span>
   );

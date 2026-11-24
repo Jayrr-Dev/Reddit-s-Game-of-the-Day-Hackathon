@@ -187,7 +187,7 @@ export const CardView = ({
       <span
         className={`absolute z-10 flex ${look.orb} items-center justify-center rounded-full bg-energy font-display font-black text-on-accent ring-2 ring-surface-sunken shadow-[inset_0_-2px_3px_rgb(0_0_0/0.35)]`}
       >
-        {cardDef.cost}
+        <span className="num-center">{cardDef.cost}</span>
       </span>
       <ArtWindow
         glyph={typeLook.glyph}

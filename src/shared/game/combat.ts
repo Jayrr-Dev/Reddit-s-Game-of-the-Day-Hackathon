@@ -18,12 +18,10 @@ import {
   affectsSelf,
   areaTargets,
   cardAreaTargets,
-  fallBack,
   formUp,
   legalTargets,
   pullHero,
   pushHero,
-  stepForward,
   targetRuleOf,
   type UnplacedHero,
 } from './battlefield.ts';
@@ -45,11 +43,8 @@ import {
 import { getHero, type HeroId } from './heroes.ts';
 import { shuffle, type RngState } from './rng.ts';
 import {
-  BACK_STEP_COST,
   CARDS_PER_TURN,
-  CHARGE_COST,
   LONG_RANGE_DAMAGE_FACTOR,
-  FIELD_MOVE_STREAK_COST,
   ENERGY_PER_TURN,
   MAX_HAND_SIZE,
 } from './rules.ts';
@@ -59,7 +54,6 @@ import type {
   CardTarget,
   CombatOutcome,
   CombatState,
-  FieldMoveId,
   HeroAttackType,
   HeroEffect,
   HeroMove,
@@ -110,7 +104,7 @@ export const startCombat = (setup: CombatSetup): CombatState => {
     turn: 0,
     slain: 0,
     rng,
-    lastFieldMove: null,
+    lastMovement: null,
   };
   return startPlayerTurn(initial);
 };
@@ -258,87 +252,6 @@ const removeFallen = (state: CombatState): CombatState => {
   return fallen === 0
     ? state
     : { ...state, heroes: standing, slain: state.slain + fallen };
-};
-
-// --- FIELD MOVES (CHARGE AND BACK STEP) ---
-const BASE_COST: Record<FieldMoveId, number> = {
-  charge: CHARGE_COST,
-  backStep: BACK_STEP_COST,
-};
-
-/**
- * How many times in a row `move` has been made: the last field move was
- * this one, made this turn or the turn before. Any other move, or a
- * skipped turn, breaks the streak.
- */
-const streakOf = (state: CombatState, move: FieldMoveId): number => {
-  const last = state.lastFieldMove;
-  const isStreak =
-    last !== null && last.move === move && state.turn - last.turn <= 1;
-  return isStreak ? last.streak : 0;
-};
-
-/** What `move` costs right now: its base cost, plus 1 per use in a row. */
-export const fieldMoveCost = (state: CombatState, move: FieldMoveId): number =>
-  BASE_COST[move] + streakOf(state, move) * FIELD_MOVE_STREAK_COST;
-
-/** Pays for `move` and records it, extending or starting its streak. */
-const payForFieldMove = (
-  state: CombatState,
-  move: FieldMoveId
-): CombatState => ({
-  ...state,
-  energy: state.energy - fieldMoveCost(state, move),
-  lastFieldMove: { move, turn: state.turn, streak: streakOf(state, move) + 1 },
-});
-
-/**
- * True when the villain can Charge: the fight is on, the front row is
- * empty, someone holds the back row, and there is energy to pay.
- */
-export const canCharge = (state: CombatState): boolean =>
-  combatOutcome(state) === 'ongoing' &&
-  state.energy >= fieldMoveCost(state, 'charge') &&
-  state.heroes.length > 0 &&
-  state.heroes.every((unit) => unit.row === 'back');
-
-/**
- * Charges the back row: pays its cost, every hero steps up, and the
- * villain gains Momentum (the next Melee card hits 50% harder).
- */
-export const charge = (state: CombatState): CombatState => {
-  if (!canCharge(state)) return state;
-  const paid = payForFieldMove(state, 'charge');
-  return {
-    ...paid,
-    heroes: stepForward(paid.heroes),
-    player: {
-      ...paid.player,
-      statuses: { ...paid.player.statuses, momentum: 1 },
-    },
-  };
-};
-
-/**
- * True when the villain can Back Step: the fight is on, the back row is
- * empty (everyone is up close), and there is energy to pay.
- */
-export const canBackStep = (state: CombatState): boolean =>
-  combatOutcome(state) === 'ongoing' &&
-  state.energy >= fieldMoveCost(state, 'backStep') &&
-  state.heroes.length > 0 &&
-  state.heroes.every((unit) => unit.row === 'front');
-
-/**
- * Backs off from the front row: pays its cost and the whole field falls
- * back a row. Their intents change at once (Melee heroes can't reach;
- * Range heroes shoot at full damage) until melee heroes step up again
- * at the end of the heroes' turn.
- */
-export const backStep = (state: CombatState): CombatState => {
-  if (!canBackStep(state)) return state;
-  const paid = payForFieldMove(state, 'backStep');
-  return { ...paid, heroes: fallBack(paid.heroes) };
 };
 
 /**

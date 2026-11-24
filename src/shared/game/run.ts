@@ -15,15 +15,9 @@
 // ===================================================================
 
 import { STARTER_DECK, type CardId } from './cards.ts';
-import {
-  backStep,
-  charge,
-  combatOutcome,
-  endTurn,
-  playCard,
-  startCombat,
-} from './combat.ts';
+import { combatOutcome, endTurn, playCard, startCombat } from './combat.ts';
 import { mightAt, routeOptions, stopSeed, type Stop } from './kingdom.ts';
+import { isMovementId, move } from './movement.ts';
 import { rollOffers } from './rewards.ts';
 import {
   CHAMPION_VICTORY_HEAL,
@@ -34,7 +28,7 @@ import {
   SCORE_PER_REGION,
   SCORE_PER_WAVE,
 } from './rules.ts';
-import type { CombatState } from './types.ts';
+import type { CombatState, MovementId } from './types.ts';
 
 // --- TYPES ---
 export type RunStats = {
@@ -77,15 +71,24 @@ export type PlayCardAction = {
   targetUids?: number[];
 };
 
+/** Makes a movement on the battlefield (see MOVEMENTS in movement.ts). */
+export type MoveAction = { type: 'move'; move: MovementId };
+
+/** LEGACY: the two movement actions logged before MoveAction existed. */
+type LegacyMoveAction = { type: 'charge' } | { type: 'backStep' };
+
+/** The movement an action makes (legacy actions name it as their type). */
+const moveIdOf = (action: MoveAction | LegacyMoveAction): MovementId =>
+  action.type === 'move' ? action.move : action.type;
+
 /** Every input a player can give. Logged and replayed by the server. */
 export type RunAction =
   | { type: 'chooseStop'; option: number }
   | PlayCardAction
   | { type: 'endTurn' }
-  /** Charges an empty front row: the back row steps up (costs energy). */
-  | { type: 'charge' }
-  /** Backs off from a full front row: it falls back a row (costs energy). */
-  | { type: 'backStep' }
+  /** A movement on the battlefield, e.g. Charge (see movement.ts). */
+  | MoveAction
+  | LegacyMoveAction
   | { type: 'pickCard'; offerIndex: number | null }
   | { type: 'graveChoice'; choice: GraveChoice }
   /** Gives up the march; the score so far stands. */
@@ -248,13 +251,11 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
       return phase.kind === 'combat'
         ? settleCombat(state, phase.stop, endTurn(phase.combat))
         : state;
+    case 'move':
     case 'charge':
-      return phase.kind === 'combat'
-        ? settleCombat(state, phase.stop, charge(phase.combat))
-        : state;
     case 'backStep':
       return phase.kind === 'combat'
-        ? settleCombat(state, phase.stop, backStep(phase.combat))
+        ? settleCombat(state, phase.stop, move(phase.combat, moveIdOf(action)))
         : state;
     case 'pickCard':
       return phase.kind === 'reward' || phase.kind === 'altar'
@@ -318,6 +319,8 @@ export const isRunAction = (value: unknown): value is RunAction => {
         isIndex(value.targetUid) &&
         isPickList('targetUids' in value ? value.targetUids : undefined)
       );
+    case 'move':
+      return 'move' in value && isMovementId(value.move);
     case 'endTurn':
     case 'charge':
     case 'backStep':

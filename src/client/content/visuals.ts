@@ -7,7 +7,12 @@
 
 import type { IntentKind } from '../../shared/game/describe';
 import type { StopKind } from '../../shared/game/kingdom';
-import type { CardRarity, CardType, StatusId } from '../../shared/game/types';
+import type {
+  CardRarity,
+  CardType,
+  MovementId,
+  StatusId,
+} from '../../shared/game/types';
 import type { GlyphName } from '../components/ui/Glyph';
 import type { PopKind } from '../hooks/useHitPops';
 
@@ -147,4 +152,35 @@ export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   momentum: STATUS_LOOK.momentum,
   hex: STATUS_LOOK.hex,
   dread: STATUS_LOOK.dread,
+};
+
+// --- MOVEMENTS ---
+/** How one movement's pill looks, its tooltip, and its speed lines. */
+type MovementLook = {
+  label: string;
+  glyph: GlyphName;
+  title: string;
+  toneClass: string;
+  /** Speed lines rush in (toward the heroes) or fly out (away). */
+  speedLines: 'in' | 'out';
+};
+
+export const MOVEMENT_LOOK: Record<MovementId, MovementLook> = {
+  charge: {
+    label: 'Charge',
+    glyph: 'bolt',
+    title:
+      'Charge: the back row steps up, and your next Melee card this turn deals 50% more damage. Each move in a row costs 1 more; a turn without moving resets it.',
+    speedLines: 'in',
+    toneClass: 'bg-blood shadow-[0_0_14px_var(--color-blood)]',
+  },
+  backStep: {
+    label: 'Back Step',
+    glyph: 'march',
+    title:
+      'Back Step: fall back, so the heroes end up in the back row. Melee heroes cannot reach you until they step up again. Each move in a row costs 1 more; a turn without moving resets it.',
+    speedLines: 'out',
+    toneClass:
+      'bg-surface-raised shadow-[0_0_14px_var(--color-shroud)] [&_svg]:rotate-180',
+  },
 };
