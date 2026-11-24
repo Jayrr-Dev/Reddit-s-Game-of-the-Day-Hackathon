@@ -14,7 +14,7 @@
 // ===================================================================
 
 import { fallBack, isDeep, stepForward } from './battlefield.ts';
-import { combatOutcome } from './combat.ts';
+import { canPlayCard, combatOutcome } from './combat.ts';
 import {
   BACK_STEP_COST,
   BACK_STEP_ROWS,
@@ -175,3 +175,14 @@ export const moveFree = (
   };
   return grant(moved, def.grants);
 };
+
+// --- TURN ---
+/**
+ * True while the villain still has something to do this turn: a card
+ * in hand it can play (affordable, with a target), or a movement it can
+ * make. When false the view ends the turn on its own.
+ */
+export const hasPlayLeft = (state: CombatState): boolean =>
+  combatOutcome(state) === 'ongoing' &&
+  (state.hand.some((_, index) => canPlayCard(state, index)) ||
+    MOVEMENT_IDS.some((moveId) => canMove(state, moveId)));

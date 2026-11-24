@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { advanceHeroes } from './battlefield.ts';
 import { ALL_CARD_IDS, getCard, type CardId } from './cards.ts';
-import { canMove, move, movementCost } from './movement.ts';
+import { canMove, hasPlayLeft, move, movementCost } from './movement.ts';
 import {
   attackDamage,
   endOfTurnUpkeep,
@@ -1792,4 +1792,22 @@ void test('every hit of an Ice card applies Frost (Frost Bolt hits twice)', () =
   const burnt = playCard(fire, 0, uid).heroes.find((unit) => unit.uid === uid);
   assert.equal(burnt?.statuses.frost, 0);
   assert.equal(burnt?.statuses.burn, 0);
+});
+
+// --- AUTO END TURN ---
+void test('a turn has a play left while a card or a move can be made', () => {
+  const state = squireAndArcher(['backhand']);
+  assert.equal(hasPlayLeft(state), true, 'Backhand is affordable');
+  const broke = { ...state, energy: 0 };
+  assert.equal(hasPlayLeft(broke), false, 'no energy, no move offered');
+  const empty = { ...state, hand: [] };
+  assert.equal(hasPlayLeft(empty), false, 'energy, but nothing to spend it on');
+  // An empty front row offers a Charge: that still counts as a play.
+  const allBack: CombatState = {
+    ...state,
+    hand: [],
+    heroes: state.heroes.map((unit) => ({ ...unit, row: 'back' })),
+  };
+  assert.equal(hasPlayLeft(allBack), true);
+  assert.equal(hasPlayLeft({ ...allBack, energy: 0 }), false);
 });

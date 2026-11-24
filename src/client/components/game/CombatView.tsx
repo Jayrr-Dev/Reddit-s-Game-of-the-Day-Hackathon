@@ -36,6 +36,7 @@ import type {
   MovementId,
 } from '../../../shared/game/types';
 import type { CardBox, Point } from '../../hooks/useCardDrag';
+import { useAutoEndTurn } from '../../hooks/useAutoEndTurn';
 import { useCombatControls } from '../../hooks/useCombatControls';
 import { useCardFlights } from '../../hooks/useCardFlights';
 import { useCardHits } from '../../hooks/useCardHits';
@@ -295,6 +296,12 @@ export const CombatView = ({
   const controls = useCombatControls(combat, routeAction);
   const cardFlights = useCardFlights(combat);
   const [isPaused, setIsPaused] = useState(false);
+  // Out of plays: the turn ends itself after a beat (see useAutoEndTurn).
+  useAutoEndTurn(
+    realCombat,
+    isAnimating || isShooting || isPaused,
+    controls.endTurn
+  );
   // The pile whose cards are open in the dialog, if any.
   const [openPile, setOpenPile] = useState<PileId | null>(null);
   const closePile = useCallback(() => setOpenPile(null), []);
