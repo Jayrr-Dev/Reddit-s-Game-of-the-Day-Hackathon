@@ -139,7 +139,8 @@ export const PASSIVE_INFO: Record<PassiveId, StatusInfo> = {
   },
   anchored: {
     label: 'Anchored',
-    description: "Never moves, and can't be moved",
+    description:
+      "Never walks on its own\n**Force Pull** and **Force Push** can't move it",
   },
 };
 

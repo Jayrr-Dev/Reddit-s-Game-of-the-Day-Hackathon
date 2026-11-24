@@ -107,9 +107,10 @@ export const isImmovable = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
   isDeep(unit) || getHero(unit.heroId).tier === 'boss' || isAnchored(unit);
 
 /**
- * True for a hero that never changes row at all (Anchored: the
- * Ballista): not by pull or push, nor with the field on Charge or Back
- * Step, nor walking in.
+ * True for an Anchored hero (the Ballista): no pull or push moves it
+ * and it never walks on its own. Lines are distance from the villain,
+ * so when the villain Charges or Back Steps it still ends up nearer or
+ * farther, like everyone.
  */
 export const isAnchored = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
   getHero(unit.heroId).passives?.includes('anchored') ?? false;
@@ -323,7 +324,6 @@ export const formUp = (units: readonly UnplacedHero[]): HeroUnit[] => {
  * deep hero's reach, one row behind) would run off the field.
  */
 const shiftedRowOf = (unit: HeroUnit, steps: number): HeroRow | null => {
-  if (isAnchored(unit)) return null;
   const row = rowShifted(unit.row, steps);
   if (row === null || !isDeep(unit)) return row;
   return rowShifted(row, 1) === null ? null : row;
@@ -341,10 +341,12 @@ const shiftField = (heroes: readonly HeroUnit[], steps: number): HeroUnit[] =>
   });
 
 /**
- * A deep hero (a boss) moves `steps` rows as a whole, when its new
- * cells are on the field and free; otherwise the field is unchanged.
+ * One hero moves `steps` rows as a whole, keeping its columns, when its
+ * new cells are on the field and free; otherwise the field is
+ * unchanged. For heroes no push may move (a deep boss, an Anchored
+ * one) when the villain itself moves.
  */
-const shiftDeep = (
+const shiftWhole = (
   heroes: HeroUnit[],
   uid: number,
   steps: number
@@ -566,7 +568,7 @@ export const advanceHeroes = (heroes: HeroUnit[]): HeroUnit[] => {
     const current = field.find((hero) => hero.uid === unit.uid);
     if (!current || rowsBehindHome(current) <= 0) continue;
     // A deep boss walks back in as a whole; anyone else is pulled.
-    if (isDeep(current)) field = shiftDeep(field, current.uid, -1);
+    if (isDeep(current)) field = shiftWhole(field, current.uid, -1);
     else if (canPull(field, current)) field = pullHero(field, current.uid);
   }
   return field;
@@ -589,8 +591,8 @@ export const fallBack = (
       (a, b) => rowDepth(b.row) - rowDepth(a.row)
     );
     for (const unit of farthestFirst)
-      field = isDeep(unit)
-        ? shiftDeep(field, unit.uid, 1)
+      field = isImmovable(unit)
+        ? shiftWhole(field, unit.uid, 1)
         : pushHero(field, unit.uid);
   }
   return field;

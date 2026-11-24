@@ -364,7 +364,7 @@ void test('the Ballista fills 2 cells side by side and has Longrange', () => {
   assert.ok(shots.every(Boolean));
 });
 
-void test('the Ballista is Anchored: nothing moves it, and it never moves', () => {
+void test('the Ballista is Anchored: nothing pushes it, but you can close in', () => {
   const state = fightAt([
     ['squire', 'front', 0],
     ['ballista', 'back', 1],
@@ -372,18 +372,16 @@ void test('the Ballista is Anchored: nothing moves it, and it never moves', () =
   const ballista = unitAt(state, 1);
   assert.equal(canPull(state.heroes, ballista), false);
   assert.equal(canPush(state.heroes, ballista), false);
-  // Back Step moves the Squire, not the Ballista.
+  // You step back: it ends up a line farther, like everyone.
   assert.deepEqual(placesOf(move(state, 'backStep').heroes), [
     'back:0',
-    'back:1',
+    'horizon:1',
   ]);
-  // Charge closes in, the Ballista stays.
-  const far = fightAt([
-    ['squire', 'horizon', 0],
-    ['ballista', 'back', 1],
-  ]);
-  assert.equal(unitAt(move(far, 'charge'), 1).row, 'back');
-  // It spawns at home (Line 2) and never walks.
+  // Alone, you can Charge up to it and hit it in Melee.
+  const lone = fightAt([['ballista', 'back', 1]]);
+  assert.ok(canMove(lone, 'charge'));
+  assert.equal(unitAt(move(lone, 'charge'), 0).row, 'front');
+  // It never walks on its own: it stays where it spawns.
   const fresh = startCombat({
     hp: 60,
     maxHp: 60,
@@ -393,6 +391,8 @@ void test('the Ballista is Anchored: nothing moves it, and it never moves', () =
     seed: 1,
   });
   assert.equal(fresh.heroes[0]?.row, 'back');
+  const far = fightAt([['ballista', 'horizon', 1]]);
+  assert.equal(advanceHeroes(far.heroes)[0]?.row, 'horizon');
 });
 
 // --- CELL CAP ---
