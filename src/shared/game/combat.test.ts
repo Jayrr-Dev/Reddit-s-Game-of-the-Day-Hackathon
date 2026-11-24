@@ -1457,6 +1457,22 @@ void test('a move with two effects is one action; only the dragon has two', () =
   assert.equal(describeHeroIntent(dragon, fight.heroes).moves.length, 2);
 });
 
+// --- MELEE EDGES ---
+void test('Blunt cards land single heavy blows with Knockback and Rampage; multi-hit is Sharp', () => {
+  const blunt = ALL_CARD_IDS.map(getCard).filter((c) => c.edge === 'blunt');
+  for (const card of blunt) {
+    const multi = card.effects.some(
+      (effect) => effect.kind === 'damage' && effect.hits > 1
+    );
+    assert.equal(multi, false, `${card.name} hits once`);
+  }
+  assert.equal(getCard('flurry').edge, 'sharp');
+  const knocks = blunt.filter((c) => c.effects.some((e) => e.kind === 'push'));
+  assert.ok(knocks.length >= 3, 'Knockback is a Blunt staple');
+  const rampages = blunt.filter((c) => c.keywords.includes('rampage'));
+  assert.ok(rampages.length >= 3, 'so is Rampage');
+});
+
 // --- HOLD ---
 void test('a Hold card stays in hand at end of turn; the rest are discarded', () => {
   // A deck of Dark Cloaks, so the new hand never redraws the Backhand.

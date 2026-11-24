@@ -133,7 +133,7 @@ export const SANDBOX_DECKS: readonly SandboxDeck[] = [
   {
     id: 'blunt',
     name: 'Blunt melee',
-    blurb: 'Fists and hammers: every Blunt Melee card.',
+    blurb: 'Single heavy blows, Knockback and Rampage.',
     fits: (card) => card.edge === 'blunt',
   },
   {

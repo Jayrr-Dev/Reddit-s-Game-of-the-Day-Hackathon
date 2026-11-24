@@ -211,7 +211,10 @@ export const CARDS = {
     hex(1),
     { kind: 'vex', amount: 3, target: 'one' },
   ]),
-  quickJab: card('Quick Jab', 'melee', 0, 'common', [hit(3), draw(1)], BLUNT),
+  quickJab: card('Quick Jab', 'melee', 0, 'common', [hit(3), draw(1)], {
+    ...RAMPAGES,
+    ...BLUNT,
+  }),
   sneer: card('Sneer', 'curse', 1, 'common', [guard(5), weaken(1), hex(1)]),
   fortressOfSpite: card('Fortress of Spite', 'defend', 2, 'common', [
     guard(14),
@@ -222,14 +225,10 @@ export const CARDS = {
     ...SHARP,
   }),
   spiteBolt: card('Spite Bolt', 'range', 1, 'common', [hit(6)], DISTANCES),
-  hurlAside: card(
-    'Hurl Aside',
-    'melee',
-    1,
-    'common',
-    [hit(5), knockback(1)],
-    BLUNT
-  ),
+  hurlAside: card('Hurl Aside', 'melee', 1, 'common', [hit(5), knockback(1)], {
+    ...RAMPAGES,
+    ...BLUNT,
+  }),
   beckon: card('Beckon', 'curse', 0, 'common', [pull(1), weaken(1), hex(1)]),
   repulse: card('Repulse', 'magic', 1, 'common', [hit(5), knockback(1)]),
   hexfire: card(
@@ -241,13 +240,13 @@ export const CARDS = {
     FIRE
   ),
   barbedVolley: card('Barbed Volley', 'range', 1, 'common', [hit(2, 3)]),
-  flurry: card('Flurry', 'melee', 1, 'common', [hit(3, 3)], BLUNT),
+  flurry: card('Flurry', 'melee', 1, 'common', [hit(3, 3)], SHARP),
   spikedGuard: card(
     'Spiked Guard',
     'melee',
     1,
     'common',
-    [hit(5), guard(5)],
+    [hit(5), guard(5), knockback(1)],
     BLUNT
   ),
   blackArrow: card('Black Arrow', 'range', 1, 'common', [hit(7)], PIERCES),
@@ -459,7 +458,10 @@ export const CARDS = {
     ...PIERCES,
     ...SHARP,
   }),
-  ruin: card('Ruin', 'melee', 2, 'uncommon', [hit(16)], { ...HOLDS, ...BLUNT }),
+  ruin: card('Ruin', 'melee', 2, 'uncommon', [hit(16), knockback(2)], {
+    ...HOLDS,
+    ...BLUNT,
+  }),
   coldResolve: card('Cold Resolve', 'defend', 1, 'uncommon', [
     guard(6),
     draw(2),
