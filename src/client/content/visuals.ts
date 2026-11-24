@@ -30,8 +30,10 @@ export const STATUS_LOOK: Record<StatusId | 'shroud', Look> = {
   shroud: { glyph: 'shield', toneClass: 'text-shroud' },
   hex: { glyph: 'skull', toneClass: 'text-hex' },
   poison: { glyph: 'drop', toneClass: 'text-poison' },
+  burn: { glyph: 'flame', toneClass: 'text-burn' },
+  frost: { glyph: 'snowflake', toneClass: 'text-frost' },
   dread: { glyph: 'eye', toneClass: 'text-dread' },
-  wrath: { glyph: 'flame', toneClass: 'text-wrath' },
+  wrath: { glyph: 'fist', toneClass: 'text-rage' },
   // Buffs wear their card type's icon and colour (see CARD_LOOK).
   might: { glyph: 'sword', toneClass: 'text-hp' },
   surge: { glyph: 'swirl', toneClass: 'text-magic' },
@@ -56,9 +58,11 @@ export const INTENT_LOOK: Record<IntentKind, Look> = {
   advance: { glyph: 'march', toneClass: 'text-ink' },
   curse: { glyph: 'skull', toneClass: 'text-hex' },
   poison: STATUS_LOOK.poison,
+  burn: STATUS_LOOK.burn,
+  frost: STATUS_LOOK.frost,
   dread: STATUS_LOOK.dread,
   guard: { glyph: 'shield', toneClass: 'text-shroud' },
-  buff: { glyph: 'flame', toneClass: 'text-wrath' },
+  buff: STATUS_LOOK.wrath,
   heal: { glyph: 'heart', toneClass: 'text-heal' },
   summon: { glyph: 'eye', toneClass: 'text-accent' },
   revive: { glyph: 'altar', toneClass: 'text-accent' },
@@ -171,6 +175,8 @@ export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   momentum: STATUS_LOOK.momentum,
   hex: STATUS_LOOK.hex,
   poison: STATUS_LOOK.poison,
+  burn: STATUS_LOOK.burn,
+  frost: STATUS_LOOK.frost,
   dread: STATUS_LOOK.dread,
 };
 

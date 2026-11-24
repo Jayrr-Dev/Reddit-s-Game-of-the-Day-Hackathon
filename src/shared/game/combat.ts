@@ -7,10 +7,11 @@
 //
 // TURN ORDER
 //   Villain turn: play cards with energy, then End Turn.
-//   End Turn: discard hand -> villain upkeep (poison) -> heroes clear
+//   End Turn: discard hand -> villain Burn, upkeep (poison) -> heroes clear
 //             shroud
 //             -> each hero, fastest first (see heroTurnOrder): its Hex
-//                burns (see hexBurn), it acts, then takes its own upkeep
+//                burns (see hexBurn), it acts (Burn and Frost run after
+//                each action), then takes its own upkeep
 //             -> new villain turn (clear shroud, the villain's Hex
 //                burns, refill energy, draw).
 // ===================================================================
@@ -41,6 +42,7 @@ import {
   damageFactorOf,
   clearShroud,
   createCombatant,
+  afterAction,
   endOfTurnUpkeep,
   hexBurn,
   guardAmount,
@@ -464,6 +466,8 @@ const applyCardEffect = (
       return villainAttack(state, effect, targetUid, cardDef);
     case 'hex':
     case 'poison':
+    case 'burn':
+    case 'frost':
     case 'dread':
       return updateHeroes(
         state,
@@ -795,6 +799,8 @@ const applyHeroEffect = (
     }
     case 'hex':
     case 'poison':
+    case 'burn':
+    case 'frost':
       return {
         ...state,
         player: addStatus(state.player, effect.kind, scaled(effect.amount)),
@@ -867,7 +873,8 @@ const heroActs = (
 
   const isDiving = planned !== null && isAloft(actor);
   const settled = updateHeroes(acted, [uid], (unit) => {
-    const landed = isDiving ? withAloft(unit, 0) : unit;
+    // BURN AND FROST RUN AFTER EVERY ACTION, UPKEEP AFTER THE LAST ONE
+    const landed = afterAction(isDiving ? withAloft(unit, 0) : unit);
     return {
       ...(isLast ? endOfTurnUpkeep(landed) : landed),
       moveIndex: planned ? planned.index + 1 : unit.moveIndex,
@@ -949,7 +956,8 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
     ...state,
     hand: [],
     discardPile: [...state.discardPile, ...state.hand],
-    player: endOfTurnUpkeep(state.player),
+    // The villain's turn was its action: Burn and Frost, then upkeep.
+    player: endOfTurnUpkeep(afterAction(state.player)),
     heroes: state.heroes.map(clearShroud),
   };
   const steps: TurnStep[] = [

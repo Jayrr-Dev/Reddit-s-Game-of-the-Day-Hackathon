@@ -32,6 +32,11 @@ const hex = (amount: number, target: 'one' | 'all' = 'one'): CardEffect => ({
   amount,
   target,
 });
+const burn = (amount: number, target: 'one' | 'all' = 'one'): CardEffect => ({
+  kind: 'burn',
+  amount,
+  target,
+});
 const dread = (amount: number, target: 'one' | 'all' = 'one'): CardEffect => ({
   kind: 'dread',
   amount,
@@ -102,7 +107,7 @@ export const CARDS = {
   fortressOfSpite: card('Fortress of Spite', 'defend', 2, 'common', [
     shroud(14),
   ]),
-  sear: card('Sear', 'melee', 1, 'common', [hit(5), hex(3)]),
+  sear: card('Sear', 'melee', 1, 'common', [hit(5), burn(3)]),
   cleave: card('Cleave', 'melee', 1, 'common', [hitAll(6)]),
   spiteBolt: card('Spite Bolt', 'range', 1, 'common', [hit(6)]),
   hurlAside: card('Hurl Aside', 'melee', 1, 'common', [hit(5), push]),

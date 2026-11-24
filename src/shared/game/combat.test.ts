@@ -10,6 +10,8 @@ import { canMove, move, movementCost } from './movement.ts';
 import {
   attackDamage,
   endOfTurnUpkeep,
+  burnTick,
+  frostThaw,
   hexBurn,
   takeDamage,
   createCombatant,
@@ -163,6 +165,115 @@ void test('a hexed villain burns at the start of its turn', () => {
   // Even now: the next turn it only grows.
   const after = endTurn(next);
   assert.equal(after.player.statuses.hex, 7);
+});
+
+void test('burn deals its value, then halves (a half rounds down)', () => {
+  const halves: [number, number][] = [
+    [1, 0],
+    [2, 1],
+    [3, 1],
+    [4, 2],
+    [9, 4],
+  ];
+  for (const [burn, after] of halves) {
+    const burning = burnTick({
+      ...createCombatant(20, 20),
+      statuses: { ...NO_STATUSES, burn },
+    });
+    assert.equal(burning.hp, 20 - burn);
+    assert.equal(burning.statuses.burn, after, `burn ${burn}`);
+  }
+});
+
+void test('a burning hero burns right after its action', () => {
+  const fight = settled(
+    startCombat({
+      hp: 999,
+      maxHp: 999,
+      deck: ['backhand'],
+      heroIds: ['squire'],
+      might: 1,
+      seed: 7,
+    })
+  );
+  const burning: CombatState = {
+    ...fight,
+    heroes: fight.heroes.map((unit) => ({
+      ...unit,
+      statuses: { ...unit.statuses, burn: 3 },
+    })),
+  };
+  const squire = burning.heroes[0]!;
+  const acted = endTurnSteps(burning).find(
+    (step) => step.actorUid === squire.uid
+  )!;
+  const after = acted.state.heroes.find((unit) => unit.uid === squire.uid)!;
+  assert.equal(after.hp, squire.hp - 3);
+  assert.equal(after.statuses.burn, 1);
+});
+
+void test('a burning villain burns at the end of its turn', () => {
+  const fight = startCombat({
+    hp: 50,
+    maxHp: 50,
+    deck: ['backhand'],
+    heroIds: ['bard'],
+    might: 1,
+    seed: 7,
+  });
+  const burning: CombatState = {
+    ...fight,
+    player: { ...fight.player, statuses: { ...NO_STATUSES, burn: 4 } },
+  };
+  const [ended] = endTurnSteps(burning);
+  assert.equal(ended!.state.player.hp, 46);
+  assert.equal(ended!.state.player.statuses.burn, 2);
+});
+
+void test('frost takes 1 per stack off every hit, never below 0', () => {
+  const frozen = (frost: number) => ({
+    ...createCombatant(20, 20),
+    statuses: { ...NO_STATUSES, frost },
+  });
+  assert.equal(attackDamage(8, frozen(3)), 5);
+  assert.equal(attackDamage(8, frozen(10)), 0);
+});
+
+void test('frost halves (rounding down) after the unit acts', () => {
+  const thawed = frostThaw({
+    ...createCombatant(20, 20),
+    statuses: { ...NO_STATUSES, frost: 5 },
+  });
+  assert.equal(thawed.statuses.frost, 2);
+  assert.equal(thawed.hp, 20);
+});
+
+void test('a frosted hero hits softer, then its frost halves', () => {
+  const fight = settled(
+    startCombat({
+      hp: 999,
+      maxHp: 999,
+      deck: ['backhand'],
+      heroIds: ['squire'],
+      might: 1,
+      seed: 7,
+    })
+  );
+  const frosted: CombatState = {
+    ...fight,
+    heroes: fight.heroes.map((unit) => ({
+      ...unit,
+      statuses: { ...unit.statuses, frost: 3 },
+    })),
+  };
+  const squire = frosted.heroes[0]!;
+  const acted = endTurnSteps(frosted).find(
+    (step) => step.actorUid === squire.uid
+  )!;
+  // Swing is 5 damage: Frost 3 takes it to 2.
+  assert.equal(frosted.player.hp - acted.state.player.hp, 2);
+  const after = acted.state.heroes.find((unit) => unit.uid === squire.uid)!;
+  assert.equal(after.statuses.frost, 1);
 });
 
 void test("the Rogue's Poisoned Dart poisons instead of hexing", () => {

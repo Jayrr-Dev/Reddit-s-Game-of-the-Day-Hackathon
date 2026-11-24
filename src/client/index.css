@@ -52,6 +52,10 @@
   --color-shroud: #7a93d6;
   --color-hex: #a463e8;
   --color-poison: #9ccf3a;
+  /* Burn: fire orange. Rage: Wrath's own crimson (Burn owns the flame). */
+  --color-burn: #ff7a1a;
+  --color-rage: #e8455e;
+  --color-frost: #8fd8ff;
   /* Magic: a light sky blue, kept clear of Guard's deeper periwinkle. */
   --color-magic: #7fd8f5;
   /* Defend's glow, a clear bright blue. */

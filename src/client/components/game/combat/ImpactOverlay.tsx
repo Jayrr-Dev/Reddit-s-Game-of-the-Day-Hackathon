@@ -28,6 +28,8 @@ import type { PlayerHitPop } from '../../../hooks/useHitPops';
 const DEBUFF_KINDS: readonly PlayerHitPop['kind'][] = [
   'hex',
   'poison',
+  'burn',
+  'frost',
   'dread',
 ];
 const BUFF_ARROW_TONE = 'var(--color-heal)';

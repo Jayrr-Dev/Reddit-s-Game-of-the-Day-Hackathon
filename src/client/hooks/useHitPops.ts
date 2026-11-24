@@ -24,7 +24,7 @@ import { HERO_ANCHOR_ATTR, HERO_UID_ATTR, type Point } from './useCardDrag';
 
 // --- TYPES ---
 /** A status that harms whoever carries it. */
-export type DebuffKind = 'hex' | 'poison' | 'dread';
+export type DebuffKind = 'hex' | 'poison' | 'burn' | 'frost' | 'dread';
 
 /** What a pop shows: a hit, something gained, or a debuff laid on. */
 export type PopKind =
@@ -66,6 +66,8 @@ type HeroLook = {
   wrath: number;
   hex: number;
   poison: number;
+  burn: number;
+  frost: number;
   dread: number;
   point: Point | null;
 };
@@ -81,6 +83,8 @@ const goneAfter = (old: HeroLook): Omit<HeroLook, 'point'> => ({
   wrath: 0,
   hex: 0,
   poison: 0,
+  burn: 0,
+  frost: 0,
   dread: 0,
 });
 /**
@@ -89,7 +93,13 @@ const goneAfter = (old: HeroLook): Omit<HeroLook, 'point'> => ({
  */
 export const BLOW_STAGGER_MS = 160;
 /** Debuffs that pop (quietly) when laid on anyone. */
-const DEBUFFS: readonly DebuffKind[] = ['hex', 'poison', 'dread'];
+const DEBUFFS: readonly DebuffKind[] = [
+  'hex',
+  'poison',
+  'burn',
+  'frost',
+  'dread',
+];
 /** Fight-long statuses the villain can gain from cards; each pops "+N". */
 const VILLAIN_GAINS: readonly (StatusId & PopKind)[] = [
   'momentum',
@@ -202,6 +212,8 @@ const lookAt = (
         wrath: unit.statuses.wrath,
         hex: unit.statuses.hex,
         poison: unit.statuses.poison,
+        burn: unit.statuses.burn,
+        frost: unit.statuses.frost,
         dread: unit.statuses.dread,
         point: bodyPointOf(unit.uid) ?? before.get(unit.uid)?.point ?? null,
       },
@@ -229,6 +241,8 @@ const heroPopsSince = (
           wrath: unit.statuses.wrath,
           hex: unit.statuses.hex,
           poison: unit.statuses.poison,
+          burn: unit.statuses.burn,
+          frost: unit.statuses.frost,
           dread: unit.statuses.dread,
         }
       : goneAfter(old);

@@ -14,6 +14,10 @@ import type { RngState } from './rng.ts';
  * players as "Guard", lives on the
  * combatant itself because it resets every turn):
  * - poison: loses this much HP at the end of its turn, then drops by 1
+ * - burn:   loses this much HP right after each of its actions (a hero
+ *           move; the villain's whole turn), then halves (3 -> 1, 1 -> 0)
+ * - frost:  every hit it deals is 1 lower per stack (never below 0);
+ *           halves the same way after each of its actions
  * - hex:    right before its turn, loses this much HP if it is odd
  *           (nothing when even), then hex grows by 1
  * - dread: deals 25% less attack damage; drops by 1 at the end of its turn
@@ -32,7 +36,15 @@ import type { RngState } from './rng.ts';
  */
 export type BuffId = 'might' | 'surge' | 'piercing' | 'protection';
 export type StatusId =
-  'hex' | 'poison' | 'dread' | 'wrath' | 'momentum' | 'aloft' | BuffId;
+  | 'hex'
+  | 'poison'
+  | 'burn'
+  | 'frost'
+  | 'dread'
+  | 'wrath'
+  | 'momentum'
+  | 'aloft'
+  | BuffId;
 export type Statuses = Record<StatusId, number>;
 /**
  * A boss's built-in trait: always on, never stacks or fades.
@@ -64,6 +76,8 @@ export type CardEffect =
   | { kind: 'damage'; amount: number; hits: number; target: CardTarget }
   | { kind: 'hex'; amount: number; target: CardTarget }
   | { kind: 'poison'; amount: number; target: CardTarget }
+  | { kind: 'burn'; amount: number; target: CardTarget }
+  | { kind: 'frost'; amount: number; target: CardTarget }
   | { kind: 'dread'; amount: number; target: CardTarget }
   /** Deals damage equal to the target's hex times `multiplier`. */
   | { kind: 'reap'; multiplier: number }
@@ -125,6 +139,8 @@ export type HeroEffect =
   | { kind: 'attack'; amount: number; hits: number; type: HeroAttackType }
   | { kind: 'hex'; amount: number }
   | { kind: 'poison'; amount: number }
+  | { kind: 'burn'; amount: number }
+  | { kind: 'frost'; amount: number }
   | { kind: 'dread'; amount: number }
   | { kind: 'shroud'; amount: number; who: 'self' | 'allies' }
   | { kind: 'wrath'; amount: number; who: 'self' | 'allies' }

@@ -36,6 +36,7 @@ const shoot = attackOf('range');
 const spell = attackOf('magic');
 const hex = (amount: number): HeroEffect => ({ kind: 'hex', amount });
 const poison = (amount: number): HeroEffect => ({ kind: 'poison', amount });
+const burn = (amount: number): HeroEffect => ({ kind: 'burn', amount });
 const dread = (amount: number): HeroEffect => ({ kind: 'dread', amount });
 const shroud = (
   amount: number,
@@ -194,7 +195,7 @@ export const HEROES = {
   ]),
   maren: hero('High Priestess Maren', 'champion', 55, 55, 4, HUGE, [
     move('Sanctuary', shroud(10), heal(6, 'self')),
-    move('Holy Fire', hex(5)),
+    move('Holy Fire', burn(5)),
     move('Smite the Wicked', spell(11)),
   ]),
   brannoc: hero('Sir Brannoc', 'champion', 70, 220, 3, HUGE, [

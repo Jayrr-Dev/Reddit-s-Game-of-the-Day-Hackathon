@@ -59,6 +59,8 @@ const STATUS_ORDER: readonly StatusId[] = [
   // DEBUFFS
   'hex',
   'poison',
+  'burn',
+  'frost',
   'dread',
 ];
 

@@ -5,7 +5,9 @@
 // ===================================================================
 
 import {
+  AFTER_ACTION_DIVISOR,
   DREAD_DAMAGE_FACTOR,
+  FROST_DAMAGE_PER_STACK,
   HEX_GROWTH,
   MOMENTUM_DAMAGE_FACTOR,
 } from './rules.ts';
@@ -21,6 +23,8 @@ import type {
 export const NO_STATUSES: Statuses = {
   hex: 0,
   poison: 0,
+  burn: 0,
+  frost: 0,
   dread: 0,
   wrath: 0,
   might: 0,
@@ -104,7 +108,9 @@ export const attackDamage = (
   type?: CardType
 ): number => {
   const withWrath = base + attacker.statuses.wrath + typeBonus(attacker, type);
-  return Math.max(0, Math.floor(withWrath * damageFactorOf(attacker, type)));
+  const factored = Math.floor(withWrath * damageFactorOf(attacker, type));
+  const frost = attacker.statuses.frost * FROST_DAMAGE_PER_STACK;
+  return Math.max(0, factored - frost);
 };
 
 // --- UPDATES (EACH RETURNS A NEW COMBATANT) ---
@@ -124,7 +130,7 @@ export const takeDamage = <T extends Combatant>(
   };
 };
 
-/** Loses HP directly, ignoring shroud (used by hex and poison). */
+/** Loses HP directly, ignoring shroud (hex, poison and burn). */
 export const loseHp = <T extends Combatant>(target: T, amount: number): T => ({
   ...target,
   hp: Math.max(0, target.hp - amount),
@@ -180,6 +186,35 @@ export const hexBurn = <T extends Combatant>(target: T): T => {
     statuses: { ...burned.statuses, hex: hex + HEX_GROWTH },
   };
 };
+
+/**
+ * What an after-action status (Burn, Frost) drops to: divided by
+ * AFTER_ACTION_DIVISOR to the nearest whole, an exact half rounding
+ * DOWN (3 -> 1, 1 -> 0), so it always runs out instead of sticking at 1.
+ */
+const afterActionLeft = (stacks: number): number =>
+  Math.ceil(stacks / AFTER_ACTION_DIVISOR - 0.5);
+
+/** Burn, right after an action: it deals its value, then halves. */
+export const burnTick = <T extends Combatant>(target: T): T => {
+  const { burn } = target.statuses;
+  if (burn <= 0) return target;
+  const burned = loseHp(target, burn);
+  const left = afterActionLeft(burn);
+  return { ...burned, statuses: { ...burned.statuses, burn: left } };
+};
+
+/** Frost, right after an action: it halves (its hits are already softer). */
+export const frostThaw = <T extends Combatant>(target: T): T => {
+  const { frost } = target.statuses;
+  if (frost <= 0) return target;
+  const left = afterActionLeft(frost);
+  return { ...target, statuses: { ...target.statuses, frost: left } };
+};
+
+/** Everything that runs right after a unit's action: Burn, then Frost. */
+export const afterAction = <T extends Combatant>(target: T): T =>
+  frostThaw(burnTick(target));
 
 /**
  * End-of-turn upkeep: poison deals its damage then weakens by 1, dread

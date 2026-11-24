@@ -44,6 +44,15 @@ export const STATUS_INFO: Record<StatusId | 'shroud', StatusInfo> = {
     label: 'Hex',
     description: 'Before its turn: burns for this much if odd, then +1.',
   },
+  burn: {
+    label: 'Burn',
+    description:
+      'After each action: lose this much HP, then halve (rounds down).',
+  },
+  frost: {
+    label: 'Frost',
+    description: 'Every hit deals this much less. Halves after each action.',
+  },
   poison: {
     label: 'Poison',
     description: 'Lose this much HP each turn, then -1.',
@@ -121,6 +130,10 @@ export const describeCardEffect = (
       return `Apply ${effect.amount} Hex${areaSuffix(effect.target)}.`;
     case 'poison':
       return `Apply ${effect.amount} Poison${areaSuffix(effect.target)}.`;
+    case 'burn':
+      return `Apply ${effect.amount} Burn${areaSuffix(effect.target)}.`;
+    case 'frost':
+      return `Apply ${effect.amount} Frost${areaSuffix(effect.target)}.`;
     case 'dread':
       return `Apply ${effect.amount} Dread${areaSuffix(effect.target)}.`;
     case 'reap': {
@@ -180,6 +193,8 @@ export type IntentKind =
   | 'magic'
   | 'curse'
   | 'poison'
+  | 'burn'
+  | 'frost'
   | 'dread'
   | 'guard'
   | 'buff'
@@ -232,9 +247,16 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
       const amount = scaled(effect.amount);
       return { kind: 'curse', text: `${amount}`, label: `Hex ${amount}` };
     }
-    case 'poison': {
+    case 'poison':
+    case 'burn':
+    case 'frost': {
       const amount = scaled(effect.amount);
-      return { kind: 'poison', text: `${amount}`, label: `Poison ${amount}` };
+      const label = STATUS_INFO[effect.kind].label;
+      return {
+        kind: effect.kind,
+        text: `${amount}`,
+        label: `${label} ${amount}`,
+      };
     }
     case 'dread':
       return {

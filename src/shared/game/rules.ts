@@ -40,6 +40,10 @@ export const BATTLEFIELD_COLUMNS = 3;
 // --- STATUSES ---
 /** A combatant with dread deals this fraction of its attack damage. */
 export const DREAD_DAMAGE_FACTOR = 0.75;
+/** Burn and Frost are divided by this after each action (a half rounds down). */
+export const AFTER_ACTION_DIVISOR = 2;
+/** Each stack of Frost takes this much off every hit its bearer deals. */
+export const FROST_DAMAGE_PER_STACK = 1;
 /** Hex grows by this much every turn (it burns only on odd counts). */
 export const HEX_GROWTH = 1;
 
