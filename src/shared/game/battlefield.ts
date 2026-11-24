@@ -524,15 +524,24 @@ export const advanceHeroes = (heroes: HeroUnit[]): HeroUnit[] => {
 };
 
 /**
- * Back Step: the whole field (all in the front row) falls back `rows`
- * rows, no farther than the last row.
+ * Back Step: every hero falls back `rows` rows where there is room
+ * behind it. Heroes on the last row stay, and so does anyone whose
+ * row behind is full. The farthest heroes move first, so they make
+ * room for the ones in front of them. Imperative: each step changes
+ * the room left for the next.
  */
 export const fallBack = (
   heroes: readonly HeroUnit[],
   rows: number
 ): HeroUnit[] => {
-  const farthest = Math.max(...heroes.map((unit) => rowDepth(unit.row)), 0);
-  return shiftField(heroes, Math.min(rows, lastRowDepth() - farthest));
+  let field = [...heroes];
+  for (let step = 0; step < rows; step += 1) {
+    const farthestFirst = [...field].sort(
+      (a, b) => rowDepth(b.row) - rowDepth(a.row)
+    );
+    for (const unit of farthestFirst) field = pushHero(field, unit.uid);
+  }
+  return field;
 };
 
 // --- TARGETING ---

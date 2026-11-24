@@ -10,7 +10,7 @@
 export const FEATURES = {
   /**
    * THREE-ROW FIELD: Line 3 (the Horizon) behind Lines 1 and 2, with
-   * Out of Range misses, Longrange (keyword, Eagle Eye, the Archer's
+   * Out of Range misses, Longrange (keyword, Eagle Eye, the Ballista's
    * passive), hordes marching in from Line 3 and Charge closing up to
    * 2 lines. Off: the field is 2 rows deep, as before (a Charge then
    * closes 1 line, Out of Range never comes up, Longrange is not

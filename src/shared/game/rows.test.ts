@@ -18,11 +18,17 @@ import {
   summonSeats,
 } from './battlefield.ts';
 import { type CardId } from './cards.ts';
-import { endTurn, endTurnSteps, playCard, startCombat } from './combat.ts';
+import {
+  endTurn,
+  endTurnSteps,
+  hasLongRangePassive,
+  playCard,
+  startCombat,
+} from './combat.ts';
 import { FEATURES } from './features.ts';
 import { canImbueOnto } from './imbue.ts';
-import type { HeroId } from './heroes.ts';
-import { move } from './movement.ts';
+import { getHero, type HeroId } from './heroes.ts';
+import { canMove, move } from './movement.ts';
 import { MAX_HERO_CELLS, OUT_OF_RANGE_HIT_CHANCE } from './rules.ts';
 import type { CombatState, HeroRow, HeroUnit } from './types.ts';
 
@@ -162,6 +168,36 @@ void test('Back Step always falls back exactly one row', () => {
   assert.deepEqual(placesOf(after.heroes), ['back:0', 'back:2']);
 });
 
+void test('Back Step works with heroes behind Line 1, when there is room', () => {
+  const state = fightAt([
+    ['lysa', 'front', 0],
+    ['squire', 'horizon', 1],
+  ]);
+  assert.ok(canMove(state, 'backStep'));
+  // Lysa falls back to Line 2; the Squire is already on the last line.
+  assert.deepEqual(placesOf(move(state, 'backStep').heroes), [
+    'back:0',
+    'horizon:1',
+  ]);
+});
+
+void test('Back Step moves everyone back a line where there is room', () => {
+  const after = move(
+    fightAt([
+      ['squire', 'front', 0],
+      ['priest', 'back', 2],
+    ]),
+    'backStep'
+  );
+  assert.deepEqual(placesOf(after.heroes), ['back:0', 'horizon:2']);
+});
+
+void test('with nobody on Line 1 there is no Back Step (Charge instead)', () => {
+  const state = fightAt([['squire', 'back', 0]]);
+  assert.equal(canMove(state, 'backStep'), false);
+  assert.ok(canMove(state, 'charge'));
+});
+
 // --- PIERCING ---
 void test('Piercing runs down the whole column, every row', () => {
   const state = fightAt(
@@ -288,9 +324,25 @@ void test('heroes shooting from the Horizon land about half the time', () => {
   assert.ok(smitesFrom('priest', 'back', 30).every((shot) => shot.landed));
 });
 
-void test('a Longrange hero (the Archer) never misses from the Horizon', () => {
+void test('the Archer has no Longrange: it misses from the Horizon too', () => {
+  // Its Volley fires 3 arrows, so count the turns where one missed.
   const shots = smitesFrom('archer', 'horizon', 40);
-  assert.ok(shots.every((shot) => shot.landed && !shot.missed));
+  assert.ok(shots.some((shot) => shot.missed));
+});
+
+void test('the Ballista fills 2 cells side by side and has Longrange', () => {
+  const state = fightAt([['ballista', 'back', 0]]);
+  const ballista = unitAt(state, 0);
+  assert.equal(getHero('ballista').size, 2);
+  assert.equal(freeHeroCells(state.heroes), MAX_HERO_CELLS - 2);
+  assert.ok(hasLongRangePassive(ballista));
+  // Its bolts land from Line 3, where other shooters miss.
+  const shots = Array.from({ length: 30 }, (_, index) => {
+    const far = fightAt([['ballista', 'horizon', 0]], [], index + 1);
+    const steps = endTurnSteps(far);
+    return steps.some((step) => step.state.player.hp < far.player.hp);
+  });
+  assert.ok(shots.every(Boolean));
 });
 
 // --- CELL CAP ---

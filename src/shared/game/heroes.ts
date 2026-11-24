@@ -106,8 +106,8 @@ const FRONT: Placement = { row: 'front', size: 1 };
 const BACK: Placement = { row: 'back', size: 1 };
 const WIDE_FRONT: Placement = { row: 'front', size: 2 };
 const WIDE_BACK: Placement = { row: 'back', size: 2 };
-/** A champion fills the whole front row on its own. */
-const HUGE: Placement = { row: 'front', size: 3 };
+/** A champion: two columns of the front row, leaving one open. */
+const CHAMPION: Placement = WIDE_FRONT;
 /**
  * A boss in a T: the whole front row plus the back row's centre,
  * leaving the back flanks for the heroes it summons.
@@ -151,17 +151,10 @@ export const HEROES = {
     move('Rousing Ballad', wrath(1, 'allies')),
     move('Mocking Verse', weaken(1), spell(2)),
   ]),
-  // Longrange: its arrows land from the Horizon too.
-  archer: hero(
-    'Archer',
-    'grunt',
-    10,
-    110,
-    7,
-    BACK,
-    [move('Volley', shoot(2, 3)), move('Aimed Shot', shoot(7))],
-    ['longRange']
-  ),
+  archer: hero('Archer', 'grunt', 10, 110, 7, BACK, [
+    move('Volley', shoot(2, 3)),
+    move('Aimed Shot', shoot(7)),
+  ]),
   priest: hero('Priest', 'grunt', 12, 50, 5, BACK, [
     move('Smite', spell(4)),
     move('Mend', heal(5), cleanse()),
@@ -199,33 +192,46 @@ export const HEROES = {
     move('Mana Shield', guard(12)),
   ]),
 
+  // A siege engine: two cells wide, slow, and its bolts never fall
+  // short (Longrange: it hits from Line 3 too).
+  ballista: hero(
+    'Ballista',
+    'elite',
+    30,
+    30,
+    2,
+    WIDE_BACK,
+    [move('Heavy Bolt', shoot(9)), move('Winch Back', guard(6))],
+    ['longRange']
+  ),
+
   // CHAMPIONS (ONE PER REGION, IN REGION ORDER)
-  holt: hero('Sergeant Holt', 'champion', 50, 20, 5, HUGE, [
+  holt: hero('Sergeant Holt', 'champion', 50, 20, 5, CHAMPION, [
     move('Rally', wrath(1), guard(6)),
     move('Halberd Sweep', strike(10)),
     move('Twin Thrust', strike(6, 2)),
   ]),
-  lysa: hero('Ranger Lysa', 'champion', 46, 120, 8, HUGE, [
+  lysa: hero('Ranger Lysa', 'champion', 46, 120, 8, CHAMPION, [
     move('Hail of Arrows', shoot(3, 4)),
     move('Snare', weaken(2), guard(6)),
     move('Piercing Shot', shoot(12)),
   ]),
-  maren: hero('High Priestess Maren', 'champion', 55, 55, 4, HUGE, [
+  maren: hero('High Priestess Maren', 'champion', 55, 55, 4, CHAMPION, [
     move('Sanctuary', guard(10), heal(6, 'self')),
     move('Holy Fire', burn(5)),
     move('Smite the Wicked', spell(11)),
   ]),
-  brannoc: hero('Sir Brannoc', 'champion', 70, 220, 3, HUGE, [
+  brannoc: hero('Sir Brannoc', 'champion', 70, 220, 3, CHAMPION, [
     move('Iron Wall', guard(15)),
     move('Gatebreaker', strike(18)),
     move('Hammer Blows', strike(8, 2)),
   ]),
-  seris: hero("Seris, the Queen's Blade", 'champion', 58, 330, 9, HUGE, [
+  seris: hero("Seris, the Queen's Blade", 'champion', 58, 330, 9, CHAMPION, [
     move('Dance of Blades', strike(4, 4)),
     move('Feint', weaken(2), guard(8)),
     move('Execution', strike(20)),
   ]),
-  valen: hero('Valen the Radiant', 'champion', 90, 48, 6, HUGE, [
+  valen: hero('Valen the Radiant', 'champion', 90, 48, 6, CHAMPION, [
     move('Radiance', wrath(2), guard(12)),
     move('Lightbringer', spell(9, 2)),
     move('Brand of Light', hex(6)),
@@ -290,7 +296,7 @@ export const GRUNT_IDS: readonly HeroId[] = [
   'rogue',
 ];
 
-export const ELITE_IDS: readonly HeroId[] = ['paladin', 'archmage'];
+export const ELITE_IDS: readonly HeroId[] = ['paladin', 'archmage', 'ballista'];
 
 /** Champion of each region, in the order the villain conquers them. */
 export const CHAMPION_IDS: readonly HeroId[] = [

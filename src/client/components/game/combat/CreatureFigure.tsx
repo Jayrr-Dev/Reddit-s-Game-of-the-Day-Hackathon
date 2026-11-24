@@ -27,9 +27,15 @@
 //   A "biblically accurate" angel: one great eye in a gold ring, ringed
 //   by six feathered wings that flutter on their own. It looses arrows
 //   of light (the eye flares as it fires) and its eye takes the moods.
+//
+// BALLISTA
+//   Sam's painted art (assets/heroes/ballista.png, its backdrop keyed
+//   out), standing on the bottom edge across its two cells. A machine:
+//   no face, so it takes no moods.
 // ===================================================================
 
 import type { JSX } from 'react';
+import ballistaArt from '../../../assets/heroes/ballista.png';
 import type {
   CreatureId,
   HeroAction,
@@ -621,6 +627,25 @@ const AngelArcher = ({ mood }: { mood: HeroMood }) => (
   </>
 );
 
+// --- BALLISTA ---
+/** The art's width / height (480 x 393), to fit it on the ground. */
+const BALLISTA_ASPECT = 480 / 393;
+
+/** The ballista: Sam's art, as wide as its two cells, base on the ground. */
+const Ballista = () => {
+  const width = BODY_WIDTH[2];
+  const height = width / BALLISTA_ASPECT;
+  return (
+    <image
+      href={ballistaArt}
+      x={0}
+      y={BODY_HEIGHT - height}
+      width={width}
+      height={height}
+    />
+  );
+};
+
 // --- CATALOG ---
 /** Each creature's drawing. */
 const CREATURE_DRAWINGS: Record<
@@ -630,6 +655,7 @@ const CREATURE_DRAWINGS: Record<
   holyDragon: HolyDragon,
   angelArcher: AngelArcher,
   grandGriffon: GrandGriffon,
+  ballista: Ballista,
 };
 
 // --- COMPONENT ---

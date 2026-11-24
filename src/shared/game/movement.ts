@@ -40,6 +40,13 @@ export type MovementDef = {
   grants?: { status: StatusId; amount: number };
 };
 
+// --- HELPERS ---
+/** True when a Back Step would move anyone (someone has room behind). */
+const hasRoomToFallBack = (heroes: readonly HeroUnit[]): boolean =>
+  fallBack(heroes, BACK_STEP_ROWS).some(
+    (unit, index) => unit.row !== heroes[index]?.row
+  );
+
 // --- REGISTRY ---
 export const MOVEMENTS: Record<MovementId, MovementDef> = {
   /**
@@ -52,10 +59,16 @@ export const MOVEMENTS: Record<MovementId, MovementDef> = {
     reshape: (heroes) => stepForward(heroes, CHARGE_ROWS),
     grants: { status: 'momentum', amount: 1 },
   },
-  /** Fall back from a full front row: the field drops BACK_STEP_ROWS row. */
+  /**
+   * Fall back while anyone stands on Line 1 and someone has room behind:
+   * every hero drops BACK_STEP_ROWS row where it can. A boss reaching
+   * back still shows it, locked (see movementBlockReason).
+   */
   backStep: {
     baseCost: BACK_STEP_COST,
-    fitsFormation: (heroes) => heroes.every((unit) => unit.row === 'front'),
+    fitsFormation: (heroes) =>
+      heroes.some((unit) => unit.row === 'front') &&
+      (heroes.some(isDeep) || hasRoomToFallBack(heroes)),
     reshape: (heroes) => fallBack(heroes, BACK_STEP_ROWS),
   },
 };

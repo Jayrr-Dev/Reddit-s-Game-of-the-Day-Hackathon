@@ -1844,9 +1844,13 @@ void test('Distance Back Steps on a hit, no kill needed', () => {
 });
 
 void test('Distance does nothing without room to Back Step', () => {
-  // The Archer already stands in Line 2: there is no all-front line.
-  const tough = squireAndArcher(['retreatingShot']);
-  assert.equal(playCard(tough, 0, archerUid(tough)).freeMove, null);
+  // Nobody stands on Line 1: there is no line to fall back from.
+  const state = squireAndArcher(['retreatingShot']);
+  const allBack: CombatState = {
+    ...state,
+    heroes: state.heroes.map((unit, col) => ({ ...unit, row: 'back', col })),
+  };
+  assert.equal(playCard(allBack, 0, archerUid(allBack)).freeMove, null);
 });
 
 void test('Distance can be imbued onto an attack', () => {
@@ -1878,8 +1882,9 @@ void test('a turn has a play left while a card or a move can be made', () => {
   assert.equal(hasPlayLeft(state), true, 'Backhand is affordable');
   const broke = { ...state, energy: 0 };
   assert.equal(hasPlayLeft(broke), false, 'no energy, no move offered');
+  // An empty hand still has a Back Step (the Squire has room behind).
   const empty = { ...state, hand: [] };
-  assert.equal(hasPlayLeft(empty), false, 'energy, but nothing to spend it on');
+  assert.equal(hasPlayLeft(empty), true, 'a Back Step is left');
   // An empty front row offers a Charge: that still counts as a play.
   const allBack: CombatState = {
     ...state,
