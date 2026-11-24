@@ -55,27 +55,45 @@ const GRIFFON_HALO: HaloSpec = { centre: [766, 178], radius: 165, stroke: 10 };
 /** Where the death's light bursts out (the chest). */
 const CHEST: Point = [768, 470];
 /** Where a wing meets the shoulders: the pivot it beats around. */
-const WING_ROOT: Point = [610, 330];
+const WING_ROOT: Point = [640, 330];
+/**
+ * The whole wing, rooted behind the ruff (so it joins the body with no
+ * gap) and sweeping out and down to serrated feather tips.
+ */
 const WING_OUTER: readonly Point[] = [
-  [610, 300],
-  [560, 290],
-  [520, 315],
-  [430, 480],
-  [385, 635],
-  [420, 610],
-  [395, 800],
-  [445, 735],
-  [462, 870],
-  [520, 705],
-  [610, 520],
+  [665, 300],
+  [595, 288],
+  [540, 300],
+  [470, 400],
+  [420, 520],
+  [385, 640],
+  [410, 625],
+  [392, 790],
+  [430, 750],
+  [440, 862],
+  [470, 790],
+  [500, 840],
+  [545, 700],
+  [605, 640],
+  [665, 610],
 ];
+/**
+ * The darker flight feathers along the wing's outer, lower edge (the
+ * coverts above and beside the body stay light, as in the art).
+ */
 const WING_INNER: readonly Point[] = [
-  [610, 420],
-  [545, 445],
-  [480, 610],
-  [478, 815],
-  [540, 690],
-  [612, 560],
+  [455, 470],
+  [420, 560],
+  [385, 640],
+  [410, 625],
+  [392, 790],
+  [430, 750],
+  [440, 862],
+  [470, 790],
+  [500, 840],
+  [545, 700],
+  [520, 600],
+  [480, 520],
 ];
 /** The lion's haunch and hind paw, crouched. */
 const HAUNCH: readonly Point[] = [

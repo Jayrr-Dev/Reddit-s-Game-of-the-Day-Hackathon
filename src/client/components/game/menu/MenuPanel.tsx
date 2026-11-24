@@ -2,10 +2,13 @@
 // MENU PANEL
 // A sheet that covers the title screen (inside the 512 px post) to show
 // one thing at a time: the rules, or today's leaderboard. Closing it
-// returns to the menu; nothing scrolls the page.
+// returns to the menu. The page never scrolls: content too tall for
+// the sheet scrolls inside it (faded edges), and Back stays pinned
+// below it.
 // ===================================================================
 
 import type { ReactNode } from 'react';
+import { SCROLL_FADE_STYLE } from '../../../lib/scrollFade';
 import { Button } from '../../ui/Button';
 
 // --- TYPES ---
@@ -26,7 +29,10 @@ export const MenuPanel = ({ title, onClose, children }: MenuPanelProps) => (
     <h2 className="font-display text-xl font-black uppercase tracking-widest text-accent">
       {title}
     </h2>
-    <div className="flex min-h-0 w-full max-w-xs flex-1 flex-col items-center gap-3">
+    <div
+      className="flex min-h-0 w-full max-w-xs flex-1 flex-col items-center gap-3 overflow-y-auto overscroll-contain py-3"
+      style={SCROLL_FADE_STYLE}
+    >
       {children}
     </div>
     <Button variant="menu" className="max-w-60" onClick={onClose}>

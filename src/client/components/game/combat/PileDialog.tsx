@@ -12,6 +12,7 @@ import { useEffect } from 'react';
 import { getCard, type CardId } from '../../../../shared/game/cards';
 import type { Combatant } from '../../../../shared/game/types';
 import { CardView } from '../CardView';
+import { SCROLL_FADE_STYLE } from '../../../lib/scrollFade';
 
 // --- TYPES ---
 export type PileId = 'draw' | 'discard';
@@ -31,10 +32,6 @@ const PILE_TEXT: Record<PileId, { title: string; note: string }> = {
   draw: { title: 'Draw pile', note: 'Sorted by name: the order is a secret.' },
   discard: { title: 'Discard pile', note: 'Most recent first.' },
 };
-
-/** Fades the scroll area's top and bottom edges (a CSS mask). */
-const FADE_MASK =
-  'linear-gradient(to bottom, transparent, black 1.25rem, black calc(100% - 1.25rem), transparent)';
 
 // --- HELPERS ---
 /** The order a pile is shown in: draw by name, discard newest first. */
@@ -82,7 +79,7 @@ export const PileDialog = ({
         </header>
         <div
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth py-4"
-          style={{ maskImage: FADE_MASK, WebkitMaskImage: FADE_MASK }}
+          style={SCROLL_FADE_STYLE}
         >
           {cards.length === 0 ? (
             <p className="py-6 text-center text-sm text-ink-muted">
