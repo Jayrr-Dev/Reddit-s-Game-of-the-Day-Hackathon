@@ -36,7 +36,11 @@ import {
   playDamageFactor,
   plannedHeroMoves,
 } from './combat.ts';
-import { describeCard, describeHeroIntent } from './describe.ts';
+import {
+  describeCard,
+  describeHeroIntent,
+  describeImbueGift,
+} from './describe.ts';
 import { imbueSlotsFor } from './imbue.ts';
 import { getHero } from './heroes.ts';
 import {
@@ -46,7 +50,7 @@ import {
   MAX_IMBUES_PER_CARD,
   STATUS_IS_AFFLICTION,
 } from './rules.ts';
-import type { CombatState, HeroUnit } from './types.ts';
+import type { CombatState, HeroUnit, ImbueGift } from './types.ts';
 
 // --- FIXTURES ---
 /** A fight's lines once settled: melee heroes have stepped up. */
@@ -1290,6 +1294,16 @@ void test('an imbued effect lands with the card, then waits in the piles', () =>
   assert.equal(after.stowedImbues.length, 1);
 });
 
+void test('an imbue on a multi-hit card lands once per hit', () => {
+  const state = cloakFight(['venomCoat', 'flurry']);
+  const uid = state.heroes[0]?.uid ?? -1;
+  const imbued = playCard(state, 0, uid, undefined, 1);
+  const after = playCard(imbued, 0, uid);
+  const hero = after.heroes.find((unit) => unit.uid === uid);
+  // Flurry hits 3 times, so Poison 3 lands 3 times.
+  assert.equal(hero?.statuses.poison, 9);
+});
+
 void test('an unplayed imbued card keeps its imbue through the discard and back', () => {
   const state = cloakFight(['venomCoat', 'backhand']);
   const imbued = playCard(state, 0, 0, undefined, 1);
@@ -1319,6 +1333,18 @@ void test('an Imbue card needs another card in hand to imbue', () => {
 void test('Imbue cards say what they grant', () => {
   assert.deepEqual(describeCard('holdFast'), ['Imbue Hold']);
   assert.deepEqual(describeCard('venomCoat'), ['Imbue Poison 3']);
+});
+
+void test('an imbued effect on a multi-hit card reads per hit', () => {
+  const poison: ImbueGift = {
+    kind: 'effect',
+    effect: { kind: 'poison', amount: 3, target: 'one' },
+  };
+  assert.equal(
+    describeImbueGift(poison, getCard('flurry')),
+    'Poison 3 per hit'
+  );
+  assert.equal(describeImbueGift(poison, getCard('backhand')), 'Poison 3');
 });
 
 // --- ENFEEBLE ---

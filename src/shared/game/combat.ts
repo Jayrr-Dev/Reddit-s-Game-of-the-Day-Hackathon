@@ -844,7 +844,9 @@ type PlayPlan = PlayContext & {
  * Resolves a paid-for card and returns the state after every beat (each
  * hit of each pick). Splitting hits changes nothing: a card's hits all
  * use the damage worked out before the first one. Imbued effects land
- * once, with the first pick.
+ * after every hit that lands (a Poison imbue on a 3-hit card poisons 3
+ * times; an Out of Range miss procs nothing). A card that deals no
+ * damage carries its imbues once, with the first pick.
  */
 const cardBeats = (
   paid: CombatState,
@@ -854,17 +856,28 @@ const cardBeats = (
   const cardDef = getCard(cardId);
   const beats = cardDef.effects.flatMap(oneHitAtATime);
   const imbuedBeats = plan.imbued.flatMap(oneHitAtATime);
+  const isProcPerHit = cardDef.effects.some(
+    (effect) => effect.kind === 'damage'
+  );
   const states: CombatState[] = [];
   let current = paid;
   // Imperative on purpose: each pick aims at the field the last one left
-  // (a hero felled by pick 1 can't be hit by pick 2; the aim moves on).
+  // (a hero felled by pick 1 can't be hit by pick 2; the aim moves on),
+  // and each imbue proc waits to see whether the hit before it landed.
   plan.picks.forEach((requested, pick) => {
     const aimed = aimCard(current, cardId, requested);
-    const pickBeats = pick === 0 ? [...beats, ...imbuedBeats] : beats;
-    for (const effect of pickBeats) {
+    const apply = (effect: CardEffect) => {
       current = applyCardEffect(current, effect, aimed, cardDef, plan);
       states.push(current);
+    };
+    for (const effect of beats) {
+      const before = current;
+      apply(effect);
+      const isLandedHit =
+        effect.kind === 'damage' && hasLandedHit(before, current);
+      if (isLandedHit) imbuedBeats.forEach(apply);
     }
+    if (!isProcPerHit && pick === 0) imbuedBeats.forEach(apply);
   });
   return states;
 };

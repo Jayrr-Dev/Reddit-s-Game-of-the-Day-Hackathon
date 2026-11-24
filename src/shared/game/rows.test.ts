@@ -246,6 +246,21 @@ void test('an Eagle Eye imbue gives a shot Long Range', () => {
   assert.ok(shots.every(Boolean));
 });
 
+void test('an imbue only lands with a shot that lands', () => {
+  for (let seed = 1; seed <= 30; seed += 1) {
+    const state = fightAt(
+      [['priest', 'horizon', 1]],
+      ['venomCoat', 'spiteBolt'],
+      seed
+    );
+    const after = playCard(playCard(state, 0, -1, undefined, 1), 0, 0);
+    const priest = after.heroes.find((unit) => unit.uid === 0);
+    if (!priest) continue;
+    const isHit = priest.hp < unitAt(state, 0).hp;
+    assert.equal((priest.statuses.poison ?? 0) > 0, isHit, `seed ${seed}`);
+  }
+});
+
 void test('Long Range goes on Range and Magic damage cards only', () => {
   const gift = { kind: 'keyword', keyword: 'longRange' } as const;
   assert.equal(canImbueOnto(gift, 'spiteBolt', []), true);

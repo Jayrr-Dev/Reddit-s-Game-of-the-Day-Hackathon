@@ -277,7 +277,7 @@ const durationSuffix = (duration: Duration | undefined): string =>
 export const IMBUE_INFO: StatusInfo = {
   label: 'Imbue',
   description:
-    'Gives another card in your hand this keyword or effect\nThen **Remove** this card',
+    'Gives another card in your hand this keyword or effect\nAn effect lands on every hit that lands\nThen **Remove** this card',
 };
 /** What Force Pull and Force Push mean, wherever they show. */
 export const FORCE_PULL_INFO: StatusInfo = {
@@ -350,11 +350,27 @@ export const GLOSSARY: Readonly<Record<string, StatusInfo>> =
 const KEYWORD_LABEL = (keyword: CardKeyword): string =>
   KEYWORD_INFO[keyword].label;
 
-/** What an imbue grants, as card text: "Hold" or "Poison 3". */
-export const describeImbueGift = (gift: ImbueGift, cardDef: CardDef): string =>
-  gift.kind === 'keyword'
-    ? KEYWORD_LABEL(gift.keyword)
-    : describeCardEffect(gift.effect, cardDef);
+/** How many hits a card lands in one play: each damage hit, per pick. */
+const hitsPerPlay = (cardDef: CardDef): number =>
+  cardDef.targets *
+  cardDef.effects.reduce(
+    (hits, effect) => hits + (effect.kind === 'damage' ? effect.hits : 0),
+    0
+  );
+
+/**
+ * What an imbue grants, as card text: "Hold" or "Poison 3". An effect
+ * imbued on a card that hits more than once lands on every hit, so it
+ * says so: "Poison 3 per hit".
+ */
+export const describeImbueGift = (
+  gift: ImbueGift,
+  cardDef: CardDef
+): string => {
+  if (gift.kind === 'keyword') return KEYWORD_LABEL(gift.keyword);
+  const gives = describeCardEffect(gift.effect, cardDef);
+  return hitsPerPlay(cardDef) > 1 ? `${gives} per hit` : gives;
+};
 
 /**
  * A short tag for an imbue, small enough for the badge on a card in
