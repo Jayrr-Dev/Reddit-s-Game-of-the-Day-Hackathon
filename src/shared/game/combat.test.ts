@@ -2106,3 +2106,10 @@ void test('a card hit for 0 (all Armor) lays none of its on-hit effects', () => 
   const landed = playCard(state, 0, uid).heroes[0];
   assert.ok((landed?.statuses.burn ?? 0) > 0);
 });
+
+void test('Doom is Legendary: 3 energy, Hex 33', () => {
+  const doom = getCard('doom');
+  assert.equal(doom.rarity, 'legendary');
+  assert.equal(doom.cost, 3);
+  assert.ok(doom.effects.some((e) => e.kind === 'hex' && e.amount === 33));
+});

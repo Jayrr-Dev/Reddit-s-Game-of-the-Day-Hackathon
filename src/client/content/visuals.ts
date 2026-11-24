@@ -225,6 +225,7 @@ export const RARITY_GEM: Record<CardRarity, string | null> = {
   common: 'bg-ink-muted',
   uncommon: 'bg-heal',
   rare: 'bg-accent',
+  legendary: 'bg-burn',
 };
 
 // --- STOPS ---

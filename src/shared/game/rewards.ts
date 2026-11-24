@@ -23,15 +23,18 @@ const RARITY_ODDS: Record<Exclude<StopKind, 'grave'>, RarityWeights> = {
   elite: [
     { item: 'common', weight: 20 },
     { item: 'uncommon', weight: 55 },
-    { item: 'rare', weight: 25 },
+    { item: 'rare', weight: 23 },
+    { item: 'legendary', weight: 2 },
   ],
   champion: [
     { item: 'uncommon', weight: 50 },
-    { item: 'rare', weight: 50 },
+    { item: 'rare', weight: 45 },
+    { item: 'legendary', weight: 5 },
   ],
   altar: [
     { item: 'uncommon', weight: 40 },
-    { item: 'rare', weight: 60 },
+    { item: 'rare', weight: 52 },
+    { item: 'legendary', weight: 8 },
   ],
 };
 

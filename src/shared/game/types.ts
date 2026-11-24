@@ -201,7 +201,8 @@ export type CardEffect =
   /** Grants another card in hand a keyword or an effect (see imbue.ts). */
   | ({ kind: 'imbue' } & Imbue);
 
-export type CardRarity = 'starter' | 'common' | 'uncommon' | 'rare';
+export type CardRarity =
+  'starter' | 'common' | 'uncommon' | 'rare' | 'legendary';
 
 /**
  * A Magic card's element. It changes how the spell looks (its bolt,
