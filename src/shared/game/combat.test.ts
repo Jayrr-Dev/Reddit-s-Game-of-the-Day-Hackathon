@@ -1716,6 +1716,34 @@ void test('a Distance kill that leaves only the front row Back Steps for free', 
   assert.equal(playCard(broke, 0, archerUid(broke)).freeMove?.move, 'backStep');
 });
 
+void test('a Distance kill in an all-front line Back Steps the rest at once', () => {
+  // Two Squires up front, nobody behind; one falls to Retreating Shot.
+  const start = settled(
+    startCombat({
+      hp: 60,
+      maxHp: 60,
+      deck: ['backhand'],
+      heroIds: ['squire', 'squire'],
+      might: 1,
+      seed: 7,
+    })
+  );
+  const [first] = start.heroes;
+  const state: CombatState = {
+    ...start,
+    hand: ['retreatingShot'],
+    heroes: start.heroes.map((unit) =>
+      unit.uid === first?.uid ? { ...unit, hp: 1 } : unit
+    ),
+  };
+  assert.ok(state.heroes.every((unit) => unit.row === 'front'));
+  const after = playCard(state, 0, first?.uid ?? -1);
+  assert.equal(after.heroes.length, 1);
+  assert.equal(after.heroes[0]?.row, 'back', 'the survivor is pushed back');
+  assert.equal(after.freeMove?.move, 'backStep');
+  assert.equal(after.energy, state.energy - 1, 'for free');
+});
+
 void test('Distance does nothing without a kill', () => {
   const tough = squireAndArcher(['retreatingShot']);
   assert.equal(playCard(tough, 0, archerUid(tough)).freeMove, null);
