@@ -180,7 +180,7 @@ export const HeroOnField = ({
       onClick={() => onTap(unit.uid)}
       {...{ [HERO_UID_ATTR]: unit.uid, [HERO_ROW_ATTR]: unit.row }}
       aria-label={`${hero.name}, ${unit.hp} of ${unit.maxHp} HP, ${unit.row} row`}
-      className={`pointer-events-auto absolute transition-all duration-700 ${AIM_CLASS[aim]}`}
+      className={`pointer-events-auto absolute transition-[left,bottom,width,height,scale,opacity,filter] duration-700 ${AIM_CLASS[aim]}`}
       style={boxStyle(unit)}
     >
       {/* MARCHES IN ONCE, WHEN THE HERO FIRST APPEARS (A NEW WAVE) */}

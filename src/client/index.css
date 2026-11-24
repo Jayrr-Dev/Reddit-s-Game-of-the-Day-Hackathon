@@ -389,39 +389,35 @@
 /* --- PARALLAX ---
    The battlefield is a stack of layers. Each layer sets --depth (0 far,
    1 front row, above 1 foreground). The stage sets --cam (px) to lean
-   toward the target; --sway drifts on its own so the scene breathes.
-   Every layer moves by (cam + sway) * depth, so near things move more. */
-@property --sway {
-  syntax: '<number>';
-  inherits: true;
-  initial-value: 0;
-}
-
-@keyframes sway {
+   toward the target, and each layer drifts on its own so the scene
+   breathes. Near layers move more: both shifts scale with --depth.
+   PERFORMANCE: the camera lives on `transform` and the drift on the
+   separate `translate` property, so the drift runs on the compositor.
+   (It used to animate an inherited custom property, which restyled the
+   whole field and restarted the camera transition every frame.) */
+@keyframes layer-sway {
   0%,
   100% {
-    --sway: -4;
+    translate: calc(var(--depth) * -4px) 0;
   }
   50% {
-    --sway: 4;
+    translate: calc(var(--depth) * 4px) 0;
   }
 }
 
 .parallax-stage {
   --cam: 0;
-  animation: sway 6s ease-in-out infinite;
 }
 
 .parallax-layer {
-  transform: translateX(calc((var(--cam) + var(--sway)) * var(--depth) * 1px));
+  transform: translateX(calc(var(--cam) * var(--depth) * 1px));
   transition: transform 700ms cubic-bezier(0.3, 0.8, 0.3, 1);
+  animation: layer-sway 6s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .parallax-stage {
-    animation: none;
-  }
   .parallax-layer {
+    animation: none;
     transition: none;
   }
 }
