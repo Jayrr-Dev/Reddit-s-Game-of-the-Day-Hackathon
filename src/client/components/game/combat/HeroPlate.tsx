@@ -118,13 +118,15 @@ export const HeroPlate = ({ unit, field, isFocused }: HeroPlateProps) => {
       <DrainBar hp={unit.hp} maxHp={unit.maxHp} size="small" />
       {/* ONE ROW OF CHIPS: never wraps (a second row would push the plate
           up under the top bar). Drawn at 80%, so laid out 125% wide to
-          span the plate; statuses take what the intents leave and fold
-          the rest into "+N". */}
-      <div className="flex w-[125%] origin-top scale-[0.8] items-start gap-2.5 self-center">
+          span the plate; intents sit flush left under the bar's left
+          end, statuses flush right under its right end, and statuses
+          take what the intents leave, folding the rest into "+N". */}
+      <div className="flex w-[125%] origin-top scale-[0.8] items-start justify-between gap-2.5 self-center">
         <div className="shrink-0">
           <IntentChips unit={unit} field={field} />
         </div>
-        <div className="min-w-0 flex-1">
+        {/* Flush right: the row itself shrinks to its chips (max-w-max). */}
+        <div className="flex min-w-0 flex-1 justify-end">
           <StatusRow combatant={unit} align="end" />
         </div>
       </div>
