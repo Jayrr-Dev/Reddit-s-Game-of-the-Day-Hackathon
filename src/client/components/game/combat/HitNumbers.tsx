@@ -4,8 +4,8 @@
 // drift up and fade (see --animate-hit-pop). Several hits on one target
 // pile up like in action games: each lands near the same spot with a
 // small random nudge and tilt, the newest drawn on top, while the ones
-// under it dim so the fresh number always reads first. The number is the whole hit;
-// the part a Guard soaked up shows small beside it with a shield. What a hero
+// under it dim so the fresh number always reads first. The number is the HP
+// lost; the part a Guard soaked up shows beside it as a grey shield number. What a hero
 // gains from its own move (heal, Shroud, Wrath) pops as "+N" + icon.
 // ===================================================================
 
@@ -67,19 +67,25 @@ const BLOCKED_SCALE = 0.65;
 const GAIN_SCALE = 0.75;
 
 // --- SUBCOMPONENTS ---
-/** The part a Guard soaked up: small and faded, with a shield. */
+/**
+ * The part a Guard soaked up: a grey shield and number beside the HP
+ * loss. `scale` sizes it (small next to an HP number, full size when
+ * Guard took the whole hit).
+ */
 const BlockedPart = ({
   blocked,
   typical,
+  scale,
 }: {
   blocked: number;
   typical: number;
+  scale: number;
 }) => (
-  <span className="flex items-center gap-0.5 opacity-80 drop-shadow-[0_0_2px_black]">
+  <span className="flex items-center gap-0.5 opacity-85 drop-shadow-[0_0_2px_black]">
     <Glyph name="shield" className="size-[0.9em] text-shroud" />
     <span
       className="font-display font-black text-ink [-webkit-text-stroke:1px_var(--color-surface-sunken)]"
-      style={{ fontSize: popFontPx(blocked, typical, BLOCKED_SCALE) }}
+      style={{ fontSize: popFontPx(blocked, typical, scale) }}
     >
       {blocked}
     </span>
@@ -87,10 +93,10 @@ const BlockedPart = ({
 );
 
 /**
- * One hit. The big number is the whole hit (what the card dealt, buffs
- * and all), so it always matches the card text; the part a Guard
- * soaked up sits small beside it. A hit that was fully blocked is
- * drawn faded, since no HP was lost.
+ * One hit. The big number is the HP actually lost, after Guard, so it
+ * always matches the health bar; the part a Guard soaked up sits beside
+ * it as a grey shield number. A hit Guard took whole shows only the
+ * shield number, since no HP was lost.
  */
 export const HitLine = ({
   amount,
@@ -99,7 +105,7 @@ export const HitLine = ({
   source,
   isKill = false,
 }: {
-  /** Damage past Guard (overkill included, so it can exceed HP left). */
+  /** HP lost past Guard (overkill included, so it can exceed HP left). */
   amount: number;
   /** Damage the target's Guard absorbed. */
   blocked: number;
@@ -110,17 +116,23 @@ export const HitLine = ({
   /** True when the hit felled its target: a black skull follows it. */
   isKill?: boolean | undefined;
 }) => {
-  const total = amount + blocked;
   const isFullyBlocked = amount === 0;
-  const fontSize = popFontPx(total, typical);
+  const fontSize = popFontPx(amount, typical);
   const tone = toneOf(source);
+  if (isFullyBlocked) {
+    return (
+      <div className="flex items-center animate-hit-pop">
+        <BlockedPart blocked={blocked} typical={typical} scale={1} />
+      </div>
+    );
+  }
   return (
     <div className="flex items-center gap-1 animate-hit-pop">
       <span
-        className={`${NUMBER_CLASS} text-surface-sunken ${isFullyBlocked ? 'opacity-60' : ''}`}
+        className={`${NUMBER_CLASS} text-surface-sunken`}
         style={{ fontSize, ['--pop-tone' as string]: tone }}
       >
-        {total}
+        {amount}
       </span>
       {/* KILLING BLOW: a black skull outlined in the hit's colour */}
       {isKill && (
@@ -131,7 +143,13 @@ export const HitLine = ({
           <Glyph name="skull" className="size-[0.8em]" />
         </span>
       )}
-      {blocked > 0 && <BlockedPart blocked={blocked} typical={typical} />}
+      {blocked > 0 && (
+        <BlockedPart
+          blocked={blocked}
+          typical={typical}
+          scale={BLOCKED_SCALE}
+        />
+      )}
     </div>
   );
 };
