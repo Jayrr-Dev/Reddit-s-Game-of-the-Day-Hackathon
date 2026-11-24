@@ -68,7 +68,8 @@ const BODY_ACTION_CLASS: Record<HeroActionStyle, string> = {
 
 /** The body's motion for a move; a forward cut lunges deeper. */
 const bodyActionClass = (action: HeroAction): string =>
-  action.style === 'melee' && action.swing === 'forward'
+  action.style === 'melee' &&
+  (action.swing === 'forward' || action.swing === 'forwardRight')
     ? 'animate-hero-lunge-deep'
     : BODY_ACTION_CLASS[action.style];
 

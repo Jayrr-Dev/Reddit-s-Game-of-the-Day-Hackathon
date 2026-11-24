@@ -267,13 +267,17 @@ export type HeroActionStyle = 'melee' | 'range' | 'magic' | 'support';
  *   chop   raised high behind, brought hard down
  *   stab   levelled, pulled back, then thrust forward
  *   upcut    from low, swept up and across
- *   forward  raised over the shoulder, then cut diagonally down toward
- *            the camera (the villain): the hero lunges in, the blade
- *            grows as it comes closer, and a streak marks the cut
+ *   forward       raised over the shoulder, then cut diagonally down
+ *                 toward the camera (the villain), top right to bottom
+ *                 left: the hero lunges in, the blade grows as it comes
+ *                 closer, and a streak marks the cut
+ *   forwardRight  the same cut mirrored: top left to bottom right
  */
-export type MeleeSwing = 'slash' | 'chop' | 'stab' | 'upcut' | 'forward';
+export type MeleeSwing =
+  'slash' | 'chop' | 'stab' | 'upcut' | 'forward' | 'forwardRight';
 export const MELEE_SWINGS: readonly MeleeSwing[] = [
   'forward',
+  'forwardRight',
   'slash',
   'chop',
   'stab',

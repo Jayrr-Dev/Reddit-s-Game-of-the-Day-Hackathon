@@ -1340,6 +1340,14 @@ const PROPS: Record<
   }),
 };
 
+/** The forward cut's streak, from the top right down to the left. */
+const swipeLeft = (f: Frame): Point[] => [
+  [f.mid + f.sw * 1.3, f.shoulderY - f.r * 0.6],
+  [f.mid + f.sw * 1.1, f.shoulderY - f.r * 1.0],
+  [f.mid - f.sw * 1.4, 78],
+  [f.mid - f.sw * 1.25, 80],
+];
+
 // --- SUBCOMPONENTS: SPELL EFFECTS ---
 /** Where the sparks start, around the tip (share of the head size). */
 const SPARK_STARTS: readonly Point[] = [
@@ -1507,15 +1515,17 @@ export const HeroFigure = ({
         />
         <CastEffects at={prop.tip} r={f.r} accent={look.accent} />
       </g>
-      {/* FORWARD CUT: a streak across the body where the blade passes */}
+      {/* FORWARD CUTS: a streak across the body where the blade passes
+          (top right to bottom left, and its mirror) */}
       <polygon
         className="hero-swipe"
-        points={pts(
-          [f.mid + f.sw * 1.3, f.shoulderY - f.r * 0.6],
-          [f.mid + f.sw * 1.1, f.shoulderY - f.r * 1.0],
-          [f.mid - f.sw * 1.4, 78],
-          [f.mid - f.sw * 1.25, 80]
-        )}
+        points={pts(...swipeLeft(f))}
+        fill="white"
+        opacity="0"
+      />
+      <polygon
+        className="hero-swipe-right"
+        points={pts(...mirror(f.mid, swipeLeft(f)))}
         fill="white"
         opacity="0"
       />

@@ -622,8 +622,8 @@
    same as HERO_ATTACK_MS, and touches only transform and opacity.
    Distances use --k (the prop's scale, set on the drawing) so a big
    champion's bow draws as far, for its size, as a grunt's.
-     melee    one of five swings (data-swing): a forward cut at the
-              camera, a sideways slash, an overhead chop, a levelled
+     melee    one of six swings (data-swing): a forward cut at the
+              camera from either side, a sideways slash, an overhead chop, a levelled
               stab, or a rising upcut
      range    the arrow appears, the string halves pivot into a V as it
               is drawn and the bow bends; on release the string snaps
@@ -730,6 +730,29 @@
   }
   75% {
     transform: rotate(-120deg) scale(1.3);
+  }
+}
+
+/* The mirrored cut: the blade leans back over the head to the left,
+   then sweeps down to the right, growing as it nears. */
+@keyframes swing-forward-right {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1);
+  }
+  35% {
+    transform: rotate(-65deg) translateY(-4px) scale(1);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 0.5);
+  }
+  50% {
+    transform: rotate(130deg) scale(1.55);
+  }
+  60% {
+    transform: rotate(120deg) scale(1.4);
+  }
+  75% {
+    transform: rotate(115deg) scale(1.3);
   }
 }
 
@@ -985,6 +1008,7 @@
 .hero-spark,
 .hero-burst,
 .hero-swipe,
+.hero-swipe-right,
 .hero-floor-sigil {
   transform-box: fill-box;
   transform-origin: center;
@@ -1017,6 +1041,14 @@
 }
 
 [data-swing='forward'] .hero-swipe {
+  animation: swipe-flash 560ms ease-out;
+}
+
+[data-swing='forwardRight'] .hero-prop {
+  animation: swing-forward-right 560ms;
+}
+
+[data-swing='forwardRight'] .hero-swipe-right {
   animation: swipe-flash 560ms ease-out;
 }
 
