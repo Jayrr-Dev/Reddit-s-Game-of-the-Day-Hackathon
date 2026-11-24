@@ -26,6 +26,7 @@ import { ICON_AUTHORS } from '../../content/gameIcons';
 import { LeaderboardList } from '../LeaderboardList';
 import { Button } from '../ui/Button';
 import { Glyph, type GlyphName } from '../ui/Glyph';
+import { Tooltip } from '../ui/Tooltip';
 import { KeyArt } from './menu/KeyArt';
 import { MenuPanel } from './menu/MenuPanel';
 
@@ -69,14 +70,15 @@ const StatBadge = ({
   value: string | number;
   label: string;
 }) => (
-  <div
-    title={label}
-    aria-label={`${label}: ${value}`}
-    className="flex items-center gap-1 rounded-full bg-surface-sunken/85 py-1 pl-1.5 pr-2.5 text-xs font-bold text-ink ring-1 ring-accent/50"
-  >
-    <Glyph name={glyph} className="size-4 text-accent" />
-    {value}
-  </div>
+  <Tooltip content={{ title: label }}>
+    <div
+      aria-label={`${label}: ${value}`}
+      className="flex items-center gap-1 rounded-full bg-surface-sunken/85 py-1 pl-1.5 pr-2.5 text-xs font-bold text-ink ring-1 ring-accent/50"
+    >
+      <Glyph name={glyph} className="size-4 text-accent" />
+      {value}
+    </div>
+  </Tooltip>
 );
 
 /**

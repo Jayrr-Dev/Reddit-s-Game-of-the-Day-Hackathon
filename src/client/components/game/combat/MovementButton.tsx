@@ -12,6 +12,7 @@
 import type { MovementId } from '../../../../shared/game/types';
 import { MOVEMENT_LOOK } from '../../../content/visuals';
 import { Glyph } from '../../ui/Glyph';
+import { Tooltip } from '../../ui/Tooltip';
 
 // --- COMPONENT ---
 /** The pill for one movement, with its energy cost. */
@@ -29,18 +30,19 @@ export const MovementButton = ({
 }) => {
   const look = MOVEMENT_LOOK[move];
   return (
-    <button
-      type="button"
-      onClick={onPress}
-      disabled={!isAffordable}
-      title={look.title}
-      className={`flex items-center gap-1.5 whitespace-nowrap rounded-full py-1 pl-1 pr-3 font-display text-sm font-black uppercase tracking-widest text-ink ring-1 ring-accent transition active:scale-95 enabled:animate-pulse disabled:opacity-40 disabled:shadow-none ${look.toneClass}`}
-    >
-      <span className="flex size-5 items-center justify-center rounded-full bg-energy text-xs text-surface-sunken">
-        <span className="num-center">{cost}</span>
-      </span>
-      <Glyph name={look.glyph} className="size-4" />
-      {look.label}
-    </button>
+    <Tooltip content={{ title: look.label, description: look.description }}>
+      <button
+        type="button"
+        onClick={onPress}
+        disabled={!isAffordable}
+        className={`flex items-center gap-1.5 whitespace-nowrap rounded-full py-1 pl-1 pr-3 font-display text-sm font-black uppercase tracking-widest text-ink ring-1 ring-accent transition active:scale-95 enabled:animate-pulse disabled:opacity-40 disabled:shadow-none ${look.toneClass}`}
+      >
+        <span className="flex size-5 items-center justify-center rounded-full bg-energy text-xs text-surface-sunken">
+          <span className="num-center">{cost}</span>
+        </span>
+        <Glyph name={look.glyph} className="size-4" />
+        {look.label}
+      </button>
+    </Tooltip>
   );
 };

@@ -6,6 +6,8 @@
 // Used for the draw pile (right) and the discard pile (left).
 // ===================================================================
 
+import { Tooltip } from '../../ui/Tooltip';
+
 // --- TYPES ---
 export type PileStackProps = {
   count: number;
@@ -42,29 +44,30 @@ export const PileStack = ({
   const shiftX = side === 'left' ? -LAYER_SHIFT_PX : LAYER_SHIFT_PX;
   const isEmpty = count === 0;
   return (
-    <span
-      title={label}
-      aria-label={`${label}: ${count}`}
-      className="relative mb-0.5 block shrink-0"
-    >
-      {Array.from({ length: backCards }, (_, index) => {
-        const depth = backCards - index;
-        return (
-          <span
-            key={depth}
-            aria-hidden="true"
-            className={`absolute inset-0 ${CARD_CLASS} ${toneClass} ring-1 ring-accent/40 brightness-75`}
-            style={{
-              transform: `translate(${shiftX * depth}px, ${-LAYER_SHIFT_PX * depth}px)`,
-            }}
-          />
-        );
-      })}
+    <Tooltip content={{ title: label }}>
       <span
-        className={`relative grid place-items-center font-display text-xs font-black ${CARD_CLASS} ${isEmpty ? 'border border-dashed border-accent/40 text-ink/50' : `${toneClass} text-ink ring-1 ring-accent/50`}`}
+        aria-label={`${label}: ${count}`}
+        className="relative mb-0.5 block shrink-0"
       >
-        <span className="num-center">{count}</span>
+        {Array.from({ length: backCards }, (_, index) => {
+          const depth = backCards - index;
+          return (
+            <span
+              key={depth}
+              aria-hidden="true"
+              className={`absolute inset-0 ${CARD_CLASS} ${toneClass} ring-1 ring-accent/40 brightness-75`}
+              style={{
+                transform: `translate(${shiftX * depth}px, ${-LAYER_SHIFT_PX * depth}px)`,
+              }}
+            />
+          );
+        })}
+        <span
+          className={`relative grid place-items-center font-display text-xs font-black ${CARD_CLASS} ${isEmpty ? 'border border-dashed border-accent/40 text-ink/50' : `${toneClass} text-ink ring-1 ring-accent/50`}`}
+        >
+          <span className="num-center">{count}</span>
+        </span>
       </span>
-    </span>
+    </Tooltip>
   );
 };
