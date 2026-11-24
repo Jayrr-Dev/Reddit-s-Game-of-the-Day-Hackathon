@@ -59,6 +59,19 @@ export const hasMomentumFor = (attacker: Combatant, type?: CardType) =>
   type === 'melee' && attacker.statuses.momentum > 0;
 
 /**
+ * The attacker's own damage multiplier for a card type: Momentum
+ * (Melee only) times Dread. 1 when neither applies.
+ */
+export const damageFactorOf = (
+  attacker: Combatant,
+  type?: CardType
+): number => {
+  const momentum = hasMomentumFor(attacker, type) ? MOMENTUM_DAMAGE_FACTOR : 1;
+  const dread = attacker.statuses.dread > 0 ? DREAD_DAMAGE_FACTOR : 1;
+  return momentum * dread;
+};
+
+/**
  * Damage per hit after the attacker's wrath, type buff, Momentum and
  * dread. Wrath and the buff (Might, Surge or Piercing, by card type) add
  * first, then Momentum (Melee only) and dread scale, matching the UI.
@@ -69,10 +82,7 @@ export const attackDamage = (
   type?: CardType
 ): number => {
   const withWrath = base + attacker.statuses.wrath + typeBonus(attacker, type);
-  const momentum = hasMomentumFor(attacker, type) ? MOMENTUM_DAMAGE_FACTOR : 1;
-  const dread = attacker.statuses.dread > 0 ? DREAD_DAMAGE_FACTOR : 1;
-  const factor = momentum * dread;
-  return Math.max(0, Math.floor(withWrath * factor));
+  return Math.max(0, Math.floor(withWrath * damageFactorOf(attacker, type)));
 };
 
 // --- UPDATES (EACH RETURNS A NEW COMBATANT) ---

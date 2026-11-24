@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { advanceMelee } from './battlefield.ts';
-import { ALL_CARD_IDS, type CardId } from './cards.ts';
+import { ALL_CARD_IDS, getCard, type CardId } from './cards.ts';
 import { canMove, move, movementCost } from './movement.ts';
 import {
   attackDamage,
@@ -25,6 +25,7 @@ import {
   startCombat,
   wouldFell,
   autoTargets,
+  playDamageFactor,
 } from './combat.ts';
 import { describeCard, describeHeroIntent } from './describe.ts';
 import { BACK_STEP_COST, CARDS_PER_TURN, ENERGY_PER_TURN } from './rules.ts';
@@ -496,4 +497,29 @@ void test('every movement shares one streak; a full turn off resets it', () => {
   assert.equal(movementCost({ ...mixed, turn: mixed.turn + 1 }, 'charge'), 4);
   // Only after one full turn without moving does it go back to base.
   assert.equal(movementCost({ ...mixed, turn: mixed.turn + 2 }, 'charge'), 1);
+});
+
+void test('playDamageFactor combines Charge, Dread and the target bonus', () => {
+  const [squire] = startCombat({
+    hp: 60,
+    maxHp: 60,
+    deck: ['backhand'],
+    heroIds: ['squire'],
+    might: 1,
+    seed: 3,
+  }).heroes;
+  assert.ok(squire);
+  const villain = createCombatant(60, 60);
+  const charged = {
+    ...villain,
+    statuses: { ...villain.statuses, momentum: 1 },
+  };
+  const melee = getCard('backhand');
+  assert.equal(playDamageFactor(villain, squire, melee), 1);
+  assert.equal(playDamageFactor(charged, squire, melee), 1.5);
+  const chargedAndDreaded = {
+    ...charged,
+    statuses: { ...charged.statuses, dread: 1 },
+  };
+  assert.equal(playDamageFactor(chargedAndDreaded, squire, melee), 1.13);
 });

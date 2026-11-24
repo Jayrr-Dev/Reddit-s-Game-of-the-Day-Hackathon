@@ -30,6 +30,7 @@ import {
   addShroud,
   addStatus,
   attackDamage,
+  damageFactorOf,
   clearShroud,
   createCombatant,
   endOfTurnUpkeep,
@@ -54,6 +55,7 @@ import type {
   CardTarget,
   CombatOutcome,
   CombatState,
+  Combatant,
   HeroAttackType,
   HeroEffect,
   HeroMove,
@@ -286,6 +288,21 @@ export const isLongRangeShot = (unit: HeroUnit, cardDef: CardDef): boolean =>
  */
 export const targetDamageFactor = (unit: HeroUnit, cardDef: CardDef): number =>
   isLongRangeShot(unit, cardDef) ? LONG_RANGE_DAMAGE_FACTOR : 1;
+
+/**
+ * Every multiplier on one play's damage at one hero, combined: the
+ * villain's own (Charge's Momentum, Dread) times the target's (a long
+ * Range shot). Rounded to 2 places for showing; 1 means none.
+ */
+export const playDamageFactor = (
+  attacker: Combatant,
+  unit: HeroUnit,
+  cardDef: CardDef
+): number => {
+  const factor =
+    damageFactorOf(attacker, cardDef.type) * targetDamageFactor(unit, cardDef);
+  return Math.round(factor * 100) / 100;
+};
 
 /** One villain hit on a hero: a Range card at a back-row hero hits harder. */
 export const cardHitOn = (

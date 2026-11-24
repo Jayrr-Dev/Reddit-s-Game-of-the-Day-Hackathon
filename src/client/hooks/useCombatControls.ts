@@ -42,7 +42,7 @@ import { getCard, type CardId } from '../../shared/game/cards';
 import {
   autoTargets,
   canPlayCard,
-  targetDamageFactor,
+  playDamageFactor,
   targetsFor,
   wouldFell,
 } from '../../shared/game/combat';
@@ -272,11 +272,11 @@ export const useCombatControls = (
     drag !== null &&
     hoverUid !== null &&
     wouldFell(combat, drag.handIndex, [...priorPicks, hoverUid], hoverUid);
-  /** The damage multiplier the locked hero gives the card (1 = none). */
+  /** Every damage multiplier on this play at the locked hero (1 = none). */
   const hoverUnit = combat.heroes.find((unit) => unit.uid === hoverUid);
   const aimFactor =
     hoverUnit && dragCard !== undefined
-      ? targetDamageFactor(hoverUnit, getCard(dragCard))
+      ? playDamageFactor(combat.player, hoverUnit, getCard(dragCard))
       : 1;
   /**
    * PREVIEW: while a card is raised (tapped, not dragged), the heroes a

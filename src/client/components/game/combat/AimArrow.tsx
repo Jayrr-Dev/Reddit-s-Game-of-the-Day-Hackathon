@@ -196,7 +196,7 @@ const BonusLabel = ({ at, factor }: { at: Point; factor: number }) => (
     x={at.x + LOCK_RING_RADIUS + BONUS_GAP_PX}
     y={at.y}
     dominantBaseline="central"
-    className="fill-range font-display text-base font-black [paint-order:stroke_fill]"
+    className={`${factor < 1 ? 'fill-hp' : 'fill-range'} font-display text-base font-black [paint-order:stroke_fill]`}
     stroke="black"
     strokeWidth="3"
     strokeLinejoin="round"
