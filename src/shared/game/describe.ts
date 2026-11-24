@@ -78,8 +78,8 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
     label: 'Momentum',
     description: 'Next Melee card this turn +50%.',
   },
-  protection: {
-    label: 'Protection',
+  reinforce: {
+    label: 'Reinforce',
     description: 'Adds this much to every Guard your cards give.',
   },
   aloft: {
@@ -107,7 +107,7 @@ const areaSuffix = (target: 'one' | 'all', isMelee = false): string => {
 /**
  * One line of card text. When `attacker` is given, numbers are a live
  * preview: damage after the villain's wrath, type buff and dread, and
- * Guard with Protection added. When `target` is given too (the hero
+ * Guard with Reinforce added. When `target` is given too (the hero
  * the card is aimed at), single-target numbers are for that hero: a
  * Range card's long-range bonus, and Reap's damage from its Hex.
  * `cardDef` gives the type and reach.

@@ -100,8 +100,8 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     ],
     hasGlow: true,
   },
-  /** Protection (+Guard from cards): the shield flashes, boosted up. */
-  protection: {
+  /** Reinforce (+Guard from cards): the shield flashes, boosted up. */
+  reinforce: {
     layers: [
       { shape: 'icon', motion: 'flash', count: 1, size: 48 },
       { shape: 'chevron', motion: 'rise', count: 2, size: 16 },

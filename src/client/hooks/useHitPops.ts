@@ -124,7 +124,7 @@ const VILLAIN_GAINS: readonly (StatusId & PopKind)[] = [
   'might',
   'surge',
   'piercing',
-  'protection',
+  'reinforce',
 ];
 
 // --- HELPERS ---

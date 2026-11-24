@@ -29,7 +29,7 @@ import type { RngState } from './rng.ts';
  * - might:      adds this much to every Melee hit
  * - surge:      adds this much to every Magic hit
  * - piercing:   adds this much to every Range hit
- * - protection: adds this much to every Guard a card gives
+ * - reinforce: adds this much to every Guard a card gives
  * Momentum comes from charging: while above 0 the next Melee card deals
  * 50% more damage (every hit of it), then it is spent; it is lost at
  * the end of the turn if no Melee card used it.
@@ -37,7 +37,7 @@ import type { RngState } from './rng.ts';
  * aim at or hit the hero; its next move comes down from the sky and
  * clears it.
  */
-export type BuffId = 'might' | 'surge' | 'piercing' | 'protection';
+export type BuffId = 'might' | 'surge' | 'piercing' | 'reinforce';
 export type StatusId =
   | 'hex'
   | 'poison'

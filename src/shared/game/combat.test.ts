@@ -597,11 +597,11 @@ void test('a type buff adds to every hit of a multi-hit card', () => {
   assert.equal(damageWith('flurry', { might: 1 }), 12);
 });
 
-void test('Protection adds to every Guard (guard) a card gives', () => {
+void test('Reinforce adds to every Guard a card gives', () => {
   const start = withHand(fightWith(['backhand']), ['darkCloak']);
   const guarded = {
     ...start,
-    player: { ...start.player, statuses: { ...NO_STATUSES, protection: 2 } },
+    player: { ...start.player, statuses: { ...NO_STATUSES, reinforce: 2 } },
   };
   assert.equal(playCard(guarded, 0, -1).player.guard, 7);
 });

@@ -35,7 +35,7 @@ export const NO_STATUSES: Statuses = {
   might: 0,
   surge: 0,
   piercing: 0,
-  protection: 0,
+  reinforce: 0,
   momentum: 0,
   aloft: 0,
 };
@@ -173,9 +173,9 @@ export const heal = <T extends Combatant>(target: T, amount: number): T => ({
   hp: Math.min(target.maxHp, target.hp + amount),
 });
 
-/** Guard a card gives, plus the villain's Protection. */
+/** Guard a card gives, plus the villain's Reinforce. */
 export const guardAmount = (base: number, owner: Combatant): number =>
-  base + owner.statuses.protection;
+  base + owner.statuses.reinforce;
 
 /** Adds guard. */
 export const addGuard = <T extends Combatant>(

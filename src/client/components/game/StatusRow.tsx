@@ -50,7 +50,7 @@ type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
 const STATUS_ORDER: readonly StatusId[] = [
   // DEFENCE
   'aloft',
-  'protection',
+  'reinforce',
   // ATTACK
   'wrath',
   'might',

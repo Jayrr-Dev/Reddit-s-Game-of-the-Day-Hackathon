@@ -142,7 +142,7 @@ export const CARDS = {
     'defend',
     1,
     'common',
-    [guard(4), buff('protection', 2)],
+    [guard(4), buff('reinforce', 2)],
     FADES
   ),
 
@@ -174,7 +174,7 @@ export const CARDS = {
     'buff',
     1,
     'uncommon',
-    [buff('might', 2), buff('protection', 2)],
+    [buff('might', 2), buff('reinforce', 2)],
     FADES
   ),
 
