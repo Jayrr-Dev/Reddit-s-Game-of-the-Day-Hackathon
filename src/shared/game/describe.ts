@@ -149,8 +149,8 @@ export const describeCardEffect = (
         : effect.amount;
       const isAimed = target !== undefined && effect.target === 'one';
       const amount = isAimed ? cardHitOn(target, perHit, cardDef) : perHit;
-      const times = effect.hits > 1 ? ` ${effect.hits} times` : '';
-      return `Deal ${amount} damage${times}${areaSuffix(effect.target, isMelee)}.`;
+      const times = effect.hits > 1 ? ` ×${effect.hits}` : '';
+      return `Damage ${amount}${times}${areaSuffix(effect.target, isMelee)}`;
     }
     case 'hex':
     case 'poison':
@@ -160,35 +160,34 @@ export const describeCardEffect = (
     case 'weaken':
       return describeStatusLine(effect);
     case 'enfeeble':
-      return `Enfeeble${areaSuffix(effect.target)}. Reapply to deepen.`;
+      return `Enfeeble${areaSuffix(effect.target)}`;
     case 'reap': {
-      if (!target)
-        return `Deal damage equal to ${effect.multiplier}× the target's Hex.`;
+      if (!target) return `Damage ${effect.multiplier}× Hex`;
       const bonus = attacker ? typeBonus(attacker, cardDef.type) : 0;
-      return `Deal ${target.statuses.hex * effect.multiplier + bonus} damage.`;
+      return `Damage ${target.statuses.hex * effect.multiplier + bonus}`;
     }
     case 'guard': {
       const amount = attacker
         ? guardAmount(effect.amount, attacker)
         : effect.amount;
-      return `Gain ${amount} Guard.`;
+      return `Guard ${amount}`;
     }
     case 'wrath':
-      return `Gain ${effect.amount} Wrath.`;
+      return `Wrath ${effect.amount}`;
     case 'brace':
-      return `Gain ${effect.amount} Brace.`;
+      return `Brace ${effect.amount}`;
     case 'cleanse':
-      return 'Cleanse 1 random affliction.';
+      return CLEANSE_INFO.label;
     case 'protect':
-      return 'Gain Protection. Recast next turn to raise it.';
+      return STATUS_INFO.protection.label;
     case 'buff':
-      return `Gain ${effect.amount} ${STATUS_INFO[effect.buff].label}${durationSuffix(effect.duration)}.`;
+      return `${STATUS_INFO[effect.buff].label} ${effect.amount}${durationSuffix(effect.duration)}`;
     case 'draw':
-      return `Draw ${effect.amount} card${effect.amount === 1 ? '' : 's'}.`;
+      return `Draw ${effect.amount}`;
     case 'energy':
-      return `Gain ${effect.amount} energy.`;
+      return `Energy ${effect.amount}`;
     case 'heal':
-      return `Heal ${effect.amount} HP.`;
+      return `Heal ${effect.amount}`;
     case 'pull':
       return FORCE_PULL_INFO.label;
     case 'push':
@@ -289,10 +288,10 @@ export const GLOSSARY: Readonly<Record<string, StatusInfo>> =
 const KEYWORD_LABEL = (keyword: CardKeyword): string =>
   KEYWORD_INFO[keyword].label;
 
-/** What an imbue grants, as card text: "Hold." or "Poison 3". */
+/** What an imbue grants, as card text: "Hold" or "Poison 3". */
 export const describeImbueGift = (gift: ImbueGift, cardDef: CardDef): string =>
   gift.kind === 'keyword'
-    ? `${KEYWORD_LABEL(gift.keyword)}.`
+    ? KEYWORD_LABEL(gift.keyword)
     : describeCardEffect(gift.effect, cardDef);
 
 /**
@@ -335,9 +334,9 @@ export const imbueTag = (gift: ImbueGift): string => {
   }
 };
 
-/** An Imbue card's own line: what it grants ("Imbue Hold."). */
+/** An Imbue card's own line: what it grants ("Imbue Hold"). */
 const describeImbueEffect = ({ gift }: Imbue): string =>
-  `Imbue ${imbueTag(gift)}.`;
+  `Imbue ${imbueTag(gift)}`;
 
 // --- STATUS LINES ---
 /** Card effects that lay a status on heroes. */
@@ -372,13 +371,14 @@ export const describeCardRules = (
   const lines = cardDef.effects.map((effect) =>
     describeCardEffect(effect, cardDef, attacker, target)
   );
-  const targetLine = cardDef.targets > 1 ? [`Target ${cardDef.targets}.`] : [];
+  const targetLine = cardDef.targets > 1 ? [`Target ${cardDef.targets}`] : [];
   return [...targetLine, ...lines, ...elementLines(cardDef)];
 };
 
 /**
- * All text lines for a card: its rules, then its keywords together on
- * one last line ("Hold.", or "Hold. Piercing.").
+ * All text lines for a card, terse "Name N" lines ("Target 2",
+ * "Damage 5", "Hex 1"), then its keywords together on one last line
+ * ("Hold", or "Hold, Piercing").
  */
 export const describeCard = (
   cardId: CardId,
@@ -386,9 +386,7 @@ export const describeCard = (
   target?: HeroUnit
 ): string[] => {
   const cardDef = getCard(cardId);
-  const keywordLine = cardDef.keywords
-    .map((keyword) => `${KEYWORD_LABEL(keyword)}.`)
-    .join(' ');
+  const keywordLine = cardDef.keywords.map(KEYWORD_LABEL).join(', ');
   const traitLines = keywordLine ? [keywordLine] : [];
   return [...describeCardRules(cardId, attacker, target), ...traitLines];
 };

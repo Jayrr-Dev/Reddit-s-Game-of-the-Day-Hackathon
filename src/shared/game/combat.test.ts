@@ -530,7 +530,7 @@ void test('a card with Remove goes to the Remove pile after use', () => {
   assert.deepEqual(after.removedPile, ['seethe']);
   assert.deepEqual(after.discardPile, []);
   assert.equal(after.player.statuses.wrath, 2);
-  assert.ok(describeCard('seethe').includes('Remove.'));
+  assert.ok(describeCard('seethe').includes('Remove'));
 });
 
 void test('removed cards stay out of the reshuffle', () => {
@@ -842,8 +842,8 @@ void test('card text damage always equals the damage the engine deals', () => {
       // Aimed at the Squire, so Weaken counts too.
       const squire = start.heroes[0];
       const [line = ''] = describeCard(cardId, player, squire);
-      const perHit = Number(/Deal (\d+)/.exec(line)?.[1]);
-      const hits = Number(/(\d+) times/.exec(line)?.[1] ?? 1);
+      const perHit = Number(/Damage (\d+)/.exec(line)?.[1]);
+      const hits = Number(/×(\d+)/.exec(line)?.[1] ?? 1);
       // The Squire stands in front, so no Range card gets its bonus.
       const dealt = damageWith(cardId, buffs);
       assert.equal(dealt, Math.min(perHit * hits, 14), `${cardId} ${line}`);
@@ -936,9 +936,9 @@ void test('card text in hand shows only buffs; Weaken waits for an aim', () => {
   };
   const squire = heroNamed(start, 'squire') as HeroUnit;
   // In hand: 6 + 2 Wrath + 2 Hone, Weaken left out.
-  assert.match(describeCard('spiteBolt', player).join(' '), /Deal 10 /);
+  assert.match(describeCard('spiteBolt', player).join(' '), /Damage 10/);
   // Aimed at the Squire (in front, no long-range bonus): 10 x 0.75.
-  assert.match(describeCard('spiteBolt', player, squire).join(' '), /Deal 7 /);
+  assert.match(describeCard('spiteBolt', player, squire).join(' '), /Damage 7/);
 });
 
 // --- CARD TEXT FITS ---
@@ -1239,7 +1239,7 @@ void test('a Hold card stays in hand at end of turn; the rest are discarded', ()
 void test('Hold is a card trait, printed on the card', () => {
   assert.ok(getCard('ruin').keywords.includes('hold'));
   assert.ok(!getCard('backhand').keywords.includes('hold'));
-  assert.ok(describeCard('ruin').includes('Hold.'));
+  assert.ok(describeCard('ruin').includes('Hold'));
 });
 
 // --- AFFLICTION CARDS ---
@@ -1313,8 +1313,8 @@ void test('an Imbue card needs another card in hand to imbue', () => {
 });
 
 void test('Imbue cards say what they grant', () => {
-  assert.deepEqual(describeCard('holdFast'), ['Imbue Hold.']);
-  assert.deepEqual(describeCard('venomCoat'), ['Imbue Poison 3.']);
+  assert.deepEqual(describeCard('holdFast'), ['Imbue Hold']);
+  assert.deepEqual(describeCard('venomCoat'), ['Imbue Poison 3']);
 });
 
 // --- ENFEEBLE ---
@@ -1463,7 +1463,7 @@ void test('Piercing can be imbued onto a single-target attack, for the turn', ()
   const imbued = playCard(state, 0, 0, undefined, 1);
   const after = playCard(imbued, 0, state.heroes[0]?.uid ?? -1);
   assert.ok((hpLost(state, after)[1] ?? 0) > 0);
-  assert.ok(describeCard('impale').includes('Piercing.'));
+  assert.ok(describeCard('impale').includes('Piercing'));
 });
 
 // --- CURSES ---
@@ -1483,11 +1483,7 @@ void test('Curse cards never deal direct damage, and all of them lay Hex', () =>
 });
 
 void test('each status reads as its name and number, one per line', () => {
-  assert.deepEqual(describeCard('sneer'), [
-    'Gain 5 Guard.',
-    'Weaken 1',
-    'Hex 1',
-  ]);
+  assert.deepEqual(describeCard('sneer'), ['Guard 5', 'Weaken 1', 'Hex 1']);
   assert.deepEqual(describeCard('beckon'), ['Force Pull', 'Weaken 1', 'Hex 1']);
   assert.ok(describeCard('hurlAside').includes('Force Push'));
   assert.ok(describeCard('plague').includes('Hex 4 to ALL'));
@@ -1566,7 +1562,7 @@ void test('every imbue lasts the battle, coming back with its card', () => {
   const slot = later.hand.indexOf('backhand');
   assert.ok(slot >= 0);
   assert.equal(later.handImbues[slot]?.length, 1);
-  assert.deepEqual(describeCard('emberRune'), ['Imbue Burn 4.']);
+  assert.deepEqual(describeCard('emberRune'), ['Imbue Burn 4']);
 });
 
 void test('an imbue outlasts other plays and the end of the turn', () => {
@@ -1592,7 +1588,7 @@ void test('an action buff lasts for the next card only', () => {
   assert.equal(aimed.player.statuses.hone, 4);
   const first = playCard(aimed, 0, uid);
   assert.equal(first.player.statuses.hone, 0, 'spent on the first arrow');
-  assert.deepEqual(describeCard('steadyAim'), ['Gain 4 Hone this action.']);
+  assert.deepEqual(describeCard('steadyAim'), ['Hone 4 this action']);
 });
 
 void test('a turn buff wears off at the end of the turn', () => {
@@ -1602,7 +1598,7 @@ void test('a turn buff wears off at the end of the turn', () => {
   assert.equal(furious.player.statuses.might, before + 3);
   const later = endTurn(furious);
   assert.equal(later.player.statuses.might, before);
-  assert.deepEqual(describeCard('battleFury'), ['Gain 3 Might this turn.']);
+  assert.deepEqual(describeCard('battleFury'), ['Might 3 this turn']);
 });
 
 void test('a card holds at most MAX_IMBUES_PER_CARD imbues', () => {
@@ -1676,7 +1672,7 @@ void test('Rampage can be imbued onto an attack', () => {
   const imbued = playCard(state, 0, 0, undefined, 1);
   const after = playCard(imbued, 0, imbued.heroes[0]?.uid ?? -1);
   assert.ok(after.lastMovement, 'the imbued Backhand charged');
-  assert.ok(describeCard('cleave').includes('Rampage.'));
+  assert.ok(describeCard('cleave').includes('Rampage'));
 });
 
 // --- DISTANCE ---
@@ -1716,7 +1712,7 @@ void test('Distance can be imbued onto an attack', () => {
   const imbued = playCard(state, 0, 0, undefined, 1);
   const after = playCard(imbued, 0, archerUid(imbued));
   assert.equal(after.lastMovement?.move, 'backStep');
-  assert.ok(describeCard('retreatingShot').includes('Distance.'));
+  assert.ok(describeCard('retreatingShot').includes('Distance'));
 });
 
 // --- ELEMENTS ---
