@@ -219,11 +219,11 @@ void test('heroes step one row toward home per turn, never past it', () => {
     ['archer', 'front', 1],
   ]).heroes;
   // The Squire comes in one row (not two); the Priest reaches the
-  // Backline; the Archer, already nearer than home, stays put.
+  // Backline; the Archer retreats to the same row.
   assert.deepEqual(placesOf(advanceHeroes(heroes)), [
     'back:0',
     'back:2',
-    'front:1',
+    'back:1',
   ]);
 });
 
@@ -552,7 +552,8 @@ void test('the Ballista is Anchored: nothing pushes it, but you can close in', (
   const lone = fightAt([['ballista', 'back', 1]]);
   assert.ok(canMove(lone, 'charge'));
   assert.equal(unitAt(move(lone, 'charge'), 0).row, 'front');
-  // It starts on the farthest line and never walks on its own.
+  assert.equal(advanceHeroes(lone.heroes)[0]?.row, 'horizon');
+  // It starts and holds on the farthest line.
   const fresh = startCombat({
     hp: 60,
     maxHp: 60,
@@ -744,4 +745,21 @@ test('terrain travel follows successful row movement and reverses on retreat', (
   const retreat = move(fightAt([['squire', 'front', 0]]), 'backStep');
   assert.equal(retreat.travelRows, -1);
   assert.equal(move(retreat, 'charge').travelRows, 0);
+});
+
+void test('displaced specialists return one row at a time and respect occupied cells', () => {
+  for (const id of ['lysa', 'archer', 'archmage', 'maren'] as const) {
+    const field = fightAt([[id, 'front', 0]]).heroes;
+    const settled = advanceHeroes(field);
+    assert.equal(settled[0]?.row, 'back');
+    assert.equal(advanceHeroes(settled)[0]?.row, 'back');
+  }
+  for (const id of ['ballista', 'valen'] as const) {
+    const field = fightAt([[id, 'front', 0]]).heroes;
+    const step = advanceHeroes(field);
+    assert.equal(step[0]?.row, 'back');
+    assert.equal(advanceHeroes(step)[0]?.row, 'horizon');
+  }
+  const blocked = fightAt([['lysa', 'front', 0], ['archmage', 'back', 0]]).heroes;
+  assert.equal(advanceHeroes(blocked)[0]?.row, 'front');
 });

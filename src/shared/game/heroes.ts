@@ -216,8 +216,7 @@ export const HEROES = {
     move('Mana Shield', guard(12)),
   ]),
 
-  // A siege engine: one cell (drawn 1.5 wide, see CreatureFigure), Anchored where it stands (it never
-  // moves and nothing moves it), and its bolts never fall short
+  // A one-cell siege engine resists forced movement. Its bolts never fall short
   // (Longrange: it hits from Line 3 too).
   ballista: hero(
     'Ballista',
@@ -225,7 +224,7 @@ export const HEROES = {
     100,
     30,
     2,
-    BACK,
+    { row: 'horizon', size: 1 },
     [
       move('Heavy Bolt', shoot(9), knockBack(1)),
       move('Arrow Volley', shoot(4, 3)),
@@ -243,12 +242,12 @@ export const HEROES = {
     move('Halberd Sweep', strike(10)),
     move('Twin Thrust', strike(6, 2)),
   ]),
-  lysa: hero('Ranger Lysa', 'champion', 46, 120, 8, CHAMPION, [
+  lysa: hero('Ranger Lysa', 'champion', 46, 120, 8, WIDE_BACK, [
     move('Hail of Arrows', shoot(3, 4)),
     move('Snare', weaken(2), guard(6)),
     move('Piercing Shot', shoot(12)),
   ]),
-  maren: hero('High Priestess Maren', 'champion', 55, 55, 4, CHAMPION, [
+  maren: hero('High Priestess Maren', 'champion', 55, 55, 4, WIDE_BACK, [
     move('Sanctuary', guard(6, 'allies'), heal(6, 'self')),
     move('Holy Fire', burn(5)),
     move('Smite the Wicked', spell(11)),
@@ -267,7 +266,7 @@ export const HEROES = {
     move('Feint', weaken(2), guard(8)),
     move('Execution', strike(20)),
   ]),
-  valen: hero('Valen the Radiant', 'champion', 90, 48, 6, CHAMPION, [
+  valen: hero('Valen the Radiant', 'champion', 90, 48, 6, { row: 'horizon', size: 2 }, [
     move('Radiance', wrath(2), guard(12)),
     move('Lightbringer', spell(9, 2)),
     move('Brand of Light', hex(6)),

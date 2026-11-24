@@ -19,7 +19,7 @@
 //     mirror image: one row farther.
 //   - A new horde marches in one row behind its home row as far as it
 //     has room (melee in the Backline, ranged on the Horizon). At the
-//     end of each heroes' turn, every hero behind its home row steps one
+//     end of each heroes' turn, every displaced hero steps one
 //     row toward it if there is room.
 //   - Charge: with the front row empty, the field closes in by up to
 //     CHARGE_ROWS rows, until someone stands in the front row.
@@ -115,7 +115,7 @@ export const isImmovable = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
 
 /**
  * True for an Anchored hero (the Ballista): no pull or push moves it
- * and it never walks on its own. Lines are distance from the villain,
+ * against its will. Lines are distance from the villain,
  * so when the villain Charges or Back Steps it still ends up nearer or
  * farther, like everyone.
  */
@@ -291,13 +291,17 @@ const placeHero = (
 export const isMeleeMinded = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
   getHero(unit.heroId).row === 'front';
 
-/** How many rows a hero stands behind its home row (0 at home or nearer). */
+/** Preferred fighting row, clamped to the rows available in this battle. */
+export const preferredRow = (unit: Pick<HeroUnit, 'heroId'>): HeroRow =>
+  activeRows()[Math.min(rowDepth(getHero(unit.heroId).row), lastRowDepth())]!;
+
+/** Positive behind home, negative in front of it. */
 const rowsBehindHome = (unit: HeroUnit): number =>
-  rowDepth(unit.row) - rowDepth(getHero(unit.heroId).row);
+  rowDepth(unit.row) - rowDepth(preferredRow(unit));
 
 /**
  * An Anchored hero (the Ballista) is set up on the farthest row it has
- * room on, before the march: it never walks, so it starts at the back.
+ * room on before the march.
  */
 const anchorFarBack = (heroes: HeroUnit[], uid: number): HeroUnit[] => {
   let field = heroes;
@@ -584,11 +588,11 @@ const moveRows = (
   heroes: HeroUnit[],
   uid: number,
   steps: number,
-  isSettingUp = false
+  voluntary = false
 ) => {
   const unit = heroes.find((hero) => hero.uid === uid);
-  // Only an Anchored hero's own set-up may move an immovable hero.
-  if (!unit || (isImmovable(unit) && !isSettingUp)) return heroes;
+  // Voluntary repositioning ignores forced-movement immunity.
+  if (!unit || (isImmovable(unit) && !voluntary)) return heroes;
   const row = rowShifted(unit.row, steps);
   const seating = seatInRow(heroes, unit, row);
   if (!seating || row === null) return heroes;
@@ -636,20 +640,15 @@ export const pushHero = (heroes: HeroUnit[], uid: number, rows = 1) => {
   return field;
 };
 
-/**
- * End of the heroes' turn: each hero standing behind its home row steps
- * one row toward it if there is room (melee close in on the front;
- * archers come in off the Horizon to the Backline), in uid order
- * (imperative: each step changes the room left for the next).
- */
+/** After acting, each hero tries one step toward its preferred row. */
 export const advanceHeroes = (heroes: HeroUnit[]): HeroUnit[] => {
   let field = heroes;
   for (const unit of heroes) {
-    const current = field.find((hero) => hero.uid === unit.uid);
-    if (!current || rowsBehindHome(current) <= 0) continue;
-    // A deep boss walks back in as a whole; anyone else is pulled.
-    if (isDeep(current)) field = shiftWhole(field, current.uid, -1);
-    else if (canPull(field, current)) field = pullHero(field, current.uid);
+    const direction = -Math.sign(rowsBehindHome(unit));
+    if (!direction) continue;
+    field = isDeep(unit)
+      ? shiftWhole(field, unit.uid, direction)
+      : moveRows(field, unit.uid, direction, true);
   }
   return field;
 };

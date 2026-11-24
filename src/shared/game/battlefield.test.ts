@@ -86,11 +86,11 @@ void test('melee heroes step up at the end of the heroes turn; ranged hold', () 
 });
 
 void test('a champion forms up in the back row and then fills the front', () => {
-  const fresh = freshFight(['valen']);
-  assert.equal(unitOf(fresh, 'valen').row, 'back');
+  const fresh = freshFight(['holt']);
+  assert.equal(unitOf(fresh, 'holt').row, 'back');
   const after = endTurn(fresh);
   assert.deepEqual(
-    { row: unitOf(after, 'valen').row, col: unitOf(after, 'valen').col },
+    { row: unitOf(after, 'holt').row, col: unitOf(after, 'holt').col },
     { row: 'front', col: 0 }
   );
 });

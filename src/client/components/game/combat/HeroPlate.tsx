@@ -20,6 +20,7 @@ import {
   isOutOfRangeShot,
   passivesOf,
 } from '../../../../shared/game/combat';
+import { preferredRow, rowDepth } from '../../../../shared/game/battlefield';
 import { getHero } from '../../../../shared/game/heroes';
 import type { HeroUnit } from '../../../../shared/game/types';
 import { HERO_STATUS_ROWS, INTENT_LOOK } from '../../../content/visuals';
@@ -43,9 +44,15 @@ const SIGNATURE_FILL = 'var(--color-accent)';
  * One planned move as ONE arrow: its first effect sets the colour and
  * leads, the rest follow inside it (Guard 6 | Wrath +1 is one action).
  */
-const MoveArrow = ({ move }: { move: MoveIntent }) => {
+const MoveArrow = ({ move, unit }: { move: MoveIntent; unit: HeroUnit }) => {
   const [lead, ...rest] = move.intents;
   if (!lead) return null;
+  const home = preferredRow(unit);
+  const position = { front: 'front', back: 'middle', horizon: 'rear' }[home];
+  const direction = rowDepth(unit.row) > rowDepth(home) ? 'advance' : 'retreat';
+  const positioning = unit.row === home
+    ? `Holding preferred position (${position}).`
+    : `Tries to ${direction} toward the ${position} after acting.`;
   return (
     <Chip
       {...INTENT_LOOK[lead.kind]}
@@ -57,7 +64,7 @@ const MoveArrow = ({ move }: { move: MoveIntent }) => {
       }))}
       info={{
         title: move.name,
-        description: move.intents.map((intent) => intent.label).join('\n'),
+        description: [...move.intents.map((intent) => intent.label), positioning].join('\n'),
       }}
     />
   );
@@ -76,7 +83,7 @@ export const IntentChips = ({
 }) => (
   <div className="hero-action-chips flex flex-nowrap items-center gap-0.5">
     {describeHeroIntent(unit, field).moves.map((move, index) => (
-      <MoveArrow key={`${move.name}-${index}`} move={move} />
+      <MoveArrow key={`${move.name}-${index}`} move={move} unit={unit} />
     ))}
   </div>
 );

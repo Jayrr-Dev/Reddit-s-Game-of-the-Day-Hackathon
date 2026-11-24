@@ -86,7 +86,7 @@ export type Statuses = Record<StatusId, number>;
 /**
  * A boss's built-in trait: always on, never stacks or fades.
  * vigor      acts twice every heroes' turn
- * anchored   never moves and can't be moved (the Ballista)
+ * anchored   resists forced movement (the Ballista)
  * longRange  its shots ignore Out of Range (see OUT_OF_RANGE_HIT_CHANCE)
  */
 export type PassiveId = 'vigor' | 'longRange' | 'anchored';
@@ -398,7 +398,7 @@ export type HeroDef = {
   moves: readonly HeroMove[];
   /** Portrait hue (0 to 360). Each hero gets its own heraldic colour. */
   hue: number;
-  /** The row this hero takes when the fight starts. */
+  /** Preferred fighting row. After acting, the hero tries to return here. */
   row: HeroRow;
   size: HeroSize;
   /**
