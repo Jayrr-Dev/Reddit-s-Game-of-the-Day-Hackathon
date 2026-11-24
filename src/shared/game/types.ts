@@ -123,7 +123,16 @@ export type CardTarget = 'one' | 'all';
 
 /** One step of a card (everything but Imbue, which grants these). */
 export type BaseCardEffect =
-  | { kind: 'damage'; amount: number; hits: number; target: CardTarget }
+  /**
+   * Damage. `random` (Randomly): no aim; each hit lands on a random hero
+   * it can reach, picked anew per hit on the fight's seeded rng.
+   */
+  | {
+      kind: 'damage';
+      amount: number;
+      hits: number;
+      target: CardTarget | 'random';
+    }
   | { kind: 'hex'; amount: number; target: CardTarget }
   | { kind: 'vex'; amount: number; target: CardTarget }
   /** The next `amount` movements this turn cost 0 (see Rush). */

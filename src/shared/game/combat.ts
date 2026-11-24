@@ -85,7 +85,7 @@ import {
   removeFromHand,
   stowPlayedImbues,
 } from './imbue.ts';
-import { nextFloat, shuffle, type RngState } from './rng.ts';
+import { nextFloat, pickOne, shuffle, type RngState } from './rng.ts';
 import {
   CARDS_PER_TURN,
   ELEMENT_ON_HIT,
@@ -586,12 +586,17 @@ const villainAttack = (
   const isFollowThrough = effect.target === 'one';
   const pierceHit = Math.floor(perHit * PIERCE_DAMAGE_FACTOR);
   return Array.from({ length: effect.hits }).reduce<CombatState>((current) => {
+    // RANDOMLY: this hit's hero is rolled now, so each hit picks anew.
+    const [aim, rolled] =
+      effect.target === 'random'
+        ? randomAim(current, isMelee, cardDef.type)
+        : [{ target: effect.target, uid: targetUid }, current];
     const struck = shootHeroes(
-      current,
+      rolled,
       resolveTargets(
-        current,
-        effect.target,
-        targetUid,
+        rolled,
+        aim.target,
+        aim.uid,
         cardDef.type,
         isMelee,
         isFollowThrough
@@ -606,10 +611,29 @@ const villainAttack = (
       cardDef,
       play.isLongRange
     );
-    return play.isPiercing && effect.target === 'one'
-      ? pierceBehind(struck, targetUid, pierceHit, cardDef, play.isLongRange)
+    return play.isPiercing && aim.target === 'one'
+      ? pierceBehind(struck, aim.uid, pierceHit, cardDef, play.isLongRange)
       : struck;
   }, state);
+};
+
+/**
+ * Rolls a Randomly hit's hero on the fight's seeded rng: any living hero
+ * the card can reach (Melee: the front row). Nobody to hit, no aim.
+ */
+const randomAim = (
+  state: CombatState,
+  isMelee: boolean,
+  type: CardType
+): [{ target: CardTarget; uid: number }, CombatState] => {
+  const living = state.heroes.filter((unit) => !isDefeated(unit));
+  const pool = areaTargets(living, isMelee, type);
+  if (pool.length === 0) return [{ target: 'one', uid: -1 }, state];
+  const [picked, rng] = pickOne(state.rng, pool);
+  return [
+    { target: 'one', uid: picked.uid },
+    { ...state, rng },
+  ];
 };
 
 /**

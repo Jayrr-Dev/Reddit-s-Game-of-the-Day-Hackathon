@@ -200,17 +200,22 @@ export const PASSIVE_INFO: Record<PassiveId, StatusInfo> = {
 
 // --- CARD TEXT ---
 
+/** Who a card effect lands on: one, all, or a random hero per hit. */
+type AimTarget = 'one' | 'all' | 'random';
+
 /**
  * " ALL" after an area effect's name ("Damage ALL 14", "Hex ALL 4").
  * A melee sweep only reaches the front, so it reads "to Line 1" after
  * the number instead (see areaSuffix).
  */
-const areaWord = (target: 'one' | 'all', isMelee = false): string =>
+const areaWord = (target: AimTarget, isMelee = false): string =>
   target === 'all' && !isMelee ? ' ALL' : '';
 
 /** " to Line 1" after a melee sweep's number; nothing otherwise. */
-const areaSuffix = (target: 'one' | 'all', isMelee = false): string =>
-  target === 'all' && isMelee ? ` to ${rowLabel('front')}` : '';
+const areaSuffix = (target: AimTarget, isMelee = false): string => {
+  if (target === 'random') return ` ${RANDOMLY_INFO.label}`;
+  return target === 'all' && isMelee ? ` to ${rowLabel('front')}` : '';
+};
 
 /**
  * One line of card text. When `attacker` is given, numbers are a live
@@ -375,6 +380,10 @@ export const KNOCKBACK_INFO: StatusInfo = {
     'Knocks the target hero **N lines** back\nStops early if the way is blocked',
 };
 /** What Homing means (a hero attack that can't be dodged). */
+export const RANDOMLY_INFO: StatusInfo = {
+  label: 'Randomly',
+  description: 'No aim: each hit lands on a random hero it can reach',
+};
 export const HOMING_INFO: StatusInfo = {
   label: 'Homing',
   description: "Its hits can't be dodged",
@@ -433,6 +442,7 @@ export const GLOSSARY: Readonly<Record<string, StatusInfo>> =
       PULL_INFO,
       KNOCKBACK_INFO,
       HOMING_INFO,
+      RANDOMLY_INFO,
       ...Object.values(ROW_INFO),
       OUT_OF_RANGE_INFO,
     ].map((info) => [info.label, info])

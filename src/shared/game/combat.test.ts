@@ -4,7 +4,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { advanceHeroes } from './battlefield.ts';
+import { advanceHeroes, targetRuleOf } from './battlefield.ts';
 import { ALL_CARD_IDS, getCard, type CardId } from './cards.ts';
 import { canMove, hasPlayLeft, move, movementCost } from './movement.ts';
 import {
@@ -2245,4 +2245,21 @@ void test('lightning cards: Static Charge only shocks, Overcharge doubles it', (
   assert.ok(laid > 0);
   const doubled = playCard(charged, 0, uid);
   assert.equal(shockOf(doubled), laid * 2);
+});
+
+// --- RANDOMLY ---
+void test('a Randomly card needs no aim and each hit picks a hero anew', () => {
+  assert.equal(describeCard('chaosBolt')[0], 'Damage 7 Randomly');
+  const start = squireAndArcher(['wildVolley']);
+  assert.equal(targetRuleOf('wildVolley'), 'none');
+  // Over many seeds both heroes get hit at some point, and the total
+  // damage is always every hit landing on someone.
+  const spreads = Array.from({ length: 30 }, (_, rng) => {
+    const state = { ...start, rng, hand: ['wildVolley' as CardId], energy: 3 };
+    const after = playCard(state, 0, -1);
+    return hpLost(state, after);
+  });
+  assert.ok(spreads.some(([squire = 0]) => squire > 0));
+  assert.ok(spreads.some(([, archer = 0]) => archer > 0));
+  assert.ok(spreads.every((lost) => lost.reduce((a, b) => a + b, 0) > 0));
 });

@@ -13,6 +13,7 @@ import {
   PULL_INFO,
   KNOCKBACK_INFO,
   HOMING_INFO,
+  RANDOMLY_INFO,
   IMBUE_INFO,
   KEYWORD_INFO,
   OUT_OF_RANGE_INFO,
@@ -47,6 +48,7 @@ const GLOSSARY_LOOK: ReadonlyMap<string, Look> = new Map([
   [PULL_INFO.label, { glyph: 'march', toneClass: 'text-hex' }],
   [KNOCKBACK_INFO.label, { glyph: 'march', toneClass: 'text-guard' }],
   [HOMING_INFO.label, { glyph: 'targeting', toneClass: 'text-magic' }],
+  [RANDOMLY_INFO.label, { glyph: 'targeting', toneClass: 'text-energy' }],
   // Card types and movements tooltips mention.
   ['Melee', INTENT_LOOK.attack],
   ['Range', INTENT_LOOK.range],

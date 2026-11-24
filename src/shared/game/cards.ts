@@ -28,6 +28,13 @@ const hit = (amount: number, hits = 1): CardEffect => ({
   hits,
   target: 'one',
 });
+/** Randomly: each of `hits` hits lands on a random hero it can reach. */
+const hitRandomly = (amount: number, hits = 1): CardEffect => ({
+  kind: 'damage',
+  amount,
+  hits,
+  target: 'random',
+});
 const hitAll = (amount: number): CardEffect => ({
   kind: 'damage',
   amount,
@@ -253,6 +260,9 @@ export const CARDS = {
     [hit(4), shock(2), guard(4)],
     LIGHTNING
   ),
+  // RANDOMLY: no aim, every hit picks its own hero
+  chaosBolt: card('Chaos Bolt', 'magic', 1, 'common', [hitRandomly(7)]),
+  wildVolley: card('Wild Volley', 'range', 1, 'common', [hitRandomly(3, 4)]),
   // LIGHTNING: Shock only (no damage), and Overcharge to double it
   staticCharge: card(
     'Static Charge',
