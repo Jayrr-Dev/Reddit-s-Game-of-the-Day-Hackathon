@@ -6,6 +6,7 @@
 
 import {
   AFTER_ACTION_DIVISOR,
+  SHOCK_BURST_FACTOR,
   SHOCK_HITS,
   WEAKEN_DAMAGE_FACTOR,
   FROST_DAMAGE_PER_STACK,
@@ -231,7 +232,7 @@ export const takeHit = <T extends Combatant>(
     shockHits: 0,
     statuses: { ...hit.statuses, shock: 0 },
   };
-  return loseHp(cleared, shock);
+  return loseHp(cleared, shock * SHOCK_BURST_FACTOR);
 };
 
 // --- TIERED STATUSES (Protection, Enfeeble; see TIERED_CUT_BY_TIER) ---

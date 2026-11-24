@@ -24,6 +24,7 @@ import {
   SHARPSHOOTER_DAMAGE_FACTOR,
   OUT_OF_RANGE_ROW,
   EXHAUST_USES,
+  SHOCK_BURST_FACTOR,
   SHOCK_HITS,
 } from './rules.ts';
 import { usesOf } from './uses.ts';
@@ -100,7 +101,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   },
   shock: {
     label: 'Shock',
-    description: `The **${ordinal(SHOCK_HITS)}** hit taken in one turn deals this much, then clears\nAny hit counts: Melee, Range or Magic`,
+    description: `The **${ordinal(SHOCK_HITS)}** hit taken in one turn sets it off: **${SHOCK_BURST_FACTOR}×** this much damage, then it clears\nAny hit counts: Melee, Range or Magic`,
   },
   poison: {
     label: 'Poison',

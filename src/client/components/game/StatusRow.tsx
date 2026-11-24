@@ -27,6 +27,7 @@ import {
 import { dodgeChanceOf } from '../../../shared/game/combat';
 import { hexAfterTurn, hexBurnAmount } from '../../../shared/game/combatant';
 import {
+  SHOCK_BURST_FACTOR,
   SHOCK_HITS,
   OUT_OF_RANGE_HIT_CHANCE,
 } from '../../../shared/game/rules';
@@ -185,7 +186,7 @@ const shockChipOf = (combatant: Combatant): Partial<StatusChip> => {
     shockCharge: shockChargeOf(hits),
     ...(isPrimed
       ? {
-          description: `Primed: the next hit bursts it for ${combatant.statuses.shock}.`,
+          description: `Primed: the next hit bursts it for ${combatant.statuses.shock * SHOCK_BURST_FACTOR}.`,
         }
       : {}),
   };

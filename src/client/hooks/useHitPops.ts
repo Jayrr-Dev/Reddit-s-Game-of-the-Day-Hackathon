@@ -22,6 +22,7 @@ import type {
   MeleeEdge,
   StatusId,
 } from '../../shared/game/types';
+import { SHOCK_BURST_FACTOR } from '../../shared/game/rules';
 import type { HitHistory } from '../lib/popSize';
 import { HERO_ANCHOR_ATTR, HERO_UID_ATTR, type Point } from './useCardDrag';
 
@@ -316,7 +317,11 @@ const shockBurstBetween = (
   after: Pick<Record<DebuffKind, number>, 'shock'>
 ): Hit | null =>
   before.shock > 0 && after.shock === 0
-    ? { kind: 'shockBurst', amount: before.shock, blocked: 0 }
+    ? {
+        kind: 'shockBurst',
+        amount: before.shock * SHOCK_BURST_FACTOR,
+        blocked: 0,
+      }
     : null;
 
 /**

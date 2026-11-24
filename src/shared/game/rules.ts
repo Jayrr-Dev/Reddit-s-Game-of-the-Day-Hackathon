@@ -153,6 +153,8 @@ export const WEAKEN_DAMAGE_FACTOR = 0.75;
 export const AFTER_ACTION_DIVISOR = 2;
 /** Shock bursts on this many hits (of any type) taken while shocked. */
 export const SHOCK_HITS = 4;
+/** A Shock that goes off deals its stacks times this. */
+export const SHOCK_BURST_FACTOR = 2;
 /** Each stack of Frost takes this much off every hit its bearer deals. */
 export const FROST_DAMAGE_PER_STACK = 1;
 /**

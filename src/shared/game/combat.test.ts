@@ -53,6 +53,7 @@ import {
   CARDS_PER_TURN,
   ENERGY_PER_TURN,
   MAX_IMBUES_PER_CARD,
+  SHOCK_BURST_FACTOR,
   SHOCK_HITS,
   STATUS_IS_AFFLICTION,
 } from './rules.ts';
@@ -399,8 +400,9 @@ void test('shock bursts and clears on the 4th hit', () => {
   assert.equal(thrice.shockHits, 3);
   assert.equal(thrice.hp, 44);
   const burst = takeHit(thrice, 2, 'melee');
-  // Four hits of 2, then the shock (6).
-  assert.equal(burst.hp, 36);
+  // Four hits of 2, then the shock (6) doubled.
+  assert.equal(SHOCK_BURST_FACTOR, 2);
+  assert.equal(burst.hp, 42 - 6 * SHOCK_BURST_FACTOR);
   assert.equal(burst.statuses.shock, 0);
   assert.equal(burst.shockHits ?? 0, 0);
 });
@@ -418,7 +420,7 @@ void test('new shock stacks on top and keeps the count', () => {
   const stacked = addStatus(hit, 'shock', 4);
   assert.equal(stacked.shockHits, 3);
   const burst = takeHit(stacked, 1, 'melee');
-  assert.equal(burst.hp, 50 - 4 - 6);
+  assert.equal(burst.hp, 50 - 4 - 6 * SHOCK_BURST_FACTOR);
 });
 
 void test('Shock hits must come in one turn: the count resets at upkeep', () => {
@@ -444,7 +446,7 @@ void test('a magic hit counts toward Shock like any other', () => {
   );
   const zapped = takeHit(hit, 1, 'magic');
   assert.equal(zapped.statuses.shock, 0, 'the 4th hit bursts it');
-  assert.equal(zapped.hp, 50 - 4 - 6);
+  assert.equal(zapped.hp, 50 - 4 - 6 * SHOCK_BURST_FACTOR);
 });
 
 void test('a hero shocked by the villain: four melee hits', () => {
@@ -475,7 +477,7 @@ void test('a hero shocked by the villain: four melee hits', () => {
     shocked
   );
   const maiden = after.heroes.find((unit) => unit.uid === uid)!;
-  assert.equal(maiden.hp, 99 - 6 * 4 - 5);
+  assert.equal(maiden.hp, 99 - 6 * 4 - 5 * SHOCK_BURST_FACTOR);
   assert.equal(maiden.statuses.shock, 0);
 });
 
