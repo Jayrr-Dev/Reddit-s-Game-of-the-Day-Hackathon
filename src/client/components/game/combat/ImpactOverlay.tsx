@@ -59,9 +59,12 @@ const SLASH_WOBBLE_DEG = 3;
 /** Bounds so a scratch stays visible and a huge hit stays on the body. */
 const SLASH_MIN = 24;
 const SLASH_MAX = 120;
+/** How thick a cut is (half its width at the middle, slice units). */
+const SLASH_HALF_THICKNESS_MIN = 3;
+const SLASH_HALF_THICKNESS_SPREAD = 2.4;
 
 /**
- * A Melee cut: a semi-thin red slice, pointed at both ends. Its length
+ * A Melee cut: a wide red slice, pointed at both ends. Its length
  * follows the hit's size next to the typical hit (the same curve as the
  * damage numbers), so a big hit cuts a long gash and a chip a short one.
  * Each one also gets its own thickness, and the next angle in
@@ -79,7 +82,9 @@ const Slash = ({ pop }: { pop: PlayerHitPop }) => {
       style={{ ...placeAt(id, angle, SLASH_WOBBLE_DEG), width: `${length}%` }}
     >
       <Slice
-        halfThickness={1.6 + seeded(id, 6) * 1.6}
+        halfThickness={
+          SLASH_HALF_THICKNESS_MIN + seeded(id, 6) * SLASH_HALF_THICKNESS_SPREAD
+        }
         className="origin-left animate-impact-slash"
       />
     </span>

@@ -3,7 +3,8 @@
 // A card pile drawn as a small stack: the top card shows the count,
 // and more card edges peek out behind it as the pile grows, so you can
 // read how full it is at a glance. An empty pile is a dashed outline.
-// Used for the draw pile (right) and the discard pile (left).
+// Used for the draw pile (right) and the discard pile (left). Tapping
+// it opens the pile to see its cards (PileDialog).
 // ===================================================================
 
 import { Tooltip } from '../../ui/Tooltip';
@@ -17,6 +18,8 @@ export type PileStackProps = {
   toneClass: string;
   /** Which way the back cards fan out, so the two piles mirror. */
   side: 'left' | 'right';
+  /** Opens the pile to see its cards. */
+  onOpen: () => void;
 };
 
 // --- CONSTANTS ---
@@ -38,6 +41,7 @@ export const PileStack = ({
   label,
   toneClass,
   side,
+  onOpen,
 }: PileStackProps) => {
   const backCards = backCardsFor(count);
   // Back cards fan up and toward the nearer screen edge, so the piles mirror.
@@ -45,9 +49,11 @@ export const PileStack = ({
   const isEmpty = count === 0;
   return (
     <Tooltip content={{ title: label }}>
-      <span
-        aria-label={`${label}: ${count}`}
-        className="relative mb-0.5 block shrink-0"
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={`${label}: ${count}. Show the cards`}
+        className="relative mb-0.5 block shrink-0 active:scale-95"
       >
         {Array.from({ length: backCards }, (_, index) => {
           const depth = backCards - index;
@@ -67,7 +73,7 @@ export const PileStack = ({
         >
           <span className="num-center">{count}</span>
         </span>
-      </span>
+      </button>
     </Tooltip>
   );
 };

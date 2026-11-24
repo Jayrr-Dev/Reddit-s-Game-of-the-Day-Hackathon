@@ -34,7 +34,7 @@ export type CardViewProps = {
   isSelected?: boolean;
   /** "fan" cards sit in the fanned hand; "offer" cards are full size. */
   size?: CardSize;
-  onClick: () => void;
+  onClick?: () => void;
 };
 
 export type CardSize = 'fan' | 'offer';

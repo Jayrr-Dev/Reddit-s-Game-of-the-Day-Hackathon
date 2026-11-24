@@ -57,6 +57,7 @@ import { DraggedCard } from './combat/DraggedCard';
 import { EnergyTray } from './combat/EnergyTray';
 import { FanHand } from './combat/FanHand';
 import { HitNumbers } from './combat/HitNumbers';
+import { PileDialog, type PileId } from './combat/PileDialog';
 import { PileStack } from './combat/PileStack';
 import { PlayerCorner } from './combat/PlayerCorner';
 import { ShroudGainPops } from './combat/ShroudGainPops';
@@ -108,11 +109,13 @@ const PlayerBar = ({
   hits,
   onEndTurn,
   onMove,
+  onOpenPile,
 }: {
   combat: CombatState;
   hits: readonly PlayerHitPop[];
   onEndTurn: () => void;
   onMove: (move: MovementId) => void;
+  onOpenPile: (pile: PileId) => void;
 }) => {
   const movement = offeredMovement(combat);
   return (
@@ -124,6 +127,7 @@ const PlayerBar = ({
           label="Cards in the discard pile"
           toneClass="bg-surface-raised"
           side="left"
+          onOpen={() => onOpenPile('discard')}
         />
       </div>
       <div className="relative flex min-w-0 flex-col items-center gap-1 pb-1">
@@ -145,7 +149,11 @@ const PlayerBar = ({
         <EnergyTray energy={combat.energy} />
       </div>
       <div className="justify-self-end">
-        <TurnCorner drawCount={combat.drawPile.length} onEndTurn={onEndTurn} />
+        <TurnCorner
+          drawCount={combat.drawPile.length}
+          onEndTurn={onEndTurn}
+          onOpenDraw={() => onOpenPile('draw')}
+        />
       </div>
     </div>
   );
@@ -225,6 +233,9 @@ export const CombatView = ({
   );
   const controls = useCombatControls(combat, routeAction);
   const [isPaused, setIsPaused] = useState(false);
+  // The pile whose cards are open in the dialog, if any.
+  const [openPile, setOpenPile] = useState<PileId | null>(null);
+  const closePile = useCallback(() => setOpenPile(null), []);
   const pops = useHitPops(
     combat.heroes,
     combat.turn,
@@ -283,6 +294,7 @@ export const CombatView = ({
           hits={playerHits}
           onEndTurn={controls.endTurn}
           onMove={(move) => routeAction({ type: 'move', move })}
+          onOpenPile={setOpenPile}
         />
         <FanHand
           combat={combat}
@@ -322,6 +334,14 @@ export const CombatView = ({
       )}
       {/* A TURN OR A CARD'S HITS ARE PLAYING: SWALLOW TAPS UNTIL DONE */}
       {isAnimating && <div className="absolute inset-0 z-50" />}
+      {openPile && (
+        <PileDialog
+          pile={openPile}
+          cards={openPile === 'draw' ? combat.drawPile : combat.discardPile}
+          attacker={combat.player}
+          onClose={closePile}
+        />
+      )}
       {isPaused && (
         <PauseSheet
           where={where}

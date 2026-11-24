@@ -11,17 +11,23 @@ import { PileStack } from './PileStack';
 export type TurnCornerProps = {
   drawCount: number;
   onEndTurn: () => void;
+  onOpenDraw: () => void;
 };
 
 // --- COMPONENT ---
 /** Renders the deck count and the End Turn hourglass. */
-export const TurnCorner = ({ drawCount, onEndTurn }: TurnCornerProps) => (
+export const TurnCorner = ({
+  drawCount,
+  onEndTurn,
+  onOpenDraw,
+}: TurnCornerProps) => (
   <div className="flex shrink-0 items-end gap-2.5">
     <PileStack
       count={drawCount}
       label="Cards left to draw"
       toneClass="bg-deck"
       side="right"
+      onOpen={onOpenDraw}
     />
     <button
       type="button"
