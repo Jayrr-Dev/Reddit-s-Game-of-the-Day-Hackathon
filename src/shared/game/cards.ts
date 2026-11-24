@@ -232,7 +232,14 @@ export const CARDS = {
   ),
   beckon: card('Beckon', 'curse', 0, 'common', [pull(1), weaken(1), hex(1)]),
   repulse: card('Repulse', 'magic', 1, 'common', [hit(5), knockback(1)]),
-  hexfire: card('Hexfire', 'magic', 1, 'common', [hit(6), hex(1)], FIRE),
+  hexfire: card(
+    'Hexfire',
+    'magic',
+    1,
+    'common',
+    [hit(6), hex(1), burn(2)],
+    FIRE
+  ),
   barbedVolley: card('Barbed Volley', 'range', 1, 'common', [hit(2, 3)]),
   flurry: card('Flurry', 'melee', 1, 'common', [hit(3, 3)], BLUNT),
   spikedGuard: card(
@@ -499,10 +506,17 @@ export const CARDS = {
   ),
 
   // RARE
-  cataclysm: card('Cataclysm', 'magic', 3, 'rare', [hitAll(14)], {
-    ...HOLDS,
-    ...FIRE,
-  }),
+  cataclysm: card(
+    'Cataclysm',
+    'magic',
+    3,
+    'rare',
+    [hitAll(14), burn(3, 'all')],
+    {
+      ...HOLDS,
+      ...FIRE,
+    }
+  ),
   vengeance: card('Vengeance', 'buff', 1, 'rare', [wrath(3)], REMOVES),
   gravePact: card('Grave Pact', 'buff', 1, 'rare', [heal(8)], REMOVES),
   // LEGENDARY: the rarest offers (see RARITY_ODDS)

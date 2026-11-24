@@ -12,12 +12,8 @@
 import type { CSSProperties } from 'react';
 import type { CardType } from '../../../../shared/game/types';
 import { CARD_LOOK, POP_LOOK } from '../../../content/visuals';
-import type {
-  HitPop,
-  PlayerHitPop,
-  PopKind,
-  TickKind,
-} from '../../../hooks/useHitPops';
+import type { HitPop, PlayerHitPop, PopKind } from '../../../hooks/useHitPops';
+import { specialToneOf } from '../../../lib/popTone';
 import { ImpactOverlay } from './ImpactOverlay';
 import { popFontPx } from '../../../lib/popSize';
 import { driftOf } from '../../../lib/popDrift';
@@ -47,25 +43,6 @@ const toneOf = (source?: CardType): string =>
  * numbers read a little brighter than the card glow they match.
  */
 const TONE_STRENGTH = '78%';
-/** A Shock burst's number: lightning yellow. */
-const SHOCK_TONE = 'var(--color-shock)';
-/** Statuses whose tick damage pops in their own colour (Sam: Burn orange). */
-const TICK_TONES: Partial<Record<TickKind, string>> = {
-  burn: 'var(--color-burn)',
-};
-
-/**
- * The colour a pop's number takes over its card type's: a Shock burst's
- * yellow or a ticking status's own. Undefined keeps the usual tone.
- */
-export const specialToneOf = (
-  hit: Pick<PlayerHitPop, 'kind' | 'tick'>
-): string | undefined =>
-  hit.kind === 'shockBurst'
-    ? SHOCK_TONE
-    : hit.tick
-      ? TICK_TONES[hit.tick]
-      : undefined;
 
 /** How far (px) a piled number may land from its spot, each way. */
 const PILE_JITTER_X_PX = 22;

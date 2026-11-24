@@ -2130,11 +2130,11 @@ void test('every hit of an Ice card applies Frost (Frost Bolt hits twice)', () =
   const hero = after.heroes.find((unit) => unit.uid === uid);
   assert.equal(hero?.statuses.frost, 2, 'one Frost per hit');
   assert.ok(describeCard('frostBolt').includes('Frost 1 per hit'));
-  // Fire stays a look only.
+  // Fire's Burn is printed on the card (Hexfire: Burn 2), not added per hit.
   const fire = withHand(fightWith([]), ['hexfire']);
   const burnt = playCard(fire, 0, uid).heroes.find((unit) => unit.uid === uid);
   assert.equal(burnt?.statuses.frost, 0);
-  assert.equal(burnt?.statuses.burn, 0);
+  assert.equal(burnt?.statuses.burn, 2);
 });
 
 // --- AUTO END TURN ---
