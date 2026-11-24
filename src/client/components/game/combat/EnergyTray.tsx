@@ -1,10 +1,16 @@
 // ===================================================================
 // ENERGY TRAY
-// The dark tray under the hand holding one pip per point of energy;
-// spent pips go dark.
+// A soft dark pool under the hand holding one pip per point of energy;
+// spent pips go dark. No rim: the backing feathers out at its edges
+// (TRAY_BACKING), so it reads as shade rather than a box.
 // ===================================================================
 
 import { ENERGY_PER_TURN } from '../../../../shared/game/rules';
+
+// --- CONSTANTS ---
+/** A dark oval that fades to nothing well before the tray's edge. */
+const TRAY_BACKING =
+  'radial-gradient(closest-side, color-mix(in srgb, var(--color-surface-sunken) 92%, transparent) 55%, transparent)';
 
 // --- COMPONENT ---
 /** Renders the energy pips in their tray. */
@@ -12,7 +18,8 @@ export const EnergyTray = ({ energy }: { energy: number }) => {
   const pipCount = Math.max(ENERGY_PER_TURN, energy);
   return (
     <div
-      className="flex gap-1.5 rounded-full bg-surface-sunken/90 px-3 py-1 ring-1 ring-accent/40"
+      className="flex gap-1.5 px-6 py-2.5"
+      style={{ background: TRAY_BACKING }}
       aria-label={`${energy} energy`}
     >
       {Array.from({ length: pipCount }, (_, index) => (

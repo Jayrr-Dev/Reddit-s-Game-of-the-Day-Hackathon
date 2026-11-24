@@ -1,10 +1,11 @@
 // ===================================================================
 // CARD BADGES
-// A column of round sockets joined under a card's cost coin, each
-// holding one icon: its
+// A column of round sockets hanging from a card's cost coin on short
+// gold stems, like gem settings, each holding one icon: the card's
 // keywords and Imbue gifts (see content/cardBadges.ts). A gift's number
-// sits on its badge's bottom corner, and a timed gift ("this turn") has
-// a small hourglass on the top corner; an imbued badge has a teal rim.
+// sits in a gold corner badge, a timed gift ("this turn") has a small
+// hourglass in the other corner, and an imbued socket glows faintly
+// teal inside.
 // Hover (with no button held) or long-press one for its tooltip.
 // ===================================================================
 
@@ -17,54 +18,70 @@ import { Tooltip } from '../ui/Tooltip';
 export type BadgeSize = 'fan' | 'offer';
 
 // --- CONSTANTS ---
-/** Where the column sits (under the coin) and how big each badge is. */
+/**
+ * Where the column hangs and how big each socket is. The column is
+ * centred under the cost coin (fan coin: 20 px, centre 4 px in from
+ * the card's left edge; offer coin: 28 px, centre 6 px in), so `column`
+ * puts its middle there and starts just below the coin.
+ */
 const SIZE_LOOK: Record<
   BadgeSize,
   {
     column: string;
-    badge: string;
+    socket: string;
     icon: string;
     count: string;
     timer: string;
   }
 > = {
   fan: {
-    column: '-left-1 top-3',
-    badge: 'size-4',
-    icon: 'size-2.5',
-    count: 'text-[7px] -right-1 -bottom-0.5',
-    timer: 'size-2 -right-1 -top-0.5',
+    column: 'left-1 top-3.5 w-[18px] -translate-x-1/2',
+    socket: 'size-[18px]',
+    icon: 'size-3',
+    count: 'min-w-2.5 h-2.5 text-[7px] -right-1 -bottom-1',
+    timer: 'size-2.5 -left-1 -bottom-1',
   },
   offer: {
-    column: '-left-1 top-[1.1rem]',
-    badge: 'size-5',
-    icon: 'size-3',
-    count: 'text-[9px] -right-1 -bottom-0.5',
-    timer: 'size-2.5 -right-1 -top-0.5',
+    column: 'left-1.5 top-5 w-[22px] -translate-x-1/2',
+    socket: 'size-[22px]',
+    icon: 'size-3.5',
+    count: 'min-w-3 h-3 text-[8px] -right-1 -bottom-1',
+    timer: 'size-3 -left-1 -bottom-1',
   },
 };
 
 // --- SUBCOMPONENTS ---
-/** One badge: its icon in its tone, its number on the corner. */
-const Badge = ({ badge, size }: { badge: CardBadge; size: BadgeSize }) => {
+/** The short gold stem a socket hangs from (from the coin or the one above). */
+const Stem = () => <span aria-hidden className="h-[3px] w-0.5 bg-energy/80" />;
+
+/**
+ * One socket: a dark gem setting with a gold rim, its icon centred in
+ * its tone; a gift's number in a gold corner badge, a timed gift's
+ * hourglass in the opposite corner, and a faint teal glow inside when
+ * an Imbue card put it there.
+ */
+const Socket = ({ badge, size }: { badge: CardBadge; size: BadgeSize }) => {
   const look = SIZE_LOOK[size];
+  const glow = badge.isImbued
+    ? 'shadow-[inset_0_0_5px_var(--color-imbue),0_1px_2px_rgb(0_0_0/0.6)]'
+    : 'shadow-[0_1px_2px_rgb(0_0_0/0.6)]';
   return (
     <span
-      className={`relative -mt-px grid ${look.badge} place-items-center rounded-full bg-surface-sunken ring-2 ${badge.isImbued ? 'ring-imbue/80 shadow-[0_0_6px_var(--color-imbue)]' : 'ring-surface-sunken'} ${badge.toneClass}`}
+      className={`relative grid ${look.socket} place-items-center rounded-full bg-surface-sunken ring-[1.5px] ring-energy ${glow} ${badge.toneClass}`}
     >
       <Glyph name={badge.glyph} className={look.icon} />
       {badge.duration && (
         <span
-          className={`absolute ${look.timer} grid place-items-center rounded-full bg-surface-sunken text-imbue`}
+          className={`absolute ${look.timer} grid place-items-center rounded-full bg-surface-sunken text-imbue ring-1 ring-energy`}
         >
-          <Glyph name="hourglass" className="size-full p-px" />
+          <Glyph name="hourglass" className="size-full p-[1.5px]" />
         </span>
       )}
       {badge.count !== undefined && (
         <span
-          className={`absolute ${look.count} rounded-sm bg-surface-sunken px-px font-display font-black leading-none text-ink`}
+          className={`absolute ${look.count} grid place-items-center rounded-full bg-energy px-0.5 font-display font-black leading-none text-on-accent ring-1 ring-surface-sunken`}
         >
-          {badge.count}
+          <span className="num-center">{badge.count}</span>
         </span>
       )}
     </span>
@@ -72,7 +89,7 @@ const Badge = ({ badge, size }: { badge: CardBadge; size: BadgeSize }) => {
 };
 
 // --- COMPONENT ---
-/** Renders a card's badges, or nothing when it has none. */
+/** Renders a card's sockets under its cost coin, or nothing without any. */
 export const CardBadges = ({
   badges,
   size,
@@ -81,16 +98,18 @@ export const CardBadges = ({
   size: BadgeSize;
 }) =>
   badges.length === 0 ? null : (
-    // z-[9]: tucked just under the coin (z-10), so the top socket
-    // reads as hanging from it.
-    <span className={`absolute z-[9] flex flex-col ${SIZE_LOOK[size].column}`}>
+    <span
+      className={`absolute z-10 flex flex-col items-center ${SIZE_LOOK[size].column}`}
+    >
       {badges.map((badge) => (
-        <Tooltip
-          key={badge.key}
-          content={{ title: badge.title, description: badge.description }}
-        >
-          <Badge badge={badge} size={size} />
-        </Tooltip>
+        <span key={badge.key} className="flex flex-col items-center">
+          <Stem />
+          <Tooltip
+            content={{ title: badge.title, description: badge.description }}
+          >
+            <Socket badge={badge} size={size} />
+          </Tooltip>
+        </span>
       ))}
     </span>
   );

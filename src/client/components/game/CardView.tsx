@@ -88,7 +88,7 @@ const SIZE_LOOK: Record<CardSize, SizeLook> = {
     rules: 'text-[8px] leading-[1.15] px-0.5',
     ribbon: 'text-[6px] px-1.5 gap-0.5',
     ribbonIcon: 'size-2',
-    gem: 'size-1.5',
+    gem: 'size-[5px]',
   },
   offer: {
     box: 'h-40 w-[6.5rem]',
@@ -99,7 +99,7 @@ const SIZE_LOOK: Record<CardSize, SizeLook> = {
     rules: 'text-[10px] leading-snug px-1',
     ribbon: 'text-[8px] px-2 gap-1',
     ribbonIcon: 'size-2.5',
-    gem: 'size-2',
+    gem: 'size-[7px]',
   },
 };
 
@@ -246,6 +246,26 @@ const TypeRibbon = ({
   </span>
 );
 
+/**
+ * The rarity gem: a small diamond in its rarity's colour, cut with a
+ * light facet on top and shade below, in a thin gold setting, centred
+ * on the name banner's bottom edge (under the text, never over it).
+ */
+const RarityGem = ({
+  gemClass,
+  sizeClass,
+}: {
+  gemClass: string;
+  sizeClass: string;
+}) => (
+  <span
+    aria-hidden
+    className={`absolute left-1/2 top-full z-10 ${sizeClass} -translate-x-1/2 -translate-y-1/2 rotate-45 overflow-hidden ${gemClass} ring-1 ring-energy shadow-[0_1px_2px_rgb(0_0_0/0.7)]`}
+  >
+    <span className="absolute inset-0 bg-gradient-to-br from-white/75 via-transparent via-45% to-black/45" />
+  </span>
+);
+
 /** The name banner, with the rarity gem set into its bottom edge. */
 const NameBanner = ({
   name,
@@ -262,12 +282,7 @@ const NameBanner = ({
     className={`relative -mx-[3px] shrink-0 border-y border-black/50 ${frameClass} font-display font-black uppercase leading-none tracking-tight text-ink [text-shadow:0_1px_1px_rgb(0_0_0/0.8)] ${look.name}`}
   >
     {name}
-    {gemClass && (
-      <span
-        aria-hidden
-        className={`absolute left-1/2 top-full z-10 ${look.gem} -translate-x-1/2 -translate-y-1/2 rotate-45 ${gemClass} ring-1 ring-black/60 shadow-[0_0_3px_rgb(0_0_0/0.6)]`}
-      />
-    )}
+    {gemClass && <RarityGem gemClass={gemClass} sizeClass={look.gem} />}
   </span>
 );
 
