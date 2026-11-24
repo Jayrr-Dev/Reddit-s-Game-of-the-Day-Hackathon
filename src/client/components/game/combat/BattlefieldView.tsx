@@ -33,6 +33,8 @@ export type BattlefieldViewProps = {
   pickMarkerOf: (uid: number) => PickMarker | null;
   /** Heroes whose move is playing right now, with its style (hero turn). */
   acting: ReadonlyMap<number, HeroAction>;
+  /** Heroes with a damage number floating over them (they wince). */
+  hurtUids: ReadonlySet<number>;
   onTapHero: (uid: number) => void;
 };
 
@@ -77,6 +79,7 @@ export const BattlefieldView = ({
   aimOf,
   pickMarkerOf,
   acting,
+  hurtUids,
   onTapHero,
 }: BattlefieldViewProps) => {
   const fieldRef = useRef<HTMLDivElement>(null);
@@ -96,6 +99,7 @@ export const BattlefieldView = ({
           aim={aimOf(unit.uid)}
           pickMarker={pickMarkerOf(unit.uid)}
           action={acting.get(unit.uid) ?? null}
+          isHurt={hurtUids.has(unit.uid)}
           onTap={onTapHero}
         />
       )),
@@ -109,6 +113,7 @@ export const BattlefieldView = ({
           aim="idle"
           pickMarker={null}
           action={null}
+          isHurt={false}
           isDying
           onTap={onTapHero}
         />

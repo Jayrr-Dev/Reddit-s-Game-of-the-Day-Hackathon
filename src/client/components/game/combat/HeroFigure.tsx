@@ -28,6 +28,8 @@ import {
   type HeroLook,
   type Prop,
   type Tone,
+  type FaceFeatures,
+  type HeroMood,
 } from '../../../content/heroLooks';
 import {
   BODY_HEIGHT,
@@ -35,6 +37,7 @@ import {
   headCentreOf,
   headRadiusOf,
 } from '../../../lib/heroFigure';
+import { HeroFace } from './HeroFace';
 
 // --- TYPES ---
 export type HeroFigureProps = {
@@ -42,6 +45,8 @@ export type HeroFigureProps = {
   size: HeroSize;
   /** The attack playing right now, if any. */
   action?: HeroAction | null;
+  /** How the hero feels right now (shown on a bare face). */
+  mood?: HeroMood;
 };
 
 type Point = readonly [number, number];
@@ -66,6 +71,12 @@ type Frame = {
 };
 
 // --- CONSTANTS ---
+/** Features for a bare face that has none of its own. */
+const DEFAULT_FEATURES: FaceFeatures = {
+  eyes: 'round',
+  brow: 'flat',
+  mouth: 'line',
+};
 const EYE_FILL = '#1a1014';
 const FEET_Y = 96;
 const LEATHER = '#3a2a26';
@@ -431,8 +442,19 @@ const Pauldrons = ({ f }: { f: Frame }) => {
   );
 };
 
-/** The face: a long, pointed-chin head, split lit and shadowed. */
-const Head = ({ f, look }: { f: Frame; look: HeroLook }) => (
+/**
+ * The head: a long, pointed-chin face split lit and shadowed, with the
+ * hero's features (see HeroFace) or a closed helm's visor slit.
+ */
+const Head = ({
+  f,
+  look,
+  mood,
+}: {
+  f: Frame;
+  look: HeroLook;
+  mood: HeroMood;
+}) => (
   <>
     <Halves
       mid={f.mid}
@@ -445,22 +467,11 @@ const Head = ({ f, look }: { f: Frame; look: HeroLook }) => (
       ]}
     />
     {look.face === 'bare' ? (
-      <>
-        <rect
-          x={f.mid - f.hw * 0.48}
-          y={f.eyes - 1.4}
-          width="1.4"
-          height="3"
-          fill={EYE_FILL}
-        />
-        <rect
-          x={f.mid + f.hw * 0.48 - 1.4}
-          y={f.eyes - 1.4}
-          width="1.4"
-          height="3"
-          fill={EYE_FILL}
-        />
-      </>
+      <HeroFace
+        at={f}
+        features={look.features ?? DEFAULT_FEATURES}
+        mood={mood}
+      />
     ) : (
       <>
         {/* CLOSED HELM: a visor slit and a breathing line */}
@@ -1435,6 +1446,7 @@ export const HeroFigure = ({
   heroId,
   size,
   action = null,
+  mood = 'calm',
 }: HeroFigureProps) => {
   const look = HERO_LOOKS[heroId];
   const f = withGrip(frameOf(size), look.prop);
@@ -1497,7 +1509,7 @@ export const HeroFigure = ({
       {isArmored && <Coif f={f} mail={mail} />}
       <Arms f={f} look={look} mail={mail} k={k} />
       {look.armor === 'plate' && <Pauldrons f={f} />}
-      <Head f={f} look={look} />
+      <Head f={f} look={look} mood={mood} />
       {gear.front}
       {/* THE PROP SWINGS, DRAWS OR RISES AROUND THE HAND */}
       <g

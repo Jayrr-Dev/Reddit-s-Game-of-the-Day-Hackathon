@@ -23,6 +23,7 @@ import {
 import type { AimState, PickMarker } from '../../../hooks/useCombatControls';
 import type { HeroAction, HeroActionStyle } from '../../../content/heroLooks';
 import { figureAspect, headTopShare } from '../../../lib/heroFigure';
+import { moodOf } from '../../../lib/heroMood';
 import { seeded } from '../../../lib/seeded';
 import { HeroFigure } from './HeroFigure';
 import { HeroPlate } from './HeroPlate';
@@ -37,6 +38,8 @@ export type HeroOnFieldProps = {
   pickMarker: PickMarker | null;
   /** How this hero's move animates while it plays; null when idle. */
   action: HeroAction | null;
+  /** True while a damage number from a hit floats over this hero. */
+  isHurt: boolean;
   /** True for a fallen hero playing its death (display only). */
   isDying?: boolean;
   onTap: (uid: number) => void;
@@ -181,7 +184,7 @@ const DyingHero = ({ unit }: { unit: HeroUnit }) => {
           className="absolute bottom-0 left-1/2 -translate-x-1/2 origin-bottom animate-hero-death"
           style={bodyStyleOf(size)}
         >
-          <HeroFigure heroId={unit.heroId} size={size} />
+          <HeroFigure heroId={unit.heroId} size={size} mood="wince" />
         </div>
         {EMBERS.map(([left, delay, drift]) => (
           <span
@@ -219,6 +222,7 @@ export const HeroOnField = ({
   aim,
   pickMarker,
   action,
+  isHurt,
   isDying = false,
   onTap,
 }: HeroOnFieldProps) => {
@@ -230,6 +234,13 @@ export const HeroOnField = ({
     ? 'drop-shadow-[0_0_10px_var(--color-accent)]'
     : '';
   const bodyStyle = bodyStyleOf(size);
+  const mood = moodOf({
+    isHurt,
+    isActing: action !== null,
+    aim,
+    hp: unit.hp,
+    maxHp: unit.maxHp,
+  });
   return (
     <button
       type="button"
@@ -257,7 +268,12 @@ export const HeroOnField = ({
             <div
               className={`h-full w-full ${isBack ? 'brightness-75' : ''} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
             >
-              <HeroFigure heroId={unit.heroId} size={size} action={action} />
+              <HeroFigure
+                heroId={unit.heroId}
+                size={size}
+                action={action}
+                mood={mood}
+              />
             </div>
             {pickMarker && <PickMark marker={pickMarker} />}
             <div

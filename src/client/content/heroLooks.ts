@@ -55,6 +55,30 @@ export type Armor = 'cloth' | 'mail' | 'plate';
 /** A lit / shadowed pair of one colour (any CSS colour). */
 export type Tone = { lit: string; shade: string };
 
+/**
+ * A face's personality, drawn in flat shapes (see HeroFace):
+ *   eyes   round (eager), narrow (squinting), sharp (cat-eye, upturned),
+ *          droopy (kind, outer corners down), wide (big, with a glint),
+ *          hooded (heavy lids, calm)
+ *   brow   thin, flat, heavy (thick), arched (peaked), stern (angled in)
+ *   mouth  line, smile, smirk (one corner up), frown, small
+ */
+export type EyeCut =
+  'round' | 'narrow' | 'sharp' | 'droopy' | 'wide' | 'hooded';
+export type BrowStyle = 'thin' | 'flat' | 'heavy' | 'arched' | 'stern';
+export type MouthStyle = 'line' | 'smile' | 'smirk' | 'frown' | 'small';
+export type FaceFeatures = { eyes: EyeCut; brow: BrowStyle; mouth: MouthStyle };
+
+/**
+ * How a hero feels right now, layered over its features:
+ *   calm     its own resting face
+ *   fierce   attacking: brows slam down, teeth bared
+ *   alarmed  being aimed at: brows up, mouth a small "o"
+ *   worried  low on HP: brows up, frowning
+ *   wince    just hit: eyes squeezed shut, teeth gritted
+ */
+export type HeroMood = 'calm' | 'fierce' | 'alarmed' | 'worried' | 'wince';
+
 export type HeroLook = {
   headgear: Headgear;
   prop: Prop;
@@ -71,6 +95,8 @@ export type HeroLook = {
   cape?: Tone;
   /** True for heavy weapons held in both hands (the off hand joins). */
   isTwoHanded?: true;
+  /** Eyes, brows and mouth of a bare face (helms show none). */
+  features?: FaceFeatures;
 };
 
 // --- PALETTE ---
@@ -108,6 +134,7 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     gear: STEEL,
     accent: '#d1a04e',
     armor: 'mail',
+    features: { eyes: 'round', brow: 'arched', mouth: 'smile' },
   },
   shieldmaiden: {
     headgear: 'braids',
@@ -119,6 +146,7 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     accent: '#d9b25a',
     armor: 'mail',
     cape: OXBLOOD,
+    features: { eyes: 'sharp', brow: 'heavy', mouth: 'line' },
   },
   archer: {
     headgear: 'pointedHood',
@@ -129,6 +157,7 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     gear: OLIVE,
     accent: '#c19a62',
     armor: 'cloth',
+    features: { eyes: 'narrow', brow: 'flat', mouth: 'smirk' },
   },
   rogue: {
     headgear: 'maskedHood',
@@ -140,6 +169,7 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     accent: '#8fc4b6',
     armor: 'cloth',
     cape: tone('#3a3036', '#282126'),
+    features: { eyes: 'sharp', brow: 'stern', mouth: 'line' },
   },
   priest: {
     headgear: 'mitre',
@@ -150,6 +180,7 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     gear: PARCHMENT,
     accent: '#d1a04e',
     armor: 'cloth',
+    features: { eyes: 'droopy', brow: 'thin', mouth: 'small' },
   },
   bard: {
     headgear: 'featherCap',
@@ -161,6 +192,7 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     accent: '#e3bd5e',
     armor: 'cloth',
     cape: BURNT_ORANGE,
+    features: { eyes: 'wide', brow: 'arched', mouth: 'smile' },
   },
 
   // ELITES
@@ -185,6 +217,7 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     gear: tone('#3f3266', '#2f254d'),
     accent: '#8fd6ec',
     armor: 'cloth',
+    features: { eyes: 'hooded', brow: 'heavy', mouth: 'line' },
   },
 
   // CHAMPIONS
@@ -198,6 +231,7 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     accent: '#d1a04e',
     armor: 'plate',
     isTwoHanded: true,
+    features: { eyes: 'narrow', brow: 'heavy', mouth: 'frown' },
   },
   lysa: {
     headgear: 'leafCirclet',
@@ -209,6 +243,7 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     accent: '#a6cc70',
     armor: 'cloth',
     cape: OLIVE,
+    features: { eyes: 'sharp', brow: 'thin', mouth: 'smirk' },
   },
   maren: {
     headgear: 'veilHalo',
@@ -220,6 +255,7 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     accent: '#e5c25c',
     armor: 'cloth',
     cape: tone('#7d6d8f', '#5f526e'),
+    features: { eyes: 'hooded', brow: 'arched', mouth: 'small' },
   },
   brannoc: {
     headgear: 'hornedHelm',
@@ -243,6 +279,7 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     accent: '#ddb04e',
     armor: 'mail',
     cape: tone('#2a2329', '#1b161a'),
+    features: { eyes: 'sharp', brow: 'arched', mouth: 'smirk' },
   },
   valen: {
     headgear: 'sunCrown',
@@ -255,6 +292,7 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     armor: 'plate',
     cape: BURNT_ORANGE,
     isTwoHanded: true,
+    features: { eyes: 'round', brow: 'stern', mouth: 'line' },
   },
 };
 

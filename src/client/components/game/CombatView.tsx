@@ -38,6 +38,7 @@ import { useHeroTurn } from '../../hooks/useHeroTurn';
 import {
   useHitPops,
   usePlayerHits,
+  type HitPop,
   type PlayerHitPop,
 } from '../../hooks/useHitPops';
 import { useSmoothPoint } from '../../hooks/useSmoothPoint';
@@ -74,6 +75,14 @@ export type CombatViewProps = {
 };
 
 // --- HELPERS ---
+/** Heroes that took real damage and still have its number floating. */
+const hurtUidsOf = (pops: readonly HitPop[]): ReadonlySet<number> =>
+  new Set(
+    pops
+      .filter((pop) => pop.kind === 'hit' && pop.amount > 0)
+      .map((pop) => pop.uid)
+  );
+
 /** The middle of a card's top edge, where the arrow leaves the card. */
 const cardTop = ({ center, height }: CardBox): Point => ({
   x: center.x,
@@ -237,6 +246,7 @@ export const CombatView = ({
           aimOf={controls.aimOf}
           pickMarkerOf={controls.pickMarkerOf}
           acting={heroTurn.acting}
+          hurtUids={hurtUidsOf(pops)}
           onTapHero={controls.tapHero}
         />
         <HeroShots acting={heroTurn.acting} />
