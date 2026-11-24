@@ -72,10 +72,12 @@ export type HeroOnFieldProps = {
 // the next row's begin, so plates never cover each other. Farther rows
 // are drawn smaller (perspective): the Horizon smallest.
 type RowBox = { bottom: string; height: string };
+// Line 3 tops out at 82%, so its plate (name, bar, chips) clears the
+// top of a short field instead of being clipped.
 const THREE_ROW_BOX: Record<HeroRow, RowBox> = {
-  front: { bottom: '2%', height: '50%' },
-  back: { bottom: '54%', height: '22%' },
-  horizon: { bottom: '77%', height: '14%' },
+  front: { bottom: '2%', height: '46%' },
+  back: { bottom: '49%', height: '21%' },
+  horizon: { bottom: '70%', height: '12%' },
 };
 /** With the three-row flag off: the original two rows, roomier. */
 const TWO_ROW_BOX: Record<HeroRow, RowBox> = {
