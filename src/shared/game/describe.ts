@@ -519,6 +519,7 @@ export type IntentKind =
   | 'summon'
   | 'revive'
   | 'soar'
+  | 'knockBack'
   | 'advance';
 
 /** The intent chip for each way a hero attack can land. */
@@ -617,6 +618,12 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
         kind: 'soar',
         text: '',
         label: 'Flies up out of reach, then dives next turn',
+      };
+    case 'knockBack':
+      return {
+        kind: 'knockBack',
+        text: `${effect.lines}`,
+        label: `Knocks you back ${effect.lines} line${effect.lines > 1 ? 's' : ''}`,
       };
     case 'summon':
       return {

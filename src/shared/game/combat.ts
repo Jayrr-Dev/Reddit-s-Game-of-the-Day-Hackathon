@@ -18,6 +18,7 @@
 
 import {
   advanceHeroes,
+  fallBack,
   canPull,
   canPush,
   affectsSelf,
@@ -1243,6 +1244,8 @@ const applyHeroEffect = (
       return reviveFallen(state);
     case 'soar':
       return updateHeroes(state, [actor.uid], (unit) => withAloft(unit, 1));
+    case 'knockBack':
+      return { ...state, heroes: fallBack(state.heroes, effect.lines) };
   }
 };
 
@@ -1451,7 +1454,13 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
 
   // 3. HEROES BEHIND THEIR HOME ROW STEP ONE ROW TOWARD IT (MELEE CLOSE
   //    IN, ARCHERS COME IN OFF THE HORIZON), THEN THE NEXT VILLAIN TURN
-  const advanced = { ...current, heroes: advanceHeroes(current.heroes) };
+  // A knock back this turn keeps its distance: nobody walks in after it.
+  const wasKnockedBack = steps.some((step) =>
+    step.move?.effects.some((effect) => effect.kind === 'knockBack')
+  );
+  const advanced = wasKnockedBack
+    ? current
+    : { ...current, heroes: advanceHeroes(current.heroes) };
   steps.push({
     actorUid: null,
     attackType: null,

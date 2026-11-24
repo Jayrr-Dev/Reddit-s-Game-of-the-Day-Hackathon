@@ -395,6 +395,36 @@ void test('the Ballista is Anchored: nothing pushes it, but you can close in', (
   assert.equal(advanceHeroes(far.heroes)[0]?.row, 'horizon');
 });
 
+/** A Ballista on Line 3 about to make move `moveIndex`, a Squire on Line 1. */
+const ballistaFight = (moveIndex: number): CombatState => {
+  const state = fightAt([
+    ['squire', 'front', 0],
+    ['ballista', 'horizon', 1],
+  ]);
+  return {
+    ...state,
+    heroes: state.heroes.map((unit) =>
+      unit.heroId === 'ballista' ? { ...unit, moveIndex } : unit
+    ),
+  };
+};
+
+void test('a Ballista bolt knocks you back 1 line (no walking in after)', () => {
+  const state = ballistaFight(0);
+  const after = endTurn(state);
+  assert.ok(after.player.hp < state.player.hp, 'the bolt lands');
+  assert.equal(unitAt(after, 0).row, 'back', 'the Squire is a line farther');
+});
+
+void test('the Siege Bolt hits harder and knocks you back 2 lines', () => {
+  const plain = endTurn(ballistaFight(0));
+  const siege = endTurn(ballistaFight(2));
+  const start = ballistaFight(2).player.hp;
+  assert.ok(start - siege.player.hp > start - plain.player.hp);
+  assert.equal(unitAt(siege, 0).row, 'horizon');
+  assert.equal(getHero('ballista').moves[2]?.isSignature, true);
+});
+
 // --- CELL CAP ---
 void test('heroes never fill more than the cell cap: summons fizzle', () => {
   const state = fightAt([

@@ -100,6 +100,7 @@ export const INTENT_LOOK: Record<IntentKind, Look> = {
   summon: { glyph: 'eye', toneClass: 'text-accent' },
   revive: { glyph: 'altar', toneClass: 'text-accent' },
   soar: STATUS_LOOK.aloft,
+  knockBack: { glyph: 'march', toneClass: 'text-guard' },
 };
 
 // --- CARDS ---

@@ -84,6 +84,9 @@ const summon = (heroId: SummonId, count: number): HeroEffect => ({
   count,
 });
 
+/** Knocks the villain back `lines` lines (the heroes end up farther). */
+const knockBack = (lines: number): HeroEffect => ({ kind: 'knockBack', lines });
+
 /** Flies up out of reach; the next move dives back down. */
 const soar = (): HeroEffect => ({ kind: 'soar' });
 
@@ -202,7 +205,11 @@ export const HEROES = {
     30,
     2,
     WIDE_BACK,
-    [move('Heavy Bolt', shoot(9)), move('Winch Back', guard(6))],
+    [
+      move('Heavy Bolt', shoot(9), knockBack(1)),
+      move('Winch Back', guard(6)),
+      signature(move('Siege Bolt', shoot(16), knockBack(2))),
+    ],
     ['longRange', 'anchored']
   ),
 

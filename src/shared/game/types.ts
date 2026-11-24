@@ -256,7 +256,12 @@ export type HeroEffect =
    * Flies up out of reach (Aloft) and ends the hero's turn. Its next
    * move, a turn later, is made from the sky and brings it back down.
    */
-  | { kind: 'soar' };
+  | { kind: 'soar' }
+  /**
+   * Knocks the villain back `lines` lines: every hero ends up that much
+   * farther, as with a Back Step (and nobody walks in that turn).
+   */
+  | { kind: 'knockBack'; lines: number };
 
 /**
  * Heroes that only ever join a fight by being summoned. Named here, not
