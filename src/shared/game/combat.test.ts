@@ -2345,12 +2345,16 @@ void test('Berserker gives every Melee card Rampage for the fight', () => {
   const berserk = playCard(state, 0, 0);
   assert.equal(berserk.player.statuses.berserker, 1);
   assert.equal(getCard('berserker').rarity, 'legendary');
-  assert.deepEqual(describeCard('berserker'), ['Berserker', 'Remove']);
+  assert.deepEqual(describeCard('berserker'), [
+    'Imbue all Melee: Rampage',
+    'Remove',
+  ]);
   // The plain Backhand kills and now Charges for free.
   const after = playCard(berserk, 0, berserk.heroes[0]?.uid ?? -1);
   assert.equal(after.freeMove?.move, 'charge');
   // Melee only: the bow shot is untouched.
   assert.equal(cardImbuesAt(berserk, 0).length, 1, 'Backhand: Rampage');
+  assert.ok(describeCard('berserker').includes('Imbue all Melee: Rampage'));
   assert.equal(cardImbuesAt(berserk, 1).length, 0, 'Black Arrow: none');
   // Without it, the Backhand kill makes no move (see Rampage tests).
 });

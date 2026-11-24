@@ -18,6 +18,7 @@ import { foldPerHitAfflictions, getHero } from './heroes.ts';
 import { cardHasKeyword, foldImbuedDamage, imbuedEffects } from './imbue.ts';
 import {
   ELEMENT_ON_HIT,
+  BUFF_KEYWORDS,
   ON_OFF_BUFFS,
   OUT_OF_RANGE_HIT_CHANCE,
   ALOFT_EVASION,
@@ -36,6 +37,7 @@ import {
   scaleByMight,
 } from './combat.ts';
 import type {
+  BuffId,
   HeroRow,
   CardDef,
   CardEffect,
@@ -169,7 +171,8 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   },
   berserker: {
     label: 'Berserker',
-    description: 'Every **Melee** card has **Rampage**\n(**Charge** on kill)',
+    description:
+      'Imbues every **Melee** card with **Rampage**\n(**Charge** on kill, double **Momentum** bonus)',
   },
   aloft: {
     label: 'Aloft',
@@ -285,7 +288,10 @@ export const describeCardEffect = (
     case 'protect':
       return STATUS_INFO.protection.label;
     case 'buff':
-      return `${STATUS_INFO[effect.buff].label}${buffAmountText(effect)}${durationSuffix(effect.duration)}`;
+      return (
+        buffImbueText(effect.buff) ??
+        `${STATUS_INFO[effect.buff].label}${buffAmountText(effect)}${durationSuffix(effect.duration)}`
+      );
     case 'draw':
       return `Draw ${effect.amount}`;
     case 'energy':
@@ -359,6 +365,17 @@ export const DURATION_INFO: Record<Duration, StatusInfo> = {
     label: 'this battle',
     description: 'For the whole fight',
   },
+};
+
+/**
+ * A buff that grants a keyword (BUFF_KEYWORDS) reads as the imbue it
+ * is: "Imbue all Melee: Rampage". Null for any other buff.
+ */
+const buffImbueText = (buff: BuffId): string | null => {
+  const grant = BUFF_KEYWORDS.find((entry) => entry.buff === buff);
+  if (!grant) return null;
+  const typeLabel = grant.type.charAt(0).toUpperCase() + grant.type.slice(1);
+  return `Imbue all ${typeLabel}: ${KEYWORD_LABEL(grant.keyword)}`;
 };
 
 /** A buff's stacks as card text (" 3"), or nothing for an on/off buff. */
