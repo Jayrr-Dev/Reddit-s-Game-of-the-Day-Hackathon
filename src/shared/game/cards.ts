@@ -280,6 +280,9 @@ export const CARDS = {
     REMOVES
   ),
   deadeye: card('Deadeye', 'buff', 1, 'common', [buff('hone', 3)], REMOVES),
+  adrenaline: card('Adrenaline', 'buff', 0, 'common', [
+    { kind: 'rush', amount: 2 },
+  ]),
   bane: card('Bane', 'buff', 1, 'uncommon', [buff('bane', 3)], REMOVES),
   sharpshooter: card(
     'Sharpshooter',

@@ -51,6 +51,7 @@ export const NO_STATUSES: Statuses = {
   enfeeble: 0,
   brace: 0,
   aloft: 0,
+  rush: 0,
 };
 
 /** Which buff powers up each card type's damage (curses and buffs: none). */
@@ -442,6 +443,7 @@ export const endOfTurnUpkeep = <T extends Combatant>(target: T): T => {
       weaken: Math.max(0, weaken - 1),
       vex: Math.max(0, vex - 1),
       momentum: 0,
+      rush: 0,
       // Protection cast this turn covers the turn ahead; else it lapses.
       protection: renewedTier(
         target.statuses.protection,

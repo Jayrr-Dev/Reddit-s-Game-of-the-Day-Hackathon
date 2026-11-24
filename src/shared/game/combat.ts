@@ -685,9 +685,10 @@ const applyCardEffect = (
     case 'protect':
       return { ...state, player: castProtection(state.player) };
     case 'brace':
+    case 'rush':
       return {
         ...state,
-        player: addStatus(state.player, 'brace', effect.amount),
+        player: addStatus(state.player, effect.kind, effect.amount),
       };
     case 'buff':
       return grantBuff(state, effect);

@@ -65,6 +65,8 @@ export type StatusId =
   /** Keeps Guard from expiring, one turn per stack. */
   | 'brace'
   | 'aloft'
+  /** Rush: the next this-many movements this turn cost 0. */
+  | 'rush'
   | BuffId;
 export type Statuses = Record<StatusId, number>;
 /**
@@ -110,6 +112,8 @@ export type BaseCardEffect =
   | { kind: 'damage'; amount: number; hits: number; target: CardTarget }
   | { kind: 'hex'; amount: number; target: CardTarget }
   | { kind: 'vex'; amount: number; target: CardTarget }
+  /** The next `amount` movements this turn cost 0 (see Rush). */
+  | { kind: 'rush'; amount: number }
   | { kind: 'poison'; amount: number; target: CardTarget }
   | { kind: 'burn'; amount: number; target: CardTarget }
   | { kind: 'frost'; amount: number; target: CardTarget }

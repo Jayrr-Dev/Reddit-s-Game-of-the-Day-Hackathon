@@ -22,7 +22,13 @@ import {
   CHARGE_ROWS,
   MOVEMENT_STREAK_COST,
 } from './rules.ts';
-import type { CombatState, HeroUnit, MovementId, StatusId } from './types.ts';
+import type {
+  CombatState,
+  Combatant,
+  HeroUnit,
+  MovementId,
+  StatusId,
+} from './types.ts';
 
 // --- TYPES ---
 /** One movement's rules. */
@@ -106,7 +112,22 @@ const streakOf = (state: CombatState): number => {
 
 /** What `move` costs right now: its base cost plus the shared streak. */
 export const movementCost = (state: CombatState, move: MovementId): number =>
-  MOVEMENTS[move].baseCost + streakOf(state) * MOVEMENT_STREAK_COST;
+  isRushing(state)
+    ? 0
+    : MOVEMENTS[move].baseCost + streakOf(state) * MOVEMENT_STREAK_COST;
+
+/** Spends one Rush stack (none left: nothing changes). */
+const spendRush = (player: Combatant): Combatant => ({
+  ...player,
+  statuses: {
+    ...player.statuses,
+    rush: Math.max(0, player.statuses.rush - 1),
+  },
+});
+
+/** True while Rush makes the next movement free (see Rush). */
+const isRushing = (state: CombatState): boolean =>
+  state.player.statuses.rush > 0;
 
 /** True while the formation allows `move` (cost aside). */
 const isFormationFor = (state: CombatState, move: MovementId): boolean =>
@@ -181,6 +202,8 @@ export const move = (state: CombatState, moveId: MovementId): CombatState => {
       streak: streakOf(state) + 1,
     },
     heroes: def.reshape(state.heroes),
+    // A free Rush move spends one stack of Rush.
+    player: spendRush(state.player),
   };
   return grant(paid, def.grants);
 };

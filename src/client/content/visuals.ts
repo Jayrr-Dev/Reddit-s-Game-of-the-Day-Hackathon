@@ -54,6 +54,8 @@ export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
   momentum: { glyph: 'bolt', toneClass: 'text-hp' },
   protection: { glyph: 'aegis', toneClass: 'text-guard' },
   aloft: { glyph: 'wing', toneClass: 'text-accent' },
+  // Rush makes movements free, so it wears the energy colour.
+  rush: { glyph: 'heartbeat', toneClass: 'text-energy' },
 };
 
 // --- KEYWORDS ---

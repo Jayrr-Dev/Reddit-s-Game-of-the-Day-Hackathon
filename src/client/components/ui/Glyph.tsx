@@ -43,7 +43,8 @@ export type GlyphName =
   | 'plus'
   | 'targeting'
   | 'flask'
-  | 'crackedShield';
+  | 'crackedShield'
+  | 'heartbeat';
 
 export type GlyphProps = {
   name: GlyphName;

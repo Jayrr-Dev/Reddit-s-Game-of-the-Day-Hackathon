@@ -86,6 +86,7 @@ const STATUS_ORDER: readonly StatusId[] = [
   'sharpshooter',
   'bane',
   'momentum',
+  'rush',
   // MAGIC
   'surge',
   // DEBUFFS

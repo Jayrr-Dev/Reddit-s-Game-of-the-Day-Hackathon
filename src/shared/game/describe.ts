@@ -151,6 +151,11 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
     label: 'Aloft',
     description: 'Out of reach until it dives',
   },
+  rush: {
+    label: 'Rush',
+    description:
+      'Your next this many **Charges** or **Back Steps** this turn cost **0**\nEach one uses **1**',
+  },
 };
 
 /** What each boss passive is called and does (always on). */
@@ -237,7 +242,8 @@ export const describeCardEffect = (
     case 'wrath':
       return `Wrath ${effect.amount}`;
     case 'brace':
-      return `Brace ${effect.amount}`;
+    case 'rush':
+      return `${STATUS_INFO[effect.kind].label} ${effect.amount}`;
     case 'cleanse':
       return CLEANSE_INFO.label;
     case 'protect':
@@ -451,7 +457,8 @@ export const imbueTag = (gift: ImbueGift): string => {
     case 'enfeeble':
       return 'Enfeeble';
     case 'brace':
-      return `Brace ${effect.amount}`;
+    case 'rush':
+      return `${STATUS_INFO[effect.kind].label} ${effect.amount}`;
     case 'reap':
       return 'Reap';
     case 'cleanse':

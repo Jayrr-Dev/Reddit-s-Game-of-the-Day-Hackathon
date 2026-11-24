@@ -1999,3 +1999,33 @@ void test("Vex wears off by 1 at the end of the unit's turn", () => {
   };
   assert.equal(endOfTurnUpkeep(vexed).statuses.vex, 1);
 });
+
+// --- RUSH ---
+void test('Rush N: the next N movements this turn cost 0, one stack each', () => {
+  const state = withHand(fightWith([]), ['adrenaline']);
+  const rushed = {
+    ...playCard(state, 0, 0),
+  };
+  assert.equal(rushed.player.statuses.rush, 2);
+  assert.equal(movementCost(rushed, 'backStep'), 0);
+  const moved = move(rushed, 'backStep');
+  assert.equal(moved.energy, rushed.energy, 'the Back Step was free');
+  assert.equal(moved.player.statuses.rush, 1, 'one stack spent');
+  assert.deepEqual(describeCard('adrenaline'), ['Rush 2']);
+  const triple = {
+    ...state,
+    player: {
+      ...state.player,
+      statuses: { ...state.player.statuses, rush: 3 },
+    },
+  };
+  assert.equal(move(triple, 'backStep').player.statuses.rush, 2);
+});
+
+void test('Rush lasts the turn, not past it', () => {
+  const rushed = {
+    ...createCombatant(20, 20),
+    statuses: { ...NO_STATUSES, rush: 2 },
+  };
+  assert.equal(endOfTurnUpkeep(rushed).statuses.rush, 0);
+});
