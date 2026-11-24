@@ -22,6 +22,7 @@
 // is seen before the card fires. The same hero may be picked again.
 // Dropping the card anywhere else (or tapping another card) cancels;
 // nothing is spent until the card fires.
+// IMBUE cards aim at another card in hand instead (see useImbuePick).
 // ===================================================================
 
 import { useEffect, useRef, useState } from 'react';
@@ -46,7 +47,9 @@ import {
   targetsFor,
   wouldFell,
 } from '../../shared/game/combat';
+import { imbueEffectOf } from '../../shared/game/imbue';
 import type { RunAction } from '../../shared/game/run';
+import { useImbuePick } from './useImbuePick';
 import type { CombatState } from '../../shared/game/types';
 
 // --- TYPES ---
@@ -135,6 +138,7 @@ export const useCombatControls = (
     []
   );
   const focusUid = resolveFocus(combat, chosenUid);
+  const imbue = useImbuePick(combat, onAction);
 
   // A held card is only valid while it is still in hand and playable.
   const heldCard = heldIndex === null ? undefined : combat.hand[heldIndex];
@@ -234,6 +238,11 @@ export const useCombatControls = (
     const cardId = combat.hand[handIndex];
     if (cardId === undefined || !canPlayCard(combat, handIndex))
       return release();
+    // An Imbue card let go anywhere goes on to choose its card.
+    if (imbueEffectOf(cardId)) {
+      release();
+      return imbue.begin(handIndex);
+    }
     const legal = targetsFor(combat, cardId).map((unit) => unit.uid);
     const { isLive, target } = resolveDrop(cardId, drop, legal);
     if (!isLive) return release();
@@ -252,7 +261,12 @@ export const useCombatControls = (
     setHeldIndex(canPlayCard(combat, handIndex) ? handIndex : null);
   };
 
-  const { drag, pressCard, wasDrag } = useCardDrag(startDrag, dropCard);
+  const drags = useCardDrag(startDrag, dropCard);
+  const { drag, wasDrag } = drags;
+  /** Pointer down on a card: no drag while an Imbue card is choosing. */
+  const pressCard: typeof drags.pressCard = (handIndex, event) => {
+    if (!imbue.isImbuing) drags.pressCard(handIndex, event);
+  };
   // SNAPPING AND GLOW: worked out fresh from the live drag each render.
   const dragCard = drag ? combat.hand[drag.handIndex] : undefined;
   const dragStyle = dragCard === undefined ? null : aimStyleOf(dragCard);
@@ -341,8 +355,16 @@ export const useCombatControls = (
    */
   const tapCard = (handIndex: number) => {
     if (wasDrag() || isFiring) return; // a post-drag click, or mid-fire
+    if (imbue.isImbuing) {
+      if (handIndex === imbue.imbuingIndex) return imbue.cancel();
+      return imbue.pick(handIndex);
+    }
     const cardId = combat.hand[handIndex];
     if (cardId === undefined || !canPlayCard(combat, handIndex)) return;
+    if (imbueEffectOf(cardId)) {
+      release();
+      return imbue.begin(handIndex);
+    }
     if (targetRuleOf(cardId) === 'none') {
       release();
       return playAt(handIndex, focusUid);
@@ -364,6 +386,7 @@ export const useCombatControls = (
   const endTurn = () => {
     if (isFiring) return;
     release();
+    imbue.cancel();
     onAction({ type: 'endTurn' });
   };
 
@@ -381,7 +404,14 @@ export const useCombatControls = (
     focusUid,
     /** The hero the drag has locked onto, if any (for the top plate). */
     hoverUid,
-    heldIndex: isHolding ? heldIndex : null,
+    heldIndex: imbue.isImbuing
+      ? imbue.imbuingIndex
+      : isHolding
+        ? heldIndex
+        : null,
+    /** Hand slots the raised Imbue card may imbue (empty otherwise). */
+    imbueSlots: imbue.slots,
+    imbueArrow: imbue.arrow,
     drag,
     aimPoint,
     isDropLive,

@@ -23,6 +23,10 @@ import {
 import type {
   CardDef,
   CardEffect,
+  CardKeyword,
+  Imbue,
+  ImbueDuration,
+  ImbueGift,
   Combatant,
   HeroAttackType,
   HeroEffect,
@@ -179,8 +183,70 @@ export const describeCardEffect = (
       return 'Pull a hero to the front.';
     case 'push':
       return 'Push it to the back.';
+    case 'imbue':
+      return describeImbueEffect(effect, cardDef);
   }
 };
+
+// --- IMBUE TEXT ---
+/** How each keyword reads on a card. */
+const KEYWORD_LABEL: Record<CardKeyword, string> = { hold: 'Hold' };
+/** How each imbue duration reads. */
+export const DURATION_LABEL: Record<ImbueDuration, string> = {
+  turn: 'this turn',
+  battle: 'this battle',
+};
+
+/** What an imbue grants, as card text: "Hold." or "Apply 3 Poison.". */
+export const describeImbueGift = (gift: ImbueGift, cardDef: CardDef): string =>
+  gift.kind === 'keyword'
+    ? `${KEYWORD_LABEL[gift.keyword]}.`
+    : describeCardEffect(gift.effect, cardDef);
+
+/**
+ * A short tag for an imbue, small enough for the badge on a card in
+ * hand: "Hold", "3 Poison", "Cleanse", "+2 dmg".
+ */
+export const imbueTag = (gift: ImbueGift): string => {
+  if (gift.kind === 'keyword') return KEYWORD_LABEL[gift.keyword];
+  const { effect } = gift;
+  switch (effect.kind) {
+    case 'damage':
+      return `+${effect.amount} dmg`;
+    case 'hex':
+    case 'poison':
+    case 'burn':
+    case 'frost':
+    case 'bleed':
+    case 'dread':
+    case 'guard':
+    case 'wrath':
+      return `${effect.amount} ${STATUS_INFO[effect.kind].label}`;
+    case 'buff':
+      return `${effect.amount} ${STATUS_INFO[effect.buff].label}`;
+    case 'reap':
+      return 'Reap';
+    case 'cleanse':
+      return 'Cleanse';
+    case 'protect':
+      return 'Protection';
+    case 'draw':
+      return `Draw ${effect.amount}`;
+    case 'energy':
+      return `+${effect.amount} energy`;
+    case 'heal':
+      return `Heal ${effect.amount}`;
+  }
+};
+
+/** An Imbue card's own line: what it grants and for how long. */
+const describeImbueEffect = (
+  { gift, duration }: Imbue,
+  cardDef: CardDef
+): string =>
+  gift.kind === 'keyword'
+    ? `Imbue ${KEYWORD_LABEL[gift.keyword]} ${DURATION_LABEL[duration]}.`
+    : `Imbue ${DURATION_LABEL[duration]}: ${describeImbueGift(gift, cardDef)}`;
 
 /**
  * All text lines for a card: the effects (its type shows reach),

@@ -62,7 +62,8 @@ export const useCardHits = (
         combat,
         action.handIndex,
         action.targetUid,
-        action.targetUids
+        action.targetUids,
+        action.imbueIndex
       );
       const beats = steps.slice(0, -1);
       const fellsSomeone = beats.some((beat) =>

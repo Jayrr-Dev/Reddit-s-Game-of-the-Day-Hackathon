@@ -350,6 +350,7 @@ export const CombatView = ({
         <FanHand
           combat={combat}
           heldIndex={controls.heldIndex}
+          imbueSlots={controls.imbueSlots}
           onTapCard={controls.tapCard}
           onPressCard={controls.pressCard}
           draggedIndex={drag?.handIndex ?? null}
@@ -382,6 +383,13 @@ export const CombatView = ({
             />
           )}
         </>
+      )}
+      {controls.imbueArrow && (
+        <AimArrow
+          from={controls.imbueArrow.from}
+          to={controls.imbueArrow.to}
+          isLive={controls.imbueArrow.isLive}
+        />
       )}
       <CardFlights flights={cardFlights} />
       {/* A TURN OR A CARD'S HITS ARE PLAYING: SWALLOW TAPS UNTIL DONE */}

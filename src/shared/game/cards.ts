@@ -11,6 +11,9 @@ import type {
   CardEffect,
   CardRarity,
   CardType,
+  ImbuableEffect,
+  ImbueDuration,
+  ImbueGift,
 } from './types.ts';
 
 // --- EFFECT BUILDERS ---
@@ -70,6 +73,17 @@ const draw = (amount: number): CardEffect => ({ kind: 'draw', amount });
 const energy = (amount: number): CardEffect => ({ kind: 'energy', amount });
 const heal = (amount: number): CardEffect => ({ kind: 'heal', amount });
 const reap = (multiplier: number): CardEffect => ({ kind: 'reap', multiplier });
+/** Imbues another card in hand with a keyword or an effect. */
+const imbue = (gift: ImbueGift, duration: ImbueDuration): CardEffect => ({
+  kind: 'imbue',
+  gift,
+  duration,
+});
+const giftHold: ImbueGift = { kind: 'keyword', keyword: 'hold' };
+const giftOf = (effect: ImbuableEffect): ImbueGift => ({
+  kind: 'effect',
+  effect,
+});
 const pull: CardEffect = { kind: 'pull' };
 const push: CardEffect = { kind: 'push' };
 
@@ -144,6 +158,14 @@ export const CARDS = {
     guard(4),
   ]),
   wardingBolt: card('Warding Bolt', 'magic', 1, 'common', [hit(4), guard(4)]),
+  // IMBUE: grant another card in hand a keyword or an effect
+  holdFast: card('Hold Fast', 'buff', 0, 'common', [imbue(giftHold, 'turn')]),
+  emberRune: card('Ember Rune', 'buff', 0, 'common', [
+    imbue(giftOf({ kind: 'burn', amount: 3, target: 'one' }), 'turn'),
+  ]),
+  venomCoat: card('Venom Coat', 'buff', 1, 'common', [
+    imbue(giftOf({ kind: 'poison', amount: 3, target: 'one' }), 'battle'),
+  ]),
   // AFFLICTIONS: one card each for Poison, Frost and Bleed
   venomDart: card('Venom Dart', 'range', 1, 'common', [hit(3), poison(4)]),
   frostBolt: card('Frost Bolt', 'magic', 1, 'common', [hit(5), frost(2)]),
@@ -178,6 +200,15 @@ export const CARDS = {
   ),
 
   // UNCOMMON
+  soulbind: card('Soulbind', 'buff', 1, 'uncommon', [
+    imbue(giftHold, 'battle'),
+  ]),
+  wardRune: card('Ward Rune', 'buff', 1, 'uncommon', [
+    imbue(giftOf({ kind: 'guard', amount: 4 }), 'battle'),
+  ]),
+  purifyingRune: card('Purifying Rune', 'buff', 1, 'uncommon', [
+    imbue(giftOf({ kind: 'cleanse' }), 'battle'),
+  ]),
   reap: card('Reap', 'magic', 1, 'uncommon', [reap(2)]),
   seethe: card('Seethe', 'buff', 1, 'uncommon', [wrath(2)], FADES),
   ruin: card('Ruin', 'melee', 2, 'uncommon', [hit(16)], HOLDS),

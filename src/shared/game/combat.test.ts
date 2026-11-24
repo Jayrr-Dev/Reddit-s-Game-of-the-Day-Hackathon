@@ -1238,3 +1238,80 @@ void test('Venom Dart poisons, Frost Bolt frosts and Serrated Slash bleeds', () 
     assert.ok((hero?.statuses[status] ?? 0) > 0, `${cardId} applies ${status}`);
   });
 });
+
+// --- IMBUE ---
+/** A fight whose deck is all Dark Cloaks, so redraws never muddle a test. */
+const cloakFight = (hand: CardId[]): CombatState =>
+  withHand(
+    fightWith(Array.from({ length: 12 }, (): CardId => 'darkCloak')),
+    hand
+  );
+
+void test('Imbue Hold for this turn keeps a card one end of turn only', () => {
+  const state = cloakFight(['holdFast', 'backhand']);
+  const imbued = playCard(state, 0, 0, undefined, 1);
+  assert.deepEqual(imbued.hand, ['backhand']);
+  const turn2 = endTurn(imbued);
+  assert.ok(
+    turn2.hand.includes('backhand'),
+    'held through the first end of turn'
+  );
+  const turn3 = endTurn(turn2);
+  assert.ok(!turn3.hand.includes('backhand'), 'the turn imbue has worn off');
+});
+
+void test('Imbue Hold for this battle keeps a card every end of turn', () => {
+  const state = cloakFight(['soulbind', 'backhand']);
+  const imbued = playCard(state, 0, 0, undefined, 1);
+  const later = endTurn(endTurn(endTurn(imbued)));
+  assert.ok(later.hand.includes('backhand'));
+});
+
+void test('an imbued effect lands when the card is played', () => {
+  const state = cloakFight(['venomCoat', 'backhand']);
+  const uid = state.heroes[0]?.uid ?? -1;
+  const imbued = playCard(state, 0, uid, undefined, 1);
+  const after = playCard(imbued, 0, uid);
+  const hero = after.heroes.find((unit) => unit.uid === uid);
+  assert.equal(hero?.statuses.poison, 3);
+  assert.equal(hero?.hp, 14 - 6);
+});
+
+void test('a battle imbue follows its card through the discard and back', () => {
+  const state = cloakFight(['venomCoat', 'backhand']);
+  const uid = state.heroes[0]?.uid ?? -1;
+  const played = playCard(playCard(state, 0, uid, undefined, 1), 0, uid);
+  assert.equal(played.stowedImbues.length, 1);
+  // Only the Backhand left to draw: it comes back still imbued.
+  const redrawn = endTurn({
+    ...played,
+    drawPile: ['backhand'],
+    discardPile: [],
+  });
+  const slot = redrawn.hand.indexOf('backhand');
+  assert.ok(slot >= 0);
+  assert.equal(redrawn.handImbues[slot]?.length, 1);
+  assert.equal(redrawn.stowedImbues.length, 0);
+});
+
+void test('a hero effect can only be imbued onto a card that aims at a hero', () => {
+  const state = cloakFight(['venomCoat', 'darkCloak']);
+  assert.equal(playCard(state, 0, 0, undefined, 1), state);
+  assert.equal(canPlayCard(cloakFight(['venomCoat', 'darkCloak']), 0), false);
+  assert.equal(canPlayCard(cloakFight(['wardRune', 'darkCloak']), 0), true);
+});
+
+void test('an Imbue card needs another card in hand to imbue', () => {
+  assert.equal(canPlayCard(cloakFight(['holdFast']), 0), false);
+  // Without a card to imbue (or imbuing itself) the play is refused.
+  const state = cloakFight(['holdFast', 'backhand']);
+  assert.equal(playCard(state, 0, 0), state);
+  assert.equal(playCard(state, 0, 0, undefined, 0), state);
+});
+
+void test('Imbue cards say what they grant and for how long', () => {
+  assert.deepEqual(describeCard('holdFast'), ['Imbue Hold this turn.']);
+  assert.deepEqual(describeCard('venomCoat'), [
+    'Imbue this battle: Apply 3 Poison.',
+  ]);
+});

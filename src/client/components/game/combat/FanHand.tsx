@@ -11,6 +11,7 @@ import { useLayoutEffect, useRef } from 'react';
 import type { PointerEvent, ReactNode } from 'react';
 import { HAND_ATTR } from '../../../hooks/useCardFlights';
 import { canPlayCard } from '../../../../shared/game/combat';
+import { imbuesAt } from '../../../../shared/game/imbue';
 import type { CombatState } from '../../../../shared/game/types';
 import {
   HAND_SLOT_ATTR,
@@ -25,6 +26,8 @@ import { LIFT_SCALE } from './DraggedCard';
 export type FanHandProps = {
   combat: CombatState;
   heldIndex: number | null;
+  /** Slots the raised Imbue card may imbue: they glow teal. */
+  imbueSlots: readonly number[];
   onTapCard: (handIndex: number) => void;
   /** Pointer down on a card: may become a drag (see useCardDrag). */
   onPressCard: (handIndex: number, event: PointerEvent<HTMLElement>) => void;
@@ -142,6 +145,7 @@ const HandSlot = ({
 export const FanHand = ({
   combat,
   heldIndex,
+  imbueSlots,
   onTapCard,
   onPressCard,
   draggedIndex,
@@ -175,7 +179,12 @@ export const FanHand = ({
               attacker={combat.player}
               size="fan"
               isSelected={index === heldIndex}
-              isDisabled={!canPlayCard(combat, index)}
+              imbues={imbuesAt(combat, index)}
+              isImbueTarget={imbueSlots.includes(index)}
+              // While imbuing, every card can be tapped (to pick or let go).
+              isDisabled={
+                imbueSlots.length === 0 && !canPlayCard(combat, index)
+              }
               onClick={() => onTapCard(index)}
             />
           </HandSlot>

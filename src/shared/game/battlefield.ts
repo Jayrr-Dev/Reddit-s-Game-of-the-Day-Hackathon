@@ -441,17 +441,34 @@ export const targetRuleOf = (cardId: CardId): TargetRule => {
 };
 
 // --- WHO A CARD AFFECTS ---
-/** Effect kinds that land on the villain (the player), not a hero. */
+/**
+ * Effect kinds that land on the villain (the player) or its cards, not
+ * a hero. Imbue acts on a card in hand.
+ */
 const SELF_EFFECT_KINDS: ReadonlySet<CardDef['effects'][number]['kind']> =
-  new Set(['guard', 'wrath', 'buff', 'draw', 'energy', 'heal']);
+  new Set([
+    'guard',
+    'wrath',
+    'buff',
+    'draw',
+    'energy',
+    'heal',
+    'cleanse',
+    'protect',
+    'imbue',
+  ]);
+
+/** True when an effect lands on the villain rather than a hero. */
+export const isSelfEffect = (effect: CardDef['effects'][number]): boolean =>
+  SELF_EFFECT_KINDS.has(effect.kind);
 
 /** True when a card does something to the villain (guard, draw ...). */
 export const affectsSelf = (cardId: CardId): boolean =>
-  getCard(cardId).effects.some((effect) => SELF_EFFECT_KINDS.has(effect.kind));
+  getCard(cardId).effects.some(isSelfEffect);
 
 /** True when a card does something to one or more heroes. */
 export const affectsHeroes = (cardId: CardId): boolean =>
-  getCard(cardId).effects.some((effect) => !SELF_EFFECT_KINDS.has(effect.kind));
+  getCard(cardId).effects.some((effect) => !isSelfEffect(effect));
 
 /**
  * The heroes that fit a target rule, in battlefield order. A hero

@@ -169,7 +169,8 @@ const applyAction = (state: CombatState, action: SandboxAction) => {
         state,
         action.handIndex,
         action.targetUid,
-        action.targetUids
+        action.targetUids,
+        action.imbueIndex
       );
     case 'endTurn':
       return endTurn(state);

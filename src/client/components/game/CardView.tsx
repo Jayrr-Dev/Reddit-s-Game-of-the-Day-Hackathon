@@ -15,9 +15,10 @@
 import { Fragment } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { describeCard } from '../../../shared/game/describe';
-import type { Combatant, HeroUnit } from '../../../shared/game/types';
+import type { Combatant, HeroUnit, Imbue } from '../../../shared/game/types';
 import { CARD_LOOK, RARITY_GEM, RULES_KEYWORDS } from '../../content/visuals';
 import { Glyph, type GlyphName } from '../ui/Glyph';
+import { ImbueBadges } from './ImbueBadges';
 
 // --- TYPES ---
 export type CardViewProps = {
@@ -32,6 +33,10 @@ export type CardViewProps = {
   isDisabled?: boolean;
   /** Lifted and outlined while the player is choosing its target. */
   isSelected?: boolean;
+  /** Gifts this card carries from Imbue cards (shown as badges). */
+  imbues?: readonly Imbue[];
+  /** Glows teal while an Imbue card could imbue it. */
+  isImbueTarget?: boolean;
   /** "fan" cards sit in the fanned hand; "offer" cards are full size. */
   size?: CardSize;
   onClick?: () => void;
@@ -85,6 +90,19 @@ const changeClass = (live: string, printed: string | undefined): string => {
   const diff = Number(live) - Number(printed);
   if (printed === undefined || Number.isNaN(diff) || diff === 0) return '';
   return diff > 0 ? 'text-boosted' : 'text-weakened';
+};
+
+/** The card's outer glow: gold when held, teal when it can be imbued. */
+const glowOf = (
+  glowVar: string,
+  isSelected: boolean,
+  isImbueTarget: boolean
+): string => {
+  if (isSelected)
+    return '0 0 0 2px var(--color-accent), 0 0 16px var(--color-accent)';
+  if (isImbueTarget)
+    return '0 0 0 2px var(--color-imbue), 0 0 14px var(--color-imbue)';
+  return `0 0 6px color-mix(in srgb, ${glowVar} 70%, transparent)`;
 };
 
 // --- SUBCOMPONENTS ---
@@ -164,6 +182,8 @@ export const CardView = ({
   target,
   isDisabled = false,
   isSelected = false,
+  imbues = [],
+  isImbueTarget = false,
   size = 'offer',
   onClick,
 }: CardViewProps) => {
@@ -172,10 +192,7 @@ export const CardView = ({
   // The card as printed (no statuses), to colour numbers that changed.
   const printedLines = describeCard(cardId);
   const look = SIZE_LOOK[size];
-  // The typeLook glow; brighter and gold-rimmed while the card is held.
-  const glow = isSelected
-    ? `0 0 0 2px var(--color-accent), 0 0 16px var(--color-accent)`
-    : `0 0 6px color-mix(in srgb, ${typeLook.glowVar} 70%, transparent)`;
+  const glow = glowOf(typeLook.glowVar, isSelected, isImbueTarget);
   return (
     <button
       type="button"
@@ -194,6 +211,7 @@ export const CardView = ({
         glowVar={typeLook.glowVar}
         look={look}
       />
+      <ImbueBadges imbues={imbues} />
       <span
         className={`-mx-[3px] shrink-0 border-y border-black/50 ${typeLook.frameClass} font-display font-black uppercase leading-none tracking-tight text-ink [text-shadow:0_1px_1px_rgb(0_0_0/0.8)] ${look.name}`}
       >

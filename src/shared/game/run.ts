@@ -69,6 +69,8 @@ export type PlayCardAction = {
   handIndex: number;
   targetUid: number;
   targetUids?: number[];
+  /** For an Imbue card: the hand slot of the card it imbues. */
+  imbueIndex?: number;
 };
 
 /** Makes a movement on the battlefield (see MOVEMENTS in movement.ts). */
@@ -243,7 +245,8 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
               phase.combat,
               action.handIndex,
               action.targetUid,
-              action.targetUids
+              action.targetUids,
+              action.imbueIndex
             )
           )
         : state;
@@ -317,7 +320,10 @@ export const isRunAction = (value: unknown): value is RunAction => {
         'targetUid' in value &&
         isIndex(value.handIndex) &&
         isIndex(value.targetUid) &&
-        isPickList('targetUids' in value ? value.targetUids : undefined)
+        isPickList('targetUids' in value ? value.targetUids : undefined) &&
+        (!('imbueIndex' in value) ||
+          value.imbueIndex === undefined ||
+          isIndex(value.imbueIndex))
       );
     case 'move':
       return 'move' in value && isMovementId(value.move);

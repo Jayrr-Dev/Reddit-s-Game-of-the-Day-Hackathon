@@ -55,6 +55,17 @@ import {
   typeBonus,
 } from './combatant.ts';
 import { getHero, type HeroId } from './heroes.ts';
+import {
+  addToHand,
+  discardHand,
+  imbueEffectOf,
+  imbuedEffects,
+  imbueSlot,
+  imbueSlotsFor,
+  imbuesAt,
+  removeFromHand,
+  stowImbues,
+} from './imbue.ts';
 import { shuffle, type RngState } from './rng.ts';
 import {
   CARDS_PER_TURN,
@@ -116,6 +127,8 @@ export const startCombat = (setup: CombatSetup): CombatState => {
     drawPile,
     discardPile: [],
     fadedPile: [],
+    handImbues: [],
+    stowedImbues: [],
     turn: 0,
     slain: 0,
     rng,
@@ -278,8 +291,9 @@ const isAreaCardWasted = (state: CombatState, cardId: CardId): boolean =>
 export const canPlayCard = (state: CombatState, handIndex: number): boolean => {
   const cardId = state.hand[handIndex];
   if (cardId === undefined || combatOutcome(state) !== 'ongoing') return false;
-  const hasTarget =
-    targetRuleOf(cardId) === 'none'
+  const hasTarget = imbueEffectOf(cardId)
+    ? imbueSlotsFor(state, handIndex).length > 0
+    : targetRuleOf(cardId) === 'none'
       ? !isAreaCardWasted(state, cardId)
       : targetsFor(state, cardId).length > 0;
   return getCard(cardId).cost <= state.energy && hasTarget;
@@ -300,7 +314,7 @@ const drawOne = (state: CombatState): CombatState => {
   if (top === undefined) return ready;
   return ready.hand.length >= MAX_HAND_SIZE
     ? { ...ready, drawPile: rest, discardPile: [...ready.discardPile, top] }
-    : { ...ready, drawPile: rest, hand: [...ready.hand, top] };
+    : addToHand({ ...ready, drawPile: rest }, top);
 };
 
 /** Draws `count` cards, reshuffling the discard pile when needed. */
@@ -471,12 +485,16 @@ const reapHex = (
   );
 };
 
-/** Resolves one effect of the card `cardDef` (its type picks the buff). */
+/**
+ * Resolves one effect of the card `cardDef` (its type picks the buff).
+ * `imbueSlot` is the hand slot an Imbue effect goes on.
+ */
 const applyCardEffect = (
   state: CombatState,
   effect: CardEffect,
   targetUid: number,
-  cardDef: CardDef
+  cardDef: CardDef,
+  slot: number
 ): CombatState => {
   switch (effect.kind) {
     case 'damage':
@@ -524,6 +542,11 @@ const applyCardEffect = (
       return { ...state, heroes: pullHero(state.heroes, targetUid) };
     case 'push':
       return { ...state, heroes: pushHero(state.heroes, targetUid) };
+    case 'imbue':
+      return imbueSlot(state, slot, {
+        gift: effect.gift,
+        duration: effect.duration,
+      });
   }
 };
 
@@ -575,15 +598,11 @@ const spendMomentum = (state: CombatState, cardDef: CardDef): CombatState =>
       }
     : state;
 
-/** Spends the card's energy and takes it out of the hand. */
+/** Spends the card's energy and takes it (and its imbues) out of the hand. */
 const payForCard = (state: CombatState, handIndex: number): CombatState => {
   const cardId = state.hand[handIndex];
   const cost = cardId === undefined ? 0 : getCard(cardId).cost;
-  return {
-    ...state,
-    energy: state.energy - cost,
-    hand: state.hand.filter((_, index) => index !== handIndex),
-  };
+  return removeFromHand({ ...state, energy: state.energy - cost }, handIndex);
 };
 
 /** A multi-hit damage effect split into single hits (same numbers). */
@@ -609,29 +628,68 @@ const requestedPicks = (
 };
 
 /**
+ * Everything one play needs besides the card: its picks, the effects
+ * imbued on it, and (for an Imbue card) the slot it imbues, counted in
+ * the hand after the card itself has left it.
+ */
+type PlayPlan = {
+  picks: readonly number[];
+  imbued: readonly CardEffect[];
+  slot: number;
+};
+
+/**
  * Resolves a paid-for card and returns the state after every beat (each
  * hit of each pick). Splitting hits changes nothing: a card's hits all
- * use the damage worked out before the first one.
+ * use the damage worked out before the first one. Imbued effects land
+ * once, with the first pick.
  */
 const cardBeats = (
   paid: CombatState,
   cardId: CardId,
-  picks: readonly number[]
+  plan: PlayPlan
 ): CombatState[] => {
   const cardDef = getCard(cardId);
   const beats = cardDef.effects.flatMap(oneHitAtATime);
+  const imbuedBeats = plan.imbued.flatMap(oneHitAtATime);
   const states: CombatState[] = [];
   let current = paid;
   // Imperative on purpose: each pick aims at the field the last one left
   // (a hero felled by pick 1 can't be hit by pick 2; the aim moves on).
-  for (const requested of picks) {
+  plan.picks.forEach((requested, pick) => {
     const aimed = aimCard(current, cardId, requested);
-    for (const effect of beats) {
-      current = applyCardEffect(current, effect, aimed, cardDef);
+    const pickBeats = pick === 0 ? [...beats, ...imbuedBeats] : beats;
+    for (const effect of pickBeats) {
+      current = applyCardEffect(current, effect, aimed, cardDef, plan.slot);
       states.push(current);
     }
-  }
+  });
   return states;
+};
+
+/**
+ * The plan for playing the card in `handIndex`, or null when the play
+ * is illegal (unplayable, or an Imbue card without a slot it may imbue).
+ */
+const planPlay = (
+  state: CombatState,
+  handIndex: number,
+  targetUid: number,
+  targetUids: readonly number[] | undefined,
+  imbueIndex: number | undefined
+): PlayPlan | null => {
+  const cardId = state.hand[handIndex];
+  if (cardId === undefined || !canPlayCard(state, handIndex)) return null;
+  const isImbue = imbueEffectOf(cardId) !== undefined;
+  if (isImbue && !imbueSlotsFor(state, handIndex).includes(imbueIndex ?? -1))
+    return null;
+  // The played card leaves the hand first, so later slots shift down.
+  const asked = imbueIndex ?? -1;
+  return {
+    picks: requestedPicks(getCard(cardId), targetUid, targetUids),
+    imbued: imbuedEffects(imbuesAt(state, handIndex)),
+    slot: asked > handIndex ? asked - 1 : asked,
+  };
 };
 
 /**
@@ -645,20 +703,26 @@ export const playCard = (
   state: CombatState,
   handIndex: number,
   targetUid: number,
-  targetUids?: readonly number[]
+  targetUids?: readonly number[],
+  imbueIndex?: number
 ): CombatState => {
   const cardId = state.hand[handIndex];
-  if (cardId === undefined || !canPlayCard(state, handIndex)) return state;
+  const plan = planPlay(state, handIndex, targetUid, targetUids, imbueIndex);
+  if (cardId === undefined || !plan) return state;
   const cardDef = getCard(cardId);
   const paid = payForCard(state, handIndex);
-  const picks = requestedPicks(cardDef, targetUid, targetUids);
   const resolved = spendMomentum(
-    cardBeats(paid, cardId, picks).at(-1) ?? paid,
+    cardBeats(paid, cardId, plan).at(-1) ?? paid,
     cardDef
   );
+  // A fading card takes its imbues with it; a discarded one stows them.
   const settled = cardDef.fades
     ? { ...resolved, fadedPile: [...resolved.fadedPile, cardId] }
-    : { ...resolved, discardPile: [...resolved.discardPile, cardId] };
+    : stowImbues(
+        { ...resolved, discardPile: [...resolved.discardPile, cardId] },
+        cardId,
+        imbuesAt(state, handIndex)
+      );
   return removeFallen(settled);
 };
 
@@ -677,7 +741,12 @@ export const wouldFell = (
 ): boolean => {
   const cardId = state.hand[handIndex];
   if (cardId === undefined || !canPlayCard(state, handIndex)) return false;
-  const beats = cardBeats(payForCard(state, handIndex), cardId, picks);
+  const plan = {
+    picks,
+    imbued: imbuedEffects(imbuesAt(state, handIndex)),
+    slot: -1,
+  };
+  const beats = cardBeats(payForCard(state, handIndex), cardId, plan);
   const target = beats.at(-1)?.heroes.find((unit) => unit.uid === uid);
   return target !== undefined && target.hp <= 0;
 };
@@ -728,13 +797,17 @@ export const playCardSteps = (
   state: CombatState,
   handIndex: number,
   targetUid: number,
-  targetUids?: readonly number[]
+  targetUids?: readonly number[],
+  imbueIndex?: number
 ): CombatState[] => {
   const cardId = state.hand[handIndex];
-  if (cardId === undefined || !canPlayCard(state, handIndex)) return [];
-  const picks = requestedPicks(getCard(cardId), targetUid, targetUids);
-  const beats = cardBeats(payForCard(state, handIndex), cardId, picks);
-  return [...beats, playCard(state, handIndex, targetUid, targetUids)];
+  const plan = planPlay(state, handIndex, targetUid, targetUids, imbueIndex);
+  if (cardId === undefined || !plan) return [];
+  const beats = cardBeats(payForCard(state, handIndex), cardId, plan);
+  return [
+    ...beats,
+    playCard(state, handIndex, targetUid, targetUids, imbueIndex),
+  ];
 };
 
 // --- HERO TURN ---
@@ -979,14 +1052,8 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
 
   // 1. DISCARD THE HAND (HOLD CARDS STAY), THE VILLAIN'S UPKEEP (POISON
   //    TICKS), AND THE HEROES' GUARD FROM LAST ROUND FADES
-  const isHeld = (cardId: CardId) => getCard(cardId).holds;
   const discarded: CombatState = {
-    ...state,
-    hand: state.hand.filter(isHeld),
-    discardPile: [
-      ...state.discardPile,
-      ...state.hand.filter((cardId) => !isHeld(cardId)),
-    ],
+    ...discardHand(state),
     // The villain's turn was its action: Burn and Frost, then upkeep.
     player: endOfTurnUpkeep(afterAction(state.player)),
     heroes: state.heroes.map(clearGuard),

@@ -80,8 +80,8 @@ export type Combatant = {
 /** Who a hostile card effect hits: the tapped hero or every hero. */
 export type CardTarget = 'one' | 'all';
 
-/** One step of a card. A card's effects resolve in order. */
-export type CardEffect =
+/** One step of a card (everything but Imbue, which grants these). */
+export type BaseCardEffect =
   | { kind: 'damage'; amount: number; hits: number; target: CardTarget }
   | { kind: 'hex'; amount: number; target: CardTarget }
   | { kind: 'poison'; amount: number; target: CardTarget }
@@ -106,6 +106,29 @@ export type CardEffect =
   | { kind: 'pull' }
   /** Shoves the target from the front row into the back row. */
   | { kind: 'push' };
+
+// --- IMBUE ---
+/** A keyword a card can be printed with or imbued with. */
+export type CardKeyword = 'hold';
+/** How long an imbue lasts: to the end of this turn, or the whole fight. */
+export type ImbueDuration = 'turn' | 'battle';
+/**
+ * Effects an imbue may grant. Pull and Push are left out: they change
+ * who a card may aim at, and an imbue never changes a card's aim.
+ */
+export type ImbuableEffect = Exclude<BaseCardEffect, { kind: 'pull' | 'push' }>;
+/** What an imbue grants a card: a keyword, or one more effect. */
+export type ImbueGift =
+  | { kind: 'keyword'; keyword: CardKeyword }
+  | { kind: 'effect'; effect: ImbuableEffect };
+/** A gift on one card, and how long it lasts. */
+export type Imbue = { gift: ImbueGift; duration: ImbueDuration };
+
+/** One step of a card. A card's effects resolve in order. */
+export type CardEffect =
+  | BaseCardEffect
+  /** Grants another card in hand a keyword or an effect (see imbue.ts). */
+  | ({ kind: 'imbue' } & Imbue);
 
 export type CardRarity = 'starter' | 'common' | 'uncommon' | 'rare';
 
@@ -255,6 +278,9 @@ export type MovementRecord = {
   streak: number;
 };
 
+/** Battle imbues waiting in the piles for their card to be drawn. */
+export type StowedImbue = { cardId: CardId; imbues: Imbue[] };
+
 export type CombatState = {
   player: Combatant;
   heroes: HeroUnit[];
@@ -263,6 +289,13 @@ export type CombatState = {
   drawPile: CardId[];
   discardPile: CardId[];
   fadedPile: CardId[];
+  /** What each card in hand is imbued with, slot for slot with `hand`. */
+  handImbues: Imbue[][];
+  /**
+   * Battle imbues of cards that left the hand for the piles. Copies of a
+   * card can't be told apart there, so the next copy drawn takes them.
+   */
+  stowedImbues: StowedImbue[];
   turn: number;
   /** Heroes defeated so far in this fight. */
   slain: number;

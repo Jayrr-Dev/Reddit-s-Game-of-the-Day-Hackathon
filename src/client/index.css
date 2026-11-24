@@ -68,6 +68,8 @@
   /* Wrath is a Buff: it wears the Buff card type's orange. */
   --color-wrath: var(--color-buff);
   --color-heal: #5fbf7f;
+  /* Imbue: the teal of a card carrying a gift from another. */
+  --color-imbue: #3fe0c5;
   /* Range: steel arrows, silver grey (cards, chips, hit numbers, streaks). */
   --color-range: #b9c2cc;
   /* Card numbers raised by a buff / lowered by a debuff (on parchment). */
