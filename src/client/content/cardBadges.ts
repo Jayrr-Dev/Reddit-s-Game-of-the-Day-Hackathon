@@ -2,8 +2,8 @@
 // CARD BADGES (DATA)
 // The small icon badges stacked under a card's cost coin: every gift
 // an Imbue card gave it (its printed keywords are card text). Each is
-// an icon, with a number where the gift has one ("3" on a Poison drop), a small hourglass when the gift is timed ("this
-// turn"), and a tooltip from the glossary. The same gift imbued twice
+// an icon, with a number where the gift has one ("3" on a Poison
+// drop), and a tooltip from the glossary. The same gift imbued twice
 // shows once with the amounts added (Poison 3 + 3 = 6). Icons and
 // colours come from the same looks as the status chips, so a badge
 // matches its chip.
@@ -13,7 +13,6 @@
 import { getCard, type CardId } from '../../shared/game/cards';
 import {
   CLEANSE_INFO,
-  DURATION_INFO,
   IMBUE_INFO,
   KEYWORD_INFO,
   STATUS_INFO,
@@ -22,7 +21,6 @@ import {
 } from '../../shared/game/describe';
 import type {
   CardKeyword,
-  Duration,
   Imbue,
   ImbuableEffect,
 } from '../../shared/game/types';
@@ -33,10 +31,6 @@ export type CardBadge = Look & {
   key: string;
   /** The number on the badge (a gift's amount), if any. */
   count?: number;
-  /** True for a gift from an Imbue card (a teal rim). */
-  isImbued: boolean;
-  /** How long a timed gift lasts (an hourglass on the badge). */
-  duration?: Duration;
   title: string;
   description: string;
 };
@@ -131,13 +125,9 @@ const effectBadgeOf = (effect: ImbuableEffect): BadgeLook => {
 };
 
 // --- HELPERS ---
-/** How long a gift lasts, as its tooltip's last words. */
-const lastingText = (duration: Duration | undefined): string =>
-  duration ? DURATION_INFO[duration].description : 'Until this card is played.';
-
 /** One imbue's badge, its tooltip ending with the gift's card text. */
 const imbueBadgeOf = (
-  { gift, duration }: Imbue,
+  { gift }: Imbue,
   index: number,
   cardId: CardId
 ): CardBadge => {
@@ -150,23 +140,18 @@ const imbueBadgeOf = (
   return {
     ...shown,
     key: `imbue-${index}`,
-    isImbued: true,
-    ...(duration ? { duration } : {}),
     title: `${IMBUE_INFO.label}: ${info.label}`,
-    description: `${gives} ${info.description} ${lastingText(duration)}`,
+    description: `${gives} ${info.description} Lasts the battle.`,
   };
 };
 
 /**
- * Folds badges of the same gift and duration into one, adding their
+ * Folds badges of the same gift into one, adding their
  * numbers (two Poison 3 imbues show as one Poison 6).
  */
 const mergeStacked = (badges: readonly CardBadge[]): CardBadge[] =>
   badges.reduce<CardBadge[]>((merged, badge) => {
-    const twin = merged.find(
-      (other) =>
-        other.title === badge.title && other.duration === badge.duration
-    );
+    const twin = merged.find((other) => other.title === badge.title);
     if (!twin) return [...merged, badge];
     const count = (twin.count ?? 0) + (badge.count ?? 0);
     return merged.map((other) =>

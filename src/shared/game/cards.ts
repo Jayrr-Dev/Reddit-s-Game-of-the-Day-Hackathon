@@ -76,15 +76,8 @@ const draw = (amount: number): CardEffect => ({ kind: 'draw', amount });
 const energy = (amount: number): CardEffect => ({ kind: 'energy', amount });
 const heal = (amount: number): CardEffect => ({ kind: 'heal', amount });
 const reap = (multiplier: number): CardEffect => ({ kind: 'reap', multiplier });
-/**
- * Imbues another card in hand with a keyword or an effect, until that
- * card is played (or for `duration`).
- */
-const imbue = (gift: ImbueGift, duration?: Duration): CardEffect => ({
-  kind: 'imbue',
-  gift,
-  ...(duration ? { duration } : {}),
-});
+/** Imbues another card in hand with a keyword or an effect, for the battle. */
+const imbue = (gift: ImbueGift): CardEffect => ({ kind: 'imbue', gift });
 const giftHold: ImbueGift = { kind: 'keyword', keyword: 'hold' };
 const giftOf = (effect: ImbuableEffect): ImbueGift => ({
   kind: 'effect',
@@ -183,13 +176,10 @@ export const CARDS = {
     imbue({ kind: 'keyword', keyword: 'piercing' }),
   ]),
   emberRune: card('Ember Rune', 'buff', 0, 'common', [
-    imbue(giftOf({ kind: 'burn', amount: 4, target: 'one' }), 'turn'),
+    imbue(giftOf({ kind: 'burn', amount: 4, target: 'one' })),
   ]),
   keenEdge: card('Keen Edge', 'buff', 0, 'common', [
-    imbue(
-      giftOf({ kind: 'damage', amount: 5, hits: 1, target: 'one' }),
-      'action'
-    ),
+    imbue(giftOf({ kind: 'damage', amount: 5, hits: 1, target: 'one' })),
   ]),
   venomCoat: card('Venom Coat', 'buff', 1, 'common', [
     imbue(giftOf({ kind: 'poison', amount: 3, target: 'one' })),
@@ -265,9 +255,6 @@ export const CARDS = {
   ]),
   purifyingRune: card('Purifying Rune', 'buff', 1, 'uncommon', [
     imbue(giftOf({ kind: 'cleanse' })),
-  ]),
-  soulbind: card('Soulbind', 'buff', 1, 'uncommon', [
-    imbue(giftHold, 'battle'),
   ]),
   lastRites: card('Last Rites', 'buff', 0, 'uncommon', [
     imbue({ kind: 'keyword', keyword: 'remove' }),

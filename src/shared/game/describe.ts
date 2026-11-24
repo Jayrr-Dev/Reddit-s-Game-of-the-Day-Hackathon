@@ -249,7 +249,7 @@ const durationSuffix = (duration: Duration | undefined): string =>
 export const IMBUE_INFO: StatusInfo = {
   label: 'Imbue',
   description:
-    'Give another card in your hand this keyword or effect. It lasts until that card is played, unless it says how long.',
+    'Give another card in your hand this keyword or effect for the rest of the battle. Remove this card.',
 };
 /** What Force Pull and Force Push mean, wherever they show. */
 export const FORCE_PULL_INFO: StatusInfo = {
@@ -335,12 +335,9 @@ export const imbueTag = (gift: ImbueGift): string => {
   }
 };
 
-/**
- * An Imbue card's own line: what it grants, and for how long when that
- * isn't "until that card is played" ("Imbue Hold this battle.").
- */
-const describeImbueEffect = ({ gift, duration }: Imbue): string =>
-  `Imbue ${imbueTag(gift)}${durationSuffix(duration)}.`;
+/** An Imbue card's own line: what it grants ("Imbue Hold."). */
+const describeImbueEffect = ({ gift }: Imbue): string =>
+  `Imbue ${imbueTag(gift)}.`;
 
 // --- STATUS LINES ---
 /** Card effects that lay a status on heroes. */

@@ -70,9 +70,8 @@ import {
   imbueSlot,
   imbueSlotsFor,
   imbuesAt,
-  lapseImbues,
   removeFromHand,
-  stowBattleImbues,
+  stowPlayedImbues,
 } from './imbue.ts';
 import { shuffle, type RngState } from './rng.ts';
 import {
@@ -606,10 +605,7 @@ const applyCardEffect = (
     case 'push':
       return { ...state, heroes: pushHero(state.heroes, targetUid) };
     case 'imbue':
-      return imbueSlot(state, play.slot, {
-        gift: effect.gift,
-        ...(effect.duration ? { duration: effect.duration } : {}),
-      });
+      return imbueSlot(state, play.slot, { gift: effect.gift });
   }
 };
 
@@ -669,11 +665,7 @@ const spendMomentum = (state: CombatState, cardDef: CardDef): CombatState =>
 const payForCard = (state: CombatState, handIndex: number): CombatState => {
   const cardId = state.hand[handIndex];
   const cost = cardId === undefined ? 0 : getCard(cardId).cost;
-  const paid = removeFromHand(
-    { ...state, energy: state.energy - cost },
-    handIndex
-  );
-  return lapseImbues(paid, ['action']);
+  return removeFromHand({ ...state, energy: state.energy - cost }, handIndex);
 };
 
 // --- TIMED BUFFS ---
@@ -846,15 +838,19 @@ export const playCard = (
     cardBeats(paid, cardId, plan).at(-1) ?? paid,
     cardDef
   );
-  // Playing a card spends its imbues (they landed with it); battle ones
-  // go to the pile with it.
+  // A played card's imbues landed with it and go to the pile with it
+  // (they last the battle).
   const imbues = imbuesAt(state, handIndex);
-  const kept = stowBattleImbues(
+  const kept = stowPlayedImbues(
     lapseActionBuffs(resolved, state.timedBuffs.length),
     cardId,
     imbues
   );
-  const settled = cardHasKeyword(cardId, imbues, 'remove')
+  // Remove cards and Imbue cards (used up once played) leave the fight.
+  const isRemoved =
+    cardHasKeyword(cardId, imbues, 'remove') ||
+    imbueEffectOf(cardId) !== undefined;
+  const settled = isRemoved
     ? { ...kept, removedPile: [...kept.removedPile, cardId] }
     : { ...kept, discardPile: [...kept.discardPile, cardId] };
   const cleared = removeFallen(settled);
@@ -1211,9 +1207,9 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
 
   // 1. DISCARD THE HAND (HOLD CARDS STAY), THE VILLAIN'S UPKEEP (POISON
   //    TICKS), AND THE HEROES' GUARD FROM LAST ROUND FADES
-  // "This turn" and "this action" gifts lapse first.
+  // Timed buffs ("this turn", "this action") lapse first.
   const lapsed: CombatState = {
-    ...lapseImbues(state, ['action', 'turn']),
+    ...state,
     player: takeBackBuffs(state.player, state.timedBuffs),
     timedBuffs: [],
   };

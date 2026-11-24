@@ -122,9 +122,8 @@ export type BaseCardEffect =
  * How long a gift lasts, printed after it in italics ("this turn"):
  *   action  until the next card is played (that card still gets it)
  *   turn    until the end of this turn
- *   battle  for the whole fight (an imbue survives being played)
- * Without one, a buff lasts the fight and an imbue lasts until its card
- * is played.
+ *   battle  for the whole fight
+ * Without one, a buff lasts the fight. (Imbues always last the fight.)
  */
 export type Duration = 'action' | 'turn' | 'battle';
 
@@ -148,11 +147,8 @@ export type ImbuableEffect = Exclude<BaseCardEffect, { kind: 'pull' | 'push' }>;
 export type ImbueGift =
   | { kind: 'keyword'; keyword: CardKeyword }
   | { kind: 'effect'; effect: ImbuableEffect };
-/**
- * A gift on one card. It stays until that card is played, then is
- * spent, unless a duration says otherwise.
- */
-export type Imbue = { gift: ImbueGift; duration?: Duration };
+/** A gift on one card. It stays with that card for the rest of the battle. */
+export type Imbue = { gift: ImbueGift };
 
 /** One step of a card. A card's effects resolve in order. */
 export type CardEffect =

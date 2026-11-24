@@ -1,19 +1,17 @@
 // ===================================================================
 // IMBUE
 // An Imbue card grants another card in hand a keyword (Hold, Piercing,
-// Remove) or one more effect (Poison, Guard, Cleanse ...), until that
-// card is played. The gifts live beside the hand, slot for slot
-// (handImbues), so piles stay plain card ids.
-//   PLAYED   the card's imbued effects land once, at its first pick,
-//            and are spent (a battle imbue goes with it, see PILES).
+// Remove ...) or one more effect (Poison, Guard, Cleanse ...) for the
+// rest of the battle; the Imbue card itself is Removed once played.
+// The gifts live beside the hand, slot for slot (handImbues), so piles
+// stay plain card ids.
+//   PLAYED   the card's imbued effects land with its first pick, and
+//            its imbues go to the pile with it (see PILES).
 //   END TURN a card with Hold stays in hand; the rest are discarded
 //            and keep their imbues (see PILES).
 //   PILES    a card that leaves the hand stows its imbues; copies of a
 //            card can't be told apart in a shuffled pile, so the next
 //            copy drawn takes them back.
-//   DURATION an imbue may carry one (types.ts, Duration): "this action"
-//            lapses when another card is played first, "this turn" at
-//            the end of the turn, "this battle" survives being played.
 //   LIMIT    a card holds at most MAX_IMBUES_PER_CARD imbues, and Buff
 //            cards (Imbue cards among them) take none.
 //   STACKING a gift the card already has (printed or imbued) only goes
@@ -31,7 +29,6 @@ import type {
   CardEffect,
   CardKeyword,
   CombatState,
-  Duration,
   Imbue,
   ImbuableEffect,
   ImbueGift,
@@ -267,43 +264,11 @@ export const discardHand = (state: CombatState): CombatState => {
 };
 
 /**
- * A played card's battle imbues go to the pile with it, so the next copy
- * drawn takes them back; the rest were spent by the play.
+ * A played card's imbues go to the pile with it (they last the battle),
+ * so the next copy drawn takes them back.
  */
-export const stowBattleImbues = (
+export const stowPlayedImbues = (
   state: CombatState,
   cardId: CardId,
   imbues: readonly Imbue[]
-): CombatState =>
-  stowImbues(
-    state,
-    cardId,
-    imbues.filter((imbue) => imbue.duration === 'battle')
-  );
-
-/** True when an imbue lasts past any of these durations' ends. */
-const outlasts =
-  (ending: readonly Duration[]) =>
-  (imbue: Imbue): boolean =>
-    imbue.duration === undefined || !ending.includes(imbue.duration);
-
-/**
- * Drops every imbue whose duration is ending (in hand and in the
- * piles): "action" ones when a card is played, "action" and "turn"
- * ones at the end of the turn.
- */
-export const lapseImbues = (
-  state: CombatState,
-  ending: readonly Duration[]
-): CombatState => ({
-  ...state,
-  handImbues: state.hand.map((_, slot) =>
-    imbuesAt(state, slot).filter(outlasts(ending))
-  ),
-  stowedImbues: state.stowedImbues
-    .map((stowed) => ({
-      ...stowed,
-      imbues: stowed.imbues.filter(outlasts(ending)),
-    }))
-    .filter((stowed) => stowed.imbues.length > 0),
-});
+): CombatState => stowImbues(state, cardId, imbues);

@@ -2,10 +2,8 @@
 // CARD BADGES
 // A column of round sockets hanging from a card's cost coin on short
 // gold stems, like gem settings, each holding one icon: the card's
-// keywords and Imbue gifts (see content/cardBadges.ts). A gift's number
-// sits in a gold corner badge, a timed gift ("this turn") has a small
-// hourglass in the other corner, and an imbued socket glows faintly
-// teal inside.
+// Imbue gifts (see content/cardBadges.ts). A gift's number sits in a
+// gold corner badge, and each socket glows faintly teal inside.
 // Hover (with no button held) or long-press one for its tooltip.
 // ===================================================================
 
@@ -33,7 +31,6 @@ const SIZE_LOOK: Record<
     socket: string;
     icon: string;
     count: string;
-    timer: string;
   }
 > = {
   fan: {
@@ -42,7 +39,6 @@ const SIZE_LOOK: Record<
     socket: 'size-[18px]',
     icon: 'size-3',
     count: 'min-w-2.5 h-2.5 text-[7px] -right-1 -bottom-1',
-    timer: 'size-2.5 -left-1 -bottom-1',
   },
   offer: {
     column: 'left-1.5 top-5 w-[22px] -translate-x-1/2',
@@ -50,7 +46,6 @@ const SIZE_LOOK: Record<
     socket: 'size-[22px]',
     icon: 'size-3.5',
     count: 'min-w-3 h-3 text-[8px] -right-1 -bottom-1',
-    timer: 'size-3 -left-1 -bottom-1',
   },
 };
 
@@ -62,27 +57,18 @@ const Stem = ({ heightClass }: { heightClass: string }) => (
 
 /**
  * One socket: a dark gem setting with a gold rim, its icon centred in
- * its tone; a gift's number in a gold corner badge, a timed gift's
- * hourglass in the opposite corner, and a faint teal glow inside when
- * an Imbue card put it there.
+ * its tone, a faint teal glow inside, and a gift's number in a gold
+ * corner badge.
  */
 const Socket = ({ badge, size }: { badge: CardBadge; size: BadgeSize }) => {
   const look = SIZE_LOOK[size];
-  const glow = badge.isImbued
-    ? 'shadow-[inset_0_0_5px_var(--color-imbue),0_1px_2px_rgb(0_0_0/0.6)]'
-    : 'shadow-[0_1px_2px_rgb(0_0_0/0.6)]';
+  const glow =
+    'shadow-[inset_0_0_5px_var(--color-imbue),0_1px_2px_rgb(0_0_0/0.6)]';
   return (
     <span
       className={`relative grid ${look.socket} place-items-center rounded-full bg-surface-sunken ring-[1.5px] ring-energy ${glow} ${badge.toneClass}`}
     >
       <Glyph name={badge.glyph} className={look.icon} />
-      {badge.duration && (
-        <span
-          className={`absolute ${look.timer} grid place-items-center rounded-full bg-surface-sunken text-imbue ring-1 ring-energy`}
-        >
-          <Glyph name="hourglass" className="size-full p-[1.5px]" />
-        </span>
-      )}
       {badge.count !== undefined && (
         <span
           className={`absolute ${look.count} grid place-items-center rounded-full bg-energy px-0.5 font-display font-black leading-none text-on-accent ring-1 ring-surface-sunken`}

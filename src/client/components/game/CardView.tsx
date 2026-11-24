@@ -251,7 +251,7 @@ const TypeRibbon = ({
 
 /**
  * The rarity gem: a small round bead in its rarity's colour, lit from
- * the top left, with a black outline. It hangs just under the name
+ * straight above (so it reads as centred), with a black outline. It hangs just under the name
  * banner, centred, so it never touches the letters of a long name.
  */
 const RarityGem = ({
@@ -265,7 +265,7 @@ const RarityGem = ({
     aria-hidden
     className={`absolute left-1/2 top-full z-10 mt-px ${sizeClass} -translate-x-1/2 overflow-hidden rounded-full ${gemClass} ring-1 ring-black`}
   >
-    <span className="absolute inset-0 bg-gradient-to-br from-white/75 via-transparent via-45% to-black/45" />
+    <span className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgb(255_255_255/0.7),transparent_65%)]" />
   </span>
 );
 
