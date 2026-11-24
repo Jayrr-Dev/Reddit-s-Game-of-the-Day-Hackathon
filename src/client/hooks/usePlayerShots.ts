@@ -1,7 +1,8 @@
 // ===================================================================
 // USE PLAYER SHOTS
 // Your Range and Magic cards fire before they land: an arrow or a
-// magic bolt zips from your portrait to each hero it hits, one per hit,
+// magic bolt zips from the card itself (where it was released: the
+// dragged card, or the held one in the hand) to each hero it hits, one per hit,
 // staggered like the hits themselves (HIT_STAGGER_MS), so each impact
 // lands as its shot arrives. The view waits PLAYER_SHOT_FLIGHT_MS
 // before playing the card, then the hits pop on arrival.
@@ -16,7 +17,12 @@ import type {
   ProjectileFlight,
   ProjectileKind,
 } from '../components/game/combat/Projectile';
-import { VILLAIN_ANCHOR_ATTR, type Point } from './useCardDrag';
+import {
+  DRAGGED_CARD_ATTR,
+  HELD_CARD_ATTR,
+  VILLAIN_ANCHOR_ATTR,
+  type Point,
+} from './useCardDrag';
 import { HIT_STAGGER_MS } from './useCardHits';
 import { bodyPointOf } from './useHitPops';
 
@@ -57,10 +63,21 @@ export const shotPlanOf = (
   };
 };
 
-/** Your portrait's centre, where your shots leave from. */
-const villainPoint = (): Point | null => {
-  const rect = document
-    .querySelector(`[${VILLAIN_ANCHOR_ATTR}]`)
+/**
+ * Where shots leave from, nearest first: the centre of the card being
+ * dragged, else of the held card in the hand, else your portrait. Read
+ * as the card is released, so it is still where you let go of it.
+ */
+const SHOT_ORIGINS = [
+  DRAGGED_CARD_ATTR,
+  HELD_CARD_ATTR,
+  VILLAIN_ANCHOR_ATTR,
+] as const;
+
+/** The centre of the first shot origin on screen, or null. */
+const launchPoint = (): Point | null => {
+  const rect = SHOT_ORIGINS.map((attr) => document.querySelector(`[${attr}]`))
+    .find((element) => element !== null)
     ?.getBoundingClientRect();
   return rect
     ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
@@ -78,7 +95,7 @@ export const usePlayerShots = () => {
    * returns true if any flew (false when nothing could be placed).
    */
   const fire = useCallback((plan: ShotPlan): boolean => {
-    const from = villainPoint();
+    const from = launchPoint();
     if (!from) return false;
     const aims = Array.from(
       { length: plan.hits },

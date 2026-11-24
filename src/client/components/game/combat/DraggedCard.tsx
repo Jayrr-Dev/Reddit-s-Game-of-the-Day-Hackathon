@@ -9,7 +9,7 @@
 
 import type { CardId } from '../../../../shared/game/cards';
 import type { Combatant, HeroUnit } from '../../../../shared/game/types';
-import type { CardBox } from '../../../hooks/useCardDrag';
+import { DRAGGED_CARD_ATTR, type CardBox } from '../../../hooks/useCardDrag';
 import { CardView } from '../CardView';
 
 // --- TYPES ---
@@ -50,6 +50,7 @@ export const DraggedCard = ({
   glow,
 }: DraggedCardProps) => (
   <div
+    {...{ [DRAGGED_CARD_ATTR]: true }}
     className="pointer-events-none fixed z-40 transition-[filter] duration-150"
     style={{
       left: box.center.x,

@@ -94,6 +94,8 @@ export const FIELD_ATTR = 'data-battlefield';
 export const HERO_ANCHOR_ATTR = 'data-hero-anchor';
 /** Marks the raised (held) card in the hand. */
 export const HELD_CARD_ATTR = 'data-held-card';
+/** Marks the card being dragged (it follows the pointer). */
+export const DRAGGED_CARD_ATTR = 'data-dragged-card';
 /** Marks the villain's portrait (where hero shots fly to). */
 export const VILLAIN_ANCHOR_ATTR = 'data-villain-anchor';
 /** Marks a hero's row ('front' or 'back'), for hit-testing. */
