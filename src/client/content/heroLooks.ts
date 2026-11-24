@@ -1,8 +1,11 @@
 // ===================================================================
 // HERO LOOKS
-// How each hero is drawn: flat, hard-edged shapes in a few bold colours
-// (each face and robe split into a lit and a shadowed half), told apart
-// at a glance by what is on their head and what is in their hand.
+// How each hero is drawn: flat, hard-edged shapes (each face, robe and
+// cape split into a lit and a shadowed half) in a muted, earthy palette
+// of mauve-grey steel, oxblood, burnt orange, olive and slate, with one
+// bright accent each. Heroes are told apart at a glance by what is on
+// their head and in their hand, then by armour (mail is a fine dotted
+// texture, plate adds pauldrons) and by a ragged cape.
 // Data only; HeroFigure turns it into SVG. To add a hero, add a look.
 // ===================================================================
 
@@ -41,6 +44,14 @@ export type Prop =
   | 'warhammer'
   | 'rapier';
 
+/**
+ * What covers the arms and neck:
+ *   cloth  plain sleeves in the robe colour
+ *   mail   a mail coif round the neck and mail sleeves
+ *   plate  mail plus steel pauldrons on the shoulders
+ */
+export type Armor = 'cloth' | 'mail' | 'plate';
+
 /** A lit / shadowed pair of one colour (any CSS colour). */
 export type Tone = { lit: string; shade: string };
 
@@ -53,17 +64,35 @@ export type HeroLook = {
   robe: Tone;
   /** Headgear, hair or trim. */
   gear: Tone;
-  /** A small bright detail (gem, feather, halo, orb). */
+  /** A small bright detail (gem, feather, halo, orb, shield sigil). */
   accent: string;
+  armor: Armor;
+  /** A ragged-hemmed cape hanging behind, if the hero wears one. */
+  cape?: Tone;
 };
 
-// --- PALETTE HELPERS ---
+// --- PALETTE ---
+// Muted and slightly desaturated so the one accent per hero pops.
 const tone = (lit: string, shade: string): Tone => ({ lit, shade });
-const SKIN_FAIR = tone('#f3d2b3', '#dcae8c');
-const SKIN_WARM = tone('#e0a77e', '#c3845c');
-const SKIN_DEEP = tone('#a56d4b', '#83533a');
-const STEEL = tone('#c9ced6', '#9aa2ad');
-const GOLD = tone('#e8bb4c', '#c18f2a');
+const SKIN_FAIR = tone('#e6c7ab', '#c9a587');
+const SKIN_WARM = tone('#d09e7c', '#b07f60');
+const SKIN_DEEP = tone('#9a6a4e', '#7a523b');
+/** Mauve-grey steel, as in old painted armour. */
+const STEEL = tone('#b4abb4', '#8b818c');
+const GOLD = tone('#d2a64c', '#a9822f');
+const OXBLOOD = tone('#86302c', '#652320');
+const BURNT_ORANGE = tone('#b85d2e', '#924822');
+const OLIVE = tone('#666b43', '#4e5233');
+const SLATE = tone('#5b6b7d', '#455262');
+const PARCHMENT = tone('#d9cdb3', '#b7a98c');
+
+/** Pauldron steel, shared by every plate-armoured hero. */
+export const ARMOR_STEEL = STEEL;
+/** Mail texture: a ring colour dotted over a base, lit and shadowed. */
+export const MAIL = {
+  lit: { base: '#a69da7', ring: '#7d7380' },
+  shade: { base: '#7b717e', ring: '#5c535f' },
+} as const;
 
 // --- CATALOG ---
 export const HERO_LOOKS: Record<HeroId, HeroLook> = {
@@ -73,54 +102,63 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     prop: 'sword',
     face: 'bare',
     skin: SKIN_FAIR,
-    robe: tone('#4f7fb8', '#3a6293'),
+    robe: SLATE,
     gear: STEEL,
-    accent: '#e8bb4c',
+    accent: '#d1a04e',
+    armor: 'mail',
   },
   shieldmaiden: {
     headgear: 'braids',
     prop: 'kiteShield',
     face: 'bare',
     skin: SKIN_FAIR,
-    robe: tone('#3f8f8a', '#2d6e6a'),
-    gear: tone('#e9b25a', '#c98d38'),
-    accent: '#d8dde4',
+    robe: OLIVE,
+    gear: tone('#c98f4a', '#a3703a'),
+    accent: '#d9b25a',
+    armor: 'mail',
+    cape: OXBLOOD,
   },
   archer: {
     headgear: 'pointedHood',
     prop: 'longbow',
     face: 'bare',
     skin: SKIN_WARM,
-    robe: tone('#5f8a3c', '#476b2b'),
-    gear: tone('#4d7231', '#385523'),
-    accent: '#c9a46a',
+    robe: tone('#52603b', '#3e492d'),
+    gear: OLIVE,
+    accent: '#c19a62',
+    armor: 'cloth',
   },
   rogue: {
     headgear: 'maskedHood',
     prop: 'daggers',
     face: 'bare',
     skin: SKIN_DEEP,
-    robe: tone('#3b4a52', '#29343a'),
-    gear: tone('#2c3a40', '#1d272c'),
-    accent: '#7fd3c4',
+    robe: tone('#433d46', '#2f2b32'),
+    gear: tone('#2f2b33', '#211e24'),
+    accent: '#8fc4b6',
+    armor: 'cloth',
+    cape: tone('#3a3036', '#282126'),
   },
   priest: {
     headgear: 'mitre',
     prop: 'holyStaff',
     face: 'bare',
     skin: SKIN_FAIR,
-    robe: tone('#efe6d2', '#cfc3a8'),
-    gear: tone('#efe6d2', '#cfc3a8'),
-    accent: '#e8bb4c',
+    robe: PARCHMENT,
+    gear: PARCHMENT,
+    accent: '#d1a04e',
+    armor: 'cloth',
   },
   bard: {
     headgear: 'featherCap',
     prop: 'lute',
     face: 'bare',
     skin: SKIN_WARM,
-    robe: tone('#b0457f', '#8a3363'),
-    gear: tone('#6b2b8a', '#52206b'),
-    accent: '#f0d264',
+    robe: tone('#8c3f5c', '#6e2f47'),
+    gear: tone('#5a3466', '#45274e'),
+    accent: '#e3bd5e',
+    armor: 'cloth',
+    cape: BURNT_ORANGE,
   },
 
   // ELITES
@@ -129,18 +167,21 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     prop: 'greatsword',
     face: 'helm',
     skin: STEEL,
-    robe: tone('#e6dcc4', '#c4b897'),
+    robe: PARCHMENT,
     gear: STEEL,
-    accent: '#d9443c',
+    accent: '#c0392f',
+    armor: 'plate',
+    cape: OXBLOOD,
   },
   archmage: {
     headgear: 'wizardHat',
     prop: 'orbStaff',
     face: 'bare',
     skin: SKIN_FAIR,
-    robe: tone('#5b3fa0', '#45307c'),
-    gear: tone('#4a3388', '#36256a'),
-    accent: '#8fe6ff',
+    robe: tone('#4c3c78', '#3a2d5d'),
+    gear: tone('#3f3266', '#2f254d'),
+    accent: '#8fd6ec',
+    armor: 'cloth',
   },
 
   // CHAMPIONS
@@ -149,54 +190,65 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     prop: 'halberd',
     face: 'bare',
     skin: SKIN_WARM,
-    robe: tone('#b3532f', '#8e3f22'),
+    robe: BURNT_ORANGE,
     gear: STEEL,
-    accent: '#e8bb4c',
+    accent: '#d1a04e',
+    armor: 'plate',
   },
   lysa: {
     headgear: 'leafCirclet',
     prop: 'longbow',
     face: 'bare',
     skin: SKIN_FAIR,
-    robe: tone('#2f7a52', '#215a3c'),
-    gear: tone('#c0562f', '#9a4122'),
-    accent: '#9fdc6a',
+    robe: tone('#3f5f47', '#2f4836'),
+    gear: tone('#b0532f', '#8a3f22'),
+    accent: '#a6cc70',
+    armor: 'cloth',
+    cape: OLIVE,
   },
   maren: {
     headgear: 'veilHalo',
     prop: 'crescentStaff',
     face: 'bare',
     skin: SKIN_DEEP,
-    robe: tone('#f4efe4', '#d6ccb8'),
-    gear: tone('#ffffff', '#dcd6cc'),
-    accent: '#f2cf5b',
+    robe: tone('#e6dfd0', '#c4bba8'),
+    gear: tone('#f2eee6', '#d2cbbd'),
+    accent: '#e5c25c',
+    armor: 'cloth',
+    cape: tone('#7d6d8f', '#5f526e'),
   },
   brannoc: {
     headgear: 'hornedHelm',
     prop: 'warhammer',
     face: 'helm',
-    skin: tone('#8f98a4', '#6c7480'),
-    robe: tone('#5c6470', '#454b55'),
-    gear: tone('#e6dcc4', '#c4b897'),
-    accent: '#c8324a',
+    skin: STEEL,
+    robe: tone('#4f4a55', '#3b3740'),
+    gear: PARCHMENT,
+    accent: '#c0392f',
+    armor: 'plate',
+    cape: OXBLOOD,
   },
   seris: {
     headgear: 'ponytailTiara',
     prop: 'rapier',
     face: 'bare',
     skin: SKIN_FAIR,
-    robe: tone('#b3263e', '#8a1c2f'),
+    robe: OXBLOOD,
     gear: tone('#1f1a22', '#121014'),
-    accent: '#e8bb4c',
+    accent: '#ddb04e',
+    armor: 'mail',
+    cape: tone('#2a2329', '#1b161a'),
   },
   valen: {
     headgear: 'sunCrown',
     prop: 'greatsword',
     face: 'bare',
     skin: SKIN_WARM,
-    robe: tone('#f2e4b5', '#d4c28c'),
+    robe: tone('#e4d6a8', '#c2b383'),
     gear: GOLD,
-    accent: '#fff3b0',
+    accent: '#fff0b0',
+    armor: 'plate',
+    cape: BURNT_ORANGE,
   },
 };
 

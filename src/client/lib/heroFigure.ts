@@ -17,8 +17,12 @@ export const BODY_HEIGHT = 100;
 export const figureAspect = (size: HeroSize): number =>
   BODY_WIDTH[size] / BODY_HEIGHT;
 
-/** Helmet radius in viewBox units (bigger heroes, bigger heads). */
-export const headRadiusOf = (size: HeroSize): number => 9 + size * 2;
+/**
+ * Helmet radius in viewBox units (bigger heroes, bigger heads). Kept a
+ * little small for the body, so heroes stand tall like armoured
+ * knights, but not so small that the headgear stops reading.
+ */
+export const headRadiusOf = (size: HeroSize): number => 8.5 + size * 1.7;
 
 /** Helmet centre height in viewBox units. */
 export const headCentreOf = (size: HeroSize): number =>

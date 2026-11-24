@@ -1,10 +1,12 @@
 // ===================================================================
 // HERO FIGURE
 // A hero standing on the battlefield, drawn flat and hard-edged: a few
-// polygons per part, each face and robe split down the middle into a
-// lit half and a shadowed half, tiny line eyes, no outlines. Heroes are
-// told apart by their headgear and the prop in their hand (see
-// content/heroLooks.ts). Wider heroes (elites, champions) are drawn
+// polygons per part, each face, robe and cape split down the middle into
+// a lit half and a shadowed half, tiny line eyes, no outlines. Heroes are
+// told apart by their headgear and the prop in their hand, then by their
+// armour and cape (see content/heroLooks.ts). The knightly touches:
+// mail drawn as a fine dotted texture (an SVG pattern), steel pauldrons,
+// a leather belt with a buckle, and capes with torn, ragged hems. Wider heroes (elites, champions) are drawn
 // broader, not just scaled, so a size 3 champion fills the front row.
 //
 // ATTACKS: `action` names the move being made (melee, range, magic or
@@ -15,11 +17,13 @@
 // opacity only.
 // ===================================================================
 
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import type { HeroId } from '../../../../shared/game/heroes';
 import type { HeroSize } from '../../../../shared/game/types';
 import {
+  ARMOR_STEEL,
   HERO_LOOKS,
+  MAIL,
   type HeroActionStyle,
   type HeroLook,
   type Prop,
@@ -64,6 +68,12 @@ type Frame = {
 // --- CONSTANTS ---
 const EYE_FILL = '#1a1014';
 const FEET_Y = 96;
+const LEATHER = '#3a2a26';
+/** Mail ring spacing and dot radius (viewBox units). */
+const MAIL_STEP = 1.25;
+const MAIL_DOT = 0.36;
+/** The ragged hem: how far each tear rises from the bottom (units). */
+const HEM_TEARS = [2, 6, 1, 5, 0, 4] as const;
 
 // --- HELPERS ---
 /** Points as an SVG points string. */
@@ -117,7 +127,94 @@ const Halves = ({
   </>
 );
 
-/** Shoulders and robe, down to the feet, with a belt in the gear tone. */
+/** Fill ids of the two mail patterns (lit and shaded) in one drawing. */
+type MailFills = { lit: string; shade: string };
+
+/** The mail patterns: rings dotted over a base, one lit and one shaded. */
+const MailPatterns = ({ ids }: { ids: MailFills }) => (
+  <defs>
+    {(['lit', 'shade'] as const).map((side) => (
+      <pattern
+        key={side}
+        id={ids[side]}
+        width={MAIL_STEP}
+        height={MAIL_STEP}
+        patternUnits="userSpaceOnUse"
+      >
+        <rect width={MAIL_STEP} height={MAIL_STEP} fill={MAIL[side].base} />
+        <circle
+          cx={MAIL_STEP / 2}
+          cy={MAIL_STEP / 2}
+          r={MAIL_DOT}
+          fill={MAIL[side].ring}
+        />
+      </pattern>
+    ))}
+  </defs>
+);
+
+/** A cape behind the body: wider than the robe, with a torn hem. */
+const Cape = ({ f, fill }: { f: Frame; fill: Tone }) => {
+  // TORN HEM: points from the outer edge back to the middle, each tear
+  // rising a different amount so the edge reads as ragged cloth.
+  const hem = HEM_TEARS.map(
+    (rise, index) =>
+      [
+        f.mid - f.bw * 1.2 * (1 - (index + 1) / (HEM_TEARS.length + 1)),
+        FEET_Y - rise,
+      ] as const
+  );
+  return (
+    <Halves
+      mid={f.mid}
+      fill={fill}
+      left={[
+        [f.mid, f.shoulderY],
+        [f.mid - f.sw * 1.05, f.shoulderY + f.r * 0.3],
+        [f.mid - f.bw * 1.22, FEET_Y - 3],
+        ...hem,
+        [f.mid, FEET_Y - 3],
+      ]}
+    />
+  );
+};
+
+/**
+ * Both arms hanging from the shoulders; the right one ends at the hand
+ * holding the prop. Mail sleeves for armoured heroes, cloth otherwise.
+ */
+const Arms = ({
+  f,
+  look,
+  mail,
+}: {
+  f: Frame;
+  look: HeroLook;
+  mail: MailFills;
+}) => {
+  const isMail = look.armor !== 'cloth';
+  const width = f.r * 0.6;
+  const left: Point[] = [
+    [f.mid - f.sw + 1, f.shoulderY + f.r * 0.3],
+    [f.mid - f.sw - width, f.shoulderY + f.r * 0.7],
+    [f.mid - f.sw - width * 0.8, f.hand[1] + 2],
+    [f.mid - f.sw + width * 0.3, f.hand[1] + 2],
+  ];
+  return (
+    <>
+      <polygon
+        points={pts(...left)}
+        fill={isMail ? `url(#${mail.lit})` : look.robe.lit}
+      />
+      <polygon
+        points={pts(...mirror(f.mid, left))}
+        fill={isMail ? `url(#${mail.shade})` : look.robe.shade}
+      />
+    </>
+  );
+};
+
+/** Shoulders and robe down to the feet, with a leather belt and buckle. */
 const Body = ({ f, look }: { f: Frame; look: HeroLook }) => (
   <>
     <Halves
@@ -130,18 +227,60 @@ const Body = ({ f, look }: { f: Frame; look: HeroLook }) => (
         [f.mid, FEET_Y],
       ]}
     />
-    <Halves
-      mid={f.mid}
-      fill={look.gear}
-      left={[
-        [f.mid, 66],
+    <polygon
+      points={pts(
         [f.mid - f.sw * 1.02, 66],
-        [f.mid - f.sw * 1.03, 69],
-        [f.mid, 69],
-      ]}
+        [f.mid + f.sw * 1.02, 66],
+        [f.mid + f.sw * 1.03, 68.5],
+        [f.mid - f.sw * 1.03, 68.5]
+      )}
+      fill={LEATHER}
+    />
+    <rect
+      x={f.mid - f.r * 0.22}
+      y={65.6}
+      width={f.r * 0.44}
+      height={3.3}
+      fill={look.accent}
     />
   </>
 );
+
+/** A mail coif round the neck, up to the jaw (mail and plate only). */
+const Coif = ({ f, mail }: { f: Frame; mail: MailFills }) => {
+  const left: Point[] = [
+    [f.mid, f.chin - f.r * 0.2],
+    [f.mid - f.hw * 1.1, f.jaw - f.r * 0.1],
+    [f.mid - f.hw * 1.7, f.shoulderY + f.r * 0.45],
+    [f.mid, f.shoulderY + f.r * 0.7],
+  ];
+  return (
+    <>
+      <polygon points={pts(...left)} fill={`url(#${mail.lit})`} />
+      <polygon
+        points={pts(...mirror(f.mid, left))}
+        fill={`url(#${mail.shade})`}
+      />
+    </>
+  );
+};
+
+/** Steel plates capping both shoulders (plate armour only). */
+const Pauldrons = ({ f }: { f: Frame }) => {
+  const left: Point[] = [
+    [f.mid - f.sw + f.r * 0.9, f.shoulderY + f.r * 0.15],
+    [f.mid - f.sw - f.r * 0.2, f.shoulderY + f.r * 0.3],
+    [f.mid - f.sw - f.r * 0.45, f.shoulderY + f.r * 0.9],
+    [f.mid - f.sw - f.r * 0.15, f.shoulderY + f.r * 1.3],
+    [f.mid - f.sw + f.r * 0.55, f.shoulderY + f.r * 1.0],
+  ];
+  return (
+    <>
+      <polygon points={pts(...left)} fill={ARMOR_STEEL.lit} />
+      <polygon points={pts(...mirror(f.mid, left))} fill={ARMOR_STEEL.shade} />
+    </>
+  );
+};
 
 /** The face: a long, pointed-chin head, split lit and shadowed. */
 const Head = ({ f, look }: { f: Frame; look: HeroLook }) => (
@@ -665,8 +804,8 @@ const HEADGEAR: Record<
 /** A prop's drawing and the tip a spell flares from. */
 type PropDrawing = { shape: ReactNode; tip: Point };
 
-const STEEL_LIT = '#e3e7ec';
-const STEEL_SHADE = '#a9b0ba';
+const STEEL_LIT = '#d8d2d8';
+const STEEL_SHADE = '#9c929e';
 const WOOD = '#7a5131';
 const WOOD_DARK = '#5a3a22';
 
@@ -706,9 +845,9 @@ const pole = ([x, y]: Point, length: number): ReactNode => (
 /** Each prop, drawn at the hand `h`, scaled by the head size `k`. */
 const PROPS: Record<
   Prop,
-  (h: Point, k: number, accent: string) => PropDrawing
+  (h: Point, k: number, look: HeroLook) => PropDrawing
 > = {
-  sword: (h, k, accent) => ({
+  sword: (h, k, { accent }) => ({
     shape: (
       <>
         {blade(h, 30 * k, 4 * k)}
@@ -717,7 +856,7 @@ const PROPS: Record<
     ),
     tip: [h[0], h[1] - 30 * k],
   }),
-  greatsword: (h, k, accent) => ({
+  greatsword: (h, k, { accent }) => ({
     shape: (
       <>
         {blade(h, 44 * k, 6 * k)}
@@ -726,7 +865,7 @@ const PROPS: Record<
     ),
     tip: [h[0], h[1] - 44 * k],
   }),
-  rapier: (h, k, accent) => ({
+  rapier: (h, k, { accent }) => ({
     shape: (
       <>
         {blade(h, 38 * k, 2.2 * k)}
@@ -743,7 +882,7 @@ const PROPS: Record<
     ),
     tip: [h[0], h[1] - 38 * k],
   }),
-  daggers: ([x, y], k, accent) => ({
+  daggers: ([x, y], k, { accent }) => ({
     shape: (
       <>
         {blade([x, y], 14 * k, 3.4 * k)}
@@ -754,43 +893,59 @@ const PROPS: Record<
     ),
     tip: [x, y - 14 * k],
   }),
-  kiteShield: ([x, y], k, accent) => {
+  /** A kite shield in the hero's colours with a chevron sigil. */
+  kiteShield: ([x, y], k, { accent, robe }) => {
     // Held on the far side, across the body.
     const cx = x - 4 * k;
-    const shield: Point[] = [
+    const half: Point[] = [
+      [cx, y - 16 * k],
       [cx - 9 * k, y - 16 * k],
-      [cx + 9 * k, y - 16 * k],
-      [cx + 9 * k, y - 2 * k],
-      [cx, y + 12 * k],
       [cx - 9 * k, y - 2 * k],
+      [cx, y + 12 * k],
     ];
+    const rim = 1.4 * k;
     return {
       shape: (
         <>
-          <polygon points={pts(...shield)} fill={STEEL_LIT} />
+          {/* STEEL RIM, THEN THE PAINTED FIELD INSIDE IT */}
+          <polygon points={pts(...half)} fill={STEEL_LIT} />
+          <polygon points={pts(...mirror(cx, half))} fill={STEEL_SHADE} />
           <polygon
             points={pts(
-              [cx, y - 16 * k],
-              [cx + 9 * k, y - 16 * k],
-              [cx + 9 * k, y - 2 * k],
-              [cx, y + 12 * k]
+              [cx, y - 16 * k + rim],
+              [cx - 9 * k + rim, y - 16 * k + rim],
+              [cx - 9 * k + rim, y - 2 * k],
+              [cx, y + 12 * k - rim * 1.6]
             )}
-            fill={STEEL_SHADE}
+            fill={robe.lit}
           />
-          <rect
-            x={cx - 1.5 * k}
-            y={y - 14 * k}
-            width={3 * k}
-            height={22 * k}
-            fill={accent}
-            opacity="0.9"
+          <polygon
+            points={pts(
+              [cx, y - 16 * k + rim],
+              [cx + 9 * k - rim, y - 16 * k + rim],
+              [cx + 9 * k - rim, y - 2 * k],
+              [cx, y + 12 * k - rim * 1.6]
+            )}
+            fill={robe.shade}
+          />
+          {/* SIGIL: an upturned chevron */}
+          <polyline
+            points={pts(
+              [cx - 5 * k, y - 9 * k],
+              [cx, y - 3 * k],
+              [cx + 5 * k, y - 9 * k]
+            )}
+            fill="none"
+            stroke={accent}
+            strokeWidth={2 * k}
+            strokeLinejoin="round"
           />
         </>
       ),
       tip: [cx, y - 16 * k],
     };
   },
-  longbow: ([x, y], k, accent) => ({
+  longbow: ([x, y], k, { accent }) => ({
     shape: (
       <>
         <path
@@ -813,7 +968,7 @@ const PROPS: Record<
     ),
     tip: [x + 4 * k, y],
   }),
-  holyStaff: ([x, y], k, accent) => ({
+  holyStaff: ([x, y], k, { accent }) => ({
     shape: (
       <>
         {pole([x, y], 34 * k)}
@@ -829,7 +984,7 @@ const PROPS: Record<
     ),
     tip: [x, y - 36 * k],
   }),
-  orbStaff: ([x, y], k, accent) => ({
+  orbStaff: ([x, y], k, { accent }) => ({
     shape: (
       <>
         {pole([x, y], 38 * k)}
@@ -846,7 +1001,7 @@ const PROPS: Record<
     ),
     tip: [x, y - 42 * k],
   }),
-  crescentStaff: ([x, y], k, accent) => ({
+  crescentStaff: ([x, y], k, { accent }) => ({
     shape: (
       <>
         {pole([x, y], 38 * k)}
@@ -858,7 +1013,7 @@ const PROPS: Record<
     ),
     tip: [x, y - 42 * k],
   }),
-  lute: ([x, y], k, accent) => ({
+  lute: ([x, y], k, { accent }) => ({
     shape: (
       <>
         <rect
@@ -923,7 +1078,7 @@ const PROPS: Record<
     ),
     tip: [x, y - 54 * k],
   }),
-  warhammer: ([x, y], k, accent) => ({
+  warhammer: ([x, y], k, { accent }) => ({
     shape: (
       <>
         {pole([x, y], 32 * k)}
@@ -969,9 +1124,13 @@ export const HeroFigure = ({
   const f = frameOf(size);
   const width = BODY_WIDTH[size];
   const k = f.r / headRadiusOf(1);
-  const prop = PROPS[look.prop](f.hand, k, look.accent);
+  const prop = PROPS[look.prop](f.hand, k, look);
   const gear = HEADGEAR[look.headgear](f, look);
   const [handX, handY] = f.hand;
+  // Pattern ids must be unique per drawing and safe inside url(#...).
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  const mail: MailFills = { lit: `mail-lit-${uid}`, shade: `mail-${uid}` };
+  const isArmored = look.armor !== 'cloth';
   return (
     <svg
       viewBox={`0 0 ${width} ${BODY_HEIGHT}`}
@@ -997,8 +1156,13 @@ export const HeroFigure = ({
         fill={look.accent}
         opacity="0"
       />
+      {isArmored && <MailPatterns ids={mail} />}
+      {look.cape && <Cape f={f} fill={look.cape} />}
       {gear.back}
+      <Arms f={f} look={look} mail={mail} />
       <Body f={f} look={look} />
+      {isArmored && <Coif f={f} mail={mail} />}
+      {look.armor === 'plate' && <Pauldrons f={f} />}
       <Head f={f} look={look} />
       {gear.front}
       {/* THE PROP SWINGS, DRAWS OR RISES AROUND THE HAND */}
