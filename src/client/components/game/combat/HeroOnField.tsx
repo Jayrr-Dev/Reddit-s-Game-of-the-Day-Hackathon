@@ -23,6 +23,7 @@ import {
 import type { AimState, PickMarker } from '../../../hooks/useCombatControls';
 import {
   drawSizeOf,
+  groundShadowOf,
   isBoss,
   type HeroAction,
   type HeroActionStyle,
@@ -245,6 +246,33 @@ const DyingHero = ({ unit }: { unit: HeroUnit }) => {
 };
 
 /**
+ * The hero's shadow on the ground, under the drawing but outside every
+ * animated wrapper (sway, lunge, flinch), so it stays put while the
+ * body moves. Same box as the drawing, so it scales with it.
+ */
+const GroundShadow = ({
+  unit,
+  style,
+}: {
+  unit: HeroUnit;
+  style: CSSProperties;
+}) => {
+  const { halfWidthShare, opacity } = groundShadowOf(unit.heroId);
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2"
+      style={style}
+    >
+      <div
+        className="absolute bottom-[1%] left-1/2 h-[6%] -translate-x-1/2 rounded-[50%] bg-black"
+        style={{ width: `${halfWidthShare * 200}%`, opacity }}
+      />
+    </div>
+  );
+};
+
+/**
  * A hero summoned or revived mid-fight arrives in a shaft of holy
  * light: it plays once, when the hero first appears.
  */
@@ -368,6 +396,7 @@ export const HeroOnField = ({
         className="relative h-full w-full origin-bottom animate-hero-march [container-type:size]"
         style={{ animationDelay: `${marchDelayMs(unit)}ms` }}
       >
+        <GroundShadow unit={unit} style={bodyStyle} />
         <div
           className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${action ? bodyActionClass(action) : ''}`}
           style={bodyStyle}

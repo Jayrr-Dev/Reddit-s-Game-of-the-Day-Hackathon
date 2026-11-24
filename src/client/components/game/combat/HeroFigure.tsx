@@ -1474,15 +1474,8 @@ const HumanoidFigure = ({
       style={scaleVar}
       aria-hidden="true"
     >
-      {/* SHADOW AND SUPPORT AURA */}
-      <ellipse
-        cx={f.mid}
-        cy="97"
-        rx={f.bw}
-        ry="3"
-        fill="black"
-        opacity="0.45"
-      />
+      {/* SUPPORT AURA (the ground shadow is drawn by HeroOnField, so it
+          stays put while the body sways and lunges) */}
       <ellipse
         className="hero-aura"
         cx={f.mid}

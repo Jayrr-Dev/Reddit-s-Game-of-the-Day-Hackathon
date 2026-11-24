@@ -147,6 +147,22 @@ export const isBoss = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
 export const drawSizeOf = (unit: Pick<HeroUnit, 'heroId'>): HeroSize =>
   isBoss(unit) ? 3 : sizeOf(unit);
 
+/**
+ * A hero's ground shadow: its half-width as a share of the drawing's
+ * width, and how dark it is. Humanoids share one; creatures differ (the
+ * angel hovers, so its shadow is small and faint).
+ */
+export type GroundShadow = { halfWidthShare: number; opacity: number };
+const HUMANOID_SHADOW: GroundShadow = { halfWidthShare: 0.44, opacity: 0.45 };
+const CREATURE_SHADOW: Record<CreatureId, GroundShadow> = {
+  holyDragon: { halfWidthShare: 0.39, opacity: 0.45 },
+  angelArcher: { halfWidthShare: 0.2, opacity: 0.3 },
+};
+
+/** The ground shadow a hero casts. */
+export const groundShadowOf = (id: HeroId): GroundShadow =>
+  isCreature(id) ? CREATURE_SHADOW[id] : HUMANOID_SHADOW;
+
 /** True for a hero with a drawing of its own (see CREATURE_IDS). */
 export const isCreature = (id: HeroId): id is CreatureId =>
   (CREATURE_IDS as readonly HeroId[]).includes(id);

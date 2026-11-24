@@ -49,9 +49,8 @@ export type CreatureFigureProps = {
 };
 
 // --- CONSTANTS: CONCEPT ART FRAME ---
-/** The concept art's width; its centre line is the dragon's. */
+/** The concept art's width (the dragon is mirrored across its middle). */
 const ART_WIDTH = 1536;
-const ART_MID = ART_WIDTH / 2;
 
 // --- CONSTANTS: HOLY DRAGON PALETTE ---
 const IVORY = { lit: '#ece2cf', shade: '#cbbba3' };
@@ -530,15 +529,6 @@ const HolyDragon = ({ mood }: { mood: HeroMood }) => {
   const [jawX, jawY] = art(JAW);
   return (
     <>
-      {/* SHADOW */}
-      <ellipse
-        cx={ART_MID * ART_SCALE}
-        cy="96"
-        rx="58"
-        ry="3.5"
-        fill="black"
-        opacity="0.45"
-      />
       <JudgmentLight />
       <Wings />
       <HaloShards />
@@ -753,8 +743,6 @@ const AngelEye = ({ mood }: { mood: HeroMood }) => {
 /** The angel archer: six wings around one great eye, hovering. */
 const AngelArcher = ({ mood }: { mood: HeroMood }) => (
   <>
-    {/* SHADOW (it hovers, so a small one) */}
-    <ellipse cx="30" cy="96" rx="12" ry="2.2" fill="black" opacity="0.35" />
     <g className="angel-hover">
       {ANGEL_WING_ANGLES.map((deg, index) => (
         <AngelWing key={deg} deg={deg} index={index} />
