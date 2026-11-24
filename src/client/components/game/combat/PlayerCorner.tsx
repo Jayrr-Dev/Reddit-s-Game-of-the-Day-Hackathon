@@ -2,8 +2,9 @@
 // PLAYER CORNER
 // The bottom-left corner: the villain's hooded portrait inside a ring
 // that drains with HP, and the HP number on a shield beside it. Hits
-// from the heroes shake the portrait, make the villain flinch, stack up
-// above it, and leave their marks on it (see ImpactOverlay). The red
+// from the heroes shake the portrait, make the villain flinch and stack
+// up above it; their marks land on the whole screen (see PovImpact),
+// while gains and debuffs glow on the portrait (ImpactOverlay). The red
 // eyes blink now and then.
 // ===================================================================
 
@@ -63,7 +64,7 @@ export const PlayerCorner = ({
           </svg>
         </div>
         {/* HIT MARKS, ARROWS AND GLOWS OVER THE PORTRAIT */}
-        <ImpactOverlay pops={hits} />
+        <ImpactOverlay pops={hits.filter((hit) => hit.kind !== 'hit')} />
         {/* HITS PILE UP ABOVE THE PORTRAIT, NUDGED RIGHT (AWAY FROM THE EDGE) */}
         <div className="pointer-events-none absolute bottom-full left-1 z-40 mb-1">
           <HitStack hits={hits} align="start" />

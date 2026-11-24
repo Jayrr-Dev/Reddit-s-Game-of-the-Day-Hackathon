@@ -18,7 +18,7 @@
 // All game state comes from the engine; this view only routes input.
 // ===================================================================
 
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { getCard } from '../../../shared/game/cards';
 import { movementFailsOn } from '../../../shared/game/combat';
 import {
@@ -67,6 +67,7 @@ import { HitNumbers } from './combat/HitNumbers';
 import { PileDialog, type PileId } from './combat/PileDialog';
 import { PileStack } from './combat/PileStack';
 import { PlayerCorner } from './combat/PlayerCorner';
+import { PovImpact } from './combat/PovImpact';
 import { PlayerShots } from './combat/PlayerShots';
 import { ShroudGainPops } from './combat/ShroudGainPops';
 import { SpeedLines } from './combat/SpeedLines';
@@ -270,8 +271,11 @@ export const CombatView = ({
     combat.player,
     combat.turn,
     heroTurn.attackType,
-    hitHistory
+    hitHistory,
+    heroTurn.strikes
   );
+  // The whole view shakes when a hit lands on you (see PovImpact).
+  const viewRef = useRef<HTMLDivElement>(null);
   const { drag } = controls;
   const draggedCardId = drag ? combat.hand[drag.handIndex] : undefined;
   // The arrow is hidden until it has a target, then flies out from the
@@ -282,7 +286,10 @@ export const CombatView = ({
   );
 
   return (
-    <div className="relative flex h-full w-full flex-col overflow-hidden">
+    <div
+      ref={viewRef}
+      className="relative flex h-full w-full flex-col overflow-hidden"
+    >
       <TopBar
         where={where}
         score={score}
@@ -358,6 +365,8 @@ export const CombatView = ({
       )}
       <CardFlights flights={cardFlights} />
       {/* A TURN OR A CARD'S HITS ARE PLAYING: SWALLOW TAPS UNTIL DONE */}
+      {/* HITS ON YOU LAND ON THE WHOLE SCREEN */}
+      <PovImpact hits={playerHits} shakeRef={viewRef} />
       {(isAnimating || isShooting) && <div className="absolute inset-0 z-50" />}
       {openPile && (
         <PileDialog

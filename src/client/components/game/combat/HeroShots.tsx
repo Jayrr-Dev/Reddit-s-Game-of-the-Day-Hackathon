@@ -2,7 +2,8 @@
 // HERO SHOTS
 // When an archer looses, its arrow leaves the bow (see HeroFigure,
 // which hides the arrow at the release) and flies across the screen
-// into the villain's portrait. Drawn in viewport pixels on a fixed,
+// at the middle of the screen (you see it through the villain's eyes;
+// see PovImpact), each a little off centre. Drawn in viewport pixels on a fixed,
 // click-through layer, so it can cross from the battlefield into the
 // bottom band.
 // TIMING: each shot is laid out when the hero's move starts and waits
@@ -11,12 +12,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { HeroAction } from '../../../content/heroLooks';
-import {
-  HERO_UID_ATTR,
-  VILLAIN_ANCHOR_ATTR,
-  type Point,
-} from '../../../hooks/useCardDrag';
+import { HERO_UID_ATTR, type Point } from '../../../hooks/useCardDrag';
+import { spread } from '../../../lib/seeded';
 import { HERO_ATTACK_MS } from '../../../hooks/useHeroTurn';
+import { POV_ANCHOR_ATTR } from './PovImpact';
 import { Projectile, type ProjectileFlight } from './Projectile';
 
 // --- TYPES ---
@@ -43,13 +42,27 @@ const centreOf = (element: Element | null): Point | null => {
   return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 };
 
-/** Where a hero's shot starts (its arrow on the string) and lands. */
-const shotPath = (uid: number): { from: Point; to: Point } | null => {
+/** How far (px) a shot lands from the screen's middle, at most. */
+const AIM_SCATTER_PX = 60;
+
+/**
+ * Where a hero's shot starts (its arrow on the string) and lands: the
+ * middle of the screen, nudged by the shot's seed so a volley spreads.
+ */
+const shotPath = (
+  uid: number,
+  seed: number
+): { from: Point; to: Point } | null => {
   const hero = document.querySelector(`[${HERO_UID_ATTR}="${uid}"]`);
   const from =
     centreOf(hero?.querySelector('.hero-arrow') ?? null) ?? centreOf(hero);
-  const to = centreOf(document.querySelector(`[${VILLAIN_ANCHOR_ATTR}]`));
-  return from && to ? { from, to } : null;
+  const centre = centreOf(document.querySelector(`[${POV_ANCHOR_ATTR}]`));
+  if (!from || !centre) return null;
+  const to = {
+    x: centre.x + spread(seed, 1) * AIM_SCATTER_PX,
+    y: centre.y + spread(seed, 2) * AIM_SCATTER_PX,
+  };
+  return { from, to };
 };
 
 // --- HOOKS ---
@@ -73,8 +86,9 @@ const useShots = (acting: ReadonlyMap<number, HeroAction>): Shot[] => {
     const fresh = [...shooting]
       .filter((uid) => !shootingRef.current.has(uid))
       .flatMap((uid) => {
-        const path = shotPath(uid);
-        return path ? [{ id: nextIdRef.current++, ...path }] : [];
+        const id = nextIdRef.current++;
+        const path = shotPath(uid, id);
+        return path ? [{ id, ...path }] : [];
       });
     shootingRef.current = shooting;
     if (fresh.length === 0) return;

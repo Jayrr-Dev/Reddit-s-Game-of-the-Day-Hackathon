@@ -12,7 +12,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { endTurnSteps, type TurnStep } from '../../shared/game/combat';
 import type { RunAction } from '../../shared/game/run';
-import type { CombatState } from '../../shared/game/types';
+import type { CombatState, HeroMove } from '../../shared/game/types';
 import {
   humanoidLookOf,
   MELEE_SWINGS,
@@ -107,6 +107,13 @@ const withSignatureCharges = (steps: readonly TurnStep[]): Beat[] =>
     return [charge, step];
   });
 
+/** How many blows a move strikes: the hits of all its attacks. */
+const strikesOf = (heroMove: HeroMove | null): number =>
+  (heroMove?.effects ?? []).reduce(
+    (total, effect) => total + (effect.kind === 'attack' ? effect.hits : 0),
+    0
+  );
+
 /** Nobody acting (shared so the empty case keeps one identity). */
 const NOBODY_ACTING: ReadonlyMap<number, HeroAction> = new Map();
 
@@ -155,6 +162,8 @@ export const useHeroTurn = (
     acting: playback ? actingAt(playback.steps, playback.index) : NOBODY_ACTING,
     /** How the attack on screen right now lands (it colours your hits). */
     attackType: step?.attackType ?? null,
+    /** How many blows the attack on screen right now strikes (0: none). */
+    strikes: strikesOf(step?.move ?? null),
     isPlaying: playback !== null,
     endTurn,
   } as const;

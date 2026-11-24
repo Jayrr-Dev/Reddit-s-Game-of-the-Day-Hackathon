@@ -42,6 +42,8 @@ export type Hit = {
   source?: CardType | undefined;
   /** True when only the effect over the character shows (no number). */
   isQuiet?: boolean;
+  /** For a hit on the villain: how many blows landed it (1 or more). */
+  strikes?: number;
   /** True when this hit took the target from alive to 0 HP. */
   isKill?: boolean;
 };
@@ -323,7 +325,8 @@ export const usePlayerHits = (
   player: Combatant,
   turn: number,
   source: CardType | null,
-  history: HitHistory
+  history: HitHistory,
+  strikes = 1
 ): PlayerHitPop[] => {
   const [pops, add] = usePopQueue<Hit>(history);
   const lastRef = useRef({ player, turn });
@@ -332,13 +335,15 @@ export const usePlayerHits = (
   useEffect(() => {
     const last = lastRef.current;
     const found = hitBetween(last.player, player, last.turn === turn);
-    const hit = found ? { ...found, source: source ?? undefined } : null;
+    const hit = found
+      ? { ...found, source: source ?? undefined, strikes: Math.max(1, strikes) }
+      : null;
     const gains = villainGainsBetween(last.player, player);
     const debuffs = debuffsBetween(last.player.statuses, player.statuses);
     lastRef.current = { player, turn };
     const fresh = [...(hit ? [hit] : []), ...gains, ...debuffs];
     if (fresh.length > 0) add(fresh);
-  }, [player, turn, source, add]);
+  }, [player, turn, source, strikes, add]);
 
   return pops;
 };
