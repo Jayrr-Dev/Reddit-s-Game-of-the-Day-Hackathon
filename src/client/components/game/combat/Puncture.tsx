@@ -8,6 +8,7 @@
 // touches transform and opacity (see impact-puncture in index.css).
 // ===================================================================
 
+import { memo } from 'react';
 import { seeded } from '../../../lib/seeded';
 
 // --- CONSTANTS ---
@@ -65,14 +66,18 @@ const crackPaths = (id: number): string[] => {
 };
 
 // --- COMPONENT ---
-/** Renders one arrow hole filling its box (the box sets size and spot). */
-export const Puncture = ({
+/**
+ * Renders one arrow hole filling its box (the box sets size and spot).
+ * Memoised: its shape only depends on the id, so the geometry is built
+ * once per hit, not on every re-render of the hero during a fight.
+ */
+export const Puncture = memo(function Puncture({
   id,
   className = '',
 }: {
   id: number;
   className?: string;
-}) => {
+}) {
   const hasShockRing = seeded(id, 42) < SHOCK_RING_CHANCE;
   // A silver edge under the black keeps the hole readable on dark armour.
   const edge = {
@@ -105,4 +110,4 @@ export const Puncture = ({
       <path d={rimPath(id)} fill={HOLE_FILL} fillRule="evenodd" {...edge} />
     </svg>
   );
-};
+});
