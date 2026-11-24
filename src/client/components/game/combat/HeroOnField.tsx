@@ -22,6 +22,7 @@ import {
 } from '../../../hooks/useCardDrag';
 import type { AimState, PickMarker } from '../../../hooks/useCombatControls';
 import { figureAspect, headTopShare } from '../../../lib/heroFigure';
+import { seeded } from '../../../lib/seeded';
 import { HeroFigure } from './HeroFigure';
 import { HeroPlate } from './HeroPlate';
 import { PickMark } from './PickMark';
@@ -61,6 +62,20 @@ const marchDelayMs = (unit: HeroUnit): number =>
   unit.col * MARCH_STAGGER_PER_COL_MS +
   (unit.row === 'back' ? MARCH_BACK_ROW_DELAY_MS : 0);
 
+/**
+ * Idle sway: each hero rocks on its own period, phase and strength, so
+ * the horde never moves in lockstep. Parallax: the front row (nearer)
+ * sways about twice as far as the back row.
+ */
+const SWAY_PERIOD_MIN_MS = 3200;
+const SWAY_PERIOD_SPREAD_MS = 2000;
+const SWAY_PX: Record<HeroRow, { min: number; spread: number }> = {
+  front: { min: 2.5, spread: 1.5 },
+  back: { min: 1.2, spread: 0.8 },
+};
+/** Tilt (deg) per px of sway, so the rock reads as weight shifting. */
+const SWAY_TILT_PER_PX = 0.3;
+
 /** Gap (px) kept between the plate and the top of the drawing space. */
 const PLATE_REST_PX = 2;
 
@@ -94,6 +109,25 @@ const boxStyle = (unit: HeroUnit): CSSProperties => {
 const plateStyle = (size: HeroSize): CSSProperties => ({
   bottom: `calc(${100 - (headTopShare(size) * 100) / 2}% + ${PLATE_REST_PX}px)`,
 });
+
+/**
+ * One hero's sway timing and strength, fixed by its uid. A negative
+ * delay starts it mid-cycle, so heroes that appear together still drift
+ * apart at once. PERFORMANCE: the keyframes animate transform only, on
+ * this hero's own layer (no inherited properties, no restyle).
+ */
+const swayStyle = (unit: HeroUnit): CSSProperties => {
+  const period =
+    SWAY_PERIOD_MIN_MS + seeded(unit.uid, 1) * SWAY_PERIOD_SPREAD_MS;
+  const { min, spread } = SWAY_PX[unit.row];
+  const px = min + seeded(unit.uid, 2) * spread;
+  return {
+    animationDuration: `${Math.round(period)}ms`,
+    animationDelay: `${-Math.round(seeded(unit.uid, 3) * period)}ms`,
+    ['--sway-px' as string]: px.toFixed(2),
+    ['--sway-tilt' as string]: (px * SWAY_TILT_PER_PX).toFixed(2),
+  };
+};
 
 // --- SUBCOMPONENTS ---
 /** Embers that rise off a falling hero: [left %, delay ms, drift px]. */
@@ -193,17 +227,23 @@ export const HeroOnField = ({
           style={bodyStyle}
           {...{ [HERO_ANCHOR_ATTR]: true }}
         >
+          {/* IDLE SWAY: figure, pick mark and plate rock together */}
           <div
-            className={`h-full w-full ${isBack ? 'brightness-75' : ''} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
+            className="relative h-full w-full origin-bottom animate-hero-sway"
+            style={swayStyle(unit)}
           >
-            <HeroFigure hue={hero.hue} tier={hero.tier} size={size} />
-          </div>
-          {pickMarker && <PickMark marker={pickMarker} />}
-          <div
-            className="absolute left-1/2 flex -translate-x-1/2 justify-center"
-            style={plateStyle(size)}
-          >
-            <HeroPlate unit={unit} isFocused={isFocused} />
+            <div
+              className={`h-full w-full ${isBack ? 'brightness-75' : ''} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
+            >
+              <HeroFigure hue={hero.hue} tier={hero.tier} size={size} />
+            </div>
+            {pickMarker && <PickMark marker={pickMarker} />}
+            <div
+              className="absolute left-1/2 flex -translate-x-1/2 justify-center"
+              style={plateStyle(size)}
+            >
+              <HeroPlate unit={unit} isFocused={isFocused} />
+            </div>
           </div>
         </div>
       </div>

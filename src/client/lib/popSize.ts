@@ -40,6 +40,16 @@ export const popFontPx = (
   return Math.round(clamped * scale);
 };
 
+/**
+ * How big a hit is next to the typical hit, on the same curve as the
+ * numbers: 1 for a typical hit, from about 0.6 (tiny) to 2.25 (huge).
+ * Effects use it so a big hit's mark is big too (e.g. slash length).
+ */
+export const popScale = (
+  amount: number,
+  typical: number = DEFAULT_TYPICAL_HIT
+): number => popFontPx(amount, typical) / NORMAL_FONT_PX;
+
 /** The middle value of a non-empty list. */
 const median = (values: readonly number[]): number => {
   const sorted = [...values].sort((a, b) => a - b);

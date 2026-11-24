@@ -1,12 +1,28 @@
 // ===================================================================
 // SLICE
-// One blade cut: a semi-thin black line that tapers to a point at both
-// ends, with a faint light edge so it reads on dark armour. Shared by
-// the Melee hit marks (ImpactOverlay) and Melee target picks (PickMark).
+// One blade cut: a thin red wound that tapers to a point at both ends,
+// with a dark core inside it. Shared by the Melee hit marks
+// (ImpactOverlay) and Melee target picks (PickMark).
+// PERFORMANCE: two static paths, no filters.
 // ===================================================================
 
 // --- CONSTANTS ---
-const SLICE_FILL = '#0b0507';
+const EDGE_FILL = 'var(--color-hp)';
+const CORE_FILL = '#1a0306';
+/** The core starts and ends this far in (viewBox units of 100). */
+const CORE_INSET = 14;
+/** The core's thickness as a share of the red edge's. */
+const CORE_SHARE = 0.45;
+
+// --- HELPERS ---
+/**
+ * A lens from x `from` to `to` on the centre line (y 6), `half` units
+ * thick on each side: two curves meeting in a point at each end.
+ */
+const lens = (from: number, to: number, half: number): string => {
+  const mid = (from + to) / 2;
+  return `M${from} 6Q${mid} ${6 - half * 2} ${to} 6Q${mid} ${6 + half * 2} ${from} 6Z`;
+};
 
 // --- COMPONENT ---
 /**
@@ -19,16 +35,17 @@ export const Slice = ({
 }: {
   halfThickness?: number;
   className?: string;
-}) => {
-  // A lens: two curves meeting in a point at each end.
-  const lens = `M0 6Q50 ${6 - halfThickness * 2} 100 6Q50 ${6 + halfThickness * 2} 0 6Z`;
-  return (
-    <svg
-      viewBox="0 0 100 12"
-      className={`block w-full drop-shadow-[0_0_1.5px_rgb(255_255_255/0.45)] ${className}`}
-      aria-hidden="true"
-    >
-      <path d={lens} fill={SLICE_FILL} />
-    </svg>
-  );
-};
+}) => (
+  <svg
+    viewBox="0 0 100 12"
+    className={`block w-full overflow-visible ${className}`}
+    aria-hidden="true"
+  >
+    {/* RED EDGE, THEN THE DARK CORE INSIDE IT */}
+    <path d={lens(0, 100, halfThickness)} fill={EDGE_FILL} />
+    <path
+      d={lens(CORE_INSET, 100 - CORE_INSET, halfThickness * CORE_SHARE)}
+      fill={CORE_FILL}
+    />
+  </svg>
+);

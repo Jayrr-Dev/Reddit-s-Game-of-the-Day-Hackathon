@@ -81,6 +81,7 @@
   --animate-hit-pop: hit-pop 1400ms ease-out forwards;
   --animate-gain-float: gain-float 1100ms ease-out forwards;
   --animate-hero-lunge: hero-lunge 420ms ease-in-out;
+  --animate-hero-sway: hero-sway 4s ease-in-out infinite;
   --animate-hero-death: hero-death 520ms ease-in forwards;
   --animate-tooltip-in: tooltip-in 120ms ease-out;
   --animate-speed-lines: speed-lines 560ms ease-out forwards;
@@ -316,6 +317,20 @@
     }
   }
 
+  /* A hero's idle sway: shifts its weight side to side. Each hero sets
+     its own --sway-px, --sway-tilt, duration and delay (HeroOnField). */
+  @keyframes hero-sway {
+    0%,
+    100% {
+      transform: translateX(calc(var(--sway-px, 2) * -1px))
+        rotate(calc(var(--sway-tilt, 0.6) * -1deg));
+    }
+    50% {
+      transform: translateX(calc(var(--sway-px, 2) * 1px))
+        rotate(calc(var(--sway-tilt, 0.6) * 1deg));
+    }
+  }
+
   /* A hero's attack: winds up, lunges toward the villain (down and
      bigger), then settles back. Scale composes with the body's own
      centring translate. */
@@ -496,6 +511,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .animate-hero-sway {
+    animation: none;
+  }
   .parallax-layer {
     animation: none;
     transition: none;

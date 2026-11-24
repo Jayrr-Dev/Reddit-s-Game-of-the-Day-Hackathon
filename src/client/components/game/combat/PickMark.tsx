@@ -3,8 +3,8 @@
 // The red mark on a hero picked by a held Target N card, drawn over the
 // body until the card fires:
 //   crosshair  Range and Magic cards (a scope ring with four ticks)
-//   slash      Melee cards (thin black offset slices: two, plus one
-//              per repeat pick, up to three)
+//   slash      Melee cards (thin red offset slices: one per pick,
+//              up to three)
 // A hero picked more than once also shows "xN". Each new pick re-keys
 // the mark, so it snaps in again.
 // ===================================================================
@@ -17,6 +17,8 @@ import { Slice } from './Slice';
 const MAX_SLASHES = 3;
 /** How far (px, down and right) each extra slash sits from the last. */
 const SLASH_OFFSET_PX = 7;
+/** Each pick's slice angle (deg), clearly apart so the cuts cross. */
+const SLASH_ANGLES = [-40, 25, -5] as const;
 const STROKE = 'var(--color-hp)';
 
 // --- SUBCOMPONENTS ---
@@ -43,11 +45,11 @@ const Crosshair = () => (
 );
 
 /**
- * Thin black slices, each offset down and to the side of the last, at
- * slightly different angles and lengths: a quick flurry of cuts.
+ * One thin red slice per pick, each offset down and to the side of
+ * the last, at slightly different angles and lengths.
  */
 const Slashes = ({ count }: { count: number }) => {
-  const shown = Math.min(count + 1, MAX_SLASHES);
+  const shown = Math.min(count, MAX_SLASHES);
   return (
     <div className="relative h-full w-full">
       {Array.from({ length: shown }, (_, index) => (
@@ -56,7 +58,7 @@ const Slashes = ({ count }: { count: number }) => {
           className="absolute left-1/2 top-1/2"
           style={{
             width: `${92 - index * 10}%`,
-            transform: `translate(-50%, -50%) translate(${(index - (shown - 1) / 2) * SLASH_OFFSET_PX}px, ${(index - (shown - 1) / 2) * SLASH_OFFSET_PX}px) rotate(${-40 + index * 9}deg)`,
+            transform: `translate(-50%, -50%) translate(${(index - (shown - 1) / 2) * SLASH_OFFSET_PX}px, ${(index - (shown - 1) / 2) * SLASH_OFFSET_PX}px) rotate(${SLASH_ANGLES[index] ?? 0}deg)`,
           }}
         >
           <Slice halfThickness={2.4 - index * 0.3} />
