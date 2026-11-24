@@ -2,17 +2,25 @@
 // HIT NUMBERS
 // The damage numbers that punch in over the hero that was hit, then
 // drift up and fade (see --animate-hit-pop). Several hits on one target
-// stack upward instead of overlapping. The number is the whole hit;
+// pile up like in action games: each lands near the same spot with a
+// small random nudge and tilt, the newest drawn on top, while the ones
+// under it dim so the fresh number always reads first. The number is the whole hit;
 // the part a Guard soaked up shows small beside it with a shield. What a hero
 // gains from its own move (heal, Shroud, Wrath) pops as "+N" + icon.
 // ===================================================================
 
+import type { CSSProperties } from 'react';
 import type { CardType } from '../../../../shared/game/types';
 import { CARD_LOOK, POP_LOOK } from '../../../content/visuals';
 import type { HitPop, PlayerHitPop, PopKind } from '../../../hooks/useHitPops';
 import { ImpactOverlay } from './ImpactOverlay';
 import { popFontPx } from '../../../lib/popSize';
+import { spread } from '../../../lib/seeded';
 import { Glyph } from '../../ui/Glyph';
+
+// --- TYPES ---
+/** Where a pile sits on its anchor point. */
+type PileAlign = 'center' | 'start';
 
 // --- CONSTANTS ---
 /**
@@ -33,6 +41,25 @@ const toneOf = (source?: CardType): string =>
  * numbers read a little brighter than the card glow they match.
  */
 const TONE_STRENGTH = '78%';
+
+/** How far (px) a piled number may land from its spot, each way. */
+const PILE_JITTER_X_PX = 8;
+const PILE_JITTER_Y_PX = 5;
+/**
+ * Each later hit in a burst steps this far (px) right and up from the
+ * last, so a fast multi-hit cascades into a readable, overlapping run
+ * instead of landing exactly on itself. The run restarts every
+ * PILE_RUN hits so long bursts stay near the target.
+ */
+const PILE_STEP_X_PX = 13;
+const PILE_STEP_Y_PX = 9;
+const PILE_RUN = 4;
+/** How far (deg) a piled number may tilt, each way. */
+const PILE_TILT_DEG = 7;
+/** Gains sit this far (px) above the hits so the two never collide. */
+const GAIN_LIFT_PX = 34;
+/** How much a number covered by newer ones dims. */
+const BURIED_OPACITY = 0.55;
 
 /** Blocked damage is drawn smaller than damage dealt. */
 const BLOCKED_SCALE = 0.65;
@@ -147,16 +174,63 @@ const PopLine = ({ hit }: { hit: PlayerHitPop }) =>
   );
 
 /**
- * Several pops on one target, stacked: the newest sits at the bottom
- * and pushes older ones up while they fade, so numbers never overlap.
+ * Where one pop lands in the pile: its step in the cascade, plus a
+ * stable nudge and tilt from its id (so it never jumps on re-render).
+ * Gains float a little higher.
  */
-export const HitStack = ({ hits }: { hits: readonly PlayerHitPop[] }) => (
-  <div className="flex flex-col-reverse items-center">
-    {[...hits].reverse().map((hit) => (
-      <PopLine key={hit.id} hit={hit} />
-    ))}
-  </div>
-);
+const pileStyleOf = (
+  hit: PlayerHitPop,
+  index: number,
+  align: PileAlign
+): CSSProperties => {
+  // CASCADE: centred runs step from left of the spot to right of it;
+  // from the left edge they only step right, so nothing is cut off.
+  const step = index % PILE_RUN;
+  const centring = align === 'center' ? (PILE_RUN - 1) / 2 : 0;
+  const nudge = spread(hit.id, 1) * PILE_JITTER_X_PX;
+  const dx = (step - centring) * PILE_STEP_X_PX + nudge;
+  const base = align === 'center' ? '-50%' : '0px';
+  const lift = hit.kind === 'hit' ? 0 : GAIN_LIFT_PX;
+  const dy =
+    spread(hit.id, 2) * PILE_JITTER_Y_PX - step * PILE_STEP_Y_PX - lift;
+  const tilt = spread(hit.id, 3) * PILE_TILT_DEG;
+  return {
+    transform: `translate(calc(${base} + ${dx}px), ${dy}px) rotate(${tilt}deg)`,
+  };
+};
+
+/**
+ * Several pops on one target, piled: each is placed at the same spot
+ * (plus its nudge), later ones on top. A number with a newer one over
+ * it dims, so the stack reads newest-first like an action game's.
+ */
+export const HitStack = ({
+  hits,
+  align = 'center',
+}: {
+  hits: readonly PlayerHitPop[];
+  /** Centre the pile on its anchor, or start it there (near an edge). */
+  align?: PileAlign;
+}) => {
+  const newestId = hits[hits.length - 1]?.id;
+  return (
+    <div className="relative">
+      {hits.map((hit, index) => (
+        <div
+          key={hit.id}
+          className={`absolute bottom-0 whitespace-nowrap transition-opacity duration-150 ${align === 'center' ? 'left-1/2' : 'left-0'}`}
+          style={{
+            ...pileStyleOf(hit, index, align),
+            zIndex: index,
+            opacity: hit.id === newestId ? 1 : BURIED_OPACITY,
+          }}
+        >
+          <PopLine hit={hit} />
+        </div>
+      ))}
+    </div>
+  );
+};
 
 /** Groups pops by hero, in the order they happened. */
 const popsByHero = (pops: readonly HitPop[]): HitPop[][] => [

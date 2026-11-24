@@ -284,21 +284,29 @@
   /* A damage number: punches in, lingers, then floats up while it
      shrinks and fades. */
   @keyframes hit-pop {
+    /* PUNCH: slams in big, undershoots, settles (about 220ms) */
     0% {
       opacity: 0;
-      transform: scale(1.8);
+      transform: scale(2.1);
     }
-    10% {
+    6% {
       opacity: 1;
+      transform: scale(0.82);
+    }
+    11% {
+      transform: scale(1.12);
+    }
+    16% {
       transform: scale(1);
     }
+    /* HOLD, THEN DRIFT UP, SHRINK AND FADE */
     55% {
       opacity: 1;
-      transform: translateY(-4px) scale(1);
+      transform: translateY(-6px) scale(1);
     }
     100% {
       opacity: 0;
-      transform: translateY(-36px) scale(0.55);
+      transform: translateY(-40px) scale(0.55);
     }
   }
 

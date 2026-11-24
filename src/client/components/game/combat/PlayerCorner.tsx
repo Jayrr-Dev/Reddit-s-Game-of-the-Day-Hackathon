@@ -57,9 +57,9 @@ export const PlayerCorner = ({
       <span className="absolute -bottom-1 left-[calc(100%-1.25rem)] flex h-7 min-w-8 items-center justify-center px-1.5 bg-surface-raised pb-1 font-display text-sm font-black text-ink ring-1 ring-accent/70 [clip-path:polygon(0_0,100%_0,100%_60%,50%_100%,0_60%)]">
         <span className="num-center">{player.hp}</span>
       </span>
-      {/* HITS STACK UP ABOVE THE PORTRAIT, GROWING RIGHT (AWAY FROM THE EDGE) */}
+      {/* HITS PILE UP ABOVE THE PORTRAIT, NUDGED RIGHT (AWAY FROM THE EDGE) */}
       <div className="pointer-events-none absolute bottom-full left-1 z-40 mb-1">
-        <HitStack hits={hits} />
+        <HitStack hits={hits} align="start" />
       </div>
     </div>
   );
