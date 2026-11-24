@@ -17,7 +17,9 @@ import { getHero } from './heroes.ts';
 import { foldImbuedDamage, imbuedEffects } from './imbue.ts';
 import {
   ELEMENT_ON_HIT,
+  ON_OFF_BUFFS,
   OUT_OF_RANGE_HIT_CHANCE,
+  SHARPSHOOTER_DAMAGE_FACTOR,
   OUT_OF_RANGE_ROW,
   EXHAUST_USES,
 } from './rules.ts';
@@ -52,6 +54,9 @@ import type {
  * bold glossary word also shows its icon, see Tooltip).
  */
 export type StatusInfo = { label: string; description: string };
+
+/** Sharpshooter's Range boost as a percentage ("+20%"). */
+export const SHARPSHOOTER_BONUS_TEXT = `+${Math.round((SHARPSHOOTER_DAMAGE_FACTOR - 1) * 100)}%`;
 
 export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   guard: {
@@ -121,6 +126,10 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   reinforce: {
     label: 'Reinforce',
     description: 'Every **Guard** your cards give is this much bigger',
+  },
+  sharpshooter: {
+    label: 'Sharpshooter',
+    description: `Your shots ignore **Out of Range**\nEvery **Range** hit deals **${SHARPSHOOTER_BONUS_TEXT}**`,
   },
   aloft: {
     label: 'Aloft',
@@ -216,7 +225,7 @@ export const describeCardEffect = (
     case 'protect':
       return STATUS_INFO.protection.label;
     case 'buff':
-      return `${STATUS_INFO[effect.buff].label} ${effect.amount}${durationSuffix(effect.duration)}`;
+      return `${STATUS_INFO[effect.buff].label}${buffAmountText(effect)}${durationSuffix(effect.duration)}`;
     case 'draw':
       return `Draw ${effect.amount}`;
     case 'energy':
@@ -281,6 +290,11 @@ export const DURATION_INFO: Record<Duration, StatusInfo> = {
     description: 'For the whole fight',
   },
 };
+
+/** A buff's stacks as card text (" 3"), or nothing for an on/off buff. */
+const buffAmountText = (
+  effect: Extract<CardEffect, { kind: 'buff' }>
+): string => (ON_OFF_BUFFS.has(effect.buff) ? '' : ` ${effect.amount}`);
 
 /** " this turn" after a timed gift; nothing for a lasting one. */
 const durationSuffix = (duration: Duration | undefined): string =>
@@ -413,7 +427,7 @@ export const imbueTag = (gift: ImbueGift): string => {
     case 'wrath':
       return `${STATUS_INFO[effect.kind].label} ${effect.amount}`;
     case 'buff':
-      return `${STATUS_INFO[effect.buff].label} ${effect.amount}`;
+      return `${STATUS_INFO[effect.buff].label}${buffAmountText(effect)}`;
     case 'enfeeble':
       return 'Enfeeble';
     case 'brace':

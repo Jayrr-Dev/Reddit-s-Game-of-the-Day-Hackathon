@@ -20,6 +20,7 @@ import {
 } from './battlefield.ts';
 import { type CardId } from './cards.ts';
 import {
+  aimHitChance,
   endTurn,
   endTurnSteps,
   hasLongRangePassive,
@@ -270,6 +271,41 @@ void test('Range and Magic shots into the Horizon land about half the time', () 
   }
 });
 
+/** Like shotsIntoHorizon, with the villain already a Sharpshooter. */
+const sharpshotsIntoHorizon = (cardId: CardId, seeds: number) =>
+  Array.from({ length: seeds }, (_, index) => {
+    const base = fightAt([['priest', 'horizon', 1]], [cardId], index + 1);
+    const state = {
+      ...base,
+      player: {
+        ...base.player,
+        statuses: { ...base.player.statuses, sharpshooter: 1 },
+      },
+    };
+    const after = playCard(state, 0, unitAt(state, 0).uid);
+    return (after.heroes[0]?.missedShots ?? 0) > 0;
+  });
+
+void test('Sharpshooter shots into the Horizon never miss', () => {
+  for (const cardId of ['spiteBolt', 'hexfire'] as CardId[])
+    assert.ok(!sharpshotsIntoHorizon(cardId, 60).some(Boolean), cardId);
+});
+
+void test("the aim shows a shot's hit chance: 50% into Line 3, 100% with Sharpshooter", () => {
+  const state = fightAt([['priest', 'horizon', 1]], ['spiteBolt', 'backhand']);
+  const priest = unitAt(state, 0);
+  assert.equal(aimHitChance(state, 0, priest), OUT_OF_RANGE_HIT_CHANCE);
+  assert.equal(aimHitChance(state, 1, priest), 1, 'Melee is never a shot');
+  const sharp = {
+    ...state,
+    player: {
+      ...state.player,
+      statuses: { ...state.player.statuses, sharpshooter: 1 },
+    },
+  };
+  assert.equal(aimHitChance(sharp, 0, priest), 1);
+});
+
 void test('the same shot into the Backline always lands', () => {
   const state = fightAt([['priest', 'back', 1]], ['spiteBolt']);
   const after = playCard(state, 0, 0);
@@ -418,12 +454,40 @@ void test('a Ballista bolt knocks you back 1 line (no walking in after)', () => 
 });
 
 void test('the Siege Bolt hits harder and knocks you back 2 lines', () => {
+  const siegeIndex = getHero('ballista').moves.findIndex(
+    (move) => move.isSignature
+  );
   const plain = endTurn(ballistaFight(0));
-  const siege = endTurn(ballistaFight(2));
-  const start = ballistaFight(2).player.hp;
+  const siege = endTurn(ballistaFight(siegeIndex));
+  const start = ballistaFight(siegeIndex).player.hp;
   assert.ok(start - siege.player.hp > start - plain.player.hp);
   assert.equal(unitAt(siege, 0).row, 'horizon');
-  assert.equal(getHero('ballista').moves[2]?.isSignature, true);
+});
+
+void test('the Ballista also looses plain arrows, fire and barbed bolts', () => {
+  const { moves } = getHero('ballista');
+  const isKnockBack = (move: (typeof moves)[number]) =>
+    move.effects.some((effect) => effect.kind === 'knockBack');
+  const shoots = (move: (typeof moves)[number]) =>
+    move.effects.some((effect) => effect.kind === 'attack');
+  assert.ok(
+    moves.some((move) => shoots(move) && !isKnockBack(move)),
+    'a plain shot'
+  );
+  assert.ok(
+    moves.some(
+      (move) =>
+        shoots(move) && move.effects.some((effect) => effect.kind === 'burn')
+    ),
+    'a fire bolt'
+  );
+  assert.ok(
+    moves.some(
+      (move) =>
+        shoots(move) && move.effects.some((effect) => effect.kind === 'bleed')
+    ),
+    'a barbed bolt'
+  );
 });
 
 void test('the Ballista scenario: tanks in front, archers, 2 Ballistas', () => {

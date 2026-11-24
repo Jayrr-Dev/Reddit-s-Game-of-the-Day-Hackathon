@@ -276,6 +276,14 @@ export const CARDS = {
     REMOVES
   ),
   deadeye: card('Deadeye', 'buff', 1, 'common', [buff('hone', 3)], REMOVES),
+  sharpshooter: card(
+    'Sharpshooter',
+    'buff',
+    1,
+    'uncommon',
+    [buff('sharpshooter', 1)],
+    REMOVES
+  ),
   // TIMED BUFFS: cheaper or bigger, but they wear off
   steadyAim: card('Steady Aim', 'buff', 0, 'common', [
     buff('hone', 4, 'action'),

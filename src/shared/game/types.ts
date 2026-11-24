@@ -30,6 +30,8 @@ import type { RngState } from './rng.ts';
  * - surge:      adds this much to every Magic hit
  * - hone:   adds this much to every Range hit
  * - reinforce: adds this much to every Guard a card gives
+ * - sharpshooter: on or off; your shots ignore Out of Range and Range
+ *   hits deal SHARPSHOOTER_DAMAGE_FACTOR times as much
  * Momentum comes from charging: while above 0 the next Melee card deals
  * 50% more damage (every hit of it), then it is spent; it is lost at
  * the end of the turn if no Melee card used it.
@@ -37,7 +39,7 @@ import type { RngState } from './rng.ts';
  * aim at or hit the hero; its next move comes down from the sky and
  * clears it.
  */
-export type BuffId = 'might' | 'surge' | 'hone' | 'reinforce';
+export type BuffId = 'might' | 'surge' | 'hone' | 'reinforce' | 'sharpshooter';
 export type StatusId =
   | 'hex'
   | 'poison'

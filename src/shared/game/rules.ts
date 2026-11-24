@@ -4,7 +4,13 @@
 // nowhere else, so the engine, the UI and the server always agree.
 // ===================================================================
 
-import type { CardType, HeroRow, MagicElement, StatusId } from './types.ts';
+import type {
+  BuffId,
+  CardType,
+  HeroRow,
+  MagicElement,
+  StatusId,
+} from './types.ts';
 
 // --- THE VILLAIN ---
 export const PLAYER_MAX_HP = 60;
@@ -21,6 +27,10 @@ export const MAX_IMBUES_PER_CARD = 3;
 export const CHARGE_COST = 1;
 /** Momentum (gained by charging) multiplies the next Melee card's damage. */
 export const MOMENTUM_DAMAGE_FACTOR = 1.5;
+/** Sharpshooter multiplies every Range hit (and its shots never miss). */
+export const SHARPSHOOTER_DAMAGE_FACTOR = 1.2;
+/** Buffs that are on or off: their stacks are never printed or shown. */
+export const ON_OFF_BUFFS: ReadonlySet<BuffId> = new Set(['sharpshooter']);
 /**
  * Energy it costs the villain to Back Step: with everyone in the front
  * row, the field falls back BACK_STEP_ROWS row (out of melee reach).
@@ -111,6 +121,7 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   surge: false,
   hone: false,
   reinforce: false,
+  sharpshooter: false,
   momentum: false,
   protection: false,
   aloft: false,

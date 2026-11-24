@@ -7,7 +7,8 @@
 // letting go would play the card, and stays grey when it would not.
 // When the play would kill the locked hero, a skull replaces the ring.
 // When the locked hero boosts the card's damage (a long-range shot), the
-// bonus ("×1.3") shows just right of the tip.
+// bonus ("×1.3") shows just right of the tip. When a shot may miss (Out
+// of Range), its hit chance ("50% hit") shows just under the tip.
 // Drawn in viewport pixels on a fixed, click-through layer.
 // ===================================================================
 
@@ -23,6 +24,8 @@ export type AimArrowProps = {
   isLethal?: boolean;
   /** The damage multiplier this target gives (1 = none, no label). */
   damageFactor?: number;
+  /** The chance each shot lands on this target (1 = sure, no label). */
+  hitChance?: number;
   /** 0 = full arrow; toward 1 it shrinks into the card and fades out. */
   retract?: number;
   /**
@@ -56,6 +59,8 @@ const RETRACT_MIN_SCALE = 0.3;
 const LOCK_RING_RADIUS = 16;
 /** Gap (px) between the tip's ring and the bonus label. */
 const BONUS_GAP_PX = 6;
+/** Gap (px) between the tip's ring and the hit-chance label below it. */
+const CHANCE_GAP_PX = 12;
 
 // --- GEOMETRY ---
 /** How far along the rise (share of the height) the bend sits. */
@@ -240,6 +245,22 @@ const BonusLabel = ({ at, factor }: { at: Point; factor: number }) => (
   </text>
 );
 
+/** A shot's chance to land, under the tip, e.g. "50% hit". */
+const ChanceLabel = ({ at, chance }: { at: Point; chance: number }) => (
+  <text
+    x={at.x}
+    y={at.y + LOCK_RING_RADIUS + CHANCE_GAP_PX}
+    textAnchor="middle"
+    dominantBaseline="central"
+    className="fill-range font-display text-sm font-black [paint-order:stroke_fill]"
+    stroke="black"
+    strokeWidth="3"
+    strokeLinejoin="round"
+  >
+    {`${Math.round(chance * 100)}% hit`}
+  </text>
+);
+
 // --- COMPONENT ---
 /** Renders the tapered arrow, its head and (when live) a ring or skull. */
 export const AimArrow = ({
@@ -248,6 +269,7 @@ export const AimArrow = ({
   isLive,
   isLethal = false,
   damageFactor = 1,
+  hitChance = 1,
   retract = 0,
   arc = 'rise',
   hasLockRing = true,
@@ -283,6 +305,7 @@ export const AimArrow = ({
       {isLive && damageFactor !== 1 && (
         <BonusLabel at={to} factor={damageFactor} />
       )}
+      {isLive && hitChance < 1 && <ChanceLabel at={to} chance={hitChance} />}
       {isLive && !isLethal && hasLockRing && (
         <circle
           cx={to.x}

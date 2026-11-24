@@ -14,6 +14,7 @@ import {
   HEX_EMPOWERED_MULTIPLIER,
   HEX_GROWTH,
   MOMENTUM_DAMAGE_FACTOR,
+  SHARPSHOOTER_DAMAGE_FACTOR,
   TIERED_CUT_BY_TIER,
   TIERED_MAX_TIER,
   STATUS_IS_AFFLICTION,
@@ -40,6 +41,7 @@ export const NO_STATUSES: Statuses = {
   surge: 0,
   hone: 0,
   reinforce: 0,
+  sharpshooter: 0,
   momentum: 0,
   protection: 0,
   enfeeble: 0,
@@ -80,18 +82,30 @@ export const typeBonus = (attacker: Combatant, type?: CardType): number => {
 export const hasMomentumFor = (attacker: Combatant, type?: CardType) =>
   type === 'melee' && attacker.statuses.momentum > 0;
 
+/** True when a card of `type` is boosted by the attacker's Sharpshooter. */
+export const hasSharpshooterFor = (attacker: Combatant, type?: CardType) =>
+  type === 'range' && attacker.statuses.sharpshooter > 0;
+
 /**
- * The attacker's own damage multiplier for a card type: Momentum
- * (Melee only) times Weaken times Enfeeble. 1 when none applies.
+ * The attacker's own boosts for a card type: Momentum (Melee) and
+ * Sharpshooter (Range). 1 when none applies.
+ */
+const boostFactorOf = (attacker: Combatant, type?: CardType): number =>
+  (hasMomentumFor(attacker, type) ? MOMENTUM_DAMAGE_FACTOR : 1) *
+  (hasSharpshooterFor(attacker, type) ? SHARPSHOOTER_DAMAGE_FACTOR : 1);
+
+/**
+ * The attacker's own damage multiplier for a card type: its boosts
+ * (Momentum, Sharpshooter) times Weaken times Enfeeble. 1 when none.
  */
 export const damageFactorOf = (
   attacker: Combatant,
   type?: CardType
 ): number => {
-  const momentum = hasMomentumFor(attacker, type) ? MOMENTUM_DAMAGE_FACTOR : 1;
+  const boost = boostFactorOf(attacker, type);
   const weaken = attacker.statuses.weaken > 0 ? WEAKEN_DAMAGE_FACTOR : 1;
   const enfeeble = 1 - tierCut(attacker.statuses.enfeeble);
-  return momentum * weaken * enfeeble;
+  return boost * weaken * enfeeble;
 };
 
 /**
@@ -110,9 +124,8 @@ export const buffedAttackDamage = (
   attacker: Combatant,
   type?: CardType
 ): number => {
-  const momentum = hasMomentumFor(attacker, type) ? MOMENTUM_DAMAGE_FACTOR : 1;
   const withBuffs = base + attacker.statuses.wrath + typeBonus(attacker, type);
-  return Math.max(0, Math.floor(withBuffs * momentum));
+  return Math.max(0, Math.floor(withBuffs * boostFactorOf(attacker, type)));
 };
 
 export const attackDamage = (

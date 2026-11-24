@@ -40,7 +40,8 @@ export type GlyphName =
   | 'battleAxe'
   | 'sprint'
   | 'potion'
-  | 'plus';
+  | 'plus'
+  | 'targeting';
 
 export type GlyphProps = {
   name: GlyphName;

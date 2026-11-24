@@ -117,6 +117,14 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     ],
     hasGlow: true,
   },
+  /** Sharpshooter: the crosshair flashes and arrows loose upward. */
+  sharpshooter: {
+    layers: [
+      { shape: 'icon', motion: 'flash', count: 1, size: 42 },
+      { shape: 'arrow', motion: 'rise', count: 3, size: 16 },
+    ],
+    hasGlow: true,
+  },
   /** Reinforce (+Guard from cards): the shield flashes, boosted up. */
   reinforce: {
     layers: [

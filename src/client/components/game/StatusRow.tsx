@@ -21,6 +21,7 @@ import { createPortal } from 'react-dom';
 import {
   OUT_OF_RANGE_INFO,
   PASSIVE_INFO,
+  SHARPSHOOTER_BONUS_TEXT,
   STATUS_INFO,
 } from '../../../shared/game/describe';
 import { hexAfterTurn, hexBurnAmount } from '../../../shared/game/combatant';
@@ -82,6 +83,7 @@ const STATUS_ORDER: readonly StatusId[] = [
   'wrath',
   'might',
   'hone',
+  'sharpshooter',
   'momentum',
   // MAGIC
   'surge',
@@ -106,6 +108,7 @@ const POPOVER_MIN_ROOM_ABOVE = 200;
  */
 const chipText = (id: StatusId, value: number): string => {
   if (id === 'momentum') return '+50%';
+  if (id === 'sharpshooter') return SHARPSHOOTER_BONUS_TEXT;
   if (TIERED_STATUSES.has(id)) return TIER_NUMERALS[value] ?? '';
   return id === 'aloft' ? '' : String(value);
 };

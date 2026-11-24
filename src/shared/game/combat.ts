@@ -907,6 +907,34 @@ const isPlayWith = (
 };
 
 /**
+ * True when the card in that slot shoots past Out of Range: it has
+ * Longrange (printed or imbued) or the villain is a Sharpshooter.
+ */
+const ignoresOutOfRange = (state: CombatState, handIndex: number): boolean =>
+  isPlayWith(state, handIndex, 'longRange') ||
+  state.player.statuses.sharpshooter > 0;
+
+/**
+ * The chance (0..1) that each shot of the card in `handIndex` lands on
+ * `unit`: OUT_OF_RANGE_HIT_CHANCE for a Range or Magic shot touching the
+ * Horizon (see isOutOfRangeShot), else 1. Shown on the aim arrow.
+ */
+export const aimHitChance = (
+  state: CombatState,
+  handIndex: number,
+  unit: HeroUnit
+): number => {
+  const cardId = state.hand[handIndex];
+  if (cardId === undefined) return 1;
+  const mayMiss = isOutOfRangeShot(
+    getCard(cardId).type,
+    unit.row,
+    ignoresOutOfRange(state, handIndex)
+  );
+  return mayMiss ? OUT_OF_RANGE_HIT_CHANCE : 1;
+};
+
+/**
  * The plan for playing the card in `handIndex`, or null when the play
  * is illegal (unplayable, or an Imbue card without a slot it may imbue).
  */
@@ -929,7 +957,7 @@ const planPlay = (
     imbued: imbuedEffects(imbuesAt(state, handIndex)),
     slot: asked > handIndex ? asked - 1 : asked,
     isPiercing: isPlayWith(state, handIndex, 'piercing'),
-    isLongRange: isPlayWith(state, handIndex, 'longRange'),
+    isLongRange: ignoresOutOfRange(state, handIndex),
   };
 };
 
@@ -1065,7 +1093,7 @@ export const wouldFell = (
     imbued: imbuedEffects(imbuesAt(state, handIndex)),
     slot: -1,
     isPiercing: isPlayWith(state, handIndex, 'piercing'),
-    isLongRange: isPlayWith(state, handIndex, 'longRange'),
+    isLongRange: ignoresOutOfRange(state, handIndex),
   };
   const beats = cardBeats(payForCard(state, handIndex), cardId, plan);
   const target = beats.at(-1)?.heroes.find((unit) => unit.uid === uid);

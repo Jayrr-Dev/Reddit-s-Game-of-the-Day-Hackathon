@@ -44,6 +44,7 @@ import { getCard, type CardId } from '../../shared/game/cards';
 import {
   autoTargets,
   canPlayCard,
+  aimHitChance,
   playDamageFactor,
   targetsFor,
   wouldFell,
@@ -309,6 +310,9 @@ export const useCombatControls = (
     hoverUnit && dragCard !== undefined
       ? playDamageFactor(combat.player, hoverUnit, getCard(dragCard))
       : 1;
+  /** The chance each shot lands on the locked hero (0.5 Out of Range). */
+  const aimChance =
+    hoverUnit && drag ? aimHitChance(combat, drag.handIndex, hoverUnit) : 1;
   /**
    * PREVIEW: while a card is raised (tapped, not dragged), the heroes a
    * second tap would hit (see autoTargets), each once, and which of
@@ -454,6 +458,7 @@ export const useCombatControls = (
     isDropLive,
     isLethal,
     aimFactor,
+    aimChance,
     autoAimUids,
     isAutoAimLethal,
     arrowRetract,

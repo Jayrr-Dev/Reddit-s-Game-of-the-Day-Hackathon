@@ -7,6 +7,7 @@
 import { getCard } from './cards.ts';
 import { canPlayCard, targetsFor } from './combat.ts';
 import { describeHeroIntent } from './describe.ts';
+import { imbueSlotsFor } from './imbue.ts';
 import {
   createRun,
   isRunOver,
@@ -31,6 +32,15 @@ const weakestUid = (combat: CombatState, handIndex: number): number => {
   const cardId = combat.hand[handIndex];
   const legal = cardId === undefined ? [] : targetsFor(combat, cardId);
   return [...legal].sort((a, b) => a.hp - b.hp)[0]?.uid ?? 0;
+};
+
+/**
+ * For an Imbue card, the first card in hand it may imbue (as the play's
+ * imbueIndex); nothing for any other card.
+ */
+const imbueTargetOf = (combat: CombatState, handIndex: number) => {
+  const [slot] = imbueSlotsFor(combat, handIndex);
+  return slot === undefined ? {} : { imbueIndex: slot };
 };
 
 /** Picks a hand slot to play, preferring guard when attacked. */
@@ -68,6 +78,8 @@ export const botAction = (state: RunState): RunAction => {
             type: 'playCard',
             handIndex,
             targetUid: weakestUid(phase.combat, handIndex),
+            // An Imbue card imbues the first card that can take it.
+            ...imbueTargetOf(phase.combat, handIndex),
           };
     }
     case 'reward':

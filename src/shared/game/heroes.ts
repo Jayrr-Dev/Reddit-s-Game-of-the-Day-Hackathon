@@ -38,6 +38,7 @@ const hex = (amount: number): HeroEffect => ({ kind: 'hex', amount });
 const poison = (amount: number): HeroEffect => ({ kind: 'poison', amount });
 const burn = (amount: number): HeroEffect => ({ kind: 'burn', amount });
 const weaken = (amount: number): HeroEffect => ({ kind: 'weaken', amount });
+const bleed = (amount: number): HeroEffect => ({ kind: 'bleed', amount });
 const guard = (
   amount: number,
   who: 'self' | 'allies' = 'self'
@@ -207,7 +208,10 @@ export const HEROES = {
     BACK,
     [
       move('Heavy Bolt', shoot(9), knockBack(1)),
+      move('Arrow Volley', shoot(4, 3)),
+      move('Fire Bolt', shoot(7), burn(4)),
       move('Winch Back', guard(6)),
+      move('Barbed Bolt', shoot(7), bleed(4)),
       signature(move('Siege Bolt', shoot(16), knockBack(2))),
     ],
     ['longRange', 'anchored']

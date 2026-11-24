@@ -406,6 +406,7 @@ export const CombatView = ({
               isLive={controls.isDropLive}
               isLethal={controls.isLethal}
               damageFactor={controls.aimFactor}
+              hitChance={controls.aimChance}
               retract={controls.arrowRetract}
             />
           )}
