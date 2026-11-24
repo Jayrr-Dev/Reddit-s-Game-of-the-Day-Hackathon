@@ -3,8 +3,8 @@
 // Eyebrows, eyes and a mouth for a bare-faced hero, in the same flat,
 // hard-edged polygons as the rest of the figure. Each hero has its own
 // features (an eye cut, a brow and a resting mouth, see HERO_LOOKS) so
-// it reads as a personality at a glance; its mood (attacking, aimed at,
-// hurt, low on HP) then bends the brows and swaps the mouth and eyes.
+// it reads as a personality at a glance; its mood (attacking, hurt,
+// low on HP) then bends the brows and swaps the mouth and eyes.
 //
 // Every shape is written once for the LEFT side in "face units" (about
 // a tenth of the head radius), with +x pointing in toward the nose and
@@ -35,7 +35,7 @@ export type FacePlacement = {
 };
 
 /** What the mood does to the mouth: the hero's own, or a mood shape. */
-type MoodMouth = MouthStyle | 'grit' | 'gasp';
+type MoodMouth = MouthStyle | 'grit';
 
 // --- CONSTANTS: COLOURS ---
 const FEATURE_FILL = '#1a1014';
@@ -146,7 +146,6 @@ const MOOD_BROW: Record<HeroMood, { tilt: number; lift: number }> = {
   calm: { tilt: 0, lift: 0 },
   fierce: { tilt: 1.5, lift: 0.3 },
   wince: { tilt: 1.1, lift: 0.4 },
-  alarmed: { tilt: -1.3, lift: -0.7 },
   worried: { tilt: -1.1, lift: -0.2 },
 };
 
@@ -154,7 +153,6 @@ const MOOD_BROW: Record<HeroMood, { tilt: number; lift: number }> = {
 const MOOD_MOUTH: Record<Exclude<HeroMood, 'calm'>, MoodMouth> = {
   fierce: 'grit',
   wince: 'grit',
-  alarmed: 'gasp',
   worried: 'frown',
 };
 
@@ -196,15 +194,6 @@ const MOUTH_SHAPES: Record<Exclude<MoodMouth, 'grit'>, readonly Point[]> = {
     [0.9, -0.25],
     [0.9, 0.35],
     [-0.9, 0.35],
-  ],
-  // A small open "o".
-  gasp: [
-    [-0.6, -0.9],
-    [0.6, -0.9],
-    [0.9, 0],
-    [0.6, 0.9],
-    [-0.6, 0.9],
-    [-0.9, 0],
   ],
 };
 

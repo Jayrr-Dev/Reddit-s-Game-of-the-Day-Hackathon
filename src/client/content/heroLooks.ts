@@ -73,11 +73,10 @@ export type FaceFeatures = { eyes: EyeCut; brow: BrowStyle; mouth: MouthStyle };
  * How a hero feels right now, layered over its features:
  *   calm     its own resting face
  *   fierce   attacking: brows slam down, teeth bared
- *   alarmed  being aimed at: brows up, mouth a small "o"
  *   worried  low on HP: brows up, frowning
  *   wince    just hit: eyes squeezed shut, teeth gritted
  */
-export type HeroMood = 'calm' | 'fierce' | 'alarmed' | 'worried' | 'wince';
+export type HeroMood = 'calm' | 'fierce' | 'worried' | 'wince';
 
 export type HeroLook = {
   headgear: Headgear;

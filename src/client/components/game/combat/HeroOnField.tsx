@@ -237,7 +237,6 @@ export const HeroOnField = ({
   const mood = moodOf({
     isHurt,
     isActing: action !== null,
-    aim,
     hp: unit.hp,
     maxHp: unit.maxHp,
   });
