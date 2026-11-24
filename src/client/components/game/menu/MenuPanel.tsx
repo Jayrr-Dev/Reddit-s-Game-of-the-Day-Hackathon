@@ -30,7 +30,7 @@ export const MenuPanel = ({ title, onClose, children }: MenuPanelProps) => (
       {title}
     </h2>
     <div
-      className="flex min-h-0 w-full max-w-xs flex-1 flex-col items-center gap-3 overflow-y-auto overscroll-contain py-3"
+      className="flex min-h-0 w-full max-w-xs flex-1 flex-col items-center gap-3 overflow-y-auto overscroll-contain px-1 py-3"
       style={SCROLL_FADE_STYLE}
     >
       {children}

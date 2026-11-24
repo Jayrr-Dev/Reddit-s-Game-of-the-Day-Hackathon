@@ -21,7 +21,7 @@ const ScenarioButton = ({
   <button
     type="button"
     onClick={() => onPick(scenario)}
-    className="flex flex-col gap-0.5 rounded-lg bg-surface-raised px-2.5 py-2 text-left ring-1 ring-accent/40 transition hover:ring-accent active:scale-[0.98]"
+    className="flex flex-col gap-0.5 rounded-lg bg-surface-raised px-2.5 py-2 text-left ring-1 ring-inset ring-accent/40 transition hover:ring-accent active:scale-[0.98]"
   >
     <span className="font-display text-sm font-black text-ink">
       {scenario.name}
