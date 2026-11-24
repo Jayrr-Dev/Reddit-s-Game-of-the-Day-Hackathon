@@ -64,7 +64,7 @@
     backwards;
   --animate-ember: ember 480ms ease-out forwards;
   --animate-impact-slash: impact-slash 1000ms ease-out forwards;
-  --animate-impact-streak: impact-streak 1000ms ease-out forwards;
+  --animate-impact-puncture: impact-puncture 1000ms ease-out forwards;
   --animate-impact-plus: impact-plus 1000ms ease-out forwards;
   --animate-impact-arrow: impact-arrow 900ms ease-out forwards;
   --animate-impact-glow: impact-glow 900ms ease-out forwards;
@@ -90,22 +90,26 @@
       transform: scaleX(1);
     }
   }
-  /* A Range shot: flies in fast along its line, sticks, then fades. */
-  @keyframes impact-streak {
+  /* A Range shot: the hole punches in (a quick overshoot), holds, then
+     fades. Transform and opacity only, so it stays on the compositor. */
+  @keyframes impact-puncture {
     0% {
       opacity: 0;
-      transform: translateX(-28px);
+      transform: scale(1.6);
     }
-    10% {
+    8% {
       opacity: 1;
-      transform: translateX(0);
+      transform: scale(0.92);
+    }
+    16% {
+      transform: scale(1);
     }
     60% {
       opacity: 1;
     }
     100% {
       opacity: 0;
-      transform: translateX(0);
+      transform: scale(1);
     }
   }
   /* A Magic spark: pops out past full size, settles, then fades. */

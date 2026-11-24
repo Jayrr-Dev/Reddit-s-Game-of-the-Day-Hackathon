@@ -3,7 +3,7 @@
 // Quick effects drawn over a character for each pop (see useHitPops),
 // so you can read what just happened to them without reading numbers:
 //   HIT     Melee (and the heroes' own attacks)  a thin black slice
-//           Range                                 a steel-grey streak, like an arrow
+//           Range                                 an arrow hole with cracks
 //           Magic                                 a blue plus
 //           Curse (Hex ticking, curse cards)      a purple glow
 //   HEAL    green pluses rising off the body, and a green glow
@@ -17,6 +17,8 @@
 
 import type { CSSProperties } from 'react';
 import { POP_LOOK, toneVarOf } from '../../../content/visuals';
+import { seeded, spread } from '../../../lib/seeded';
+import { Puncture } from './Puncture';
 import { Slice } from './Slice';
 import type { PlayerHitPop } from '../../../hooks/useHitPops';
 
@@ -27,18 +29,6 @@ const DEBUFF_ARROW_TONE = 'var(--color-hp)';
 const CURSE_GLOW = 'var(--color-hex)';
 
 // --- HELPERS ---
-/**
- * A stable number in [0, 1) from a pop id and a salt (a tiny integer
- * hash), so each mark's spot and angle look random but never change.
- */
-const seeded = (id: number, salt: number): number => {
-  const mixed = Math.imul(id * 31 + salt * 17 + 7, 2654435761) >>> 0;
-  return (mixed % 1000) / 1000;
-};
-
-/** A spread from -1 to 1 for a pop (for offsets and tilts). */
-const spread = (id: number, salt: number): number => seeded(id, salt) * 2 - 1;
-
 /**
  * Where a mark sits: centred on the body with some scatter, tilted by
  * `baseDeg` give or take `tiltDeg`. Percentages are of the overlay box.
@@ -77,10 +67,10 @@ const Slash = ({ id }: { id: number }) => {
   );
 };
 
-/** A Range shot: a thin steel-grey streak with a bright head, like an arrow. */
-const Streak = ({ id }: { id: number }) => (
-  <span className="absolute w-[45%]" style={placeAt(id, -35, 20)}>
-    <span className="block h-[3px] animate-impact-streak rounded-full bg-gradient-to-r from-transparent via-range to-white shadow-[0_0_3px_rgb(0_0_0/0.8)]" />
+/** A Range shot: an arrow hole, turned any which way. */
+const Hole = ({ id }: { id: number }) => (
+  <span className="absolute aspect-square w-[52%]" style={placeAt(id, 0, 180)}>
+    <Puncture id={id} className="animate-impact-puncture" />
   </span>
 );
 
@@ -169,7 +159,7 @@ const Arrow = ({ id, isUp }: { id: number; isUp: boolean }) => (
 
 /** The effect for one hit, by the type of card that dealt it. */
 const HitMark = ({ pop }: { pop: PlayerHitPop }) => {
-  if (pop.source === 'range') return <Streak id={pop.id} />;
+  if (pop.source === 'range') return <Hole id={pop.id} />;
   if (pop.source === 'magic') return <Plus id={pop.id} />;
   if (pop.source === 'curse') return <Glow tone={CURSE_GLOW} />;
   return <Slash id={pop.id} />;
