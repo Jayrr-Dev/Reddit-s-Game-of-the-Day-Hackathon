@@ -413,8 +413,14 @@ void test('a melee hero in the back row skips to a move it can make, or advances
   const squire = heroNamed(fresh, 'squire');
   assert.equal(maiden?.row, 'back');
   // Brace (Guard only) works from the back; the Squire's moves all melee.
-  assert.equal(describeHeroIntent(maiden as HeroUnit).name, 'Brace');
-  assert.equal(describeHeroIntent(squire as HeroUnit).name, 'Advance');
+  assert.equal(
+    describeHeroIntent(maiden as HeroUnit, fresh.heroes).name,
+    'Brace'
+  );
+  assert.equal(
+    describeHeroIntent(squire as HeroUnit, fresh.heroes).name,
+    'Advance'
+  );
   const after = endTurn(fresh);
   assert.equal(after.player.hp, 60);
   assert.equal(heroNamed(after, 'squire')?.row, 'front');
@@ -432,11 +438,11 @@ void test('a Range hero shoots harder from the back and strikes plainly up close
   });
   const archer = heroNamed(fresh, 'archer') as HeroUnit;
   // Volley 2x3 from the back: Range at 130% (2.6 rounds to 3).
-  const [shot] = describeHeroIntent(archer).intents;
+  const [shot] = describeHeroIntent(archer, fresh.heroes).intents;
   assert.deepEqual([shot?.kind, shot?.text], ['range', '3×3']);
   // Up close it lands as plain Melee.
   const upClose = { ...archer, row: 'front' as const };
-  const [strike] = describeHeroIntent(upClose).intents;
+  const [strike] = describeHeroIntent(upClose, fresh.heroes).intents;
   assert.deepEqual([strike?.kind, strike?.text], ['attack', '2×3']);
 });
 
@@ -525,30 +531,74 @@ void test('playDamageFactor combines Charge, Dread and the target bonus', () => 
   assert.equal(playDamageFactor(chargedAndDreaded, squire, melee), 1.13);
 });
 
-void test('a boss makes two moves a turn, in cycle order', () => {
-  const start = startCombat({
+/** A fresh fight against the Holy Dragon alone. */
+const dragonFight = (): CombatState =>
+  startCombat({
     hp: 999,
     maxHp: 999,
-    deck: ['backhand'],
+    deck: ['soulLance'],
     heroIds: ['holyDragon'],
     might: 1,
     seed: 4,
   });
+
+void test('a boss makes two moves a turn: Unc summons, then breathes', () => {
+  const start = dragonFight();
   const [dragon] = start.heroes;
   assert.ok(dragon);
   assert.deepEqual(
-    plannedHeroMoves(dragon).map((planned) => planned.move.name),
-    ['Sanctuary Wings', 'Holy Breath']
+    plannedHeroMoves(dragon, start.heroes).map((planned) => planned.move.name),
+    ['Call the Host', 'Holy Breath']
   );
   assert.equal(
-    describeHeroIntent(dragon).name,
-    'Sanctuary Wings, then Holy Breath'
+    describeHeroIntent(dragon, start.heroes).name,
+    'Call the Host, then Holy Breath'
   );
   const steps = endTurnSteps(start);
   const dragonSteps = steps.filter((step) => step.actorUid === dragon.uid);
   assert.equal(dragonSteps.length, 2);
-  const after = steps.at(-1)?.state.heroes[0];
-  assert.equal(after?.moveIndex, 2);
-  // Holy Breath (Magic 8 x 2) landed on the villain.
-  assert.equal(steps.at(-1)?.state.player.hp, 999 - 16);
+  const after = steps.at(-1)?.state;
+  assert.equal(after?.heroes.find((u) => u.uid === dragon.uid)?.moveIndex, 2);
+  // The summons joined this turn, so only Holy Breath (8 x 2) landed.
+  assert.equal(after?.player.hp, 999 - 16);
+});
+
+void test('a summon fills the flanks of the summoner with fresh uids', () => {
+  const after = endTurn(dragonFight());
+  const angels = after.heroes.filter((unit) => unit.heroId === 'angelArcher');
+  assert.deepEqual(
+    angels.map((unit) => [unit.row, unit.col, unit.uid, unit.summonerUid]),
+    [
+      ['back', 0, 2, 1],
+      ['back', 2, 3, 1],
+    ]
+  );
+  assert.equal(after.nextUid, 4);
+});
+
+void test('a summoner with full flanks skips its summon', () => {
+  const summoned = endTurn(dragonFight());
+  const dragon = summoned.heroes.find((unit) => unit.heroId === 'holyDragon')!;
+  const backToCall = { ...dragon, moveIndex: 0 };
+  assert.deepEqual(
+    plannedHeroMoves(backToCall, summoned.heroes).map((p) => p.move.name),
+    ['Holy Breath', 'Sanctuary Wings']
+  );
+});
+
+void test('summoned heroes fall with their summoner', () => {
+  const summoned = endTurn(dragonFight());
+  const dragon = summoned.heroes.find((unit) => unit.heroId === 'holyDragon')!;
+  const nearlyDead: CombatState = {
+    ...summoned,
+    heroes: summoned.heroes.map((unit) =>
+      unit.uid === dragon.uid ? { ...unit, hp: 1, shroud: 0 } : unit
+    ),
+    hand: ['soulLance'],
+    energy: 3,
+  };
+  const after = playCard(nearlyDead, 0, dragon.uid);
+  assert.equal(after.heroes.length, 0);
+  assert.equal(after.slain, 3);
+  assert.equal(combatOutcome(after), 'won');
 });

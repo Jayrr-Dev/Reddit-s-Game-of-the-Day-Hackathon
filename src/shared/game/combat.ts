@@ -26,6 +26,7 @@ import {
   pushHero,
   targetRuleOf,
   type UnplacedHero,
+  summonSeats,
 } from './battlefield.ts';
 import { getCard, type CardId } from './cards.ts';
 import {
@@ -61,7 +62,6 @@ import type {
   HeroAttackType,
   HeroEffect,
   HeroMove,
-  HeroRow,
   HeroUnit,
 } from './types.ts';
 
@@ -109,6 +109,7 @@ export const startCombat = (setup: CombatSetup): CombatState => {
     slain: 0,
     rng,
     lastMovement: null,
+    nextUid: setup.heroIds.length + 1,
   };
   return startPlayerTurn(initial);
 };
@@ -124,20 +125,44 @@ export const combatOutcome = (state: CombatState): CombatOutcome => {
 /** A hero's next move and its place in the hero's move cycle. */
 export type PlannedMove = { move: HeroMove; index: number };
 
-/** True when a move can be made from `row` (Melee needs the front row). */
-const canMakeMoveFrom = (heroMove: HeroMove, row: HeroRow): boolean =>
-  row === 'front' ||
-  heroMove.effects.every(
-    (effect) => effect.kind !== 'attack' || effect.type !== 'melee'
-  );
+/** True when a summon has room for at least one of its heroes. */
+const hasRoomToSummon = (
+  heroes: readonly HeroUnit[],
+  unit: HeroUnit,
+  effect: Extract<HeroEffect, { kind: 'summon' }>
+): boolean =>
+  summonSeats(heroes, unit, getHero(effect.heroId).size, effect.count).length >
+  0;
+
+/**
+ * True when a hero can make a move where it stands: Melee needs the
+ * front row, and a summon needs room in the hero's row.
+ */
+const canMakeMove = (
+  heroMove: HeroMove,
+  unit: HeroUnit,
+  heroes: readonly HeroUnit[]
+): boolean =>
+  heroMove.effects.every((effect) => {
+    if (effect.kind === 'summon') return hasRoomToSummon(heroes, unit, effect);
+    return (
+      unit.row === 'front' ||
+      effect.kind !== 'attack' ||
+      effect.type !== 'melee'
+    );
+  });
 
 /**
  * The move a hero will make next: the next one in its cycle that it can
  * make from where it stands (a knight in the back row skips its Melee
- * moves for a Guard or Magic one). Null when it has none: it only
- * advances this turn.
+ * moves for a Guard or Magic one; a summoner with a full row skips its
+ * summon). `heroes` is the field it stands on. Null when it has none:
+ * it only advances this turn.
  */
-export const plannedHeroMove = (unit: HeroUnit): PlannedMove | null => {
+export const plannedHeroMove = (
+  unit: HeroUnit,
+  heroes: readonly HeroUnit[]
+): PlannedMove | null => {
   const { moves } = getHero(unit.heroId);
   return (
     moves
@@ -147,7 +172,7 @@ export const plannedHeroMove = (unit: HeroUnit): PlannedMove | null => {
       })
       .find(
         (planned): planned is PlannedMove =>
-          planned.move !== undefined && canMakeMoveFrom(planned.move, unit.row)
+          planned.move !== undefined && canMakeMove(planned.move, unit, heroes)
       ) ?? null
   );
 };
@@ -161,12 +186,15 @@ export const actionsOf = (unit: Pick<HeroUnit, 'heroId'>): number =>
  * `actionsOf` moves that it can make from where it stands. Empty when
  * it has none (it only advances).
  */
-export const plannedHeroMoves = (unit: HeroUnit): PlannedMove[] => {
+export const plannedHeroMoves = (
+  unit: HeroUnit,
+  heroes: readonly HeroUnit[]
+): PlannedMove[] => {
   const planned: PlannedMove[] = [];
   let cursor = unit;
   // Imperative on purpose: each pick starts after the one before it.
   for (let action = 0; action < actionsOf(unit); action += 1) {
-    const next = plannedHeroMove(cursor);
+    const next = plannedHeroMove(cursor, heroes);
     if (!next) break;
     planned.push(next);
     cursor = { ...cursor, moveIndex: next.index + 1 };
@@ -267,13 +295,26 @@ const updateHeroes = (
   ),
 });
 
+/** Drops summoned heroes whose summoner is gone (they fall with it). */
+const withoutOrphans = (heroes: HeroUnit[]): HeroUnit[] => {
+  const uids = new Set(heroes.map((unit) => unit.uid));
+  const kept = heroes.filter(
+    (unit) => unit.summonerUid === undefined || uids.has(unit.summonerUid)
+  );
+  // A summon's own summons fall too: repeat until nothing else drops.
+  return kept.length === heroes.length ? kept : withoutOrphans(kept);
+};
+
 /**
- * Takes defeated heroes off the field and counts them as slain. An
- * emptied front row stays empty for now: melee heroes step up at the
- * end of the heroes' turn, ranged ones hold until the villain Charges.
+ * Takes defeated heroes (and the heroes they summoned) off the field
+ * and counts them as slain. An emptied front row stays empty for now:
+ * melee heroes step up at the end of the heroes' turn, ranged ones hold
+ * until the villain Charges.
  */
 const removeFallen = (state: CombatState): CombatState => {
-  const standing = state.heroes.filter((unit) => !isDefeated(unit));
+  const standing = withoutOrphans(
+    state.heroes.filter((unit) => !isDefeated(unit))
+  );
   const fallen = state.heroes.length - standing.length;
   return fallen === 0
     ? state
@@ -649,6 +690,30 @@ const heroTargets = (
   who: 'self' | 'allies'
 ) => (who === 'self' ? [actorUid] : state.heroes.map((unit) => unit.uid));
 
+/**
+ * Brings summoned heroes onto the field beside the summoner, as strong
+ * as it is (same might), bound to it. Each gets a fresh uid.
+ */
+const summonHeroes = (
+  state: CombatState,
+  summoner: HeroUnit,
+  effect: Extract<HeroEffect, { kind: 'summon' }>
+): CombatState => {
+  const { size } = getHero(effect.heroId);
+  const seats = summonSeats(state.heroes, summoner, size, effect.count);
+  const summoned = seats.map((col, index): HeroUnit => ({
+    ...createHeroUnit(effect.heroId, state.nextUid + index, summoner.might),
+    row: summoner.row,
+    col,
+    summonerUid: summoner.uid,
+  }));
+  return {
+    ...state,
+    heroes: [...state.heroes, ...summoned],
+    nextUid: state.nextUid + summoned.length,
+  };
+};
+
 /** Resolves one effect of a hero's move. */
 const applyHeroEffect = (
   state: CombatState,
@@ -695,6 +760,8 @@ const applyHeroEffect = (
         heroTargets(state, actor.uid, effect.who),
         (unit) => heal(unit, scaled(effect.amount))
       );
+    case 'summon':
+      return summonHeroes(state, actor, effect);
   }
 };
 
@@ -712,7 +779,7 @@ const heroActs = (
 ): CombatState => {
   const actor = state.heroes.find((unit) => unit.uid === uid);
   if (!actor || isDefeated(state.player)) return state;
-  const planned = plannedHeroMove(actor);
+  const planned = plannedHeroMove(actor, state.heroes);
 
   const acted = (planned?.move.effects ?? []).reduce<CombatState>(
     (current, effect) => {
@@ -764,12 +831,17 @@ const startPlayerTurn = (state: CombatState): CombatState =>
 export type TurnStep = {
   actorUid: number | null;
   attackType: HeroAttackType | null;
+  /** The move just made (null when `actorUid` is). */
+  move: HeroMove | null;
   state: CombatState;
 };
 
 /** How a hero's planned move attacks from where it stands, if it does. */
-const plannedAttackType = (unit: HeroUnit): HeroAttackType | null => {
-  const attack = plannedHeroMove(unit)?.move.effects.find(
+const plannedAttackType = (
+  unit: HeroUnit,
+  heroes: readonly HeroUnit[]
+): HeroAttackType | null => {
+  const attack = plannedHeroMove(unit, heroes)?.move.effects.find(
     (effect) => effect.kind === 'attack'
   );
   return attack?.kind === 'attack' ? heroAttackOf(unit, attack).type : null;
@@ -793,7 +865,7 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
     heroes: state.heroes.map(clearShroud),
   };
   const steps: TurnStep[] = [
-    { actorUid: null, attackType: null, state: discarded },
+    { actorUid: null, attackType: null, move: null, state: discarded },
   ];
   if (combatOutcome(discarded) === 'lost') return steps;
 
@@ -806,13 +878,19 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
     for (let action = 1; action <= actions; action += 1) {
       const actor = current.heroes.find((unit) => unit.uid === uid);
       if (!actor) break;
-      const hasMove = plannedHeroMove(actor) !== null;
+      const planned = plannedHeroMove(actor, current.heroes);
+      const hasMove = planned !== null;
       // Out of moves early: this is its last action (upkeep runs now).
       const isLast = action === actions || !hasMove;
-      const attackType = plannedAttackType(actor);
+      const attackType = plannedAttackType(actor, current.heroes);
       const next = heroActs(current, uid, isLast);
       if (next !== current) {
-        steps.push({ actorUid: hasMove ? uid : null, attackType, state: next });
+        steps.push({
+          actorUid: hasMove ? uid : null,
+          attackType,
+          move: planned?.move ?? null,
+          state: next,
+        });
         current = next;
         if (combatOutcome(current) !== 'ongoing') return steps;
       }
@@ -825,6 +903,7 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
   steps.push({
     actorUid: null,
     attackType: null,
+    move: null,
     state: startPlayerTurn(advanced),
   });
   return steps;

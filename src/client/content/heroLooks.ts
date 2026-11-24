@@ -9,7 +9,9 @@
 // Data only; HeroFigure turns it into SVG. To add a hero, add a look.
 // ===================================================================
 
-import type { HeroId } from '../../shared/game/heroes';
+import { sizeOf } from '../../shared/game/battlefield';
+import { getHero, type HeroId } from '../../shared/game/heroes';
+import type { HeroSize, HeroUnit } from '../../shared/game/types';
 
 // --- TYPES ---
 /** What a hero wears on (or instead of) its head. */
@@ -126,10 +128,24 @@ export const MAIL = {
  * Heroes that are not people (no headgear, prop or armour) and get a
  * drawing of their own instead of the shared humanoid figure.
  */
-export const CREATURE_IDS = ['holyDragon'] as const satisfies readonly HeroId[];
+export const CREATURE_IDS = [
+  'holyDragon',
+  'angelArcher',
+] as const satisfies readonly HeroId[];
 export type CreatureId = (typeof CREATURE_IDS)[number];
 /** Every hero drawn by the shared humanoid figure. */
 export type HumanoidId = Exclude<HeroId, CreatureId>;
+
+/** True for a boss: drawn as big as the whole field, whatever its slot. */
+export const isBoss = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
+  getHero(unit.heroId).tier === 'boss';
+
+/**
+ * The size a hero is drawn at: its own, except a boss, which is drawn
+ * (and gets a plate) as big as a champion even on a single slot.
+ */
+export const drawSizeOf = (unit: Pick<HeroUnit, 'heroId'>): HeroSize =>
+  isBoss(unit) ? 3 : sizeOf(unit);
 
 /** True for a hero with a drawing of its own (see CREATURE_IDS). */
 export const isCreature = (id: HeroId): id is CreatureId =>
@@ -339,5 +355,12 @@ export const MELEE_SWINGS: readonly MeleeSwing[] = [
   'upcut',
 ];
 
-/** A move playing on a hero: its style and, for melee, which swing. */
-export type HeroAction = { style: HeroActionStyle; swing: MeleeSwing };
+/**
+ * A move playing on a hero: its style, for melee which swing, and
+ * whether it is the hero's signature move (its own special animation).
+ */
+export type HeroAction = {
+  style: HeroActionStyle;
+  swing: MeleeSwing;
+  isSignature: boolean;
+};

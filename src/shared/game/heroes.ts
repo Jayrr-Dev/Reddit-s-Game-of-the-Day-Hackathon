@@ -15,6 +15,7 @@ import type {
   HeroRow,
   HeroSize,
   HeroTier,
+  SummonId,
 } from './types.ts';
 
 // --- EFFECT BUILDERS ---
@@ -60,6 +61,19 @@ const heal = (
   who,
 });
 
+/** Marks a move as the hero's signature (it gets its own animation). */
+const signature = (heroMove: HeroMove): HeroMove => ({
+  ...heroMove,
+  isSignature: true,
+});
+
+/** Calls `count` of a hero onto the field beside the summoner. */
+const summon = (heroId: SummonId, count: number): HeroEffect => ({
+  kind: 'summon',
+  heroId,
+  count,
+});
+
 /** Builds a named move. */
 const move = (name: string, ...effects: HeroEffect[]): HeroMove => ({
   name,
@@ -67,7 +81,12 @@ const move = (name: string, ...effects: HeroEffect[]): HeroMove => ({
 });
 
 /** Where a hero stands: its starting row and how many columns it fills. */
-type Placement = { row: HeroRow; size: HeroSize; depth?: HeroDepth };
+type Placement = {
+  row: HeroRow;
+  size: HeroSize;
+  col?: number;
+  depth?: HeroDepth;
+};
 
 // --- PLACEMENTS ---
 // Fighters hold the front; support and ranged heroes keep to the back.
@@ -77,8 +96,11 @@ const WIDE_FRONT: Placement = { row: 'front', size: 2 };
 const WIDE_BACK: Placement = { row: 'back', size: 2 };
 /** A champion fills the whole front row on its own. */
 const HUGE: Placement = { row: 'front', size: 3 };
-/** A boss fills the whole field, both rows, on its own. */
-const BOSS: Placement = { row: 'front', size: 3, depth: 2 };
+/**
+ * A boss holds the centre of the back row (drawn far larger than its
+ * slot), leaving the flanks for the heroes it summons.
+ */
+const BOSS_THRONE: Placement = { row: 'back', size: 1, col: 1 };
 
 /**
  * Builds a hero definition. Speed sets the turn order (higher acts
@@ -135,6 +157,13 @@ export const HEROES = {
     move('Throwing Knives', shoot(3, 2)),
   ]),
 
+  // SUMMONS (ONLY EVER CALLED ONTO THE FIELD BY ANOTHER HERO)
+  /** An eye ringed by feathered wings, loosing arrows of light. */
+  angelArcher: hero('Angel Archer', 'grunt', 14, 50, 7, BACK, [
+    move('Light Arrow', shoot(5)),
+    move('Volley of Light', shoot(2, 3)),
+  ]),
+
   // ELITES
   paladin: hero('Paladin', 'elite', 40, 45, 4, WIDE_FRONT, [
     move('Holy Shield', shroud(10), strike(5)),
@@ -182,9 +211,11 @@ export const HEROES = {
 
   // BOSSES (TARGET DUMMY SCENARIOS ONLY UNTIL THEY JOIN A REGION)
   /**
-   * A great ivory dragon boss: it fills the whole field (all 6 slots)
-   * and makes two moves a turn, shielding itself, breathing holy fire,
-   * rending with its claws and roaring itself into a Wrath.
+   * A great ivory dragon boss on the back row's centre slot. It makes
+   * two moves a turn: it opens by calling two Angel Archers to its
+   * flanks (and calls more whenever a flank is empty when the call
+   * comes round again), then breathes holy fire, shields itself, brings
+   * down its signature Halo of Judgment and roars itself into a Wrath.
    */
   holyDragon: hero(
     'Holy Dragon Unc',
@@ -192,11 +223,12 @@ export const HEROES = {
     500,
     280,
     5,
-    BOSS,
+    BOSS_THRONE,
     [
-      move('Sanctuary Wings', shroud(20)),
+      move('Call the Host', summon('angelArcher', 2)),
       move('Holy Breath', spell(8, 2)),
-      move('Rending Claws', strike(18)),
+      move('Sanctuary Wings', shroud(20)),
+      signature(move('Halo of Judgment', spell(26))),
       move('Radiant Roar', wrath(2)),
     ],
     BOSS_ACTIONS

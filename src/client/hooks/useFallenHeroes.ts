@@ -2,16 +2,19 @@
 // USE FALLEN HEROES
 // The engine removes a hero the moment it dies, so it would just vanish.
 // This hook keeps each fallen hero around as a "ghost" (its last known
-// state, at 0 HP) for HERO_DEATH_MS so the field can play its death
-// animation in its spot. Ghosts are display only: no taps, no targeting.
+// state, at 0 HP) while its death animation plays in its spot (longer
+// for a boss). Ghosts are display only: no taps, no targeting.
 // ===================================================================
 
 import { useEffect, useState } from 'react';
 import type { HeroUnit } from '../../shared/game/types';
+import { isBoss } from '../content/heroLooks';
 
 // --- CONSTANTS ---
 /** How long a death plays (matches --animate-hero-death). */
 export const HERO_DEATH_MS = 520;
+/** How long a boss's death plays (matches --animate-boss-death). */
+export const BOSS_DEATH_MS = 1800;
 
 // --- TYPES ---
 type Fallen = { lastHeroes: readonly HeroUnit[]; ghosts: HeroUnit[] };
@@ -25,6 +28,10 @@ const newlyFallen = (
   before
     .filter((unit) => !after.some((alive) => alive.uid === unit.uid))
     .map((unit) => ({ ...unit, hp: 0, shroud: 0 }));
+
+/** How long one hero's death plays. */
+const deathMsOf = (unit: HeroUnit): number =>
+  isBoss(unit) ? BOSS_DEATH_MS : HERO_DEATH_MS;
 
 // --- HOOK ---
 /** Returns the heroes whose death animation is playing right now. */
@@ -44,15 +51,17 @@ export const useFallenHeroes = (heroes: readonly HeroUnit[]): HeroUnit[] => {
   }
 
   // EACH GHOST LEAVES WHEN ITS ANIMATION ENDS
+  // (all at once, after the longest death among them)
   const ghostUids = current.ghosts.map((unit) => unit.uid).join(',');
+  const longestDeathMs = Math.max(0, ...current.ghosts.map(deathMsOf));
   useEffect(() => {
     if (!ghostUids) return;
     const timer = window.setTimeout(
       () => setFallen((state) => ({ ...state, ghosts: [] })),
-      HERO_DEATH_MS
+      longestDeathMs
     );
     return () => window.clearTimeout(timer);
-  }, [ghostUids]);
+  }, [ghostUids, longestDeathMs]);
 
   return current.ghosts;
 };

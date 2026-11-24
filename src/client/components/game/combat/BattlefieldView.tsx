@@ -12,7 +12,7 @@ import { useRef, type ReactNode } from 'react';
 import { sizeOf } from '../../../../shared/game/battlefield';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
 import type { HeroRow, HeroUnit } from '../../../../shared/game/types';
-import type { HeroAction } from '../../../content/heroLooks';
+import { isBoss, type HeroAction } from '../../../content/heroLooks';
 import { FIELD_ATTR } from '../../../hooks/useCardDrag';
 import { cssVars, depthStyle } from '../../../lib/cssVars';
 import { Backdrop, Foreground } from './Backdrop';
@@ -86,6 +86,8 @@ export const BattlefieldView = ({
   usePlateSpacing(fieldRef, heroes);
   useRowMoves(fieldRef, heroes);
   const ghosts = useFallenHeroes(heroes);
+  // A boss's death shakes the whole field and flashes it white.
+  const isBossFalling = ghosts.some(isBoss);
   const focused = heroes.find((unit) => unit.uid === focusUid);
   /** Renders the heroes standing in one row, then any falling there. */
   const renderRow = (row: HeroRow) => [
@@ -100,6 +102,7 @@ export const BattlefieldView = ({
           pickMarker={pickMarkerOf(unit.uid)}
           action={acting.get(unit.uid) ?? null}
           lastHitId={lastHitIds.get(unit.uid) ?? null}
+          field={heroes}
           onTap={onTapHero}
         />
       )),
@@ -115,6 +118,7 @@ export const BattlefieldView = ({
           action={null}
           lastHitId={null}
           isDying
+          field={heroes}
           onTap={onTapHero}
         />
       )),
@@ -123,7 +127,7 @@ export const BattlefieldView = ({
   return (
     <div
       ref={fieldRef}
-      className="parallax-stage relative min-h-0 flex-1 overflow-hidden"
+      className={`parallax-stage relative min-h-0 flex-1 overflow-hidden ${isBossFalling ? 'animate-field-shake' : ''}`}
       {...{ [FIELD_ATTR]: true }}
       style={cssVars({ '--cam': cameraFor(focused) })}
     >
@@ -138,6 +142,9 @@ export const BattlefieldView = ({
       />
       <RowLayer depth={ROW_DEPTH.front}>{renderRow('front')}</RowLayer>
       <Foreground hue={hue} />
+      {isBossFalling && (
+        <div className="pointer-events-none absolute inset-0 bg-[#fffbe8] opacity-0 animate-boss-flash" />
+      )}
     </div>
   );
 };

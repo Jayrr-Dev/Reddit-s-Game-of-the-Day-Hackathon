@@ -8,6 +8,7 @@
 import { targetRuleOf } from './battlefield.ts';
 import { getCard, type CardId } from './cards.ts';
 import { attackDamage, guardAmount, typeBonus } from './combatant.ts';
+import { getHero } from './heroes.ts';
 import {
   cardHitOn,
   heroAttackOf,
@@ -155,6 +156,7 @@ export type IntentKind =
   | 'guard'
   | 'buff'
   | 'heal'
+  | 'summon'
   | 'advance';
 
 /** The intent chip for each way a hero attack can land. */
@@ -222,6 +224,12 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
         label: `Heal ${amount}${toWhom(effect.who)}`,
       };
     }
+    case 'summon':
+      return {
+        kind: 'summon',
+        text: `${effect.count}`,
+        label: `Summons ${effect.count} ${getHero(effect.heroId).name}${effect.count > 1 ? 's' : ''}`,
+      };
   }
 };
 
@@ -238,9 +246,10 @@ const ADVANCE_INTENT: Intent = {
  * "Advance" when it has no move it can make from where it stands.
  */
 export const describeHeroIntent = (
-  unit: HeroUnit
+  unit: HeroUnit,
+  heroes: readonly HeroUnit[]
 ): { name: string; intents: Intent[] } => {
-  const moves = plannedHeroMoves(unit).map((planned) => planned.move);
+  const moves = plannedHeroMoves(unit, heroes).map((planned) => planned.move);
   if (moves.length === 0) return { name: 'Advance', intents: [ADVANCE_INTENT] };
   return {
     name: moves.map((heroMove) => heroMove.name).join(', then '),

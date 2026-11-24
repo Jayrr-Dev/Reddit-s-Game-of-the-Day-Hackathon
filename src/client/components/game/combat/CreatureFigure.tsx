@@ -14,10 +14,19 @@
 //     every move   the wings beat once
 //     magic/range  a cone of holy fire pours from its jaws
 //     support      the halo flares
+//     signature    Halo of Judgment: the halo swells and blazes, rays
+//                  of light wheel out from it, then it fires
+//     death        the halo cracks into flying shards, light bursts
+//                  from its chest and the wings crumple
 //   It has a real face (brow ridges, gold slit-pupil eyes, a muzzle
 //   with nostrils) that takes the heroes' moods: jaws open and brows
 //   down when fierce, squeezed shut and teeth clenched in a wince,
 //   brows lifted and mouth turned down when worried.
+//
+// ANGEL ARCHER
+//   A "biblically accurate" angel: one great eye in a gold ring, ringed
+//   by six feathered wings that flutter on their own. It looses arrows
+//   of light (the eye flares as it fires) and its eye takes the moods.
 // ===================================================================
 
 import type { CSSProperties, JSX } from 'react';
@@ -183,6 +192,17 @@ const HORN: readonly Point[] = [
 const HALO_CENTRE: Point = [768, 230];
 const HALO_RADIUS = 170;
 const HALO_STROKE = 10;
+/** Rays of the signature move: count, and where they start and end. */
+const RAY_COUNT = 12;
+const RAY_INNER = 200;
+const RAY_OUTER = 380;
+const RAY_HALF_WIDTH_DEG = 4;
+/** The halo breaks into this many shards when the dragon dies. */
+const SHARD_COUNT = 8;
+const SHARD_GAP_DEG = 6;
+const SHARD_FLY = 260;
+/** Where the death's light bursts out of the dragon (its chest). */
+const CHEST: Point = [768, 600];
 /** The left eye's centre; eye shapes are offsets from it. */
 const EYE_CENTRE: Point = [712, 318];
 /** Holy fire: a cone from the jaws down toward the villain. */
@@ -214,6 +234,27 @@ const mirrored = (points: readonly Point[]): Point[] =>
 const originAt = (point: Point): CSSProperties => {
   const [x, y] = art(point);
   return { transformOrigin: `${x}px ${y}px` };
+};
+
+/** A point `radius` art units from `centre`, at `deg` (0 = right). */
+const polar = ([x, y]: Point, radius: number, deg: number): Point => {
+  const rad = (deg * Math.PI) / 180;
+  return [x + radius * Math.cos(rad), y + radius * Math.sin(rad)];
+};
+
+/** One ray of light: a thin wedge from the halo outward. */
+const rayPoints = (deg: number): readonly Point[] => [
+  polar(HALO_CENTRE, RAY_INNER, deg - RAY_HALF_WIDTH_DEG),
+  polar(HALO_CENTRE, RAY_OUTER, deg),
+  polar(HALO_CENTRE, RAY_INNER, deg + RAY_HALF_WIDTH_DEG),
+];
+
+/** An arc of the halo ring (art units), as an SVG path in viewBox units. */
+const arcPath = (fromDeg: number, toDeg: number): string => {
+  const [x1, y1] = art(polar(HALO_CENTRE, HALO_RADIUS, fromDeg));
+  const [x2, y2] = art(polar(HALO_CENTRE, HALO_RADIUS, toDeg));
+  const r = HALO_RADIUS * ART_SCALE;
+  return `M${x1.toFixed(1)} ${y1.toFixed(1)} A${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)}`;
 };
 
 // --- SUBCOMPONENTS: HOLY DRAGON ---
@@ -249,6 +290,86 @@ const Wings = () => (
     </g>
   </>
 );
+
+/**
+ * The light the signature move gathers (hidden until it plays): a glow
+ * behind the halo and a wheel of rays around it.
+ */
+const JudgmentLight = () => {
+  const [haloX, haloY] = art(HALO_CENTRE);
+  return (
+    <>
+      <circle
+        className="dragon-halo-glow"
+        cx={haloX}
+        cy={haloY}
+        r={HALO_RADIUS * ART_SCALE * 1.3}
+        fill={HOLY_FIRE}
+        opacity="0"
+        style={originAt(HALO_CENTRE)}
+      />
+      <g className="dragon-rays" opacity="0" style={originAt(HALO_CENTRE)}>
+        {Array.from({ length: RAY_COUNT }, (_, index) => {
+          const deg = (360 / RAY_COUNT) * index;
+          return (
+            <polygon key={deg} points={pts(rayPoints(deg))} fill={HOLY_FIRE} />
+          );
+        })}
+      </g>
+    </>
+  );
+};
+
+/**
+ * The halo's pieces for the death (hidden until then): each shard is an
+ * arc of the ring that flies outward from where it sat.
+ */
+const HaloShards = () => {
+  const step = 360 / SHARD_COUNT;
+  return (
+    <g className="dragon-shards">
+      {Array.from({ length: SHARD_COUNT }, (_, index) => {
+        const from = step * index + SHARD_GAP_DEG / 2;
+        const [dx, dy] = polar([0, 0], SHARD_FLY * ART_SCALE, from + step / 2);
+        return (
+          <path
+            key={from}
+            className="dragon-shard"
+            d={arcPath(from, from + step - SHARD_GAP_DEG)}
+            fill="none"
+            stroke={GOLD.lit}
+            strokeWidth={HALO_STROKE * ART_SCALE}
+            strokeLinecap="round"
+            opacity="0"
+            style={
+              {
+                '--dx': `${dx.toFixed(1)}px`,
+                '--dy': `${dy.toFixed(1)}px`,
+                '--spin': `${index % 2 === 0 ? 40 : -40}deg`,
+              } as CSSProperties
+            }
+          />
+        );
+      })}
+    </g>
+  );
+};
+
+/** The light that bursts from the dragon's chest as it dies. */
+const DeathBurst = () => {
+  const [x, y] = art(CHEST);
+  return (
+    <circle
+      className="dragon-burst"
+      cx={x}
+      cy={y}
+      r="14"
+      fill="#fffbe8"
+      opacity="0"
+      style={originAt(CHEST)}
+    />
+  );
+};
 
 // --- SUBCOMPONENTS: HOLY DRAGON FACE ---
 /** Offsets (art units) moved to the left eye's centre. */
@@ -418,7 +539,9 @@ const HolyDragon = ({ mood }: { mood: HeroMood }) => {
         fill="black"
         opacity="0.45"
       />
+      <JudgmentLight />
       <Wings />
+      <HaloShards />
       <circle
         className="dragon-halo"
         cx={haloX}
@@ -454,9 +577,192 @@ const HolyDragon = ({ mood }: { mood: HeroMood }) => {
         opacity="0"
         style={{ transformOrigin: `${jawX}px ${jawY}px` }}
       />
+      <DeathBurst />
     </>
   );
 };
+
+// --- CONSTANTS: ANGEL ARCHER (VIEWBOX UNITS, SIZE 1: 60 x 100) ---
+/** Where the eye floats: above the ground, like a hovering archer. */
+const ANGEL_EYE: Point = [30, 52];
+const ANGEL_RING_RADIUS = 8.5;
+const ANGEL_SCLERA_RADIUS = 6;
+const ANGEL_IRIS_RADIUS = 3.6;
+const ANGEL_PUPIL_RADIUS = 1.7;
+const ANGEL_GOLD = { lit: '#d9b45a', shade: '#a88536' };
+const ANGEL_FEATHER = { lit: '#efe6cf', shade: '#c9bb98' };
+const ANGEL_IRIS = '#4f8fd6';
+const ANGEL_PUPIL = '#14202e';
+/**
+ * The six wings, as angles from the eye (0 = right, y down): an upper
+ * pair raised high, a pair spread level and a pair hanging low. Wings
+ * pointing left take the lit tones, right ones the shaded.
+ */
+const ANGEL_WING_ANGLES = [-125, -55, -170, -10, 120, 60] as const;
+/**
+ * One wing pointing right from its root (the eye's rim): a smooth upper
+ * edge and a serrated lower edge of feather tips.
+ */
+const ANGEL_WING: readonly Point[] = [
+  [0, -2.5],
+  [7, -6],
+  [15, -7.5],
+  [23, -6.5],
+  [28, -4],
+  [24, -1.5],
+  [26, 1],
+  [20, 0.5],
+  [21, 3],
+  [15, 1.5],
+  [15, 4],
+  [9, 2],
+  [8, 4],
+  [3, 2.5],
+];
+/** The wing's upper feather layer, drawn lighter over the whole wing. */
+const ANGEL_WING_COVERT: readonly Point[] = [
+  [0, -2.5],
+  [7, -6],
+  [15, -7.5],
+  [23, -6.5],
+  [28, -4],
+  [18, -2.5],
+  [8, -1],
+];
+/** How the eye looks per mood: iris offset and the lid's cover (0-1). */
+const ANGEL_GAZE: Record<HeroMood, { dy: number; lid: number }> = {
+  calm: { dy: 0, lid: 0 },
+  fierce: { dy: 0.6, lid: 0.4 },
+  worried: { dy: -1.6, lid: 0 },
+  wince: { dy: 0, lid: 1 },
+};
+
+/** Points (viewBox units) as an SVG points string. */
+const rawPts = (points: readonly Point[]): string =>
+  points.map(([x, y]) => `${x},${y}`).join(' ');
+
+// --- SUBCOMPONENTS: ANGEL ARCHER ---
+/**
+ * One wing, set on the eye's rim at its angle. The outer group places
+ * it; the inner one flutters around the root (CSS, transform only).
+ * Wings pointing left are flipped so their feathers hang the same way.
+ */
+const AngelWing = ({ deg, index }: { deg: number; index: number }) => {
+  const isLeft = Math.abs(deg) > 90;
+  const tone = isLeft ? 'lit' : 'shade';
+  const [x, y] = polar(ANGEL_EYE, ANGEL_RING_RADIUS - 1, deg);
+  return (
+    <g
+      transform={`translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${deg}) scale(1 ${isLeft ? -1 : 1})`}
+    >
+      <g className="angel-wing" style={{ animationDelay: `${-index * 230}ms` }}>
+        <polygon points={rawPts(ANGEL_WING)} fill={ANGEL_FEATHER.shade} />
+        <polygon
+          points={rawPts(ANGEL_WING_COVERT)}
+          fill={ANGEL_FEATHER[tone]}
+        />
+      </g>
+    </g>
+  );
+};
+
+/**
+ * The eyelid: the part of the eye above the line `lidY`, in gold (a
+ * circular segment cut by that chord); fully shut, the whole eye.
+ */
+const AngelLid = ({
+  cx,
+  cy,
+  r,
+  lidY,
+}: {
+  cx: number;
+  cy: number;
+  r: number;
+  lidY: number;
+}) => {
+  if (lidY >= cy + r)
+    return <circle cx={cx} cy={cy} r={r} fill={ANGEL_GOLD.lit} />;
+  const halfChord = Math.sqrt(r * r - (lidY - cy) ** 2);
+  const isPastMiddle = lidY > cy ? 1 : 0;
+  return (
+    <path
+      d={`M${cx - halfChord} ${lidY} A${r} ${r} 0 ${isPastMiddle} 1 ${cx + halfChord} ${lidY} Z`}
+      fill={ANGEL_GOLD.lit}
+    />
+  );
+};
+
+/** The great eye: gold ring, white, blue iris, and a lid for moods. */
+const AngelEye = ({ mood }: { mood: HeroMood }) => {
+  const [cx, cy] = ANGEL_EYE;
+  const { dy, lid } = ANGEL_GAZE[mood];
+  const r = ANGEL_SCLERA_RADIUS;
+  // The lid comes down from the top: its lower edge sits at lidY.
+  const lidY = cy - r + 2 * r * lid;
+  return (
+    <>
+      <circle cx={cx} cy={cy} r={ANGEL_RING_RADIUS} fill={ANGEL_GOLD.shade} />
+      <path
+        d={`M${cx} ${cy - ANGEL_RING_RADIUS} A${ANGEL_RING_RADIUS} ${ANGEL_RING_RADIUS} 0 0 0 ${cx} ${cy + ANGEL_RING_RADIUS} Z`}
+        fill={ANGEL_GOLD.lit}
+      />
+      <circle cx={cx} cy={cy} r={r} fill="#fbf8ef" />
+      {lid < 1 && (
+        <>
+          <circle
+            cx={cx}
+            cy={cy + dy}
+            r={ANGEL_IRIS_RADIUS}
+            fill={ANGEL_IRIS}
+          />
+          <circle
+            cx={cx}
+            cy={cy + dy}
+            r={ANGEL_PUPIL_RADIUS * (mood === 'fierce' ? 0.7 : 1)}
+            fill={ANGEL_PUPIL}
+          />
+          <circle cx={cx - 1.2} cy={cy + dy - 1.3} r="0.8" fill="white" />
+        </>
+      )}
+      {lid > 0 && <AngelLid cx={cx} cy={cy} r={r} lidY={lidY} />}
+      {lid === 1 && (
+        <line
+          x1={cx - r}
+          y1={cy}
+          x2={cx + r}
+          y2={cy}
+          stroke={ANGEL_PUPIL}
+          strokeWidth="1.2"
+          strokeLinecap="round"
+        />
+      )}
+      {/* THE EYE FLARES AS IT LOOSES (hidden until it shoots) */}
+      <circle
+        className="angel-flare"
+        cx={cx}
+        cy={cy}
+        r={ANGEL_RING_RADIUS + 3}
+        fill="#fff6cf"
+        opacity="0"
+      />
+    </>
+  );
+};
+
+/** The angel archer: six wings around one great eye, hovering. */
+const AngelArcher = ({ mood }: { mood: HeroMood }) => (
+  <>
+    {/* SHADOW (it hovers, so a small one) */}
+    <ellipse cx="30" cy="96" rx="12" ry="2.2" fill="black" opacity="0.35" />
+    <g className="angel-hover">
+      {ANGEL_WING_ANGLES.map((deg, index) => (
+        <AngelWing key={deg} deg={deg} index={index} />
+      ))}
+      <AngelEye mood={mood} />
+    </g>
+  </>
+);
 
 // --- CATALOG ---
 /** Each creature's drawing. */
@@ -465,6 +771,7 @@ const CREATURE_DRAWINGS: Record<
   (props: { mood: HeroMood }) => JSX.Element
 > = {
   holyDragon: HolyDragon,
+  angelArcher: AngelArcher,
 };
 
 // --- COMPONENT ---
@@ -481,6 +788,7 @@ export const CreatureFigure = ({
       viewBox={`0 0 ${BODY_WIDTH[size]} ${BODY_HEIGHT}`}
       className="h-full w-full overflow-visible"
       data-action={action?.style}
+      data-signature={action?.isSignature ? '' : undefined}
       aria-hidden="true"
     >
       <Drawing mood={mood} />

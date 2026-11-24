@@ -113,11 +113,26 @@ export type HeroEffect =
   | { kind: 'dread'; amount: number }
   | { kind: 'shroud'; amount: number; who: 'self' | 'allies' }
   | { kind: 'wrath'; amount: number; who: 'self' | 'allies' }
-  | { kind: 'heal'; amount: number; who: 'self' | 'allies' };
+  | { kind: 'heal'; amount: number; who: 'self' | 'allies' }
+  /**
+   * Calls `count` more of a hero onto the field, into open columns of
+   * the summoner's own row, nearest first. Bound to the summoner: they
+   * fall when it falls.
+   */
+  | { kind: 'summon'; heroId: SummonId; count: number };
+
+/**
+ * Heroes that only ever join a fight by being summoned. Named here, not
+ * derived from the catalog, because the catalog's own moves use it
+ * (each one must still be a HeroId: getHero checks that).
+ */
+export type SummonId = 'angelArcher';
 
 export type HeroMove = {
   name: string;
   effects: readonly HeroEffect[];
+  /** The hero's signature move: it plays its own special animation. */
+  isSignature?: boolean;
 };
 
 export type HeroTier = 'grunt' | 'elite' | 'champion' | 'boss';
@@ -148,6 +163,8 @@ export type HeroDef = {
   /** The row this hero takes when the fight starts. */
   row: HeroRow;
   size: HeroSize;
+  /** The column it would rather start in (e.g. a boss takes the centre). */
+  col?: number;
   /** Rows filled (see HeroDepth); 1 when left out. */
   depth?: HeroDepth;
   /** Moves made each heroes' turn, in cycle order; 1 when left out. */
@@ -167,6 +184,8 @@ export type HeroUnit = Combatant & {
   row: HeroRow;
   /** Leftmost battlefield column (0 to 2) this hero stands in. */
   col: number;
+  /** The hero that summoned this one: it falls when that hero falls. */
+  summonerUid?: number;
 };
 
 /** The villain's moves on the battlefield itself (see movement.ts). */
@@ -192,6 +211,8 @@ export type CombatState = {
   rng: RngState;
   /** The last movement (its streak raises the next one's cost). */
   lastMovement: MovementRecord | null;
+  /** The uid the next hero to join (a summon) gets; never reused. */
+  nextUid: number;
 };
 
 export type CombatOutcome = 'ongoing' | 'won' | 'lost';

@@ -12,8 +12,8 @@
 
 import { describeHeroIntent } from '../../../../shared/game/describe';
 import { getHero } from '../../../../shared/game/heroes';
-import { sizeOf } from '../../../../shared/game/battlefield';
 import type { HeroSize, HeroUnit } from '../../../../shared/game/types';
+import { drawSizeOf } from '../../../content/heroLooks';
 import { INTENT_LOOK } from '../../../content/visuals';
 import { Chip } from '../../ui/Chip';
 import { StatusRow } from '../StatusRow';
@@ -23,6 +23,8 @@ import { DrainBar } from './DrainBar';
 // --- TYPES ---
 export type HeroPlateProps = {
   unit: HeroUnit;
+  /** Every hero on the field (the plan shown depends on them). */
+  field: readonly HeroUnit[];
   isFocused: boolean;
 };
 
@@ -62,8 +64,14 @@ const BOSS_NAME_CLASS =
 
 // --- SUBCOMPONENTS ---
 /** The hero's next move as small chips. */
-export const IntentChips = ({ unit }: { unit: HeroUnit }) => {
-  const { name, intents } = describeHeroIntent(unit);
+export const IntentChips = ({
+  unit,
+  field,
+}: {
+  unit: HeroUnit;
+  field: readonly HeroUnit[];
+}) => {
+  const { name, intents } = describeHeroIntent(unit, field);
   return (
     <div className="flex flex-nowrap items-center gap-0.5">
       {intents.map((intent, index) => (
@@ -80,8 +88,8 @@ export const IntentChips = ({ unit }: { unit: HeroUnit }) => {
 
 // --- COMPONENT ---
 /** Renders one hero's plate; the focused hero's name is lit gold. */
-export const HeroPlate = ({ unit, isFocused }: HeroPlateProps) => {
-  const look = PLATE_LOOK[sizeOf(unit)];
+export const HeroPlate = ({ unit, field, isFocused }: HeroPlateProps) => {
+  const look = PLATE_LOOK[drawSizeOf(unit)];
   const isBoss = getHero(unit.heroId).tier === 'boss';
   const nameClass = isBoss
     ? BOSS_NAME_CLASS
@@ -104,7 +112,7 @@ export const HeroPlate = ({ unit, isFocused }: HeroPlateProps) => {
       {/* ONE ROW OF CHIPS: never wraps (a second row would push the plate
           up under the top bar); a long row spills out evenly sideways. */}
       <div className="flex w-max min-w-full origin-top scale-[0.8] items-start justify-between gap-1 self-center">
-        <IntentChips unit={unit} />
+        <IntentChips unit={unit} field={field} />
         <StatusRow combatant={unit} maxChips={look.maxChips} />
       </div>
     </div>

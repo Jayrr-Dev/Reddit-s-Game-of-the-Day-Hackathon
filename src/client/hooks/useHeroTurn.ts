@@ -20,13 +20,20 @@ import {
 } from '../content/heroLooks';
 
 // --- TYPES ---
-type Playback = { steps: TurnStep[]; index: number };
+/** One beat of playback: an engine step, or a signature's charge-up. */
+type Beat = TurnStep & { isCharge?: boolean };
+type Playback = { steps: Beat[]; index: number };
 
 // --- CONSTANTS ---
 /** Gap between one hero's attack starting and the next one's (ms). */
 const HERO_STAGGER_MS = 200;
 /** How long one attack animation runs (matches --animate-hero-lunge). */
 export const HERO_ATTACK_MS = 560;
+/**
+ * A signature move first charges up for this long (nothing lands yet),
+ * then fires like any other move. Matches the halo charge in index.css.
+ */
+export const SIGNATURE_CHARGE_MS = 900;
 /** Upkeep at the start is a quick beat. */
 const QUIET_BEAT_MS = 150;
 
@@ -35,10 +42,11 @@ const QUIET_BEAT_MS = 150;
  * How long to hold a beat before the next one. The last hero's beat
  * waits for its attack to finish before the new turn starts.
  */
-const beatMs = (steps: readonly TurnStep[], index: number): number => {
+const beatMs = (steps: readonly Beat[], index: number): number => {
   const step = steps[index];
   const next = steps[index + 1];
   if (!step || step.actorUid === null) return QUIET_BEAT_MS;
+  if (step.isCharge) return SIGNATURE_CHARGE_MS;
   return next && next.actorUid !== null ? HERO_STAGGER_MS : HERO_ATTACK_MS;
 };
 
@@ -56,6 +64,7 @@ const actionOf = (step: TurnStep, uid: number): HeroAction => {
     style: isBowman && style === 'melee' ? 'range' : style,
     swing:
       MELEE_SWINGS[(uid + step.state.turn) % MELEE_SWINGS.length] ?? 'slash',
+    isSignature: step.move?.isSignature ?? false,
   };
 };
 
@@ -79,6 +88,24 @@ const actingAt = (
       )
   );
 };
+
+/**
+ * Puts a charge-up beat before every signature move: the hero is already
+ * acting (its halo gathers light) but the field still shows the state
+ * from before the move, so the damage lands when the move fires.
+ */
+const withSignatureCharges = (steps: readonly TurnStep[]): Beat[] =>
+  steps.flatMap((step, index): Beat[] => {
+    const before = steps[index - 1];
+    if (!step.move?.isSignature || !before) return [step];
+    const charge: Beat = {
+      ...step,
+      attackType: null,
+      state: before.state,
+      isCharge: true,
+    };
+    return [charge, step];
+  });
 
 /** Nobody acting (shared so the empty case keeps one identity). */
 const NOBODY_ACTING: ReadonlyMap<number, HeroAction> = new Map();
@@ -119,7 +146,7 @@ export const useHeroTurn = (
     if (playback) return;
     const steps = endTurnSteps(combat);
     if (steps.length === 0) return;
-    setPlayback({ steps, index: 0 });
+    setPlayback({ steps: withSignatureCharges(steps), index: 0 });
   }, [combat, playback]);
 
   return {

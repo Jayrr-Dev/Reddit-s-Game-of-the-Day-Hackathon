@@ -21,7 +21,9 @@ import type { CombatState } from './types.ts';
 /** True when any hero is about to attack. */
 const isUnderAttack = (combat: CombatState): boolean =>
   combat.heroes.some((unit) =>
-    describeHeroIntent(unit).intents.some((intent) => intent.kind === 'attack')
+    describeHeroIntent(unit, combat.heroes).intents.some(
+      (intent) => intent.kind === 'attack'
+    )
   );
 
 /** The weakest hero this card may hit (finish off targets first). */

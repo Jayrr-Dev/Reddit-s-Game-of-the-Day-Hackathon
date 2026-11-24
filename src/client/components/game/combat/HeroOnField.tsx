@@ -21,7 +21,12 @@ import {
   HERO_UID_ATTR,
 } from '../../../hooks/useCardDrag';
 import type { AimState, PickMarker } from '../../../hooks/useCombatControls';
-import type { HeroAction, HeroActionStyle } from '../../../content/heroLooks';
+import {
+  drawSizeOf,
+  isBoss,
+  type HeroAction,
+  type HeroActionStyle,
+} from '../../../content/heroLooks';
 import { figureAspect, headTopShare } from '../../../lib/heroFigure';
 import { moodOf } from '../../../lib/heroMood';
 import { seeded } from '../../../lib/seeded';
@@ -45,6 +50,8 @@ export type HeroOnFieldProps = {
   lastHitId: number | null;
   /** True for a fallen hero playing its death (display only). */
   isDying?: boolean;
+  /** Every hero on the field (what this one plans depends on them). */
+  field: readonly HeroUnit[];
   onTap: (uid: number) => void;
 };
 
@@ -58,11 +65,22 @@ const ROW_BOX: Record<HeroRow, RowBox> = {
   back: { bottom: '63%', height: '25%' },
 };
 /**
- * A boss fills both rows, from the front row's foot. It stops short of
- * the back row's top: its plate is taller (name, bar, chips) and would
- * otherwise clip under the top bar.
+ * A 2-deep hero fills both rows, from the front row's foot. It stops
+ * short of the back row's top: its plate is taller (name, bar, chips)
+ * and would otherwise clip under the top bar.
  */
 const DEEP_BOX: RowBox = { bottom: '2%', height: '78%' };
+/**
+ * A boss is drawn as wide as the field, centred on its own slot, and
+ * far taller than its row; in the back row it stands higher, behind
+ * anyone in front. Its plate stays clear of the top bar either way.
+ */
+const BOSS_BOX: Record<HeroRow, RowBox> = {
+  front: { bottom: '2%', height: '74%' },
+  back: { bottom: '20%', height: '60%' },
+};
+/** How many columns wide a boss is drawn. */
+const BOSS_DRAW_COLUMNS = 3;
 /**
  * A boss may be drawn this much wider than the field, so it fills both
  * rows' height; only its wingtips spill past the edges.
@@ -133,6 +151,15 @@ const AIM_CLASS: Record<AimState, string> = {
 /** Absolute box for a hero from its row, column and size. */
 const boxStyle = (unit: HeroUnit): CSSProperties => {
   const columnShare = 100 / BATTLEFIELD_COLUMNS;
+  if (isBoss(unit) && !isDeep(unit)) {
+    // Centred on its slot: half the extra width spills to each side.
+    const centre = unit.col + sizeOf(unit) / 2;
+    return {
+      left: `${(centre - BOSS_DRAW_COLUMNS / 2) * columnShare}%`,
+      width: `${BOSS_DRAW_COLUMNS * columnShare}%`,
+      ...BOSS_BOX[unit.row],
+    };
+  }
   return {
     left: `${unit.col * columnShare}%`,
     width: `${sizeOf(unit) * columnShare}%`,
@@ -187,7 +214,7 @@ const EMBERS: readonly (readonly [number, number, number])[] = [
  * can target or tap it.
  */
 const DyingHero = ({ unit }: { unit: HeroUnit }) => {
-  const size = sizeOf(unit);
+  const size = drawSizeOf(unit);
   return (
     <div
       className="pointer-events-none absolute"
@@ -197,7 +224,7 @@ const DyingHero = ({ unit }: { unit: HeroUnit }) => {
       <div className="relative h-full w-full [container-type:size]">
         <div
           className="absolute bottom-0 left-1/2 -translate-x-1/2 origin-bottom animate-hero-death"
-          style={bodyStyleOf(size, isDeep(unit))}
+          style={bodyStyleOf(size, isBoss(unit))}
         >
           <HeroFigure heroId={unit.heroId} size={size} mood="wince" />
         </div>
@@ -207,6 +234,65 @@ const DyingHero = ({ unit }: { unit: HeroUnit }) => {
             className="absolute bottom-[35%] size-1.5 rounded-full bg-wrath shadow-[0_0_6px_var(--color-wrath)] animate-ember"
             style={{
               left: `${left}%`,
+              animationDelay: `${delay}ms`,
+              ['--drift' as string]: `${drift}px`,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Motes of holy light a fallen boss dissolves into:
+ * [left %, bottom %, delay ms, drift px].
+ */
+const BOSS_MOTES: readonly (readonly [number, number, number, number])[] = [
+  [32, 30, 520, -14],
+  [40, 52, 600, 8],
+  [47, 38, 560, -6],
+  [52, 60, 680, 12],
+  [58, 34, 620, 16],
+  [64, 50, 740, -10],
+  [36, 44, 800, 10],
+  [44, 24, 860, -12],
+  [55, 46, 900, 6],
+  [61, 26, 960, -8],
+  [49, 66, 1000, 14],
+  [42, 58, 1060, -16],
+];
+
+/**
+ * A boss's death, in its last spot: it staggers and roars, its halo
+ * cracks and shatters, light bursts out of it, its wings crumple, and
+ * it dissolves into rising motes of holy light. The drawing's own parts
+ * play their share through [data-dying] (index.css, "BOSS DEATH"); the
+ * field flashes and shakes too (BattlefieldView).
+ */
+const BossDeath = ({ unit }: { unit: HeroUnit }) => {
+  const size = drawSizeOf(unit);
+  return (
+    <div
+      className="pointer-events-none absolute"
+      style={boxStyle(unit)}
+      aria-hidden="true"
+      data-dying=""
+    >
+      <div className="relative h-full w-full [container-type:size]">
+        <div
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 origin-bottom animate-boss-death"
+          style={bodyStyleOf(size, true)}
+        >
+          <HeroFigure heroId={unit.heroId} size={size} mood="fierce" />
+        </div>
+        {BOSS_MOTES.map(([left, bottom, delay, drift]) => (
+          <span
+            key={`${left}-${delay}`}
+            className="absolute size-1.5 rounded-full bg-[#fff4c8] opacity-0 shadow-[0_0_8px_#ffe58a] animate-holy-mote"
+            style={{
+              left: `${left}%`,
+              bottom: `${bottom}%`,
               animationDelay: `${delay}ms`,
               ['--drift' as string]: `${drift}px`,
             }}
@@ -239,16 +325,18 @@ export const HeroOnField = ({
   action,
   lastHitId,
   isDying = false,
+  field,
   onTap,
 }: HeroOnFieldProps) => {
-  if (isDying) return <DyingHero unit={unit} />;
+  if (isDying)
+    return isBoss(unit) ? <BossDeath unit={unit} /> : <DyingHero unit={unit} />;
   const hero = getHero(unit.heroId);
-  const size = sizeOf(unit);
+  const size = drawSizeOf(unit);
   const isBack = unit.row === 'back';
   const focusClass = isFocused
     ? 'drop-shadow-[0_0_10px_var(--color-accent)]'
     : '';
-  const bodyStyle = bodyStyleOf(size, isDeep(unit));
+  const bodyStyle = bodyStyleOf(size, isBoss(unit));
   const mood = moodOf({
     isHurt: lastHitId !== null,
     isActing: action !== null,
@@ -300,7 +388,7 @@ export const HeroOnField = ({
               className="absolute left-1/2 flex -translate-x-1/2 justify-center"
               style={plateStyle(size)}
             >
-              <HeroPlate unit={unit} isFocused={isFocused} />
+              <HeroPlate unit={unit} field={field} isFocused={isFocused} />
             </div>
           </div>
         </div>

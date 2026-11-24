@@ -6,7 +6,13 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { canPull, canPush, fallBack, rowsOf, sizeOf } from './battlefield.ts';
+import {
+  canPull,
+  canPush,
+  rowsOf,
+  sizeOf,
+  stepForward,
+} from './battlefield.ts';
 import {
   SANDBOX_SCENARIOS,
   createSandbox,
@@ -16,7 +22,7 @@ import {
 } from './sandbox.ts';
 import { ENERGY_PER_TURN } from './rules.ts';
 import { movementFailsOn } from './combat.ts';
-import { canMove, movementBlockReason, offeredMovement } from './movement.ts';
+import { movementBlockReason } from './movement.ts';
 import type { HeroUnit } from './types.ts';
 
 // --- HELPERS ---
@@ -64,28 +70,28 @@ void test('clearing the field brings a new horde with higher uids', () => {
 });
 
 // --- BOSSES ---
-void test('the Holy Dragon fills all six slots on its own', () => {
+void test('the Holy Dragon takes the centre of the back row', () => {
   const { heroes } = createSandboxWith(5, ['holyDragon']);
   const [dragon] = heroes;
   assert.ok(dragon);
-  assert.equal(dragon.row, 'front');
-  assert.deepEqual(cellsOf(dragon).sort(), [
-    'back:0',
-    'back:1',
-    'back:2',
-    'front:0',
-    'front:1',
-    'front:2',
-  ]);
+  assert.deepEqual(cellsOf(dragon), ['back:1']);
 });
 
-void test('a boss is never pulled, pushed or moved by Back Step', () => {
+void test('heroes slide around a boss, never the boss itself', () => {
+  const { heroes } = createSandboxWith(5, ['holyDragon', 'squire', 'archer']);
+  const dragon = heroes.find((unit) => unit.heroId === 'holyDragon');
+  assert.deepEqual(dragon && cellsOf(dragon), ['back:1']);
+});
+
+void test('a boss is never pulled or pushed, but Charge moves it', () => {
   const { heroes } = createSandboxWith(5, ['holyDragon']);
   const [dragon] = heroes;
   assert.ok(dragon);
   assert.equal(canPull(heroes, dragon), false);
-  assert.equal(canPush(heroes, dragon), false);
-  assert.equal(fallBack(heroes)[0]?.row, 'front');
+  const charged = stepForward(heroes);
+  const [upFront] = charged;
+  assert.equal(upFront?.row, 'front');
+  assert.equal(canPush(charged, upFront!), false);
 });
 
 void test('random dummies never roll a boss', () => {
@@ -130,13 +136,12 @@ void test('a pull on a boss fails but the card still lands', () => {
     targetUid: dragon.uid,
   });
   const hit = after.heroes[0]!;
-  assert.equal(hit.row, 'front');
+  assert.equal(hit.row, 'back');
   assert.ok(hit.hp + hit.shroud < dragon.hp + dragon.shroud);
 });
 
-void test('Back Step is offered but locked while a boss fills the field', () => {
+void test('Back Step is never locked by a boss that leaves room', () => {
   const state = createSandboxWith(5, ['holyDragon']);
-  assert.equal(offeredMovement(state), 'backStep');
-  assert.ok(movementBlockReason(state, 'backStep'));
-  assert.equal(canMove(state, 'backStep'), false);
+  assert.equal(movementBlockReason(state, 'backStep'), null);
+  assert.equal(movementBlockReason(state, 'charge'), null);
 });

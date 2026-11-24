@@ -50,6 +50,7 @@ export const INTENT_LOOK: Record<IntentKind, Look> = {
   guard: { glyph: 'shield', toneClass: 'text-shroud' },
   buff: { glyph: 'flame', toneClass: 'text-wrath' },
   heal: { glyph: 'heart', toneClass: 'text-heal' },
+  summon: { glyph: 'eye', toneClass: 'text-accent' },
 };
 
 // --- CARDS ---
