@@ -55,6 +55,8 @@ export type CardViewProps = {
   isImbueTarget?: boolean;
   /** Pulses while the imbue arrow points at it. */
   isImbueAimed?: boolean;
+  /** True to fade the card back (it can't take the Imbue being aimed). */
+  isFaded?: boolean;
   /** "fan" cards sit in the fanned hand; "offer" cards are full size. */
   size?: CardSize;
   onClick?: () => void;
@@ -298,6 +300,7 @@ export const CardView = ({
   imbues = [],
   isImbueTarget = false,
   isImbueAimed = false,
+  isFaded = false,
   size = 'offer',
   onClick,
 }: CardViewProps) => {
@@ -312,7 +315,7 @@ export const CardView = ({
       type="button"
       onClick={onClick}
       disabled={isDisabled}
-      className={`relative flex ${look.box} shrink-0 flex-col rounded-lg ${typeLook.frameClass} p-[3px] pb-3 text-center ring-1 ring-black/60 transition-transform enabled:hover:-translate-y-1 disabled:opacity-40 disabled:saturate-50 animate-rise`}
+      className={`relative flex ${look.box} shrink-0 flex-col rounded-lg ${typeLook.frameClass} p-[3px] pb-3 text-center ring-1 ring-black/60 transition-transform enabled:hover:-translate-y-1 disabled:opacity-40 disabled:saturate-50 animate-rise ${isFaded ? 'opacity-40 saturate-50' : ''}`}
       style={{ boxShadow: `${glow}, 0 6px 10px rgb(0 0 0 / 0.5)` }}
     >
       <span

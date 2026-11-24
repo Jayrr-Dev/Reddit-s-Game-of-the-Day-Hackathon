@@ -1314,7 +1314,7 @@ void test('an Imbue card needs another card in hand to imbue', () => {
 
 void test('Imbue cards say what they grant', () => {
   assert.deepEqual(describeCard('holdFast'), ['Imbue Hold.']);
-  assert.deepEqual(describeCard('venomCoat'), ['Imbue 3 Poison.']);
+  assert.deepEqual(describeCard('venomCoat'), ['Imbue Poison 3.']);
 });
 
 // --- ENFEEBLE ---
@@ -1482,11 +1482,17 @@ void test('Curse cards never deal direct damage, and all of them lay Hex', () =>
     );
 });
 
-void test('status effects in a row share one line of card text', () => {
+void test('each status reads as its name and number, one per line', () => {
   assert.deepEqual(describeCard('sneer'), [
     'Gain 5 Guard.',
-    'Apply 1 Weaken and 1 Hex.',
+    'Weaken 1',
+    'Hex 1',
   ]);
+  assert.deepEqual(describeCard('beckon'), ['Force Pull', 'Weaken 1', 'Hex 1']);
+  assert.ok(describeCard('hurlAside').includes('Force Push'));
+  assert.ok(describeCard('plague').includes('Hex 4 to ALL'));
+  for (const id of ALL_CARD_IDS)
+    assert.ok(!describeCard(id).join(' ').includes('Apply'), id);
 });
 
 // --- BRACE ---
@@ -1571,7 +1577,7 @@ void test('a turn imbue is gone at the end of the turn', () => {
   const slot = later.hand.indexOf('backhand');
   assert.equal(later.handImbues[slot]?.length ?? 0, 0);
   assert.equal(later.stowedImbues.length, 0);
-  assert.deepEqual(describeCard('emberRune'), ['Imbue 4 Burn this turn.']);
+  assert.deepEqual(describeCard('emberRune'), ['Imbue Burn 4 this turn.']);
 });
 
 void test('an action imbue is lost if another card is played first', () => {
@@ -1725,7 +1731,7 @@ void test('every hit of an Ice card applies Frost (Frost Bolt hits twice)', () =
   const after = playCard(state, 0, uid);
   const hero = after.heroes.find((unit) => unit.uid === uid);
   assert.equal(hero?.statuses.frost, 2, 'one Frost per hit');
-  assert.ok(describeCard('frostBolt').includes('Apply 1 Frost per hit.'));
+  assert.ok(describeCard('frostBolt').includes('Frost 1 per hit'));
   // Fire stays a look only.
   const fire = withHand(fightWith([]), ['hexfire']);
   const burnt = playCard(fire, 0, uid).heroes.find((unit) => unit.uid === uid);

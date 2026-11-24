@@ -153,17 +153,12 @@ export const describeCardEffect = (
       return `Deal ${amount} damage${times}${areaSuffix(effect.target, isMelee)}.`;
     }
     case 'hex':
-      return `Apply ${effect.amount} Hex${areaSuffix(effect.target)}.`;
     case 'poison':
-      return `Apply ${effect.amount} Poison${areaSuffix(effect.target)}.`;
     case 'burn':
-      return `Apply ${effect.amount} Burn${areaSuffix(effect.target)}.`;
     case 'frost':
-      return `Apply ${effect.amount} Frost${areaSuffix(effect.target)}.`;
     case 'bleed':
-      return `Apply ${effect.amount} Bleed${areaSuffix(effect.target)}.`;
     case 'weaken':
-      return `Apply ${effect.amount} Weaken${areaSuffix(effect.target)}.`;
+      return describeStatusLine(effect);
     case 'enfeeble':
       return `Enfeeble${areaSuffix(effect.target)}. Reapply to deepen.`;
     case 'reap': {
@@ -195,9 +190,9 @@ export const describeCardEffect = (
     case 'heal':
       return `Heal ${effect.amount} HP.`;
     case 'pull':
-      return 'Pull a hero forward.';
+      return FORCE_PULL_INFO.label;
     case 'push':
-      return 'Push it to the back.';
+      return FORCE_PUSH_INFO.label;
     case 'imbue':
       return describeImbueEffect(effect);
   }
@@ -256,6 +251,15 @@ export const IMBUE_INFO: StatusInfo = {
   description:
     'Give another card in your hand this keyword or effect. It lasts until that card is played, unless it says how long.',
 };
+/** What Force Pull and Force Push mean, wherever they show. */
+export const FORCE_PULL_INFO: StatusInfo = {
+  label: 'Force Pull',
+  description: 'Pulls the target hero to the front row.',
+};
+export const FORCE_PUSH_INFO: StatusInfo = {
+  label: 'Force Push',
+  description: 'Pushes the target hero to the back row.',
+};
 /** What Cleanse means, wherever it shows. */
 export const CLEANSE_INFO: StatusInfo = {
   label: 'Cleanse',
@@ -276,6 +280,8 @@ export const GLOSSARY: Readonly<Record<string, StatusInfo>> =
       ...Object.values(KEYWORD_INFO),
       IMBUE_INFO,
       CLEANSE_INFO,
+      FORCE_PULL_INFO,
+      FORCE_PUSH_INFO,
     ].map((info) => [info.label, info])
   );
 
@@ -283,7 +289,7 @@ export const GLOSSARY: Readonly<Record<string, StatusInfo>> =
 const KEYWORD_LABEL = (keyword: CardKeyword): string =>
   KEYWORD_INFO[keyword].label;
 
-/** What an imbue grants, as card text: "Hold." or "Apply 3 Poison.". */
+/** What an imbue grants, as card text: "Hold." or "Poison 3". */
 export const describeImbueGift = (gift: ImbueGift, cardDef: CardDef): string =>
   gift.kind === 'keyword'
     ? `${KEYWORD_LABEL(gift.keyword)}.`
@@ -291,7 +297,7 @@ export const describeImbueGift = (gift: ImbueGift, cardDef: CardDef): string =>
 
 /**
  * A short tag for an imbue, small enough for the badge on a card in
- * hand: "Hold", "3 Poison", "Cleanse", "+2 dmg".
+ * hand: "Hold", "Poison 3", "Cleanse", "+2 dmg".
  */
 export const imbueTag = (gift: ImbueGift): string => {
   if (gift.kind === 'keyword') return KEYWORD_LABEL(gift.keyword);
@@ -307,13 +313,13 @@ export const imbueTag = (gift: ImbueGift): string => {
     case 'weaken':
     case 'guard':
     case 'wrath':
-      return `${effect.amount} ${STATUS_INFO[effect.kind].label}`;
+      return `${STATUS_INFO[effect.kind].label} ${effect.amount}`;
     case 'buff':
-      return `${effect.amount} ${STATUS_INFO[effect.buff].label}`;
+      return `${STATUS_INFO[effect.buff].label} ${effect.amount}`;
     case 'enfeeble':
       return 'Enfeeble';
     case 'brace':
-      return `${effect.amount} Brace`;
+      return `Brace ${effect.amount}`;
     case 'reap':
       return 'Reap';
     case 'cleanse':
@@ -337,60 +343,22 @@ const describeImbueEffect = ({ gift, duration }: Imbue): string =>
   `Imbue ${imbueTag(gift)}${durationSuffix(duration)}.`;
 
 // --- STATUS LINES ---
-/** Card effects that lay a status on heroes ("Apply 2 Hex."). */
+/** Card effects that lay a status on heroes. */
 type AppliedStatus = Extract<
   CardEffect,
   { kind: 'hex' | 'poison' | 'burn' | 'frost' | 'bleed' | 'weaken' }
 >;
-const APPLIED_KINDS: ReadonlySet<CardEffect['kind']> = new Set([
-  'hex',
-  'poison',
-  'burn',
-  'frost',
-  'bleed',
-  'weaken',
-]);
-const isAppliedStatus = (effect: CardEffect): effect is AppliedStatus =>
-  APPLIED_KINDS.has(effect.kind);
 
-/** Joins words as "a", "a and b", "a, b and c". */
-const joinAnd = (words: readonly string[]): string =>
-  words.length <= 1
-    ? (words[0] ?? '')
-    : `${words.slice(0, -1).join(', ')} and ${words.at(-1)}`;
-
-/** One line for statuses laid on the same heroes: "Apply 1 Weaken and 1 Hex." */
-const describeAppliedRun = (run: readonly AppliedStatus[]): string => {
-  const parts = run.map(
-    (effect) => `${effect.amount} ${STATUS_INFO[effect.kind].label}`
-  );
-  return `Apply ${joinAnd(parts)}${areaSuffix(run[0]?.target ?? 'one')}.`;
-};
-
-/**
- * A card's effects grouped for its text: statuses laid one after
- * another on the same heroes share one line, every other effect is a
- * line of its own. Keeps cards short enough for their face.
- */
-const groupForText = (
-  effects: readonly CardEffect[]
-): (CardEffect | AppliedStatus[])[] =>
-  effects.reduce<(CardEffect | AppliedStatus[])[]>((groups, effect) => {
-    const last = groups.at(-1);
-    const run = Array.isArray(last) ? last : null;
-    if (!isAppliedStatus(effect)) return [...groups, effect];
-    if (run && run[0]?.target === effect.target) {
-      return [...groups.slice(0, -1), [...run, effect]];
-    }
-    return [...groups, [effect]];
-  }, []);
+/** A status laid on heroes, as its name and number: "Hex 2", "Hex 4 to ALL". */
+const describeStatusLine = (effect: AppliedStatus): string =>
+  `${STATUS_INFO[effect.kind].label} ${effect.amount}${areaSuffix(effect.target)}`;
 
 /** The line for what a card's element lays on each hit, if anything. */
 const elementLines = (cardDef: CardDef): string[] => {
   const onHit = cardDef.element ? ELEMENT_ON_HIT[cardDef.element] : null;
   if (!onHit) return [];
   const { label } = STATUS_INFO[onHit.status];
-  return [`Apply ${onHit.amount} ${label} per hit.`];
+  return [`${label} ${onHit.amount} per hit`];
 };
 
 /**
@@ -404,10 +372,8 @@ export const describeCardRules = (
   target?: HeroUnit
 ): string[] => {
   const cardDef = getCard(cardId);
-  const lines = groupForText(cardDef.effects).map((group) =>
-    Array.isArray(group)
-      ? describeAppliedRun(group)
-      : describeCardEffect(group, cardDef, attacker, target)
+  const lines = cardDef.effects.map((effect) =>
+    describeCardEffect(effect, cardDef, attacker, target)
   );
   const targetLine = cardDef.targets > 1 ? [`Target ${cardDef.targets}.`] : [];
   return [...targetLine, ...lines, ...elementLines(cardDef)];

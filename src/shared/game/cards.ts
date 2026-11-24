@@ -162,6 +162,7 @@ export const CARDS = {
   spiteBolt: card('Spite Bolt', 'range', 1, 'common', [hit(6)], DISTANCES),
   hurlAside: card('Hurl Aside', 'melee', 1, 'common', [hit(5), push]),
   beckon: card('Beckon', 'curse', 0, 'common', [pull, weaken(1), hex(1)]),
+  repulse: card('Repulse', 'magic', 1, 'common', [hit(5), push]),
   hexfire: card('Hexfire', 'magic', 1, 'common', [hit(6), hex(1)], FIRE),
   barbedVolley: card('Barbed Volley', 'range', 1, 'common', [hit(2, 3)]),
   flurry: card('Flurry', 'melee', 1, 'common', [hit(3, 3)]),

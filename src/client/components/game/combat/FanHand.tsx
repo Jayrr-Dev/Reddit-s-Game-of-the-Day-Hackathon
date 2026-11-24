@@ -185,6 +185,12 @@ export const FanHand = ({
               imbues={imbuesAt(combat, index)}
               isImbueTarget={imbueSlots.includes(index)}
               isImbueAimed={index === imbueAimedSlot}
+              // While an Imbue aims, the cards it can't go on fade back.
+              isFaded={
+                imbueSlots.length > 0 &&
+                index !== heldIndex &&
+                !imbueSlots.includes(index)
+              }
               // While imbuing, every card can be tapped (to pick or let go).
               isDisabled={
                 imbueSlots.length === 0 && !canPlayCard(combat, index)

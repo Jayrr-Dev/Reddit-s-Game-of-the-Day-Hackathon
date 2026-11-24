@@ -150,10 +150,10 @@ export const useImbuePick = (
           ? null
           : document.querySelector(`[${HAND_SLOT_ATTR}="${slot}"]`)
       );
+      // The arrow shows only over a card the Imbue can go on.
+      const isAllowed = slot !== null && allowed.includes(slot);
       setArrow(
-        from && to && slot !== null
-          ? { from, to, isLive: allowed.includes(slot), slot }
-          : null
+        from && to && isAllowed ? { from, to, isLive: true, slot } : null
       );
     };
     const onDown = (event: PointerEvent) => {

@@ -55,7 +55,7 @@ const TooltipLabel = ({
     className={`pointer-events-none fixed z-[100] flex justify-center animate-tooltip-in ${placement.isAbove ? '-translate-y-full' : ''}`}
     style={{ left: placement.left, top: placement.top, width: MAX_WIDTH }}
   >
-    <div className="relative rounded-md border border-edge bg-surface-raised px-2.5 py-1.5 text-center shadow-[0_6px_18px_rgb(0_0_0/0.5)]">
+    <div className="relative rounded-md border border-edge bg-surface-raised px-2.5 py-1.5 text-left shadow-[0_6px_18px_rgb(0_0_0/0.5)]">
       <p className="text-xs font-semibold text-ink">{content.title}</p>
       {content.description && (
         <p className="text-[11px] leading-snug text-ink-muted">

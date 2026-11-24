@@ -28,6 +28,8 @@ const SIZE_LOOK: Record<
   BadgeSize,
   {
     column: string;
+    /** The stem above each socket: long enough to clear the badge above. */
+    stem: string;
     socket: string;
     icon: string;
     count: string;
@@ -36,6 +38,7 @@ const SIZE_LOOK: Record<
 > = {
   fan: {
     column: 'left-1 top-3.5 w-[18px] -translate-x-1/2',
+    stem: 'h-[7px]',
     socket: 'size-[18px]',
     icon: 'size-3',
     count: 'min-w-2.5 h-2.5 text-[7px] -right-1 -bottom-1',
@@ -43,6 +46,7 @@ const SIZE_LOOK: Record<
   },
   offer: {
     column: 'left-1.5 top-5 w-[22px] -translate-x-1/2',
+    stem: 'h-[8px]',
     socket: 'size-[22px]',
     icon: 'size-3.5',
     count: 'min-w-3 h-3 text-[8px] -right-1 -bottom-1',
@@ -52,7 +56,9 @@ const SIZE_LOOK: Record<
 
 // --- SUBCOMPONENTS ---
 /** The short gold stem a socket hangs from (from the coin or the one above). */
-const Stem = () => <span aria-hidden className="h-[3px] w-0.5 bg-energy/80" />;
+const Stem = ({ heightClass }: { heightClass: string }) => (
+  <span aria-hidden className={`${heightClass} w-0.5 bg-energy/80`} />
+);
 
 /**
  * One socket: a dark gem setting with a gold rim, its icon centred in
@@ -103,7 +109,7 @@ export const CardBadges = ({
     >
       {badges.map((badge) => (
         <span key={badge.key} className="flex flex-col items-center">
-          <Stem />
+          <Stem heightClass={SIZE_LOOK[size].stem} />
           <Tooltip
             content={{ title: badge.title, description: badge.description }}
           >
