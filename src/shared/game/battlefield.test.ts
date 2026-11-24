@@ -159,7 +159,7 @@ void test('a pull drags an unblocked back-row hero forward', () => {
   assert.ok(canPull(state.heroes, archer));
   const after = playCard(state, 0, archer.uid);
   assert.equal(unitOf(after, 'archer').row, 'front');
-  assert.equal(unitOf(after, 'archer').hp, archer.hp - 5);
+  assert.equal(unitOf(after, 'archer').statuses.hex, 2);
 });
 
 void test('a pull slides the front row over to make room', () => {

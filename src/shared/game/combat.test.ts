@@ -597,7 +597,8 @@ void test('Might, Surge and Hone each power up only their own card type', () => 
   // The Squire is in front: no long-range bonus.
   assert.equal(damageWith('spiteBolt', { hone: 3 }), 9);
   assert.equal(damageWith('hexfire', { surge: 1 }), 7);
-  assert.equal(damageWith('mourningCurse', { might: 5, surge: 5 }), 4);
+  // A curse lays Hex and strikes for nothing, buffed or not.
+  assert.equal(damageWith('mourningCurse', { might: 5, surge: 5 }), 0);
 });
 
 void test('a type buff adds to every hit of a multi-hit card', () => {
@@ -1420,4 +1421,16 @@ void test('Piercing can be imbued onto a single-target attack, for the turn', ()
   const after = playCard(imbued, 0, state.heroes[0]?.uid ?? -1);
   assert.ok((hpLost(state, after)[1] ?? 0) > 0);
   assert.ok(describeCard('impale').includes('Piercing.'));
+});
+
+// --- CURSES ---
+void test('Curse cards never deal direct damage: they curse with Hex instead', () => {
+  const curses = ALL_CARD_IDS.filter((id) => getCard(id).type === 'curse');
+  for (const id of curses)
+    assert.ok(
+      !getCard(id).effects.some((effect) => effect.kind === 'damage'),
+      `${id} deals direct damage`
+    );
+  for (const id of ['mourningCurse', 'chainsOfGrief'] as const)
+    assert.ok(getCard(id).effects.some((effect) => effect.kind === 'hex'));
 });
