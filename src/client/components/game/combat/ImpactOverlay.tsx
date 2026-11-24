@@ -8,7 +8,7 @@
 //           Curse (curse cards)                   a purple glow
 //           a status ticking (Hex, Poison, Burn)  that status's own effect
 //   ANY STATUS laid on, gained or going off (heal, Guard, buffs, Hex,
-//           Poison, Burn, Frost, Smite, Weaken): its own effect from the
+//           Poison, Burn, Frost, Shock, Weaken): its own effect from the
 //           STATUS_FX table (bubbles, flames, shards ...), see StatusFx
 // Every hit is its own pop, so a 3-hit card leaves 3 marks. Each mark
 // gets a fixed pseudo-random spot from its pop id, so it never jumps

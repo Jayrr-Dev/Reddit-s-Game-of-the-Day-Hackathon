@@ -361,8 +361,8 @@ void test('Longrange goes on Range and Magic damage cards only', () => {
   assert.equal(canImbueOnto(gift, 'boneWard', []), false);
 });
 
-/** How a Priest's Smite (Magic) from `row` lands on the villain, per seed. */
-const smitesFrom = (heroId: HeroId, row: HeroRow, seeds: number) =>
+/** How a Priest's Shock (Magic) from `row` lands on the villain, per seed. */
+const shocksFrom = (heroId: HeroId, row: HeroRow, seeds: number) =>
   Array.from({ length: seeds }, (_, index) => {
     const state = fightAt([[heroId, row, 1]], [], index + 1);
     const steps = endTurnSteps(state);
@@ -374,15 +374,15 @@ const smitesFrom = (heroId: HeroId, row: HeroRow, seeds: number) =>
   });
 
 void test('heroes shooting from the Horizon land about half the time', () => {
-  const shots = smitesFrom('priest', 'horizon', 200);
+  const shots = shocksFrom('priest', 'horizon', 200);
   const landed = shots.filter((shot) => shot.landed).length / shots.length;
   assert.ok(Math.abs(landed - OUT_OF_RANGE_HIT_CHANCE) < 0.12, `${landed}`);
-  assert.ok(smitesFrom('priest', 'back', 30).every((shot) => shot.landed));
+  assert.ok(shocksFrom('priest', 'back', 30).every((shot) => shot.landed));
 });
 
 void test('the Archer has no Longrange: it misses from the Horizon too', () => {
   // Its Volley fires 3 arrows, so count the turns where one missed.
-  const shots = smitesFrom('archer', 'horizon', 40);
+  const shots = shocksFrom('archer', 'horizon', 40);
   assert.ok(shots.some((shot) => shot.missed));
 });
 

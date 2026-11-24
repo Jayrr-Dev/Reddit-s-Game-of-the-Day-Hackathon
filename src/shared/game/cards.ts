@@ -48,8 +48,8 @@ const poison = (amount: number): CardEffect => ({
   amount,
   target: 'one',
 });
-const smite = (amount: number): CardEffect => ({
-  kind: 'smite',
+const shock = (amount: number): CardEffect => ({
+  kind: 'shock',
   amount,
   target: 'one',
 });
@@ -218,7 +218,7 @@ export const CARDS = {
   venomCoat: card('Venom Coat', 'buff', 1, 'common', [
     imbue(giftOf({ kind: 'poison', amount: 3, target: 'one' })),
   ]),
-  // AFFLICTIONS: one card each for Poison, Frost, Smite and Enfeeble
+  // AFFLICTIONS: one card each for Poison, Frost, Shock and Enfeeble
   sapStrength: card('Sap Strength', 'curse', 1, 'common', [
     { kind: 'enfeeble', target: 'one' },
     hex(1),
@@ -245,7 +245,7 @@ export const CARDS = {
   ),
   serratedSlash: card('Serrated Slash', 'melee', 1, 'common', [
     hit(4),
-    smite(4),
+    shock(4),
   ]),
   // Fight-long buffs. One type each, so they hit harder than Wrath per
   // stack; Hone and Surge are a bit bigger because fewer cards use them.

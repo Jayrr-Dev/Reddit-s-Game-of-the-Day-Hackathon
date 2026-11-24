@@ -639,7 +639,7 @@ const isSingleTarget = (effect: CardDef['effects'][number]): boolean =>
     effect.kind === 'poison' ||
     effect.kind === 'burn' ||
     effect.kind === 'frost' ||
-    effect.kind === 'smite' ||
+    effect.kind === 'shock' ||
     effect.kind === 'weaken') &&
     effect.target === 'one');
 

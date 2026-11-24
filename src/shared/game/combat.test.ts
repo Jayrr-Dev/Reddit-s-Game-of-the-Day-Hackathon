@@ -381,47 +381,47 @@ void test('a Bleeding hero loses HP after its move', () => {
   assert.ok(after.hp <= hero.hp - 4);
 });
 
-void test('smite bursts and clears on the 3rd non-magic hit in a row', () => {
-  const smitten = {
+void test('shock bursts and clears on the 3rd non-magic hit in a row', () => {
+  const shocked = {
     ...createCombatant(50, 50),
-    statuses: { ...NO_STATUSES, smite: 6 },
+    statuses: { ...NO_STATUSES, shock: 6 },
   };
-  const once = takeHit(smitten, 2, 'melee');
+  const once = takeHit(shocked, 2, 'melee');
   const twice = takeHit(once, 2, 'range');
-  assert.equal(twice.smiteHits, 2);
+  assert.equal(twice.shockHits, 2);
   assert.equal(twice.hp, 46);
   const thrice = takeHit(twice, 2, 'melee');
-  // Three hits of 2, then the smite (6).
+  // Three hits of 2, then the shock (6).
   assert.equal(thrice.hp, 38);
-  assert.equal(thrice.statuses.smite, 0);
-  assert.equal(thrice.smiteHits ?? 0, 0);
+  assert.equal(thrice.statuses.shock, 0);
+  assert.equal(thrice.shockHits ?? 0, 0);
 });
 
-void test('new smite stacks on top and keeps the count', () => {
-  const smitten = {
+void test('new shock stacks on top and keeps the count', () => {
+  const shocked = {
     ...createCombatant(50, 50),
-    statuses: { ...NO_STATUSES, smite: 2 },
+    statuses: { ...NO_STATUSES, shock: 2 },
   };
-  const hit = takeHit(takeHit(smitten, 1, 'melee'), 1, 'melee');
-  const stacked = addStatus(hit, 'smite', 4);
-  assert.equal(stacked.smiteHits, 2);
+  const hit = takeHit(takeHit(shocked, 1, 'melee'), 1, 'melee');
+  const stacked = addStatus(hit, 'shock', 4);
+  assert.equal(stacked.shockHits, 2);
   const burst = takeHit(stacked, 1, 'melee');
   assert.equal(burst.hp, 50 - 3 - 6);
 });
 
-void test('a magic hit resets the smite count', () => {
-  const smitten = {
+void test('a magic hit resets the shock count', () => {
+  const shocked = {
     ...createCombatant(50, 50),
-    statuses: { ...NO_STATUSES, smite: 6 },
+    statuses: { ...NO_STATUSES, shock: 6 },
   };
-  const hit = takeHit(takeHit(smitten, 1, 'melee'), 1, 'melee');
+  const hit = takeHit(takeHit(shocked, 1, 'melee'), 1, 'melee');
   const zapped = takeHit(hit, 1, 'magic');
-  assert.equal(zapped.smiteHits ?? 0, 0);
+  assert.equal(zapped.shockHits ?? 0, 0);
   const again = takeHit(takeHit(zapped, 1, 'melee'), 1, 'melee');
-  assert.equal(again.statuses.smite, 6, 'only 2 in a row since the zap');
+  assert.equal(again.statuses.shock, 6, 'only 2 in a row since the zap');
 });
 
-void test('a hero smitten by the villain: three melee hits', () => {
+void test('a hero shocked by the villain: three melee hits', () => {
   const fight = settled(
     startCombat({
       hp: 999,
@@ -432,7 +432,7 @@ void test('a hero smitten by the villain: three melee hits', () => {
       seed: 7,
     })
   );
-  const smitten: CombatState = {
+  const shocked: CombatState = {
     ...fight,
     hand: ['backhand', 'backhand', 'backhand'],
     energy: 3,
@@ -440,14 +440,14 @@ void test('a hero smitten by the villain: three melee hits', () => {
       ...unit,
       hp: 99,
       maxHp: 99,
-      statuses: { ...unit.statuses, smite: 5 },
+      statuses: { ...unit.statuses, shock: 5 },
     })),
   };
-  const uid = smitten.heroes[0]!.uid;
-  const after = [0, 0, 0].reduce((state) => playCard(state, 0, uid), smitten);
+  const uid = shocked.heroes[0]!.uid;
+  const after = [0, 0, 0].reduce((state) => playCard(state, 0, uid), shocked);
   const maiden = after.heroes.find((unit) => unit.uid === uid)!;
   assert.equal(maiden.hp, 99 - 6 * 3 - 5);
-  assert.equal(maiden.statuses.smite, 0);
+  assert.equal(maiden.statuses.shock, 0);
 });
 
 void test("the Rogue's Poisoned Dart poisons instead of hexing", () => {
@@ -718,7 +718,7 @@ void test('afflictions are the harmful statuses, flagged in one table', () => {
     'frost',
     'hex',
     'poison',
-    'smite',
+    'shock',
     'weaken',
   ]);
 });
@@ -1283,11 +1283,11 @@ void test('Hold is a card trait, printed on the card', () => {
 });
 
 // --- AFFLICTION CARDS ---
-void test('Venom Dart poisons, Frost Bolt frosts and Serrated Slash smites', () => {
-  const cases: readonly [CardId, 'poison' | 'frost' | 'smite'][] = [
+void test('Venom Dart poisons, Frost Bolt frosts and Serrated Slash shocks', () => {
+  const cases: readonly [CardId, 'poison' | 'frost' | 'shock'][] = [
     ['venomDart', 'poison'],
     ['frostBolt', 'frost'],
-    ['serratedSlash', 'smite'],
+    ['serratedSlash', 'shock'],
   ];
   cases.forEach(([cardId, status]) => {
     const state = withHand(fightWith([]), [cardId]);

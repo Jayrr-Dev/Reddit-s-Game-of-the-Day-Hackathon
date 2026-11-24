@@ -56,8 +56,9 @@
   /* Burn: fire orange. */
   --color-burn: #ff7a1a;
   --color-frost: #8fd8ff;
-  /* Smite: a dark arterial red, apart from Melee's red (hp). */
-  --color-smite: #c0142e;
+  /* Shock: lightning magic, an electric yellow (brighter and colder than
+     the gold of energy). */
+  --color-shock: #f4ea4a;
   /* Bleed (HP lost after each action): a bright fresh-blood red. */
   --color-bleed: #e8445c;
   /* Magic: a light sky blue, kept clear of Defend's (and Guard's) deeper blue. */
@@ -2253,7 +2254,7 @@ textarea,
   }
 }
 
-/* Drips down from the wound (Smite laid on). */
+/* Drips down from the wound (Bleed laid on). */
 @keyframes fx-fall {
   0% {
     opacity: 0;
@@ -2355,22 +2356,22 @@ textarea,
 }
 
 /* -------------------------------------------------------------------
-   SMITE DROP: Smite's chip icon (SmiteDrop.tsx). Full (primed, one hit
+   SHOCK CHARGE: Shock's chip icon (ShockCharge.tsx). Full (primed, one hit
    from bursting) it pulses; on the burst it swells and fades as five
    droplets fly off along --drop-angle. Transform and opacity only;
    reduced motion shows a steady drop.
    ------------------------------------------------------------------- */
-.smite-drop[data-stage='full'] .smite-drop-body {
-  animation: smite-drop-pulse 800ms ease-in-out infinite;
+.shock-charge[data-stage='full'] .shock-charge-body {
+  animation: shock-charge-pulse 800ms ease-in-out infinite;
 }
-.smite-drop[data-stage='splash'] .smite-drop-body {
-  animation: smite-drop-splash 600ms ease-out forwards;
+.shock-charge[data-stage='splash'] .shock-charge-body {
+  animation: shock-charge-splash 600ms ease-out forwards;
 }
-.smite-drop-droplet {
+.shock-charge-droplet {
   opacity: 0;
-  animation: smite-drop-fly 600ms ease-out forwards;
+  animation: shock-charge-fly 600ms ease-out forwards;
 }
-@keyframes smite-drop-pulse {
+@keyframes shock-charge-pulse {
   0%,
   100% {
     transform: scale(1);
@@ -2379,7 +2380,7 @@ textarea,
     transform: scale(1.25);
   }
 }
-@keyframes smite-drop-splash {
+@keyframes shock-charge-splash {
   0% {
     transform: scale(1);
     opacity: 1;
@@ -2393,7 +2394,7 @@ textarea,
     opacity: 0;
   }
 }
-@keyframes smite-drop-fly {
+@keyframes shock-charge-fly {
   0% {
     opacity: 1;
     transform: translate(-50%, -50%) rotate(var(--drop-angle)) translateX(0);
@@ -2405,11 +2406,11 @@ textarea,
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .smite-drop .smite-drop-body,
-  .smite-drop-droplet {
+  .shock-charge .shock-charge-body,
+  .shock-charge-droplet {
     animation: none;
   }
-  .smite-drop-droplet {
+  .shock-charge-droplet {
     display: none;
   }
 }

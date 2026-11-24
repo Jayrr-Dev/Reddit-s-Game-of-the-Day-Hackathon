@@ -288,7 +288,7 @@ const longRangeHit = (perHit: number): number =>
  * How one hero attack lands from where the hero stands: its type and
  * damage per hit. A Range attack from past the front row is at its
  * proper range (LONG_RANGE_DAMAGE_FACTOR); made up close (the front row)
- * it loses that bonus but is still a Range hit (its VFX, Smite and
+ * it loses that bonus but is still a Range hit (its VFX, Shock and
  * anything else that reads the type all see Range).
  */
 export const heroAttackOf = (
@@ -650,7 +650,7 @@ const applyCardEffect = (
     case 'burn':
     case 'frost':
     case 'bleed':
-    case 'smite':
+    case 'shock':
     case 'weaken':
       return updateHeroes(
         state,
@@ -1242,7 +1242,7 @@ const applyHeroEffect = (
     case 'burn':
     case 'frost':
     case 'bleed':
-    case 'smite':
+    case 'shock':
       return {
         ...state,
         player: addStatus(state.player, effect.kind, scaled(effect.amount)),

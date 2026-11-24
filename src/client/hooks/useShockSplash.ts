@@ -1,33 +1,33 @@
 // ===================================================================
-// USE SMITE SPLASH
-// Smite's chip disappears the moment it bursts (the 3rd hit clears it),
-// so its drop could never be seen splashing. This keeps a note of the
+// USE SHOCK SPLASH
+// Shock's chip disappears the moment it bursts (the 3rd hit clears it),
+// so its bolt could never be seen splashing. This keeps a note of the
 // burst for SPLASH_MS: the value that went off, so the status row can
-// show the drop splashing in step with the damage landing.
+// show the bolt discharging in step with the damage landing.
 // ===================================================================
 
 import { useEffect, useRef, useState } from 'react';
-import { SMITE_HITS } from '../../shared/game/rules';
+import { SHOCK_HITS } from '../../shared/game/rules';
 import type { Combatant } from '../../shared/game/types';
 
 // --- CONSTANTS ---
-/** How long the splash shows (matches .smite-drop splash in index.css). */
+/** How long the splash shows (matches .shock-charge splash in index.css). */
 const SPLASH_MS = 600;
 
 // --- HELPERS ---
 /**
- * True when Smite just burst between two looks: it was primed, now it
+ * True when Shock just burst between two looks: it was primed, now it
  * is gone, and the unit lost HP (a Cleanse clears it without a splash).
  */
 const didBurst = (before: Combatant, after: Combatant): boolean =>
-  before.statuses.smite > 0 &&
-  (before.smiteHits ?? 0) >= SMITE_HITS - 1 &&
-  after.statuses.smite === 0 &&
+  before.statuses.shock > 0 &&
+  (before.shockHits ?? 0) >= SHOCK_HITS - 1 &&
+  after.statuses.shock === 0 &&
   after.hp < before.hp;
 
 // --- HOOK ---
-/** The Smite value that just burst, while its splash shows, else null. */
-export const useSmiteSplash = (combatant: Combatant): number | null => {
+/** The Shock value that just burst, while its splash shows, else null. */
+export const useShockSplash = (combatant: Combatant): number | null => {
   const [splashed, setSplashed] = useState<number | null>(null);
   const lastRef = useRef(combatant);
   // The splash's timer lives in a ref, not in the effect's cleanup: the
@@ -41,7 +41,7 @@ export const useSmiteSplash = (combatant: Combatant): number | null => {
     const before = lastRef.current;
     lastRef.current = combatant;
     if (!didBurst(before, combatant)) return;
-    setSplashed(before.statuses.smite);
+    setSplashed(before.statuses.shock);
     window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => setSplashed(null), SPLASH_MS);
   }, [combatant]);

@@ -179,8 +179,8 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     layers: [{ shape: 'shard', motion: 'burst', count: 7, size: 16 }],
     hasGlow: true,
   },
-  smite: {
-    layers: [{ shape: 'drop', motion: 'fall', count: 4, size: 9 }],
+  shock: {
+    layers: [{ shape: 'spark', motion: 'burst', count: 5, size: 9 }],
     hasGlow: false,
   },
   /** Bleed (HP lost each action): heavier drops run down. */
@@ -189,14 +189,14 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     hasGlow: true,
   },
   /**
-   * Smite bursting (its 3rd hit): blood lashes across the body like
-   * whipped water, drops fly off, and a splat is left behind a moment.
+   * Shock discharging (its 3rd hit): the bolt flashes, lightning lashes
+   * across the body and sparks fly off.
    */
-  smiteBurst: {
+  shockBurst: {
     layers: [
+      { shape: 'icon', motion: 'flash', count: 1, size: 48 },
       { shape: 'lash', motion: 'whip', count: 2, size: 96 },
-      { shape: 'drop', motion: 'burst', count: 7, size: 8 },
-      { shape: 'splat', motion: 'splat', count: 1, size: 62 },
+      { shape: 'spark', motion: 'burst', count: 9, size: 9 },
     ],
     hasGlow: true,
   },

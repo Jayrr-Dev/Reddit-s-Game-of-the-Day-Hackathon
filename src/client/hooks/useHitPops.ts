@@ -31,7 +31,7 @@ export type DebuffKind =
   | 'poison'
   | 'burn'
   | 'frost'
-  | 'smite'
+  | 'shock'
   | 'bleed'
   | 'weaken'
   | 'enfeeble';
@@ -50,8 +50,8 @@ export type PopKind =
   | 'brace'
   | BuffId
   | DebuffKind
-  /** Smite went off: a spray of blood over the unit (quiet). */
-  | 'smiteBurst'
+  /** Shock went off: a spray of blood over the unit (quiet). */
+  | 'shockBurst'
   /** A shot Out of Range missed: "Miss" floats up, nothing is drawn. */
   | 'miss';
 
@@ -98,7 +98,7 @@ type HeroLook = {
   poison: number;
   burn: number;
   frost: number;
-  smite: number;
+  shock: number;
   bleed: number;
   weaken: number;
   enfeeble: number;
@@ -119,7 +119,7 @@ const goneAfter = (old: HeroLook): Omit<HeroLook, 'point'> => ({
   poison: 0,
   burn: 0,
   frost: 0,
-  smite: 0,
+  shock: 0,
   bleed: 0,
   weaken: 0,
   enfeeble: 0,
@@ -247,7 +247,7 @@ const gainsBetween = (
 };
 
 /**
- * Debuffs laid on between two looks, plus a Smite that went off (it
+ * Debuffs laid on between two looks, plus a Shock that went off (it
  * had stacks and now has none): effect only, no number.
  */
 const debuffsBetween = (
@@ -260,10 +260,10 @@ const debuffsBetween = (
     blocked: 0,
     isQuiet: true,
   })).filter((debuff) => debuff.amount > 0);
-  const hasBurst = before.smite > 0 && after.smite === 0;
+  const hasBurst = before.shock > 0 && after.shock === 0;
   const burst: Hit = {
-    kind: 'smiteBurst',
-    amount: before.smite,
+    kind: 'shockBurst',
+    amount: before.shock,
     blocked: 0,
     isQuiet: true,
   };
@@ -298,7 +298,7 @@ const lookAt = (
         poison: unit.statuses.poison,
         burn: unit.statuses.burn,
         frost: unit.statuses.frost,
-        smite: unit.statuses.smite,
+        shock: unit.statuses.shock,
         bleed: unit.statuses.bleed,
         weaken: unit.statuses.weaken,
         enfeeble: unit.statuses.enfeeble,
@@ -332,7 +332,7 @@ const heroPopsSince = (
           poison: unit.statuses.poison,
           burn: unit.statuses.burn,
           frost: unit.statuses.frost,
-          smite: unit.statuses.smite,
+          shock: unit.statuses.shock,
           bleed: unit.statuses.bleed,
           weaken: unit.statuses.weaken,
           enfeeble: unit.statuses.enfeeble,

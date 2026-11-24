@@ -116,7 +116,7 @@ const EFFECT_STACKS: Record<ImbuableEffect['kind'], boolean> = {
   poison: true,
   burn: true,
   frost: true,
-  smite: true,
+  shock: true,
   bleed: true,
   weaken: true,
   guard: true,

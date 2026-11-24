@@ -6,7 +6,7 @@
 
 import {
   AFTER_ACTION_DIVISOR,
-  SMITE_HITS,
+  SHOCK_HITS,
   WEAKEN_DAMAGE_FACTOR,
   FROST_DAMAGE_PER_STACK,
   HEX_BURN_LOSS,
@@ -34,7 +34,7 @@ export const NO_STATUSES: Statuses = {
   poison: 0,
   burn: 0,
   frost: 0,
-  smite: 0,
+  shock: 0,
   bleed: 0,
   weaken: 0,
   wrath: 0,
@@ -165,8 +165,8 @@ export const missShot = <T extends Combatant>(target: T): T => ({
 
 /**
  * Takes a hit of a type (a card's, or a hero attack's) and counts it
- * toward Smite: while smitten, each non-Magic hit in a row adds one,
- * and the SMITE_HITS-th bursts for the whole Smite (past Guard) and
+ * toward Shock: while shocked, each non-Magic hit in a row adds one,
+ * and the SHOCK_HITS-th bursts for the whole Shock (past Guard) and
  * clears it; a Magic hit resets the count.
  */
 export const takeHit = <T extends Combatant>(
@@ -175,17 +175,17 @@ export const takeHit = <T extends Combatant>(
   type: CardType
 ): T => {
   const hit = takeDamage(target, protectedAmount(target, amount));
-  const { smite } = hit.statuses;
-  if (smite <= 0) return hit;
-  if (type === 'magic') return { ...hit, smiteHits: 0 };
-  const inARow = (hit.smiteHits ?? 0) + 1;
-  if (inARow < SMITE_HITS) return { ...hit, smiteHits: inARow };
+  const { shock } = hit.statuses;
+  if (shock <= 0) return hit;
+  if (type === 'magic') return { ...hit, shockHits: 0 };
+  const inARow = (hit.shockHits ?? 0) + 1;
+  if (inARow < SHOCK_HITS) return { ...hit, shockHits: inARow };
   const cleared = {
     ...hit,
-    smiteHits: 0,
-    statuses: { ...hit.statuses, smite: 0 },
+    shockHits: 0,
+    statuses: { ...hit.statuses, shock: 0 },
   };
-  return loseHp(cleared, smite);
+  return loseHp(cleared, shock);
 };
 
 // --- TIERED STATUSES (Protection, Enfeeble; see TIERED_CUT_BY_TIER) ---
@@ -273,7 +273,7 @@ export const cleanseOne = <T extends Combatant>(
   const cleansed = {
     ...target,
     statuses: { ...target.statuses, [removed]: 0 },
-    ...(removed === 'smite' ? { smiteHits: 0 } : {}),
+    ...(removed === 'shock' ? { shockHits: 0 } : {}),
   };
   return [cleansed, next];
 };

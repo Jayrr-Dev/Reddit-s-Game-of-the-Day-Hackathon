@@ -18,9 +18,9 @@ import type { RngState } from './rng.ts';
  *           move; the villain's whole turn), then halves (3 -> 1, 1 -> 0)
  * - frost:  every hit it deals is 1 lower per stack (never below 0);
  *           halves the same way after each of its actions
- * - smite:  stacks; on the SMITE_HITS-th non-Magic hit in a row it
+ * - shock:  stacks; on the SHOCK_HITS-th non-Magic hit in a row it
  *           takes, from anyone, it loses this much HP and clears (a
- *           Magic hit resets the count; see Combatant.smiteHits)
+ *           Magic hit resets the count; see Combatant.shockHits)
  * - bleed:  loses this much HP right after each of its actions (a hero
  *           move; the villain's whole turn), then drops by 1
  * - hex:    right before its turn, loses this much HP if it is odd
@@ -47,7 +47,7 @@ export type StatusId =
   | 'poison'
   | 'burn'
   | 'frost'
-  | 'smite'
+  | 'shock'
   | 'bleed'
   | 'weaken'
   | 'wrath'
@@ -86,8 +86,8 @@ export type Combatant = {
    * the view diffs it to pop "Miss". Missing on older saves (0).
    */
   missedShots?: number;
-  /** Non-Magic hits taken in a row while smitten (see Smite). */
-  smiteHits?: number;
+  /** Non-Magic hits taken in a row while shocked (see Shock). */
+  shockHits?: number;
   /** True when Protection was cast this turn (else it lapses at turn end). */
   protectionCast?: boolean;
   /** True when Enfeeble was laid on this unit this villain turn. */
@@ -105,7 +105,7 @@ export type BaseCardEffect =
   | { kind: 'poison'; amount: number; target: CardTarget }
   | { kind: 'burn'; amount: number; target: CardTarget }
   | { kind: 'frost'; amount: number; target: CardTarget }
-  | { kind: 'smite'; amount: number; target: CardTarget }
+  | { kind: 'shock'; amount: number; target: CardTarget }
   | { kind: 'bleed'; amount: number; target: CardTarget }
   | { kind: 'weaken'; amount: number; target: CardTarget }
   /** Enfeebles the target: one tier up when reapplied turn after turn. */
@@ -240,7 +240,7 @@ export type HeroEffect =
   | { kind: 'poison'; amount: number }
   | { kind: 'burn'; amount: number }
   | { kind: 'frost'; amount: number }
-  | { kind: 'smite'; amount: number }
+  | { kind: 'shock'; amount: number }
   | { kind: 'bleed'; amount: number }
   | { kind: 'weaken'; amount: number }
   | { kind: 'guard'; amount: number; who: 'self' | 'allies' }
