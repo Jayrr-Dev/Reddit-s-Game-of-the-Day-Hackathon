@@ -4,7 +4,8 @@
 // floats over them for a moment: the HP lost, and the part their shroud
 // blocked. Heroes also pop what they gain from their own moves (healing,
 // Shroud, Wrath) in the same spot, and anyone pops a debuff (Hex,
-// Dread) when one is laid on them. Each pop also drives the effect drawn
+// Dread ...) when one is laid on them. A hit that no attack dealt names
+// the status that ticked (Hex, Poison, Burn), so it draws that effect. Each pop also drives the effect drawn
 // over the character (see ImpactOverlay). Two hooks share the same rules:
 //   useHitPops     every hero, each pop placed over that hero's body
 //   usePlayerHits  the villain (drawn over the portrait)
@@ -26,6 +27,9 @@ import { HERO_ANCHOR_ATTR, HERO_UID_ATTR, type Point } from './useCardDrag';
 /** A status that harms whoever carries it. */
 export type DebuffKind =
   'hex' | 'poison' | 'burn' | 'frost' | 'bleed' | 'dread';
+
+/** A status that deals damage on its own when it goes off (a tick). */
+export type TickKind = 'hex' | 'poison' | 'burn';
 
 /** What a pop shows: a hit, something gained, or a debuff laid on. */
 export type PopKind =
@@ -49,6 +53,8 @@ export type Hit = {
   blocked: number;
   /** For a hit on a hero: the type of the card that dealt it (its colour). */
   source?: CardType | undefined;
+  /** For a hit no attack dealt: the status that ticked (its own effect). */
+  tick?: TickKind | undefined;
   /** True when only the effect over the character shows (no number). */
   isQuiet?: boolean;
   /** True when this hit took the target from alive to 0 HP. */
@@ -143,6 +149,21 @@ const hitBetween = (
   return amount > 0 || blocked > 0
     ? { kind: 'hit', amount, blocked, isKill }
     : null;
+};
+
+/**
+ * Which status ticked between two looks, for a hit no attack dealt:
+ * Burn and Poison drop when they tick; Hex always changes when it goes
+ * off (it burns and shrinks, or clears). Null when none of them moved.
+ */
+const tickCauseOf = (
+  before: Record<TickKind, number>,
+  after: Record<TickKind, number>
+): TickKind | undefined => {
+  if (after.burn < before.burn) return 'burn';
+  if (after.poison < before.poison) return 'poison';
+  if (after.hex !== before.hex) return 'hex';
+  return undefined;
 };
 
 /**
@@ -272,7 +293,9 @@ const heroPopsSince = (
         }
       : goneAfter(old);
     const found = hitBetween(old, now, countsBlocked);
-    const hit = found ? { ...found, source } : null;
+    // On the heroes' turn only statuses harm them: name the one that ticked.
+    const tick = isHeroTurn ? tickCauseOf(old, now) : undefined;
+    const hit = found ? { ...found, source, tick } : null;
     const gains = isHeroTurn && unit ? gainsBetween(old, now) : [];
     const debuffs = unit ? debuffsBetween(old, now) : [];
     const point = bodyPointOf(uid) ?? old.point;
@@ -407,8 +430,13 @@ export const usePlayerHits = (
   useEffect(() => {
     const last = lastRef.current;
     const found = hitBetween(last.player, player, last.turn === turn);
+    // Untyped harm (no hero attack landing) is a status ticking.
+    const tick =
+      source === null
+        ? tickCauseOf(last.player.statuses, player.statuses)
+        : undefined;
     const [firstBlow, ...laterBlows] = found
-      ? splitIntoBlows({ ...found, source: source ?? undefined }, strikes)
+      ? splitIntoBlows({ ...found, source: source ?? undefined, tick }, strikes)
       : [];
     const gains = villainGainsBetween(last.player, player);
     const debuffs = debuffsBetween(last.player.statuses, player.statuses);

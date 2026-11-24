@@ -1979,37 +1979,6 @@ textarea,
 }
 
 /* -------------------------------------------------------------------
-   BLEED BURST: a unit's Bleed goes off; droplets spray out from its
-   middle (--dx, --dy set per drop) and fall away. Transform and
-   opacity only.
-   ------------------------------------------------------------------- */
-@keyframes bleed-drop {
-  0% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1.3);
-  }
-  70% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy) + 8cqh))
-      scale(0.5);
-  }
-}
-
-.bleed-drop {
-  opacity: 0;
-  animation: bleed-drop 620ms cubic-bezier(0.2, 0.7, 0.4, 1) forwards;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bleed-drop {
-    animation: none;
-  }
-}
-
-/* -------------------------------------------------------------------
    MELEE SWEEP: your blade crosses the targets left to right (grows out
    from its left edge), then fades as the slices land. MELEE_SWEEP_MS
    = 200 in usePlayerShots. Transform and opacity only.
@@ -2084,5 +2053,153 @@ textarea,
   .chip-pulse::after {
     animation: none;
     opacity: 0.7;
+  }
+}
+
+/* -------------------------------------------------------------------
+   STATUS FX: each status's particles (see content/statusFx.ts and
+   StatusFx.tsx). A particle sits at its left/top and is centred by the
+   translate(-50%, -50%) every keyframe starts with. Burst reads its
+   flight from --fx-dx/--fx-dy and its tilt from --fx-turn; spin turns by
+   --fx-turn. Transform and opacity only, about 1 s, then gone.
+   ------------------------------------------------------------------- */
+.status-fx {
+  opacity: 0;
+  animation-duration: 950ms;
+  animation-timing-function: cubic-bezier(0.2, 0.7, 0.4, 1);
+  animation-fill-mode: both;
+}
+
+.status-fx-rise {
+  animation-name: fx-rise;
+}
+.status-fx-fall {
+  animation-name: fx-fall;
+}
+.status-fx-burst {
+  animation-name: fx-burst;
+  animation-duration: 700ms;
+}
+.status-fx-spin {
+  animation-name: fx-spin;
+}
+.status-fx-flash {
+  animation-name: fx-flash;
+}
+
+/* Floats up, swelling in, then fades (bubbles, flames, chevrons, pluses). */
+@keyframes fx-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(10cqh) scale(0.5);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(-32cqh) scale(0.85);
+  }
+}
+
+/* Drips down from the wound (Bleed laid on). */
+@keyframes fx-fall {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(30cqh) scaleY(1.3);
+  }
+}
+
+/* Flies out from the middle, pointing the way it goes (shards, spray). */
+@keyframes fx-burst {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--fx-turn, 0deg)) scale(1.3);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--fx-dx)), calc(-50% + var(--fx-dy)))
+      rotate(var(--fx-turn, 0deg)) scale(0.5);
+  }
+}
+
+/* Turns in place while it swells and fades (Hex's sigil). */
+@keyframes fx-spin {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(0deg) scale(0.4);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--fx-turn, 180deg)) scale(1.1);
+  }
+}
+
+/* Swells in place, then fades (shield, ring, eye). */
+@keyframes fx-flash {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.25);
+  }
+}
+
+/* A flame's own flicker, on its drawing inside the rising particle. */
+.status-fx-flicker {
+  transform-origin: 50% 90%;
+  animation: fx-flicker 160ms ease-in-out infinite alternate;
+}
+@keyframes fx-flicker {
+  from {
+    transform: scale(0.9, 1.08);
+  }
+  to {
+    transform: scale(1.08, 0.9);
+  }
+}
+
+/* Fades in and out where it stands, with no travel. */
+@keyframes fx-fade {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%);
+  }
+  30%,
+  60% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-fx {
+    animation-name: fx-fade;
+    animation-delay: 0ms !important;
+  }
+  .status-fx-flicker {
+    animation: none;
   }
 }

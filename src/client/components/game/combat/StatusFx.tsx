@@ -1,0 +1,211 @@
+// ===================================================================
+// STATUS FX
+// Draws one status's effect over a character, from its entry in
+// STATUS_FX (content/statusFx.ts): a glow in the status's colour and
+// its layers of particles (bubbles, flames, shards ...). Each particle
+// gets a fixed pseudo-random spot and delay from the pop id, so it never
+// jumps on re-render. Sits inside ImpactOverlay, which is a size
+// container, so cqw/cqh are the character's box.
+// PERFORMANCE: transform and opacity only (index.css "STATUS FX");
+// reduced motion swaps every motion for a plain fade in place.
+// ===================================================================
+
+import type { CSSProperties, ReactNode } from 'react';
+import {
+  STATUS_FX,
+  type FxKind,
+  type FxLayer,
+  type FxMotion,
+  type FxShape,
+} from '../../../content/statusFx';
+import { POP_LOOK, toneVarOf } from '../../../content/visuals';
+import { seeded, spread } from '../../../lib/seeded';
+
+// --- CONSTANTS ---
+/** Time between particles of one layer starting (ms). */
+const PARTICLE_STAGGER_MS = 70;
+/** How far a burst particle flies, as a % of the box. */
+const BURST_REACH = 42;
+
+/** Each shape as SVG on a 10 x 10 box, drawn in currentColor. */
+const SHAPE_PATHS: Record<FxShape, ReactNode> = {
+  bubble: (
+    <>
+      <circle cx="5" cy="5" r="3.8" fill="currentColor" fillOpacity="0.35" />
+      <circle cx="5" cy="5" r="3.8" fill="none" stroke="currentColor" />
+      <circle cx="3.8" cy="3.6" r="0.9" fill="white" fillOpacity="0.8" />
+    </>
+  ),
+  flame: (
+    <path
+      d="M5 .5C6.6 3 8.6 4.6 8.6 6.8a3.6 3.6 0 0 1-7.2 0C1.4 5 3 4 3.4 2.4 4 3.8 4.6 4.2 5 4.6 5.3 3 5 1.8 5 .5Z"
+      fill="currentColor"
+    />
+  ),
+  shard: <path d="M5 0 6.7 5 5 10 3.3 5Z" fill="currentColor" />,
+  sigil: (
+    <g fill="none" stroke="currentColor" strokeWidth="0.6">
+      <circle cx="5" cy="5" r="4.4" />
+      <circle cx="5" cy="5" r="3.3" strokeDasharray="1 0.8" />
+      <path d="M5 1.7 7.9 6.7H2.1Z" />
+      <path d="M5 8.3 2.1 3.3H7.9Z" />
+    </g>
+  ),
+  drop: (
+    <path
+      d="M5 .5C6.5 3 8 4.8 8 6.6a3 3 0 0 1-6 0C2 4.8 3.5 3 5 .5Z"
+      fill="currentColor"
+    />
+  ),
+  plus: (
+    <path
+      d="M5 1v8M1 5h8"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+    />
+  ),
+  chevron: (
+    <path
+      d="M1.5 5.5 5 2l3.5 3.5M1.5 9 5 5.5 8.5 9"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  ),
+  shield: (
+    <path
+      d="M5 .8 8.8 2.2v3c0 2.2-1.7 3.7-3.8 4.4C2.9 8.9 1.2 7.4 1.2 5.2v-3Z"
+      fill="currentColor"
+      fillOpacity="0.45"
+      stroke="currentColor"
+      strokeWidth="0.7"
+    />
+  ),
+  ring: (
+    <circle
+      cx="5"
+      cy="5"
+      r="4.5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="0.5"
+    />
+  ),
+  eye: (
+    <>
+      <path
+        d="M.6 5C2 2.6 3.4 1.8 5 1.8S8 2.6 9.4 5C8 7.4 6.6 8.2 5 8.2S2 7.4.6 5Z"
+        fill="currentColor"
+        fillOpacity="0.4"
+        stroke="currentColor"
+        strokeWidth="0.6"
+      />
+      <circle cx="5" cy="5" r="1.6" fill="currentColor" />
+    </>
+  ),
+};
+
+// --- HELPERS ---
+/**
+ * Where particle `index` of a layer starts, and how it moves, as CSS
+ * (the motion reads --fx-dx/--fx-dy/--fx-turn in index.css). `salt`
+ * keeps layers of one pop apart.
+ */
+const placeParticle = (
+  motion: FxMotion,
+  id: number,
+  index: number,
+  count: number,
+  salt: number
+): CSSProperties => {
+  const key = salt * 20 + index;
+  const delay = `${index * PARTICLE_STAGGER_MS}ms`;
+  if (motion === 'burst') {
+    // Evenly round the circle, each a little off its slot.
+    const deg = (index / count) * 360 + spread(id, key) * 14;
+    const rad = (deg * Math.PI) / 180;
+    const reach = BURST_REACH * (0.75 + seeded(id, key + 9) * 0.4);
+    return {
+      left: '50%',
+      top: '50%',
+      animationDelay: `${index * 12}ms`,
+      '--fx-dx': `${(Math.cos(rad) * reach).toFixed(1)}cqw`,
+      '--fx-dy': `${(Math.sin(rad) * reach).toFixed(1)}cqh`,
+      '--fx-turn': `${(deg + 90).toFixed(0)}deg`,
+    } as CSSProperties;
+  }
+  if (motion === 'spin' || motion === 'flash')
+    return {
+      left: '50%',
+      top: '50%',
+      animationDelay: delay,
+      '--fx-turn': `${spread(id, key) > 0 ? 200 : -200}deg`,
+    } as CSSProperties;
+  // Rise and fall: spread across the body, starting low or high.
+  return {
+    left: `${50 + spread(id, key) * 30}%`,
+    top: motion === 'rise' ? `${58 + spread(id, key + 3) * 10}%` : '38%',
+    animationDelay: `${index * PARTICLE_STAGGER_MS + seeded(id, key + 5) * 60}ms`,
+  };
+};
+
+// --- SUBCOMPONENTS ---
+/** One layer of particles. */
+const Layer = ({
+  layer,
+  id,
+  salt,
+}: {
+  layer: FxLayer;
+  id: number;
+  salt: number;
+}) => (
+  <>
+    {Array.from({ length: layer.count }, (_, index) => (
+      <span
+        key={index}
+        className={`status-fx status-fx-${layer.motion} absolute aspect-square`}
+        style={{
+          width: `${layer.size}%`,
+          ...placeParticle(layer.motion, id, index, layer.count, salt),
+        }}
+      >
+        <svg
+          viewBox="0 0 10 10"
+          className={`block size-full overflow-visible drop-shadow-[0_0_3px_currentColor] ${layer.shape === 'flame' ? 'status-fx-flicker' : ''}`}
+          aria-hidden="true"
+        >
+          {SHAPE_PATHS[layer.shape]}
+        </svg>
+      </span>
+    ))}
+  </>
+);
+
+/** A soft wash of the status's colour over the character. */
+const Glow = ({ tone }: { tone: string }) => (
+  <span
+    className="absolute inset-0 animate-impact-glow rounded-full mix-blend-screen"
+    style={{
+      background: `radial-gradient(circle, ${tone} 0%, transparent 65%)`,
+    }}
+  />
+);
+
+// --- COMPONENT ---
+/** Renders the effect for one status pop (applied, gained or ticking). */
+export const StatusFx = ({ kind, id }: { kind: FxKind; id: number }) => {
+  const spec = STATUS_FX[kind];
+  const tone = toneVarOf(POP_LOOK[kind]);
+  return (
+    <span className="absolute inset-0" style={{ color: tone }}>
+      {spec.hasGlow && <Glow tone={tone} />}
+      {spec.layers.map((layer, salt) => (
+        <Layer key={salt} layer={layer} id={id} salt={salt} />
+      ))}
+    </span>
+  );
+};

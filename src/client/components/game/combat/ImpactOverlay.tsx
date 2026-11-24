@@ -5,10 +5,11 @@
 //   HIT     Melee (and the heroes' own attacks)  a thin red slice
 //           Range                                 an arrow hole with cracks
 //           Magic                                 an arcane burst (rays, curls, sparks)
-//           Curse (Hex ticking, curse cards)      a purple glow
-//   HEAL    green pluses rising off the body, and a green glow
-//   BUFF    a green arrow up over the face, and a glow in its colour
-//   DEBUFF  a red arrow down over the face, and a glow in its colour
+//           Curse (curse cards)                   a purple glow
+//           a status ticking (Hex, Poison, Burn)  that status's own effect
+//   ANY STATUS laid on, gained or going off (heal, Guard, buffs, Hex,
+//           Poison, Burn, Frost, Bleed, Dread): its own effect from the
+//           STATUS_FX table (bubbles, flames, shards ...), see StatusFx
 // Every hit is its own pop, so a 3-hit card leaves 3 marks. Each mark
 // gets a fixed pseudo-random spot from its pop id, so it never jumps
 // on re-render. Marks fade out on their own (about 1 s), before the pop
@@ -16,25 +17,15 @@
 // ===================================================================
 
 import type { CSSProperties } from 'react';
-import { POP_LOOK, toneVarOf } from '../../../content/visuals';
 import { popScale } from '../../../lib/popSize';
 import { seeded, spread } from '../../../lib/seeded';
 import { MagicBurst } from './MagicBurst';
 import { Puncture } from './Puncture';
 import { Slice } from './Slice';
+import { StatusFx } from './StatusFx';
 import type { PlayerHitPop } from '../../../hooks/useHitPops';
 
 // --- CONSTANTS ---
-const DEBUFF_KINDS: readonly PlayerHitPop['kind'][] = [
-  'hex',
-  'poison',
-  'burn',
-  'frost',
-  'bleed',
-  'dread',
-];
-const BUFF_ARROW_TONE = 'var(--color-heal)';
-const DEBUFF_ARROW_TONE = 'var(--color-hp)';
 const CURSE_GLOW = 'var(--color-hex)';
 
 // --- HELPERS ---
@@ -112,41 +103,6 @@ const Burst = ({ id }: { id: number }) => (
   </span>
 );
 
-/** Rising heal sparks: [left %, start delay ms] for each green plus. */
-const HEAL_SPARKS: readonly (readonly [number, number])[] = [
-  [30, 0],
-  [62, 90],
-  [45, 170],
-  [72, 250],
-];
-
-/** A heal: green pluses float up off the body, one after another. */
-const HealSparks = () => (
-  <>
-    {HEAL_SPARKS.map(([left, delay]) => (
-      <span
-        key={left}
-        className="absolute top-[55%] aspect-square w-[16%] -translate-x-1/2"
-        style={{ left: `${left}%` }}
-      >
-        <svg
-          viewBox="0 0 10 10"
-          className="block size-full animate-impact-rise drop-shadow-[0_0_3px_var(--color-heal)]"
-          style={{ animationDelay: `${delay}ms` }}
-          aria-hidden="true"
-        >
-          <path
-            d="M5 1v8M1 5h8"
-            stroke="var(--color-heal)"
-            strokeWidth="2.4"
-            strokeLinecap="round"
-          />
-        </svg>
-      </span>
-    ))}
-  </>
-);
-
 /** A soft wash of colour over the character (status applied). */
 const Glow = ({ tone }: { tone: string }) => (
   <span
@@ -157,88 +113,22 @@ const Glow = ({ tone }: { tone: string }) => (
   />
 );
 
-/** An arrow over the face: up for a buff, down for a debuff. */
-const Arrow = ({ id, isUp }: { id: number; isUp: boolean }) => (
-  <span
-    className="absolute top-[18%] aspect-square w-[26%] -translate-x-1/2"
-    style={{ left: `${50 + spread(id, 4) * 12}%` }}
-  >
-    <svg
-      viewBox="0 0 10 10"
-      className="block size-full animate-impact-arrow drop-shadow-[0_0_3px_black]"
-      style={{ ['--arrow-dir' as string]: isUp ? 1 : -1 }}
-      aria-hidden="true"
-    >
-      <path
-        d={isUp ? 'M5 1L9 6H6.4V9H3.6V6H1Z' : 'M5 9L9 4H6.4V1H3.6V4H1Z'}
-        fill={isUp ? BUFF_ARROW_TONE : DEBUFF_ARROW_TONE}
-      />
-    </svg>
-  </span>
-);
-
-/** The effect for one hit, by the type of card that dealt it. */
+/** The effect for one hit: the ticking status's, else by the card's type. */
 const HitMark = ({ pop }: { pop: PlayerHitPop }) => {
+  if (pop.tick) return <StatusFx kind={pop.tick} id={pop.id} />;
   if (pop.source === 'range') return <Hole id={pop.id} />;
   if (pop.source === 'magic') return <Burst id={pop.id} />;
   if (pop.source === 'curse') return <Glow tone={CURSE_GLOW} />;
   return <Slash pop={pop} />;
 };
 
-/** Droplets a Bleed burst sprays: [angle deg, distance % of the box]. */
-const BLEED_DROPS: readonly (readonly [number, number])[] = [
-  [-90, 46],
-  [-50, 40],
-  [-10, 44],
-  [30, 38],
-  [70, 42],
-  [110, 40],
-  [150, 44],
-  [190, 38],
-  [230, 42],
-];
-
-/** Bleed going off: a blood-red flash and droplets bursting outward. */
-const BleedBurst = ({ id }: { id: number }) => (
-  <>
-    <Glow tone="var(--color-bleed)" />
-    {BLEED_DROPS.map(([deg, distance], index) => {
-      const rad = ((deg + spread(id, index + 5) * 12) * Math.PI) / 180;
-      return (
-        <span
-          key={deg}
-          className="bleed-drop absolute left-1/2 top-1/2 size-[9%] rounded-full bg-bleed"
-          style={
-            {
-              '--dx': `${(Math.cos(rad) * distance).toFixed(1)}cqw`,
-              '--dy': `${(Math.sin(rad) * distance).toFixed(1)}cqh`,
-            } as CSSProperties
-          }
-        />
-      );
-    })}
-  </>
-);
-
-/** The effect for one pop: a hit mark, or a status arrow and glow. */
-const Impact = ({ pop }: { pop: PlayerHitPop }) => {
-  if (pop.kind === 'hit') return <HitMark pop={pop} />;
-  if (pop.kind === 'bleedBurst') return <BleedBurst id={pop.id} />;
-  if (pop.kind === 'heal')
-    return (
-      <>
-        <Glow tone="var(--color-heal)" />
-        <HealSparks />
-      </>
-    );
-  const isDebuff = DEBUFF_KINDS.includes(pop.kind);
-  return (
-    <>
-      <Glow tone={toneVarOf(POP_LOOK[pop.kind])} />
-      <Arrow id={pop.id} isUp={!isDebuff} />
-    </>
+/** The effect for one pop: a hit's mark, or the status's own effect. */
+const Impact = ({ pop }: { pop: PlayerHitPop }) =>
+  pop.kind === 'hit' ? (
+    <HitMark pop={pop} />
+  ) : (
+    <StatusFx kind={pop.kind} id={pop.id} />
   );
-};
 
 // --- COMPONENT ---
 /**
