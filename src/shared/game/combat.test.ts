@@ -38,6 +38,7 @@ import {
   plannedHeroMoves,
 } from './combat.ts';
 import { describeCard, describeHeroIntent } from './describe.ts';
+import { imbueSlotsFor } from './imbue.ts';
 import { getHero } from './heroes.ts';
 import {
   BACK_STEP_COST,
@@ -1607,4 +1608,10 @@ void test('every elemental card is a Magic card', () => {
   assert.equal(getCard('cataclysm').element, 'fire');
   assert.equal(getCard('frostBolt').element, 'ice');
   assert.equal(getCard('wardingBolt').element, undefined, 'plain magic');
+});
+
+void test('Buff cards can not be imbued', () => {
+  // Hold Fast fits any card, but never a Buff card (Imbue cards included).
+  const state = cloakFight(['holdFast', 'seethe', 'ironRune', 'backhand']);
+  assert.deepEqual(imbueSlotsFor(state, 0), [3]);
 });

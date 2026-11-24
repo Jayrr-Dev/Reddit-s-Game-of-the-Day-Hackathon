@@ -30,6 +30,11 @@ const didBurst = (before: Combatant, after: Combatant): boolean =>
 export const useBleedSplash = (combatant: Combatant): number | null => {
   const [splashed, setSplashed] = useState<number | null>(null);
   const lastRef = useRef(combatant);
+  // The splash's timer lives in a ref, not in the effect's cleanup: the
+  // combatant changes again within the splash (the next hit, the next
+  // beat), and a cleanup there would cancel the timer and leave the
+  // splash chip stuck on screen for good.
+  const timerRef = useRef<number | undefined>(undefined);
 
   // Event-like: compare with the last look, start a timed splash.
   useEffect(() => {
@@ -37,9 +42,12 @@ export const useBleedSplash = (combatant: Combatant): number | null => {
     lastRef.current = combatant;
     if (!didBurst(before, combatant)) return;
     setSplashed(before.statuses.bleed);
-    const timer = window.setTimeout(() => setSplashed(null), SPLASH_MS);
-    return () => window.clearTimeout(timer);
+    window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => setSplashed(null), SPLASH_MS);
   }, [combatant]);
+
+  // UNMOUNT: never leave a pending timer behind.
+  useEffect(() => () => window.clearTimeout(timerRef.current), []);
 
   return splashed;
 };

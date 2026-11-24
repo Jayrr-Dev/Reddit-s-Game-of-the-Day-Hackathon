@@ -14,7 +14,8 @@
 //   DURATION an imbue may carry one (types.ts, Duration): "this action"
 //            lapses when another card is played first, "this turn" at
 //            the end of the turn, "this battle" survives being played.
-//   LIMIT    a card holds at most MAX_IMBUES_PER_CARD imbues.
+//   LIMIT    a card holds at most MAX_IMBUES_PER_CARD imbues, and Buff
+//            cards (Imbue cards among them) take none.
 //   STACKING a gift the card already has (printed or imbued) only goes
 //            on again if it stacks (GIFT_STACKS): Poison 3 + Poison 3
 //            makes 6; a second Hold or Cleanse has nowhere to go.
@@ -141,7 +142,8 @@ export const canImbueOnto = (
   cardId: CardId,
   imbues: readonly Imbue[] = []
 ): boolean => {
-  if (imbues.length >= MAX_IMBUES_PER_CARD) return false;
+  const isBuffCard = getCard(cardId).type === 'buff';
+  if (isBuffCard || imbues.length >= MAX_IMBUES_PER_CARD) return false;
   if (gift.kind === 'keyword')
     return (
       !cardHasKeyword(cardId, imbues, gift.keyword) &&
