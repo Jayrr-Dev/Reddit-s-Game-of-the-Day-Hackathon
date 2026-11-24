@@ -47,7 +47,12 @@ import {
   KEYWORD_INFO,
 } from './describe.ts';
 import { cardImbuesAt, imbueSlotsFor } from './imbue.ts';
-import { ALOFT_EVASION, EXHAUST_USES, RESERVE_ENERGY_SLOTS } from './rules.ts';
+import {
+  ALOFT_EVASION,
+  BANE_AFFLICTIONS,
+  EXHAUST_USES,
+  RESERVE_ENERGY_SLOTS,
+} from './rules.ts';
 import { getHero } from './heroes.ts';
 import {
   BACK_STEP_COST,
@@ -456,6 +461,29 @@ void test("a shocked hero's own attacks never set off its Shock", () => {
   assert.equal(hero.statuses.shock, 3, 'it only fades by 1');
 });
 
+void test('Venom: each Melee or Range hit taken deals its stacks, then -1', () => {
+  const venomed = {
+    ...createCombatant(50, 50),
+    statuses: { ...NO_STATUSES, venom: 3 },
+  };
+  const once = takeHit(venomed, 2, 'melee');
+  assert.equal(once.hp, 50 - 2 - 3);
+  assert.equal(once.statuses.venom, 2);
+  assert.equal(once.venomTaken, 3, 'counted for the venom number');
+  const twice = takeHit(once, 2, 'range');
+  assert.equal(twice.hp, 45 - 2 - 2);
+  assert.equal(twice.statuses.venom, 1);
+  // A hit for 0 sets nothing off, nor does Magic (physical hits only).
+  assert.equal(takeHit(twice, 0, 'melee').statuses.venom, 1);
+  const spell = takeHit(twice, 2, 'magic');
+  assert.equal(spell.statuses.venom, 1);
+  assert.equal(spell.hp, twice.hp - 2);
+  // It does not tick between actions.
+  assert.equal(afterAction(twice).statuses.venom, 1);
+  // Bane adds to it like any affliction.
+  assert.ok(BANE_AFFLICTIONS.has('venom'));
+});
+
 void test('new shock stacks on top and keeps the count', () => {
   const shocked = {
     ...createCombatant(50, 50),
@@ -799,6 +827,7 @@ void test('afflictions are the harmful statuses, flagged in one table', () => {
     'hex',
     'poison',
     'shock',
+    'venom',
     'vex',
     'weaken',
   ]);
@@ -1491,7 +1520,7 @@ void test('Hold is a card trait, printed on the card', () => {
 });
 
 // --- AFFLICTION CARDS ---
-void test('Venom Dart poisons, Frost Bolt frosts and Serrated Slash shocks', () => {
+void test('Poison Dart poisons, Frost Bolt frosts and Serrated Slash shocks', () => {
   const cases: readonly [CardId, 'poison' | 'frost' | 'shock'][] = [
     ['venomDart', 'poison'],
     ['frostBolt', 'frost'],

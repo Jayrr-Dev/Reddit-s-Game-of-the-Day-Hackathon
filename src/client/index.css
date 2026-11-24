@@ -61,6 +61,9 @@
   --color-shock: #f4ea4a;
   /* Bleed (HP lost after each action): a bright fresh-blood red. */
   --color-bleed: #e8445c;
+  /* Venom (bites on every hit taken): a serpent teal, apart from Poison's
+     yellow-green. */
+  --color-venom: #2fd6a6;
   /* Magic: a light sky blue, kept clear of Defend's (and Guard's) deeper blue. */
   --color-magic: #7fd8f5;
   /* Defend's glow, a clear bright blue. */

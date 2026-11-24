@@ -35,6 +35,7 @@ export type DebuffKind =
   | 'frost'
   | 'shock'
   | 'bleed'
+  | 'venom'
   | 'weaken'
   | 'vex'
   | 'enfeeble';
@@ -56,6 +57,8 @@ export type PopKind =
   | DebuffKind
   /** Shock went off: a spray of blood over the unit (quiet). */
   | 'shockBurst'
+  /** Venom bit on a hit taken: its damage as its own number. */
+  | 'venomBite'
   /** A shot Out of Range missed: "Miss" floats up, nothing is drawn. */
   | 'miss'
   | 'dodge';
@@ -110,10 +113,12 @@ type HeroLook = {
   frost: number;
   shock: number;
   bleed: number;
+  venom: number;
   weaken: number;
   vex: number;
   enfeeble: number;
   shockBursts: number;
+  venomTaken: number;
   point: Point | null;
 };
 
@@ -134,10 +139,12 @@ const goneAfter = (old: HeroLook): Omit<HeroLook, 'point'> => ({
   frost: 0,
   shock: 0,
   bleed: 0,
+  venom: 0,
   weaken: 0,
   vex: 0,
   enfeeble: 0,
   shockBursts: old.shockBursts,
+  venomTaken: old.venomTaken,
 });
 /**
  * Time between the blows of a multi-hit attack on the villain: each
@@ -151,6 +158,7 @@ const DEBUFFS: readonly DebuffKind[] = [
   'burn',
   'frost',
   'bleed',
+  'venom',
   'vex',
   'weaken',
   'enfeeble',
@@ -293,14 +301,27 @@ const gainsBetween = (
     .map(([kind, amount]) => ({ kind, amount, blocked: 0 }));
 };
 
-/** What debuff pops read from a unit: its debuffs and Shock's bursts. */
-type DebuffLook = Record<DebuffKind, number> & { shockBursts: number };
+/** What debuff pops read from a unit: its debuffs, Shock bursts, Venom bites. */
+type DebuffLook = Record<DebuffKind, number> & {
+  shockBursts: number;
+  venomTaken: number;
+};
 
-/** A unit's debuffs and Shock burst count, for debuffsBetween. */
+/** A unit's debuffs and burst/bite counts, for debuffsBetween. */
 const debuffLookOf = (unit: Combatant): DebuffLook => ({
   ...unit.statuses,
   shockBursts: unit.shockBursts ?? 0,
+  venomTaken: unit.venomTaken ?? 0,
 });
+
+/**
+ * Pops whose damage the engine lands inside a hit but which show as
+ * their own number (in their status colour): taken out of the hit.
+ */
+const SPLIT_POPS: ReadonlySet<PopKind> = new Set(['shockBurst', 'venomBite']);
+
+/** True for a pop that shows damage split out of a hit (see SPLIT_POPS). */
+const isSplitPop = (pop: Hit): boolean => SPLIT_POPS.has(pop.kind);
 
 /**
  * Debuffs laid on between two looks, plus a Shock that went off (the
@@ -314,7 +335,17 @@ const debuffsBetween = (before: DebuffLook, after: DebuffLook): Hit[] => {
     isQuiet: true,
   })).filter((debuff) => debuff.amount > 0);
   const burst = shockBurstBetween(before, after);
-  return burst ? [...laid, burst] : laid;
+  const bite = venomBiteBetween(before, after);
+  return [...laid, ...(burst ? [burst] : []), ...(bite ? [bite] : [])];
+};
+
+/** HP Venom cost between two looks, as its own number (null for none). */
+const venomBiteBetween = (
+  before: Pick<DebuffLook, 'venomTaken'>,
+  after: Pick<DebuffLook, 'venomTaken'>
+): Hit | null => {
+  const amount = after.venomTaken - before.venomTaken;
+  return amount > 0 ? { kind: 'venomBite', amount, blocked: 0 } : null;
 };
 
 /**
@@ -335,13 +366,14 @@ const shockBurstBetween = (
     : null;
 
 /**
- * The hit with a Shock burst's damage taken out, since the burst shows
- * it as its own number (the engine lands both in one step). Null when
- * nothing is left.
+ * The hit with split pops' damage (a Shock burst, a Venom bite) taken
+ * out, since each shows as its own number (the engine lands them in the
+ * same step). Null when nothing is left.
  */
-const withoutBurst = (hit: Hit | null, burst: Hit | undefined): Hit | null => {
-  if (!hit || !burst) return hit;
-  const amount = Math.max(0, hit.amount - burst.amount);
+const withoutSplits = (hit: Hit | null, splits: readonly Hit[]): Hit | null => {
+  if (!hit || splits.length === 0) return hit;
+  const split = splits.reduce((sum, pop) => sum + pop.amount, 0);
+  const amount = Math.max(0, hit.amount - split);
   return amount > 0 || hit.blocked > 0 ? { ...hit, amount } : null;
 };
 
@@ -382,10 +414,12 @@ const lookAt = (
         frost: unit.statuses.frost,
         shock: unit.statuses.shock,
         bleed: unit.statuses.bleed,
+        venom: unit.statuses.venom,
         weaken: unit.statuses.weaken,
         vex: unit.statuses.vex,
         enfeeble: unit.statuses.enfeeble,
         shockBursts: unit.shockBursts ?? 0,
+        venomTaken: unit.venomTaken ?? 0,
         point: bodyPointOf(unit.uid) ?? before.get(unit.uid)?.point ?? null,
       },
     ])
@@ -420,15 +454,17 @@ const heroPopsSince = (
           frost: unit.statuses.frost,
           shock: unit.statuses.shock,
           bleed: unit.statuses.bleed,
+          venom: unit.statuses.venom,
           weaken: unit.statuses.weaken,
           vex: unit.statuses.vex,
           enfeeble: unit.statuses.enfeeble,
           shockBursts: unit.shockBursts ?? 0,
+          venomTaken: unit.venomTaken ?? 0,
         }
       : goneAfter(old);
     const debuffs = unit ? debuffsBetween(old, now) : [];
-    const burst = debuffs.find((pop) => pop.kind === 'shockBurst');
-    const found = withoutBurst(hitBetween(old, now, countsBlocked), burst);
+    const splits = debuffs.filter(isSplitPop);
+    const found = withoutSplits(hitBetween(old, now, countsBlocked), splits);
     // On the heroes' turn only statuses harm them: name the one that ticked.
     const tick = isHeroTurn ? tickCauseOf(old, now) : undefined;
     const hit = found ? { ...found, source, element, edge, tick } : null;
@@ -576,11 +612,11 @@ export const usePlayerHits = (
       debuffLookOf(last.player),
       debuffLookOf(player)
     );
-    const burst = allDebuffs.find((pop) => pop.kind === 'shockBurst');
-    const debuffs = allDebuffs.filter((pop) => pop !== burst);
-    const found = withoutBurst(
+    const splits = allDebuffs.filter(isSplitPop);
+    const debuffs = allDebuffs.filter((pop) => !isSplitPop(pop));
+    const found = withoutSplits(
       hitBetween(last.player, player, last.turn === turn),
-      burst
+      splits
     );
     // Untyped harm (no hero attack landing) is a status ticking.
     const tick =
@@ -603,15 +639,12 @@ export const usePlayerHits = (
     ];
     if (fresh.length > 0) add(fresh);
     // LATER BLOWS LAND IN TURN (no cleanup: a blow already struck), and
-    // a Shock burst goes off with the last of them (its SHOCK_HITS-th hit)
+    // split pops (a Shock burst, Venom's bite) land with the last of them
     laterBlows.forEach((blow, index) =>
       window.setTimeout(() => add([blow]), (index + 1) * BLOW_STAGGER_MS)
     );
-    if (burst)
-      window.setTimeout(
-        () => add([burst]),
-        laterBlows.length * BLOW_STAGGER_MS
-      );
+    if (splits.length > 0)
+      window.setTimeout(() => add(splits), laterBlows.length * BLOW_STAGGER_MS);
   }, [player, turn, source, strikes, add]);
 
   return pops;

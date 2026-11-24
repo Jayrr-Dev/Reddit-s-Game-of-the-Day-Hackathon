@@ -40,6 +40,7 @@ export const NO_STATUSES: Statuses = {
   frost: 0,
   shock: 0,
   bleed: 0,
+  venom: 0,
   vex: 0,
   weaken: 0,
   wrath: 0,
@@ -224,6 +225,28 @@ export const takeHit = <T extends Combatant>(
       : target,
     reduced
   );
+  // Venom bites only on a physical (Melee, Range) hit for more than 0.
+  const bites = amount > 0 && PHYSICAL_TYPES.has(type);
+  return countShockHit(bites ? venomBite(hit) : hit);
+};
+
+/**
+ * Venom bites on a physical hit taken: the unit loses its Venom in HP (past
+ * Guard), counted in venomTaken, then Venom drops by 1.
+ */
+const venomBite = <T extends Combatant>(target: T): T => {
+  const { venom } = target.statuses;
+  if (venom <= 0) return target;
+  const bitten = loseHp(target, venom);
+  return {
+    ...bitten,
+    venomTaken: (target.venomTaken ?? 0) + venom,
+    statuses: { ...bitten.statuses, venom: venom - 1 },
+  };
+};
+
+/** Counts a hit toward Shock; the SHOCK_HITS-th sets it off. */
+const countShockHit = <T extends Combatant>(hit: T): T => {
   if (hit.statuses.shock <= 0) return hit;
   const inARow = (hit.shockHits ?? 0) + 1;
   if (inARow < SHOCK_HITS) return { ...hit, shockHits: inARow };

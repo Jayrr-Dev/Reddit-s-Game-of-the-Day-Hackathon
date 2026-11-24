@@ -47,6 +47,7 @@ export const BANE_AFFLICTIONS: ReadonlySet<StatusId> = new Set([
   'frost',
   'bleed',
   'shock',
+  'venom',
 ]);
 /**
  * INSTINCT: the chance to dodge, by stacks (index = stacks, the last
@@ -181,6 +182,7 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   frost: true,
   shock: true,
   bleed: true,
+  venom: true,
   vex: true,
   weaken: true,
   enfeeble: true,

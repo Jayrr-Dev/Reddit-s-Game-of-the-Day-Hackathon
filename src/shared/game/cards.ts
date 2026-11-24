@@ -56,6 +56,11 @@ const poison = (amount: number, target: 'one' | 'all' = 'one'): CardEffect => ({
   amount,
   target,
 });
+const venom = (amount: number): CardEffect => ({
+  kind: 'venom',
+  amount,
+  target: 'one',
+});
 const bleed = (amount: number): CardEffect => ({
   kind: 'bleed',
   amount,
@@ -334,7 +339,11 @@ export const CARDS = {
   keenEdge: card('Keen Edge', 'buff', 0, 'common', [
     imbue(giftOf({ kind: 'damage', amount: 5, hits: 1, target: 'one' })),
   ]),
-  venomCoat: card('Venom Coat', 'buff', 1, 'common', [
+  // VENOM: bites on every hit the hero takes, so it loves multi-hit cards
+  snakebite: card('Snakebite', 'melee', 1, 'common', [hit(4), venom(3)], SHARP),
+  vipersKiss: card("Viper's Kiss", 'curse', 1, 'uncommon', [venom(5), hex(1)]),
+  // Ids venomCoat/venomDart stay for old saves; both lay Poison (Venom is its own status).
+  venomCoat: card('Poison Coat', 'buff', 1, 'common', [
     imbue(giftOf({ kind: 'poison', amount: 3, target: 'one' })),
   ]),
   // AFFLICTIONS: one card each for Poison, Frost, Shock and Enfeeble
@@ -346,7 +355,7 @@ export const CARDS = {
     { kind: 'enfeeble', target: 'one', times: 3 },
     hex(1),
   ]),
-  venomDart: card('Venom Dart', 'range', 1, 'common', [hit(3), poison(4)]),
+  venomDart: card('Poison Dart', 'range', 1, 'common', [hit(3), poison(4)]),
   frostBolt: card('Frost Bolt', 'magic', 1, 'common', [hit(3, 2)], ICE),
   // HEALING SPELLS: reusable Magic heals (unlike the Exhaust potions)
   mend: card('Mend', 'magic', 1, 'common', [heal(7)], HEALING),

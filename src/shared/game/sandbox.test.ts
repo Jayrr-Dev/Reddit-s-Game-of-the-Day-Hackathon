@@ -179,9 +179,9 @@ void test('a test deck leans on its theme: Lightning has Serrated Slash', () => 
 
 void test('Fire, Poison and Bleed decks: every attack lays its status', () => {
   const themes = [
-    ['fire', 'burn'],
-    ['poison', 'poison'],
-    ['bleed', 'bleed'],
+    ['fire', ['burn']],
+    ['poison', ['poison', 'venom']],
+    ['bleed', ['bleed']],
   ] as const;
   for (const [deckId, status] of themes) {
     const cards = [...new Set(sandboxDeckCards(deckId))].map(getCard);
@@ -191,7 +191,9 @@ void test('Fire, Poison and Bleed decks: every attack lays its status', () => {
     );
     for (const card of attacks)
       assert.ok(
-        card.effects.some((effect) => effect.kind === status),
+        card.effects.some((effect) =>
+          (status as readonly string[]).includes(effect.kind)
+        ),
         `${card.name} lays ${status}`
       );
   }

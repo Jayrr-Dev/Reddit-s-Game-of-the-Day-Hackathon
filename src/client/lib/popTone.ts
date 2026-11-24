@@ -10,6 +10,8 @@ import type { PlayerHitPop, TickKind } from '../hooks/useHitPops';
 // --- CONSTANTS ---
 /** A Shock burst's number: lightning yellow. */
 const SHOCK_TONE = 'var(--color-shock)';
+/** A Venom bite's number: serpent teal. */
+const VENOM_TONE = 'var(--color-venom)';
 /** Each ticking status's damage pops in that status's own colour. */
 const TICK_TONES: Record<TickKind, string> = {
   burn: 'var(--color-burn)',
@@ -27,6 +29,8 @@ export const specialToneOf = (
 ): string | undefined =>
   hit.kind === 'shockBurst'
     ? SHOCK_TONE
-    : hit.tick
-      ? TICK_TONES[hit.tick]
-      : undefined;
+    : hit.kind === 'venomBite'
+      ? VENOM_TONE
+      : hit.tick
+        ? TICK_TONES[hit.tick]
+        : undefined;

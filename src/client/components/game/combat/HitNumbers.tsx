@@ -222,7 +222,9 @@ const GainLine = ({
 
 /** A hit or a gain, whichever the pop is (quiet pops show no number). */
 const PopLine = ({ hit }: { hit: PlayerHitPop }) =>
-  hit.isQuiet ? null : hit.kind === 'hit' || hit.kind === 'shockBurst' ? (
+  hit.isQuiet ? null : hit.kind === 'hit' ||
+    hit.kind === 'shockBurst' ||
+    hit.kind === 'venomBite' ? (
     <HitLine
       amount={hit.amount}
       blocked={hit.blocked}
