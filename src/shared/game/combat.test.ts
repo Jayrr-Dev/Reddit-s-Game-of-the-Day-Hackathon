@@ -503,6 +503,12 @@ void test('Bleed bursts on the 4th attack landed on it: full Bleed, then clears'
   assert.equal(fourth.hp, before.hp - 6 - bite - (before.statuses.bleed - 1));
   assert.equal(fourth.statuses.bleed, 0);
   assert.equal(fourth.bleedAttacks ?? 0, 0);
+  // Counted apart from the bites, for its own number and burst effect.
+  assert.equal(fourth.bleedBursts, 1);
+  assert.equal(
+    (fourth.bleedBurstTaken ?? 0) - (before.bleedBurstTaken ?? 0),
+    before.statuses.bleed - 1
+  );
 });
 
 void test('Bleed: each Melee or Range hit taken bites for a third, then -1', () => {

@@ -269,8 +269,9 @@ export const countBleedAttack = <T extends Combatant>(target: T): T => {
   return {
     ...burst,
     bleedAttacks: 0,
-    // The burst counts with Bleed's bites: it pops as Bleed's red number.
-    bleedTaken: (target.bleedTaken ?? 0) + bleed,
+    // Counted apart from the bites: the view gives it its own burst.
+    bleedBursts: (target.bleedBursts ?? 0) + 1,
+    bleedBurstTaken: (target.bleedBurstTaken ?? 0) + bleed,
     statuses: { ...burst.statuses, bleed: 0 },
   };
 };

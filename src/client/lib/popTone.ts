@@ -28,7 +28,7 @@ export const specialToneOf = (
 ): string | undefined =>
   hit.kind === 'shockBurst'
     ? SHOCK_TONE
-    : hit.kind === 'bleedBite'
+    : hit.kind === 'bleedBite' || hit.kind === 'bleedBurst'
       ? BLEED_TONE
       : hit.tick
         ? TICK_TONES[hit.tick]

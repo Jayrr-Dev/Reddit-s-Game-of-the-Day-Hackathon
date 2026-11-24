@@ -20,6 +20,7 @@
 import type { CSSProperties } from 'react';
 import { popScale } from '../../../lib/popSize';
 import { seeded, spread } from '../../../lib/seeded';
+import { BleedBurst } from './BleedBurst';
 import { MagicBurst } from './MagicBurst';
 import { Puncture } from './Puncture';
 import { Slice } from './Slice';
@@ -136,12 +137,11 @@ const HitMark = ({ pop }: { pop: PlayerHitPop }) => {
 };
 
 /** The effect for one pop: a hit's mark, or the status's own effect. */
-const Impact = ({ pop }: { pop: PlayerHitPop }) =>
-  pop.kind === 'hit' ? (
-    <HitMark pop={pop} />
-  ) : (
-    <StatusFx kind={pop.kind} id={pop.id} />
-  );
+const Impact = ({ pop }: { pop: PlayerHitPop }) => {
+  if (pop.kind === 'hit') return <HitMark pop={pop} />;
+  if (pop.kind === 'bleedBurst') return <BleedBurst />;
+  return <StatusFx kind={pop.kind} id={pop.id} />;
+};
 
 // --- COMPONENT ---
 /**

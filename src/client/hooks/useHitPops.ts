@@ -58,6 +58,8 @@ export type PopKind =
   | 'shockBurst'
   /** Bleed opened on a hit taken: its damage as its own number. */
   | 'bleedBite'
+  /** Bleed burst (its Nth attack): the whole Bleed, with its own effect. */
+  | 'bleedBurst'
   /** A shot Out of Range missed: "Miss" floats up, nothing is drawn. */
   | 'miss'
   | 'dodge';
@@ -117,6 +119,7 @@ type HeroLook = {
   enfeeble: number;
   shockBursts: number;
   bleedTaken: number;
+  bleedBurstTaken: number;
   point: Point | null;
 };
 
@@ -142,6 +145,7 @@ const goneAfter = (old: HeroLook): Omit<HeroLook, 'point'> => ({
   enfeeble: 0,
   shockBursts: old.shockBursts,
   bleedTaken: old.bleedTaken,
+  bleedBurstTaken: old.bleedBurstTaken,
 });
 /**
  * Time between the blows of a multi-hit attack on the villain: each
@@ -300,6 +304,7 @@ const gainsBetween = (
 type DebuffLook = Record<DebuffKind, number> & {
   shockBursts: number;
   bleedTaken: number;
+  bleedBurstTaken: number;
 };
 
 /** A unit's debuffs and burst/bite counts, for debuffsBetween. */
@@ -307,13 +312,18 @@ const debuffLookOf = (unit: Combatant): DebuffLook => ({
   ...unit.statuses,
   shockBursts: unit.shockBursts ?? 0,
   bleedTaken: unit.bleedTaken ?? 0,
+  bleedBurstTaken: unit.bleedBurstTaken ?? 0,
 });
 
 /**
  * Pops whose damage the engine lands inside a hit but which show as
  * their own number (in their status colour): taken out of the hit.
  */
-const SPLIT_POPS: ReadonlySet<PopKind> = new Set(['shockBurst', 'bleedBite']);
+const SPLIT_POPS: ReadonlySet<PopKind> = new Set([
+  'shockBurst',
+  'bleedBite',
+  'bleedBurst',
+]);
 
 /** True for a pop that shows damage split out of a hit (see SPLIT_POPS). */
 const isSplitPop = (pop: Hit): boolean => SPLIT_POPS.has(pop.kind);
@@ -331,7 +341,22 @@ const debuffsBetween = (before: DebuffLook, after: DebuffLook): Hit[] => {
   })).filter((debuff) => debuff.amount > 0);
   const burst = shockBurstBetween(before, after);
   const bite = bleedBiteBetween(before, after);
-  return [...laid, ...(burst ? [burst] : []), ...(bite ? [bite] : [])];
+  const bleedBurst = bleedBurstBetween(before, after);
+  return [
+    ...laid,
+    ...(burst ? [burst] : []),
+    ...(bite ? [bite] : []),
+    ...(bleedBurst ? [bleedBurst] : []),
+  ];
+};
+
+/** A Bleed burst between two looks: its HP as its own number (or null). */
+const bleedBurstBetween = (
+  before: Pick<DebuffLook, 'bleedBurstTaken'>,
+  after: Pick<DebuffLook, 'bleedBurstTaken'>
+): Hit | null => {
+  const amount = after.bleedBurstTaken - before.bleedBurstTaken;
+  return amount > 0 ? { kind: 'bleedBurst', amount, blocked: 0 } : null;
 };
 
 /** HP Bleed cost between two looks, as its own number (null for none). */
@@ -414,6 +439,7 @@ const lookAt = (
         enfeeble: unit.statuses.enfeeble,
         shockBursts: unit.shockBursts ?? 0,
         bleedTaken: unit.bleedTaken ?? 0,
+        bleedBurstTaken: unit.bleedBurstTaken ?? 0,
         point: bodyPointOf(unit.uid) ?? before.get(unit.uid)?.point ?? null,
       },
     ])
@@ -453,6 +479,7 @@ const heroPopsSince = (
           enfeeble: unit.statuses.enfeeble,
           shockBursts: unit.shockBursts ?? 0,
           bleedTaken: unit.bleedTaken ?? 0,
+          bleedBurstTaken: unit.bleedBurstTaken ?? 0,
         }
       : goneAfter(old);
     const debuffs = unit ? debuffsBetween(old, now) : [];
