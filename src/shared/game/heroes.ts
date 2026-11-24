@@ -45,6 +45,7 @@ const poison = (amount: number): HeroEffect => ({ kind: 'poison', amount });
 const burn = (amount: number): HeroEffect => ({ kind: 'burn', amount });
 const weaken = (amount: number): HeroEffect => ({ kind: 'weaken', amount });
 const bleed = (amount: number): HeroEffect => ({ kind: 'bleed', amount });
+const shock = (amount: number): HeroEffect => ({ kind: 'shock', amount });
 const guard = (
   amount: number,
   who: 'self' | 'allies' = 'self'
@@ -300,8 +301,9 @@ export const HEROES = {
     move('Triple Slice', strike(6, 3)),
     signature(move('Heavenly Drive', soar())),
     signature(move('Heavenly Dive', strike(34))),
-    move('Triple Slice', strike(6, 3)),
-    move('Gale Wings', guard(18)),
+    // LIGHTNING: it lays Shock, and its own triple hits set it off
+    move('Thunder Talons', strike(5, 3), shock(6)),
+    move('Storm Wings', guard(18), shock(4)),
     move('Proud Cry', wrath(2)),
   ]),
 } as const satisfies Record<string, HeroDef>;

@@ -1259,6 +1259,35 @@ void test('Range and Magic reach a hero Aloft but it evades most shots', () => {
   assert.ok(landed > 0 && landed < 25, `landed ${landed} of 60`);
 });
 
+void test('the griffon calls lightning: Shock its own triple hits discharge', () => {
+  const start = griffonFight();
+  const griffon = griffonOf(start);
+  const atMove = (moveIndex: number): CombatState => ({
+    ...start,
+    heroes: start.heroes.map((unit) =>
+      unit.uid === griffon.uid ? { ...unit, moveIndex } : unit
+    ),
+  });
+  const names = getHero('grandGriffon').moves.map((m) => m.name);
+  // Thunder Talons rakes three times, then leaves Shock on the villain.
+  const talons = endTurn(atMove(names.indexOf('Thunder Talons')));
+  assert.ok(talons.player.statuses.shock > 0);
+  // Storm Wings guards and charges more Shock without attacking.
+  const wings = endTurn(atMove(names.indexOf('Storm Wings')));
+  assert.ok(wings.player.statuses.shock > 0);
+  // The next Triple Slice's 3rd hit sets the Shock off and clears it.
+  const primed = {
+    ...atMove(0),
+    player: {
+      ...start.player,
+      statuses: { ...start.player.statuses, shock: 6 },
+    },
+  };
+  const sliced = endTurn(primed);
+  assert.equal(sliced.player.statuses.shock, 0);
+  assert.equal(start.player.hp - sliced.player.hp, 6 * 3 + 6);
+});
+
 void test('a turn later the griffon dives down with one crushing blow', () => {
   const aloft = griffonAloft();
   const steps = endTurnSteps(aloft);
