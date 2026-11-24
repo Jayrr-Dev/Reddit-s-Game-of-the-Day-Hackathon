@@ -163,6 +163,8 @@ export const describeCardEffect = (
     }
     case 'wrath':
       return `Gain ${effect.amount} Wrath.`;
+    case 'cleanse':
+      return 'Cleanse 1 random affliction.';
     case 'protect':
       return 'Gain Protection. Recast next turn to raise it.';
     case 'buff':
@@ -215,6 +217,7 @@ export type IntentKind =
   | 'guard'
   | 'buff'
   | 'heal'
+  | 'cleanse'
   | 'summon'
   | 'revive'
   | 'soar'
@@ -303,6 +306,12 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
         label: `Heal ${amount}${toWhom(effect.who)}`,
       };
     }
+    case 'cleanse':
+      return {
+        kind: 'cleanse',
+        text: '',
+        label: `Cleanses 1 affliction from ${effect.who === 'allies' ? 'every hero' : 'itself'}`,
+      };
     case 'revive':
       return { kind: 'revive', text: '', label: 'Revives every fallen ally' };
     case 'soar':

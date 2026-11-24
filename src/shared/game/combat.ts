@@ -39,6 +39,7 @@ import {
   addGuard,
   addStatus,
   castProtection,
+  cleanseOne,
   attackDamage,
   damageFactorOf,
   clearGuard,
@@ -320,6 +321,21 @@ const updateHeroes = (
   ),
 });
 
+/**
+ * Cleanses each of these heroes in turn (1 random affliction each),
+ * threading the fight's rng through so the picks replay the same.
+ */
+const cleanseHeroes = (
+  state: CombatState,
+  uids: readonly number[]
+): CombatState =>
+  uids.reduce((current, uid) => {
+    const unit = current.heroes.find((hero) => hero.uid === uid);
+    if (!unit) return current;
+    const [cleansed, rng] = cleanseOne(unit, current.rng);
+    return updateHeroes({ ...current, rng }, [uid], () => cleansed);
+  }, state);
+
 /** Drops summoned heroes whose summoner is gone (they fall with it). */
 const withoutOrphans = (heroes: HeroUnit[]): HeroUnit[] => {
   const uids = new Set(heroes.map((unit) => unit.uid));
@@ -500,6 +516,10 @@ const applyCardEffect = (
       return { ...state, energy: state.energy + effect.amount };
     case 'heal':
       return { ...state, player: heal(state.player, effect.amount) };
+    case 'cleanse': {
+      const [player, rng] = cleanseOne(state.player, state.rng);
+      return { ...state, player, rng };
+    }
     case 'pull':
       return { ...state, heroes: pullHero(state.heroes, targetUid) };
     case 'push':
@@ -833,6 +853,8 @@ const applyHeroEffect = (
         heroTargets(state, actor.uid, effect.who),
         (unit) => heal(unit, scaled(effect.amount))
       );
+    case 'cleanse':
+      return cleanseHeroes(state, heroTargets(state, actor.uid, effect.who));
     case 'summon':
       return summonHeroes(state, actor, effect);
     case 'revive':

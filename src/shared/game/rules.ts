@@ -4,6 +4,8 @@
 // nowhere else, so the engine, the UI and the server always agree.
 // ===================================================================
 
+import type { StatusId } from './types.ts';
+
 // --- THE VILLAIN ---
 export const PLAYER_MAX_HP = 60;
 export const ENERGY_PER_TURN = 3;
@@ -46,6 +48,27 @@ export const AFTER_ACTION_DIVISOR = 2;
 export const BLEED_HITS = 3;
 /** Each stack of Frost takes this much off every hit its bearer deals. */
 export const FROST_DAMAGE_PER_STACK = 1;
+/**
+ * Which statuses are AFFLICTIONS (harmful to whoever carries them).
+ * Cleanse removes one of these at random; every status must say.
+ */
+export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
+  hex: true,
+  poison: true,
+  burn: true,
+  frost: true,
+  bleed: true,
+  dread: true,
+  wrath: false,
+  might: false,
+  surge: false,
+  piercing: false,
+  reinforce: false,
+  momentum: false,
+  protection: false,
+  aloft: false,
+};
+
 /**
  * Protection's share of each hit it stops, by tier (I, II, III). Cast
  * on back-to-back turns it climbs a tier, up to PROTECTION_MAX_TIER; a

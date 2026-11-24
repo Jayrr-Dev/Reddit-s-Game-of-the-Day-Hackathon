@@ -63,6 +63,11 @@ const heal = (
   who,
 });
 
+const cleanse = (who: 'self' | 'allies' = 'allies'): HeroEffect => ({
+  kind: 'cleanse',
+  who,
+});
+
 /** Marks a move as the hero's signature (it gets its own animation). */
 const signature = (heroMove: HeroMove): HeroMove => ({
   ...heroMove,
@@ -152,7 +157,7 @@ export const HEROES = {
   ]),
   priest: hero('Priest', 'grunt', 12, 50, 5, BACK, [
     move('Smite', spell(4)),
-    move('Mend', heal(5)),
+    move('Mend', heal(5), cleanse()),
   ]),
   shieldmaiden: hero('Shieldmaiden', 'grunt', 18, 190, 3, FRONT, [
     move('Brace', guard(7)),

@@ -16,7 +16,9 @@ import {
   MOMENTUM_DAMAGE_FACTOR,
   PROTECTION_CUT_BY_TIER,
   PROTECTION_MAX_TIER,
+  STATUS_IS_AFFLICTION,
 } from './rules.ts';
+import { pickOne, type RngState } from './rng.ts';
 import type {
   BuffId,
   CardType,
@@ -185,6 +187,29 @@ export const castProtection = <T extends Combatant>(target: T): T => ({
     protection: Math.min(PROTECTION_MAX_TIER, target.statuses.protection + 1),
   },
 });
+
+/**
+ * Cleanse: removes one affliction (STATUS_IS_AFFLICTION) the target
+ * carries, picked at random from the fight's rng so replays repeat it.
+ * Returns the target and the next rng; with no affliction, both as they
+ * were.
+ */
+export const cleanseOne = <T extends Combatant>(
+  target: T,
+  rng: RngState
+): readonly [T, RngState] => {
+  const carried = (Object.keys(STATUS_IS_AFFLICTION) as StatusId[]).filter(
+    (id) => STATUS_IS_AFFLICTION[id] && target.statuses[id] > 0
+  );
+  if (carried.length === 0) return [target, rng];
+  const [removed, next] = pickOne(rng, carried);
+  const cleansed = {
+    ...target,
+    statuses: { ...target.statuses, [removed]: 0 },
+    ...(removed === 'bleed' ? { bleedHits: 0 } : {}),
+  };
+  return [cleansed, next];
+};
 
 /** Loses HP directly, ignoring guard (hex, poison and burn). */
 export const loseHp = <T extends Combatant>(target: T, amount: number): T => ({

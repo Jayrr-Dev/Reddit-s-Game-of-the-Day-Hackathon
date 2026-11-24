@@ -15,6 +15,7 @@ import {
   hexBurn,
   hexBurnAmount,
   castProtection,
+  cleanseOne,
   takeDamage,
   takeHit,
   addStatus,
@@ -37,7 +38,12 @@ import {
 } from './combat.ts';
 import { describeCard, describeHeroIntent } from './describe.ts';
 import { getHero } from './heroes.ts';
-import { BACK_STEP_COST, CARDS_PER_TURN, ENERGY_PER_TURN } from './rules.ts';
+import {
+  BACK_STEP_COST,
+  CARDS_PER_TURN,
+  ENERGY_PER_TURN,
+  STATUS_IS_AFFLICTION,
+} from './rules.ts';
 import type { CombatState, HeroUnit } from './types.ts';
 
 // --- FIXTURES ---
@@ -641,6 +647,73 @@ void test('the Bulwark card casts Protection', () => {
   assert.equal(after.player.statuses.protection, 1);
   // Still up through the heroes' turn.
   assert.equal(endTurn(after).player.statuses.protection, 1);
+});
+
+void test('afflictions are the harmful statuses, flagged in one table', () => {
+  const afflictions = Object.entries(STATUS_IS_AFFLICTION)
+    .filter(([, isAffliction]) => isAffliction)
+    .map(([id]) => id)
+    .sort();
+  assert.deepEqual(afflictions, [
+    'bleed',
+    'burn',
+    'dread',
+    'frost',
+    'hex',
+    'poison',
+  ]);
+});
+
+void test('cleanse removes one random affliction and leaves buffs alone', () => {
+  const sick = {
+    ...createCombatant(50, 50),
+    statuses: { ...NO_STATUSES, poison: 3, burn: 2, wrath: 2 },
+  };
+  const [cleansed, rng] = cleanseOne(sick, 7);
+  const left = [cleansed.statuses.poison, cleansed.statuses.burn];
+  assert.equal(left.filter((value) => value === 0).length, 1, 'one is gone');
+  assert.ok(left.includes(3) || left.includes(2), 'the other stays');
+  assert.equal(cleansed.statuses.wrath, 2);
+  assert.notEqual(rng, 7, 'it drew from the rng');
+  // Same rng, same pick: replays stay deterministic.
+  assert.deepEqual(cleanseOne(sick, 7), [cleansed, rng]);
+  // Nothing to cleanse: untouched, and the rng is not used.
+  const healthy = createCombatant(50, 50);
+  assert.deepEqual(cleanseOne(healthy, 7), [healthy, 7]);
+});
+
+void test('the Purge card cleanses one of your afflictions', () => {
+  const start = withHand(fightWith(['backhand']), ['purge']);
+  const sick = {
+    ...start,
+    player: {
+      ...start.player,
+      statuses: { ...NO_STATUSES, hex: 4, dread: 2 },
+    },
+  };
+  const after = playCard(sick, 0, -1).player.statuses;
+  assert.equal([after.hex, after.dread].filter((v) => v === 0).length, 1);
+});
+
+void test("the Priest's Mend also cleanses an affliction from each ally", () => {
+  const fight = startCombat({
+    hp: 999,
+    maxHp: 999,
+    deck: ['backhand'],
+    heroIds: ['priest'],
+    might: 1,
+    seed: 7,
+  });
+  const dreaded: CombatState = {
+    ...fight,
+    heroes: fight.heroes.map((unit) => ({
+      ...unit,
+      moveIndex: 1,
+      statuses: { ...unit.statuses, dread: 2 },
+    })),
+  };
+  // Without the cleanse, Dread 2 would only tick down to 1.
+  assert.equal(endTurn(dreaded).heroes[0]?.statuses.dread, 0);
 });
 
 void test('buff cards grant their buff for the rest of the fight', () => {

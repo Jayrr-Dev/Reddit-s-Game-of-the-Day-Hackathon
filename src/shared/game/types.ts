@@ -93,6 +93,8 @@ export type CardEffect =
   | { kind: 'reap'; multiplier: number }
   | { kind: 'guard'; amount: number }
   | { kind: 'wrath'; amount: number }
+  /** Removes 1 random affliction from the villain (see STATUS_IS_AFFLICTION). */
+  | { kind: 'cleanse' }
   /** Casts Protection on the villain (tiers up when cast turn after turn). */
   | { kind: 'protect' }
   /** Grants the villain a fight-long buff. */
@@ -158,6 +160,8 @@ export type HeroEffect =
   | { kind: 'guard'; amount: number; who: 'self' | 'allies' }
   | { kind: 'wrath'; amount: number; who: 'self' | 'allies' }
   | { kind: 'heal'; amount: number; who: 'self' | 'allies' }
+  /** Removes 1 random affliction from itself, or from each ally. */
+  | { kind: 'cleanse'; who: 'self' | 'allies' }
   /**
    * Calls `count` more of a hero onto the field, into open columns of
    * the summoner's own row, nearest first. Bound to the summoner: they

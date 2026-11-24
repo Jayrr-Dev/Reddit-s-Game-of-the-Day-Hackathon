@@ -50,6 +50,7 @@ const buff = (which: BuffId, amount: number): CardEffect => ({
   amount,
 });
 const protect: CardEffect = { kind: 'protect' };
+const cleanse: CardEffect = { kind: 'cleanse' };
 const draw = (amount: number): CardEffect => ({ kind: 'draw', amount });
 const energy = (amount: number): CardEffect => ({ kind: 'energy', amount });
 const heal = (amount: number): CardEffect => ({ kind: 'heal', amount });
@@ -139,6 +140,7 @@ export const CARDS = {
   darkSurge: card('Dark Surge', 'buff', 1, 'common', [buff('surge', 3)], FADES),
   deadeye: card('Deadeye', 'buff', 1, 'common', [buff('piercing', 3)], FADES),
   bulwark: card('Bulwark', 'buff', 1, 'common', [protect]),
+  purge: card('Purge', 'buff', 0, 'common', [cleanse]),
   ironHide: card(
     'Iron Hide',
     'defend',
