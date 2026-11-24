@@ -26,6 +26,7 @@ import type { PlayerHitPop } from '../../../hooks/useHitPops';
 import { popScale } from '../../../lib/popSize';
 import { seeded, spread } from '../../../lib/seeded';
 import { CurseSigil } from './CurseSigil';
+import { StatusFx } from './StatusFx';
 import { driftOf } from '../../../lib/popDrift';
 import { HitLine } from './HitNumbers';
 import { specialToneOf } from '../../../lib/popTone';
@@ -64,8 +65,13 @@ const SHAKE_PX_PER_SCALE = 6;
 const SHAKE_MS = 360;
 
 // --- HELPERS ---
-/** True for harm with no attack behind it (a curse: Hex ticking). */
-const isCurse = (pop: PlayerHitPop): boolean => pop.source === undefined;
+/**
+ * True for Hex going off: harm with no attack behind it, which is Hex
+ * unless another status (Poison, Burn, Bleed) is named as the tick.
+ * Those used to fall in here too and drew the Hex sigil by mistake.
+ */
+const isHexTick = (pop: PlayerHitPop): boolean =>
+  pop.source === undefined && (pop.tick === undefined || pop.tick === 'hex');
 
 /** True for a hit your Guard took entirely. */
 const isBlockedOnly = (pop: PlayerHitPop): boolean => pop.amount === 0;
@@ -113,7 +119,16 @@ const Mark = ({ pop }: { pop: PlayerHitPop }) => {
         <Puncture id={seed} className="animate-impact-puncture" />
       </span>
     );
-  if (isCurse(pop))
+  if (pop.tick && !isHexTick(pop))
+    return (
+      <span
+        className="absolute aspect-square w-[62%] -translate-1/2"
+        style={{ left: '50%', top: '50%' }}
+      >
+        <StatusFx kind={pop.tick} id={pop.id} />
+      </span>
+    );
+  if (isHexTick(pop))
     return (
       <span
         className="absolute aspect-square w-[62%] -translate-1/2"
@@ -148,12 +163,12 @@ const Mark = ({ pop }: { pop: PlayerHitPop }) => {
 
 /**
  * The vignette's colour stops, centre outward: a faint black for a
- * blocked hit, purple for a curse, else the attack type's tone (if
+ * blocked hit, purple for Hex going off, else the attack type's tone (if
  * any) running into blood red.
  */
 const toneStopsOf = (pop: PlayerHitPop): string => {
   if (isBlockedOnly(pop)) return `${BLOCKED_TONE} 100%`;
-  if (isCurse(pop)) return `${CURSE_TONE} 100%`;
+  if (isHexTick(pop)) return `${CURSE_TONE} 100%`;
   const typeTone = TYPE_TONE[pop.source ?? ''];
   return typeTone ? `${typeTone} 78%, ${HURT_TONE} 100%` : `${HURT_TONE} 100%`;
 };
