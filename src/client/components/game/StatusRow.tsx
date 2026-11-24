@@ -31,12 +31,17 @@ import {
   type FloatingPlacement,
 } from '../../lib/floatingPlacement';
 import { useFitCount } from '../../hooks/useFitCount';
+import { useBleedSplash } from '../../hooks/useBleedSplash';
 import { Chip, type ChipProps } from '../ui/Chip';
+import { bleedStageOf, type BleedStage } from '../../lib/bleedStage';
+import { BleedDrop } from './BleedDrop';
 
 // --- TYPES ---
 /** One status as a chip, with its tooltip text. */
 type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
-  Pick<ChipProps, 'fill' | 'pips'> & {
+  Pick<ChipProps, 'fill'> & {
+    /** Bleed's drop stage, drawn in place of its glyph. */
+    bleedStage?: BleedStage;
     key: StatusId | PassiveId | 'guard';
     title: string;
     description: string;
@@ -131,25 +136,45 @@ const hexChipOf = (hex: number): Partial<StatusChip> => {
 };
 
 /**
- * Bleed's chip: its value, with the hits in a row so far as pips. One
- * hit from bursting, it is PRIMED: a solid blood-red tile.
+ * Bleed's chip: its value, with a drop that fills as the hits in a row
+ * add up (see BleedDrop). One hit from bursting it is PRIMED: full and
+ * pulsing.
  */
 const bleedChipOf = (combatant: Combatant): Partial<StatusChip> => {
   const hits = combatant.bleedHits ?? 0;
   const isPrimed = hits >= BLEED_HITS - 1;
   return {
-    pips: { filled: hits, total: BLEED_HITS },
+    bleedStage: bleedStageOf(hits),
     ...(isPrimed
       ? {
-          fill: toneVarOf(STATUS_LOOK.bleed),
           description: `Primed: the next non-Magic hit bursts it for ${combatant.statuses.bleed}.`,
         }
       : {}),
   };
 };
 
-/** Every active effect on a combatant as chips, Guard first. */
-const statusChipsOf = (combatant: Combatant): StatusChip[] => {
+/** The chip a burst Bleed leaves for a moment: its drop splashing. */
+const splashChipOf = (value: number): StatusChip => ({
+  key: 'bleed',
+  ...STATUS_LOOK.bleed,
+  text: String(value),
+  title: STATUS_INFO.bleed.label,
+  description: `Burst for ${value}.`,
+  bleedStage: 'splash',
+});
+
+/** A chip's own drawing in place of its glyph, if it has one. */
+const chipIconOf = (chip: StatusChip) =>
+  chip.bleedStage ? <BleedDrop stage={chip.bleedStage} /> : undefined;
+
+/**
+ * Every active effect on a combatant as chips, Guard first; `splashed`
+ * adds a Bleed that just burst, splashing (see useBleedSplash).
+ */
+const statusChipsOf = (
+  combatant: Combatant,
+  splashed: number | null
+): StatusChip[] => {
   const guard: StatusChip[] =
     combatant.guard > 0
       ? [
@@ -173,7 +198,11 @@ const statusChipsOf = (combatant: Combatant): StatusChip[] => {
       ...(id === 'bleed' ? bleedChipOf(combatant) : {}),
     })
   );
-  return [...guard, ...statuses];
+  const splash =
+    splashed !== null && combatant.statuses.bleed === 0
+      ? [splashChipOf(splashed)]
+      : [];
+  return [...guard, ...statuses, ...splash];
 };
 
 /** A chip with its tooltip. */
@@ -183,7 +212,7 @@ const StatusChipView = ({ chip }: { chip: StatusChip }) => (
     text={chip.text}
     toneClass={chip.toneClass}
     fill={chip.fill}
-    pips={chip.pips}
+    icon={chipIconOf(chip)}
     shape="square"
     info={{ title: chip.title, description: chip.description }}
   />
@@ -213,7 +242,7 @@ const StatusPopover = ({
             text={chip.text}
             toneClass={chip.toneClass}
             fill={chip.fill}
-            pips={chip.pips}
+            icon={chipIconOf(chip)}
             shape="square"
           />
         </span>
@@ -308,7 +337,11 @@ export const StatusRow = ({
   passives?: readonly PassiveId[];
   align?: keyof typeof ALIGN_CLASS;
 }) => {
-  const chips = [...passiveChipsOf(passives), ...statusChipsOf(combatant)];
+  const splashed = useBleedSplash(combatant);
+  const chips = [
+    ...passiveChipsOf(passives),
+    ...statusChipsOf(combatant, splashed),
+  ];
   const { spaceRef, measureRef, overflowRef, fitCount } = useFitCount(
     chips.length
   );
@@ -331,7 +364,7 @@ export const StatusRow = ({
             text={chip.text}
             toneClass={chip.toneClass}
             fill={chip.fill}
-            pips={chip.pips}
+            icon={chipIconOf(chip)}
             shape="square"
           />
         ))}

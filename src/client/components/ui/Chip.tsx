@@ -9,6 +9,7 @@
 // gold one.
 // ===================================================================
 
+import type { ReactNode } from 'react';
 import { toneVarOf } from '../../content/visuals';
 import { Glyph, type GlyphName } from './Glyph';
 import { Tooltip, type TooltipContent } from './Tooltip';
@@ -32,11 +33,8 @@ export type ChipProps = {
    * first (an intent's secondary effects: one move, one arrow).
    */
   extras?: readonly ChipPart[];
-  /**
-   * A count drawn as small bars after the number (a square's only),
-   * e.g. Bleed's hits in a row: `filled` of `total` lit.
-   */
-  pips?: { filled: number; total: number } | undefined;
+  /** A drawing in place of the glyph (e.g. Bleed's filling drop). */
+  icon?: ReactNode;
 };
 
 /** One icon + value inside a badge. */
@@ -51,34 +49,24 @@ export type ChipShape = 'arrow' | 'square';
  */
 const ARROW_CLIP = '[clip-path:polygon(7px_0,100%_0,100%_100%,7px_100%,0_50%)]';
 
-/** The badge's content: the icon in its tone, then the value. */
+/** The badge's content: the icon (or a drawing) in its tone, then the value. */
 const BadgeContent = ({
   glyph,
   text,
   iconClass,
+  icon,
 }: {
   glyph: GlyphName;
   text: string;
   iconClass: string;
+  icon?: ReactNode;
 }) => (
   <>
     <span className={`inline-flex ${iconClass}`}>
-      <Glyph name={glyph} className="size-3" />
+      {icon ?? <Glyph name={glyph} className="size-3" />}
     </span>
     {text}
   </>
-);
-
-/** A count as small upright bars, the first `filled` lit. */
-const Pips = ({ filled, total }: { filled: number; total: number }) => (
-  <span className="ml-0.5 inline-flex items-center gap-px">
-    {Array.from({ length: total }, (_, index) => (
-      <span
-        key={index}
-        className={`h-2 w-[3px] rounded-[1px] bg-current ${index < filled ? '' : 'opacity-25'}`}
-      />
-    ))}
-  </span>
 );
 
 /** Renders one badge, with its tooltip when it has `info`. */
@@ -103,15 +91,14 @@ const Badge = ({
   shape = 'arrow',
   fill,
   extras = [],
-  pips,
+  icon,
 }: Omit<ChipProps, 'info'>) =>
   shape === 'square' ? (
     <span
       className={`inline-flex items-center gap-0.5 rounded-[3px] px-1 py-0.5 text-[11px] font-bold ring-1 ${fill ? 'text-black ring-black' : `bg-surface-sunken ring-edge ${toneClass}`}`}
       style={fill ? { backgroundColor: fill } : undefined}
     >
-      <BadgeContent glyph={glyph} text={text} iconClass="" />
-      {pips && <Pips {...pips} />}
+      <BadgeContent glyph={glyph} text={text} iconClass="" icon={icon} />
     </span>
   ) : (
     <span className={`inline-flex bg-black p-px ${ARROW_CLIP}`}>

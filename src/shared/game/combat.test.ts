@@ -1424,13 +1424,24 @@ void test('Piercing can be imbued onto a single-target attack, for the turn', ()
 });
 
 // --- CURSES ---
-void test('Curse cards never deal direct damage: they curse with Hex instead', () => {
+void test('Curse cards never deal direct damage, and all of them lay Hex', () => {
   const curses = ALL_CARD_IDS.filter((id) => getCard(id).type === 'curse');
   for (const id of curses)
     assert.ok(
       !getCard(id).effects.some((effect) => effect.kind === 'damage'),
       `${id} deals direct damage`
     );
-  for (const id of ['mourningCurse', 'chainsOfGrief'] as const)
-    assert.ok(getCard(id).effects.some((effect) => effect.kind === 'hex'));
+  // ...and every one of them lays Hex.
+  for (const id of curses)
+    assert.ok(
+      getCard(id).effects.some((effect) => effect.kind === 'hex'),
+      `${id} lays no Hex`
+    );
+});
+
+void test('status effects in a row share one line of card text', () => {
+  assert.deepEqual(describeCard('sneer'), [
+    'Gain 5 Guard.',
+    'Apply 1 Weaken and 1 Hex.',
+  ]);
 });

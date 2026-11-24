@@ -144,7 +144,7 @@ export const CARDS = {
   boneWard: card('Bone Ward', 'defend', 1, 'common', [guard(8)]),
   whisperHex: card('Whisper Hex', 'curse', 0, 'common', [hex(3)]),
   quickJab: card('Quick Jab', 'melee', 0, 'common', [hit(3), draw(1)]),
-  sneer: card('Sneer', 'curse', 1, 'common', [guard(5), weaken(1)]),
+  sneer: card('Sneer', 'curse', 1, 'common', [guard(5), weaken(1), hex(1)]),
   fortressOfSpite: card('Fortress of Spite', 'defend', 2, 'common', [
     guard(14),
   ]),
@@ -152,7 +152,7 @@ export const CARDS = {
   cleave: card('Cleave', 'melee', 1, 'common', [hitAll(6)]),
   spiteBolt: card('Spite Bolt', 'range', 1, 'common', [hit(6)]),
   hurlAside: card('Hurl Aside', 'melee', 1, 'common', [hit(5), push]),
-  beckon: card('Beckon', 'curse', 0, 'common', [pull, weaken(1)]),
+  beckon: card('Beckon', 'curse', 0, 'common', [pull, weaken(1), hex(1)]),
   hexfire: card('Hexfire', 'magic', 1, 'common', [hit(6), hex(1)]),
   barbedVolley: card('Barbed Volley', 'range', 1, 'common', [hit(2, 3)]),
   flurry: card('Flurry', 'melee', 1, 'common', [hit(3, 3)]),
@@ -177,6 +177,7 @@ export const CARDS = {
   // AFFLICTIONS: one card each for Poison, Frost, Bleed and Enfeeble
   sapStrength: card('Sap Strength', 'curse', 1, 'common', [
     { kind: 'enfeeble', target: 'one' },
+    hex(1),
   ]),
   venomDart: card('Venom Dart', 'range', 1, 'common', [hit(3), poison(4)]),
   frostBolt: card('Frost Bolt', 'magic', 1, 'common', [hit(5), frost(2)]),
@@ -230,6 +231,7 @@ export const CARDS = {
   ]),
   weakeningGaze: card('Weakening Gaze', 'curse', 1, 'uncommon', [
     weaken(2, 'all'),
+    hex(1, 'all'),
     draw(1),
   ]),
   bloodPact: card('Blood Pact', 'buff', 0, 'uncommon', [energy(2)], FADES),

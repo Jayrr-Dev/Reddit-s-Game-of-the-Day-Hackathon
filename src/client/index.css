@@ -2109,6 +2109,60 @@ textarea,
   animation-name: fx-dash;
   animation-duration: 650ms;
 }
+.status-fx-whip {
+  animation-name: fx-whip;
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.1, 0.8, 0.3, 1);
+}
+.status-fx-splat {
+  animation-name: fx-splat;
+  animation-duration: 1500ms;
+}
+
+/* Lashes across like flung water: whips open from its left end at its
+   own tilt (--fx-turn), then thins away as it flies on. */
+@keyframes fx-whip {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--fx-turn)) translateX(-30%)
+      scale(0.1, 0.6);
+  }
+  25% {
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--fx-turn)) scale(1.05, 1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--fx-turn)) translateX(18%)
+      scale(1.15, 0.4);
+  }
+}
+
+/* A splat: slaps on flat and spreads a little, stays, then fades. */
+@keyframes fx-splat {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+  20% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  70% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(1.02);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.04);
+  }
+}
 
 /* Drops in big from above and hits down hard, then fades (Wrath's fist). */
 @keyframes fx-slam {
@@ -2289,6 +2343,66 @@ textarea,
   }
   .status-fx-flicker {
     animation: none;
+  }
+}
+
+/* -------------------------------------------------------------------
+   BLEED DROP: Bleed's chip icon (BleedDrop.tsx). Full (primed, one hit
+   from bursting) it pulses; on the burst it swells and fades as five
+   droplets fly off along --drop-angle. Transform and opacity only;
+   reduced motion shows a steady drop.
+   ------------------------------------------------------------------- */
+.bleed-drop[data-stage='full'] .bleed-drop-body {
+  animation: bleed-drop-pulse 800ms ease-in-out infinite;
+}
+.bleed-drop[data-stage='splash'] .bleed-drop-body {
+  animation: bleed-drop-splash 600ms ease-out forwards;
+}
+.bleed-drop-droplet {
+  opacity: 0;
+  animation: bleed-drop-fly 600ms ease-out forwards;
+}
+@keyframes bleed-drop-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.25);
+  }
+}
+@keyframes bleed-drop-splash {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  35% {
+    transform: scale(1.6, 0.7);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2, 0.4);
+    opacity: 0;
+  }
+}
+@keyframes bleed-drop-fly {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(var(--drop-angle)) translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--drop-angle)) translateX(12px)
+      scale(0.5);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bleed-drop .bleed-drop-body,
+  .bleed-drop-droplet {
+    animation: none;
+  }
+  .bleed-drop-droplet {
+    display: none;
   }
 }
 

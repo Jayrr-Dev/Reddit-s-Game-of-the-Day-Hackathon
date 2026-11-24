@@ -112,10 +112,10 @@ export const PASSIVE_INFO: Record<PassiveId, StatusInfo> = {
 
 // --- CARD TEXT ---
 
-/** "to all heroes" suffix for area effects; melee sweeps the front only. */
+/** " to ALL" suffix for area effects; melee sweeps the front only. */
 const areaSuffix = (target: 'one' | 'all', isMelee = false): string => {
   if (target === 'one') return '';
-  return isMelee ? ' to the front row' : ' to ALL heroes';
+  return isMelee ? ' to the front row' : ' to ALL';
 };
 
 /**
@@ -187,7 +187,7 @@ export const describeCardEffect = (
     case 'heal':
       return `Heal ${effect.amount} HP.`;
     case 'pull':
-      return 'Pull a hero to the front.';
+      return 'Pull a hero forward.';
     case 'push':
       return 'Push it to the back.';
     case 'imbue':
@@ -260,6 +260,55 @@ const describeImbueEffect = (
     ? `Imbue ${KEYWORD_LABEL[gift.keyword]} ${DURATION_LABEL[duration]}.`
     : `Imbue ${DURATION_LABEL[duration]}: ${describeImbueGift(gift, cardDef)}`;
 
+// --- STATUS LINES ---
+/** Card effects that lay a status on heroes ("Apply 2 Hex."). */
+type AppliedStatus = Extract<
+  CardEffect,
+  { kind: 'hex' | 'poison' | 'burn' | 'frost' | 'bleed' | 'weaken' }
+>;
+const APPLIED_KINDS: ReadonlySet<CardEffect['kind']> = new Set([
+  'hex',
+  'poison',
+  'burn',
+  'frost',
+  'bleed',
+  'weaken',
+]);
+const isAppliedStatus = (effect: CardEffect): effect is AppliedStatus =>
+  APPLIED_KINDS.has(effect.kind);
+
+/** Joins words as "a", "a and b", "a, b and c". */
+const joinAnd = (words: readonly string[]): string =>
+  words.length <= 1
+    ? (words[0] ?? '')
+    : `${words.slice(0, -1).join(', ')} and ${words.at(-1)}`;
+
+/** One line for statuses laid on the same heroes: "Apply 1 Weaken and 1 Hex." */
+const describeAppliedRun = (run: readonly AppliedStatus[]): string => {
+  const parts = run.map(
+    (effect) => `${effect.amount} ${STATUS_INFO[effect.kind].label}`
+  );
+  return `Apply ${joinAnd(parts)}${areaSuffix(run[0]?.target ?? 'one')}.`;
+};
+
+/**
+ * A card's effects grouped for its text: statuses laid one after
+ * another on the same heroes share one line, every other effect is a
+ * line of its own. Keeps cards short enough for their face.
+ */
+const groupForText = (
+  effects: readonly CardEffect[]
+): (CardEffect | AppliedStatus[])[] =>
+  effects.reduce<(CardEffect | AppliedStatus[])[]>((groups, effect) => {
+    const last = groups.at(-1);
+    const run = Array.isArray(last) ? last : null;
+    if (!isAppliedStatus(effect)) return [...groups, effect];
+    if (run && run[0]?.target === effect.target) {
+      return [...groups.slice(0, -1), [...run, effect]];
+    }
+    return [...groups, [effect]];
+  }, []);
+
 /**
  * All text lines for a card: the effects (its type shows reach),
  * then "Hold." and "Fades." when it has those traits.
@@ -270,8 +319,10 @@ export const describeCard = (
   target?: HeroUnit
 ): string[] => {
   const cardDef = getCard(cardId);
-  const lines = cardDef.effects.map((effect) =>
-    describeCardEffect(effect, cardDef, attacker, target)
+  const lines = groupForText(cardDef.effects).map((group) =>
+    Array.isArray(group)
+      ? describeAppliedRun(group)
+      : describeCardEffect(group, cardDef, attacker, target)
   );
   const targetLine = cardDef.targets > 1 ? [`Target ${cardDef.targets}.`] : [];
   const traitLines = [

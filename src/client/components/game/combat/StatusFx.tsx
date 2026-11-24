@@ -100,6 +100,30 @@ const SHAPE_PATHS: Record<Exclude<FxShape, 'icon'>, ReactNode> = {
       strokeWidth="0.5"
     />
   ),
+  lash: (
+    <>
+      <path
+        d="M.2 6.6C2.4 3.4 6.4 2.4 9.8 3.4 6.9 3.9 3.7 4.9.2 6.6Z"
+        fill="currentColor"
+      />
+      <circle cx="3.1" cy="6.3" r=".45" fill="currentColor" />
+      <circle cx="5.4" cy="5.4" r=".35" fill="currentColor" />
+      <circle cx="7.6" cy="4.7" r=".3" fill="currentColor" />
+    </>
+  ),
+  splat: (
+    <>
+      <path
+        d="M5 2.2c1 .1 1.3 1 2.1.9.9 0 1.5.9 1 1.7-.4.7.3 1.3-.1 2-.5.8-1.4.4-2 .9-.7.6-1.6.6-2.2 0-.6-.5-1.5-.2-1.9-1-.4-.7.2-1.3-.1-2-.3-.8.4-1.5 1.2-1.4.8 0 1.1-1.2 2-1.1Z"
+        fill="currentColor"
+        fillOpacity="0.85"
+      />
+      <circle cx="1.2" cy="2.4" r=".5" fill="currentColor" />
+      <circle cx="9" cy="2" r=".4" fill="currentColor" />
+      <circle cx="9.3" cy="8.4" r=".55" fill="currentColor" />
+      <circle cx=".9" cy="8.2" r=".35" fill="currentColor" />
+    </>
+  ),
   eye: (
     <>
       <path
@@ -143,6 +167,17 @@ const placeParticle = (
       '--fx-turn': `${(deg + 90).toFixed(0)}deg`,
     } as CSSProperties;
   }
+  if (motion === 'whip')
+    // Crossing lashes: each a beat after the last, turned its own way.
+    return {
+      left: '50%',
+      top: `${46 + index * 10}%`,
+      animationDelay: `${index * 90}ms`,
+      '--fx-turn': `${index % 2 === 0 ? -18 : 14}deg`,
+    } as CSSProperties;
+  if (motion === 'splat')
+    // Lands once the lash has passed, where it struck.
+    return { left: '50%', top: '52%', animationDelay: '220ms' };
   if (motion === 'dash')
     // In from the left, at its own height (speed lines stack up).
     return {

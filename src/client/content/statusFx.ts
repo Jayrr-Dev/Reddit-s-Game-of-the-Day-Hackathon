@@ -27,16 +27,31 @@ export type FxShape =
   | 'icon'
   | 'arrow'
   | 'spark'
-  | 'streak';
+  | 'streak'
+  /** A whipped arc of liquid, thin at both ends, shedding drips. */
+  | 'lash'
+  /** A blood splat: a blob with drops flung round it. */
+  | 'splat';
 
 /**
  * How a particle moves (index.css "STATUS FX"): rise floats up, fall
  * drips down, burst flies out from the middle, spin turns in place,
  * flash swells and fades in place, slam drops in big and hits down,
- * swing chops down from raised, dash shoots in from the left.
+ * swing chops down from raised, dash shoots in from the left, whip
+ * lashes across fast like flung water, splat lands a beat later and
+ * lingers before it fades.
  */
 export type FxMotion =
-  'rise' | 'fall' | 'burst' | 'spin' | 'flash' | 'slam' | 'swing' | 'dash';
+  | 'rise'
+  | 'fall'
+  | 'burst'
+  | 'spin'
+  | 'flash'
+  | 'slam'
+  | 'swing'
+  | 'dash'
+  | 'whip'
+  | 'splat';
 
 /** One layer of identical particles. */
 export type FxLayer = {
@@ -150,8 +165,16 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     layers: [{ shape: 'drop', motion: 'fall', count: 4, size: 9 }],
     hasGlow: false,
   },
+  /**
+   * Bleed bursting (its 3rd hit): blood lashes across the body like
+   * whipped water, drops fly off, and a splat is left behind a moment.
+   */
   bleedBurst: {
-    layers: [{ shape: 'drop', motion: 'burst', count: 9, size: 9 }],
+    layers: [
+      { shape: 'lash', motion: 'whip', count: 2, size: 96 },
+      { shape: 'drop', motion: 'burst', count: 7, size: 8 },
+      { shape: 'splat', motion: 'splat', count: 1, size: 62 },
+    ],
     hasGlow: true,
   },
   /** Enfeeble (cuts damage dealt): a blade shatters and drops, shards fall. */
