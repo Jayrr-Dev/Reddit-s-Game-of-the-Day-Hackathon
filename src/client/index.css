@@ -109,6 +109,7 @@
   /* BOSS DEATH (BOSS_DEATH_MS = 1800 in useFallenHeroes) */
   --animate-boss-death: boss-death 1800ms ease-in forwards;
   --animate-holy-mote: holy-mote 1100ms ease-out forwards;
+  --animate-holy-arrival: holy-arrival 900ms ease-out forwards;
   --animate-boss-flash: boss-flash 1800ms ease-out forwards;
   --animate-field-shake: field-shake 1800ms linear;
   --animate-impact-slash: impact-slash 1000ms ease-out forwards;
@@ -609,6 +610,23 @@
     100% {
       opacity: 0;
       transform: translate(var(--drift, 0px), -90px) scale(0.4);
+    }
+  }
+
+  /* A summoned or revived hero's shaft of light: drops in, glows,
+     then fades as the hero settles. */
+  @keyframes holy-arrival {
+    0% {
+      opacity: 0;
+      transform: scaleY(0.2);
+    }
+    25% {
+      opacity: 0.9;
+      transform: scaleY(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scaleY(1);
     }
   }
 

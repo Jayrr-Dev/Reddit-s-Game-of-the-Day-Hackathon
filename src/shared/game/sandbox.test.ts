@@ -6,13 +6,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  canPull,
-  canPush,
-  rowsOf,
-  sizeOf,
-  stepForward,
-} from './battlefield.ts';
+import { canPush, cellsOf, fallBack, sizeOf } from './battlefield.ts';
 import {
   SANDBOX_SCENARIOS,
   createSandbox,
@@ -22,15 +16,13 @@ import {
 } from './sandbox.ts';
 import { ENERGY_PER_TURN } from './rules.ts';
 import { movementFailsOn } from './combat.ts';
-import { movementBlockReason } from './movement.ts';
+import { canMove, movementBlockReason, offeredMovement } from './movement.ts';
 import type { HeroUnit } from './types.ts';
 
 // --- HELPERS ---
 /** Every (row, column) cell a hero stands in, as "row:col". */
-const cellsOf = (unit: HeroUnit): string[] =>
-  rowsOf(unit).flatMap((row) =>
-    Array.from({ length: sizeOf(unit) }, (_, i) => `${row}:${unit.col + i}`)
-  );
+const cellNamesOf = (unit: HeroUnit): string[] =>
+  cellsOf(unit).map(({ row, col }) => `${row}:${col}`);
 
 // --- TESTS ---
 void test('every rolled horde fits the field without overlap', () => {
@@ -38,7 +30,7 @@ void test('every rolled horde fits the field without overlap', () => {
     const { heroes } = createSandbox(seed);
     const [heroIds] = rollDummies(seed);
     assert.ok(heroIds.length >= 2, `seed ${seed} rolled too few`);
-    const cells = heroes.flatMap(cellsOf);
+    const cells = heroes.flatMap(cellNamesOf);
     assert.equal(new Set(cells).size, cells.length, `seed ${seed} overlaps`);
     assert.ok(heroes.every((unit) => unit.col + sizeOf(unit) <= 3));
   }
@@ -70,28 +62,33 @@ void test('clearing the field brings a new horde with higher uids', () => {
 });
 
 // --- BOSSES ---
-void test('the Holy Dragon takes the centre of the back row', () => {
+void test('the Holy Dragon holds a T: the front row and the back centre', () => {
   const { heroes } = createSandboxWith(5, ['holyDragon']);
   const [dragon] = heroes;
   assert.ok(dragon);
-  assert.deepEqual(cellsOf(dragon), ['back:1']);
+  assert.deepEqual(cellNamesOf(dragon), [
+    'front:0',
+    'front:1',
+    'front:2',
+    'back:1',
+  ]);
 });
 
-void test('heroes slide around a boss, never the boss itself', () => {
+void test('others fill the back flanks around a boss', () => {
   const { heroes } = createSandboxWith(5, ['holyDragon', 'squire', 'archer']);
-  const dragon = heroes.find((unit) => unit.heroId === 'holyDragon');
-  assert.deepEqual(dragon && cellsOf(dragon), ['back:1']);
+  const others = heroes
+    .filter((unit) => unit.heroId !== 'holyDragon')
+    .flatMap(cellNamesOf)
+    .sort();
+  assert.deepEqual(others, ['back:0', 'back:2']);
 });
 
-void test('a boss is never pulled or pushed, but Charge moves it', () => {
+void test('a boss is never pulled, pushed or moved by Back Step', () => {
   const { heroes } = createSandboxWith(5, ['holyDragon']);
   const [dragon] = heroes;
   assert.ok(dragon);
-  assert.equal(canPull(heroes, dragon), false);
-  const charged = stepForward(heroes);
-  const [upFront] = charged;
-  assert.equal(upFront?.row, 'front');
-  assert.equal(canPush(charged, upFront!), false);
+  assert.equal(canPush(heroes, dragon), false);
+  assert.equal(fallBack(heroes)[0]?.row, 'front');
 });
 
 void test('random dummies never roll a boss', () => {
@@ -105,7 +102,7 @@ void test('every scenario places all its heroes without overlap', () => {
   for (const scenario of SANDBOX_SCENARIOS) {
     const { heroes } = createSandboxWith(9, scenario.heroIds);
     assert.equal(heroes.length, scenario.heroIds.length, scenario.name);
-    const cells = heroes.flatMap(cellsOf);
+    const cells = heroes.flatMap(cellNamesOf);
     assert.equal(
       new Set(cells).size,
       cells.length,
@@ -125,23 +122,24 @@ void test('scenario ids are unique and the Holy Dragon has one', () => {
   );
 });
 
-void test('a pull on a boss fails but the card still lands', () => {
+void test('a push on a boss fails but the card still lands', () => {
   const start = createSandboxWith(5, ['holyDragon']);
   const dragon = start.heroes[0]!;
-  const state = { ...start, hand: ['chainsOfGrief' as const], energy: 3 };
-  assert.ok(movementFailsOn(state, 'chainsOfGrief', dragon.uid));
+  const state = { ...start, hand: ['hurlAside' as const], energy: 3 };
+  assert.ok(movementFailsOn(state, 'hurlAside', dragon.uid));
   const after = sandboxReducer(state, {
     type: 'playCard',
     handIndex: 0,
     targetUid: dragon.uid,
   });
   const hit = after.heroes[0]!;
-  assert.equal(hit.row, 'back');
+  assert.equal(hit.row, 'front');
   assert.ok(hit.hp + hit.shroud < dragon.hp + dragon.shroud);
 });
 
-void test('Back Step is never locked by a boss that leaves room', () => {
+void test('Back Step is offered but locked while a boss reaches back', () => {
   const state = createSandboxWith(5, ['holyDragon']);
-  assert.equal(movementBlockReason(state, 'backStep'), null);
-  assert.equal(movementBlockReason(state, 'charge'), null);
+  assert.equal(offeredMovement(state), 'backStep');
+  assert.ok(movementBlockReason(state, 'backStep'));
+  assert.equal(canMove(state, 'backStep'), false);
 });

@@ -145,7 +145,14 @@ const nextHorde = (state: CombatState, firstUid: number): CombatState => {
     ...unit,
     uid: unit.uid + firstUid,
   }));
-  return { ...state, heroes, rng };
+  // The last fight's fallen stay gone: a revive only raises this horde.
+  return {
+    ...state,
+    heroes,
+    rng,
+    nextUid: fresh.nextUid + firstUid,
+    fallen: [],
+  };
 };
 
 /** Runs one sandbox input through the engine. */
@@ -190,7 +197,7 @@ export const sandboxReducer = (
   const acted = applyAction(state, action);
   if (acted === state) return state;
   const isCleared = combatOutcome(acted) === 'won';
-  const highestUid = Math.max(0, ...state.heroes.map((unit) => unit.uid));
-  const ready = isCleared ? nextHorde(acted, highestUid) : acted;
+  // Every uid so far (summons included) is below nextUid.
+  const ready = isCleared ? nextHorde(acted, acted.nextUid - 1) : acted;
   return refillEnergy(ready);
 };

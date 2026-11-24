@@ -165,6 +165,7 @@ export type IntentKind =
   | 'buff'
   | 'heal'
   | 'summon'
+  | 'revive'
   | 'advance';
 
 /** The intent chip for each way a hero attack can land. */
@@ -232,6 +233,8 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
         label: `Heal ${amount}${toWhom(effect.who)}`,
       };
     }
+    case 'revive':
+      return { kind: 'revive', text: '', label: 'Revives every fallen ally' };
     case 'summon':
       return {
         kind: 'summon',

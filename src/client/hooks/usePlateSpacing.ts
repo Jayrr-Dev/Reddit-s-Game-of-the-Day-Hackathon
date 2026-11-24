@@ -3,14 +3,13 @@
 // Keeps the heroes' HP plates from overlapping. A back-row hero often
 // stands right behind a front-row one, so its plate lands on top of the
 // front plate. After each layout this hook measures the plates and lifts
-// every back-row plate just clear of any front-row plate it shares a
-// column with. Front plates never move, so they stay tied to their hero.
-// Columns (not pixels) decide who can collide: the parallax camera only
-// slides rows sideways, so it can't change that, and heights are measured.
+// every back-row plate just clear of any front-row plate it actually
+// overlaps sideways. Front plates never move, so they stay tied to their
+// hero. Measured overlap (not columns) decides, so a wide boss's plate
+// doesn't lift the plates of heroes standing clear of it.
 // ===================================================================
 
 import { useLayoutEffect, type RefObject } from 'react';
-import { sizeOf } from '../../shared/game/battlefield';
 import type { HeroUnit } from '../../shared/game/types';
 
 // --- CONSTANTS ---
@@ -20,9 +19,9 @@ export const PLATE_UID_ATTR = 'data-plate-uid';
 const PLATE_GAP_PX = 3;
 
 // --- HELPERS ---
-/** True when two heroes stand in at least one shared column. */
-const sharesColumn = (a: HeroUnit, b: HeroUnit): boolean =>
-  a.col < b.col + sizeOf(b) && b.col < a.col + sizeOf(a);
+/** True when two plates overlap sideways (by more than the gap). */
+const overlapsSideways = (a: DOMRect, b: DOMRect): boolean =>
+  a.left + PLATE_GAP_PX < b.right && b.left + PLATE_GAP_PX < a.right;
 
 /** How far (px) a back plate must rise to clear the front plates. */
 const liftFor = (back: DOMRect, fronts: readonly DOMRect[]): number =>
@@ -42,11 +41,12 @@ const spacePlates = (field: HTMLElement, heroes: readonly HeroUnit[]) => {
   backs.forEach((unit) => {
     const plate = plateOf(unit);
     if (!plate) return;
+    const rect = plate.getBoundingClientRect();
     const frontRects = fronts
-      .filter((front) => sharesColumn(unit, front))
       .map(plateOf)
-      .flatMap((front) => (front ? [front.getBoundingClientRect()] : []));
-    const lift = liftFor(plate.getBoundingClientRect(), frontRects);
+      .flatMap((front) => (front ? [front.getBoundingClientRect()] : []))
+      .filter((front) => overlapsSideways(rect, front));
+    const lift = liftFor(rect, frontRects);
     if (lift > 0) plate.style.translate = `0 -${lift}px`;
   });
 };

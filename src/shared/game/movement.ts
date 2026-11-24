@@ -57,10 +57,10 @@ export const MOVEMENTS: Record<MovementId, MovementDef> = {
   },
 };
 
-/** What a locked move says while a boss holds the whole field. */
+/** What a locked move says while a boss reaches into the back row. */
 const BLOCKED_BY_BOSS: Record<MovementId, string> = {
-  charge: 'A boss fills the whole field: there is no back row to rush.',
-  backStep: 'A boss fills the whole field: there is no room to fall back.',
+  charge: 'A boss holds the field: there is no back row to rush.',
+  backStep: 'A boss holds the back row too: there is no room to fall back.',
 };
 
 /** Every movement id, in the order they are offered. */
@@ -96,8 +96,8 @@ export const offeredMovement = (state: CombatState): MovementId | null =>
 
 /**
  * Why an offered move can't be made at all (cost aside), or null. A
- * boss that fills both rows (see isDeep) holds the whole field: there
- * is nowhere for it to fall back to, so Back Step is shown but locked.
+ * boss that reaches into the back row (see isDeep) never moves row:
+ * there is nowhere to fall back to, so Back Step is shown but locked.
  */
 export const movementBlockReason = (
   state: CombatState,

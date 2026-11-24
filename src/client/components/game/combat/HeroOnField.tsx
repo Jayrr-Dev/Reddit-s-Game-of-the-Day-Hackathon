@@ -245,6 +245,17 @@ const DyingHero = ({ unit }: { unit: HeroUnit }) => {
 };
 
 /**
+ * A hero summoned or revived mid-fight arrives in a shaft of holy
+ * light: it plays once, when the hero first appears.
+ */
+const ArrivalLight = () => (
+  <span
+    aria-hidden="true"
+    className="pointer-events-none absolute inset-x-[15%] -top-[40%] bottom-0 origin-bottom rounded-t-full bg-gradient-to-t from-[#fff4c8] via-[#fff4c8]/60 to-transparent opacity-0 animate-holy-arrival"
+  />
+);
+
+/**
  * Motes of holy light a fallen boss dissolves into:
  * [left %, bottom %, delay ms, drift px].
  */
@@ -384,6 +395,7 @@ export const HeroOnField = ({
               </div>
             </div>
             {pickMarker && <PickMark marker={pickMarker} />}
+            {unit.joinedMidFight && <ArrivalLight />}
             <div
               className="absolute left-1/2 flex -translate-x-1/2 justify-center"
               style={plateStyle(size)}

@@ -26,6 +26,8 @@ import {
   pushHero,
   targetRuleOf,
   type UnplacedHero,
+  cellsOf,
+  isCellOpen,
   summonSeats,
 } from './battlefield.ts';
 import { getCard, type CardId } from './cards.ts';
@@ -110,6 +112,7 @@ export const startCombat = (setup: CombatSetup): CombatState => {
     rng,
     lastMovement: null,
     nextUid: setup.heroIds.length + 1,
+    fallen: [],
   };
   return startPlayerTurn(initial);
 };
@@ -315,10 +318,15 @@ const removeFallen = (state: CombatState): CombatState => {
   const standing = withoutOrphans(
     state.heroes.filter((unit) => !isDefeated(unit))
   );
-  const fallen = state.heroes.length - standing.length;
-  return fallen === 0
+  const fallen = state.heroes.filter((unit) => !standing.includes(unit));
+  return fallen.length === 0
     ? state
-    : { ...state, heroes: standing, slain: state.slain + fallen };
+    : {
+        ...state,
+        heroes: standing,
+        slain: state.slain + fallen.length,
+        fallen: [...state.fallen, ...fallen],
+      };
 };
 
 /**
@@ -701,17 +709,50 @@ const summonHeroes = (
 ): CombatState => {
   const { size } = getHero(effect.heroId);
   const seats = summonSeats(state.heroes, summoner, size, effect.count);
-  const summoned = seats.map((col, index): HeroUnit => ({
+  const summoned = seats.map(({ row, col }, index): HeroUnit => ({
     ...createHeroUnit(effect.heroId, state.nextUid + index, summoner.might),
-    row: summoner.row,
+    row,
     col,
     summonerUid: summoner.uid,
+    joinedMidFight: true,
   }));
   return {
     ...state,
     heroes: [...state.heroes, ...summoned],
     nextUid: state.nextUid + summoned.length,
   };
+};
+
+/**
+ * Brings every fallen ally back at full HP, each into the spot it fell
+ * in when that spot is free (the rest stay fallen). Each comes back
+ * with a fresh uid, still bound to its summoner if that one stands.
+ * Imperative: each return changes the room left for the next.
+ */
+const reviveFallen = (state: CombatState): CombatState => {
+  let heroes = state.heroes;
+  let nextUid = state.nextUid;
+  const stillFallen: HeroUnit[] = [];
+  for (const ghost of state.fallen) {
+    if (!cellsOf(ghost).every((cell) => isCellOpen(heroes, cell))) {
+      stillFallen.push(ghost);
+      continue;
+    }
+    const { summonerUid } = ghost;
+    const isBound =
+      summonerUid !== undefined &&
+      heroes.some((unit) => unit.uid === summonerUid);
+    const revived: HeroUnit = {
+      ...createHeroUnit(ghost.heroId, nextUid, ghost.might),
+      row: ghost.row,
+      col: ghost.col,
+      joinedMidFight: true,
+      ...(isBound ? { summonerUid } : {}),
+    };
+    heroes = [...heroes, revived];
+    nextUid += 1;
+  }
+  return { ...state, heroes, nextUid, fallen: stillFallen };
 };
 
 /** Resolves one effect of a hero's move. */
@@ -762,6 +803,8 @@ const applyHeroEffect = (
       );
     case 'summon':
       return summonHeroes(state, actor, effect);
+    case 'revive':
+      return reviveFallen(state);
   }
 };
 

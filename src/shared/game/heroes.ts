@@ -9,7 +9,6 @@
 import type {
   HeroAttackType,
   HeroDef,
-  HeroDepth,
   HeroEffect,
   HeroMove,
   HeroRow,
@@ -67,6 +66,9 @@ const signature = (heroMove: HeroMove): HeroMove => ({
   isSignature: true,
 });
 
+/** Brings every fallen ally back at full HP. */
+const revive = (): HeroEffect => ({ kind: 'revive' });
+
 /** Calls `count` of a hero onto the field beside the summoner. */
 const summon = (heroId: SummonId, count: number): HeroEffect => ({
   kind: 'summon',
@@ -84,8 +86,7 @@ const move = (name: string, ...effects: HeroEffect[]): HeroMove => ({
 type Placement = {
   row: HeroRow;
   size: HeroSize;
-  col?: number;
-  depth?: HeroDepth;
+  backCols?: readonly number[];
 };
 
 // --- PLACEMENTS ---
@@ -97,10 +98,10 @@ const WIDE_BACK: Placement = { row: 'back', size: 2 };
 /** A champion fills the whole front row on its own. */
 const HUGE: Placement = { row: 'front', size: 3 };
 /**
- * A boss holds the centre of the back row (drawn far larger than its
- * slot), leaving the flanks for the heroes it summons.
+ * A boss in a T: the whole front row plus the back row's centre,
+ * leaving the back flanks for the heroes it summons.
  */
-const BOSS_THRONE: Placement = { row: 'back', size: 1, col: 1 };
+const BOSS_T: Placement = { row: 'front', size: 3, backCols: [1] };
 
 /**
  * Builds a hero definition. Speed sets the turn order (higher acts
@@ -211,11 +212,13 @@ export const HEROES = {
 
   // BOSSES (TARGET DUMMY SCENARIOS ONLY UNTIL THEY JOIN A REGION)
   /**
-   * A great ivory dragon boss on the back row's centre slot. It makes
+   * A great ivory dragon boss in a T: the whole front row and the back
+   * row's centre. It makes
    * two moves a turn: it opens by calling two Angel Archers to its
    * flanks (and calls more whenever a flank is empty when the call
    * comes round again), then breathes holy fire, shields itself, brings
-   * down its signature Halo of Judgment and roars itself into a Wrath.
+   * down its signature Halo of Judgment (which also raises every fallen
+   * ally) and roars itself into a Wrath.
    */
   holyDragon: hero(
     'Holy Dragon Unc',
@@ -223,12 +226,12 @@ export const HEROES = {
     500,
     280,
     5,
-    BOSS_THRONE,
+    BOSS_T,
     [
       move('Call the Host', summon('angelArcher', 2)),
       move('Holy Breath', spell(8, 2)),
       move('Sanctuary Wings', shroud(20)),
-      signature(move('Halo of Judgment', spell(26))),
+      signature(move('Halo of Judgment', revive(), spell(26))),
       move('Radiant Roar', wrath(2)),
     ],
     BOSS_ACTIONS

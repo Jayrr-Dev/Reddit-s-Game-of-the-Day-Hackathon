@@ -119,7 +119,12 @@ export type HeroEffect =
    * the summoner's own row, nearest first. Bound to the summoner: they
    * fall when it falls.
    */
-  | { kind: 'summon'; heroId: SummonId; count: number };
+  | { kind: 'summon'; heroId: SummonId; count: number }
+  /**
+   * Brings every fallen ally back at full HP, into the spot it fell in
+   * when that spot is free.
+   */
+  | { kind: 'revive' };
 
 /**
  * Heroes that only ever join a fight by being summoned. Named here, not
@@ -145,13 +150,6 @@ export type HeroTier = 'grunt' | 'elite' | 'champion' | 'boss';
 export type HeroRow = 'front' | 'back';
 /** How many columns a hero fills: grunts 1, elites 2, champions 3. */
 export type HeroSize = 1 | 2 | 3;
-/**
- * How many rows a hero fills: 1 for everyone but bosses. A 2-deep hero
- * stands in the front row and fills the back row behind it too; it can
- * never be pulled or pushed.
- */
-export type HeroDepth = 1 | 2;
-
 export type HeroDef = {
   name: string;
   tier: HeroTier;
@@ -163,10 +161,13 @@ export type HeroDef = {
   /** The row this hero takes when the fight starts. */
   row: HeroRow;
   size: HeroSize;
-  /** The column it would rather start in (e.g. a boss takes the centre). */
-  col?: number;
-  /** Rows filled (see HeroDepth); 1 when left out. */
-  depth?: HeroDepth;
+  /**
+   * For a hero that stands in the front row and reaches back (a boss):
+   * the columns, as offsets from its own leftmost one, it also fills in
+   * the back row. [0, 1, 2] on a size-3 hero fills the whole field;
+   * [1] makes a T. Such a hero never changes row.
+   */
+  backCols?: readonly number[];
   /** Moves made each heroes' turn, in cycle order; 1 when left out. */
   actions?: number;
   /** Who acts first on the heroes' turn: higher goes earlier. */
@@ -186,6 +187,8 @@ export type HeroUnit = Combatant & {
   col: number;
   /** The hero that summoned this one: it falls when that hero falls. */
   summonerUid?: number;
+  /** Summoned or revived during the fight (it arrives in holy light). */
+  joinedMidFight?: boolean;
 };
 
 /** The villain's moves on the battlefield itself (see movement.ts). */
@@ -213,6 +216,8 @@ export type CombatState = {
   lastMovement: MovementRecord | null;
   /** The uid the next hero to join (a summon) gets; never reused. */
   nextUid: number;
+  /** Heroes fallen this fight, as they fell (a revive brings them back). */
+  fallen: HeroUnit[];
 };
 
 export type CombatOutcome = 'ongoing' | 'won' | 'lost';

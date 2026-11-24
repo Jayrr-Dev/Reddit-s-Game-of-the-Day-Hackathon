@@ -54,6 +54,13 @@ const PLATE_LOOK: Record<
   },
 };
 
+/**
+ * A boss's plate is kept narrower than a champion's, so the plates of
+ * the heroes at its back flanks sit beside it instead of being lifted
+ * over it (into the top bar).
+ */
+const BOSS_PLATE_MAX_WIDTH = '12rem';
+
 /** A boss's name: always gold, with a thin black outline. */
 const BOSS_NAME_CLASS =
   'text-accent [paint-order:stroke_fill] [-webkit-text-stroke:2px_black]';
@@ -97,7 +104,10 @@ export const HeroPlate = ({ unit, field, isFocused }: HeroPlateProps) => {
     <div
       {...{ [PLATE_UID_ATTR]: unit.uid }}
       className={`pointer-events-none flex origin-bottom flex-col gap-1.5 ${scaleClass}`}
-      style={{ width: look.width, maxWidth: look.maxWidth }}
+      style={{
+        width: look.width,
+        maxWidth: isBoss ? BOSS_PLATE_MAX_WIDTH : look.maxWidth,
+      }}
     >
       <span
         className={`truncate px-1 text-left font-display font-bold ${look.name} uppercase leading-none tracking-wider drop-shadow ${nameClass}`}

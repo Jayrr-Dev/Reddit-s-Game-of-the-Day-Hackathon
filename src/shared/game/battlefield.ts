@@ -1,10 +1,11 @@
 // ===================================================================
 // BATTLEFIELD
 // Where heroes stand. The field is a grid BATTLEFIELD_COLUMNS wide and
-// two rows deep; each hero fills `size` neighbouring columns in one row,
-// or in both rows for a 2-deep hero (see HeroDepth), which stands in the
-// front row and is never moved by Back Step. Bosses and 2-deep heroes
-// are immovable: a pull or push aimed at them fails.
+// two rows deep; each hero fills `size` neighbouring columns in one row.
+// A hero with `backCols` (a boss) stands in the front row and also fills
+// those columns of the back row, so its footprint can be any shape (all
+// six cells, or a T: the front row plus the back centre). It never
+// changes row. Bosses are immovable: a pull or push aimed at them fails.
 //
 // RULES
 //   - Melee cards hit the front row only. Reach cards, curses and Hex
@@ -25,13 +26,7 @@
 import { getCard, type CardId } from './cards.ts';
 import { getHero } from './heroes.ts';
 import { BATTLEFIELD_COLUMNS } from './rules.ts';
-import type {
-  CardDef,
-  HeroDepth,
-  HeroRow,
-  HeroSize,
-  HeroUnit,
-} from './types.ts';
+import type { CardDef, HeroRow, HeroSize, HeroUnit } from './types.ts';
 
 // --- TYPES ---
 /** A hero that has not been placed yet (no row or column). */
@@ -60,28 +55,43 @@ const spanOf = (col: number, size: number): number[] =>
 export const sizeOf = (unit: Pick<HeroUnit, 'heroId'>): HeroSize =>
   getHero(unit.heroId).size;
 
-/** How many rows a hero fills (1, or 2 for a boss). */
-export const depthOf = (unit: Pick<HeroUnit, 'heroId'>): HeroDepth =>
-  getHero(unit.heroId).depth ?? 1;
+/** The back-row columns (offsets from its own) a front hero also fills. */
+const backColsOf = (unit: Pick<HeroUnit, 'heroId'>): readonly number[] =>
+  getHero(unit.heroId).backCols ?? [];
 
-/** True for a hero that fills both rows (it never changes row). */
+/** True for a hero that reaches into the back row too (it never moves row). */
 export const isDeep = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
-  depthOf(unit) === 2;
+  backColsOf(unit).length > 0;
 
 /**
- * True for a hero no pull or push can move: a boss, or a 2-deep hero.
- * Charge and Back Step move the whole field, bosses included.
+ * True for a hero no pull or push can move: a boss, or a deep hero.
+ * Charge and Back Step move the whole field, bosses included (a deep
+ * one keeps its place).
  */
 export const isImmovable = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
   isDeep(unit) || getHero(unit.heroId).tier === 'boss';
+
+/** One battlefield cell. */
+export type Cell = { row: HeroRow; col: number };
+
+/** Every cell a hero fills where it stands: its row, plus any back reach. */
+export const cellsOf = (
+  unit: Pick<HeroUnit, 'heroId' | 'row' | 'col'>
+): Cell[] => [
+  ...spanOf(unit.col, sizeOf(unit)).map((col) => ({ row: unit.row, col })),
+  ...backColsOf(unit).map((offset) => ({
+    row: 'back' as const,
+    col: unit.col + offset,
+  })),
+];
 
 /** The rows a hero stands in: its own, plus the back for a deep one. */
 export const rowsOf = (unit: Pick<HeroUnit, 'heroId' | 'row'>): HeroRow[] =>
   isDeep(unit) ? ['front', 'back'] : [unit.row];
 
-/** Every battlefield cell (rows x columns) a hero fills. */
+/** How many battlefield cells a hero fills. */
 export const cellCountOf = (unit: Pick<HeroUnit, 'heroId'>): number =>
-  sizeOf(unit) * depthOf(unit);
+  sizeOf(unit) + backColsOf(unit).length;
 
 /** The row a hero is not in. */
 const otherRow = (row: HeroRow): HeroRow =>
@@ -97,9 +107,12 @@ const isSpanOpen = (
   heroes.every(
     (unit) =>
       unit.uid === ignoreUid ||
-      !rowsOf(unit).includes(row) ||
-      !spanOf(unit.col, sizeOf(unit)).some((col) => span.includes(col))
+      !cellsOf(unit).some((cell) => cell.row === row && span.includes(cell.col))
   );
+
+/** True when no hero stands in this cell. */
+export const isCellOpen = (heroes: readonly HeroUnit[], cell: Cell): boolean =>
+  isSpanOpen(heroes, cell.row, [cell.col]);
 
 /**
  * Columns to try, in order, by row and size. A lone front hero stands
@@ -116,23 +129,24 @@ const PREFERRED_COLUMNS: Record<
 
 /**
  * The first column where a hero of `size` fits in `row` (and, for a
- * 2-deep hero, in the back row behind it too), or null.
+ * deep hero, its `backCols` behind it are free too), or null.
  */
 const firstOpenColumn = (
   heroes: readonly HeroUnit[],
   row: HeroRow,
   size: HeroSize,
-  depth: HeroDepth = 1
-): number | null => {
-  const rows: HeroRow[] = depth === 2 ? ['front', 'back'] : [row];
-  return (
-    PREFERRED_COLUMNS[row][size].find(
-      (col) =>
-        col + size <= BATTLEFIELD_COLUMNS &&
-        rows.every((each) => isSpanOpen(heroes, each, spanOf(col, size)))
-    ) ?? null
-  );
-};
+  backCols: readonly number[] = []
+): number | null =>
+  PREFERRED_COLUMNS[row][size].find(
+    (col) =>
+      col + size <= BATTLEFIELD_COLUMNS &&
+      isSpanOpen(heroes, row, spanOf(col, size)) &&
+      isSpanOpen(
+        heroes,
+        'back',
+        backCols.map((offset) => col + offset)
+      )
+  ) ?? null;
 
 // --- FORMATION ---
 
@@ -141,18 +155,12 @@ const placeHero = (
   placed: readonly HeroUnit[],
   unit: UnplacedHero
 ): HeroUnit => {
-  const { row, size, depth = 1, col: preferred } = getHero(unit.heroId);
-  // A boss only ever stands in the front row (filling the back too).
-  if (depth === 2) {
-    const col = firstOpenColumn(placed, 'front', size, depth);
+  const { row, size, backCols } = getHero(unit.heroId);
+  // A deep hero only ever stands in the front row (reaching back too).
+  if (backCols?.length) {
+    const col = firstOpenColumn(placed, 'front', size, backCols);
     return { ...unit, row: 'front', col: col ?? 0 };
   }
-  // A hero with a preferred column (a boss in the centre) takes it first.
-  if (
-    preferred !== undefined &&
-    isSpanOpen(placed, row, spanOf(preferred, size))
-  )
-    return { ...unit, row, col: preferred };
   for (const candidate of [row, otherRow(row)]) {
     const col = firstOpenColumn(placed, candidate, size);
     if (col !== null) return { ...unit, row: candidate, col };
@@ -187,10 +195,7 @@ const marchInFromBack = (heroes: HeroUnit[]): HeroUnit[] => {
  * starts out of melee reach. The result keeps the original order (uids).
  */
 export const formUp = (units: readonly UnplacedHero[]): HeroUnit[] => {
-  // Heroes with a preferred column go first, so nobody takes their spot.
-  const placeOrder = (unit: UnplacedHero) =>
-    (getHero(unit.heroId).col === undefined ? 0 : 100) + cellCountOf(unit);
-  const bySizeDesc = [...units].sort((a, b) => placeOrder(b) - placeOrder(a));
+  const bySizeDesc = [...units].sort((a, b) => cellCountOf(b) - cellCountOf(a));
   const placed = bySizeDesc.reduce<HeroUnit[]>(
     (field, unit) => [...field, placeHero(field, unit)],
     []
@@ -215,8 +220,9 @@ export const stepForward = (heroes: HeroUnit[]): HeroUnit[] => {
 
 /**
  * Where `count` summoned heroes of `size` would stand: open columns in
- * the summoner's own row, nearest to it first (left wins a tie). Fewer
- * than `count` when the row runs out of room; empty when it is full.
+ * the rows the summoner stands in (its own row first), nearest to it
+ * first (left wins a tie). Fewer than `count` when those rows run out
+ * of room; empty when they are full.
  * Imperative: each seat taken changes the room left for the next.
  */
 export const summonSeats = (
@@ -224,19 +230,23 @@ export const summonSeats = (
   summoner: HeroUnit,
   size: HeroSize,
   count: number
-): number[] => {
+): Cell[] => {
   const centre = summoner.col + (sizeOf(summoner) - 1) / 2;
   const byNearness = startColumns(size).sort(
     (a, b) => Math.abs(a - centre) - Math.abs(b - centre) || a - b
   );
-  const seats: number[] = [];
-  for (const col of byNearness) {
-    if (seats.length === count) break;
-    const span = spanOf(col, size);
-    const isTaken = seats.some((seat) =>
-      spanOf(seat, size).some((cell) => span.includes(cell))
-    );
-    if (!isTaken && isSpanOpen(heroes, summoner.row, span)) seats.push(col);
+  const seats: Cell[] = [];
+  for (const row of rowsOf(summoner)) {
+    for (const col of byNearness) {
+      if (seats.length === count) return seats;
+      const span = spanOf(col, size);
+      const isTaken = seats.some(
+        (seat) =>
+          seat.row === row &&
+          spanOf(seat.col, size).some((cell) => span.includes(cell))
+      );
+      if (!isTaken && isSpanOpen(heroes, row, span)) seats.push({ row, col });
+    }
   }
   return seats;
 };
@@ -314,13 +324,10 @@ const seatInOtherRow = (
     .sort((a, b) => a.col - b.col);
   // Immovable heroes (bosses) never slide aside: their columns are taken.
   const blocked = heroes
-    .filter(
-      (other) =>
-        other.uid !== unit.uid &&
-        isImmovable(other) &&
-        rowsOf(other).includes(row)
-    )
-    .flatMap((boss) => spanOf(boss.col, sizeOf(boss)));
+    .filter((other) => other.uid !== unit.uid && isImmovable(other))
+    .flatMap(cellsOf)
+    .filter((cell) => cell.row === row)
+    .map((cell) => cell.col);
   const rowOrder = rowHeroes.map((hero) => hero.uid);
   const movers = [unit, ...rowHeroes];
   const startOf = new Map(movers.map((hero) => [hero.uid, hero.col]));

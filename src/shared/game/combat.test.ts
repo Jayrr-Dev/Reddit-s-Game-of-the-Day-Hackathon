@@ -601,6 +601,38 @@ void test('a summoner with full flanks skips its summon', () => {
   );
 });
 
+void test('a revive brings fallen allies back to their spots', () => {
+  const summoned = endTurn(dragonFight());
+  const angel = summoned.heroes.find((unit) => unit.heroId === 'angelArcher')!;
+  const oneDown: CombatState = {
+    ...summoned,
+    heroes: summoned.heroes.map((unit) =>
+      unit.uid === angel.uid ? { ...unit, hp: 1, shroud: 0 } : unit
+    ),
+    hand: ['soulLance'],
+    energy: 3,
+  };
+  const felled = playCard(oneDown, 0, angel.uid);
+  assert.equal(felled.fallen.length, 1);
+  const dragon = felled.heroes.find((unit) => unit.heroId === 'holyDragon')!;
+  // Halo of Judgment is 4th in the cycle: revive, then the blast.
+  const judging = {
+    ...felled,
+    heroes: felled.heroes.map((unit) =>
+      unit.uid === dragon.uid ? { ...unit, moveIndex: 3 } : unit
+    ),
+  };
+  const after = endTurn(judging);
+  const back = after.heroes.find(
+    (unit) => unit.heroId === 'angelArcher' && unit.col === angel.col
+  );
+  assert.ok(back);
+  assert.equal(back.hp, back.maxHp);
+  assert.equal(back.summonerUid, dragon.uid);
+  assert.ok(back.uid > angel.uid);
+  assert.equal(after.fallen.length, 0);
+});
+
 void test('summoned heroes fall with their summoner', () => {
   const summoned = endTurn(dragonFight());
   const dragon = summoned.heroes.find((unit) => unit.heroId === 'holyDragon')!;
