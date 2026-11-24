@@ -51,8 +51,13 @@ const burn = (amount: number, target: 'one' | 'all' = 'one'): CardEffect => ({
   amount,
   target,
 });
-const poison = (amount: number): CardEffect => ({
+const poison = (amount: number, target: 'one' | 'all' = 'one'): CardEffect => ({
   kind: 'poison',
+  amount,
+  target,
+});
+const bleed = (amount: number): CardEffect => ({
+  kind: 'bleed',
   amount,
   target: 'one',
 });
@@ -203,7 +208,14 @@ export const CARDS = {
   ]),
 
   // COMMON
-  cruelSlash: card('Cruel Slash', 'melee', 1, 'common', [hit(9)], SHARP),
+  cruelSlash: card(
+    'Cruel Slash',
+    'melee',
+    1,
+    'common',
+    [hit(9), bleed(3)],
+    SHARP
+  ),
   twinDaggers: card('Twin Daggers', 'melee', 1, 'common', [hit(4, 2)], SHARP),
   boneWard: card('Bone Ward', 'defend', 1, 'common', [guard(8)]),
   whisperHex: card('Whisper Hex', 'curse', 0, 'common', [hex(3)]),
@@ -239,7 +251,10 @@ export const CARDS = {
     [hit(6), hex(1), burn(2)],
     FIRE
   ),
-  barbedVolley: card('Barbed Volley', 'range', 1, 'common', [hit(2, 3)]),
+  barbedVolley: card('Barbed Volley', 'range', 1, 'common', [
+    hit(2, 3),
+    bleed(2),
+  ]),
   flurry: card('Flurry', 'melee', 1, 'common', [hit(3, 3)], SHARP),
   spikedGuard: card(
     'Spiked Guard',
@@ -249,7 +264,14 @@ export const CARDS = {
     [hit(5), guard(5), knockback(1)],
     BLUNT
   ),
-  blackArrow: card('Black Arrow', 'range', 1, 'common', [hit(7)], PIERCES),
+  blackArrow: card(
+    'Black Arrow',
+    'range',
+    1,
+    'common',
+    [hit(7), poison(3)],
+    PIERCES
+  ),
   retreatingShot: card(
     'Retreating Shot',
     'range',
@@ -267,7 +289,14 @@ export const CARDS = {
     LIGHTNING
   ),
   // RANDOMLY: no aim, every hit picks its own hero
-  chaosBolt: card('Chaos Bolt', 'magic', 1, 'common', [hitRandomly(7)]),
+  chaosBolt: card(
+    'Chaos Bolt',
+    'magic',
+    1,
+    'common',
+    [hitRandomly(7), burn(2)],
+    FIRE
+  ),
   wildVolley: card('Wild Volley', 'range', 1, 'common', [hitRandomly(3, 4)]),
   // LIGHTNING: Shock only (no damage), and Overcharge to double it
   staticCharge: card(
@@ -355,7 +384,7 @@ export const CARDS = {
     ...LIGHTNING,
     targets: 2,
   }),
-  reapingCuts: card('Reaping Cuts', 'melee', 1, 'common', [hit(4)], {
+  reapingCuts: card('Reaping Cuts', 'melee', 1, 'common', [hit(4), bleed(2)], {
     targets: 2,
     ...SHARP,
   }),
@@ -454,7 +483,7 @@ export const CARDS = {
   ]),
   reap: card('Reap', 'magic', 1, 'uncommon', [reap(2)]),
   seethe: card('Seethe', 'buff', 1, 'uncommon', [wrath(2)], REMOVES),
-  impale: card('Impale', 'melee', 2, 'uncommon', [hit(10)], {
+  impale: card('Impale', 'melee', 2, 'uncommon', [hit(10), bleed(4)], {
     ...PIERCES,
     ...SHARP,
   }),
@@ -492,7 +521,7 @@ export const CARDS = {
     'range',
     2,
     'uncommon',
-    [hitAll(5)],
+    [hitAll(5), poison(2, 'all')],
     LONG_RANGES
   ),
   soulLance: card('Soul Lance', 'magic', 2, 'uncommon', [hit(14)], {

@@ -16,7 +16,7 @@ import {
   sandboxReducer,
 } from './sandbox.ts';
 import { ENERGY_PER_TURN } from './rules.ts';
-import { isCardInPlay } from './cards.ts';
+import { getCard, isCardInPlay } from './cards.ts';
 import { SANDBOX_DECKS, sandboxDeckCards } from './sandboxDecks.ts';
 import { movementFailsOn } from './combat.ts';
 import { canMove, movementBlockReason, offeredMovement } from './movement.ts';
@@ -175,4 +175,25 @@ void test('a test deck leans on its theme: Lightning has Serrated Slash', () => 
   const fight = createSandbox(7, 'lightning');
   const all = [...fight.hand, ...fight.drawPile];
   assert.ok(all.every((id) => sandboxDeckCards('lightning').includes(id)));
+});
+
+void test('Fire, Poison and Bleed decks: every attack lays its status', () => {
+  const themes = [
+    ['fire', 'burn'],
+    ['poison', 'poison'],
+    ['bleed', 'bleed'],
+  ] as const;
+  for (const [deckId, status] of themes) {
+    const cards = [...new Set(sandboxDeckCards(deckId))].map(getCard);
+    assert.ok(cards.length >= 5, `${deckId} has ${cards.length}`);
+    const attacks = cards.filter((card) =>
+      card.effects.some((effect) => effect.kind === 'damage')
+    );
+    for (const card of attacks)
+      assert.ok(
+        card.effects.some((effect) => effect.kind === status),
+        `${card.name} lays ${status}`
+      );
+  }
+  assert.ok(!sandboxDeckCards('afflictions').includes('venomDart'));
 });

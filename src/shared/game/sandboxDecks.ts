@@ -16,6 +16,8 @@ export type SandboxDeckId =
   | 'lightning'
   | 'hex'
   | 'fire'
+  | 'poison'
+  | 'bleed'
   | 'afflictions'
   | 'sharp'
   | 'blunt'
@@ -111,15 +113,31 @@ export const SANDBOX_DECKS: readonly SandboxDeck[] = [
   {
     id: 'fire',
     name: 'Fire',
-    blurb: 'Burn and fire spells.',
-    fits: anyOf(hasEffect('burn'), (card) => card.element === 'fire'),
+    blurb: 'Burn and fire spells, plus Bane.',
+    fits: anyOf(
+      hasEffect('burn'),
+      (card) => card.element === 'fire',
+      buffsAny('bane')
+    ),
+  },
+  {
+    id: 'poison',
+    name: 'Poison',
+    blurb: 'Venom and thorns, plus Bane.',
+    fits: anyOf(hasEffect('poison'), buffsAny('bane')),
+  },
+  {
+    id: 'bleed',
+    name: 'Bleed',
+    blurb: 'Blades and barbs that open wounds, plus Bane.',
+    fits: anyOf(hasEffect('bleed'), buffsAny('bane')),
   },
   {
     id: 'afflictions',
     name: 'Afflictions',
-    blurb: 'Poison, Frost, Weaken, Enfeeble, Vex, Bane.',
+    blurb: 'Frost, Weaken, Enfeeble, Vex and Bane.',
     fits: anyOf(
-      hasEffect('poison', 'frost', 'weaken', 'enfeeble', 'vex'),
+      hasEffect('frost', 'weaken', 'enfeeble', 'vex'),
       (card) => card.element === 'ice',
       buffsAny('bane')
     ),
