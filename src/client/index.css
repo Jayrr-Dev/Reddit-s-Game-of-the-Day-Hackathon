@@ -3,7 +3,7 @@
    The single design system for the app. Components use these tokens
    through Tailwind utilities (bg-surface, text-ink, bg-accent ...),
    never raw hex values, so a re-theme is a change to this block only.
-   Villain Arc is always dark: crimson and violet with gold accents.
+   Villain Run is always dark: crimson and violet with gold accents.
    =================================================================== */
 @import 'tailwindcss';
 

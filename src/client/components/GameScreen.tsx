@@ -19,7 +19,7 @@ import { journeys } from '../lib/journeys';
 import { IntroView } from './game/IntroView';
 import { ResultsView } from './game/ResultsView';
 import { SandboxView } from './game/SandboxView';
-import { VillainArcGame } from './game/VillainArcGame';
+import { VillainRunGame } from './game/VillainRunGame';
 import { Screen } from './ui/Screen';
 
 // --- TYPES ---
@@ -95,7 +95,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
       />
     );
   }
-  return <VillainArcGame run={run} onAction={act} />;
+  return <VillainRunGame run={run} onAction={act} />;
 };
 
 // --- COMPONENT ---

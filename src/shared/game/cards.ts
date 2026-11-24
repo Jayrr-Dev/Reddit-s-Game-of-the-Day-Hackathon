@@ -1,6 +1,6 @@
 // ===================================================================
 // CARD CATALOG
-// Every card in Villain Arc, as data. Card text on screen is generated
+// Every card in Villain Run, as data. Card text on screen is generated
 // from these effects (see describe.ts), so the numbers here are the one
 // source of truth for both the rules and the UI.
 // ===================================================================

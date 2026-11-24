@@ -23,7 +23,7 @@ export type DailyPostResult = {
 
 // --- FUNCTIONS ---
 
-/** Builds the post title for a day, e.g. "Villain Arc · Fri, Nov 20". */
+/** Builds the post title for a day, e.g. "Villain Run · Fri, Nov 20". */
 const buildPostTitle = (dailyKey: string): string =>
   `${GAME_TITLE} · ${formatDailyKey(dailyKey)}`;
 

@@ -1,6 +1,6 @@
 // ===================================================================
 // GAME RULES
-// Every tunable number in Villain Arc. Balance changes happen here and
+// Every tunable number in Villain Run. Balance changes happen here and
 // nowhere else, so the engine, the UI and the server always agree.
 // ===================================================================
 

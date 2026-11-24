@@ -1,6 +1,6 @@
 // ===================================================================
 // GAME TYPES
-// The vocabulary of Villain Arc. Catalogs (cards, heroes) are data that
+// The vocabulary of Villain Run. Catalogs (cards, heroes) are data that
 // match these shapes, and every rule is a pure function over them.
 // ===================================================================
 

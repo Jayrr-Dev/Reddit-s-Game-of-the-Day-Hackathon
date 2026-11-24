@@ -1,5 +1,5 @@
 // ===================================================================
-// VILLAIN ARC GAME
+// VILLAIN RUN GAME
 // Picks the view for the run's current phase. Every view reports player
 // input as a RunAction; this component never changes game state itself.
 // ===================================================================
@@ -19,14 +19,14 @@ import { RouteView } from './RouteView';
 import { RunHud } from './RunHud';
 
 // --- TYPES ---
-export type VillainArcGameProps = {
+export type VillainRunGameProps = {
   run: RunState;
   onAction: (action: RunAction) => void;
 };
 
 // --- SUBCOMPONENTS ---
 /** The body for the current phase. */
-const PhaseBody = ({ run, onAction }: VillainArcGameProps) => {
+const PhaseBody = ({ run, onAction }: VillainRunGameProps) => {
   const { phase } = run;
   switch (phase.kind) {
     case 'route':
@@ -77,7 +77,7 @@ const PhaseBody = ({ run, onAction }: VillainArcGameProps) => {
  * Fills the post exactly (no page scroll inside the feed). Combat owns
  * the whole box; the other phases get the run HUD on top.
  */
-export const VillainArcGame = ({ run, onAction }: VillainArcGameProps) => {
+export const VillainRunGame = ({ run, onAction }: VillainRunGameProps) => {
   if (run.phase.kind === 'combat')
     return (
       <div className="h-full w-full overflow-hidden">

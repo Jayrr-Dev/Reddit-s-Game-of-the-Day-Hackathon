@@ -71,7 +71,7 @@ export const GAME_ICONS: Record<GlyphName, GameIcon> = {
   },
   // A plain double chevron (drawn for this game, not from game-icons).
   march: {
-    author: 'Villain Arc',
+    author: 'Villain Run',
     source: '',
     path: 'M256 40L456 220l-48 52-152-136-152 136-48-52zM256 232l200 180-48 52-152-136-152 136-48-52z',
   },
