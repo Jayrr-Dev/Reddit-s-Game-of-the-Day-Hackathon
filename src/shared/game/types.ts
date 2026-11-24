@@ -111,6 +111,11 @@ export type Combatant = {
   dodgedHits?: number;
   /** Hits taken this turn while shocked (see Shock). */
   shockHits?: number;
+  /**
+   * Times Shock has gone off this fight. The view watches this to show a
+   * burst: Shock can also reach 0 by fading, which is not a burst.
+   */
+  shockBursts?: number;
   /** True when Protection was cast this turn (else it lapses at turn end). */
   protectionCast?: boolean;
   /** True when Enfeeble was laid on this unit this villain turn. */

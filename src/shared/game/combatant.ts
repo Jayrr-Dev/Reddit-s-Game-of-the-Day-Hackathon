@@ -240,6 +240,7 @@ export const burstShock = <T extends Combatant>(target: T): T => {
   const cleared = {
     ...target,
     shockHits: 0,
+    shockBursts: (target.shockBursts ?? 0) + 1,
     statuses: { ...target.statuses, shock: 0 },
   };
   return loseHp(cleared, shock * SHOCK_BURST_FACTOR);

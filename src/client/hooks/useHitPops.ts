@@ -113,6 +113,7 @@ type HeroLook = {
   weaken: number;
   vex: number;
   enfeeble: number;
+  shockBursts: number;
   point: Point | null;
 };
 
@@ -136,6 +137,7 @@ const goneAfter = (old: HeroLook): Omit<HeroLook, 'point'> => ({
   weaken: 0,
   vex: 0,
   enfeeble: 0,
+  shockBursts: old.shockBursts,
 });
 /**
  * Time between the blows of a multi-hit attack on the villain: each
@@ -290,14 +292,20 @@ const gainsBetween = (
     .map(([kind, amount]) => ({ kind, amount, blocked: 0 }));
 };
 
+/** What debuff pops read from a unit: its debuffs and Shock's bursts. */
+type DebuffLook = Record<DebuffKind, number> & { shockBursts: number };
+
+/** A unit's debuffs and Shock burst count, for debuffsBetween. */
+const debuffLookOf = (unit: Combatant): DebuffLook => ({
+  ...unit.statuses,
+  shockBursts: unit.shockBursts ?? 0,
+});
+
 /**
- * Debuffs laid on between two looks, plus a Shock that went off (it
- * had stacks and now has none): effect only, no number.
+ * Debuffs laid on between two looks, plus a Shock that went off (the
+ * engine counted a burst): effect only, no number.
  */
-const debuffsBetween = (
-  before: Record<DebuffKind, number>,
-  after: Record<DebuffKind, number>
-): Hit[] => {
+const debuffsBetween = (before: DebuffLook, after: DebuffLook): Hit[] => {
   const laid: Hit[] = DEBUFFS.map((kind) => ({
     kind,
     amount: after[kind] - before[kind],
@@ -309,14 +317,15 @@ const debuffsBetween = (
 };
 
 /**
- * A Shock that went off between two looks (it had stacks, now none):
- * its damage as its own number, in the Shock colour.
+ * A Shock that went off between two looks: its damage as its own number,
+ * in the Shock colour. Only the engine's burst count says so, since
+ * Shock also reaches 0 by fading after an action (no burst, no damage).
  */
 const shockBurstBetween = (
-  before: Pick<Record<DebuffKind, number>, 'shock'>,
-  after: Pick<Record<DebuffKind, number>, 'shock'>
+  before: Pick<DebuffLook, 'shock' | 'shockBursts'>,
+  after: Pick<DebuffLook, 'shockBursts'>
 ): Hit | null =>
-  before.shock > 0 && after.shock === 0
+  after.shockBursts > before.shockBursts && before.shock > 0
     ? {
         kind: 'shockBurst',
         amount: before.shock * SHOCK_BURST_FACTOR,
@@ -375,6 +384,7 @@ const lookAt = (
         weaken: unit.statuses.weaken,
         vex: unit.statuses.vex,
         enfeeble: unit.statuses.enfeeble,
+        shockBursts: unit.shockBursts ?? 0,
         point: bodyPointOf(unit.uid) ?? before.get(unit.uid)?.point ?? null,
       },
     ])
@@ -412,6 +422,7 @@ const heroPopsSince = (
           weaken: unit.statuses.weaken,
           vex: unit.statuses.vex,
           enfeeble: unit.statuses.enfeeble,
+          shockBursts: unit.shockBursts ?? 0,
         }
       : goneAfter(old);
     const debuffs = unit ? debuffsBetween(old, now) : [];
@@ -560,7 +571,10 @@ export const usePlayerHits = (
   // VILLAIN CHANGES -> NEW POPS (a multi-hit pops once per blow)
   useEffect(() => {
     const last = lastRef.current;
-    const allDebuffs = debuffsBetween(last.player.statuses, player.statuses);
+    const allDebuffs = debuffsBetween(
+      debuffLookOf(last.player),
+      debuffLookOf(player)
+    );
     const burst = allDebuffs.find((pop) => pop.kind === 'shockBurst');
     const debuffs = allDebuffs.filter((pop) => pop !== burst);
     const found = withoutBurst(

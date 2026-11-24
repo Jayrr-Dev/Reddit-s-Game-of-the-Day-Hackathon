@@ -12,6 +12,7 @@ import {
   endOfTurnUpkeep,
   burnTick,
   afterAction,
+  burstShock,
   frostThaw,
   hexBurn,
   hexBurnAmount,
@@ -417,6 +418,42 @@ void test('Shock fades by 1 after each action, like Bleed', () => {
   assert.equal(once.hp, 50, 'fading deals no damage');
   assert.equal(afterAction(afterAction(once)).statuses.shock, 0);
   assert.equal(afterAction(afterAction(afterAction(once))).statuses.shock, 0);
+});
+
+void test('only a burst counts as Shock going off, never a fade', () => {
+  const shocked = {
+    ...createCombatant(50, 50),
+    statuses: { ...NO_STATUSES, shock: 1 },
+  };
+  const faded = afterAction(shocked);
+  assert.equal(faded.statuses.shock, 0);
+  assert.equal(faded.shockBursts ?? 0, 0, 'a fade is not a burst');
+  assert.equal(burstShock(shocked).shockBursts, 1);
+});
+
+void test("a shocked hero's own attacks never set off its Shock", () => {
+  const start = griffonFight();
+  const griffon = griffonOf(start);
+  const names = getHero('grandGriffon').moves.map((m) => m.name);
+  const shocked: CombatState = {
+    ...start,
+    heroes: start.heroes.map((unit) =>
+      unit.uid === griffon.uid
+        ? {
+            ...unit,
+            moveIndex: names.indexOf('Triple Slice'),
+            statuses: { ...unit.statuses, shock: 4 },
+          }
+        : unit
+    ),
+  };
+  const after = endTurnSteps(shocked).find(
+    (step) => step.actorUid === griffon.uid
+  )!.state;
+  const hero = after.heroes.find((unit) => unit.uid === griffon.uid)!;
+  assert.equal(hero.shockBursts ?? 0, 0);
+  assert.equal(hero.hp, griffon.hp);
+  assert.equal(hero.statuses.shock, 3, 'it only fades by 1');
 });
 
 void test('new shock stacks on top and keeps the count', () => {

@@ -7,7 +7,6 @@
 // ===================================================================
 
 import { useEffect, useRef, useState } from 'react';
-import { SHOCK_HITS } from '../../shared/game/rules';
 import type { Combatant } from '../../shared/game/types';
 
 // --- CONSTANTS ---
@@ -16,14 +15,12 @@ const SPLASH_MS = 600;
 
 // --- HELPERS ---
 /**
- * True when Shock just burst between two looks: it was primed, now it
- * is gone, and the unit lost HP (a Cleanse clears it without a splash).
+ * True when Shock just burst between two looks: the engine counted a
+ * burst. Shock fading to 0 or a Cleanse clearing it is no burst.
  */
 const didBurst = (before: Combatant, after: Combatant): boolean =>
-  before.statuses.shock > 0 &&
-  (before.shockHits ?? 0) >= SHOCK_HITS - 1 &&
-  after.statuses.shock === 0 &&
-  after.hp < before.hp;
+  (after.shockBursts ?? 0) > (before.shockBursts ?? 0) &&
+  before.statuses.shock > 0;
 
 // --- HOOK ---
 /** The Shock value that just burst, while its splash shows, else null. */
