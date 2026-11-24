@@ -28,6 +28,7 @@ import type {
   HeroEffect,
   HeroMove,
   HeroUnit,
+  PassiveId,
   StatusId,
 } from './types.ts';
 
@@ -67,6 +68,14 @@ export const STATUS_INFO: Record<StatusId | 'shroud', StatusInfo> = {
     label: 'Aloft',
     description:
       'High in the sky: no card can aim at or hit it until it dives back down.',
+  },
+};
+
+/** What each boss passive is called and does (always on). */
+export const PASSIVE_INFO: Record<PassiveId, StatusInfo> = {
+  vigor: {
+    label: 'Vigor',
+    description: 'Boss passive: makes two moves every turn.',
   },
 };
 

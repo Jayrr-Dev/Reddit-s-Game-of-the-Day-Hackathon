@@ -6,23 +6,18 @@
 //                cold blue when your Guard took it all), a glitch flash
 //                of red and cyan bands, and a shake of the whole view,
 //                all scaled to the damage
-//   MARKS        one per blow, staggered around the centre of the
+//   MARK         one per blow (a multi-hit pops once per blow, see
+//                usePlayerHits), scattered around the centre of the
 //                screen: Melee  long blood-red slashes
 //                               Range  big arrow holes with cracks
 //                               Magic  a screen-wide arcane blast
-// Blocked hits draw their marks faded. Hero arrows fly at the centre
+// Blocked hits draw their mark faded. Hero arrows fly at the centre
 // too (POV_ANCHOR_ATTR, see HeroShots).
 // PERFORMANCE: transform and opacity animations only; each mark is
 // mounted when its blow lands and leaves with its pop.
 // ===================================================================
 
-import {
-  useEffect,
-  useState,
-  type CSSProperties,
-  type ReactNode,
-  type RefObject,
-} from 'react';
+import { useEffect, type CSSProperties, type RefObject } from 'react';
 import type { PlayerHitPop } from '../../../hooks/useHitPops';
 import { popScale } from '../../../lib/popSize';
 import { seeded, spread } from '../../../lib/seeded';
@@ -33,10 +28,6 @@ import { Slice } from './Slice';
 // --- CONSTANTS ---
 /** Marks the layer: hero shots aim at its centre. */
 export const POV_ANCHOR_ATTR = 'data-pov-anchor';
-/** Time between the marks of a multi-blow attack. */
-const STRIKE_STAGGER_MS = 110;
-/** Most marks one attack draws (a long volley still reads). */
-const MAX_MARKS = 6;
 /** How far marks scatter from the centre (% of the screen). */
 const SCATTER_X = 20;
 const SCATTER_Y = 16;
@@ -83,26 +74,9 @@ const shake = (element: HTMLElement | null, scale: number) => {
 };
 
 // --- SUBCOMPONENTS ---
-/** Shows its children only once `delayMs` has passed (a later blow). */
-const Delayed = ({
-  delayMs,
-  children,
-}: {
-  delayMs: number;
-  children: ReactNode;
-}) => {
-  const [isShown, setIsShown] = useState(delayMs === 0);
-  useEffect(() => {
-    if (delayMs === 0) return;
-    const timer = window.setTimeout(() => setIsShown(true), delayMs);
-    return () => window.clearTimeout(timer);
-  }, [delayMs]);
-  return isShown ? children : null;
-};
-
 /** One blow's mark, by the kind of attack that struck it. */
-const Mark = ({ pop, blow }: { pop: PlayerHitPop; blow: number }) => {
-  const seed = pop.id * 7 + blow;
+const Mark = ({ pop }: { pop: PlayerHitPop }) => {
+  const seed = pop.id * 7;
   const style = markPlace(seed);
   if (pop.source === 'range')
     return (
@@ -169,24 +143,17 @@ const Glitch = ({ id }: { id: number }) => (
 );
 
 /** Everything one hit draws on the screen. */
-const PovHit = ({ pop }: { pop: PlayerHitPop }) => {
-  const blows = Math.min(MAX_MARKS, pop.strikes ?? 1);
-  return (
-    <>
-      <Vignette pop={pop} />
-      {!isBlockedOnly(pop) && <Glitch id={pop.id} />}
-      <span
-        className={`absolute inset-0 ${isBlockedOnly(pop) ? 'opacity-45' : ''}`}
-      >
-        {Array.from({ length: blows }, (_, blow) => (
-          <Delayed key={blow} delayMs={blow * STRIKE_STAGGER_MS}>
-            <Mark pop={pop} blow={blow} />
-          </Delayed>
-        ))}
-      </span>
-    </>
-  );
-};
+const PovHit = ({ pop }: { pop: PlayerHitPop }) => (
+  <>
+    <Vignette pop={pop} />
+    {!isBlockedOnly(pop) && <Glitch id={pop.id} />}
+    <span
+      className={`absolute inset-0 ${isBlockedOnly(pop) ? 'opacity-45' : ''}`}
+    >
+      <Mark pop={pop} />
+    </span>
+  </>
+);
 
 // --- COMPONENT ---
 /**

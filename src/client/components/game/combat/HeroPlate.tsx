@@ -15,6 +15,7 @@ import {
   describeHeroIntent,
   type MoveIntent,
 } from '../../../../shared/game/describe';
+import { passivesOf } from '../../../../shared/game/combat';
 import { getHero } from '../../../../shared/game/heroes';
 import type { HeroSize, HeroUnit } from '../../../../shared/game/types';
 import { drawSizeOf } from '../../../content/heroLooks';
@@ -152,7 +153,7 @@ export const HeroPlate = ({ unit, field, isFocused }: HeroPlateProps) => {
         </div>
         {/* Flush right: the row itself shrinks to its chips (max-w-max). */}
         <div className="flex min-w-0 flex-1 justify-end">
-          <StatusRow combatant={unit} align="end" />
+          <StatusRow combatant={unit} passives={passivesOf(unit)} align="end" />
         </div>
       </div>
     </div>

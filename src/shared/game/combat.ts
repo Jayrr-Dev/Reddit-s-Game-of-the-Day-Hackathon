@@ -66,6 +66,7 @@ import type {
   HeroEffect,
   HeroMove,
   HeroUnit,
+  PassiveId,
 } from './types.ts';
 
 // --- SETUP ---
@@ -185,9 +186,17 @@ export const plannedHeroMove = (
 export const isSoaring = (heroMove: HeroMove): boolean =>
   heroMove.effects.some((effect) => effect.kind === 'soar');
 
-/** How many moves a hero makes each heroes' turn (bosses make more). */
+/** Moves a hero with Vigor makes each heroes' turn. */
+const VIGOR_ACTIONS = 2;
+
+/** A hero's built-in traits (none for most). */
+export const passivesOf = (
+  unit: Pick<HeroUnit, 'heroId'>
+): readonly PassiveId[] => getHero(unit.heroId).passives ?? [];
+
+/** How many moves a hero makes each heroes' turn: 2 with Vigor, else 1. */
 export const actionsOf = (unit: Pick<HeroUnit, 'heroId'>): number =>
-  getHero(unit.heroId).actions ?? 1;
+  passivesOf(unit).includes('vigor') ? VIGOR_ACTIONS : 1;
 
 /**
  * Every move a hero will make this turn, in order: its next

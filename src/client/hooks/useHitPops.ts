@@ -42,8 +42,6 @@ export type Hit = {
   source?: CardType | undefined;
   /** True when only the effect over the character shows (no number). */
   isQuiet?: boolean;
-  /** For a hit on the villain: how many blows landed it (1 or more). */
-  strikes?: number;
   /** True when this hit took the target from alive to 0 HP. */
   isKill?: boolean;
 };
@@ -83,6 +81,11 @@ const goneAfter = (old: HeroLook): Omit<HeroLook, 'point'> => ({
   hex: 0,
   dread: 0,
 });
+/**
+ * Time between the blows of a multi-hit attack on the villain: each
+ * blow pops its own number (and draws its own mark, see PovImpact).
+ */
+export const BLOW_STAGGER_MS = 160;
 /** Debuffs that pop (quietly) when laid on anyone. */
 const DEBUFFS: readonly DebuffKind[] = ['hex', 'dread'];
 /** Fight-long statuses the villain can gain from cards; each pops "+N". */
@@ -117,6 +120,32 @@ const hitBetween = (
   return amount > 0 || blocked > 0
     ? { kind: 'hit', amount, blocked, isKill }
     : null;
+};
+
+/**
+ * Splits a hit of several blows into one hit per blow. The engine lands
+ * a move's blows in one step, so only their sum is seen; every blow of
+ * an attack deals the same, so the sum splits evenly (any remainder on
+ * the last), and Guard soaks the first blows until it runs out, as it
+ * did in the engine. Only the last blow can be the kill.
+ */
+export const splitIntoBlows = (hit: Hit, strikes: number): Hit[] => {
+  if (strikes <= 1) return [hit];
+  const total = hit.amount + hit.blocked;
+  const perBlow = Math.floor(total / strikes);
+  let guardLeft = hit.blocked;
+  return Array.from({ length: strikes }, (_, blow) => {
+    const isLast = blow === strikes - 1;
+    const damage = isLast ? total - perBlow * (strikes - 1) : perBlow;
+    const blocked = Math.min(guardLeft, damage);
+    guardLeft -= blocked;
+    return {
+      ...hit,
+      amount: damage - blocked,
+      blocked,
+      isKill: isLast && hit.isKill === true,
+    };
+  });
 };
 
 /** What a hero gained between two looks (heal, Shroud, Wrath). */
@@ -331,18 +360,22 @@ export const usePlayerHits = (
   const [pops, add] = usePopQueue<Hit>(history);
   const lastRef = useRef({ player, turn });
 
-  // VILLAIN CHANGES -> NEW POPS
+  // VILLAIN CHANGES -> NEW POPS (a multi-hit pops once per blow)
   useEffect(() => {
     const last = lastRef.current;
     const found = hitBetween(last.player, player, last.turn === turn);
-    const hit = found
-      ? { ...found, source: source ?? undefined, strikes: Math.max(1, strikes) }
-      : null;
+    const [firstBlow, ...laterBlows] = found
+      ? splitIntoBlows({ ...found, source: source ?? undefined }, strikes)
+      : [];
     const gains = villainGainsBetween(last.player, player);
     const debuffs = debuffsBetween(last.player.statuses, player.statuses);
     lastRef.current = { player, turn };
-    const fresh = [...(hit ? [hit] : []), ...gains, ...debuffs];
+    const fresh = [...(firstBlow ? [firstBlow] : []), ...gains, ...debuffs];
     if (fresh.length > 0) add(fresh);
+    // LATER BLOWS LAND IN TURN (no cleanup: a blow already struck)
+    laterBlows.forEach((blow, index) =>
+      window.setTimeout(() => add([blow]), (index + 1) * BLOW_STAGGER_MS)
+    );
   }, [player, turn, source, strikes, add]);
 
   return pops;

@@ -5,7 +5,8 @@
 // rim, pointed on the left and flat on the right ("< |"), like a blow
 // coming in, filled with the colour of what they do (black icon and
 // number); effects already in play (statuses such as Shroud,
-// Hex, Wrath) are dark square tiles.
+// Hex, Wrath) are dark square tiles, and a boss passive (Vigor) is a
+// gold one.
 // ===================================================================
 
 import { toneVarOf } from '../../content/visuals';
@@ -21,8 +22,11 @@ export type ChipProps = {
   info?: TooltipContent;
   /** "arrow" for intents (default), "square" for active effects. */
   shape?: ChipShape;
-  /** An arrow's fill (a CSS colour); its tone's colour when left out. */
-  fill?: string;
+  /**
+   * A fill (a CSS colour) with a black icon and number. An arrow takes
+   * its tone's colour when left out; a square stays a dark tile.
+   */
+  fill?: string | undefined;
   /**
    * More icon + value pairs drawn inside the same badge, after the
    * first (an intent's secondary effects: one move, one arrow).
@@ -85,7 +89,8 @@ const Badge = ({
 }: Omit<ChipProps, 'info'>) =>
   shape === 'square' ? (
     <span
-      className={`inline-flex items-center gap-0.5 rounded-[3px] bg-surface-sunken px-1 py-0.5 text-[11px] font-bold ring-1 ring-edge ${toneClass}`}
+      className={`inline-flex items-center gap-0.5 rounded-[3px] px-1 py-0.5 text-[11px] font-bold ring-1 ${fill ? 'text-black ring-black' : `bg-surface-sunken ring-edge ${toneClass}`}`}
+      style={fill ? { backgroundColor: fill } : undefined}
     >
       <BadgeContent glyph={glyph} text={text} iconClass="" />
     </span>

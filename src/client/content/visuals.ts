@@ -11,6 +11,7 @@ import type {
   CardRarity,
   CardType,
   MovementId,
+  PassiveId,
   StatusId,
 } from '../../shared/game/types';
 import type { GlyphName } from '../components/ui/Glyph';
@@ -37,6 +38,12 @@ export const STATUS_LOOK: Record<StatusId | 'shroud', Look> = {
   protection: { glyph: 'shield', toneClass: 'text-accent' },
   momentum: { glyph: 'bolt', toneClass: 'text-energy' },
   aloft: { glyph: 'wing', toneClass: 'text-accent' },
+};
+
+// --- BOSS PASSIVES ---
+/** Boss passives are gold tiles (see StatusRow), so they read as innate. */
+export const PASSIVE_LOOK: Record<PassiveId, Look & { text: string }> = {
+  vigor: { glyph: 'crown', toneClass: 'text-accent', text: '×2' },
 };
 
 // --- HERO INTENTS ---

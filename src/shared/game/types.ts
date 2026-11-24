@@ -32,6 +32,11 @@ export type BuffId = 'might' | 'surge' | 'piercing' | 'protection';
 export type StatusId =
   'hex' | 'dread' | 'wrath' | 'momentum' | 'aloft' | BuffId;
 export type Statuses = Record<StatusId, number>;
+/**
+ * A boss's built-in trait: always on, never stacks or fades.
+ * vigor  acts twice every heroes' turn
+ */
+export type PassiveId = 'vigor';
 
 /** Anything with HP that fights: the villain or a hero. */
 export type Combatant = {
@@ -179,8 +184,8 @@ export type HeroDef = {
    * [1] makes a T. Such a hero never changes row.
    */
   backCols?: readonly number[];
-  /** Moves made each heroes' turn, in cycle order; 1 when left out. */
-  actions?: number;
+  /** Built-in traits (bosses only), e.g. Vigor: two moves a turn. */
+  passives?: readonly PassiveId[];
   /** Who acts first on the heroes' turn: higher goes earlier. */
   speed: number;
 };

@@ -1,6 +1,7 @@
 // ===================================================================
 // STATUS ROW
-// Shroud plus any active statuses on a combatant, as square chips
+// A boss's passives (gold), then Shroud and any active statuses on a
+// combatant, as square chips
 // (intents are round, so effects in play read apart from what's coming).
 // Always one row, as many chips as fit the space it is given (measured
 // live, see useFitCount); the rest fold into an overflow chip ("[icon]
@@ -16,9 +17,13 @@ import {
   type MouseEvent,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { STATUS_INFO } from '../../../shared/game/describe';
-import type { Combatant, StatusId } from '../../../shared/game/types';
-import { STATUS_LOOK } from '../../content/visuals';
+import { PASSIVE_INFO, STATUS_INFO } from '../../../shared/game/describe';
+import type {
+  Combatant,
+  PassiveId,
+  StatusId,
+} from '../../../shared/game/types';
+import { PASSIVE_LOOK, STATUS_LOOK, toneVarOf } from '../../content/visuals';
 import {
   placeFloating,
   type FloatingPlacement,
@@ -28,11 +33,12 @@ import { Chip, type ChipProps } from '../ui/Chip';
 
 // --- TYPES ---
 /** One status as a chip, with its tooltip text. */
-type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> & {
-  key: StatusId | 'shroud';
-  title: string;
-  description: string;
-};
+type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
+  Pick<ChipProps, 'fill'> & {
+    key: StatusId | PassiveId | 'shroud';
+    title: string;
+    description: string;
+  };
 
 // --- CONSTANTS ---
 /**
@@ -69,6 +75,16 @@ const chipText = (id: StatusId, value: number): string => {
   return id === 'aloft' ? '' : String(value);
 };
 
+/** A boss's passives as gold chips (always on, so they come first). */
+const passiveChipsOf = (passives: readonly PassiveId[]): StatusChip[] =>
+  passives.map((id) => ({
+    key: id,
+    ...PASSIVE_LOOK[id],
+    fill: toneVarOf(PASSIVE_LOOK[id]),
+    title: PASSIVE_INFO[id].label,
+    description: PASSIVE_INFO[id].description,
+  }));
+
 /** Every active effect on a combatant as chips, Guard first. */
 const statusChipsOf = (combatant: Combatant): StatusChip[] => {
   const shroud: StatusChip[] =
@@ -101,6 +117,7 @@ const StatusChipView = ({ chip }: { chip: StatusChip }) => (
     glyph={chip.glyph}
     text={chip.text}
     toneClass={chip.toneClass}
+    fill={chip.fill}
     shape="square"
     info={{ title: chip.title, description: chip.description }}
   />
@@ -129,6 +146,7 @@ const StatusPopover = ({
             glyph={chip.glyph}
             text={chip.text}
             toneClass={chip.toneClass}
+            fill={chip.fill}
             shape="square"
           />
         </span>
@@ -215,12 +233,15 @@ const ALIGN_CLASS = { center: 'justify-center', end: 'justify-end' } as const;
  */
 export const StatusRow = ({
   combatant,
+  passives = [],
   align = 'center',
 }: {
   combatant: Combatant;
+  /** A boss's passives, drawn first as gold chips. */
+  passives?: readonly PassiveId[];
   align?: keyof typeof ALIGN_CLASS;
 }) => {
-  const chips = statusChipsOf(combatant);
+  const chips = [...passiveChipsOf(passives), ...statusChipsOf(combatant)];
   const { spaceRef, measureRef, overflowRef, fitCount } = useFitCount(
     chips.length
   );
@@ -242,6 +263,7 @@ export const StatusRow = ({
             glyph={chip.glyph}
             text={chip.text}
             toneClass={chip.toneClass}
+            fill={chip.fill}
             shape="square"
           />
         ))}

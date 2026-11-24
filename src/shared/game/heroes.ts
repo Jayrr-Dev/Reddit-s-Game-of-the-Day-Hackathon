@@ -14,6 +14,7 @@ import type {
   HeroRow,
   HeroSize,
   HeroTier,
+  PassiveId,
   SummonId,
 } from './types.ts';
 
@@ -120,7 +121,7 @@ const hero = (
   speed: number,
   placement: Placement,
   moves: HeroMove[],
-  actions?: number
+  passives?: readonly PassiveId[]
 ): HeroDef => ({
   name,
   tier,
@@ -129,11 +130,8 @@ const hero = (
   speed,
   moves,
   ...placement,
-  ...(actions === undefined ? {} : { actions }),
+  ...(passives === undefined ? {} : { passives }),
 });
-
-/** The Holy Dragon makes two moves every heroes' turn (no other hero does). */
-const DRAGON_ACTIONS = 2;
 
 // --- CATALOG ---
 export const HEROES = {
@@ -218,7 +216,7 @@ export const HEROES = {
   // BOSSES (TARGET DUMMY SCENARIOS ONLY UNTIL THEY JOIN A REGION)
   /**
    * A great ivory dragon boss in a T: the whole front row and the back
-   * row's centre. It makes
+   * row's centre. Its Vigor (a boss passive) gives it
    * two moves a turn: it opens by calling two Angel Archers to its
    * flanks (and calls more whenever a flank is empty when the call
    * comes round again), then breathes holy fire, shields itself, brings
@@ -239,11 +237,11 @@ export const HEROES = {
       signature(move('Halo of Judgment', revive(), spell(26))),
       move('Radiant Roar', wrath(2)),
     ],
-    DRAGON_ACTIONS
+    ['vigor']
   ),
   /**
    * A haloed griffon boss down the centre column, flanked by open
-   * slots. One move a turn (only the dragon acts twice), and it loves
+   * slots. One move a turn (only the dragon has Vigor), and it loves
    * its Triple Slice. Its signature Heavenly Drive takes two turns (both
    * signature moves): it flies up out of reach (Aloft), then the next
    * turn dives down with one crushing blow.
