@@ -16,7 +16,7 @@ export type TurnCornerProps = {
 // --- COMPONENT ---
 /** Renders the deck count and the End Turn hourglass. */
 export const TurnCorner = ({ drawCount, onEndTurn }: TurnCornerProps) => (
-  <div className="flex shrink-0 items-end gap-1.5">
+  <div className="flex shrink-0 items-end gap-3.5">
     <PileStack
       count={drawCount}
       label="Cards left to draw"

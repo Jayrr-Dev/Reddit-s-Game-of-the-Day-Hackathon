@@ -113,7 +113,7 @@ const PlayerBar = ({
   const movement = offeredMovement(combat);
   return (
     <div className="grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-end gap-1 px-2">
-      <div className="flex items-end gap-5 justify-self-start">
+      <div className="flex items-end gap-8 justify-self-start">
         <PlayerCorner player={combat.player} hits={hits} />
         <PileStack
           count={combat.discardPile.length}
