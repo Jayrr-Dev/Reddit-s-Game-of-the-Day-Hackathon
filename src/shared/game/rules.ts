@@ -40,7 +40,7 @@ export const BATTLEFIELD_COLUMNS = 3;
 // --- STATUSES ---
 /** A combatant with dread deals this fraction of its attack damage. */
 export const DREAD_DAMAGE_FACTOR = 0.75;
-/** An even Hex grows by this much a turn (an odd one burns and clears). */
+/** Hex grows by this much every turn (it burns only on odd counts). */
 export const HEX_GROWTH = 1;
 
 // --- THE KINGDOM ---
