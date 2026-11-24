@@ -25,7 +25,11 @@ import {
   STATUS_INFO,
 } from '../../../shared/game/describe';
 import { dodgeChanceOf } from '../../../shared/game/combat';
-import { hexAfterTurn, hexBurnAmount } from '../../../shared/game/combatant';
+import {
+  hexAfterTurn,
+  hexBurnAmount,
+  isEmpoweredHex,
+} from '../../../shared/game/combatant';
 import {
   SHOCK_BURST_FACTOR,
   SHOCK_HITS,
@@ -151,27 +155,27 @@ const OUT_OF_RANGE_CHIP: StatusChip = {
  * odd, it is PRIMED (a solid purple tile: it burns before the next
  * turn); even, it is a plain dark tile and the tooltip says it waits.
  * Adding a stack flips it, which is the choice: burst now or hold.
- * Odd and ending in 3, it burns double: the chip says x2.
+ * Odd, it burns double; odd and ending in 3, triple: the chip says x3.
  */
 const hexChipOf = (hex: number): Partial<StatusChip> => {
   const burn = hexBurnAmount(hex);
   const isPrimed = burn > 0;
-  const isDoubled = burn > hex;
+  const isTripled = isEmpoweredHex(hex);
   if (!isPrimed)
     return {
       description: `Even: no burn this turn, grows to ${hexAfterTurn(hex)} (and burns the turn after).`,
     };
-  if (isDoubled)
+  if (isTripled)
     return {
       fill: toneVarOf(STATUS_LOOK.hex),
-      // The doubled burn is the big hit: show what it really deals (the
+      // The tripled burn is the big hit: show what it really deals (the
       // unit itself wears a throbbing sigil, see HexAura).
-      text: `${hex}\u00d72`,
-      description: `Ends in 3: burns for ${burn} (double) before its next turn, then clears.`,
+      text: `${hex}\u00d73`,
+      description: `Ends in 3: burns for ${burn} (triple) before its next turn, then clears.`,
     };
   return {
     fill: toneVarOf(STATUS_LOOK.hex),
-    description: `Odd: burns for ${burn} before its next turn, then drops to ${hexAfterTurn(hex)}.`,
+    description: `Odd: burns for ${burn} (double) before its next turn, then drops to ${hexAfterTurn(hex)}.`,
   };
 };
 

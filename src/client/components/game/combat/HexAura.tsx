@@ -4,13 +4,16 @@
 // off (odd: it burns before the unit's next turn), so the warning means
 // something. An even Hex shows on its chip alone. Two levels (see
 // hexBurnAmount):
-//   primed   odd Hex, burns before its turn    bright
-//   doubled  odd and ends in 3, burns double   brightest, fast, throbbing
+//   primed   odd Hex, burns double before its turn   bright
+//   doubled  odd and ends in 3, burns triple   brightest, fast, throbbing
 // PERFORMANCE: one element, transform and opacity only (index.css
 // "HEX AURA"); reduced motion holds a still sigil.
 // ===================================================================
 
-import { hexBurnAmount } from '../../../../shared/game/combatant';
+import {
+  hexBurnAmount,
+  isEmpoweredHex,
+} from '../../../../shared/game/combatant';
 import { HexSigil } from './HexSigil';
 
 // --- TYPES ---
@@ -19,9 +22,8 @@ type HexAuraState = 'primed' | 'doubled';
 // --- HELPERS ---
 /** How loud the aura is, or null when the Hex won't burn next turn. */
 const auraStateOf = (hex: number): HexAuraState | null => {
-  const burn = hexBurnAmount(hex);
-  if (burn <= 0) return null;
-  return burn > hex ? 'doubled' : 'primed';
+  if (hexBurnAmount(hex) <= 0) return null;
+  return isEmpoweredHex(hex) ? 'doubled' : 'primed';
 };
 
 // --- COMPONENT ---

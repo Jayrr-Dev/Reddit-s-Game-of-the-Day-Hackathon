@@ -83,7 +83,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   hex: {
     label: 'Hex',
     description:
-      'Before its turn, if **odd**: deals this much, then loses a third\nIf it ends in **3**: doubles, then clears\nIf **even**: +1',
+      'Before its turn, if **odd**: deals **double** this, then loses a third\nIf it ends in **3**: deals **triple**, then clears\nIf **even**: +1',
   },
   burn: {
     label: 'Burn',

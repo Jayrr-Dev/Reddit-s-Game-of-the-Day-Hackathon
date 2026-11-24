@@ -230,10 +230,12 @@ export const PIERCE_DAMAGE_FACTOR = 1;
 export const HEX_GROWTH = 1;
 /** After an odd Hex burns, it loses this share of itself (rounded up). */
 export const HEX_BURN_LOSS = 1 / 3;
+/** How much an odd Hex burns for, times its value (Hex 5 burns 10). */
+export const HEX_ODD_MULTIPLIER = 2;
 /** An odd Hex whose last digit is this (3, 13, 23...) burns harder, then clears. */
 export const HEX_EMPOWERED_DIGIT = 3;
-/** How much harder that Hex burns (Hex 3 burns for 6). */
-export const HEX_EMPOWERED_MULTIPLIER = 2;
+/** How much that Hex burns for, times its value (Hex 3 burns 9). */
+export const HEX_EMPOWERED_MULTIPLIER = 3;
 
 // --- MAGIC ELEMENTS ---
 /** A status an element lays on every hit, and how much. */

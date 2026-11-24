@@ -204,16 +204,16 @@ void test('an odd hex burns for its value, then loses a third (rounded up)', () 
       ...createCombatant(100, 100),
       statuses: { ...NO_STATUSES, hex },
     });
-    assert.equal(burned.hp, 100 - hex, `hex ${hex} burns ${hex}`);
+    assert.equal(burned.hp, 100 - hex * 2, `hex ${hex} burns ${hex * 2}`);
     assert.equal(burned.statuses.hex, left, `hex ${hex} drops to ${left}`);
   }
 });
 
-void test('an odd hex ending in 3 burns double, then clears', () => {
+void test('an odd hex ending in 3 burns triple, then clears', () => {
   for (const [hex, loss] of [
-    [3, 6],
-    [13, 26],
-    [23, 46],
+    [3, 9],
+    [13, 39],
+    [23, 69],
   ] as const) {
     assert.equal(hexBurnAmount(hex), loss, `hex ${hex} reads ${loss}`);
     const burned = hexBurn({
@@ -224,13 +224,13 @@ void test('an odd hex ending in 3 burns double, then clears', () => {
     assert.equal(burned.statuses.hex, 0, `hex ${hex} clears`);
   }
   assert.equal(hexBurnAmount(4), 0, 'even hex never burns');
-  assert.equal(hexBurnAmount(11), 11, 'only a last digit of 3 doubles');
+  assert.equal(hexBurnAmount(11), 22, 'other odd hex burns double');
 });
 
-void test('hex runs its course: 7 burns, grows, burns, then doubles out', () => {
-  // 7 -> 4 (grows) -> 5 -> 3 (doubled) -> gone.
-  assert.deepEqual(hexLosses(7, 5), [7, 0, 5, 6, 0]);
-  assert.deepEqual(hexLosses(4, 4), [0, 5, 6, 0]);
+void test('hex runs its course: 7 burns, grows, burns, then triples out', () => {
+  // 7 (x2) -> 4 (grows) -> 5 (x2) -> 3 (x3) -> gone.
+  assert.deepEqual(hexLosses(7, 5), [14, 0, 10, 9, 0]);
+  assert.deepEqual(hexLosses(4, 4), [0, 10, 9, 0]);
 });
 
 void test('a hexed hero burns before it acts, and its hex drops', () => {
@@ -257,7 +257,7 @@ void test('a hexed hero burns before it acts, and its hex drops', () => {
   const burnIndex = steps.findIndex(
     (step) =>
       step.actorUid === null &&
-      step.state.heroes[0]?.hp === hexed.heroes[0]!.hp - 6 // Hex 3 ends in 3: doubled, then cleared
+      step.state.heroes[0]?.hp === hexed.heroes[0]!.hp - 9 // Hex 3 ends in 3: tripled, then cleared
   );
   const actIndex = steps.findIndex((step) => step.actorUid === squireUid);
   assert.ok(burnIndex > 0 && burnIndex < actIndex, 'burns, then acts');
@@ -278,13 +278,13 @@ void test('a hexed villain burns at the start of its turn', () => {
     player: { ...fight.player, statuses: { ...NO_STATUSES, hex: 5 } },
   };
   const next = endTurn(hexed);
-  // The Bard only sings (Wrath to allies): the 5 lost is the hex.
-  assert.equal(next.player.hp, 45);
+  // The Bard only sings (Wrath to allies): the 10 lost is the hex (odd: double).
+  assert.equal(next.player.hp, 40);
   // 5 loses a third, rounded up: 3 left.
   assert.equal(next.player.statuses.hex, 3);
-  // 3 ends in 3: it burns double (6, at least; the heroes may hit too), then clears.
+  // 3 ends in 3: it burns triple (9, at least; the heroes may hit too), then clears.
   const after = endTurn(next);
-  assert.ok(next.player.hp - after.player.hp >= 6);
+  assert.ok(next.player.hp - after.player.hp >= 9);
   assert.equal(after.player.statuses.hex, 0);
 });
 

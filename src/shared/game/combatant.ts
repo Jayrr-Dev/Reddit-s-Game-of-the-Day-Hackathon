@@ -13,6 +13,7 @@ import {
   HEX_BURN_LOSS,
   HEX_EMPOWERED_DIGIT,
   HEX_EMPOWERED_MULTIPLIER,
+  HEX_ODD_MULTIPLIER,
   HEX_GROWTH,
   BANE_AFFLICTIONS,
   MOMENTUM_DAMAGE_FACTOR,
@@ -431,17 +432,20 @@ export const expireGuard = <T extends Combatant>(target: T): T => {
 };
 
 /** Whether this Hex is the empowered kind (odd, last digit 3). */
-const isEmpoweredHex = (hex: number): boolean =>
+export const isEmpoweredHex = (hex: number): boolean =>
   hex % 2 === 1 && hex % 10 === HEX_EMPOWERED_DIGIT;
 
 /**
- * What a Hex of this size burns for this turn: nothing when even, its
- * value when odd, and HEX_EMPOWERED_MULTIPLIER times that when its last
- * digit is HEX_EMPOWERED_DIGIT (3 -> 6, 13 -> 26).
+ * What a Hex of this size burns for this turn: nothing when even,
+ * HEX_ODD_MULTIPLIER times its value when odd (5 -> 10), and
+ * HEX_EMPOWERED_MULTIPLIER times it when its last digit is
+ * HEX_EMPOWERED_DIGIT (3 -> 9, 13 -> 39).
  */
 export const hexBurnAmount = (hex: number): number => {
   if (hex <= 0 || hex % 2 === 0) return 0;
-  return isEmpoweredHex(hex) ? hex * HEX_EMPOWERED_MULTIPLIER : hex;
+  return (
+    hex * (isEmpoweredHex(hex) ? HEX_EMPOWERED_MULTIPLIER : HEX_ODD_MULTIPLIER)
+  );
 };
 
 /**
@@ -450,7 +454,7 @@ export const hexBurnAmount = (hex: number): number => {
  *   odd          burned, so it loses HEX_BURN_LOSS of itself, ROUNDED UP,
  *                so it always drops by at least 1 and never sticks
  *                (1 -> 0, 5 -> 3, 7 -> 4)
- *   odd, ends 3  burned double, so it clears
+ *   odd, ends 3  burned triple, so it clears
  */
 export const hexAfterTurn = (hex: number): number => {
   if (hex <= 0) return 0;
@@ -461,7 +465,7 @@ export const hexAfterTurn = (hex: number): number => {
 
 /**
  * Hex, right before its bearer's turn: it burns (see hexBurnAmount),
- * then moves on (see hexAfterTurn). So Hex 7 deals 7, 0, 5, 6 and is
+ * then moves on (see hexAfterTurn). So Hex 7 deals 14, 0, 10, 9 and is
  * gone (7 -> 4 -> 5 -> 3 -> cleared).
  */
 export const hexBurn = <T extends Combatant>(target: T): T => {
