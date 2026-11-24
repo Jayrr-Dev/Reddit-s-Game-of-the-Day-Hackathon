@@ -1347,6 +1347,29 @@ void test('the griffon Smites (sets off Shock) and swipes Crossed Talon 3x6', ()
   );
 });
 
+void test('a Back Step while the griffon is Aloft does not cancel its dive', () => {
+  const aloft = griffonAloft();
+  const griffon = griffonOf(aloft);
+  // Pushed back to the farthest line while in the sky.
+  const pushedBack = {
+    ...aloft,
+    heroes: aloft.heroes.map((unit) =>
+      unit.uid === griffon.uid ? { ...unit, row: 'horizon' as const } : unit
+    ),
+  };
+  assert.deepEqual(
+    plannedHeroMoves(griffonOf(pushedBack), pushedBack.heroes).map(
+      (p) => p.move.name
+    ),
+    ['Heavenly Dive']
+  );
+  const landed = endTurnSteps(pushedBack).find(
+    (step) => step.actorUid === griffon.uid
+  )!.state;
+  assert.equal(pushedBack.player.hp - landed.player.hp, 34);
+  assert.equal(griffonOf(landed).statuses.aloft, 0);
+});
+
 void test('a turn later the griffon dives down with one crushing blow', () => {
   const aloft = griffonAloft();
   const steps = endTurnSteps(aloft);

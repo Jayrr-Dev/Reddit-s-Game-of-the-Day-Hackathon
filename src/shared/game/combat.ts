@@ -210,7 +210,9 @@ const hasRoomToSummon = (
 
 /**
  * True when a hero can make a move where it stands: Melee needs the
- * front row, and a summon needs room in the hero's row.
+ * front row (unless the hero is Aloft: its dive reaches you from any
+ * line, so a Back Step can't cancel it), and a summon needs room in the
+ * hero's row.
  */
 const canMakeMove = (
   heroMove: HeroMove,
@@ -221,6 +223,7 @@ const canMakeMove = (
     if (effect.kind === 'summon') return hasRoomToSummon(heroes, unit, effect);
     return (
       unit.row === 'front' ||
+      isAloft(unit) ||
       effect.kind !== 'attack' ||
       effect.type !== 'melee'
     );
