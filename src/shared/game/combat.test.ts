@@ -1606,4 +1606,5 @@ void test('every elemental card is a Magic card', () => {
       assert.equal(getCard(id).type, 'magic', `${id} has an element`);
   assert.equal(getCard('cataclysm').element, 'fire');
   assert.equal(getCard('frostBolt').element, 'ice');
+  assert.equal(getCard('wardingBolt').element, undefined, 'plain magic');
 });

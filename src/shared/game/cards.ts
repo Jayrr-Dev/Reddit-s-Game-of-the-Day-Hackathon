@@ -174,14 +174,7 @@ export const CARDS = {
     hit(4),
     guard(4),
   ]),
-  wardingBolt: card(
-    'Warding Bolt',
-    'magic',
-    1,
-    'common',
-    [hit(4), guard(4)],
-    ICE
-  ),
+  wardingBolt: card('Warding Bolt', 'magic', 1, 'common', [hit(4), guard(4)]),
   // IMBUE: grant another card in hand a keyword or an effect
   holdFast: card('Hold Fast', 'buff', 0, 'common', [imbue(giftHold)]),
   barbedTip: card('Barbed Tip', 'buff', 0, 'common', [
