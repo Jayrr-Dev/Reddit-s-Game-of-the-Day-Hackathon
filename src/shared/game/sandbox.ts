@@ -10,7 +10,13 @@
 import { sizeOf } from './battlefield.ts';
 import { ALL_CARD_IDS } from './cards.ts';
 import { combatOutcome, endTurn, playCard, startCombat } from './combat.ts';
-import { CHAMPION_IDS, ELITE_IDS, GRUNT_IDS, type HeroId } from './heroes.ts';
+import {
+  CHAMPION_IDS,
+  ELITE_IDS,
+  GRUNT_IDS,
+  TEST_CREATURE_IDS,
+  type HeroId,
+} from './heroes.ts';
 import { move } from './movement.ts';
 import { nextInt, pickWeighted, type RngState } from './rng.ts';
 import { ENERGY_PER_TURN } from './rules.ts';
@@ -37,6 +43,7 @@ const DUMMY_POOL: readonly { item: HeroId; weight: number }[] = [
   ...GRUNT_IDS.map((item) => ({ item, weight: 3 })),
   ...ELITE_IDS.map((item) => ({ item, weight: 2 })),
   ...CHAMPION_IDS.map((item) => ({ item, weight: 1 })),
+  ...TEST_CREATURE_IDS.map((item) => ({ item, weight: 1 })),
 ];
 
 // --- HORDE ---
@@ -115,6 +122,16 @@ export const createSandbox = (seed: RngState): CombatState => {
   const [heroIds, rng] = rollDummies(seed);
   return refillEnergy(startCombat(sandboxSetup(heroIds, rng)));
 };
+
+/**
+ * A sandbox fight against chosen heroes (e.g. a creature being tried
+ * out), placed by the normal battlefield rules. Clearing it rolls a
+ * random horde as usual.
+ */
+export const createSandboxWith = (
+  seed: RngState,
+  heroIds: readonly HeroId[]
+): CombatState => refillEnergy(startCombat(sandboxSetup(heroIds, seed)));
 
 /** Applies one input; refills energy and brings a new horde when cleared. */
 export const sandboxReducer = (

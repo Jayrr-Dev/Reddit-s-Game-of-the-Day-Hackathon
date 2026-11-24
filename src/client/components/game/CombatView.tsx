@@ -75,12 +75,15 @@ export type CombatViewProps = {
 };
 
 // --- HELPERS ---
-/** Heroes that took real damage and still have its number floating. */
-const hurtUidsOf = (pops: readonly HitPop[]): ReadonlySet<number> =>
-  new Set(
+/**
+ * The newest real hit (HP lost) on each hero whose number still floats,
+ * by uid: they wince, and a new id flinches them again.
+ */
+const lastHitIdsOf = (pops: readonly HitPop[]): ReadonlyMap<number, number> =>
+  new Map(
     pops
       .filter((pop) => pop.kind === 'hit' && pop.amount > 0)
-      .map((pop) => pop.uid)
+      .map((pop) => [pop.uid, pop.id])
   );
 
 /** The middle of a card's top edge, where the arrow leaves the card. */
@@ -246,7 +249,7 @@ export const CombatView = ({
           aimOf={controls.aimOf}
           pickMarkerOf={controls.pickMarkerOf}
           acting={heroTurn.acting}
-          hurtUids={hurtUidsOf(pops)}
+          lastHitIds={lastHitIdsOf(pops)}
           onTapHero={controls.tapHero}
         />
         <HeroShots acting={heroTurn.acting} />

@@ -30,6 +30,8 @@ import {
   type Tone,
   type FaceFeatures,
   type HeroMood,
+  type HumanoidId,
+  isCreature,
 } from '../../../content/heroLooks';
 import {
   BODY_HEIGHT,
@@ -37,6 +39,7 @@ import {
   headCentreOf,
   headRadiusOf,
 } from '../../../lib/heroFigure';
+import { CreatureFigure } from './CreatureFigure';
 import { HeroFace } from './HeroFace';
 
 // --- TYPES ---
@@ -1440,14 +1443,14 @@ const CastEffects = ({
   </>
 );
 
-// --- COMPONENT ---
-/** Draws the hero, feet at the bottom edge, head near the top. */
-export const HeroFigure = ({
+// --- SUBCOMPONENTS: FIGURE ---
+/** Draws a humanoid hero, feet at the bottom edge, head near the top. */
+const HumanoidFigure = ({
   heroId,
   size,
   action = null,
   mood = 'calm',
-}: HeroFigureProps) => {
+}: HeroFigureProps & { heroId: HumanoidId }) => {
   const look = HERO_LOOKS[heroId];
   const f = withGrip(frameOf(size), look.prop);
   const width = BODY_WIDTH[size];
@@ -1544,5 +1547,19 @@ export const HeroFigure = ({
       {/* THE HAND HOLDING IT */}
       <circle cx={handX} cy={handY} r={f.r * 0.28} fill={look.skin.shade} />
     </svg>
+  );
+};
+
+// --- COMPONENT ---
+/**
+ * Draws any hero: creatures (see CREATURE_IDS) have drawings of their
+ * own; everyone else uses the shared humanoid figure.
+ */
+export const HeroFigure = (props: HeroFigureProps) => {
+  const { heroId } = props;
+  return isCreature(heroId) ? (
+    <CreatureFigure {...props} heroId={heroId} />
+  ) : (
+    <HumanoidFigure {...props} heroId={heroId} />
   );
 };

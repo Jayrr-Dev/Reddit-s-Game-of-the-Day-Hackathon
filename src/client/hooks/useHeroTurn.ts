@@ -14,7 +14,7 @@ import { endTurnSteps, type TurnStep } from '../../shared/game/combat';
 import type { RunAction } from '../../shared/game/run';
 import type { CombatState } from '../../shared/game/types';
 import {
-  HERO_LOOKS,
+  humanoidLookOf,
   MELEE_SWINGS,
   type HeroAction,
 } from '../content/heroLooks';
@@ -50,7 +50,7 @@ const beatMs = (steps: readonly TurnStep[], index: number): number => {
  */
 const actionOf = (step: TurnStep, uid: number): HeroAction => {
   const unit = step.state.heroes.find((hero) => hero.uid === uid);
-  const isBowman = unit && HERO_LOOKS[unit.heroId].prop === 'longbow';
+  const isBowman = unit && humanoidLookOf(unit.heroId)?.prop === 'longbow';
   const style = step.attackType ?? 'support';
   return {
     style: isBowman && style === 'melee' ? 'range' : style,

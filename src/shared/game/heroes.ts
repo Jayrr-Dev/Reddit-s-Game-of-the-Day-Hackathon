@@ -163,6 +163,18 @@ export const HEROES = {
     move('Brand of Light', hex(6)),
     move('Final Verdict', strike(25)),
   ]),
+
+  // TEST CREATURES (SANDBOX ONLY UNTIL THEY JOIN A REGION)
+  /**
+   * A great ivory dragon that fills the whole front row: it shields
+   * the horde, breathes holy fire on you, and rouses everyone's Wrath.
+   */
+  holyDragon: hero('Holy Dragon', 'champion', 70, 280, 5, HUGE, [
+    move('Sanctuary Wings', shroud(8, 'allies')),
+    move('Holy Breath', spell(7, 2)),
+    move('Rending Claws', strike(16)),
+    move('Radiant Roar', wrath(2, 'allies')),
+  ]),
 } as const satisfies Record<string, HeroDef>;
 
 // --- DERIVED DATA ---
@@ -191,3 +203,9 @@ export const CHAMPION_IDS: readonly HeroId[] = [
   'seris',
   'valen',
 ];
+
+/**
+ * New units being tried out: they turn up only as target dummies (and
+ * in the practice menu's "Summon test creature") until they join a run.
+ */
+export const TEST_CREATURE_IDS: readonly HeroId[] = ['holyDragon'];

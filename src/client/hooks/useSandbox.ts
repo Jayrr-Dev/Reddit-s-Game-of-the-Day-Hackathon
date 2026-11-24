@@ -6,7 +6,12 @@
 
 import { useCallback, useReducer } from 'react';
 import type { RunAction } from '../../shared/game/run';
-import { createSandbox, sandboxReducer } from '../../shared/game/sandbox';
+import type { HeroId } from '../../shared/game/heroes';
+import {
+  createSandbox,
+  createSandboxWith,
+  sandboxReducer,
+} from '../../shared/game/sandbox';
 import type { CombatState } from '../../shared/game/types';
 
 // --- TYPES ---
@@ -14,7 +19,9 @@ import type { CombatState } from '../../shared/game/types';
 type SandboxState = { combat: CombatState; round: number };
 
 type SandboxEvent =
-  { type: 'act'; action: RunAction } | { type: 'reshuffle'; seed: number };
+  | { type: 'act'; action: RunAction }
+  | { type: 'reshuffle'; seed: number }
+  | { type: 'summon'; seed: number; heroIds: readonly HeroId[] };
 
 // --- HELPERS ---
 /** A fresh seed; practice fights don't need to be reproducible. */
@@ -25,6 +32,11 @@ const freshSeed = (): number => Math.floor(Math.random() * 2 ** 32);
 const reduce = (state: SandboxState, event: SandboxEvent): SandboxState => {
   if (event.type === 'reshuffle')
     return { combat: createSandbox(event.seed), round: state.round + 1 };
+  if (event.type === 'summon')
+    return {
+      combat: createSandboxWith(event.seed, event.heroIds),
+      round: state.round + 1,
+    };
   const { action } = event;
   const isCombatInput =
     action.type === 'playCard' ||
@@ -54,5 +66,12 @@ export const useSandbox = () => {
     []
   );
 
-  return { ...state, act, reshuffle } as const;
+  /** Starts a fight against chosen heroes (e.g. a test creature). */
+  const summon = useCallback(
+    (heroIds: readonly HeroId[]) =>
+      send({ type: 'summon', seed: freshSeed(), heroIds }),
+    []
+  );
+
+  return { ...state, act, reshuffle, summon } as const;
 };

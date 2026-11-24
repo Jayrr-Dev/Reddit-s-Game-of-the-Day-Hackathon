@@ -121,8 +121,26 @@ export const MAIL = {
   shade: { base: '#7b717e', ring: '#5c535f' },
 } as const;
 
-// --- CATALOG ---
-export const HERO_LOOKS: Record<HeroId, HeroLook> = {
+// --- CREATURES ---
+/**
+ * Heroes that are not people (no headgear, prop or armour) and get a
+ * drawing of their own instead of the shared humanoid figure.
+ */
+export const CREATURE_IDS = ['holyDragon'] as const satisfies readonly HeroId[];
+export type CreatureId = (typeof CREATURE_IDS)[number];
+/** Every hero drawn by the shared humanoid figure. */
+export type HumanoidId = Exclude<HeroId, CreatureId>;
+
+/** True for a hero with a drawing of its own (see CREATURE_IDS). */
+export const isCreature = (id: HeroId): id is CreatureId =>
+  (CREATURE_IDS as readonly HeroId[]).includes(id);
+
+/** The humanoid look of a hero, or null for a creature. */
+export const humanoidLookOf = (id: HeroId): HeroLook | null =>
+  isCreature(id) ? null : HERO_LOOKS[id];
+
+// --- CATALOG (HUMANOIDS) ---
+export const HERO_LOOKS: Record<HumanoidId, HeroLook> = {
   // GRUNTS
   squire: {
     headgear: 'kettleHelm',

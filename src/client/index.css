@@ -78,6 +78,8 @@
   /* --- MOTION --- */
   --animate-rise: rise 180ms ease-out;
   --animate-shake: shake 260ms ease-in-out;
+  --animate-flinch: flinch 280ms ease-out;
+  --animate-villain-blink: villain-blink 5700ms infinite;
   --animate-hit-pop: hit-pop 1400ms ease-out forwards;
   --animate-gain-float: gain-float 1100ms ease-out forwards;
   --animate-hero-lunge: hero-lunge 560ms ease-in-out;
@@ -559,6 +561,41 @@
     100% {
       opacity: 0;
       transform: translate(var(--drift, 0px), -60px) scale(0.3);
+    }
+  }
+
+  /* FLINCH: a hit knocks the target back and squashes it, then it
+     springs back past its shape and settles. Origin is its feet. */
+  @keyframes flinch {
+    0%,
+    100% {
+      transform: none;
+    }
+    20% {
+      transform: translateY(-3%) scale(1.07, 0.9);
+    }
+    55% {
+      transform: translateY(0) scale(0.97, 1.03);
+    }
+  }
+
+  /* BLINK: an uneven pattern in one cycle (a blink, then a quick
+     double blink later) so it never reads as a metronome. */
+  @keyframes villain-blink {
+    0%,
+    38%,
+    41.5%,
+    88%,
+    90%,
+    92%,
+    94%,
+    100% {
+      transform: scaleY(1);
+    }
+    39.5%,
+    89%,
+    93% {
+      transform: scaleY(0.1);
     }
   }
 
@@ -1145,4 +1182,92 @@ textarea,
 [contenteditable='true'] {
   user-select: text;
   -webkit-user-select: text;
+}
+
+/* --- CREATURE ACTIONS ---
+   The same data-action hooks as HERO ACTIONS, for creature drawings
+   (CreatureFigure). Pivots are set inline in view-box units.
+     every move   the wings beat once (up, then a hard downstroke)
+     magic/range  holy fire pours from the jaws
+     support      the halo flares */
+@keyframes dragon-flap-left {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  35% {
+    transform: rotate(16deg);
+  }
+  60% {
+    transform: rotate(-10deg);
+  }
+}
+
+@keyframes dragon-flap-right {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  35% {
+    transform: rotate(-16deg);
+  }
+  60% {
+    transform: rotate(10deg);
+  }
+}
+
+@keyframes dragon-breath {
+  0%,
+  35% {
+    opacity: 0;
+    transform: scaleY(0.1);
+  }
+  55% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scaleY(1.05);
+  }
+}
+
+@keyframes dragon-halo-flare {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  40% {
+    transform: scale(1.18);
+    opacity: 0.7;
+  }
+}
+
+.dragon-wing-left,
+.dragon-wing-right,
+.dragon-breath {
+  transform-box: view-box;
+}
+
+.dragon-halo {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+[data-action] .dragon-wing-left {
+  animation: dragon-flap-left 560ms ease-in-out;
+}
+
+[data-action] .dragon-wing-right {
+  animation: dragon-flap-right 560ms ease-in-out;
+}
+
+[data-action='magic'] .dragon-breath,
+[data-action='range'] .dragon-breath {
+  animation: dragon-breath 560ms ease-out;
+}
+
+[data-action='support'] .dragon-halo {
+  animation: dragon-halo-flare 560ms ease-out;
 }

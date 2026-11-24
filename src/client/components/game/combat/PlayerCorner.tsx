@@ -2,8 +2,9 @@
 // PLAYER CORNER
 // The bottom-left corner: the villain's hooded portrait inside a ring
 // that drains with HP, and the HP number on a shield beside it. Hits
-// from the heroes shake the portrait and stack up above it, and leave
-// their marks on it (see ImpactOverlay).
+// from the heroes shake the portrait, make the villain flinch, stack up
+// above it, and leave their marks on it (see ImpactOverlay). The red
+// eyes blink now and then.
 // ===================================================================
 
 import type { Combatant } from '../../../../shared/game/types';
@@ -39,7 +40,7 @@ export const PlayerCorner = ({
       >
         <svg
           viewBox="0 0 40 40"
-          className="size-full rounded-full bg-surface-raised"
+          className={`size-full origin-bottom rounded-full bg-surface-raised ${latestHitId >= 0 ? 'animate-flinch' : ''}`}
           aria-hidden="true"
         >
           <path
@@ -50,8 +51,11 @@ export const PlayerCorner = ({
             d="M11 20c0-9 4-15 9-15s9 6 9 15l-3 5H14z"
             className="fill-surface-sunken"
           />
-          <circle cx="17" cy="18" r="1.4" className="fill-hp" />
-          <circle cx="23" cy="18" r="1.4" className="fill-hp" />
+          {/* EYES: blink now and then (see villain-blink) */}
+          <g className="origin-center animate-villain-blink [transform-box:fill-box]">
+            <circle cx="17" cy="18" r="1.4" className="fill-hp" />
+            <circle cx="23" cy="18" r="1.4" className="fill-hp" />
+          </g>
         </svg>
       </div>
       {/* HIT MARKS, ARROWS AND GLOWS OVER THE PORTRAIT */}

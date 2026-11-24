@@ -5,6 +5,7 @@
 // leaves. Nothing here is scored, saved or sent to the server.
 // ===================================================================
 
+import { TEST_CREATURE_IDS } from '../../../shared/game/heroes';
 import { useSandbox } from '../../hooks/useSandbox';
 import { Button } from '../ui/Button';
 import { CombatView } from './CombatView';
@@ -12,11 +13,16 @@ import { CombatView } from './CombatView';
 // --- CONSTANTS ---
 /** The sandbox's backdrop hue (a neutral dusk). */
 const SANDBOX_HUE = 30;
+/**
+ * The horde summoned with the test creatures: they hold the front, and
+ * two grunts stand behind so area and back-row cards have targets.
+ */
+const TEST_HORDE = [...TEST_CREATURE_IDS, 'archer', 'priest'] as const;
 
 // --- COMPONENT ---
 /** Renders the practice fight with reshuffle and leave in its pause menu. */
 export const SandboxView = ({ onExit }: { onExit: () => void }) => {
-  const { combat, round, act, reshuffle } = useSandbox();
+  const { combat, round, act, reshuffle, summon } = useSandbox();
   return (
     <div className="h-full w-full overflow-hidden">
       <CombatView
@@ -34,6 +40,13 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
               onClick={reshuffle}
             >
               New dummies
+            </Button>
+            <Button
+              variant="menu"
+              className="max-w-60"
+              onClick={() => summon(TEST_HORDE)}
+            >
+              Summon test creature
             </Button>
             <Button variant="menu" className="max-w-60" onClick={onExit}>
               Leave practice

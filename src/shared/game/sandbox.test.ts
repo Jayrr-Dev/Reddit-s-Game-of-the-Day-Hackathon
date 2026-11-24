@@ -7,7 +7,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { sizeOf } from './battlefield.ts';
-import { createSandbox, rollDummies, sandboxReducer } from './sandbox.ts';
+import {
+  createSandbox,
+  createSandboxWith,
+  rollDummies,
+  sandboxReducer,
+} from './sandbox.ts';
 import { ENERGY_PER_TURN } from './rules.ts';
 import type { HeroUnit } from './types.ts';
 
@@ -51,4 +56,25 @@ void test('clearing the field brings a new horde with higher uids', () => {
   assert.ok(next.heroes.length >= 2);
   const oldUid = oneLeft.heroes[0]!.uid;
   assert.ok(next.heroes.every((unit) => unit.uid > oldUid));
+});
+
+// --- TEST CREATURES ---
+void test('the Holy Dragon fills the whole front row on its own', () => {
+  const { heroes } = createSandboxWith(5, ['holyDragon', 'archer', 'priest']);
+  const dragon = heroes.find((unit) => unit.heroId === 'holyDragon');
+  assert.ok(dragon);
+  assert.equal(sizeOf(dragon), 3);
+  assert.deepEqual(cellsOf(dragon), ['front:0', 'front:1', 'front:2']);
+  const others = heroes.filter((unit) => unit !== dragon);
+  assert.ok(others.every((unit) => unit.row === 'back'));
+  const cells = heroes.flatMap(cellsOf);
+  assert.equal(new Set(cells).size, cells.length);
+});
+
+void test('a 3-slot creature can turn up among the random dummies', () => {
+  const seeds = Array.from({ length: 400 }, (_, i) => i + 1);
+  const isRolled = seeds.some((seed) =>
+    rollDummies(seed)[0].includes('holyDragon')
+  );
+  assert.ok(isRolled);
 });

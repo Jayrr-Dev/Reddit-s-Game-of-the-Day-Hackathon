@@ -38,8 +38,11 @@ export type HeroOnFieldProps = {
   pickMarker: PickMarker | null;
   /** How this hero's move animates while it plays; null when idle. */
   action: HeroAction | null;
-  /** True while a damage number from a hit floats over this hero. */
-  isHurt: boolean;
+  /**
+   * The newest hit whose number still floats over this hero, or null.
+   * The hero winces while it floats and flinches once per new hit.
+   */
+  lastHitId: number | null;
   /** True for a fallen hero playing its death (display only). */
   isDying?: boolean;
   onTap: (uid: number) => void;
@@ -222,7 +225,7 @@ export const HeroOnField = ({
   aim,
   pickMarker,
   action,
-  isHurt,
+  lastHitId,
   isDying = false,
   onTap,
 }: HeroOnFieldProps) => {
@@ -235,7 +238,7 @@ export const HeroOnField = ({
     : '';
   const bodyStyle = bodyStyleOf(size);
   const mood = moodOf({
-    isHurt,
+    isHurt: lastHitId !== null,
     isActing: action !== null,
     hp: unit.hp,
     maxHp: unit.maxHp,
@@ -267,12 +270,18 @@ export const HeroOnField = ({
             <div
               className={`h-full w-full ${isBack ? 'brightness-75' : ''} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
             >
-              <HeroFigure
-                heroId={unit.heroId}
-                size={size}
-                action={action}
-                mood={mood}
-              />
+              {/* FLINCH: re-keyed by each new hit, so it plays once per hit */}
+              <div
+                key={lastHitId ?? 'steady'}
+                className={`h-full w-full origin-bottom ${lastHitId === null ? '' : 'animate-flinch'}`}
+              >
+                <HeroFigure
+                  heroId={unit.heroId}
+                  size={size}
+                  action={action}
+                  mood={mood}
+                />
+              </div>
             </div>
             {pickMarker && <PickMark marker={pickMarker} />}
             <div
