@@ -227,8 +227,7 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
   },
   piercing: {
     label: 'Piercing',
-    description:
-      'Also hits the hero behind or in front of the target\nSame column only',
+    description: 'Hit all units in a single column',
   },
   remove: {
     label: 'Remove',
@@ -272,7 +271,7 @@ const durationSuffix = (duration: Duration | undefined): string =>
 export const IMBUE_INFO: StatusInfo = {
   label: 'Imbue',
   description:
-    'Gives another card in your hand this keyword or effect\nIt lasts the whole battle\nThen **Remove** this card',
+    'Gives another card in your hand this keyword or effect\nThen **Remove** this card',
 };
 /** What Force Pull and Force Push mean, wherever they show. */
 export const FORCE_PULL_INFO: StatusInfo = {

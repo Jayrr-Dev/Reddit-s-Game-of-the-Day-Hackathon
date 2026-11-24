@@ -129,7 +129,7 @@ const imbueBadgeOf = (
     ...shown,
     key: `imbue-${index}`,
     title: `${IMBUE_INFO.label}: ${info.label}`,
-    description: `**${gives}** for the whole battle\n${info.description}`,
+    description: `**${gives}**\n${info.description}`,
   };
 };
 

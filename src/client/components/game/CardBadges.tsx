@@ -26,7 +26,7 @@ const SIZE_LOOK: Record<
   BadgeSize,
   {
     column: string;
-    /** The stem above each socket: long enough to clear the badge above. */
+    /** The stem above each socket: a short link to the coin or socket above. */
     stem: string;
     socket: string;
     icon: string;
@@ -34,17 +34,17 @@ const SIZE_LOOK: Record<
   }
 > = {
   fan: {
-    column: 'left-1 top-3.5 w-[18px] -translate-x-1/2',
-    stem: 'h-[7px]',
-    socket: 'size-[18px]',
-    icon: 'size-3',
+    column: 'left-1 top-3.5 w-[14px] -translate-x-1/2',
+    stem: 'h-[3px]',
+    socket: 'size-[14px]',
+    icon: 'size-2.5',
     count: 'min-w-2.5 h-2.5 text-[7px] -right-1 -bottom-1',
   },
   offer: {
-    column: 'left-1.5 top-5 w-[22px] -translate-x-1/2',
-    stem: 'h-[8px]',
-    socket: 'size-[22px]',
-    icon: 'size-3.5',
+    column: 'left-1.5 top-5 w-[17px] -translate-x-1/2',
+    stem: 'h-[4px]',
+    socket: 'size-[17px]',
+    icon: 'size-3',
     count: 'min-w-3 h-3 text-[8px] -right-1 -bottom-1',
   },
 };
