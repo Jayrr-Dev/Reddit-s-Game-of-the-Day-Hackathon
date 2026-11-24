@@ -111,6 +111,13 @@ export const ALOFT_EVADING_TYPES: ReadonlySet<CardType> = new Set([
 ]);
 export const ALOFT_EVASION = 0.85;
 
+// --- ROUND BUFFS ---
+/**
+ * Buffs that last one round: cast on your turn, they hold through the
+ * heroes' turn and are spent when your next turn starts.
+ */
+export const ROUND_BUFFS: readonly StatusId[] = ['protection', 'instinct'];
+
 // --- EXHAUST ---
 /**
  * How many times an Exhaust card can be played in a run (unless the

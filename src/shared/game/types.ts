@@ -35,6 +35,7 @@ import type { RngState } from './rng.ts';
  * - hone:   adds this much to every Range hit
  * - reinforce: adds this much to every Guard a card gives
  * - instinct:  a chance to dodge each hero hit or affliction (Hex never;
+ *              lasts through the heroes' turn, like Protection;
  *              see INSTINCT_DODGE_CHANCES)
  * - bane:      adds this much to every affliction your cards lay (Hex,
  *              Poison, Burn, Frost, Bleed, Shock; see BANE_AFFLICTIONS)

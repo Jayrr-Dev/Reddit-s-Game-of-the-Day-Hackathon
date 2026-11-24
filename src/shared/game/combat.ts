@@ -47,7 +47,7 @@ import {
   addStatus,
   afflictionAmount,
   castProtection,
-  dropProtection,
+  dropRoundBuffs,
   enfeebleTimes,
   enfeebleCheck,
   cleanseOne,
@@ -1511,7 +1511,7 @@ const startPlayerTurn = (state: CombatState): CombatState =>
   drawCards(
     {
       ...state,
-      player: hexBurn(dropProtection(expireGuard(state.player))),
+      player: hexBurn(dropRoundBuffs(expireGuard(state.player))),
       energy: ENERGY_PER_TURN,
       turn: state.turn + 1,
     },

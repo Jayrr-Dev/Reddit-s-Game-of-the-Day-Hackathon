@@ -573,6 +573,16 @@ void test('Ultra Instinct dodges nearly every hit, and each dodge is counted', (
   assert.ok(results.every((r) => r.dodged > 0 || r.hp > 0));
 });
 
+void test("Instinct lasts through the heroes' turn, like Protection", () => {
+  const state = withInstinct(fightAt([['squire', 'front', 0]]), 2);
+  const steps = endTurnSteps(state);
+  // Still up while the heroes act...
+  const heroStep = steps.find((step) => step.actorUid !== null)!;
+  assert.equal(heroStep.state.player.statuses.instinct, 2);
+  // ...and gone when the villain's next turn starts.
+  assert.equal(steps.at(-1)!.state.player.statuses.instinct, 0);
+});
+
 void test('Hex can not be dodged', () => {
   const base = withInstinct(fightAt([['archmage', 'back', 0]]), 5);
   // Its Curse of Light (Hex 4, Weaken 1) is move 1.

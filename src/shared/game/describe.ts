@@ -142,7 +142,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   instinct: {
     label: 'Instinct',
     description:
-      "Chance to dodge each hero hit or affliction: 1 **25%**, 2 **50%**, 4 **75%**\n5+ is **Ultra Instinct**: **99%**\n**Hex** can't be dodged",
+      "Chance to dodge each hero hit or affliction: 1 **25%**, 2 **50%**, 4 **75%**\n5+ is **Ultra Instinct**: **99%**\n**Hex** can't be dodged\nLasts through the heroes' turn",
   },
   bane: {
     label: 'Bane',

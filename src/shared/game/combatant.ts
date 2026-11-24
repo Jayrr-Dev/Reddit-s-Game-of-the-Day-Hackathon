@@ -20,6 +20,7 @@ import {
   TIERED_CUT_BY_TIER,
   TIERED_MAX_TIER,
   STATUS_IS_AFFLICTION,
+  ROUND_BUFFS,
 } from './rules.ts';
 import { pickOne, type RngState } from './rng.ts';
 import type {
@@ -246,7 +247,7 @@ export const protectedAmount = (target: Combatant, amount: number): number =>
 /**
  * Casts Protection: tier I, or one tier up for each cast this turn (to
  * III). Marked cast this turn, so the end of the turn keeps it for the
- * heroes' turn; it clears when your next turn starts (dropProtection).
+ * heroes' turn; it clears when your next turn starts (dropRoundBuffs).
  */
 export const castProtection = <T extends Combatant>(target: T): T => ({
   ...target,
@@ -257,10 +258,16 @@ export const castProtection = <T extends Combatant>(target: T): T => ({
   },
 });
 
-/** Your turn starts: last turn's Protection is spent. */
-export const dropProtection = <T extends Combatant>(target: T): T => ({
+/**
+ * Your turn starts: last round's buffs (ROUND_BUFFS: Protection,
+ * Instinct) are spent.
+ */
+export const dropRoundBuffs = <T extends Combatant>(target: T): T => ({
   ...target,
-  statuses: { ...target.statuses, protection: 0 },
+  statuses: {
+    ...target.statuses,
+    ...Object.fromEntries(ROUND_BUFFS.map((id) => [id, 0])),
+  },
 });
 
 /**
