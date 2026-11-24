@@ -6,16 +6,19 @@
 // staggered like the hits themselves (HIT_STAGGER_MS), so each impact
 // lands as its shot arrives. The view waits PLAYER_SHOT_FLIGHT_MS
 // before playing the card, then the hits pop on arrival.
-// Melee cards swing instead: a silver sweep crosses every hero the card
-// hits (see MeleeSweep), MELEE_SWEEP_MS before the red slices land.
+// Melee cards swing instead: a silver cut crosses every hero the card
+// hits, one per hit, each a different cut (see MeleeSweep and
+// content/meleeSweeps.ts), MELEE_SWEEP_MS before the red slices land.
 // ===================================================================
 
 import { useCallback, useRef, useState } from 'react';
 import { cardAreaTargets } from '../../shared/game/battlefield';
-import { getCard } from '../../shared/game/cards';
+import { getCard, type CardId } from '../../shared/game/cards';
 import type { PlayCardAction } from '../../shared/game/run';
 import type { CombatState } from '../../shared/game/types';
+import { sweepStyleFor, type SweepStyleId } from '../content/meleeSweeps';
 import { sweepAcross, type SweepFlight } from '../lib/meleeSweep';
+import { seeded } from '../lib/seeded';
 import type {
   ProjectileFlight,
   ProjectileKind,
@@ -30,6 +33,13 @@ import { HIT_STAGGER_MS } from './useCardHits';
 import { bodyPointOf } from './useHitPops';
 
 // --- TYPES ---
+/** What a played Melee card swings: at whom, how many times. */
+export type SweepPlan = {
+  cardId: CardId;
+  targetUids: number[];
+  hits: number;
+};
+
 /** What a played card fires: which shot, at whom, how many times. */
 export type ShotPlan = {
   kind: ProjectileKind;
@@ -44,8 +54,11 @@ export type ShotPlan = {
 export const PLAYER_SHOT_FLIGHT_MS = 220;
 /** A melee swing crosses its targets in this long, then the hits land. */
 export const MELEE_SWEEP_MS = 200;
-/** How long a sweep stays mounted (matches .melee-sweep in index.css). */
-const SWEEP_LIFETIME_MS = 360;
+/**
+ * How long a sweep stays mounted: .melee-sweep (340 ms, index.css) plus
+ * the latest stroke delay in SWEEP_STYLES (the cross's 90 ms).
+ */
+const SWEEP_LIFETIME_MS = 460;
 
 // --- HELPERS ---
 /**
@@ -74,21 +87,23 @@ export const shotPlanOf = (
 };
 
 /**
- * The heroes a Melee card's swing crosses when played this way (every
- * one it hits), or null for any other card or one that deals no damage.
+ * What a Melee card's swing crosses when played this way (every hero it
+ * hits, once per hit), or null for any other card or one with no damage.
  */
-export const sweepTargetsOf = (
+export const sweepPlanOf = (
   combat: CombatState,
   action: PlayCardAction
-): number[] | null => {
+): SweepPlan | null => {
   const cardId = combat.hand[action.handIndex];
   if (cardId === undefined) return null;
   const { type, effects } = getCard(cardId);
   const damage = effects.find((effect) => effect.kind === 'damage');
   if (!damage || type !== 'melee') return null;
-  return damage.target === 'all'
-    ? cardAreaTargets(combat.heroes, cardId).map((unit) => unit.uid)
-    : (action.targetUids ?? [action.targetUid ?? -1]);
+  const targetUids =
+    damage.target === 'all'
+      ? cardAreaTargets(combat.heroes, cardId).map((unit) => unit.uid)
+      : (action.targetUids ?? [action.targetUid ?? -1]);
+  return { cardId, targetUids, hits: damage.hits };
 };
 
 /**
@@ -120,24 +135,47 @@ export const usePlayerShots = () => {
   const [shots, setShots] = useState<ProjectileFlight[]>([]);
   const [sweeps, setSweeps] = useState<SweepFlight[]>([]);
   const nextIdRef = useRef(0);
+  // The last cut drawn, so the next swing never repeats it.
+  const lastStyleRef = useRef<SweepStyleId | null>(null);
 
-  /**
-   * Swings a Melee card across its targets; returns true if the sweep
-   * could be placed (false when none of them is on screen).
-   */
-  const swing = useCallback((targetUids: readonly number[]): boolean => {
-    const points = targetUids
-      .map(bodyPointOf)
-      .filter((point): point is Point => point !== null);
-    const sweep = sweepAcross(nextIdRef.current++, points);
-    if (!sweep) return false;
+  /** Mounts one sweep, and unmounts it when it has played. */
+  const showSweep = useCallback((sweep: SweepFlight) => {
     setSweeps((current) => [...current, sweep]);
     window.setTimeout(
       () => setSweeps((current) => current.filter((s) => s.id !== sweep.id)),
       SWEEP_LIFETIME_MS
     );
-    return true;
   }, []);
+
+  /**
+   * Swings a Melee card across its targets, one cut per hit (staggered
+   * like the hits), each a different cut from the last; returns true if
+   * the swing could be placed (false when no target is on screen).
+   */
+  const swing = useCallback(
+    (plan: SweepPlan): boolean => {
+      const points = plan.targetUids
+        .map(bodyPointOf)
+        .filter((point): point is Point => point !== null);
+      if (points.length === 0) return false;
+      Array.from({ length: plan.hits }, (_, hitIndex) => {
+        const id = nextIdRef.current++;
+        const style = sweepStyleFor(
+          plan.cardId,
+          hitIndex,
+          lastStyleRef.current,
+          seeded(id, hitIndex)
+        );
+        lastStyleRef.current = style;
+        const sweep = sweepAcross(id, points, style);
+        if (!sweep) return;
+        if (hitIndex === 0) return showSweep(sweep);
+        window.setTimeout(() => showSweep(sweep), hitIndex * HIT_STAGGER_MS);
+      });
+      return true;
+    },
+    [showSweep]
+  );
 
   /**
    * Looses a card's shots, hit by hit (each hit at every target), and

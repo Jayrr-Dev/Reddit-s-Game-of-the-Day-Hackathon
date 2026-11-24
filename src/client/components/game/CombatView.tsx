@@ -43,7 +43,7 @@ import {
   PLAYER_SHOT_FLIGHT_MS,
   MELEE_SWEEP_MS,
   shotPlanOf,
-  sweepTargetsOf,
+  sweepPlanOf,
   usePlayerShots,
 } from '../../hooks/usePlayerShots';
 import {
@@ -251,7 +251,7 @@ export const CombatView = ({
           return;
         }
         // Melee cards swing across their targets; the slices follow.
-        const swept = sweepTargetsOf(realCombat, action);
+        const swept = sweepPlanOf(realCombat, action);
         if (swept && swing(swept)) {
           setIsShooting(true);
           window.setTimeout(() => {

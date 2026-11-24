@@ -5,6 +5,7 @@
 // file only exports a component (fast refresh).
 // ===================================================================
 
+import type { SweepStyleId } from '../content/meleeSweeps';
 import type { Point } from '../hooks/useCardDrag';
 
 // --- TYPES ---
@@ -15,6 +16,8 @@ export type SweepFlight = {
   centre: Point;
   /** How wide the swing is (px). */
   width: number;
+  /** Which cut it draws (see SWEEP_STYLES). */
+  style: SweepStyleId;
 };
 
 // --- CONSTANTS ---
@@ -27,7 +30,8 @@ const SWEEP_OVERHANG_PX = 60;
 /** The sweep across a set of target points, or null if there are none. */
 export const sweepAcross = (
   id: number,
-  points: readonly Point[]
+  points: readonly Point[],
+  style: SweepStyleId
 ): SweepFlight | null => {
   if (points.length === 0) return null;
   const xs = points.map((point) => point.x);
@@ -38,5 +42,6 @@ export const sweepAcross = (
     id,
     centre: { x: (left + right) / 2, y },
     width: Math.max(MIN_SWEEP_PX, right - left + SWEEP_OVERHANG_PX * 2),
+    style,
   };
 };
