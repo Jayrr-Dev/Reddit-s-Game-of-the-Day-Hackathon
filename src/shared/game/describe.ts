@@ -22,6 +22,7 @@ import {
   ON_OFF_BUFFS,
   OUT_OF_RANGE_HIT_CHANCE,
   ALOFT_EVASION,
+  SHARPSHOOTER_ACCURACY_BONUS,
   SHARPSHOOTER_DAMAGE_FACTOR,
   OUT_OF_RANGE_ROW,
   EXHAUST_USES,
@@ -167,7 +168,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   },
   sharpshooter: {
     label: 'Sharpshooter',
-    description: `**+50%** hit accuracy\nEvery **Range** hit deals **${SHARPSHOOTER_BONUS_TEXT}**`,
+    description: `**+${Math.round(SHARPSHOOTER_ACCURACY_BONUS * 100)}%** hit accuracy\nEvery **Range** hit deals **${SHARPSHOOTER_BONUS_TEXT}**`,
   },
   berserker: {
     label: 'Berserker',

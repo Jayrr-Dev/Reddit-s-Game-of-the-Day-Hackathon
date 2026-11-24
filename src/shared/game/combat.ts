@@ -101,6 +101,7 @@ import {
   OUT_OF_RANGE_HIT_CHANCE,
   ALOFT_EVADING_TYPES,
   ALOFT_EVASION,
+  SHARPSHOOTER_ACCURACY_BONUS,
   ULTRA_INSTINCT_STACKS,
   OUT_OF_RANGE_ROW,
   OUT_OF_RANGE_TYPES,
@@ -493,18 +494,21 @@ export const isOutOfRangeShot = (
  * The chance (0..1) that one villain hit of a `type` card lands on
  * `unit`: Out of Range (OUT_OF_RANGE_HIT_CHANCE, unless Longrange)
  * times a hero Aloft's evasion against Range and Magic (ALOFT_EVASION;
- * Longrange is about distance, so it does not help against flight).
+ * Longrange is about distance, so it does not help against flight),
+ * plus the attacker's `accuracyBonus` (Sharpshooter), capped at 1.
  */
 export const shotHitChance = (
   type: CardType,
   unit: HeroUnit,
-  hasLongRange: boolean
+  hasLongRange: boolean,
+  accuracyBonus = 0
 ): number => {
   const rangeChance = isOutOfRangeShot(type, unit.row, hasLongRange)
     ? OUT_OF_RANGE_HIT_CHANCE
     : 1;
   const isEvaded = isAloft(unit) && ALOFT_EVADING_TYPES.has(type);
-  return rangeChance * (isEvaded ? 1 - ALOFT_EVASION : 1);
+  const chance = rangeChance * (isEvaded ? 1 - ALOFT_EVASION : 1);
+  return Math.min(1, chance + accuracyBonus);
 };
 
 /**
@@ -537,7 +541,12 @@ const shootHeroes = (
   for (const uid of uids) {
     const unit = current.heroes.find((hero) => hero.uid === uid);
     if (!unit) continue;
-    const chance = shotHitChance(cardDef.type, unit, hasLongRange);
+    const chance = shotHitChance(
+      cardDef.type,
+      unit,
+      hasLongRange,
+      accuracyBonusOf(current.player)
+    );
     if (chance >= 1) {
       current = updateHeroes(current, [uid], land);
       continue;
@@ -1091,11 +1100,14 @@ const isPlayWith = (
 
 /**
  * True when the card in that slot shoots past Out of Range: it has
- * Longrange (printed or imbued) or the villain is a Sharpshooter.
+ * Longrange (printed or imbued). (Sharpshooter only adds accuracy.)
  */
 const ignoresOutOfRange = (state: CombatState, handIndex: number): boolean =>
-  isPlayWith(state, handIndex, 'longRange') ||
-  state.player.statuses.sharpshooter > 0;
+  isPlayWith(state, handIndex, 'longRange');
+
+/** The villain's bonus to each shot's chance to land (Sharpshooter). */
+const accuracyBonusOf = (villain: Combatant): number =>
+  villain.statuses.sharpshooter > 0 ? SHARPSHOOTER_ACCURACY_BONUS : 0;
 
 /**
  * The chance (0..1) that each shot of the card in `handIndex` lands on
@@ -1112,7 +1124,8 @@ export const aimHitChance = (
   return shotHitChance(
     getCard(cardId).type,
     unit,
-    ignoresOutOfRange(state, handIndex)
+    ignoresOutOfRange(state, handIndex),
+    accuracyBonusOf(state.player)
   );
 };
 

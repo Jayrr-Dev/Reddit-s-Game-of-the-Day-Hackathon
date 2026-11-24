@@ -40,7 +40,7 @@ import type { RngState } from './rng.ts';
  *              see INSTINCT_DODGE_CHANCES)
  * - bane:      adds this much to every affliction your cards lay (Hex,
  *              Poison, Burn, Frost, Bleed, Shock; see BANE_AFFLICTIONS)
- * - sharpshooter: on or off; your shots ignore Out of Range and Range
+ * - sharpshooter: on or off; +50% hit chance on every shot, and Range
  *   hits deal SHARPSHOOTER_DAMAGE_FACTOR times as much
  * - berserker: on or off; every Melee card has Rampage (BUFF_KEYWORDS)
  * Momentum comes from charging: while above 0 the next Melee card deals

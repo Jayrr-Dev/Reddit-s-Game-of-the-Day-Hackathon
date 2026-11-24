@@ -38,6 +38,8 @@ export const MOMENTUM_DAMAGE_FACTOR = 1.5;
 export const RAMPAGE_MOMENTUM_FACTOR = 1 + (MOMENTUM_DAMAGE_FACTOR - 1) * 2;
 /** Sharpshooter multiplies every Range hit (and its shots never miss). */
 export const SHARPSHOOTER_DAMAGE_FACTOR = 1.2;
+/** Sharpshooter adds this to every shot's chance to land (capped at 1). */
+export const SHARPSHOOTER_ACCURACY_BONUS = 0.5;
 /**
  * The afflictions Bane strengthens: those counted in stacks. (Weaken
  * counts turns and Enfeeble tiers, so Bane leaves them alone.)

@@ -41,6 +41,7 @@ import {
   playDamageFactor,
   plannedHeroMoves,
   aimHitChance,
+  shotHitChance,
 } from './combat.ts';
 import {
   describeCard,
@@ -2337,6 +2338,16 @@ void test('Sharpshooter: Range hits deal 20% more, other types are unchanged', (
   ]);
   assert.deepEqual(describeCard('backhand', after.player), ['Damage 6']);
   assert.deepEqual(describeCard('sharpshooter'), ['Sharpshooter', 'Remove']);
+  // +50% accuracy, added to each shot's chance (capped at 100%).
+  const hero = after.heroes[0]!;
+  const aloft = { ...hero, statuses: { ...hero.statuses, aloft: 1 } };
+  assert.ok(
+    Math.abs(shotHitChance('range', aloft, false, 0.5) - 0.65) < 1e-9,
+    'Aloft 15% -> 65%'
+  );
+  const far = { ...hero, row: 'horizon' as const };
+  assert.equal(shotHitChance('range', far, false, 0.5), 1, 'Out of Range 50%');
+  assert.equal(shotHitChance('range', far, false), 0.5);
 });
 
 // --- BERSERKER ---
