@@ -272,7 +272,7 @@ export const MOVEMENT_LOOK: Record<MovementId, MovementLook> = {
     label: 'Charge',
     glyph: 'bolt',
     description:
-      'Closes in until a hero is in **Line 1**\nYour next **Melee** card deals **+50%**',
+      'You move up to **2** lines closer, until a hero is in **Line 1**\nYour next **Melee** card deals **+50%**',
     speedLines: 'in',
     toneClass: 'bg-blood shadow-[0_0_14px_var(--color-blood)]',
   },
@@ -280,7 +280,7 @@ export const MOVEMENT_LOOK: Record<MovementId, MovementLook> = {
     label: 'Back Step',
     glyph: 'march',
     description:
-      'Sends every hero back **1** line, to **Line 2**\nOut of **Melee** reach',
+      'You move back **1** line\nEvery hero ends up 1 line farther, up to **Line 3**\nOut of **Melee** reach',
     speedLines: 'out',
     toneClass:
       'bg-surface-raised shadow-[0_0_14px_var(--color-guard)] [&_svg]:rotate-180',
