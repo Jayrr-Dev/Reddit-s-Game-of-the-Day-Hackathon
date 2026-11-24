@@ -38,15 +38,15 @@ export type StatusInfo = { label: string; description: string };
 export const STATUS_INFO: Record<StatusId | 'shroud', StatusInfo> = {
   shroud: {
     label: 'Guard',
-    description: 'Blocks damage. Fades at the start of your turn.',
+    description: 'Blocks damage until your next turn.',
   },
   hex: {
     label: 'Hex',
-    description: 'Loses this much HP each turn, then Hex drops by 1.',
+    description: 'Lose this much HP each turn, then -1.',
   },
   dread: {
     label: 'Dread',
-    description: 'Deals 25% less attack damage. Drops by 1 each turn.',
+    description: '25% less damage. -1 each turn.',
   },
   wrath: { label: 'Wrath', description: 'Adds this much damage to every hit.' },
   might: { label: 'Might', description: 'Adds this much to every Melee hit.' },
@@ -57,8 +57,7 @@ export const STATUS_INFO: Record<StatusId | 'shroud', StatusInfo> = {
   },
   momentum: {
     label: 'Momentum',
-    description:
-      'From charging: your next Melee card this turn deals 50% more damage.',
+    description: 'Next Melee card this turn +50%.',
   },
   protection: {
     label: 'Protection',
@@ -66,8 +65,7 @@ export const STATUS_INFO: Record<StatusId | 'shroud', StatusInfo> = {
   },
   aloft: {
     label: 'Aloft',
-    description:
-      'High in the sky: no card can aim at or hit it until it dives back down.',
+    description: 'Out of reach until it dives.',
   },
 };
 

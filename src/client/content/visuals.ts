@@ -187,16 +187,14 @@ export const MOVEMENT_LOOK: Record<MovementId, MovementLook> = {
   charge: {
     label: 'Charge',
     glyph: 'bolt',
-    description:
-      'The back row steps up, and your next Melee card this turn deals 50% more damage. Each move in a row costs 1 more; a turn without moving resets it.',
+    description: 'Pull the back row forward. Next Melee card +50%.',
     speedLines: 'in',
     toneClass: 'bg-blood shadow-[0_0_14px_var(--color-blood)]',
   },
   backStep: {
     label: 'Back Step',
     glyph: 'march',
-    description:
-      'Fall back, so the heroes end up in the back row. Melee heroes cannot reach you until they step up again. Each move in a row costs 1 more; a turn without moving resets it.',
+    description: 'Push every hero to the back row, out of Melee reach.',
     speedLines: 'out',
     toneClass:
       'bg-surface-raised shadow-[0_0_14px_var(--color-shroud)] [&_svg]:rotate-180',
