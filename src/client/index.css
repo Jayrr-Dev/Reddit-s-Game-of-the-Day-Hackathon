@@ -308,8 +308,8 @@
     }
   }
 
-  /* A damage number: punches in, lingers, then floats up while it
-     shrinks and fades. */
+  /* A damage number: punches in, then floats straight off while it
+     swells and fades. */
   @keyframes hit-pop {
     /* PUNCH: slams in big, undershoots, settles (about 220ms) */
     0% {
@@ -323,18 +323,21 @@
     11% {
       transform: scale(1.12);
     }
+    /* THEN FLOATS AT ONCE, NO HOLD: drifts up (and sideways by
+       --pop-drift-x, see HitStack), swelling as it fades */
     16% {
-      transform: scale(1);
+      transform: translate(0, 0) scale(1);
+      animation-timing-function: linear;
     }
-    /* HOLD, THEN DRIFT UP, SWELL AND FADE */
-    /* --pop-drift-x: a sideways float (0 for straight up, see HitStack) */
     55% {
       opacity: 1;
-      transform: translate(calc(var(--pop-drift-x, 0px) * 0.15), -6px) scale(1);
+      transform: translate(calc(var(--pop-drift-x, 0px) * 0.45), -20px)
+        scale(1.2);
+      animation-timing-function: ease-in;
     }
     100% {
       opacity: 0;
-      transform: translate(var(--pop-drift-x, 0px), -40px) scale(1.6);
+      transform: translate(var(--pop-drift-x, 0px), -48px) scale(1.6);
     }
   }
 
