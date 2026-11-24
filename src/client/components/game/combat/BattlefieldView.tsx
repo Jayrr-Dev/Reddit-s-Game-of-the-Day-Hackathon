@@ -3,7 +3,7 @@
 // The 3 x 3 battlefield as a parallax scene. Layers, back to front:
 // backdrop -> Horizon -> Backline -> ground shade -> Front line ->
 // foreground. A nearer row always draws over a farther one. The camera (--cam) leans
-// toward the focused hero, and the stage sways gently on its own.
+// toward the focused hero, and rests when focus is still.
 // Heroes that change rows glide there (see useRowMoves); fallen heroes
 // play their death in place first (see useFallenHeroes). A boss's first
 // appearance plays its entrance over the field (see useBossEntrance).
@@ -16,19 +16,20 @@ import type { HeroRow, HeroUnit } from '../../../../shared/game/types';
 import { isBoss, type HeroAction } from '../../../content/heroLooks';
 import { FIELD_ATTR } from '../../../hooks/useCardDrag';
 import { cssVars, depthStyle } from '../../../lib/cssVars';
-import { Backdrop, Foreground } from './Backdrop';
+import { Backdrop } from './Backdrop';
 import type { AimState, PickMarker } from '../../../hooks/useCombatControls';
 import { useBossEntrance } from '../../../hooks/useBossEntrance';
 import { useFallenHeroes } from '../../../hooks/useFallenHeroes';
 import { usePlateSpacing } from '../../../hooks/usePlateSpacing';
-import { ROW_LAYER_ATTR, useRowMoves } from '../../../hooks/useRowMoves';
+import { useRowMoves } from '../../../hooks/useRowMoves';
 import { BossEntrance } from './BossEntrance';
 import { HeroOnField } from './HeroOnField';
 
 // --- TYPES ---
 export type BattlefieldViewProps = {
   heroes: readonly HeroUnit[];
-  hue: number;
+  terrainIndex: number;
+  travelRows: number;
   focusUid: number | null;
   /** Aim state per hero uid while a card is held (empty when none). */
   aimOf: (uid: number) => AimState;
@@ -43,7 +44,7 @@ export type BattlefieldViewProps = {
 
 // --- CONSTANTS ---
 /** How far (px) the camera leans per column away from the centre. */
-const CAMERA_LEAN_PX = 26;
+const CAMERA_LEAN_PX = 1;
 /** Parallax depth of each row's layer. */
 const ROW_DEPTH: Record<HeroRow, number> = {
   horizon: 0.45,
@@ -74,9 +75,8 @@ const RowLayer = ({
   children: ReactNode;
 }) => (
   <div
-    className="parallax-layer pointer-events-none absolute -inset-x-8 inset-y-0"
+    className="table-hero-row parallax-layer pointer-events-none absolute -inset-x-8 inset-y-0"
     style={depthStyle(depth)}
-    {...{ [ROW_LAYER_ATTR]: true }}
   >
     <div className="absolute inset-y-0 left-10 right-10">{children}</div>
   </div>
@@ -86,7 +86,8 @@ const RowLayer = ({
 /** Renders the scene with every hero in its row and columns. */
 export const BattlefieldView = ({
   heroes,
-  hue,
+  terrainIndex,
+  travelRows,
   focusUid,
   aimOf,
   pickMarkerOf,
@@ -156,21 +157,25 @@ export const BattlefieldView = ({
       {...{ [FIELD_ATTR]: true }}
       style={cssVars({ '--cam': cameraFor(focused) })}
     >
-      <Backdrop hue={hue} />
-      {farRowsFarthestFirst().map((row) => (
-        <RowLayer key={row} depth={ROW_DEPTH[row]}>
-          {renderRow(row)}
-        </RowLayer>
-      ))}
-      <div
-        className="parallax-layer pointer-events-none absolute -inset-x-8 bottom-0 h-1/2"
-        style={{
-          ...depthStyle(0.8),
-          background: `linear-gradient(transparent, hsl(${hue} 35% 6% / 0.85))`,
-        }}
-      />
-      <RowLayer depth={ROW_DEPTH.front}>{renderRow('front')}</RowLayer>
-      <Foreground hue={hue} />
+      <div className="absolute inset-0">
+        <div className="field-camera pointer-events-none absolute inset-0" style={{ ...cssVars({ '--travel-rows': travelRows }), transformOrigin: '50% var(--horizon)' }}>
+          <Backdrop terrainIndex={terrainIndex} depths={ROW_DEPTH} hasHorizon={activeRows().includes('horizon')} />
+        </div>
+        {farRowsFarthestFirst().map((row) => (
+          <RowLayer key={row} depth={ROW_DEPTH[row]}>
+            {renderRow(row)}
+          </RowLayer>
+        ))}
+        <div
+          className="parallax-layer pointer-events-none absolute -inset-x-8 bottom-0 h-1/2"
+          style={{
+            ...depthStyle(0.8),
+            background: `linear-gradient(transparent, rgb(20 14 24 / 0.18))`,
+          }}
+        />
+        <RowLayer depth={ROW_DEPTH.front}>{renderRow('front')}</RowLayer>
+      </div>
+
       {bossEntrance.entering && (
         <BossEntrance boss={bossEntrance.entering} onSkip={bossEntrance.skip} />
       )}

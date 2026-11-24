@@ -2,7 +2,7 @@
 // PILE STACK (ATOM)
 // A card pile drawn as a small stack: the top card shows the count,
 // and more card edges peek out behind it as the pile grows, so you can
-// read how full it is at a glance. An empty pile is a dashed outline.
+// read how full it is at a glance. An empty pile keeps its solid face and shows zero.
 // Used for the draw pile (right), the discard and Remove piles (left). Tapping
 // it opens the pile to see its cards (PileDialog).
 // ===================================================================
@@ -51,7 +51,6 @@ export const PileStack = ({
   const backCards = backCardsFor(count);
   // Back cards fan up and toward the nearer screen edge, so the piles mirror.
   const shiftX = side === 'left' ? -LAYER_SHIFT_PX : LAYER_SHIFT_PX;
-  const isEmpty = count === 0;
   return (
     <Tooltip content={{ title: label }}>
       <button
@@ -75,7 +74,7 @@ export const PileStack = ({
           );
         })}
         <span
-          className={`relative grid place-items-center font-display text-xs font-black ${CARD_CLASS} ${isEmpty ? 'border border-dashed border-accent/40 text-ink/50' : `${toneClass} text-ink ring-1 ring-accent/50`}`}
+          className={`relative grid place-items-center font-display text-xs font-black ${CARD_CLASS} ${toneClass} text-ink border border-accent/70 shadow-sm`}
         >
           <span className="num-center">{count}</span>
         </span>

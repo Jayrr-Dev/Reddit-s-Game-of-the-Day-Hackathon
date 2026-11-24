@@ -27,14 +27,15 @@ import {
   hasLongRangePassive,
   playCard,
   startCombat,
+  targetsFor,
 } from './combat.ts';
 import { describeHeroIntent } from './describe.ts';
 import { FEATURES } from './features.ts';
 import { canImbueOnto } from './imbue.ts';
 import { getHero, type HeroId } from './heroes.ts';
 import { canMove, move, movementBlockReason } from './movement.ts';
-import { SANDBOX_SCENARIOS, createSandboxWith } from './sandbox.ts';
-import { MAX_HERO_CELLS, OUT_OF_RANGE_HIT_CHANCE } from './rules.ts';
+import { SANDBOX_SCENARIOS, createSandboxWith, sandboxReducer } from './sandbox.ts';
+import { BATTLEFIELD_COLUMNS, MAX_HERO_CELLS, OUT_OF_RANGE_HIT_CHANCE } from './rules.ts';
 import type { CombatState, HeroRow, HeroUnit } from './types.ts';
 
 // This file plays the three-row field (off by default, see features.ts).
@@ -83,7 +84,114 @@ const placesOf = (heroes: readonly HeroUnit[]): string[] =>
     .sort((a, b) => a.uid - b.uid)
     .map((unit) => `${unit.row}:${unit.col}`);
 
+void test('Spiked Guard can strike a Paladin backed by Valen', () => {
+  const state = fightAt([
+    ['paladin', 'front', 0],
+    ['valen', 'back', 0],
+  ], ['spikedGuard']);
+  const paladin = unitAt(state, 0);
+  assert.equal(canPush(state.heroes, paladin), false);
+  for (const id of ['spikedGuard', 'ruin', 'hurlAside'] as const) {
+    assert.deepEqual(targetsFor(state, id).map((unit) => unit.uid), [paladin.uid]);
+  }
+  const after = playCard(state, 0, paladin.uid);
+  assert.ok(unitAt(after, 0).hp + unitAt(after, 0).guard < paladin.hp + paladin.guard);
+  assert.equal(after.player.guard, state.player.guard + 5);
+  assert.equal(unitAt(after, 1).hp, unitAt(state, 1).hp);
+  assert.deepEqual(placesOf(after.heroes), placesOf(state.heroes));
+});
+
 // --- FORMATION AND ADVANCING ---
+void test('Killing Spree requires three fresh kills in one hit, then pays one to draw three and gain three', () => {
+  const start = fightAt([
+    ['squire', 'front', 0], ['squire', 'front', 1], ['squire', 'front', 2],
+    ['archer', 'back', 0],
+  ]);
+  const field = {
+    ...start,
+    heroes: start.heroes.map(hero => ({ ...hero, hp: hero.row === 'front' ? 1 : 20 })),
+    drawPile: Array<CardId>(3).fill('darkCloak'),
+  };
+  const locked = { ...field, hand: ['killingSpree'] as CardId[] };
+  assert.equal(playCard(locked, 0, -1), locked);
+  let separate = { ...field, hand: ['backhand', 'backhand', 'backhand', 'killingSpree'] as CardId[] };
+  for (const uid of [0, 1, 2]) separate = playCard(separate, 0, uid);
+  assert.equal(separate.slain, 3);
+  assert.equal(playCard(separate, 0, -1), separate);
+  const unlocked = playCard({ ...field, hand: ['cleave', 'killingSpree'] }, 0, -1);
+  const result = playCard(unlocked, 0, -1);
+  assert.deepEqual(result.hand, ['darkCloak', 'darkCloak', 'darkCloak']);
+  assert.equal(result.energy, unlocked.energy + 2);
+  assert.ok(result.discardPile.includes('killingSpree'));
+});
+
+void test('Knockback 2 crosses a full row and shoves the landing occupant sideways', () => {
+  for (const blockedSide of [0, 2]) {
+    const state = fightAt([
+      ['squire', 'front', 1],
+      ['archer', 'back', 0], ['archer', 'back', 1], ['archer', 'back', 2],
+      ['archer', 'horizon', 1], ['ballista', 'horizon', blockedSide],
+    ], ['forcePush', 'darkCloak', 'followUp', 'followUp']);
+    assert.ok(targetsFor(state, 'forcePush').some(hero => hero.uid === 0));
+    const pushed = playCard(state, 0, 0);
+    assert.equal(unitAt(pushed, 0).row, 'horizon');
+    assert.equal(unitAt(pushed, 0).col, 1);
+    assert.equal(unitAt(pushed, 4).col, 2 - blockedSide);
+    assert.equal(unitAt(pushed, 5).col, blockedSide);
+    const defended = playCard(pushed, 0, -1);
+    const boosted = playCard(defended, 0, -1);
+    assert.equal(boosted.energy, defended.energy);
+    assert.equal(boosted.player.statuses.move, 2);
+    const second = playCard(boosted, 0, -1);
+    assert.equal(second.energy, boosted.energy - 1);
+    assert.equal(endTurn(pushed).followUpReady, false);
+  }
+});
+
+void test('Move 2 boosts the next Charge or Back Step and is then spent', () => {
+  for (const row of ['front', 'horizon'] as const) {
+    const state = fightAt([['squire', row, 1]], ['followUp']);
+    const ready = playCard(state, 0, -1);
+    assert.equal(ready.energy, state.energy - 1);
+    const moved = move(ready, row === 'front' ? 'backStep' : 'charge');
+    assert.equal(unitAt(moved, 0).row, row === 'front' ? 'horizon' : 'front');
+    assert.equal(moved.player.statuses.move, 0);
+  }
+});
+
+void test('Siege Blast hits every grounded row and knocks all survivors back up to two rows', () => {
+  const fight = fightAt([
+    ['squire', 'front', 0], ['archer', 'back', 1], ['priest', 'horizon', 2],
+  ], ['siegeBlast']);
+  const state = { ...fight, heroes: fight.heroes.map(hero => ({ ...hero, hp: 50, maxHp: 50, guard: 0 })) };
+  const after = playCard(state, 0, -1);
+  assert.equal(after.energy, state.energy - 2);
+  assert.deepEqual(after.heroes.map(hero => [hero.hp, hero.row]), [
+    [38, 'horizon'], [38, 'horizon'], [38, 'horizon'],
+  ]);
+  const lethal = { ...state, heroes: state.heroes.map(hero => hero.row === 'front' ? { ...hero, hp: 1 } : hero) };
+  const kill = playCard(lethal, 0, -1);
+  assert.equal(kill.slain, 1);
+  assert.equal(kill.freeMove?.move, 'charge');
+});
+
+void test('replacement waves fill the Horizon and overflow into the Backline', () => {
+  for (let seed = 1; seed <= 100; seed++) {
+    const state = fightAt([['squire', 'front', 1]], ['cataclysm'], seed);
+    const next = sandboxReducer({
+      ...state, heroes: state.heroes.map((hero) => ({ ...hero, hp: 1 })),
+    }, { type: 'playCard', handIndex: 0, targetUid: 0 });
+    const cells = next.heroes.flatMap(cellsOf);
+    const horizonCells = cells.filter((cell) => cell.row === 'horizon').length;
+    assert.ok(horizonCells > 0);
+    for (const hero of next.heroes.filter((unit) => unit.row === 'back')) {
+      assert.ok(cellsOf(hero).length > BATTLEFIELD_COLUMNS - horizonCells);
+    }
+    assert.ok(cells.every((cell) => cell.row !== 'front'));
+    assert.equal(new Set(cells.map((cell) => cell.row + cell.col)).size, cells.length);
+  }
+});
+
 void test('a horde marches in a row behind home, then heads home', () => {
   const fresh = startCombat({
     hp: 60,
@@ -623,4 +731,17 @@ void test('a hero attack fully stopped by Armor lays none of its on-hit effects'
   const after = endTurn(state);
   assert.equal(after.player.hp, state.player.hp, 'the bolt does 0');
   assert.equal(after.player.statuses.burn, 0, 'so it sets no Burn');
+});
+
+test('terrain travel follows successful row movement and reverses on retreat', () => {
+  const start = fightAt([['squire', 'horizon', 0]]);
+  const first = move(start, 'charge');
+  const second = move(first, 'charge');
+  assert.equal(first.travelRows, 1);
+  assert.equal(second.travelRows, 2);
+  assert.equal(move(second, 'charge').travelRows, 2);
+  assert.equal(move(second, 'backStep').travelRows, 1);
+  const retreat = move(fightAt([['squire', 'front', 0]]), 'backStep');
+  assert.equal(retreat.travelRows, -1);
+  assert.equal(move(retreat, 'charge').travelRows, 0);
 });

@@ -376,15 +376,19 @@ const withoutSplits = (hit: Hit | null, splits: readonly Hit[]): Hit | null => {
 const BODY_FOCUS_Y = 0.58;
 
 /** The middle of a hero's drawn body, or null if it is not on screen. */
-export const bodyPointOf = (uid: number): Point | null => {
+export const bodyPointOf = (uid: number, strikeIndex?: number): Point | null => {
   const body = document.querySelector(
     `[${HERO_UID_ATTR}="${uid}"] [${HERO_ANCHOR_ATTR}]`
   );
   if (!body) return null;
   const rect = body.getBoundingClientRect();
+  // A golden-angle step separates consecutive strikes across the torso.
+  const angle = ((uid + (strikeIndex ?? 0)) * 137.5 * Math.PI) / 180;
+  const dx = strikeIndex === undefined ? 0 : Math.cos(angle) * rect.width * 0.27;
+  const dy = strikeIndex === undefined ? 0 : Math.sin(angle) * rect.height * 0.24;
   return {
-    x: rect.left + rect.width / 2,
-    y: rect.top + rect.height * BODY_FOCUS_Y,
+    x: rect.left + rect.width / 2 + dx,
+    y: rect.top + rect.height * BODY_FOCUS_Y + dy,
   };
 };
 
@@ -430,7 +434,8 @@ const heroPopsSince = (
   isHeroTurn: boolean,
   source: CardType | undefined,
   element: MagicElement | undefined,
-  edge: MeleeEdge | undefined
+  edge: MeleeEdge | undefined,
+  strikeIndex: number
 ): Omit<HitPop, 'id' | 'typical'>[] =>
   [...before].flatMap(([uid, old]) => {
     const unit = heroes.find((hero) => hero.uid === uid);
@@ -463,7 +468,7 @@ const heroPopsSince = (
     const hit = found ? { ...found, source, element, edge, tick } : null;
     const gains = isHeroTurn && unit ? gainsBetween(old, now) : [];
     const misses = missesBetween(old, now);
-    const point = bodyPointOf(uid) ?? old.point;
+    const point = bodyPointOf(uid, hit && !isHeroTurn ? strikeIndex : undefined) ?? old.point;
     if (!point) return [];
     return [...(hit ? [hit] : []), ...misses, ...gains, ...debuffs].map(
       (pop) => ({
@@ -530,7 +535,9 @@ export const useHitPops = (
   cardType: CardType | undefined,
   element: MagicElement | undefined,
   edge: MeleeEdge | undefined,
-  history: HitHistory
+  history: HitHistory,
+  strikeIndex: number,
+  fallenFromTick?: HeroUnit
 ): HitPop[] => {
   const [pops, add] = usePopQueue<Omit<HitPop, 'id' | 'typical'>>(history);
   const lastLookRef = useRef(new Map<number, HeroLook>());
@@ -541,17 +548,18 @@ export const useHitPops = (
     const countsBlocked = lastTurnRef.current === turn && !isHeroTurn;
     const hits = heroPopsSince(
       lastLookRef.current,
-      heroes,
+      fallenFromTick ? [...heroes, fallenFromTick] : heroes,
       countsBlocked,
       isHeroTurn,
       isHeroTurn ? 'curse' : cardType,
       isHeroTurn ? undefined : element,
-      isHeroTurn ? undefined : edge
+      isHeroTurn ? undefined : edge,
+      strikeIndex
     );
     lastLookRef.current = lookAt(heroes, lastLookRef.current);
     lastTurnRef.current = turn;
     if (hits.length > 0) add(hits);
-  }, [heroes, turn, isHeroTurn, cardType, element, edge, add]);
+  }, [heroes, turn, isHeroTurn, cardType, element, edge, strikeIndex, fallenFromTick, add]);
 
   return pops;
 };

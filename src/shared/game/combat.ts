@@ -41,7 +41,7 @@ import {
   rowDepth,
   summonSeats,
 } from './battlefield.ts';
-import { getCard, type CardId } from './cards.ts';
+import { cardCost, getCard, type CardId } from './cards.ts';
 import {
   addGuard,
   addStatus,
@@ -74,7 +74,7 @@ import { isLongRangeOn } from './features.ts';
 import { foldPerHitAfflictions, getHero, type HeroId } from './heroes.ts';
 // A cycle (movement.ts reads combatOutcome) is safe: both sides only
 // call each other inside functions, never while loading.
-import { moveFree } from './movement.ts';
+import { hasRoomFor, moveFree, moveFromCard } from './movement.ts';
 import {
   addToHand,
   cardHasKeyword,
@@ -139,6 +139,7 @@ export type CombatSetup = {
   maxHp: number;
   deck: readonly CardId[];
   heroIds: readonly HeroId[];
+  formation?: 'march' | 'furthest';
   /** Hero strength multiplier for this depth (1 = base stats). */
   might: number;
   seed: RngState;
@@ -171,7 +172,8 @@ export const startCombat = (setup: CombatSetup): CombatState => {
     heroes: formUp(
       setup.heroIds.map((id, index) =>
         createHeroUnit(id, index + 1, setup.might)
-      )
+      ),
+      setup.formation
     ),
     energy: 0,
     reserve: 0,
@@ -329,7 +331,8 @@ export const heroAttackOf = (
 
 /** Heroes this card may be aimed at now (every hero for untargeted cards). */
 export const targetsFor = (state: CombatState, cardId: CardId): HeroUnit[] =>
-  legalTargets(state.heroes, targetRuleOf(cardId), getCard(cardId).type);
+  legalTargets(state.heroes, targetRuleOf(cardId), getCard(cardId).type,
+    getCard(cardId).effects.find(effect => effect.kind === 'push')?.rows);
 
 /**
  * True when an untargeted card would be wasted: it only acts on heroes,
@@ -353,12 +356,22 @@ const isAreaCardWasted = (state: CombatState, cardId: CardId): boolean =>
 export const canPlayCard = (state: CombatState, handIndex: number): boolean => {
   const cardId = state.hand[handIndex];
   if (cardId === undefined || combatOutcome(state) !== 'ongoing') return false;
+  const card = getCard(cardId);
+  if ((state.mostKillsInOneHit ?? 0) < (card.requiredKillsInOneHit ?? 0)) return false;
+  const movement = card.effects.find(
+    (effect) => effect.kind === 'charge' || effect.kind === 'backStep'
+  );
+  if (
+    movement &&
+    (movement.kind === 'charge' || movement.kind === 'backStep') &&
+    !hasRoomFor(state, movement.kind)
+  ) return false;
   const hasTarget = imbueEffectOf(cardId)
     ? imbueSlotsFor(state, handIndex).length > 0
     : targetRuleOf(cardId) === 'none'
       ? !isAreaCardWasted(state, cardId)
       : targetsFor(state, cardId).length > 0;
-  return getCard(cardId).cost <= state.energy && hasTarget;
+  return cardCost(cardId, state.slain, state.followUpReady) <= state.energy && hasTarget;
 };
 
 // --- DRAWING ---
@@ -637,9 +650,16 @@ const villainAttack = (
       cardDef,
       play.isLongRange
     );
-    return play.isPiercing && aim.target === 'one'
+    const afterHit = play.isPiercing && aim.target === 'one'
       ? pierceBehind(struck, aim.uid, pierceHit, cardDef, play.isLongRange)
       : struck;
+    // Count fresh defeats from this hit, including its piercing damage.
+    const kills = afterHit.heroes.filter((hero, index) =>
+      hero.hp === 0 && (current.heroes[index]?.hp ?? 0) > 0
+    ).length;
+    return kills > (current.mostKillsInOneHit ?? 0)
+      ? { ...afterHit, mostKillsInOneHit: kills }
+      : afterHit;
   }, state);
 };
 
@@ -793,7 +813,22 @@ const applyCardEffect = (
     }
     case 'protect':
       return { ...state, player: castProtection(state.player) };
+    case 'charge':
+    case 'backStep':
+      return moveFromCard(state, effect.kind);
+    case 'momentum':
+      return {
+        ...state,
+        player: {
+          ...state.player,
+          statuses: {
+            ...state.player.statuses,
+            momentum: Math.max(1, state.player.statuses.momentum),
+          },
+        },
+      };
     case 'brace':
+    case 'move':
     case 'rush':
     case 'armor':
       return {
@@ -822,11 +857,18 @@ const applyCardEffect = (
         ...state,
         heroes: pullHero(state.heroes, targetUid, effect.rows),
       };
-    case 'push':
-      return {
-        ...state,
-        heroes: pushHero(state.heroes, targetUid, effect.rows),
-      };
+    case 'push': {
+      if (effect.target === 'all') {
+        const living = removeFallen(state);
+        const targets = resolveTargets(living, 'all', targetUid, cardDef.type, !cardDef.reach);
+        const heroes = fallBack(living.heroes, effect.rows, new Set(targets));
+        const moved = heroes.some((hero, index) => hero.row !== living.heroes[index]?.row);
+        return { ...living, heroes, followUpReady: moved || !!living.followUpReady };
+      }
+      const heroes = pushHero(state.heroes, targetUid, effect.rows);
+      const moved = heroes !== state.heroes && heroes.some(hero => hero.uid === targetUid && hero.hp > 0);
+      return { ...state, heroes, followUpReady: moved || !!state.followUpReady };
+    }
     case 'amplify':
       // OVERCHARGE: the status already on the target, multiplied.
       return updateHeroes(
@@ -860,7 +902,7 @@ export const movementFailsOn = (
   return getCard(cardId).effects.some(
     (effect) =>
       (effect.kind === 'pull' && !canPull(state.heroes, unit)) ||
-      (effect.kind === 'push' && !canPush(state.heroes, unit))
+      (effect.kind === 'push' && !canPush(state.heroes, unit, effect.rows))
   );
 };
 
@@ -900,8 +942,8 @@ const spendMomentum = (state: CombatState, cardDef: CardDef): CombatState =>
  */
 const payForCard = (state: CombatState, handIndex: number): CombatState => {
   const cardId = state.hand[handIndex];
-  const cost = cardId === undefined ? 0 : getCard(cardId).cost;
-  return removeFromHand({ ...state, energy: state.energy - cost }, handIndex);
+  const cost = cardId === undefined ? 0 : cardCost(cardId, state.slain, state.followUpReady);
+  return removeFromHand({ ...state, energy: state.energy - cost, ...(cardId === 'followUp' && { followUpReady: false }) }, handIndex);
 };
 
 // --- TIMED BUFFS ---
@@ -1666,7 +1708,7 @@ export const heroTurnOrder = (heroes: readonly HeroUnit[]): HeroUnit[] =>
  * Begins a villain turn: guard and last round's buffs fade, Hex burns,
  * energy refills (plus whatever the reserve kept), new hand.
  */
-const startPlayerTurn = (state: CombatState): CombatState =>
+export const startPlayerTurn = (state: CombatState): CombatState =>
   drawCards(
     {
       ...state,
@@ -1675,9 +1717,28 @@ const startPlayerTurn = (state: CombatState): CombatState =>
       energy: ENERGY_PER_TURN + state.reserve,
       reserve: 0,
       turn: state.turn + 1,
+      followUpReady: false,
     },
     CARDS_PER_TURN
   );
+
+/** Closes the player turn, including discards, reserve and status upkeep. */
+export const finishPlayerTurn = (state: CombatState): CombatState => {
+  // Timed buffs ("this turn", "this action") lapse first.
+  const lapsed: CombatState = {
+    ...state,
+    player: takeBackBuffs(state.player, state.timedBuffs),
+    timedBuffs: [],
+  };
+  return {
+    ...discardHand(lapsed),
+    // RESERVE ENERGY: unspent energy fills the reserve slots; the rest is lost.
+    energy: 0,
+    reserve: Math.min(lapsed.energy, RESERVE_ENERGY_SLOTS),
+    // The villain's turn was its action: Burn and Frost, then upkeep.
+    player: endOfTurnUpkeep(afterAction(lapsed.player)),
+  };
+};
 
 /**
  * One beat of the end of a turn: the state right after it, the hero who
@@ -1685,6 +1746,8 @@ const startPlayerTurn = (state: CombatState): CombatState =>
  * turn), and how that move's attacks landed (null if it had none).
  */
 export type TurnStep = {
+  /** Final damage counters for a unit removed by this status tick. */
+  fallenFromTick?: HeroUnit;
   actorUid: number | null;
   attackType: HeroAttackType | null;
   /** The move just made (null when `actorUid` is). */
@@ -1710,8 +1773,12 @@ const plannedAttackType = (
 const hexBurnStep = (state: CombatState, uid: number): TurnStep | null => {
   const unit = state.heroes.find((hero) => hero.uid === uid);
   if (!unit || unit.statuses.hex <= 0) return null;
-  const next = removeFallen(updateHeroes(state, [uid], hexBurn));
-  return { actorUid: null, attackType: null, move: null, state: next };
+  const ticked = updateHeroes(state, [uid], hexBurn);
+  const fallen = ticked.heroes.find((hero) => hero.uid === uid && hero.hp === 0);
+  return {
+    actorUid: null, attackType: null, move: null, state: removeFallen(ticked),
+    ...(fallen && { fallenFromTick: fallen }),
+  };
 };
 
 /**
@@ -1734,19 +1801,8 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
   if (combatOutcome(state) !== 'ongoing') return [];
 
   // 1. DISCARD THE HAND (HOLD CARDS STAY), THE VILLAIN'S UPKEEP, AND THE HEROES' GUARD FROM LAST ROUND FADES
-  // Timed buffs ("this turn", "this action") lapse first.
-  const lapsed: CombatState = {
-    ...state,
-    player: takeBackBuffs(state.player, state.timedBuffs),
-    timedBuffs: [],
-  };
   const discarded: CombatState = {
-    ...discardHand(lapsed),
-    // RESERVE ENERGY: unspent energy fills the reserve slots; the rest is lost.
-    energy: 0,
-    reserve: Math.min(lapsed.energy, RESERVE_ENERGY_SLOTS),
-    // The villain's turn was its action: Burn and Frost, then upkeep.
-    player: endOfTurnUpkeep(afterAction(lapsed.player)),
+    ...finishPlayerTurn(state),
     // Enfeeble laid on this turn holds; any older lapses.
     // Their round buffs (Protection) are spent as their turn starts.
     heroes: state.heroes.map((unit) =>

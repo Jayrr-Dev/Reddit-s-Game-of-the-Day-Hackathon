@@ -45,6 +45,7 @@ const QUIET_BEAT_MS = 150;
 const beatMs = (steps: readonly Beat[], index: number): number => {
   const step = steps[index];
   const next = steps[index + 1];
+  if (step?.fallenFromTick && !next) return 1400;
   if (!step || step.actorUid === null) return QUIET_BEAT_MS;
   if (step.isCharge) return SIGNATURE_CHARGE_MS;
   return next && next.actorUid !== null ? HERO_STAGGER_MS : HERO_ATTACK_MS;
@@ -159,6 +160,7 @@ export const useHeroTurn = (
 
   return {
     shown: step?.state ?? combat,
+    fallenFromTick: step?.fallenFromTick,
     /** Heroes moving right now, each with its animation style. */
     acting: playback ? actingAt(playback.steps, playback.index) : NOBODY_ACTING,
     /** How the attack on screen right now lands (it colours your hits). */

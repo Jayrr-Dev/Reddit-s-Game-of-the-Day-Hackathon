@@ -15,7 +15,7 @@ import {
   rollDummies,
   sandboxReducer,
 } from './sandbox.ts';
-import { ENERGY_PER_TURN } from './rules.ts';
+import { CARDS_PER_TURN, ENERGY_PER_TURN } from './rules.ts';
 import { getCard, isCardInPlay } from './cards.ts';
 import { SANDBOX_DECKS, sandboxDeckCards } from './sandboxDecks.ts';
 import { movementFailsOn } from './combat.ts';
@@ -63,8 +63,28 @@ void test('clearing the field brings a new horde with higher uids', () => {
     targetUid: oneLeft.heroes[0]!.uid,
   });
   assert.ok(next.heroes.length >= 2);
+  assert.equal(next.turn, start.turn + 1);
+  assert.equal(next.hand.length, CARDS_PER_TURN);
+  assert.equal(next.player.hp, start.player.hp);
+  assert.ok(next.heroes.every((unit) => unit.moveIndex === 0));
   const oldUid = oneLeft.heroes[0]!.uid;
   assert.ok(next.heroes.every((unit) => unit.uid > oldUid));
+});
+
+void test('a poison clear during the enemy turn deals a fresh hand before the new wave acts', () => {
+  const start = createSandboxWith(7, ['archer']);
+  const combat = {
+    ...start,
+    heroes: start.heroes.map((hero) => ({
+      ...hero, hp: 1, statuses: { ...hero.statuses, poison: 2 },
+    })),
+  };
+  const next = sandboxReducer(combat, { type: 'endTurn' });
+  assert.equal(next.turn, start.turn + 1);
+  assert.equal(next.hand.length, CARDS_PER_TURN);
+  assert.equal(next.player.hp, start.player.hp);
+  assert.ok(next.heroes.every((unit) => unit.uid >= start.nextUid && unit.moveIndex === 0));
+  assert.ok(next.energy > ENERGY_PER_TURN, 'unspent energy was reserved once');
 });
 
 // --- BOSSES ---

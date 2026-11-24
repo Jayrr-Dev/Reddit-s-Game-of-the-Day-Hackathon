@@ -1,13 +1,4 @@
-// ===================================================================
-// ENERGY TRAY
-// A soft dark pool under the hand holding one pip per point of energy;
-// spent pips go dark. After them sit the reserve slots (grey rings,
-// RESERVE_ENERGY_SLOTS): energy left unspent at the end of the turn
-// waits there and is added to the next turn. No rim: the backing
-// feathers out at its edges (TRAY_BACKING), so it reads as shade
-// rather than a box.
-// ===================================================================
-
+// --- ENERGY TRAY ---
 import {
   ENERGY_PER_TURN,
   RESERVE_ENERGY_SLOTS,
@@ -18,7 +9,8 @@ import {
 const TRAY_BACKING =
   'radial-gradient(closest-side, color-mix(in srgb, var(--color-surface-sunken) 92%, transparent) 55%, transparent)';
 
-const PIP_SHAPE = 'size-3 rounded-full';
+const MAX_VISIBLE_PIPS = 6;
+const PIP_SHAPE = 'size-3 rounded-full border border-ink-muted/60';
 const LIT_PIP = 'bg-energy shadow-[0_0_6px_var(--color-energy)]';
 
 // --- HELPERS ---
@@ -36,7 +28,11 @@ const trayFill = (energy: number, reserve: number) => {
     RESERVE_ENERGY_SLOTS,
     Math.max(0, energy - pipCount) + reserve
   );
-  return { pipCount, litPips, litReserve };
+  return {
+    pipCount: Math.min(pipCount, MAX_VISIBLE_PIPS - RESERVE_ENERGY_SLOTS),
+    litPips,
+    litReserve,
+  };
 };
 
 // --- COMPONENT ---
@@ -52,14 +48,20 @@ export const EnergyTray = ({
   return (
     <div
       // pt > pb: the pips sit a step lower, nearer the hand.
-      className="flex items-center gap-1.5 px-6 pb-1.5 pt-3.5"
+      role="img"
+      className="table-pips relative flex items-center gap-1.5 px-6 pb-1.5 pt-3.5"
       style={{ background: TRAY_BACKING }}
       aria-label={`${energy} energy, ${litReserve} in reserve`}
     >
+      {energy > MAX_VISIBLE_PIPS && (
+        <strong className="absolute bottom-full left-1/2 -translate-x-1/2 rounded bg-surface-sunken px-1 text-xs leading-tight text-energy tabular-nums">
+          {energy}
+        </strong>
+      )}
       {Array.from({ length: pipCount }, (_, index) => (
         <span
           key={index}
-          className={`${PIP_SHAPE} ring-1 ring-black/60 ${index < litPips ? LIT_PIP : 'bg-surface-raised'}`}
+          className={`${PIP_SHAPE} ${index < litPips ? LIT_PIP : 'bg-transparent'}`}
         />
       ))}
       {/* RESERVE SLOTS: a grey ring, filled gold while it holds energy */}
@@ -67,7 +69,7 @@ export const EnergyTray = ({
         <span
           key={`reserve-${index}`}
           title="Reserve: unspent energy carries over to your next turn"
-          className={`${PIP_SHAPE} ml-1 ring-1 ring-ink-muted ${index < litReserve ? LIT_PIP : 'bg-transparent'}`}
+          className={`${PIP_SHAPE} ${index < litReserve ? LIT_PIP : 'bg-transparent'}`}
         />
       ))}
     </div>

@@ -89,6 +89,7 @@ const ANCHOR_HEIGHT_SHARE = 0.5;
 const TIP_INSET_PX = 6;
 /** Data attributes that mark drop targets in the DOM. */
 export const HERO_UID_ATTR = 'data-hero-uid';
+export const MOVEMENT_SLOT = -1;
 export const FIELD_ATTR = 'data-battlefield';
 /** Marks the box around a hero's drawing (the arrow lands at its middle). */
 export const HERO_ANCHOR_ATTR = 'data-hero-anchor';
@@ -115,8 +116,8 @@ const fieldRect = (): DOMRect | undefined =>
   document.querySelector(`[${FIELD_ATTR}]`)?.getBoundingClientRect();
 
 /** Keeps the tip inside the window and below the field's top edge. */
-const clampTip = (tip: Point): Point => {
-  const top = (fieldRect()?.top ?? 0) + TIP_INSET_PX;
+const clampTip = (tip: Point, field: DOMRect | undefined): Point => {
+  const top = (field?.top ?? 0) + TIP_INSET_PX;
   return {
     x: Math.min(Math.max(tip.x, 0), window.innerWidth - 1),
     y: Math.min(Math.max(tip.y, top), window.innerHeight - 1),
@@ -128,8 +129,11 @@ const clampTip = (tip: Point): Point => {
  * battlefield's bottom edge, so even a tiny flick upward counts as aiming
  * (and snaps to the nearest hero). Moving down leaves the tip alone.
  */
-const liftTip = (tip: Point, isMovingUp: boolean): Point => {
-  const field = fieldRect();
+const liftTip = (
+  tip: Point,
+  isMovingUp: boolean,
+  field: DOMRect | undefined
+): Point => {
   if (!isMovingUp || !field) return tip;
   return { ...tip, y: Math.min(tip.y, field.bottom - TIP_INSET_PX) };
 };
@@ -186,7 +190,10 @@ const rankHeroes = (heroes: ProbedHero[], tip: Point): ProbedHero[] => {
 };
 
 /** Every hero, best aimed-at first (see rankHeroes), for snapping. */
-const probe = (tip: Point): Pick<CardDrag, 'nearHeroes' | 'isOverField'> => {
+const probe = (
+  tip: Point,
+  field: DOMRect | undefined
+): Pick<CardDrag, 'nearHeroes' | 'isOverField'> => {
   const heroes = [...document.querySelectorAll(`[${HERO_UID_ATTR}]`)].map(
     probeHero
   );
@@ -194,7 +201,7 @@ const probe = (tip: Point): Pick<CardDrag, 'nearHeroes' | 'isOverField'> => {
     uid,
     point,
   }));
-  return { nearHeroes, isOverField: isInside(tip, fieldRect()) };
+  return { nearHeroes, isOverField: isInside(tip, field) };
 };
 
 /** True once the pointer has travelled far enough to count as a drag. */
@@ -242,11 +249,14 @@ const dragAt = (
     },
   };
   const isMovingUp = shift.y < 0;
+  const field = fieldRect();
   const tip = clampTip(
     liftTip(
       extend(press.grab, pointer, AIM_GAIN_SIDEWAYS, AIM_GAIN),
-      isMovingUp
-    )
+      isMovingUp,
+      field
+    ),
+    field
   );
   // The glow follows height both ways, so a pull-back fades it smoothly.
   const lift = Math.max(0, -shift.y);
@@ -259,7 +269,7 @@ const dragAt = (
           nearHeroes: lastAim?.nearHeroes ?? [],
           isOverField: lastAim?.isOverField ?? false,
         }
-      : probe(tip);
+      : probe(tip, field);
   return { handIndex: press.handIndex, card, tip, lift, pullBack, ...aim };
 };
 
@@ -298,13 +308,25 @@ export const useCardDrag = (
       peakY: press.grab.y,
     };
 
+    let started = false;
+    let frame: number | null = null;
+    let pointer = press.grab;
+
+    /** Measure live targets and draw the latest position once per frame. */
+    const draw = () => {
+      frame = null;
+      current = dragAt(press, pointer, pullBackOf(pull, pointer.y), current);
+      setDrag(current);
+    };
+
     /** Follows the pointer, starting the drag once past the threshold. */
     const handleMove = (event: PointerEvent) => {
       if (!isActive || event.pointerId !== press.pointerId) return;
-      const pointer = { x: event.clientX, y: event.clientY };
+      pointer = { x: event.clientX, y: event.clientY };
       pull = trackPull(pull, pointer.y);
-      if (!current && !isPastThreshold(press.grab, pointer)) return;
-      if (!current) {
+      if (!started && !isPastThreshold(press.grab, pointer)) return;
+      if (!started) {
+        started = true;
         didDragRef.current = true;
         // Capture only once it is a real drag, so a tap still clicks.
         // Capture keeps the moves coming even if a host page (Reddit's
@@ -312,13 +334,12 @@ export const useCardDrag = (
         press.element.setPointerCapture(press.pointerId);
         callbacksRef.current.onDragStart(press.handIndex);
       }
-      if (!isActive) return;
-      current = dragAt(press, pointer, pullBackOf(pull, pointer.y), current);
-      setDrag(current);
+      if (frame === null) frame = requestAnimationFrame(draw);
     };
 
     /** Ends the press without playing: clears the drag and the press. */
     const letGo = () => {
+      if (frame !== null) cancelAnimationFrame(frame);
       isActive = false;
       current = null;
       setDrag(null);
@@ -335,7 +356,14 @@ export const useCardDrag = (
       if (!isActive) return;
       if (event instanceof PointerEvent && event.pointerId !== press.pointerId)
         return;
-      if (current && event.type === 'pointerup') {
+      if (
+        started &&
+        event instanceof PointerEvent &&
+        event.type === 'pointerup'
+      ) {
+        pointer = { x: event.clientX, y: event.clientY };
+        pull = trackPull(pull, pointer.y);
+        current = dragAt(press, pointer, pullBackOf(pull, pointer.y), current);
         const { handIndex, nearHeroes, isOverField, lift, pullBack } = current;
         callbacksRef.current.onDrop({
           handIndex,
@@ -350,7 +378,7 @@ export const useCardDrag = (
 
     /** While a card is held, the finger must not scroll the page. */
     const blockScroll = (event: TouchEvent) => {
-      if (current) event.preventDefault();
+      if (started) event.preventDefault();
     };
 
     const endEvents = ['pointerup', 'pointercancel', 'blur'];
@@ -358,6 +386,7 @@ export const useCardDrag = (
     window.addEventListener('touchmove', blockScroll, { passive: false });
     endEvents.forEach((name) => window.addEventListener(name, handleEnd));
     return () => {
+      if (frame !== null) cancelAnimationFrame(frame);
       window.removeEventListener('pointermove', handleMove);
       window.removeEventListener('touchmove', blockScroll);
       endEvents.forEach((name) => window.removeEventListener(name, handleEnd));

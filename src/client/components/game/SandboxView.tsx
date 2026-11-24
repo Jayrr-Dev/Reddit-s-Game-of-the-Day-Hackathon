@@ -5,26 +5,26 @@
 // a preset scenario or a themed test deck, or leaves. Nothing here is scored, saved or sent to the server.
 // ===================================================================
 
+import { useState } from 'react';
 import { useSandbox } from '../../hooks/useSandbox';
 import { Button } from '../ui/Button';
 import { CombatView } from './CombatView';
+import { MAP_NAMES, PRACTICE_TERRAIN_START } from './combat/Backdrop';
 import { ScenarioPicker } from './ScenarioPicker';
-
-// --- CONSTANTS ---
-/** The sandbox's backdrop hue (a neutral dusk). */
-const SANDBOX_HUE = 30;
 
 // --- COMPONENT ---
 /** Renders the practice fight with reshuffle and leave in its pause menu. */
 export const SandboxView = ({ onExit }: { onExit: () => void }) => {
   const { combat, round, deckId, act, reshuffle, summon, pickDeck } =
     useSandbox();
+  const [selectedMap, setSelectedMap] = useState<number | null>(null);
+  const terrainIndex = selectedMap ?? ((PRACTICE_TERRAIN_START + round) % MAP_NAMES.length);
   return (
     <div className="h-full w-full overflow-hidden">
       <CombatView
         key={round}
         combat={combat}
-        hue={SANDBOX_HUE}
+        terrainIndex={terrainIndex}
         where="Target dummies · practice"
         score={0}
         onAction={act}
@@ -38,6 +38,8 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
               New dummies
             </Button>
             <ScenarioPicker
+              terrainIndex={terrainIndex}
+              onPickMap={setSelectedMap}
               deckId={deckId}
               onPickScenario={(scenario) =>
                 summon(scenario.heroIds, scenario.startsInPlace)

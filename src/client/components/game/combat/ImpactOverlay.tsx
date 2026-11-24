@@ -41,8 +41,8 @@ const placeAt = (
   baseDeg: number,
   tiltDeg: number
 ): CSSProperties => ({
-  left: `${50 + spread(id, 1) * 22}%`,
-  top: `${50 + spread(id, 2) * 22}%`,
+  left: `calc(50% + ${spread(id, 1)} * var(--mark-scatter, 22%))`,
+  top: `calc(50% + ${spread(id, 2)} * var(--mark-scatter, 22%))`,
   transform: `translate(-50%, -50%) rotate(${baseDeg + spread(id, 3) * tiltDeg}deg)`,
 });
 

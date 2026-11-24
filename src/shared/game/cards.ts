@@ -114,6 +114,9 @@ const knockback = (rows: number): CardEffect => ({ kind: 'push', rows });
  * (default none) and Target N (default 1).
  */
 type CardTraits = {
+  requiredKillsInOneHit?: number;
+  reach?: boolean;
+  costReductionPerKill?: number;
   keywords?: readonly CardKeyword[];
   targets?: number;
   element?: MagicElement;
@@ -154,7 +157,7 @@ const card = (
   cost: number,
   rarity: CardRarity,
   effects: CardEffect[],
-  { keywords = [], targets = 1, element, edge, uses }: CardTraits = {}
+  { keywords = [], targets = 1, element, edge, uses, costReductionPerKill, reach, requiredKillsInOneHit }: CardTraits = {}
 ): CardDef => ({
   name,
   type,
@@ -164,8 +167,10 @@ const card = (
   keywords,
   ...(element ? { element } : {}),
   ...(edge ? { edge } : {}),
+  ...(requiredKillsInOneHit ? { requiredKillsInOneHit } : {}),
+  ...(costReductionPerKill ? { costReductionPerKill } : {}),
   ...(uses ? { uses } : {}),
-  reach: REACHING_TYPES.has(type),
+  reach: reach ?? REACHING_TYPES.has(type),
   targets,
 });
 
@@ -182,7 +187,7 @@ export const CARDS = {
     [heal(10)],
     EXHAUSTS
   ),
-  // UTILITY: consumables, all Exhaust (one use for the whole run)
+  // Utility generally grants energy, restores HP, or draws cards. These tonics also Exhaust.
   antidote: card(
     'Antidote',
     'utility',
@@ -408,8 +413,20 @@ export const CARDS = {
     REMOVES
   ),
   deadeye: card('Deadeye', 'buff', 1, 'common', [buff('hone', 3)], REMOVES),
-  adrenaline: card('Adrenaline', 'buff', 0, 'common', [
+  adrenaline: card('Adrenaline', 'movement', 0, 'common', [
     { kind: 'rush', amount: 2 },
+  ]),
+  jump: card('Jump', 'movement', 1, 'common', [{ kind: 'momentum' }]),
+  followUp: card('Follow Up', 'movement', 1, 'common', [{ kind: 'move', amount: 2 }]),
+  chargeForward: card('Charge Forward', 'movement', 1, 'common', [{ kind: 'charge' }]),
+  retreat: card('Retreat', 'movement', 1, 'common', [{ kind: 'backStep' }]),
+  evasiveStep: card('Evasive Step', 'movement', 1, 'common', [
+    { kind: 'rush', amount: 1 },
+    guard(5),
+  ]),
+  quickFootwork: card('Quick Footwork', 'movement', 1, 'uncommon', [
+    { kind: 'rush', amount: 2 },
+    draw(1),
   ]),
   instinct: card(
     'Instinct',
@@ -540,6 +557,14 @@ export const CARDS = {
   ),
 
   // RARE
+  killingSpree: card('Killing Spree', 'utility', 1, 'rare', [draw(3), energy(3)], {
+    requiredKillsInOneHit: 3,
+  }),
+  siegeBlast: card('Siege Blast', 'melee', 2, 'rare', [hitAll(12), { kind: 'push', rows: 2, target: 'all' }], {
+    reach: true,
+    ...BLUNT,
+    ...RAMPAGES,
+  }),
   cataclysm: card(
     'Cataclysm',
     'magic',
@@ -554,6 +579,11 @@ export const CARDS = {
   vengeance: card('Vengeance', 'buff', 1, 'rare', [wrath(3)], REMOVES),
   gravePact: card('Grave Pact', 'buff', 1, 'rare', [heal(8)], REMOVES),
   // LEGENDARY: the rarest offers (see RARITY_ODDS)
+  decimate: card('Decimate', 'melee', 3, 'legendary', [hit(50)], {
+    ...BLUNT,
+    ...RAMPAGES,
+    costReductionPerKill: 1,
+  }),
   doom: card('Doom', 'curse', 3, 'legendary', [hex(33)], REMOVES),
   berserker: card(
     'Berserker',
@@ -590,6 +620,13 @@ export function isCardId(value: unknown): value is CardId {
 
 /** Looks up a card definition. */
 export const getCard = (id: CardId): CardDef => CARDS[id];
+
+/** Energy required before resolving the card, using kills in this combat. */
+export const cardCost = (id: CardId, slain: number, followUpReady = false): number => {
+  if (id === 'followUp' && followUpReady) return 0;
+  const card = getCard(id);
+  return Math.max(0, card.cost - slain * (card.costReductionPerKill ?? 0));
+};
 
 /**
  * True while a keyword is in play: Longrange only with the three-row

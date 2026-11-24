@@ -19,22 +19,17 @@
 // All game state comes from the engine; this view only routes input.
 // ===================================================================
 
+import './combat/dueling-table.css';
 import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
+import { activeRows } from '../../../shared/game/battlefield';
 import { movementFailsOn } from '../../../shared/game/combat';
-import {
-  canMove,
-  movementBlockReason,
-  movementCost,
-  offeredMovement,
-} from '../../../shared/game/movement';
 import type { RunAction } from '../../../shared/game/run';
 import type {
   CardType,
   MagicElement,
   MeleeEdge,
   CombatState,
-  MovementId,
 } from '../../../shared/game/types';
 import type { CardBox, Point } from '../../hooks/useCardDrag';
 import { useAutoEndTurn } from '../../hooks/useAutoEndTurn';
@@ -65,8 +60,10 @@ import { CardFlights } from './combat/CardFlights';
 import { BattlefieldView } from './combat/BattlefieldView';
 import { HeroShots } from './combat/HeroShots';
 import { MOVEMENT_LOOK } from '../../content/visuals';
-import { MovementButton } from './combat/MovementButton';
 import { MoveFailPops } from './combat/MoveFailPops';
+import { MOVEMENT_SLOT } from '../../hooks/useCardDrag';
+import { movementCost, offeredMovement } from '../../../shared/game/movement';
+import { MovementCard } from './CardView';
 import { DraggedCard } from './combat/DraggedCard';
 import { EnergyTray } from './combat/EnergyTray';
 import { FanHand } from './combat/FanHand';
@@ -78,6 +75,8 @@ import { PovImpact } from './combat/PovImpact';
 import { PlayerShots } from './combat/PlayerShots';
 import { GuardGainPops } from './combat/GuardGainPops';
 import { SpeedLines } from './combat/SpeedLines';
+import { BATTLEFIELD_COLUMNS } from '../../../shared/game/rules';
+import { HORIZON_SLOT_SPAN, rowPerspective } from './combat/rowPerspective';
 import { TopBar } from './combat/TopBar';
 import { TurnCorner } from './combat/TurnCorner';
 import { MenuPanel } from './menu/MenuPanel';
@@ -86,8 +85,8 @@ import { StatusRow } from './StatusRow';
 // --- TYPES ---
 export type CombatViewProps = {
   combat: CombatState;
-  /** Backdrop hue of the current region. */
-  hue: number;
+  /** Terrain for this region or practice round. */
+  terrainIndex: number;
   where: string;
   score: number;
   onAction: (action: RunAction) => void;
@@ -132,19 +131,16 @@ const PlayerBar = ({
   combat,
   hits,
   onEndTurn,
-  onMove,
   onOpenPile,
 }: {
   combat: CombatState;
   hits: readonly PlayerHitPop[];
   onEndTurn: () => void;
-  onMove: (move: MovementId) => void;
   onOpenPile: (pile: PileId) => void;
 }) => {
-  const movement = offeredMovement(combat);
   return (
-    <div className="grid grid-cols-[minmax(max-content,1fr)_minmax(0,max-content)_minmax(max-content,1fr)] items-end gap-1 px-2">
-      <div className="flex items-end gap-2.5 justify-self-start">
+    <div className="table-controls grid grid-cols-[minmax(max-content,1fr)_minmax(0,max-content)_minmax(max-content,1fr)] items-end gap-1 px-2">
+      <div className="table-player flex items-end gap-2.5 justify-self-start">
         <PlayerCorner player={combat.player} hits={hits} />
         <PileStack
           count={combat.discardPile.length}
@@ -163,25 +159,10 @@ const PlayerBar = ({
           onOpen={() => onOpenPile('removed')}
         />
       </div>
-      <div className="relative flex min-w-0 flex-col items-center gap-1 pb-1">
-        {/* CHARGE / BACK STEP float above the chips, so showing one never
-          moves the bar */}
-        {movement && (
-          <div className="absolute bottom-full mb-1">
-            <MovementButton
-              move={movement}
-              cost={movementCost(combat, movement)}
-              isAffordable={canMove(combat, movement)}
-              blockReason={movementBlockReason(combat, movement)}
-              onPress={() => onMove(movement)}
-            />
-          </div>
-        )}
+      <div className="table-energy relative flex min-w-0 flex-col items-center gap-1 pb-1">
         <GuardGainPops guard={combat.player.guard} />
-        <StatusRow combatant={combat.player} />
-        <EnergyTray energy={combat.energy} reserve={combat.reserve} />
       </div>
-      <div className="justify-self-end">
+      <div className="table-turn justify-self-end">
         <TurnCorner
           drawCount={combat.drawPile.length}
           onEndTurn={onEndTurn}
@@ -217,7 +198,7 @@ const PauseSheet = ({
 /** Renders one fight. */
 export const CombatView = ({
   combat: realCombat,
-  hue,
+  terrainIndex,
   where,
   score,
   onAction,
@@ -297,6 +278,7 @@ export const CombatView = ({
   );
   const controls = useCombatControls(combat, routeAction);
   const cardFlights = useCardFlights(combat);
+  const [showGuides, setShowGuides] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   // Out of plays: the turn ends itself after a beat (see useAutoEndTurn).
   useAutoEndTurn(
@@ -314,7 +296,9 @@ export const CombatView = ({
     lastCard?.type,
     lastCard?.element,
     lastCard?.edge,
-    hitHistory
+    hitHistory,
+    cardHits.strikeIndex,
+    heroTurn.fallenFromTick
   );
   const playerHits = usePlayerHits(
     combat.player,
@@ -326,6 +310,7 @@ export const CombatView = ({
   // The whole view shakes when a hit lands on you (see PovImpact).
   const viewRef = useRef<HTMLDivElement>(null);
   const { drag } = controls;
+  const draggedMove = drag?.handIndex === MOVEMENT_SLOT ? offeredMovement(combat) : null;
   const draggedCardId = drag ? combat.hand[drag.handIndex] : undefined;
   // The arrow is hidden until it has a target, then flies out from the
   // card and glides onto the snapped hero rather than jumping to it.
@@ -337,43 +322,46 @@ export const CombatView = ({
   return (
     <div
       ref={viewRef}
-      className="relative flex h-full w-full flex-col overflow-hidden"
+      className="dueling-table relative flex h-full w-full flex-col overflow-hidden"
     >
-      <TopBar
-        where={where}
-        score={score}
-        onOpenMenu={() => setIsPaused(true)}
-      />
-      {/* BATTLEFIELD (fills the space between the plate and the band) */}
-      <div className="relative flex min-h-0 flex-1 flex-col">
-        <BattlefieldView
-          heroes={combat.heroes}
-          hue={hue}
-          focusUid={controls.focusUid}
-          aimOf={controls.aimOf}
-          pickMarkerOf={controls.pickMarkerOf}
-          acting={heroTurn.acting}
-          lastHitIds={lastHitIdsOf(pops)}
-          onTapHero={controls.tapHero}
+      <div className="table-field-frame relative flex min-h-0 flex-1 flex-col">
+        <TopBar
+          where={where}
+          score={score}
+          onOpenMenu={() => setIsPaused(true)}
+          onOpenDraw={() => setOpenPile('draw')}
         />
-        <HeroShots acting={heroTurn.acting} />
-        <PlayerShots shots={shots} sweeps={sweeps} />
-        {burst && (
-          <SpeedLines
-            key={burst.count}
-            direction={MOVEMENT_LOOK[burst.move].speedLines}
+        {/* BATTLEFIELD (fills the space between the plate and the band) */}
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <BattlefieldView
+            heroes={combat.heroes}
+            travelRows={combat.travelRows ?? 0}
+            terrainIndex={terrainIndex}
+            focusUid={controls.focusUid}
+            aimOf={controls.aimOf}
+            pickMarkerOf={controls.pickMarkerOf}
+            acting={heroTurn.acting}
+            lastHitIds={lastHitIdsOf(pops)}
+            onTapHero={controls.tapHero}
           />
-        )}
-        <HitNumbers pops={pops} />
-        <MoveFailPops pops={moveFails} />
+          <HeroShots acting={heroTurn.acting} />
+          <PlayerShots shots={shots} sweeps={sweeps} />
+          {burst && (
+            <SpeedLines
+              key={burst.count}
+              direction={MOVEMENT_LOOK[burst.move].speedLines}
+            />
+          )}
+          <HitNumbers pops={pops} />
+          <MoveFailPops pops={moveFails} />
+        </div>
       </div>
       {/* BOTTOM BAND: rises over the field's foreground */}
-      <div className="relative z-30 -mt-8 flex shrink-0 flex-col">
+      <div className="table-console relative z-30 flex shrink-0 flex-col">
         <PlayerBar
           combat={combat}
           hits={playerHits}
           onEndTurn={controls.endTurn}
-          onMove={(move) => routeAction({ type: 'move', move })}
           onOpenPile={setOpenPile}
         />
         <FanHand
@@ -386,22 +374,59 @@ export const CombatView = ({
           draggedIndex={drag?.handIndex ?? null}
           draggedBox={drag?.card ?? null}
         />
+        <div className="table-status-dock">
+          <div className="table-buffs" role="group" aria-label="Player buffs">
+            <StatusRow combatant={combat.player} group="buffs" timedBuffs={combat.timedBuffs} align="end" />
+          </div>
+          <EnergyTray energy={combat.energy} reserve={combat.reserve} />
+          <div className="table-afflictions" role="group" aria-label="Player afflictions">
+            <StatusRow combatant={combat.player} group="afflictions" align="start" />
+          </div>
+        </div>
       </div>
+      <div className="hero-plate-layer pointer-events-none absolute inset-0 z-[32]" />
+      {showGuides && (
+        <div className="layout-guides" aria-hidden="true">
+          <div className="guide-lanes">
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%">
+              {activeRows().includes('horizon') && Array.from({ length: BATTLEFIELD_COLUMNS }, (_, col) => (
+                <rect key={col} x={50 * (1 - HORIZON_SLOT_SPAN) + col * 100 * HORIZON_SLOT_SPAN / BATTLEFIELD_COLUMNS}
+                  y="0" width={100 * HORIZON_SLOT_SPAN / BATTLEFIELD_COLUMNS}
+                  height={100 * rowPerspective('horizon').boundary}
+                  fill="none" stroke="#fb755b" vectorEffect="non-scaling-stroke" />
+              ))}
+              {Array.from({ length: BATTLEFIELD_COLUMNS + 1 }, (_, col) => (
+                <line key={col} x1="50" y1="0" x2={100 * col / BATTLEFIELD_COLUMNS} y2="100" vectorEffect="non-scaling-stroke" />
+              ))}
+            </svg>
+            <i className="guide-vanishing-point" />
+          </div>
+          <div className="guide-line guide-horizon"><span>Horizon · 20%</span></div>
+          {activeRows().slice(1).map((row) => (
+            <div key={row} className="guide-line" style={{ top: `calc(var(--horizon) + (100% - var(--horizon) - var(--hand-zone)) * ${rowPerspective(row).boundary})` }} />
+          ))}
+          <div className="guide-center"><span>Center</span></div>
+          <div className="guide-line guide-hand"><span>Hand · 73⅓%</span></div>
+        </div>
+      )}
       <AutoAimPreview
         uids={controls.autoAimUids}
         isLethalOn={controls.isAutoAimLethal}
       />
-      {drag && draggedCardId !== undefined && (
+      {drag && (draggedCardId !== undefined || draggedMove) && (
         <>
           <DraggedCard
             cardId={draggedCardId}
+            slain={combat.slain} followUpReady={combat.followUpReady}
             attacker={combat.player}
             target={combat.heroes.find(
               (unit) => unit.uid === controls.hoverUid
             )}
             box={drag.card}
             glow={controls.selfGlow}
-          />
+          >
+            {draggedMove ? <MovementCard move={draggedMove} cost={movementCost(combat, draggedMove)} disabled={false} blockReason={null} onPlay={() => {}} /> : undefined}
+          </DraggedCard>
           {aimShown && (
             <AimArrow
               from={cardTop(drag.card)}
@@ -443,6 +468,7 @@ export const CombatView = ({
         <PileDialog
           pile={openPile}
           cards={pileCards(combat, openPile)}
+          slain={combat.slain} followUpReady={combat.followUpReady}
           attacker={combat.player}
           onClose={closePile}
         />
@@ -451,7 +477,7 @@ export const CombatView = ({
         <PauseSheet
           where={where}
           score={score}
-          actions={pauseActions}
+          actions={<><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showGuides} onChange={(event) => setShowGuides(event.target.checked)} />Layout guides</label>{pauseActions}</>}
           onClose={() => setIsPaused(false)}
         />
       )}

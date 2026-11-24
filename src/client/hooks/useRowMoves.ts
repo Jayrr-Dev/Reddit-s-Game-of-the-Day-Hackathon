@@ -26,9 +26,6 @@ type BodySpot = { x: number; bottom: number; height: number };
 type MoveKind = 'advance' | 'pull';
 
 // --- CONSTANTS ---
-/** Marks the row layers, so the advance lunge skips them. */
-export const ROW_LAYER_ATTR = 'data-row-layer';
-
 const MOVE_TIMING: Record<MoveKind, KeyframeAnimationOptions> = {
   advance: { duration: 750, easing: 'cubic-bezier(0.45, 0, 0.2, 1)' },
   // The overshoot (1.35) makes the yank snap past and settle.
@@ -63,9 +60,6 @@ const AFTERIMAGES: readonly { lagMs: number; opacity: number }[] = [
 
 /** Wait (ms) after a death before the row steps up (most of the death). */
 const MOVE_AFTER_DEATH_MS = 380;
-
-/** How far the scenery swells while the villain advances. */
-const ADVANCE_ZOOM = 1.12;
 
 // --- HELPERS ---
 /** The body (drawing) element of one hero, if it is on screen. */
@@ -234,19 +228,6 @@ const trailLines = (
   window.setTimeout(() => trail.remove(), delay + duration + 200);
 };
 
-/** Swells the scenery (not the heroes) and settles it back. */
-const lungeScenery = (field: HTMLElement, delay: number) => {
-  const scenery = field.querySelectorAll<HTMLElement>(
-    `:scope > :not([${ROW_LAYER_ATTR}])`
-  );
-  scenery.forEach((layer) =>
-    layer.animate(
-      [{ scale: '1' }, { scale: String(ADVANCE_ZOOM) }, { scale: '1' }],
-      { ...MOVE_TIMING.advance, duration: 900, delay }
-    )
-  );
-};
-
 // --- HOOK ---
 /** Animates row changes on the field (runs after every layout). */
 export const useRowMoves = (
@@ -274,7 +255,6 @@ export const useRowMoves = (
       (uid) => !heroes.some((unit) => unit.uid === uid)
     );
     const delay = hasDeath ? MOVE_AFTER_DEATH_MS : 0;
-    if (moved.length > 0 && kind === 'advance') lungeScenery(field, delay);
     bodies
       .filter(({ unit }) => moved.includes(unit))
       .forEach(({ unit, body, spot }) => {

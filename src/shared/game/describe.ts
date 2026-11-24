@@ -100,7 +100,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   },
   bleed: {
     label: 'Bleed',
-    description: `Each **Melee** or **Range** attack that lands on it deals **⅓** of this more (rounded up, once per attack, not per hit), then it goes down by **1**`,
+    description: `Each successful **Melee** or **Range** attack deals **⅓** of Bleed as bonus damage (round up). Then Bleed drops by **1**.`,
   },
   shock: {
     label: 'Shock',
@@ -184,6 +184,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
     description:
       'Each **Melee** or **Range** hit taken is this much lower\nLasts the whole fight',
   },
+  move: { label: 'Move', description: 'Your next Charge or Back Step travels up to this many extra rows.' },
   rush: {
     label: 'Rush',
     description:
@@ -280,10 +281,17 @@ export const describeCardEffect = (
     }
     case 'wrath':
       return `Wrath ${effect.amount}`;
+    case 'move':
     case 'brace':
     case 'rush':
     case 'armor':
       return `${STATUS_INFO[effect.kind].label} ${effect.amount}`;
+    case 'charge':
+      return 'Charge';
+    case 'backStep':
+      return 'Back Step';
+    case 'momentum':
+      return STATUS_INFO.momentum.label;
     case 'cleanse':
       return CLEANSE_INFO.label;
     case 'protect':
@@ -302,7 +310,7 @@ export const describeCardEffect = (
     case 'pull':
       return `${PULL_INFO.label} ${effect.rows}`;
     case 'push':
-      return `${KNOCKBACK_INFO.label} ${effect.rows}`;
+      return `${KNOCKBACK_INFO.label}${effect.target === 'all' ? ' ALL' : ''} ${effect.rows}`;
     case 'amplify':
       return amplifyLabel(effect.factor, STATUS_INFO[effect.status].label);
     case 'imbue':
@@ -462,6 +470,9 @@ export const GLOSSARY: Readonly<Record<string, StatusInfo>> =
     [
       ...Object.values(STATUS_INFO),
       ...Object.values(KEYWORD_INFO),
+        { label: 'Charge', description: 'Move forward when Line 1 is empty and gain **Momentum**' },
+        { label: 'Back Step', description: 'Move back when there is room behind you' },
+      { label: 'Energy', description: 'Gain this much energy immediately to spend on cards or movement.' },
       IMBUE_INFO,
       CLEANSE_INFO,
       PULL_INFO,
@@ -533,6 +544,7 @@ export const imbueTag = (gift: ImbueGift): string => {
       return `${STATUS_INFO[effect.buff].label}${buffAmountText(effect)}`;
     case 'enfeeble':
       return 'Enfeeble';
+    case 'move':
     case 'brace':
     case 'rush':
     case 'armor':
@@ -627,6 +639,9 @@ export const describeCardRules = (
       ? `${line} per hit`
       : line;
   });
+  if (cardDef.requiredKillsInOneHit) lines.unshift(`Kill ${cardDef.requiredKillsInOneHit} in one blow this fight`);
+  if (cardId === 'followUp') lines.push('Free once after Knockback this turn');
+  if (cardDef.costReductionPerKill) lines.push(`Costs ${cardDef.costReductionPerKill} less per kill`);
   const targetLine = cardDef.targets > 1 ? [`Target ${cardDef.targets}`] : [];
   return [...targetLine, ...lines, ...elementLines(cardDef)];
 };

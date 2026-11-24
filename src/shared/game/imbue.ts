@@ -150,6 +150,7 @@ const EFFECT_STACKS: Record<ImbuableEffect['kind'], boolean> = {
   draw: true,
   energy: true,
   heal: true,
+  move: true,
   rush: true,
   armor: true,
   enfeeble: false,

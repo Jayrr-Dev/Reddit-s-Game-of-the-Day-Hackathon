@@ -17,8 +17,9 @@
 // and explains itself on hover or long press.
 // ===================================================================
 
-import { Fragment } from 'react';
-import { getCard, type CardId } from '../../../shared/game/cards';
+import { Fragment, type ReactNode } from 'react';
+import { cardCost, getCard, type CardId } from '../../../shared/game/cards';
+import { MOVEMENTS } from '../../../shared/game/movement';
 import {
   describeCard,
   DURATION_INFO,
@@ -26,6 +27,7 @@ import {
 } from '../../../shared/game/describe';
 import type {
   Combatant,
+  MovementId,
   HeroUnit,
   Imbue,
   MagicElement,
@@ -33,6 +35,7 @@ import type {
 } from '../../../shared/game/types';
 import {
   CARD_LOOK,
+  MOVEMENT_LOOK,
   EDGE_ART,
   EDGE_LOOK,
   ELEMENT_LOOK,
@@ -45,6 +48,8 @@ import { CardBadges } from './CardBadges';
 
 // --- TYPES ---
 export type CardViewProps = {
+  slain?: number;
+  followUpReady?: boolean | undefined;
   cardId: CardId;
   /** When given, damage numbers include this attacker's wrath and weaken. */
   attacker?: Combatant;
@@ -223,7 +228,7 @@ const ArtWindow = ({
   look: SizeLook;
 }) => (
   <span
-    className={`grid ${look.art} w-full shrink-0 place-items-center rounded-t-full bg-surface-sunken ring-1 ring-black/50`}
+    className={`card-window grid ${look.art} w-full shrink-0 place-items-center rounded-t-full bg-surface-sunken ring-1 ring-black/50`}
     style={{
       backgroundImage: `radial-gradient(circle at 50% 70%, color-mix(in srgb, ${glowVar} 55%, transparent), transparent 70%)`,
     }}
@@ -257,6 +262,7 @@ const TypeRibbon = ({
       : null;
   return (
     <span
+      title={typeName === 'Utility' ? 'Utility cards generally grant energy, restore HP, or draw cards.' : undefined}
       className={`absolute bottom-0.5 left-1/2 flex -translate-x-1/2 items-center rounded-sm bg-surface-sunken py-px font-bold uppercase tracking-wider text-ink ring-1 ring-accent/50 ${look.ribbon}`}
     >
       {iconLook && (
@@ -303,7 +309,7 @@ const NameBanner = ({
   gemClass,
   look,
 }: {
-  name: string;
+  name: ReactNode;
   frameClass: string;
   gemClass: string | null;
   look: SizeLook;
@@ -317,9 +323,41 @@ const NameBanner = ({
 );
 
 // --- COMPONENT ---
+/** A formation move occupies a temporary hand slot and spends its live movement cost. */
+export const MovementCard = ({ move, cost, disabled, blockReason, onPlay }: {
+  move: MovementId;
+  cost: number;
+  disabled: boolean;
+  blockReason: string | null;
+  onPlay: () => void;
+}) => {
+  const look = SIZE_LOOK.fan;
+  const frame = CARD_LOOK.movement;
+  const action = MOVEMENT_LOOK[move];
+  const baseCost = MOVEMENTS[move].baseCost;
+  const rules = blockReason ?? (move === 'backStep' ? 'Move back 1 line' : 'Move closer 1 line. Gain Momentum.');
+  const costTone = cost > baseCost ? 'text-red-900' : cost < baseCost ? 'text-green-900' : 'text-on-accent';
+  return (
+    <button type="button" data-card-type="movement" data-card-size="fan" data-move={move}
+      disabled={disabled} onClick={onPlay}
+      className={`relative flex ${look.box} shrink-0 flex-col rounded-lg ${frame.frameClass} p-[3px] pb-3 text-center ring-1 ring-black/60 transition-transform enabled:hover:-translate-y-1`}>
+      <span aria-label={`${cost} energy, ${cost > baseCost ? 'increased' : cost < baseCost ? 'discounted' : 'base'} cost`}
+        className={`absolute z-10 flex ${look.orb} items-center justify-center rounded-full bg-energy ${costTone} font-display font-black ring-2 ring-surface-sunken`}>{cost}</span>
+      <ArtWindow glyph={action.glyph} glowVar={frame.glowVar} look={look} />
+      <NameBanner name={<Tooltip isInline content={{ title: action.label, description: blockReason ?? action.description }}>{action.label}</Tooltip>} frameClass={frame.frameClass} gemClass={null} look={look} />
+      <span className={`card-rules flex w-full min-h-0 flex-1 flex-col justify-center rounded-b-sm bg-parchment text-on-parchment ${look.rules}`}>
+        <RulesLine text={rules} printed={rules} />
+      </span>
+      <TypeRibbon typeName={frame.typeName} element={undefined} edge={undefined} look={look} />
+    </button>
+  );
+};
+
 /** Renders a tappable card. */
 export const CardView = ({
   cardId,
+  slain = 0,
+  followUpReady,
   attacker,
   target,
   isDisabled = false,
@@ -342,6 +380,9 @@ export const CardView = ({
     <button
       type="button"
       onClick={onClick}
+      data-card-type={cardDef.type}
+      data-card-id={cardId}
+      data-card-size={size}
       disabled={isDisabled}
       className={`relative flex ${look.box} shrink-0 flex-col rounded-lg ${typeLook.frameClass} p-[3px] pb-3 text-center ring-1 ring-black/60 transition-transform enabled:hover:-translate-y-1 disabled:opacity-40 disabled:saturate-50 animate-rise ${isFaded ? 'opacity-40 saturate-50' : ''}`}
       style={{ boxShadow: `${glow}, 0 6px 10px rgb(0 0 0 / 0.5)` }}
@@ -349,7 +390,7 @@ export const CardView = ({
       <span
         className={`absolute z-10 flex ${look.orb} items-center justify-center rounded-full bg-energy font-display font-black text-on-accent ring-2 ring-surface-sunken shadow-[inset_0_-2px_3px_rgb(0_0_0/0.35)]`}
       >
-        <span className="num-center">{cardDef.cost}</span>
+        <span className="num-center">{cardCost(cardId, slain, followUpReady)}</span>
       </span>
       <ArtWindow
         glyph={(cardDef.edge && EDGE_ART[cardDef.edge]) ?? typeLook.glyph}
@@ -370,7 +411,7 @@ export const CardView = ({
         look={look}
       />
       <span
-        className={`flex w-full min-h-0 flex-1 flex-col justify-center rounded-b-sm bg-parchment text-on-parchment ${look.rules}`}
+        className={`card-rules flex w-full min-h-0 flex-1 flex-col justify-center rounded-b-sm bg-parchment text-on-parchment ${look.rules}`}
       >
         {describeCard(cardId, attacker, target, usesSpent, imbues).map(
           (line, index) => (

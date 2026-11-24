@@ -13,7 +13,7 @@
 // turn 4 (3). Nothing on turn 5. Turn 6: back to 1.
 // ===================================================================
 
-import { fallBack, isDeep, stepForward } from './battlefield.ts';
+import { fallBack, isDeep, rowDepth, stepForward } from './battlefield.ts';
 import { canPlayCard, combatOutcome } from './combat.ts';
 import {
   BACK_STEP_COST,
@@ -38,7 +38,7 @@ export type MovementDef = {
   /** It is offered only while the heroes stand like this. */
   fitsFormation: (heroes: readonly HeroUnit[]) => boolean;
   /** How the heroes' places change when the villain moves. */
-  reshape: (heroes: HeroUnit[]) => HeroUnit[];
+  reshape: (heroes: HeroUnit[], extraRows?: number) => HeroUnit[];
   /**
    * A status the villain gains, raised to at least `amount` (moving
    * twice doesn't stack it).
@@ -69,7 +69,7 @@ export const MOVEMENTS: Record<MovementId, MovementDef> = {
     fitsFormation: (heroes) =>
       heroes.every((unit) => unit.row !== 'front') &&
       changesRows(heroes, stepForward(heroes, CHARGE_ROWS)),
-    reshape: (heroes) => stepForward(heroes, CHARGE_ROWS),
+    reshape: (heroes, extraRows = 0) => stepForward(heroes, CHARGE_ROWS + extraRows),
     grants: { status: 'momentum', amount: 1 },
   },
   /**
@@ -82,7 +82,7 @@ export const MOVEMENTS: Record<MovementId, MovementDef> = {
     fitsFormation: (heroes) =>
       heroes.some((unit) => unit.row === 'front') &&
       (heroes.some(isDeep) || hasRoomToFallBack(heroes)),
-    reshape: (heroes) => fallBack(heroes, BACK_STEP_ROWS),
+    reshape: (heroes, extraRows = 0) => fallBack(heroes, BACK_STEP_ROWS + extraRows),
   },
 };
 
@@ -159,7 +159,7 @@ export const movementBlockReason = (
  * True when the field has room for `move`: fight on, the formation fits
  * and no boss holds the rows (cost aside).
  */
-const hasRoomFor = (state: CombatState, move: MovementId): boolean =>
+export const hasRoomFor = (state: CombatState, move: MovementId): boolean =>
   combatOutcome(state) === 'ongoing' &&
   isFormationFor(state, move) &&
   movementBlockReason(state, move) === null;
@@ -169,6 +169,17 @@ export const canMove = (state: CombatState, move: MovementId): boolean =>
   hasRoomFor(state, move) && state.energy >= movementCost(state, move);
 
 // --- ACTIONS ---
+/** Measure the formation shift using the unit that travelled farthest. */
+const shiftFormation = (state: CombatState, moveId: MovementId) => {
+  const heroes = MOVEMENTS[moveId].reshape(state.heroes, state.player.statuses.move ?? 0);
+  const previous = new Map(state.heroes.map((unit) => [unit.uid, rowDepth(unit.row)]));
+  const distance = Math.max(0, ...heroes.map((unit) =>
+    Math.abs((previous.get(unit.uid) ?? rowDepth(unit.row)) - rowDepth(unit.row))
+  ));
+  const travelRows = (state.travelRows ?? 0) + (moveId === 'charge' ? distance : -distance);
+  return { heroes, travelRows, player: { ...state.player, statuses: { ...state.player.statuses, move: 0 } } };
+};
+
 /** Raises one villain status to at least `amount`. */
 const grant = (
   state: CombatState,
@@ -201,11 +212,25 @@ export const move = (state: CombatState, moveId: MovementId): CombatState => {
       turn: state.turn,
       streak: streakOf(state) + 1,
     },
-    heroes: def.reshape(state.heroes),
-    // A free Rush move spends one stack of Rush.
-    player: spendRush(state.player),
+    ...shiftFormation({ ...state, player: spendRush(state.player) }, moveId),
   };
   return grant(paid, def.grants);
+};
+
+/** Makes a card's movement at its card cost and records the movement streak. */
+export const moveFromCard = (
+  state: CombatState,
+  moveId: MovementId
+): CombatState => {
+  if (!hasRoomFor(state, moveId)) return state;
+  return grant(
+    {
+      ...state,
+      lastMovement: { move: moveId, turn: state.turn, streak: streakOf(state) + 1 },
+      ...shiftFormation(state, moveId),
+    },
+    MOVEMENTS[moveId].grants
+  );
 };
 
 /**
@@ -222,7 +247,7 @@ export const moveFree = (
   const moved: CombatState = {
     ...state,
     freeMove: { move: moveId },
-    heroes: def.reshape(state.heroes),
+    ...shiftFormation(state, moveId),
   };
   return grant(moved, def.grants);
 };

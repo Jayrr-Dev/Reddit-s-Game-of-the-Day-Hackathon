@@ -31,6 +31,7 @@ import {
   isEmpoweredHex,
 } from '../../../shared/game/combatant';
 import {
+  STATUS_IS_AFFLICTION,
   SHOCK_BURST_FACTOR,
   SHOCK_HITS,
   OUT_OF_RANGE_HIT_CHANCE,
@@ -39,6 +40,7 @@ import type {
   Combatant,
   PassiveId,
   StatusId,
+  TimedBuff,
 } from '../../../shared/game/types';
 import {
   OUT_OF_RANGE_LOOK,
@@ -98,6 +100,7 @@ const STATUS_ORDER: readonly StatusId[] = [
   'berserker',
   'bane',
   'momentum',
+  'move',
   'rush',
   'armor',
   // MAGIC
@@ -197,6 +200,16 @@ const shockChipOf = (combatant: Combatant): Partial<StatusChip> => {
   };
 };
 
+/** Only the next-action share of a stacked attack buff belongs over the hand. */
+const oneUseAmount = (id: StatusId, total: number, buffs: readonly TimedBuff[]) => {
+  if (id === 'momentum') return total;
+  if (id !== 'hone' && id !== 'might' && id !== 'surge') return 0;
+  return Math.min(total, buffs.reduce((sum, buff) =>
+    buff.buff === id && buff.duration === 'action' ? sum + buff.amount : sum, 0));
+};
+
+type StatusGroup = 'buffs' | 'afflictions' | 'oneUse';
+
 /** The chip a burst Shock leaves for a moment: its drop splashing. */
 const splashChipOf = (value: number): StatusChip => ({
   key: 'shock',
@@ -217,10 +230,12 @@ const chipIconOf = (chip: StatusChip) =>
  */
 const statusChipsOf = (
   combatant: Combatant,
-  splashed: number | null
+  splashed: number | null,
+  group?: StatusGroup,
+  timedBuffs: readonly TimedBuff[] = []
 ): StatusChip[] => {
   const guard: StatusChip[] =
-    combatant.guard > 0
+    (group === undefined || group === 'buffs') && combatant.guard > 0
       ? [
           {
             key: 'guard',
@@ -231,19 +246,26 @@ const statusChipsOf = (
           },
         ]
       : [];
-  const statuses = STATUS_ORDER.filter((id) => combatant.statuses[id] > 0).map(
-    (id): StatusChip => ({
+  const statuses = STATUS_ORDER.flatMap((id): StatusChip[] => {
+    const total = combatant.statuses[id];
+    if (!total) return [];
+    if (group === 'afflictions' && !STATUS_IS_AFFLICTION[id]) return [];
+    if (group === 'buffs' && STATUS_IS_AFFLICTION[id]) return [];
+    const once = oneUseAmount(id, total, timedBuffs);
+    const amount = group === 'oneUse' ? once : group === 'buffs' ? total - once : total;
+    if (amount <= 0) return [];
+    return [{
       key: id,
       ...STATUS_LOOK[id],
-      text: chipText(id, combatant.statuses[id]),
+      text: chipText(id, amount),
       title: STATUS_INFO[id].label,
-      description: STATUS_INFO[id].description,
+      description: STATUS_INFO[id].description + (group === 'oneUse' && id !== 'momentum' ? ' Expires after your next card.' : ''),
       ...(id === 'hex' ? hexChipOf(combatant.statuses[id]) : {}),
       ...(id === 'shock' ? shockChipOf(combatant) : {}),
-    })
-  );
+    }];
+  });
   const splash =
-    splashed !== null && combatant.statuses.shock === 0
+    (group === undefined || group === 'afflictions') && splashed !== null && combatant.statuses.shock === 0
       ? [splashChipOf(splashed)]
       : [];
   return [...guard, ...statuses, ...splash];
@@ -363,7 +385,7 @@ const OverflowChip = ({
 
 // --- COMPONENT ---
 /** How the chips sit in their space. */
-const ALIGN_CLASS = { center: 'justify-center', end: 'justify-end' } as const;
+const ALIGN_CLASS = { start: 'justify-start', center: 'justify-center', end: 'justify-end' } as const;
 
 /**
  * Shows the statuses above zero in up to `rows` wrapping lines, as many as fit the space it
@@ -373,12 +395,16 @@ const ALIGN_CLASS = { center: 'justify-center', end: 'justify-end' } as const;
  */
 export const StatusRow = ({
   combatant,
+  group,
+  timedBuffs,
   passives = [],
   isOutOfRange = false,
   align = 'center',
   rows = 1,
 }: {
   combatant: Combatant;
+  group?: StatusGroup;
+  timedBuffs?: readonly TimedBuff[];
   /** True for a hero in Out of Range (its first chip says so). */
   isOutOfRange?: boolean;
   /** A boss's passives, drawn first as gold chips. */
@@ -391,7 +417,7 @@ export const StatusRow = ({
   const chips = [
     ...(isOutOfRange ? [OUT_OF_RANGE_CHIP] : []),
     ...passiveChipsOf(passives),
-    ...statusChipsOf(combatant, splashed),
+    ...statusChipsOf(combatant, splashed, group, timedBuffs),
   ];
   const { spaceRef, measureRef, overflowRef, fitCount } = useFitCount(
     chips.length,
@@ -428,7 +454,7 @@ export const StatusRow = ({
       >
         <Chip glyph="eye" text="+9" toneClass="text-ink" shape="square" />
       </span>
-      <div className={`flex min-h-5 flex-wrap gap-1 ${ALIGN_CLASS[align]}`}>
+      <div className={`flex min-h-5 flex-wrap gap-1 ${ALIGN_CLASS[align]} ${group === 'oneUse' && chips.length ? 'one-use-bonus-pulse' : ''}`}>
         {shown.map((chip) => (
           <StatusChipView key={chip.key} chip={chip} />
         ))}

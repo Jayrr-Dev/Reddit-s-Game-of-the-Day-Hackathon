@@ -59,6 +59,7 @@ export const NO_STATUSES: Statuses = {
   enfeeble: 0,
   brace: 0,
   aloft: 0,
+  move: 0,
   rush: 0,
   armor: 0,
 };
@@ -431,7 +432,7 @@ export const addStatus = <T extends Combatant>(
   amount: number
 ): T => ({
   ...target,
-  statuses: { ...target.statuses, [status]: target.statuses[status] + amount },
+  statuses: { ...target.statuses, [status]: (target.statuses[status] ?? 0) + amount },
 });
 
 /**

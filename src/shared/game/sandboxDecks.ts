@@ -169,7 +169,7 @@ export const SANDBOX_DECKS: readonly SandboxDeck[] = [
     name: 'Movement',
     blurb: 'Pull, Knockback, Rush, Rampage and Distance.',
     fits: anyOf(
-      hasEffect('pull', 'push', 'rush'),
+      hasEffect('pull', 'push', 'rush', 'move'),
       hasKeyword('rampage', 'distance'),
       buffsAny('berserker')
     ),

@@ -25,8 +25,10 @@
 // IMBUE cards aim at another card in hand instead (see useImbuePick).
 // ===================================================================
 
-import { useEffect, useRef, useState } from 'react';
+import { canMove, offeredMovement } from '../../shared/game/movement';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  MOVEMENT_SLOT,
   useCardDrag,
   type CardDrag,
   type CardDrop,
@@ -68,6 +70,8 @@ export type AimState =
   /** In an area card's blast (red); `struck` once letting go plays it. */
   | 'marked'
   | 'struck';
+
+const EMPTY_PICKS: number[] = [];
 
 /** How a dragged card aims (see the header). */
 type AimStyle = { hasArrow: boolean; hasGlow: boolean; isTargeted: boolean };
@@ -162,7 +166,7 @@ export const useCombatControls = (
     picks.handIndex === heldIndex &&
     picks.cardId === heldCard
       ? picks.uids
-      : [];
+      : EMPTY_PICKS;
 
   /** Plays an untargeted card (aimed at the focus) or a targeted one. */
   const playAt = (handIndex: number, targetUid: number | null) =>
@@ -238,9 +242,21 @@ export const useCombatControls = (
     return { isLive: isAimed && drop.pullBack === 0, isAimed, target };
   };
 
+  const playMovement = () => {
+    const move = offeredMovement(combat);
+    if (move && canMove(combat, move) && !imbue.isImbuing && !isFiring) {
+      release();
+      onAction({ type: 'move', move });
+    }
+  };
+
   /** Drop: play the card if the drop is live, else put it back. */
   const dropCard = ({ handIndex, ...drop }: CardDrop) => {
     if (isFiring) return;
+    if (handIndex === MOVEMENT_SLOT) {
+      if (drop.lift >= PULL_TO_PLAY_PX) playMovement();
+      return;
+    }
     const cardId = combat.hand[handIndex];
     if (cardId === undefined || !canPlayCard(combat, handIndex))
       return release();
@@ -263,6 +279,7 @@ export const useCombatControls = (
   /** Drag start: hold the card so legal heroes light up. */
   const startDrag = (handIndex: number) => {
     if (isFiring) return;
+    if (handIndex === MOVEMENT_SLOT) return release();
     if (picks && picks.handIndex !== handIndex) setPicks(null);
     setHeldIndex(canPlayCard(combat, handIndex) ? handIndex : null);
   };
@@ -299,11 +316,15 @@ export const useCombatControls = (
    * True when letting go here would kill the locked hero: the picks
    * already made for this card plus this one, run through the engine.
    */
-  const priorPicks = drag?.handIndex === heldIndex ? pickedUids : [];
-  const isLethal =
-    drag !== null &&
-    hoverUid !== null &&
-    wouldFell(combat, drag.handIndex, [...priorPicks, hoverUid], hoverUid);
+  const dragIndex = drag?.handIndex;
+  const priorPicks = dragIndex === heldIndex ? pickedUids : EMPTY_PICKS;
+  const isLethal = useMemo(
+    () =>
+      dragIndex !== undefined &&
+      hoverUid !== null &&
+      wouldFell(combat, dragIndex, [...priorPicks, hoverUid], hoverUid),
+    [combat, dragIndex, priorPicks, hoverUid]
+  );
   /** Every damage multiplier on this play at the locked hero (1 = none). */
   const hoverUnit = combat.heroes.find((unit) => unit.uid === hoverUid);
   const aimFactor =
@@ -340,7 +361,7 @@ export const useCombatControls = (
   /** How far the arrow has shrunk back toward the card (0..1). */
   const arrowRetract = drag?.pullBack ?? 0;
   /** How brightly the dragged card glows (self cards only). */
-  const selfGlow = drag && dragStyle ? glowOf(dragStyle, drag.lift) : 0;
+  const selfGlow = drag?.handIndex === MOVEMENT_SLOT ? Math.min(1, drag.lift / PULL_TO_PLAY_PX) : drag && dragStyle ? glowOf(dragStyle, drag.lift) : 0;
   /**
    * Where the arrow points: the snapped hero (or the tip, for untargeted
    * cards). Null while nothing is aimed at, or for self-only cards, so
@@ -401,6 +422,7 @@ export const useCombatControls = (
    */
   const tapCard = (handIndex: number) => {
     if (wasDrag() || isFiring) return; // a post-drag click, or mid-fire
+    if (handIndex === MOVEMENT_SLOT) return playMovement();
     if (imbue.isImbuing) {
       if (handIndex === imbue.imbuingIndex) return imbue.cancel();
       return imbue.pick(handIndex);

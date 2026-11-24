@@ -7,6 +7,7 @@
 // card let go without being played glides back from where it was dropped.
 // ===================================================================
 
+import { StatusRow } from '../StatusRow';
 import { useLayoutEffect, useRef } from 'react';
 import type { PointerEvent, ReactNode } from 'react';
 import {
@@ -19,15 +20,17 @@ import { useDrawOrder } from '../../../hooks/useDrawOrder';
 import { prefersReducedMotion } from '../../../lib/motion';
 import { canPlayCard } from '../../../../shared/game/combat';
 import { cardImbuesAt } from '../../../../shared/game/imbue';
+import { canMove, movementBlockReason, movementCost, offeredMovement } from '../../../../shared/game/movement';
 import type { CombatState } from '../../../../shared/game/types';
 import {
+  MOVEMENT_SLOT,
   HAND_SLOT_ATTR,
   HELD_CARD_ATTR,
   type CardBox,
 } from '../../../hooks/useCardDrag';
 import { useHandIds } from '../../../hooks/useHandIds';
 import { usesSpentOn } from '../../../../shared/game/uses';
-import { CardView } from '../CardView';
+import { CardView, MovementCard } from '../CardView';
 import { LIFT_SCALE } from './DraggedCard';
 
 // --- TYPES ---
@@ -49,11 +52,11 @@ export type FanHandProps = {
 
 // --- CONSTANTS ---
 /** Pixels each card drops per step away from the middle (whole pixels). */
-const DROP_PER_CARD = 4;
+const DROP_PER_CARD = 1;
 /** The held card is raised out of the fan, upright and enlarged. */
 const HELD_TRANSFORM = 'translateY(-34px) scale(1.4)';
 /** Widest gap between card centres; tighter when the hand is big. */
-const SLOT_WIDTH = '4.25rem';
+const SLOT_WIDTH = 'var(--table-slot-width, 4.25rem)';
 /** How long a let-go card takes to glide back into its slot (ms). */
 const RETURN_MS = 240;
 /** A soft ease-out with no overshoot, so the card settles, not bounces. */
@@ -68,7 +71,7 @@ const RETURN_EASING = 'cubic-bezier(0.25, 0.8, 0.35, 1)';
  * (a whole pixel too: the fan card is an even 68px wide).
  */
 const slotTransform = (offset: number, isHeld: boolean): string => {
-  const drop = Math.round(Math.abs(offset) * DROP_PER_CARD);
+  const drop = Math.min(5, Math.round(Math.abs(offset) * DROP_PER_CARD));
   const fan = isHeld ? HELD_TRANSFORM : `translateY(${drop}px)`;
   return `translateX(-50%) ${fan}`;
 };
@@ -203,7 +206,7 @@ const HandSlot = ({
       className={`absolute bottom-3 flex origin-bottom touch-none select-none justify-center transition-[left,transform] duration-200 ${isHeld ? 'z-10' : ''} ${isLifted ? 'opacity-0' : ''}`}
       onPointerDown={onPress}
       style={{ left: slotLeft(offset), transform }}
-      {...{ [HAND_SLOT_ATTR]: handIndex }}
+      {...(handIndex >= 0 ? { [HAND_SLOT_ATTR]: handIndex } : {})}
       {...(isHeld ? { [HELD_CARD_ATTR]: true } : {})}
     >
       {children}
@@ -229,16 +232,20 @@ export const FanHand = ({
 }: FanHandProps) => {
   const keys = useHandIds(combat.hand, combat.turn);
   const drawOrder = useDrawOrder(keys);
-  const count = combat.hand.length;
+  const move = offeredMovement(combat);
+  const count = combat.hand.length + (move ? 1 : 0);
   const middle = (count - 1) / 2;
   // --slot: the gap between card centres, tighter when the hand is big.
-  const slotWidth = `min(${SLOT_WIDTH}, calc((100% - 2rem) / ${Math.max(count, 1)}))`;
+  const slotWidth = `min(${SLOT_WIDTH}, calc((100% - var(--table-card-width, 68px) * 1.4 - 8px) / ${Math.max(count - 1, 1)}))`;
   return (
     <div
       className="relative z-20 h-32 shrink-0"
       style={{ ['--slot' as string]: slotWidth }}
       {...{ [HAND_ATTR]: true }}
     >
+      <aside aria-label="One-use attack bonuses" className="pointer-events-none absolute inset-x-0 bottom-[calc(var(--table-card-height)+8px)] flex justify-center">
+        <StatusRow combatant={combat.player} group="oneUse" timedBuffs={combat.timedBuffs} />
+      </aside>
       {combat.hand.map((cardId, index) => {
         const isLifted = index === draggedIndex;
         return (
@@ -254,6 +261,7 @@ export const FanHand = ({
           >
             <CardView
               cardId={cardId}
+              slain={combat.slain} followUpReady={combat.followUpReady}
               attacker={combat.player}
               size="fan"
               isSelected={index === heldIndex}
@@ -276,6 +284,15 @@ export const FanHand = ({
           </HandSlot>
         );
       })}
+      {move && (
+        <HandSlot handIndex={MOVEMENT_SLOT} offset={middle} isHeld={false}
+          isLifted={draggedIndex === MOVEMENT_SLOT} liftedBox={draggedIndex === MOVEMENT_SLOT ? draggedBox : null}
+          drawDelayMs={null} onPress={event => { if (canMove(combat, move) && !imbueSlots.length) onPressCard(MOVEMENT_SLOT, event); }}>
+          <MovementCard move={move} cost={movementCost(combat, move)}
+            disabled={!canMove(combat, move) || imbueSlots.length > 0}
+            blockReason={movementBlockReason(combat, move)} onPlay={() => onTapCard(MOVEMENT_SLOT)} />
+        </HandSlot>
+      )}
     </div>
   );
 };

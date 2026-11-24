@@ -145,11 +145,11 @@ void test('Reach and curses can hit the back row', () => {
   assert.equal(targetRuleOf('whisperHex'), 'any');
 });
 
-void test('a card type decides its reach: only Range, Magic and Curse reach', () => {
+void test('Range, Magic, Curse and the Siege Blast shockwave reach across rows', () => {
   for (const cardId of ALL_CARD_IDS) {
     const { type, reach } = getCard(cardId);
     const isShort = !['range', 'magic', 'curse'].includes(type);
-    assert.equal(reach, !isShort, `${cardId} (${type})`);
+    assert.equal(reach, !isShort || cardId === 'siegeBlast', `${cardId} (${type})`);
   }
   assert.equal(targetRuleOf('cruelSlash'), 'front');
   assert.equal(targetRuleOf('mourningCurse'), 'any');

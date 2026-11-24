@@ -270,7 +270,8 @@ const firstOpenColumn = (
 /** Places one hero: its own row first, then the others, nearest first. */
 const placeHero = (
   placed: readonly HeroUnit[],
-  unit: UnplacedHero
+  unit: UnplacedHero,
+  entryRows?: readonly HeroRow[]
 ): HeroUnit => {
   const { row, size, backCols } = getHero(unit.heroId);
   // A deep hero only ever stands in the front row (reaching back too).
@@ -278,7 +279,7 @@ const placeHero = (
     const col = firstOpenColumn(placed, 'front', size, backCols);
     return { ...unit, row: 'front', col: col ?? 0 };
   }
-  for (const candidate of rowsByNearnessTo(row)) {
+  for (const candidate of entryRows ?? rowsByNearnessTo(row)) {
     const col = firstOpenColumn(placed, candidate, size);
     if (col !== null) return { ...unit, row: candidate, col };
   }
@@ -345,17 +346,22 @@ const marchInFromAfar = (heroes: HeroUnit[]): HeroUnit[] => {
  * drops one row back as far as there is room, so a new wave starts out
  * of melee reach. The result keeps the original order (uids).
  */
-export const formUp = (units: readonly UnplacedHero[]): HeroUnit[] => {
+export const formUp = (
+  units: readonly UnplacedHero[],
+  formation: 'march' | 'furthest' = 'march'
+): HeroUnit[] => {
+  // Replacement waves enter at maximum distance, spilling into nearer rows.
+  const entryRows = formation === 'furthest' ? activeRows().toReversed() : undefined;
   const bySizeDesc = [...units].sort((a, b) => cellCountOf(b) - cellCountOf(a));
   const placed = bySizeDesc.reduce<HeroUnit[]>(
-    (field, unit) => [...field, placeHero(field, unit)],
+    (field, unit) => [...field, placeHero(field, unit, entryRows)],
     []
   );
   const ordered = units.map(
     (unit) =>
       placed.find((hero) => hero.uid === unit.uid) ?? placeHero([], unit)
   );
-  return marchInFromAfar(ordered);
+  return formation === 'march' ? marchInFromAfar(ordered) : ordered;
 };
 
 /**
@@ -564,9 +570,11 @@ export const canPull = (heroes: readonly HeroUnit[], unit: HeroUnit) =>
   seatInRow(heroes, unit, rowShifted(unit.row, -1)) !== null;
 
 /** True when a push (one row farther) would work on this hero right now. */
-export const canPush = (heroes: readonly HeroUnit[], unit: HeroUnit) =>
-  !isImmovable(unit) &&
-  seatInRow(heroes, unit, rowShifted(unit.row, 1)) !== null;
+export const canPush = (heroes: readonly HeroUnit[], unit: HeroUnit, rows = 1) =>
+  !isImmovable(unit) && activeRows().some(row => {
+    const distance = rowDepth(row) - rowDepth(unit.row);
+    return distance > 0 && distance <= rows && seatInRow(heroes, unit, row) !== null;
+  });
 
 /**
  * Moves one hero `steps` rows (-1 nearer, 1 farther), sliding that row
@@ -614,9 +622,19 @@ const moveRowsUpTo = (
 export const pullHero = (heroes: HeroUnit[], uid: number, rows = 1) =>
   moveRowsUpTo(heroes, uid, -1, rows);
 
-/** Knockback N: the hero falls up to `rows` rows back (stops if blocked). */
-export const pushHero = (heroes: HeroUnit[], uid: number, rows = 1) =>
-  moveRowsUpTo(heroes, uid, 1, rows);
+/** Push straight back, sliding occupants aside. Skip a full row if there is room farther within range. */
+export const pushHero = (heroes: HeroUnit[], uid: number, rows = 1) => {
+  let field = heroes;
+  let remaining = Math.min(rows, lastRowDepth());
+  for (let distance = 1; distance <= remaining; distance++) {
+    const moved = moveRows(field, uid, distance);
+    if (moved === field) continue;
+    field = moved;
+    remaining -= distance;
+    distance = 0;
+  }
+  return field;
+};
 
 /**
  * End of the heroes' turn: each hero standing behind its home row steps
@@ -645,17 +663,25 @@ export const advanceHeroes = (heroes: HeroUnit[]): HeroUnit[] => {
  */
 export const fallBack = (
   heroes: readonly HeroUnit[],
-  rows: number
+  rows: number,
+  knockbackTargets?: ReadonlySet<number>
 ): HeroUnit[] => {
   let field = [...heroes];
+  if (knockbackTargets) {
+    const targets = field.filter(unit => knockbackTargets.has(unit.uid))
+      .sort((a, b) => rowDepth(b.row) - rowDepth(a.row));
+    for (const unit of targets) field = pushHero(field, unit.uid, rows);
+    return field;
+  }
   for (let step = 0; step < rows; step += 1) {
     const farthestFirst = [...field].sort(
       (a, b) => rowDepth(b.row) - rowDepth(a.row)
     );
-    for (const unit of farthestFirst)
+    for (const unit of farthestFirst) {
       field = isImmovable(unit)
         ? shiftWhole(field, unit.uid, 1)
         : pushHero(field, unit.uid);
+    }
   }
   return field;
 };
@@ -666,7 +692,7 @@ export const fallBack = (
 const isSingleTarget = (effect: CardDef['effects'][number]): boolean =>
   effect.kind === 'reap' ||
   effect.kind === 'pull' ||
-  effect.kind === 'push' ||
+  (effect.kind === 'push' && effect.target !== 'all') ||
   ((effect.kind === 'damage' ||
     effect.kind === 'hex' ||
     effect.kind === 'poison' ||
@@ -678,10 +704,12 @@ const isSingleTarget = (effect: CardDef['effects'][number]): boolean =>
 
 /** Works out which heroes a card may be aimed at (see TargetRule). */
 export const targetRuleOf = (cardId: CardId): TargetRule => {
-  const { effects, reach } = getCard(cardId);
+  const { effects, reach, type } = getCard(cardId);
   const kinds = effects.map((effect) => effect.kind);
+  // Melee chooses a front-row target even when its knockback is blocked.
+  if (type === 'melee' && effects.some(isSingleTarget)) return 'front';
   if (kinds.includes('pull')) return 'pullable';
-  if (kinds.includes('push')) return 'pushable';
+  if (effects.some((effect) => effect.kind === 'push' && effect.target !== 'all')) return 'pushable';
   if (!effects.some(isSingleTarget)) return 'none';
   const isMelee = effects.some(
     (effect) => effect.kind === 'damage' && effect.target === 'one'
@@ -705,7 +733,11 @@ const SELF_EFFECT_KINDS: ReadonlySet<CardDef['effects'][number]['kind']> =
     'cleanse',
     'protect',
     'brace',
+    'move',
     'rush',
+    'charge',
+    'backStep',
+    'momentum',
     'armor',
     'imbue',
   ]);
@@ -729,7 +761,8 @@ export const affectsHeroes = (cardId: CardId): boolean =>
 export const legalTargets = (
   heroes: readonly HeroUnit[],
   rule: TargetRule,
-  type: CardType
+  type: CardType,
+  pushRows = 1
 ): HeroUnit[] => {
   const reachable = heroes.filter((unit) => canReach(unit, type));
   switch (rule) {
@@ -747,7 +780,7 @@ export const legalTargets = (
       return reachable.filter(
         (unit) =>
           (isImmovable(unit) && rowDepth(unit.row) < lastRowDepth()) ||
-          canPush(heroes, unit)
+          canPush(heroes, unit, pushRows)
       );
   }
 };

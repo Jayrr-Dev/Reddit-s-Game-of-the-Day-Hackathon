@@ -15,7 +15,7 @@ import {
   sizeOf,
 } from '../../../../shared/game/battlefield';
 import { rowLabel } from '../../../../shared/game/describe';
-import { FEATURES } from '../../../../shared/game/features';
+import { HORIZON_SLOT_SPAN, rowPerspective } from './rowPerspective';
 import { getHero } from '../../../../shared/game/heroes';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
 import type {
@@ -67,54 +67,6 @@ export type HeroOnFieldProps = {
 };
 
 // --- CONSTANTS ---
-/** Where each row stands, as a share of the battlefield height. */
-// Boxes include the plate on top. Each row's plates end below where
-// the next row's begin, so plates never cover each other. Farther rows
-// are drawn smaller (perspective): the Horizon smallest.
-type RowBox = { bottom: string; height: string };
-// Line 3 tops out at 82%, so its plate (name, bar, chips) clears the
-// top of a short field instead of being clipped.
-const THREE_ROW_BOX: Record<HeroRow, RowBox> = {
-  front: { bottom: '2%', height: '46%' },
-  back: { bottom: '49%', height: '21%' },
-  horizon: { bottom: '70%', height: '12%' },
-};
-/** With the three-row flag off: the original two rows, roomier. */
-const TWO_ROW_BOX: Record<HeroRow, RowBox> = {
-  front: { bottom: '2%', height: '56%' },
-  back: { bottom: '63%', height: '25%' },
-  horizon: THREE_ROW_BOX.horizon,
-};
-/** The row boxes for the field in play (read per render: see features.ts). */
-const rowBoxOf = (row: HeroRow): RowBox =>
-  (FEATURES.threeRowField ? THREE_ROW_BOX : TWO_ROW_BOX)[row];
-/**
- * A 2-deep hero fills both rows, from the front row's foot. It stops
- * short of the back row's top: its plate is taller (name, bar, chips)
- * and would otherwise clip under the top bar.
- */
-const DEEP_BOX: RowBox = { bottom: '2%', height: '78%' };
-/**
- * A boss is drawn as wide as the field, centred on its own slot, and
- * far taller than its row; in the back row it stands higher, behind
- * anyone in front. A deep boss (front and back rows) uses DEEP_BOX.
- * Its plate stays clear of the top bar either way.
- */
-const BOSS_BOX: Record<HeroRow, RowBox> = {
-  // Its feet stand above the Charge / Back Step pill along the field's foot.
-  front: { bottom: '9%', height: '70%' },
-  back: { bottom: '20%', height: '60%' },
-  horizon: { bottom: '30%', height: '50%' },
-};
-/**
- * A deep boss (its row and the one behind), feet likewise above the
- * movement pill; after a Back Step it stands higher and smaller.
- */
-const BOSS_DEEP_BOX: Record<HeroRow, RowBox> = {
-  front: { bottom: '9%', height: '74%' },
-  back: { bottom: '30%', height: '56%' },
-  horizon: { bottom: '30%', height: '56%' },
-};
 /** How many columns wide a boss is drawn. */
 const BOSS_DRAW_COLUMNS = 3;
 /**
@@ -196,20 +148,20 @@ const AIM_CLASS: Record<AimState, string> = {
 // --- HELPERS ---
 /** Absolute box for a hero from its row, column and size. */
 const boxStyle = (unit: HeroUnit): CSSProperties => {
-  const columnShare = 100 / BATTLEFIELD_COLUMNS;
-  if (isBoss(unit)) {
-    // Centred on its slot: half the extra width spills to each side.
-    const centre = unit.col + sizeOf(unit) / 2;
-    return {
-      left: `${(centre - BOSS_DRAW_COLUMNS / 2) * columnShare}%`,
-      width: `${BOSS_DRAW_COLUMNS * columnShare}%`,
-      ...(isDeep(unit) ? BOSS_DEEP_BOX[unit.row] : BOSS_BOX[unit.row]),
-    };
-  }
+  const { feet } = rowPerspective(unit.row);
+  const boss = isBoss(unit);
+  const depthScale = feet / rowPerspective('front').feet;
+  const columnCenter = (unit.col + sizeOf(unit) / 2) / BATTLEFIELD_COLUMNS;
+  const horizontalSpan = unit.row === 'horizon' ? HORIZON_SLOT_SPAN : feet;
+  const center = 0.5 + (columnCenter - 0.5) * horizontalSpan;
+  const columns = boss ? BOSS_DRAW_COLUMNS : sizeOf(unit);
+  const width = (columns / BATTLEFIELD_COLUMNS) * depthScale;
+  const heightAtFeet = isDeep(unit) ? 0.82 : boss ? 0.76 : 0.58;
   return {
-    left: `${unit.col * columnShare}%`,
-    width: `${sizeOf(unit) * columnShare}%`,
-    ...(isDeep(unit) ? DEEP_BOX : rowBoxOf(unit.row)),
+    left: `${100 * (center - width / 2)}%`,
+    width: `${100 * width}%`,
+    bottom: `${100 * (1 - feet)}%`,
+    height: `${100 * feet * heightAtFeet}%`,
   };
 };
 
@@ -297,7 +249,7 @@ const DyingHero = ({ unit }: { unit: HeroUnit }) => {
       <div className="relative h-full w-full [container-type:size]">
         <div
           className="absolute bottom-0 left-1/2 -translate-x-1/2 origin-bottom animate-hero-death"
-          style={bodyStyleOf(size, isBoss(unit))}
+          style={bodyStyleOf(unit, size)}
         >
           <HeroFigure heroId={unit.heroId} size={size} mood="wince" />
         </div>
@@ -337,7 +289,7 @@ const GroundShadow = ({
       style={style}
     >
       {/* SHRINKS AND FADES WHILE THE HERO IS ALOFT (index.css, FLIGHT) */}
-      <div className="hero-flight-shadow absolute inset-0">
+      <div className={`hero-flight-shadow absolute inset-0 ${unit.heroId === 'grandGriffon' ? 'griffon-shadow' : ''}`}>
         <div
           className="absolute bottom-[1%] left-1/2 h-[6%] -translate-x-1/2 rounded-[50%] bg-black"
           style={{ width: `${halfWidthShare * 200}%`, opacity }}
@@ -396,7 +348,7 @@ const BossDeath = ({ unit }: { unit: HeroUnit }) => {
       <div className="relative h-full w-full [container-type:size]">
         <div
           className="absolute bottom-0 left-1/2 -translate-x-1/2 origin-bottom animate-boss-death"
-          style={bodyStyleOf(size, true)}
+          style={bodyStyleOf(unit, size)}
         >
           <HeroFigure heroId={unit.heroId} size={size} mood="fierce" />
         </div>
@@ -417,11 +369,16 @@ const BossDeath = ({ unit }: { unit: HeroUnit }) => {
   );
 };
 
-/** The drawing's size: as tall as fits the box at its aspect ratio. */
-const bodyStyleOf = (size: HeroSize, isBoss = false): CSSProperties => ({
-  height: `min(100cqh, ${(isBoss ? BOSS_OVERSPILL : 1) * (100 / figureAspect(size))}cqw)`,
-  aspectRatio: figureAspect(size),
-});
+/** Enlarge the foot-anchored figure within its lane, with extra legibility at distance. */
+const bodyStyleOf = (unit: HeroUnit, size: HeroSize): CSSProperties => {
+  const rowScale = { front: 1.28, back: 1.45, horizon: 1.65 }[unit.row];
+  const scale = isDeep(unit) ? Math.min(rowScale, 1.2) : isBoss(unit) ? Math.min(rowScale, 1.3) : rowScale;
+  const widthLimit = (isBoss(unit) ? BOSS_OVERSPILL : 1) * 100 / figureAspect(size);
+  return {
+    height: `min(${100 * scale}cqh, ${widthLimit * scale}cqw)`,
+    aspectRatio: figureAspect(size),
+  };
+};
 
 // --- COMPONENT ---
 /**
@@ -449,7 +406,7 @@ export const HeroOnField = ({
   const focusClass = isFocused
     ? 'drop-shadow-[0_0_10px_var(--color-accent)]'
     : '';
-  const bodyStyle = bodyStyleOf(size, isBoss(unit));
+  const bodyStyle = bodyStyleOf(unit, size);
   const mood = moodOf({
     isHurt: lastHitId !== null,
     isActing: action !== null,
@@ -484,42 +441,42 @@ export const HeroOnField = ({
         <div
           className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${action ? bodyActionClass(action) : ''}`}
           style={bodyStyle}
-          {...{ [HERO_ANCHOR_ATTR]: true }}
         >
-          {/* IDLE SWAY: figure and pick mark rock together */}
-          <div
-            className="relative h-full w-full origin-bottom animate-hero-sway"
-            style={swayStyle(unit)}
-          >
-            {/* FLIGHT: rises into the sky while Aloft (index.css, FLIGHT) */}
+          <div className="hero-flight relative h-full w-full" {...{ [HERO_ANCHOR_ATTR]: true }}>
+            {/* IDLE SWAY: figure and pick mark rock together */}
             <div
-              className={`hero-flight h-full w-full ${isDeep(unit) ? '' : ROW_TINT_CLASS[unit.row]} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
+              className="relative h-full w-full origin-bottom animate-hero-sway"
+              style={swayStyle(unit)}
             >
-              {/* FLINCH: re-keyed by each new hit, so it plays once per hit */}
               <div
-                key={lastHitId ?? 'steady'}
-                className={`h-full w-full origin-bottom ${lastHitId === null ? '' : 'animate-flinch'}`}
+                className={`h-full w-full ${isDeep(unit) ? '' : ROW_TINT_CLASS[unit.row]} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
               >
-                <HeroFigure
-                  heroId={unit.heroId}
-                  size={size}
-                  action={action}
-                  mood={mood}
-                />
+                {/* FLINCH: re-keyed by each new hit, so it plays once per hit */}
+                <div
+                  key={lastHitId ?? 'steady'}
+                  className={`h-full w-full origin-bottom ${lastHitId === null ? '' : 'animate-flinch'}`}
+                >
+                  <HeroFigure
+                    heroId={unit.heroId}
+                    size={size}
+                    action={action}
+                    mood={mood}
+                  />
+                </div>
               </div>
+              <HexAura hex={unit.statuses.hex} />
+              {pickMarker && <PickMark marker={pickMarker} />}
+              {unit.joinedMidFight && <ArrivalLight />}
             </div>
-            <HexAura hex={unit.statuses.hex} />
-            {pickMarker && <PickMark marker={pickMarker} />}
-            {unit.joinedMidFight && <ArrivalLight />}
-          </div>
-          {/* PLATE: outside the sway, so its text never tilts (a tilted,
-              scaled-down plate rasterizes blurry) and its chips hold
-              still under the finger. */}
-          <div
-            className="absolute inset-x-0 flex justify-center"
-            style={plateStyle(size)}
-          >
-            <HeroPlate unit={unit} field={field} isFocused={isFocused} />
+            {/* PLATE: outside the sway, so its text never tilts (a tilted,
+                scaled-down plate rasterizes blurry) and its chips hold
+                still under the finger. */}
+            <div
+              className="absolute inset-x-0 flex justify-center"
+              style={plateStyle(size)}
+            >
+              <HeroPlate unit={unit} field={field} />
+            </div>
           </div>
         </div>
       </div>

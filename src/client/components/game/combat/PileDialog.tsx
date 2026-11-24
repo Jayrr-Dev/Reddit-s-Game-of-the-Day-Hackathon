@@ -8,7 +8,7 @@
 // backdrop, the Close button or Esc.
 // ===================================================================
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { getCard, type CardId } from '../../../../shared/game/cards';
 import type { Combatant } from '../../../../shared/game/types';
 import { CardView } from '../CardView';
@@ -23,6 +23,8 @@ export type PileDialogProps = {
   cards: readonly CardId[];
   /** You, so card numbers show your current buffs. */
   attacker: Combatant;
+  slain: number;
+  followUpReady?: boolean | undefined;
   onClose: () => void;
 };
 
@@ -50,9 +52,12 @@ export const PileDialog = ({
   pile,
   cards,
   attacker,
+  slain,
+  followUpReady,
   onClose,
 }: PileDialogProps) => {
   const { title, note } = PILE_TEXT[pile];
+  const scrollStart = useRef<{ y: number; top: number } | null>(null);
 
   // ESC CLOSES
   useEffect(() => {
@@ -82,20 +87,35 @@ export const PileDialog = ({
           <span className="text-[11px] text-ink-muted">{note}</span>
         </header>
         <div
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth py-4"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y py-4"
           style={SCROLL_FADE_STYLE}
+          onPointerDown={(event) => {
+            if (event.pointerType === 'mouse' && event.button === 0)
+              scrollStart.current = { y: event.clientY, top: event.currentTarget.scrollTop };
+          }}
+          onPointerMove={(event) => {
+            const start = scrollStart.current;
+            if (!start || event.buttons !== 1 || event.pointerType !== 'mouse') return;
+            const delta = event.clientY - start.y;
+            if (Math.abs(delta) < 4 && !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+            event.currentTarget.setPointerCapture(event.pointerId);
+            event.currentTarget.scrollTop = start.top - delta;
+          }}
+          onPointerUp={() => { scrollStart.current = null; }}
+          onPointerCancel={() => { scrollStart.current = null; }}
+          onPointerLeave={() => { scrollStart.current = null; }}
         >
           {cards.length === 0 ? (
             <p className="py-6 text-center text-sm text-ink-muted">
               No cards here.
             </p>
           ) : (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(4.25rem,1fr))] justify-items-center gap-x-2 gap-y-3 px-1">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(var(--table-card-width),1fr))] justify-items-center gap-x-2 gap-y-3 px-1">
               {shownOrder(pile, cards).map((cardId, index) => (
                 <CardView
                   key={`${cardId}-${index}`}
                   cardId={cardId}
-                  attacker={attacker}
+                  attacker={attacker} slain={slain} followUpReady={followUpReady}
                   size="fan"
                 />
               ))}

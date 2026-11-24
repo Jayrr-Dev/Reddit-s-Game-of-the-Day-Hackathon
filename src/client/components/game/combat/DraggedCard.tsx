@@ -7,6 +7,7 @@
 // is aimed at a hero, its text shows the damage that hero would take.
 // ===================================================================
 
+import type { ReactNode } from 'react';
 import type { CardId } from '../../../../shared/game/cards';
 import type { Combatant, HeroUnit } from '../../../../shared/game/types';
 import { DRAGGED_CARD_ATTR, type CardBox } from '../../../hooks/useCardDrag';
@@ -14,8 +15,11 @@ import { CardView } from '../CardView';
 
 // --- TYPES ---
 export type DraggedCardProps = {
-  cardId: CardId;
+  cardId?: CardId | undefined;
+  children?: ReactNode;
   attacker: Combatant;
+  slain: number;
+  followUpReady?: boolean | undefined;
   /** The hero the drag is locked onto, so the numbers fit that hero. */
   target?: HeroUnit | undefined;
   box: CardBox;
@@ -44,27 +48,30 @@ const glowFilter = (glow: number): string => {
 /** Renders the lifted card centred on its drag position. */
 export const DraggedCard = ({
   cardId,
+  children,
   attacker,
+  slain,
+  followUpReady,
   target,
   box,
   glow,
 }: DraggedCardProps) => (
   <div
     {...{ [DRAGGED_CARD_ATTR]: true }}
-    className="pointer-events-none fixed z-40 transition-[filter] duration-150"
+    className="pointer-events-none fixed left-0 top-0 z-40 will-change-transform transition-[filter] duration-150"
     style={{
-      left: box.center.x,
-      top: box.center.y,
-      transform: `translate(-50%, -50%) scale(${LIFT_SCALE})`,
+      width: box.width,
+      height: box.height,
+      transform: `translate3d(${box.center.x}px, ${box.center.y}px, 0) translate(-50%, -50%) scale(${LIFT_SCALE})`,
       filter: glowFilter(glow),
     }}
   >
-    <CardView
+    {children ?? (cardId && <CardView
       cardId={cardId}
-      attacker={attacker}
+      attacker={attacker} slain={slain} followUpReady={followUpReady}
       target={target}
       size="fan"
       onClick={() => {}}
-    />
+    />)}
   </div>
 );

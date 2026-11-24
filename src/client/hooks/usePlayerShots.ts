@@ -157,11 +157,9 @@ export const usePlayerShots = () => {
    */
   const swing = useCallback(
     (plan: SweepPlan): boolean => {
-      const points = plan.targetUids
-        .map(bodyPointOf)
-        .filter((point): point is Point => point !== null);
-      if (points.length === 0) return false;
+      let placed = false;
       Array.from({ length: plan.hits }, (_, hitIndex) => {
+        const points = plan.targetUids.map(uid => bodyPointOf(uid, hitIndex)).filter((point): point is Point => point !== null);
         const id = nextIdRef.current++;
         const style = sweepStyleFor(
           plan.cardId,
@@ -172,10 +170,11 @@ export const usePlayerShots = () => {
         lastStyleRef.current = style;
         const sweep = sweepAcross(id, points, style);
         if (!sweep) return;
+        placed = true;
         if (hitIndex === 0) return showSweep(sweep);
         window.setTimeout(() => showSweep(sweep), hitIndex * HIT_STAGGER_MS);
       });
-      return true;
+      return placed;
     },
     [showSweep]
   );
@@ -192,7 +191,7 @@ export const usePlayerShots = () => {
       () => plan.targetUids
     ).flat();
     const flights = aims.flatMap((uid, index): ProjectileFlight[] => {
-      const to = bodyPointOf(uid);
+      const to = bodyPointOf(uid, index);
       if (!to) return [];
       const id = nextIdRef.current++;
       return [

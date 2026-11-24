@@ -6,11 +6,11 @@
 //   intent chips   statuses   (under the bar: next move left on white
 //                              pills, statuses right on dark tiles)
 // Each hero gets its own plate, so the whole horde reads at a glance.
-// The plate grows with the hero: it spans the hero's columns, and a big
-// hero (size 3, a champion) gets a bigger shield and bar than a small
-// one. Back-row plates are drawn smaller again to match their depth.
+// Plates follow the figure in screen space while their type and bars stay the same size.
 // ===================================================================
 
+import { createPortal } from 'react-dom';
+import { useLayoutEffect, useRef, useState } from 'react';
 import {
   describeHeroIntent,
   type MoveIntent,
@@ -21,12 +21,7 @@ import {
   passivesOf,
 } from '../../../../shared/game/combat';
 import { getHero } from '../../../../shared/game/heroes';
-import type {
-  HeroRow,
-  HeroSize,
-  HeroUnit,
-} from '../../../../shared/game/types';
-import { drawSizeOf } from '../../../content/heroLooks';
+import type { HeroUnit } from '../../../../shared/game/types';
 import { HERO_STATUS_ROWS, INTENT_LOOK } from '../../../content/visuals';
 import { Chip } from '../../ui/Chip';
 import { StatusRow } from '../StatusRow';
@@ -38,45 +33,7 @@ export type HeroPlateProps = {
   unit: HeroUnit;
   /** Every hero on the field (the plan shown depends on them). */
   field: readonly HeroUnit[];
-  isFocused: boolean;
 };
-
-// --- CONSTANTS ---
-/**
- * Plate proportions per hero size: the name class, and the plate width as a share of the hero's box (cqw = 1% of that box),
- * capped so only big heroes get a long bar on wide screens.
- */
-const PLATE_LOOK: Record<
-  HeroSize,
-  { name: string; width: string; maxWidth: string }
-> = {
-  1: {
-    name: 'text-[9px]',
-    width: '85cqw',
-    maxWidth: '7.5rem',
-  },
-  2: {
-    name: 'text-[10px]',
-    width: '80cqw',
-    maxWidth: '11rem',
-  },
-  3: {
-    name: 'text-xs',
-    width: '78cqw',
-    maxWidth: '16rem',
-  },
-};
-
-/**
- * A boss's plate is kept narrower than a champion's, so the plates of
- * the heroes at its back flanks sit beside it instead of being lifted
- * over it (into the top bar).
- */
-const BOSS_PLATE_MAX_WIDTH = '12rem';
-
-/** A boss's name: always gold, with a thin black outline. */
-const BOSS_NAME_CLASS =
-  'text-accent [paint-order:stroke_fill] [-webkit-text-stroke:2px_black]';
 
 // --- SUBCOMPONENTS ---
 /** A signature move's arrow is gold, whatever it does. */
@@ -117,7 +74,7 @@ export const IntentChips = ({
   unit: HeroUnit;
   field: readonly HeroUnit[];
 }) => (
-  <div className="flex flex-nowrap items-center gap-0.5">
+  <div className="hero-action-chips flex flex-nowrap items-center gap-0.5">
     {describeHeroIntent(unit, field).moves.map((move, index) => (
       <MoveArrow key={`${move.name}-${index}`} move={move} />
     ))}
@@ -125,64 +82,98 @@ export const IntentChips = ({
 );
 
 // --- COMPONENT ---
-/** Farther rows wear smaller plates (perspective), the Horizon smallest. */
-const PLATE_SCALE_CLASS: Record<HeroRow, string> = {
-  front: '',
-  back: 'scale-[0.8]',
-  horizon: 'scale-[0.65]',
-};
-
-/** Renders one hero's plate; the focused hero's name is lit gold. */
-export const HeroPlate = ({ unit, field, isFocused }: HeroPlateProps) => {
-  const look = PLATE_LOOK[drawSizeOf(unit)];
+/** Renders one hero's plate, with gold lettering for bosses. */
+export const HeroPlate = ({ unit, field }: HeroPlateProps) => {
+  const plateRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const [layer, setLayer] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    setLayer(
+      anchorRef.current
+        ?.closest('.dueling-table')
+        ?.querySelector('.hero-plate-layer') ?? null
+    );
+  }, []);
+  useLayoutEffect(() => {
+    const anchor = anchorRef.current;
+    const plate = plateRef.current;
+    if (!anchor || !plate || !layer) return;
+    let frame = 0;
+    const follow = () => {
+      const height = plate.offsetHeight;
+      if (anchor.offsetHeight !== height) anchor.style.height = height + 'px';
+      const rect = anchor.getBoundingClientRect();
+      const bounds = layer.getBoundingClientRect();
+      const width = plate.offsetWidth;
+      if (anchor.offsetWidth !== width) anchor.style.width = width + 'px';
+      if (width > 0 && rect.width > 0) {
+        const half = width * 0.64;
+        const center = Math.max(
+          half,
+          Math.min(
+            bounds.width - half,
+            rect.left - bounds.left + rect.width / 2
+          )
+        );
+        const bottom = Math.max(
+          height,
+          rect.bottom - bounds.top
+        );
+        plate.style.left = center - width / 2 + 'px';
+        plate.style.top = bottom - height + 'px';
+        plate.style.visibility = 'visible';
+      }
+      frame = requestAnimationFrame(follow);
+    };
+    follow();
+    return () => cancelAnimationFrame(frame);
+  }, [layer]);
   const isBoss = getHero(unit.heroId).tier === 'boss';
-  const nameClass = isBoss
-    ? BOSS_NAME_CLASS
-    : isFocused
-      ? 'text-accent'
-      : 'text-ink';
-  const scaleClass = PLATE_SCALE_CLASS[unit.row];
+  const nameClass = isBoss ? 'text-accent' : 'text-ink';
   return (
-    <div
-      {...{ [PLATE_UID_ATTR]: unit.uid }}
-      className={`pointer-events-none flex origin-bottom flex-col gap-1.5 ${scaleClass}`}
-      style={{
-        width: look.width,
-        maxWidth: isBoss ? BOSS_PLATE_MAX_WIDTH : look.maxWidth,
-      }}
-    >
-      <span
-        className={`truncate px-1 text-left font-display font-bold ${look.name} uppercase leading-none tracking-wider drop-shadow ${nameClass}`}
-      >
-        {getHero(unit.heroId).name}
-      </span>
-      <DrainBar hp={unit.hp} maxHp={unit.maxHp} size="small" />
-      {/* CHIPS: statuses wrap onto up to HERO_STATUS_ROWS lines (the
-          plate hangs from its top, so extra lines grow down over the
-          drawing, never up under the top bar). Drawn at 80%, so laid
-          out 125% wide to span the plate; intents sit flush left under
-          the bar's left end, statuses flush right under its right end,
-          and statuses take what the intents leave, folding the rest
-          into "+N". */}
-      <div className="flex w-[125%] origin-top scale-[0.8] items-start justify-between gap-2.5 self-center">
-        <div className="shrink-0">
-          <IntentChips unit={unit} field={field} />
-        </div>
-        {/* Flush right: the row itself shrinks to its chips (max-w-max). */}
-        <div className="flex min-w-0 flex-1 justify-end">
-          <StatusRow
-            combatant={unit}
-            passives={passivesOf(unit)}
-            isOutOfRange={isOutOfRangeShot(
-              'range',
-              unit.row,
-              hasLongRangePassive(unit)
-            )}
-            align="end"
-            rows={HERO_STATUS_ROWS}
-          />
-        </div>
-      </div>
-    </div>
+    <>
+      <div
+        ref={anchorRef}
+        aria-hidden="true"
+        {...{ [PLATE_UID_ATTR]: unit.uid }}
+        className="pointer-events-none shrink-0 origin-bottom"
+      />
+      {layer &&
+        createPortal(
+          <div
+            ref={plateRef}
+            onClick={(event) => event.stopPropagation()}
+            className={`hero-plate pointer-events-none absolute invisible flex origin-bottom flex-col gap-1.5`}
+          >
+            <span
+              className={`hero-plate-name w-[128%] self-center px-1 text-center text-balance [overflow-wrap:anywhere] font-display font-bold text-[11px] uppercase leading-tight tracking-wider ${nameClass}`}
+            >
+              {getHero(unit.heroId).name}
+            </span>
+            <DrainBar hp={unit.hp} maxHp={unit.maxHp} size="small" />
+            {/* At 80% scale the centered chip row spans 128% of the HP bar. */}
+            <div className="flex w-[160%] origin-top scale-[0.8] items-start justify-between gap-2.5 self-center">
+              <div className="shrink-0">
+                <IntentChips unit={unit} field={field} />
+              </div>
+              {/* Flush right: the row itself shrinks to its chips (max-w-max). */}
+              <div className="flex min-w-0 flex-1 justify-end">
+                <StatusRow
+                  combatant={unit}
+                  passives={passivesOf(unit)}
+                  isOutOfRange={isOutOfRangeShot(
+                    'range',
+                    unit.row,
+                    hasLongRangePassive(unit)
+                  )}
+                  align="end"
+                  rows={HERO_STATUS_ROWS}
+                />
+              </div>
+            </div>
+          </div>,
+          layer
+        )}
+    </>
   );
 };

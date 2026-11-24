@@ -96,7 +96,47 @@ const withHand = (state: CombatState, hand: CardId[]): CombatState => ({
   hand,
 });
 
+void test('Decimate spends one less energy per kill in this fight, down to zero', () => {
+  const battle = fightWith(['decimate']);
+  const card = getCard('decimate');
+  assert.equal(card.edge, 'blunt');
+  assert.equal(card.rarity, 'legendary');
+  assert.ok(card.keywords.includes('rampage'));
+  assert.deepEqual(describeCard('decimate'), ['Damage 50', 'Costs 1 less per kill', 'Rampage']);
+  for (const slain of [0, 1, 2, 3, 4]) {
+    const cost = Math.max(0, 3 - slain);
+    const state = { ...battle, slain, energy: cost };
+    if (cost > 0) assert.equal(canPlayCard({ ...state, energy: cost - 1 }, 0), false);
+    assert.equal(canPlayCard(state, 0), true);
+    const after = playCard(state, 0, state.heroes[0]!.uid);
+    assert.equal(after.energy, 0);
+    assert.equal(after.slain, slain + 1);
+  }
+});
+
 // --- COMBATANT RULES ---
+void test('movement cards follow formation rules and Jump grants Momentum', () => {
+  const front = withHand(fightWith(['retreat']), ['retreat']);
+  const retreat = playCard(front, 0, 0);
+  assert.deepEqual(retreat.heroes, move(front, 'backStep').heroes);
+  assert.equal(retreat.energy, front.energy - 1);
+  assert.equal(retreat.lastMovement?.move, 'backStep');
+
+  const chargeReady = withHand(retreat, ['chargeForward']);
+  const charged = playCard(chargeReady, 0, 0);
+  assert.deepEqual(charged.heroes, move(chargeReady, 'charge').heroes);
+  assert.equal(charged.player.statuses.momentum, 1);
+  assert.equal(charged.lastMovement?.streak, 2);
+  assert.equal(canPlayCard(withHand(charged, ['chargeForward']), 0), false);
+
+  const jumpReady = withHand(front, ['jump']);
+  const jumped = playCard(jumpReady, 0, 0);
+  assert.deepEqual(jumped.heroes, jumpReady.heroes);
+  assert.equal(jumped.energy, jumpReady.energy - 1);
+  assert.equal(jumped.player.statuses.momentum, 1);
+  assert.equal(jumped.lastMovement, jumpReady.lastMovement);
+});
+
 void test('guard absorbs damage before HP', () => {
   const guarded = { ...createCombatant(20, 20), guard: 5 };
   const hit = takeDamage(guarded, 8);
@@ -1796,10 +1836,8 @@ void test('an Exhaust card reads Use N/3, counting up', () => {
   );
 });
 
-void test('Utility cards are consumables: every one Exhausts', () => {
-  const utilities = ALL_CARD_IDS.filter((id) => getCard(id).type === 'utility');
-  assert.ok(utilities.length >= 3);
-  for (const id of utilities)
+void test('consumable potions and tonics Exhaust', () => {
+  for (const id of ['healingPotion', 'antidote', 'swiftTonic'] as const)
     assert.ok(getCard(id).keywords.includes('exhaust'), id);
 });
 

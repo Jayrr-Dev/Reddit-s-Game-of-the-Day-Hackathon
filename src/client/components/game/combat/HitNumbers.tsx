@@ -324,12 +324,12 @@ export const HitNumbers = ({ pops }: { pops: HitPop[] }) => (
       return (
         <div key={latest.uid}>
           {/* EFFECTS OVER THE BODY (under the numbers) */}
-          <div
-            className="absolute size-28 -translate-x-1/2 -translate-y-1/2"
-            style={{ left: latest.point.x, top: latest.point.y }}
-          >
-            <ImpactOverlay pops={group} />
-          </div>
+          {group.map(pop => (
+            <div key={pop.id} className="absolute size-28 -translate-x-1/2 -translate-y-1/2"
+              style={{ left: pop.point.x, top: pop.point.y, ['--mark-scatter' as string]: '0%' }}>
+              <ImpactOverlay pops={[pop]} />
+            </div>
+          ))}
           <div
             className="absolute -translate-x-1/2 -translate-y-full"
             style={{ left: latest.point.x, top: latest.point.y + 24 }}

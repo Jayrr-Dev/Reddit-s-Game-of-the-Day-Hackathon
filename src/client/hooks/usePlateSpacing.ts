@@ -67,6 +67,11 @@ export const usePlateSpacing = (
     spacePlates(field, heroes);
     const observer = new ResizeObserver(() => spacePlates(field, heroes));
     observer.observe(field);
-    return () => observer.disconnect();
+    const settle = () => spacePlates(field, heroes);
+    field.addEventListener('transitionend', settle);
+    return () => {
+      observer.disconnect();
+      field.removeEventListener('transitionend', settle);
+    };
   }, [fieldRef, heroes]);
 };

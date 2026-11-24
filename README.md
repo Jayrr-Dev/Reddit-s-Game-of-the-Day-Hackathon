@@ -1,5 +1,7 @@
 # Villain Run
 
+The [art style guide](ART_STYLE.md) covers card illustrations, battlefield art, units, and frame assets.
+
 An entry for **[Reddit's Game of the Day Hackathon](https://redditgameofday2026.devpost.com/)**: a daily game that runs inside a Reddit post, built on Reddit's Developer Platform ([Devvit Web](https://developers.reddit.com/docs/capabilities/devvit-web/devvit_web_overview)).
 
 > **Status:** playable. Villain Run is an endless daily deckbuilder. The heroes killed your lover, and now you march on their kingdom. Everyone faces the same seeded horde each day.

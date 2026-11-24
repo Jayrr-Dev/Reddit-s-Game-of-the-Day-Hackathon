@@ -10,7 +10,6 @@ import {
   type RunAction,
   type RunState,
 } from '../../../shared/game/run';
-import { regionHue } from '../../content/visuals';
 import { AbandonRun } from './combat/AbandonRun';
 import { CombatView } from './CombatView';
 import { GraveView } from './GraveView';
@@ -37,7 +36,7 @@ const PhaseBody = ({ run, onAction }: VillainRunGameProps) => {
         <CombatView
           key={run.stop}
           combat={phase.combat}
-          hue={regionHue(region)}
+          terrainIndex={region}
           where={`Wave ${run.stop} · ${regionName(region)}`}
           score={computeScore(run.stats)}
           onAction={onAction}

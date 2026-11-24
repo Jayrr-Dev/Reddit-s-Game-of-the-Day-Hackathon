@@ -1,11 +1,12 @@
 // ===================================================================
 // SCENARIO PICKER
-// The target dummies' pause-menu picker, in two tabs: Scenarios (preset
+// The target dummies' pause-menu picker, in tabs: Scenarios (preset
 // lineups, SANDBOX_SCENARIOS) and Decks (themed test decks,
 // SANDBOX_DECKS). Tapping a scenario starts a fight against it; tapping
 // a deck deals a fresh fight from it against the same dummies.
 // ===================================================================
 
+import { MAP_NAMES } from './combat/Backdrop';
 import { useState } from 'react';
 import {
   SANDBOX_SCENARIOS,
@@ -17,15 +18,16 @@ import {
 } from '../../../shared/game/sandboxDecks';
 
 // --- TYPES ---
-type PickerTab = 'scenarios' | 'decks';
+type PickerTab = 'scenarios' | 'decks' | 'map';
 
 /** One entry in either tab. */
-type PickerEntry = { id: string; name: string; blurb: string };
+type PickerEntry = { id: string; name: string; blurb?: string };
 
 // --- CONSTANTS ---
 const TAB_LABELS: Record<PickerTab, string> = {
   scenarios: 'Scenarios',
   decks: 'Decks',
+  map: 'Map',
 };
 
 // --- SUBCOMPONENTS ---
@@ -48,11 +50,11 @@ const EntryButton = ({
     <span className="font-display text-sm font-black text-ink">
       {entry.name}
     </span>
-    <span className="text-[11px] leading-tight text-ink/70">{entry.blurb}</span>
+    {entry.blurb && <span className="text-[11px] leading-tight text-ink/70">{entry.blurb}</span>}
   </button>
 );
 
-/** The two tab buttons. */
+/** The practice menu tabs. */
 const TabBar = ({
   tab,
   onTab,
@@ -79,10 +81,14 @@ const TabBar = ({
 // --- COMPONENT ---
 /** Renders the tabs and the active tab's entries in a two-column grid. */
 export const ScenarioPicker = ({
+  terrainIndex,
+  onPickMap,
   deckId,
   onPickScenario,
   onPickDeck,
 }: {
+  terrainIndex: number;
+  onPickMap: (index: number) => void;
   deckId: SandboxDeckId;
   onPickScenario: (scenario: SandboxScenario) => void;
   onPickDeck: (deckId: SandboxDeckId) => void;
@@ -101,7 +107,9 @@ export const ScenarioPicker = ({
                 onPick={() => onPickScenario(scenario)}
               />
             ))
-          : SANDBOX_DECKS.map((deck) => (
+          : tab === 'map' ? MAP_NAMES.map((name, index) => (
+              <EntryButton key={name} entry={{ id: name, name }} isActive={index === terrainIndex} onPick={() => onPickMap(index)} />
+            )) : SANDBOX_DECKS.map((deck) => (
               <EntryButton
                 key={deck.id}
                 entry={deck}

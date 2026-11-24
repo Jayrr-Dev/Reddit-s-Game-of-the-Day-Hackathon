@@ -204,9 +204,7 @@ export const Tooltip = ({
    * toggles it; the click that follows is swallowed so it isn't a tap
    * on the hero behind.
    */
-  const onPopoverPress = (event: PointerEvent) => {
-    if (event.button !== 0) return;
-    event.stopPropagation();
+  const togglePopover = () => {
     const rect = triggerRef.current?.getBoundingClientRect();
     setPlacement((open) =>
       open || !rect
@@ -215,8 +213,15 @@ export const Tooltip = ({
     );
   };
   const popoverHandlers = {
-    onPointerDown: onPopoverPress,
-    onClick: (event: MouseEvent) => event.stopPropagation(),
+    onPointerDown: (event: PointerEvent) => {
+      if (event.button !== 0) return;
+      event.stopPropagation();
+      togglePopover();
+    },
+    onClick: (event: MouseEvent) => {
+      event.stopPropagation();
+      if (event.detail === 0) togglePopover();
+    },
   };
   const hoverHandlers = {
     onPointerEnter,

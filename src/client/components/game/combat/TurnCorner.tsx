@@ -34,9 +34,10 @@ export const TurnCorner = ({
       type="button"
       onClick={onEndTurn}
       aria-label="End turn"
-      className="grid size-14 place-items-center rounded-full bg-deck text-accent shadow-lg ring-2 ring-accent/70 active:scale-95"
+      className="table-end grid size-14 place-items-center rounded-full bg-deck text-accent shadow-lg ring-2 ring-accent/70 active:scale-95"
     >
       <Glyph name="hourglass" className="size-7" />
+      <span>End Turn</span>
     </button>
   </div>
 );

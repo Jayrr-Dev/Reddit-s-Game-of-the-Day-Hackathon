@@ -1,0 +1,425 @@
+/* --- DUELING TABLE --- */
+.dueling-table {
+  --table-card-height: clamp(92px, 21dvh, 108px);
+  --table-card-width: calc(var(--table-card-height) * 0.75);
+  container: duel / inline-size;
+  --brass: #bd843b;
+  --gold-light: #ffda88;
+  --wood: #321b12;
+  --walnut:
+    linear-gradient(#27140b60, #1e100c88),
+    url('../../../assets/table/walnut.webp') center / 210px 130px;
+  /* One opaque rim encloses both frame sections and their shared divider. */
+  --rim-width: 3px;
+  --horizon: 20%;
+  --hand-zone: calc(100% * 4 / 15);
+  border: var(--rim-width) solid var(--brass);
+  border-radius: 12px;
+  background: var(--wood);
+}
+.table-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  height: 32px;
+  font-family: Georgia, serif;
+  color: var(--gold-light);
+}
+.table-brand,
+.table-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.table-brand strong {
+  translate: 4px -3px;
+  font-size: clamp(12px, 2.2cqw, 20px);
+}
+.table-tools {
+  justify-self: end;
+  font-size: clamp(9px, 1.4cqw, 12px);
+}
+.table-location {
+  justify-self: center;
+  max-width: min(45cqw, 360px);
+  padding: 2px 10px;
+  background: var(--walnut);
+  border: 1px solid var(--brass);
+  border-radius: 8px;
+  color: var(--gold-light);
+  font:
+    bold clamp(10px, 1.55cqw, 14px)/1.05 Georgia,
+    serif;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Let the scene show through the arch cut into the header artwork. */
+.table-field-frame > .table-header {
+  position: absolute;
+  inset: 0 0 auto;
+}
+.table-field-frame .table-tools {
+  translate: 0 -3.5px;
+  justify-self: end;
+  justify-content: space-evenly;
+  width: clamp(112px, 21cqw, 190px);
+  padding-inline: 4px;
+  gap: 4px;
+}
+@container duel (max-width: 470px) {
+  .table-field-frame .table-tools {
+    width: auto;
+    gap: 4px;
+    padding-inline: 0;
+  }
+}
+.table-header button {
+  background: #23130d;
+  border: 1px solid var(--brass);
+  border-radius: 5px;
+  width: 26px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+}
+.table-header button:last-child {
+  order: 1;
+}
+.table-header span.font-display {
+  order: 2;
+}
+.table-book svg {
+  width: 16px;
+}
+
+.table-controls {
+  position: relative;
+  align-items: center;
+  padding: 4px 8px 0;
+  gap: 2px;
+}
+.table-player,
+.table-turn > div {
+  align-items: center;
+  gap: 6px;
+}
+.table-player svg.rounded-full {
+  background: url('../../../assets/table/portrait.webp') center / cover;
+  outline: 2px ridge var(--brass);
+}
+.table-player svg.rounded-full > * {
+  visibility: hidden;
+}
+.table-energy {
+  align-self: start;
+}
+.table-pips {
+  border: 2px ridge var(--brass);
+  border-radius: 18px;
+  padding: 4px 9px;
+  background: #28170e !important;
+  box-shadow: 0 2px 4px #170b07;
+}
+.table-pips .bg-energy {
+  background: radial-gradient(
+    circle at 40% 32%,
+    #fff4a5,
+    #ffbf39 52%,
+    #a95813 95%
+  );
+}
+.table-end {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: radial-gradient(ellipse at top, #245b89, #112d50 75%);
+  border: 4px ridge var(--brass);
+  outline: 1px solid #25120c;
+  color: var(--gold-light);
+  font:
+    bold 9px/1 Georgia,
+    serif;
+  text-transform: uppercase;
+}
+.table-end svg {
+  width: 20px;
+  height: 20px;
+}
+.dueling-table [data-card-size] {
+  border: 2px ridge var(--brass);
+  background-image: linear-gradient(125deg, #fff2, transparent 28%, #1e0d0d70);
+}
+.dueling-table [data-card-size]:disabled {
+  opacity: 0.86;
+  filter: saturate(0.38) brightness(0.65);
+}
+.dueling-table .card-window {
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px 4px 0 0;
+  background-size: cover;
+  background-position: center;
+}
+.dueling-table .card-window::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--illustration) center / cover;
+}
+.dueling-table .card-window svg {
+  position: relative;
+  justify-self: end;
+  align-self: end;
+  margin: 2px;
+  width: 13px;
+  height: 13px;
+}
+.dueling-table [data-card-type='movement'] {
+  --illustration: url('../../../assets/table/stride.webp');
+}
+.dueling-table [data-move='backStep'] {
+  --illustration: url('../../../assets/table/back-step.webp');
+}
+.dueling-table [data-move='charge'] {
+  --illustration: url('../../../assets/table/charge.webp');
+}
+.dueling-table [data-card-type='curse'] {
+  --illustration: url('../../../assets/table/beckon.webp');
+}
+.dueling-table [data-card-type='buff'] {
+  --illustration: url('../../../assets/table/vanish.webp');
+}
+.dueling-table [data-card-type='magic'],
+.dueling-table [data-card-id='forcePush'] {
+  --illustration: url('../../../assets/table/push.webp');
+}
+.dueling-table [data-card-type='melee'] {
+  --illustration: url('../../../assets/table/melee.webp');
+}
+.dueling-table [data-card-type='range'] {
+  --illustration: url('../../../assets/table/range.webp');
+}
+.dueling-table .card-rules {
+  background: radial-gradient(ellipse at center, #ffe8b5, #dfb67e);
+  font-family: Georgia, serif;
+}
+.dueling-table [role='meter'] {
+  outline: 1px solid var(--brass);
+}
+.dueling-table [role='meter'] + div {
+  filter: drop-shadow(0 1px 1px #322017);
+}
+
+/* The controls straddle the rail. The whole lower shelf belongs to the hand. */
+.table-console {
+
+  --table-slot-width: calc(var(--table-card-width) + 5px);
+  position: absolute;
+  inset: auto 0 0;
+  align-items: stretch;
+  pointer-events: none;
+}
+.table-controls {
+  --corner-space: 140px;
+  grid-template-columns: var(--corner-space) minmax(0, 1fr) var(--corner-space);
+  margin-top: -24px;
+  align-items: end;
+}
+.table-controls button, .table-controls .pointer-events-auto, .table-console [data-hand] button, .table-console [data-hand] > div { pointer-events: auto; }
+.table-energy {
+  width: 100%;
+  align-self: end;
+}
+.table-status-dock > .table-pips {
+  align-self: center;
+  max-width: 100%;
+  border-radius: 14px 14px 0 0;
+  border-bottom: 0;
+  padding-block: 3px;
+  margin-top: -5px;
+  position: relative;
+  z-index: 21;
+}
+.table-hero-row { top: var(--horizon); bottom: var(--hand-zone); }
+.table-pips {
+  max-width: 100%;
+  flex-wrap: nowrap;
+  justify-content: center;
+}
+.table-pips span {
+  flex: none;
+}
+.dueling-table [data-card-size='fan'] {
+  width: var(--table-card-width, 68px);
+}
+.table-console [data-hand] {
+  height: 130px;
+}
+@container duel (min-width: 620px) {
+  .table-console [data-hand] {
+    height: 138px;
+  }
+  .dueling-table [data-card-size='fan'] {
+    height: 118px;
+  }
+  .dueling-table [data-card-size='fan'] .card-window {
+    height: 34px;
+  }
+  .dueling-table [data-card-size='fan'] .card-rules {
+    font-size: 9px;
+  }
+}
+@container duel (max-width: 470px) {
+  .table-player,
+  .table-turn > div {
+    gap: 3px;
+  }
+  .table-player > :first-child > div,
+  .table-end {
+    width: 40px;
+    height: 40px;
+  }
+  .table-end svg {
+    width: 14px;
+    height: 14px;
+  }
+  .table-end {
+    font-size: 7px;
+  }
+  .table-pips {
+    gap: 3px;
+    padding: 3px 5px;
+  }
+  .table-pips span {
+    width: 8px;
+    height: 8px;
+  }
+  .table-header {
+    gap: 5px;
+  }
+  .table-controls {
+    --corner-space: 108px;
+    padding-inline: 4px;
+  }
+}
+
+/* One continuous border surrounds the scene and the floating hand. */
+.table-field-frame::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--rim-width));
+  z-index: 25;
+  pointer-events: none;
+  border-style: solid;
+  border-width: 40px 11px 13px;
+  border-image: url('../../../assets/table/open-frame.webp') 82 25 32 / 40px 11px 13px stretch;
+}
+.table-header {
+  padding-inline: 12px;
+}
+.table-controls {
+  padding-inline: 12px;
+}
+@container duel (max-width: 470px) {
+  .table-controls {
+    padding-inline: 5px;
+  }
+  .table-field-frame::after {
+    border-image-width: 34px 6px 9px;
+  }
+
+}
+
+@container duel (max-width: 440px) {
+  .table-header {
+    padding-inline: 9px;
+    gap: 2px;
+  }
+  .table-brand,
+  .table-tools {
+    gap: 3px;
+  }
+  .table-header button {
+    width: 21px;
+    height: 18px;
+  }
+  .table-location {
+    max-width: 39cqw;
+    padding-inline: 4px;
+    white-space: normal;
+  }
+}
+.dueling-table [data-card-size]:disabled {
+  opacity: 1;
+  filter: saturate(0.4) brightness(0.82);
+}
+
+/* Keep the resting hand and mana inside the lower four fifteenths. */
+.table-console { height: var(--hand-zone); }
+.table-controls { position:absolute; inset: auto 0 100%; margin:0; }
+.table-console [data-hand] { height:auto; flex:1; min-height:0; }
+.table-console [data-hand] > div { bottom:4px; }
+.table-status-dock > .table-pips { margin-top:0; }
+.dueling-table [data-card-size='fan'] { height:var(--table-card-height); }
+.dueling-table [data-dragged-card] > [data-card-size='fan'] { width:100%; height:100%; }
+.layout-guides { position:absolute; inset:0; z-index:36; pointer-events:none; font: bold 10px/1.2 system-ui; color:white; }
+.layout-guides .guide-line { position:absolute; inset-inline:0; border-top:1px dashed #fff9; }
+.layout-guides .guide-line span { background:#132431e8; margin-left:10px; padding:1px 4px; }
+.layout-guides .guide-horizon { top:var(--horizon); border-color:#67efe6; }
+.layout-guides .guide-hand { bottom:var(--hand-zone); height:0; border-color:#ffc66e; }
+.layout-guides .guide-center { position:absolute; top:50%; left:50%; translate:-50% -50%; border:2px solid white; outline:1px solid #16222d; border-radius:50%; width:11px; height:11px; }
+.layout-guides .guide-center span { position:absolute; left:12px; top:-3px; background:#132431e8; padding:1px 4px; }
+
+.table-status-dock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) fit-content(55%) minmax(0, 1fr);
+  align-items: end;
+  padding-inline: 8px;
+  gap: 4px;
+}
+.table-buffs,.table-afflictions { min-width: 0; display:flex; pointer-events:auto; }
+.table-buffs { justify-content:flex-end; }
+
+.guide-lanes {
+  position:absolute;
+  inset: var(--horizon) .5rem var(--hand-zone);
+}
+.guide-lanes line { stroke:#fb755b; stroke-width:1; }
+.hero-plate {
+  width: clamp(6rem, 17cqw, 9rem);
+}
+.hero-plate-name {
+  paint-order: stroke fill;
+  -webkit-text-stroke: 2px black;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 70%));
+}
+/* Extend the action's tap area vertically without moving the HP bar or covering adjacent chips. */
+.hero-action-chips > [aria-label] {
+  position: relative;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.hero-action-chips > [aria-label]::before {
+  content: '';
+  position: absolute;
+  inset: -15px -1px;
+}
+.guide-vanishing-point {
+  position:absolute; left:50%; top:0; translate:-50% -50%;
+  width:7px; height:7px; border:1px solid white; border-radius:50%; background:#b74027;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .one-use-bonus-pulse {
+    animation: one-use-bonus-pulse 260ms ease-in-out infinite alternate;
+  }
+  @keyframes one-use-bonus-pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.12); }
+  }
+}

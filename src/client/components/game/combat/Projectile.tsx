@@ -29,7 +29,7 @@ export type ProjectileFlight = {
 // --- CONSTANTS ---
 /** A plain (elementless) bolt's trail and head. */
 const ARCANE_BOLT = {
-  energy: 'color-mix(in oklab, var(--color-magic) 60%, transparent)',
+  energy: 'var(--color-magic)',
   core: '#eafaff',
 };
 
@@ -63,11 +63,27 @@ const Arrow = () => (
 const Bolt = ({ element }: { element?: MagicElement | undefined }) => {
   const { energy, core } = element ? ELEMENT_LOOK[element] : ARCANE_BOLT;
   return (
-    <span
-      className="block h-2.5 w-12 -translate-x-full -translate-y-1/2 rounded-full bg-gradient-to-r from-transparent via-(--bolt-energy) to-(--bolt-core) shadow-[0_0_10px_var(--bolt-energy)] [transform-origin:100%_50%] [rotate:var(--shot-angle)]"
-      style={{ '--bolt-energy': energy, '--bolt-core': core } as CSSProperties}
+    <svg
+      viewBox="0 0 76 26"
       aria-hidden="true"
-    />
+      className="h-6 w-[70px] -translate-x-full -translate-y-1/2 [transform-origin:100%_50%] [rotate:var(--shot-angle)]"
+    >
+      <path
+        fill={energy}
+        opacity=".4"
+        d="M0 19Q18 4 39 11T65 6Q71 8 76 13Q65 25 44 17T0 19Z"
+      />
+      <path
+        fill={energy}
+        d="M7 22C29 3 39 16 49 12S64 3 76 13C64 21 56 20 46 16S24 11 7 22Z"
+      />
+      <path fill={core} d="M28 8Q43 16 54 11T75 13Q65 17 55 15T28 8Z" />
+      <path
+        fill={energy}
+        opacity=".8"
+        d="M9 7Q24 2 35 8Q23 5 9 7ZM37 22Q48 18 56 21Q45 20 37 22Z"
+      />
+    </svg>
   );
 };
 
@@ -81,7 +97,10 @@ export const Projectile = ({
   /** The flight animation (its length is the flight time). */
   className?: string;
 }) => (
-  <div className={`absolute ${className}`} style={flightStyle(flight)}>
+  <div
+    className={`absolute ${className} ${flight.kind === 'bolt' ? 'magic-flight' : ''}`}
+    style={flightStyle(flight)}
+  >
     {flight.kind === 'arrow' ? <Arrow /> : <Bolt element={flight.element} />}
   </div>
 );

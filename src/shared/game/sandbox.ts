@@ -8,7 +8,7 @@
 // ===================================================================
 
 import { advanceHeroes, cellCountOf } from './battlefield.ts';
-import { combatOutcome, endTurn, playCard, startCombat } from './combat.ts';
+import { combatOutcome, endTurn, finishPlayerTurn, playCard, startCombat, startPlayerTurn } from './combat.ts';
 import { CHAMPION_IDS, ELITE_IDS, GRUNT_IDS, type HeroId } from './heroes.ts';
 import { move } from './movement.ts';
 import { nextInt, pickWeighted, type RngState } from './rng.ts';
@@ -170,7 +170,7 @@ const refillEnergy = (state: CombatState): CombatState => ({
  */
 const nextHorde = (state: CombatState, firstUid: number): CombatState => {
   const [heroIds, rng] = rollDummies(state.rng);
-  const fresh = startCombat(sandboxSetup(heroIds, rng));
+  const fresh = startCombat({ ...sandboxSetup(heroIds, rng), formation: 'furthest' });
   const heroes = fresh.heroes.map((unit) => ({
     ...unit,
     uid: unit.uid + firstUid,
@@ -247,6 +247,8 @@ export const sandboxReducer = (
   if (acted === state) return state;
   const isCleared = combatOutcome(acted) === 'won';
   // Every uid so far (summons included) is below nextUid.
-  const ready = isCleared ? nextHorde(acted, acted.nextUid - 1) : acted;
-  return refillEnergy(ready);
+  if (!isCleared) return refillEnergy(acted);
+  // A status kill during the heroes' turn has already closed the player's turn.
+  const finished = action.type === 'endTurn' ? acted : finishPlayerTurn(acted);
+  return refillEnergy(startPlayerTurn(nextHorde(finished, finished.nextUid - 1)));
 };

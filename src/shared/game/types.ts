@@ -78,6 +78,7 @@ export type StatusId =
   | 'brace'
   | 'aloft'
   /** Rush: the next this-many movements this turn cost 0. */
+  | 'move'
   | 'rush'
   | 'armor'
   | BuffId;
@@ -146,7 +147,10 @@ export type BaseCardEffect =
   | { kind: 'hex'; amount: number; target: CardTarget }
   | { kind: 'vex'; amount: number; target: CardTarget }
   /** The next `amount` movements this turn cost 0 (see Rush). */
+  | { kind: 'move'; amount: number }
   | { kind: 'rush'; amount: number }
+  /** Move as if using the battlefield button, or gain Momentum. */
+  | { kind: 'charge' | 'backStep' | 'momentum' }
   /** Armor N: each physical (Melee, Range) hit on you is N lower. */
   | { kind: 'armor'; amount: number }
   | { kind: 'poison'; amount: number; target: CardTarget }
@@ -176,7 +180,7 @@ export type BaseCardEffect =
   /** Pull N: drags the target up to `rows` rows nearer. */
   | { kind: 'pull'; rows: number }
   /** Knockback N: shoves the target up to `rows` rows farther. */
-  | { kind: 'push'; rows: number }
+  | { kind: 'push'; rows: number; target?: 'all' }
   /** Multiplies a status already on the target (Overcharge: Shock ×2). */
   | { kind: 'amplify'; status: 'shock'; factor: number; target: CardTarget };
 
@@ -213,7 +217,7 @@ export type CardKeyword =
  */
 export type ImbuableEffect = Exclude<
   BaseCardEffect,
-  { kind: 'pull' | 'push' | 'amplify' }
+  { kind: 'pull' | 'push' | 'amplify' | 'charge' | 'backStep' | 'momentum' }
 >;
 /** What an imbue grants a card: a keyword, or one more effect. */
 export type ImbueGift =
@@ -250,12 +254,14 @@ export type MeleeEdge = 'sharp' | 'blunt';
  * Melee hits the front row only; Range, Magic and Curse reach any hero.
  * Defend and Buff cards act on the villain: Defend cards are mainly
  * Guard, Buff cards power the villain up (Wrath, buffs, energy, healing).
- * Utility cards are consumables (potions and tonics): they all Exhaust.
+ * Utility cards generally grant energy, restore HP, or draw cards. Some are consumables.
  */
 export type CardType =
-  'melee' | 'range' | 'magic' | 'defend' | 'buff' | 'curse' | 'utility';
+  'melee' | 'range' | 'magic' | 'defend' | 'buff' | 'curse' | 'utility' | 'movement';
 
 export type CardDef = {
+  costReductionPerKill?: number;
+  requiredKillsInOneHit?: number;
   name: string;
   type: CardType;
   cost: number;
@@ -476,7 +482,11 @@ export type CombatState = {
   /** Heroes defeated so far in this fight. */
   slain: number;
   rng: RngState;
+  /** Net rows the villain has travelled toward the enemy since combat began. */
+  travelRows?: number;
   /** The last movement (its streak raises the next one's cost). */
+  followUpReady?: boolean;
+  mostKillsInOneHit?: number;
   lastMovement: MovementRecord | null;
   /**
    * The last free move a keyword made (Rampage on kill, Distance on hit): a

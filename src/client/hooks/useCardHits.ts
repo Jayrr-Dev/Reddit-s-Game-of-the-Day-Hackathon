@@ -25,7 +25,7 @@ type Playback = {
 
 // --- CONSTANTS ---
 /** Gap between one hit landing and the next (ms). Quick, so it stays snappy. */
-export const HIT_STAGGER_MS = 110;
+export const HIT_STAGGER_MS = 180;
 
 // --- HOOK ---
 /**
@@ -80,6 +80,7 @@ export const useCardHits = (
 
   return {
     shown: beat ?? combat,
+    strikeIndex: playback?.index ?? 0,
     isPlaying: playback !== null,
     playCard,
   } as const;

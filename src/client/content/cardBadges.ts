@@ -66,6 +66,7 @@ const effectBadgeOf = (effect: ImbuableEffect): BadgeLook => {
     case 'guard':
     case 'wrath':
     case 'brace':
+    case 'move':
     case 'rush':
     case 'armor':
       return {
