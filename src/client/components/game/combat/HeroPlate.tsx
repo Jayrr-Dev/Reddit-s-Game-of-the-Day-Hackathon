@@ -30,31 +30,27 @@ export type HeroPlateProps = {
 
 // --- CONSTANTS ---
 /**
- * Plate proportions per hero size: the name class, how many status
- * chips fit before the rest fold into "+N", and the plate width as a share of the hero's box (cqw = 1% of that box),
+ * Plate proportions per hero size: the name class, and the plate width as a share of the hero's box (cqw = 1% of that box),
  * capped so only big heroes get a long bar on wide screens.
  */
 const PLATE_LOOK: Record<
   HeroSize,
-  { name: string; width: string; maxWidth: string; maxChips: number }
+  { name: string; width: string; maxWidth: string }
 > = {
   1: {
     name: 'text-[9px]',
     width: '85cqw',
     maxWidth: '7.5rem',
-    maxChips: 2,
   },
   2: {
     name: 'text-[10px]',
     width: '80cqw',
     maxWidth: '11rem',
-    maxChips: 3,
   },
   3: {
     name: 'text-xs',
     width: '78cqw',
     maxWidth: '16rem',
-    maxChips: 4,
   },
 };
 
@@ -110,10 +106,16 @@ export const HeroPlate = ({ unit, field, isFocused }: HeroPlateProps) => {
       </span>
       <DrainBar hp={unit.hp} maxHp={unit.maxHp} size="small" />
       {/* ONE ROW OF CHIPS: never wraps (a second row would push the plate
-          up under the top bar); a long row spills out evenly sideways. */}
-      <div className="flex w-max min-w-full origin-top scale-[0.8] items-start justify-between gap-1 self-center">
-        <IntentChips unit={unit} field={field} />
-        <StatusRow combatant={unit} maxChips={look.maxChips} />
+          up under the top bar). Drawn at 80%, so laid out 125% wide to
+          span the plate; statuses take what the intents leave and fold
+          the rest into "+N". */}
+      <div className="flex w-[125%] origin-top scale-[0.8] items-start gap-1 self-center">
+        <div className="shrink-0">
+          <IntentChips unit={unit} field={field} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <StatusRow combatant={unit} align="end" />
+        </div>
       </div>
     </div>
   );

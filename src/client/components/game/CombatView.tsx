@@ -78,10 +78,6 @@ export type CombatViewProps = {
   pauseActions?: ReactNode;
 };
 
-// --- CONSTANTS ---
-/** Most status chips in your row before the rest fold into "+N". */
-const PLAYER_MAX_CHIPS = 5;
-
 // --- HELPERS ---
 /**
  * The newest real hit (HP lost) on each hero whose number still floats,
@@ -120,7 +116,7 @@ const PlayerBar = ({
 }) => {
   const movement = offeredMovement(combat);
   return (
-    <div className="grid grid-cols-[minmax(max-content,1fr)_auto_minmax(max-content,1fr)] items-end gap-1 px-2">
+    <div className="grid grid-cols-[minmax(max-content,1fr)_minmax(0,max-content)_minmax(max-content,1fr)] items-end gap-1 px-2">
       <div className="flex items-end gap-2.5 justify-self-start">
         <PlayerCorner player={combat.player} hits={hits} />
         <PileStack
@@ -145,7 +141,7 @@ const PlayerBar = ({
           </div>
         )}
         <ShroudGainPops shroud={combat.player.shroud} />
-        <StatusRow combatant={combat.player} maxChips={PLAYER_MAX_CHIPS} />
+        <StatusRow combatant={combat.player} />
         <EnergyTray energy={combat.energy} />
       </div>
       <div className="justify-self-end">

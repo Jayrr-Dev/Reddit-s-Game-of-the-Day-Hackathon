@@ -2,9 +2,10 @@
 // STATUS ROW
 // Shroud plus any active statuses on a combatant, as square chips
 // (intents are round, so effects in play read apart from what's coming).
-// Always one row: past `maxChips`, the last slot becomes an overflow
-// chip ("[icon] +N", the icon of the first hidden status). Tapping it
-// opens a popover listing every status with what it does.
+// Always one row, as many chips as fit the space it is given (measured
+// live, see useFitCount); the rest fold into an overflow chip ("[icon]
+// +N", the icon of the first hidden status). Tapping it opens a popover
+// listing every status with what it does.
 // ===================================================================
 
 import {
@@ -22,6 +23,7 @@ import {
   placeFloating,
   type FloatingPlacement,
 } from '../../lib/floatingPlacement';
+import { useFitCount } from '../../hooks/useFitCount';
 import { Chip, type ChipProps } from '../ui/Chip';
 
 // --- TYPES ---
@@ -196,30 +198,61 @@ const OverflowChip = ({
 };
 
 // --- COMPONENT ---
+/** How the chips sit in their space. */
+const ALIGN_CLASS = { center: 'justify-center', end: 'justify-end' } as const;
+
 /**
- * Shows the statuses above zero in one row of at most `maxChips` chips;
- * any that don't fit fold into an overflow chip.
+ * Shows the statuses above zero in one row, as many as fit the space it
+ * is given; any that don't fit fold into an overflow chip. The space's
+ * natural width is the whole row's (the measure row sets it), so a
+ * layout that has room gives it all.
  */
 export const StatusRow = ({
   combatant,
-  maxChips,
+  align = 'center',
 }: {
   combatant: Combatant;
-  maxChips: number;
+  align?: keyof typeof ALIGN_CLASS;
 }) => {
   const chips = statusChipsOf(combatant);
-  if (chips.length === 0) return <div className="h-5" />;
-  const isOverflowing = chips.length > maxChips;
-  // The overflow chip takes the last slot, so the row never grows.
-  const shown = isOverflowing ? chips.slice(0, maxChips - 1) : chips;
-  const hidden = isOverflowing ? chips.slice(maxChips - 1) : [];
+  const { spaceRef, measureRef, overflowRef, fitCount } = useFitCount(
+    chips.length
+  );
+  const isOverflowing = fitCount < chips.length;
+  const shown = chips.slice(0, fitCount);
+  const hidden = chips.slice(fitCount);
 
   return (
-    <div className="flex h-5 flex-nowrap justify-center gap-1">
-      {shown.map((chip) => (
-        <StatusChipView key={chip.key} chip={chip} />
-      ))}
-      {isOverflowing && <OverflowChip hidden={hidden} all={chips} />}
+    <div ref={spaceRef} className="relative w-full min-w-0 max-w-max">
+      {/* MEASURE ROW: every chip, invisible and zero-height */}
+      <div
+        ref={measureRef}
+        aria-hidden="true"
+        className="invisible flex h-0 flex-nowrap gap-1 overflow-hidden"
+      >
+        {chips.map((chip) => (
+          <Chip
+            key={chip.key}
+            glyph={chip.glyph}
+            text={chip.text}
+            toneClass={chip.toneClass}
+            shape="square"
+          />
+        ))}
+      </div>
+      <span
+        ref={overflowRef}
+        aria-hidden="true"
+        className="invisible absolute left-0 top-0"
+      >
+        <Chip glyph="eye" text="+9" toneClass="text-ink" shape="square" />
+      </span>
+      <div className={`flex h-5 flex-nowrap gap-1 ${ALIGN_CLASS[align]}`}>
+        {shown.map((chip) => (
+          <StatusChipView key={chip.key} chip={chip} />
+        ))}
+        {isOverflowing && <OverflowChip hidden={hidden} all={chips} />}
+      </div>
     </div>
   );
 };
