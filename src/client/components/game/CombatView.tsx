@@ -43,6 +43,7 @@ import {
 import { useSmoothPoint } from '../../hooks/useSmoothPoint';
 import { HitHistory } from '../../lib/popSize';
 import { AimArrow } from './combat/AimArrow';
+import { AutoAimPreview } from './combat/AutoAimPreview';
 import { BattlefieldView } from './combat/BattlefieldView';
 import { HeroShots } from './combat/HeroShots';
 import { MOVEMENT_LOOK } from '../../content/visuals';
@@ -264,6 +265,10 @@ export const CombatView = ({
           draggedBox={drag?.card ?? null}
         />
       </div>
+      <AutoAimPreview
+        uids={controls.autoAimUids}
+        isLethalOn={controls.isAutoAimLethal}
+      />
       {drag && draggedCardId !== undefined && (
         <>
           <DraggedCard

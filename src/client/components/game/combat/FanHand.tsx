@@ -11,7 +11,7 @@ import { useLayoutEffect, useRef } from 'react';
 import type { PointerEvent, ReactNode } from 'react';
 import { canPlayCard } from '../../../../shared/game/combat';
 import type { CombatState } from '../../../../shared/game/types';
-import type { CardBox } from '../../../hooks/useCardDrag';
+import { HELD_CARD_ATTR, type CardBox } from '../../../hooks/useCardDrag';
 import { useHandIds } from '../../../hooks/useHandIds';
 import { CardView } from '../CardView';
 import { LIFT_SCALE } from './DraggedCard';
@@ -121,6 +121,7 @@ const HandSlot = ({
       className={`absolute bottom-3 flex origin-bottom touch-none select-none justify-center transition-[left,transform] duration-200 ${isHeld ? 'z-10' : ''} ${isLifted ? 'opacity-0' : ''}`}
       onPointerDown={onPress}
       style={{ left: slotLeft(offset), transform }}
+      {...(isHeld ? { [HELD_CARD_ATTR]: true } : {})}
     >
       {children}
     </div>

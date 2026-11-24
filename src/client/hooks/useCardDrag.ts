@@ -92,6 +92,8 @@ export const HERO_UID_ATTR = 'data-hero-uid';
 export const FIELD_ATTR = 'data-battlefield';
 /** Marks the box around a hero's drawing (the arrow lands at its middle). */
 export const HERO_ANCHOR_ATTR = 'data-hero-anchor';
+/** Marks the raised (held) card in the hand. */
+export const HELD_CARD_ATTR = 'data-held-card';
 /** Marks the villain's portrait (where hero shots fly to). */
 export const VILLAIN_ANCHOR_ATTR = 'data-villain-anchor';
 /** Marks a hero's row ('front' or 'back'), for hit-testing. */

@@ -278,6 +278,21 @@ export const useCombatControls = (
     hoverUnit && dragCard !== undefined
       ? targetDamageFactor(hoverUnit, getCard(dragCard))
       : 1;
+  /**
+   * PREVIEW: while a card is raised (tapped, not dragged), the heroes a
+   * second tap would hit (see autoTargets), each once, and which of
+   * them it would kill. Picks already made are left out: they show
+   * their own marks.
+   */
+  const autoAimUids =
+    isHolding && heldIndex !== null && !drag && !isFiring
+      ? [...new Set(autoTargets(combat, heldIndex, pickedUids))].filter(
+          (uid) => !pickedUids.includes(uid)
+        )
+      : [];
+  /** True when the raised card's previewed hit on `uid` would kill. */
+  const isAutoAimLethal = (uid: number): boolean =>
+    heldIndex !== null && wouldFell(combat, heldIndex, [uid], uid);
   /** How far the arrow has shrunk back toward the card (0..1). */
   const arrowRetract = drag?.pullBack ?? 0;
   /** How brightly the dragged card glows (self cards only). */
@@ -372,6 +387,8 @@ export const useCombatControls = (
     isDropLive,
     isLethal,
     aimFactor,
+    autoAimUids,
+    isAutoAimLethal,
     arrowRetract,
     selfGlow,
     aimOf,
