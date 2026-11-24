@@ -66,10 +66,10 @@ const withHand = (state: CombatState, hand: CardId[]): CombatState => ({
 });
 
 // --- COMBATANT RULES ---
-void test('shroud absorbs damage before HP', () => {
-  const shrouded = { ...createCombatant(20, 20), shroud: 5 };
-  const hit = takeDamage(shrouded, 8);
-  assert.equal(hit.shroud, 0);
+void test('guard absorbs damage before HP', () => {
+  const guarded = { ...createCombatant(20, 20), guard: 5 };
+  const hit = takeDamage(guarded, 8);
+  assert.equal(hit.guard, 0);
   assert.equal(hit.hp, 17);
 });
 
@@ -433,11 +433,11 @@ void test('playing a card spends energy and damages the target', () => {
 
 void test('wouldFell counts Guard and leaves the state untouched', () => {
   const base = withHand(fightWith(['backhand']), ['backhand']);
-  /** The squire (uid 1) set to `hp` HP behind `shroud` Guard. */
-  const squireAt = (hp: number, shroud: number): CombatState => ({
+  /** The squire (uid 1) set to `hp` HP behind `guard` Guard. */
+  const squireAt = (hp: number, guard: number): CombatState => ({
     ...base,
     heroes: base.heroes.map((unit) =>
-      unit.uid === 1 ? { ...unit, hp, shroud } : unit
+      unit.uid === 1 ? { ...unit, hp, guard } : unit
     ),
   });
   assert.equal(wouldFell(squireAt(14, 0), 0, [1], 1), false);
@@ -465,7 +465,7 @@ void test('autoTargets kills the toughest it can, else hits the weakest', () => 
     heroes: base.heroes.map((unit, index) => ({
       ...unit,
       hp: hps[index] ?? unit.hp,
-      shroud: 0,
+      guard: 0,
     })),
   });
   const uidAt = (state: CombatState, index: number) =>
@@ -497,7 +497,7 @@ void test('autoTargets fills a Target N card with distinct best heroes', () => {
     heroes: base.heroes.map((unit, index) => ({
       ...unit,
       hp: [14, 3, 9][index] ?? unit.hp,
-      shroud: 0,
+      guard: 0,
     })),
   };
   const uids = state.heroes.map((unit) => unit.uid);
@@ -597,13 +597,13 @@ void test('a type buff adds to every hit of a multi-hit card', () => {
   assert.equal(damageWith('flurry', { might: 1 }), 12);
 });
 
-void test('Protection adds to every Guard (shroud) a card gives', () => {
+void test('Protection adds to every Guard (guard) a card gives', () => {
   const start = withHand(fightWith(['backhand']), ['darkCloak']);
   const guarded = {
     ...start,
     player: { ...start.player, statuses: { ...NO_STATUSES, protection: 2 } },
   };
-  assert.equal(playCard(guarded, 0, -1).player.shroud, 7);
+  assert.equal(playCard(guarded, 0, -1).player.guard, 7);
 });
 
 void test('buff cards grant their buff for the rest of the fight', () => {
@@ -628,7 +628,7 @@ void test('a volley keeps landing on a hero it fells, for the numbers', () => {
   // A 1 HP Squire: Flurry's first hit fells it; hits 2 and 3 still land.
   const start = {
     ...fresh,
-    heroes: fresh.heroes.map((unit) => ({ ...unit, hp: 1, shroud: 0 })),
+    heroes: fresh.heroes.map((unit) => ({ ...unit, hp: 1, guard: 0 })),
   };
   const steps = playCardSteps(start, 0, squireUid(start));
   const taken = steps
@@ -961,7 +961,7 @@ void test('a revive brings fallen allies back to their spots', () => {
   const oneDown: CombatState = {
     ...summoned,
     heroes: summoned.heroes.map((unit) =>
-      unit.uid === angel.uid ? { ...unit, hp: 1, shroud: 0 } : unit
+      unit.uid === angel.uid ? { ...unit, hp: 1, guard: 0 } : unit
     ),
     hand: ['soulLance'],
     energy: 3,
@@ -993,7 +993,7 @@ void test('summoned heroes fall with their summoner', () => {
   const nearlyDead: CombatState = {
     ...summoned,
     heroes: summoned.heroes.map((unit) =>
-      unit.uid === dragon.uid ? { ...unit, hp: 1, shroud: 0 } : unit
+      unit.uid === dragon.uid ? { ...unit, hp: 1, guard: 0 } : unit
     ),
     hand: ['soulLance'],
     energy: 3,

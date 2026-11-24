@@ -8,11 +8,11 @@
 // TURN ORDER
 //   Villain turn: play cards with energy, then End Turn.
 //   End Turn: discard hand -> villain Burn, upkeep (poison) -> heroes clear
-//             shroud
+//             guard
 //             -> each hero, fastest first (see heroTurnOrder): its Hex
 //                burns (see hexBurn), it acts (Burn and Frost run after
 //                each action), then takes its own upkeep
-//             -> new villain turn (clear shroud, the villain's Hex
+//             -> new villain turn (clear guard, the villain's Hex
 //                burns, refill energy, draw).
 // ===================================================================
 
@@ -36,11 +36,11 @@ import {
 } from './battlefield.ts';
 import { getCard, type CardId } from './cards.ts';
 import {
-  addShroud,
+  addGuard,
   addStatus,
   attackDamage,
   damageFactorOf,
-  clearShroud,
+  clearGuard,
   createCombatant,
   afterAction,
   endOfTurnUpkeep,
@@ -477,9 +477,9 @@ const applyCardEffect = (
       );
     case 'reap':
       return reapHex(state, effect.multiplier, targetUid, cardDef);
-    case 'shroud': {
+    case 'guard': {
       const amount = guardAmount(effect.amount, state.player);
-      return { ...state, player: addShroud(state.player, amount) };
+      return { ...state, player: addGuard(state.player, amount) };
     }
     case 'buff':
       return {
@@ -812,11 +812,11 @@ const applyHeroEffect = (
         ...state,
         player: addStatus(state.player, 'dread', effect.amount),
       };
-    case 'shroud':
+    case 'guard':
       return updateHeroes(
         state,
         heroTargets(state, actor.uid, effect.who),
-        (unit) => addShroud(unit, scaled(effect.amount))
+        (unit) => addGuard(unit, scaled(effect.amount))
       );
     case 'wrath':
       return updateHeroes(
@@ -897,12 +897,12 @@ export const heroTurnOrder = (heroes: readonly HeroUnit[]): HeroUnit[] =>
 
 // --- VILLAIN TURN ---
 
-/** Begins a villain turn: shroud fades, Hex burns, energy refills, new hand. */
+/** Begins a villain turn: guard fades, Hex burns, energy refills, new hand. */
 const startPlayerTurn = (state: CombatState): CombatState =>
   drawCards(
     {
       ...state,
-      player: hexBurn(clearShroud(state.player)),
+      player: hexBurn(clearGuard(state.player)),
       energy: ENERGY_PER_TURN,
       turn: state.turn + 1,
     },
@@ -953,14 +953,14 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
   if (combatOutcome(state) !== 'ongoing') return [];
 
   // 1. DISCARD THE HAND, THE VILLAIN'S UPKEEP (POISON TICKS), AND THE
-  //    HEROES' SHROUD FROM LAST ROUND FADES
+  //    HEROES' GUARD FROM LAST ROUND FADES
   const discarded: CombatState = {
     ...state,
     hand: [],
     discardPile: [...state.discardPile, ...state.hand],
     // The villain's turn was its action: Burn and Frost, then upkeep.
     player: endOfTurnUpkeep(afterAction(state.player)),
-    heroes: state.heroes.map(clearShroud),
+    heroes: state.heroes.map(clearGuard),
   };
   const steps: TurnStep[] = [
     { actorUid: null, attackType: null, move: null, state: discarded },

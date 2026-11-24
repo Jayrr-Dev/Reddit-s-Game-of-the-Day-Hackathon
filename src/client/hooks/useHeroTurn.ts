@@ -71,7 +71,7 @@ const actionOf = (step: TurnStep, uid: number): HeroAction => {
 /**
  * Heroes whose move is still playing at beat `index` (they overlap),
  * each with how it animates: its attack type, or 'support' for a move
- * with no attack (Shroud, heal, Wrath, debuffs).
+ * with no attack (Guard, heal, Wrath, debuffs).
  */
 const actingAt = (
   steps: readonly TurnStep[],

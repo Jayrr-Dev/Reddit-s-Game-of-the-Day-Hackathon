@@ -26,8 +26,8 @@ export const toneVarOf = (look: Look): string =>
   `var(--color-${look.toneClass.replace(/^text-/, '')})`;
 
 // --- STATUSES ---
-export const STATUS_LOOK: Record<StatusId | 'shroud', Look> = {
-  shroud: { glyph: 'shield', toneClass: 'text-shroud' },
+export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
+  guard: { glyph: 'shield', toneClass: 'text-guard' },
   hex: { glyph: 'skull', toneClass: 'text-hex' },
   poison: { glyph: 'drop', toneClass: 'text-poison' },
   burn: { glyph: 'flame', toneClass: 'text-burn' },
@@ -64,7 +64,7 @@ export const INTENT_LOOK: Record<IntentKind, Look> = {
   frost: STATUS_LOOK.frost,
   bleed: STATUS_LOOK.bleed,
   dread: STATUS_LOOK.dread,
-  guard: { glyph: 'shield', toneClass: 'text-shroud' },
+  guard: { glyph: 'shield', toneClass: 'text-guard' },
   buff: STATUS_LOOK.wrath,
   heal: { glyph: 'heart', toneClass: 'text-heal' },
   summon: { glyph: 'eye', toneClass: 'text-accent' },
@@ -146,7 +146,7 @@ export const STOP_LOOK: Record<StopKind, Look> = {
   horde: { glyph: 'sword', toneClass: 'text-hp' },
   elite: { glyph: 'skull', toneClass: 'text-wrath' },
   champion: { glyph: 'crown', toneClass: 'text-accent' },
-  grave: { glyph: 'grave', toneClass: 'text-shroud' },
+  grave: { glyph: 'grave', toneClass: 'text-guard' },
   altar: { glyph: 'altar', toneClass: 'text-hex' },
 };
 
@@ -169,7 +169,7 @@ export const regionHue = (regionIndex: number): number =>
  */
 export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   heal: INTENT_LOOK.heal,
-  shroud: STATUS_LOOK.shroud,
+  guard: STATUS_LOOK.guard,
   wrath: STATUS_LOOK.wrath,
   might: STATUS_LOOK.might,
   surge: STATUS_LOOK.surge,
@@ -211,6 +211,6 @@ export const MOVEMENT_LOOK: Record<MovementId, MovementLook> = {
     description: 'Push every hero to the back row, out of Melee reach.',
     speedLines: 'out',
     toneClass:
-      'bg-surface-raised shadow-[0_0_14px_var(--color-shroud)] [&_svg]:rotate-180',
+      'bg-surface-raised shadow-[0_0_14px_var(--color-guard)] [&_svg]:rotate-180',
   },
 };

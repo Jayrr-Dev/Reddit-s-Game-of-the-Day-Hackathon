@@ -10,7 +10,7 @@ import type { RngState } from './rng.ts';
 
 // --- STATUSES ---
 /**
- * Lingering effects on a combatant (shroud, the block value, shown to
+ * Lingering effects on a combatant (guard, the block value, shown to
  * players as "Guard", lives on the
  * combatant itself because it resets every turn):
  * - poison: loses this much HP at the end of its turn, then drops by 1
@@ -29,7 +29,7 @@ import type { RngState } from './rng.ts';
  * - might:      adds this much to every Melee hit
  * - surge:      adds this much to every Magic hit
  * - piercing:   adds this much to every Range hit
- * - protection: adds this much to every Shroud a card gives
+ * - protection: adds this much to every Guard a card gives
  * Momentum comes from charging: while above 0 the next Melee card deals
  * 50% more damage (every hit of it), then it is spent; it is lost at
  * the end of the turn if no Melee card used it.
@@ -61,7 +61,7 @@ export type Combatant = {
   hp: number;
   maxHp: number;
   /** Absorbs damage before HP. Clears at the start of the owner's turn. */
-  shroud: number;
+  guard: number;
   statuses: Statuses;
   /**
    * All damage that got past Guard this fight, overkill included (HP
@@ -88,7 +88,7 @@ export type CardEffect =
   | { kind: 'dread'; amount: number; target: CardTarget }
   /** Deals damage equal to the target's hex times `multiplier`. */
   | { kind: 'reap'; multiplier: number }
-  | { kind: 'shroud'; amount: number }
+  | { kind: 'guard'; amount: number }
   | { kind: 'wrath'; amount: number }
   /** Grants the villain a fight-long buff. */
   | { kind: 'buff'; buff: BuffId; amount: number }
@@ -150,7 +150,7 @@ export type HeroEffect =
   | { kind: 'frost'; amount: number }
   | { kind: 'bleed'; amount: number }
   | { kind: 'dread'; amount: number }
-  | { kind: 'shroud'; amount: number; who: 'self' | 'allies' }
+  | { kind: 'guard'; amount: number; who: 'self' | 'allies' }
   | { kind: 'wrath'; amount: number; who: 'self' | 'allies' }
   | { kind: 'heal'; amount: number; who: 'self' | 'allies' }
   /**

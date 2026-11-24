@@ -315,7 +315,7 @@ export const useCombatControls = (
 
   /** How a hero should look given the held card and the drag. */
   const aimOf = (uid: number): AimState => {
-    // Self-only cards (shroud, draw ...) leave every hero alone.
+    // Self-only cards (guard, draw ...) leave every hero alone.
     const isAimingHeroes = isHolding && affectsHeroes(heldCard);
     if (!isAimingHeroes) return 'idle';
     if (isArea) {

@@ -280,7 +280,7 @@ void test('Momentum unused by the end of the turn is lost', () => {
 void test('Guard cards are Defend; Buff keeps the true buffs', () => {
   for (const cardId of ALL_CARD_IDS) {
     const { type, effects } = getCard(cardId);
-    const isMainlyGuard = effects[0]?.kind === 'shroud';
+    const isMainlyGuard = effects[0]?.kind === 'guard';
     if (type === 'defend' || type === 'buff')
       assert.equal(type === 'defend', isMainlyGuard, cardId);
   }

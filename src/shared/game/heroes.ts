@@ -38,11 +38,11 @@ const hex = (amount: number): HeroEffect => ({ kind: 'hex', amount });
 const poison = (amount: number): HeroEffect => ({ kind: 'poison', amount });
 const burn = (amount: number): HeroEffect => ({ kind: 'burn', amount });
 const dread = (amount: number): HeroEffect => ({ kind: 'dread', amount });
-const shroud = (
+const guard = (
   amount: number,
   who: 'self' | 'allies' = 'self'
 ): HeroEffect => ({
-  kind: 'shroud',
+  kind: 'guard',
   amount,
   who,
 });
@@ -140,7 +140,7 @@ export const HEROES = {
   // GRUNTS (THE HORDE)
   squire: hero('Squire', 'grunt', 14, 210, 4, FRONT, [
     move('Swing', strike(5)),
-    move('Raise Shield', shroud(4), strike(3)),
+    move('Raise Shield', guard(4), strike(3)),
   ]),
   bard: hero('Bard', 'grunt', 11, 300, 6, BACK, [
     move('Rousing Ballad', wrath(1, 'allies')),
@@ -155,7 +155,7 @@ export const HEROES = {
     move('Mend', heal(5)),
   ]),
   shieldmaiden: hero('Shieldmaiden', 'grunt', 18, 190, 3, FRONT, [
-    move('Brace', shroud(7)),
+    move('Brace', guard(7)),
     move('Shield Bash', strike(6)),
   ]),
   rogue: hero('Rogue', 'grunt', 12, 140, 9, BACK, [
@@ -177,44 +177,44 @@ export const HEROES = {
 
   // ELITES
   paladin: hero('Paladin', 'elite', 40, 45, 4, WIDE_FRONT, [
-    move('Holy Shield', shroud(10), strike(5)),
+    move('Holy Shield', guard(10), strike(5)),
     move('Judgment', strike(13)),
     move('Consecrate', wrath(2)),
   ]),
   archmage: hero('Archmage', 'elite', 32, 260, 6, WIDE_BACK, [
     move('Arcane Bolts', spell(4, 3)),
     move('Curse of Light', hex(4), dread(1)),
-    move('Mana Shield', shroud(12)),
+    move('Mana Shield', guard(12)),
   ]),
 
   // CHAMPIONS (ONE PER REGION, IN REGION ORDER)
   holt: hero('Sergeant Holt', 'champion', 50, 20, 5, HUGE, [
-    move('Rally', wrath(1), shroud(6)),
+    move('Rally', wrath(1), guard(6)),
     move('Halberd Sweep', strike(10)),
     move('Twin Thrust', strike(6, 2)),
   ]),
   lysa: hero('Ranger Lysa', 'champion', 46, 120, 8, HUGE, [
     move('Hail of Arrows', shoot(3, 4)),
-    move('Snare', dread(2), shroud(6)),
+    move('Snare', dread(2), guard(6)),
     move('Piercing Shot', shoot(12)),
   ]),
   maren: hero('High Priestess Maren', 'champion', 55, 55, 4, HUGE, [
-    move('Sanctuary', shroud(10), heal(6, 'self')),
+    move('Sanctuary', guard(10), heal(6, 'self')),
     move('Holy Fire', burn(5)),
     move('Smite the Wicked', spell(11)),
   ]),
   brannoc: hero('Sir Brannoc', 'champion', 70, 220, 3, HUGE, [
-    move('Iron Wall', shroud(15)),
+    move('Iron Wall', guard(15)),
     move('Gatebreaker', strike(18)),
     move('Hammer Blows', strike(8, 2)),
   ]),
   seris: hero("Seris, the Queen's Blade", 'champion', 58, 330, 9, HUGE, [
     move('Dance of Blades', strike(4, 4)),
-    move('Feint', dread(2), shroud(8)),
+    move('Feint', dread(2), guard(8)),
     move('Execution', strike(20)),
   ]),
   valen: hero('Valen the Radiant', 'champion', 90, 48, 6, HUGE, [
-    move('Radiance', wrath(2), shroud(12)),
+    move('Radiance', wrath(2), guard(12)),
     move('Lightbringer', spell(9, 2)),
     move('Brand of Light', hex(6)),
     move('Final Verdict', strike(25)),
@@ -240,7 +240,7 @@ export const HEROES = {
     [
       move('Call the Host', summon('angelArcher', 2)),
       move('Holy Breath', spell(8, 2)),
-      move('Sanctuary Wings', shroud(20)),
+      move('Sanctuary Wings', guard(20)),
       signature(move('Halo of Judgment', revive(), spell(26))),
       move('Radiant Roar', wrath(2)),
     ],
@@ -258,7 +258,7 @@ export const HEROES = {
     signature(move('Heavenly Drive', soar())),
     signature(move('Heavenly Dive', strike(34))),
     move('Triple Slice', strike(6, 3)),
-    move('Gale Wings', shroud(18)),
+    move('Gale Wings', guard(18)),
     move('Proud Cry', wrath(2)),
   ]),
 } as const satisfies Record<string, HeroDef>;

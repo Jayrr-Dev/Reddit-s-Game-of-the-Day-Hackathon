@@ -49,7 +49,7 @@ void test('clearing the field brings a new horde with higher uids', () => {
     hand: ['cataclysm' as const],
     heroes: start.heroes
       .slice(0, 1)
-      .map((unit) => ({ ...unit, hp: 1, shroud: 0 })),
+      .map((unit) => ({ ...unit, hp: 1, guard: 0 })),
   };
   const next = sandboxReducer(oneLeft, {
     type: 'playCard',
@@ -134,7 +134,7 @@ void test('a push on a boss fails but the card still lands', () => {
   });
   const hit = after.heroes[0]!;
   assert.equal(hit.row, 'front');
-  assert.ok(hit.hp + hit.shroud < dragon.hp + dragon.shroud);
+  assert.ok(hit.hp + hit.guard < dragon.hp + dragon.guard);
 });
 
 void test('Back Step is offered but locked while a boss reaches back', () => {

@@ -12,7 +12,7 @@
 //   Bottom band   PlayerCorner (portrait + HP) + discard pile | your
 //                 effects + energy | TurnCorner (draw pile + End Turn),
 //                 then the hand. A "+N" chip floats up when you gain
-//                 Shroud.
+//                 Guard.
 //   DraggedCard   the card under the finger while it is dragged
 //   AimArrow      the targeting line from that card to its target
 // All game state comes from the engine; this view only routes input.
@@ -71,7 +71,7 @@ import { PileStack } from './combat/PileStack';
 import { PlayerCorner } from './combat/PlayerCorner';
 import { PovImpact } from './combat/PovImpact';
 import { PlayerShots } from './combat/PlayerShots';
-import { ShroudGainPops } from './combat/ShroudGainPops';
+import { GuardGainPops } from './combat/GuardGainPops';
 import { SpeedLines } from './combat/SpeedLines';
 import { TopBar } from './combat/TopBar';
 import { TurnCorner } from './combat/TurnCorner';
@@ -156,7 +156,7 @@ const PlayerBar = ({
             />
           </div>
         )}
-        <ShroudGainPops shroud={combat.player.shroud} />
+        <GuardGainPops guard={combat.player.guard} />
         <StatusRow combatant={combat.player} />
         <EnergyTray energy={combat.energy} />
       </div>

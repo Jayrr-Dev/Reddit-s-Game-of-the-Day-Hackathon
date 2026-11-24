@@ -1,6 +1,6 @@
 // ===================================================================
 // STATUS ROW
-// A boss's passives (gold), then Shroud and any active statuses on a
+// A boss's passives (gold), then Guard and any active statuses on a
 // combatant, as square chips
 // (intents are round, so effects in play read apart from what's coming).
 // Always one row, as many chips as fit the space it is given (measured
@@ -37,7 +37,7 @@ import { Chip, type ChipProps } from '../ui/Chip';
 /** One status as a chip, with its tooltip text. */
 type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
   Pick<ChipProps, 'fill' | 'pips' | 'isPulsing'> & {
-    key: StatusId | PassiveId | 'shroud';
+    key: StatusId | PassiveId | 'guard';
     title: string;
     description: string;
   };
@@ -141,15 +141,15 @@ const bleedChipOf = (combatant: Combatant): Partial<StatusChip> => {
 
 /** Every active effect on a combatant as chips, Guard first. */
 const statusChipsOf = (combatant: Combatant): StatusChip[] => {
-  const shroud: StatusChip[] =
-    combatant.shroud > 0
+  const guard: StatusChip[] =
+    combatant.guard > 0
       ? [
           {
-            key: 'shroud',
-            ...STATUS_LOOK.shroud,
-            text: String(combatant.shroud),
-            title: STATUS_INFO.shroud.label,
-            description: STATUS_INFO.shroud.description,
+            key: 'guard',
+            ...STATUS_LOOK.guard,
+            text: String(combatant.guard),
+            title: STATUS_INFO.guard.label,
+            description: STATUS_INFO.guard.description,
           },
         ]
       : [];
@@ -164,7 +164,7 @@ const statusChipsOf = (combatant: Combatant): StatusChip[] => {
       ...(id === 'bleed' ? bleedChipOf(combatant) : {}),
     })
   );
-  return [...shroud, ...statuses];
+  return [...guard, ...statuses];
 };
 
 /** A chip with its tooltip. */

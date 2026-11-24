@@ -1,6 +1,6 @@
 // ===================================================================
-// SHROUD GAIN POPS
-// When you gain Shroud, a bare shield + "+N" in the Shroud chip's
+// GUARD GAIN POPS
+// When you gain Guard, a bare shield + "+N" in the Guard chip's
 // colour (no background) floats up and fades out.
 // ===================================================================
 
@@ -14,20 +14,20 @@ import { Glyph } from '../../ui/Glyph';
 const GAIN_SCALE = 0.6;
 
 // --- COMPONENT ---
-/** Renders the floating "+N" Shroud gains, anchored above their parent. */
-export const ShroudGainPops = ({ shroud }: { shroud: number }) => {
-  const pops = useGainPops(shroud);
+/** Renders the floating "+N" Guard gains, anchored above their parent. */
+export const GuardGainPops = ({ guard }: { guard: number }) => {
+  const pops = useGainPops(guard);
   return (
     <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2">
       {pops.map((pop) => (
         <span
           key={pop.id}
-          className={`absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-0.5 font-display font-black whitespace-nowrap animate-gain-float drop-shadow-[0_0_3px_black] [-webkit-text-stroke:1px_var(--color-surface-sunken)] ${STATUS_LOOK.shroud.toneClass}`}
+          className={`absolute bottom-0 left-1/2 flex -translate-x-1/2 items-center gap-0.5 font-display font-black whitespace-nowrap animate-gain-float drop-shadow-[0_0_3px_black] [-webkit-text-stroke:1px_var(--color-surface-sunken)] ${STATUS_LOOK.guard.toneClass}`}
           style={{
             fontSize: popFontPx(pop.amount, DEFAULT_TYPICAL_HIT, GAIN_SCALE),
           }}
         >
-          <Glyph name={STATUS_LOOK.shroud.glyph} className="size-[0.9em]" />
+          <Glyph name={STATUS_LOOK.guard.glyph} className="size-[0.9em]" />
           {`+${pop.amount}`}
         </span>
       ))}

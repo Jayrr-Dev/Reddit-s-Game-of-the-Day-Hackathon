@@ -59,7 +59,7 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     layers: [{ shape: 'plus', motion: 'rise', count: 4, size: 16 }],
     hasGlow: true,
   },
-  shroud: {
+  guard: {
     layers: [
       { shape: 'shield', motion: 'flash', count: 1, size: 56 },
       { shape: 'ring', motion: 'flash', count: 1, size: 84 },

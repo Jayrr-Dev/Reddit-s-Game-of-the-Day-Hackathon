@@ -1,7 +1,7 @@
 // ===================================================================
 // USE GAIN POPS
-// Watches one number (e.g. your Shroud) and, whenever it goes up, adds
-// a "+N" pop that floats for a moment. Drops are ignored (Shroud
+// Watches one number (e.g. your Guard) and, whenever it goes up, adds
+// a "+N" pop that floats for a moment. Drops are ignored (Guard
 // clearing at a new turn or soaking a hit is not a gain).
 // Pops clear themselves after GAIN_POP_MS.
 // ===================================================================

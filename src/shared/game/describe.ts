@@ -35,8 +35,8 @@ import type {
 // --- STATUS GLOSSARY ---
 export type StatusInfo = { label: string; description: string };
 
-export const STATUS_INFO: Record<StatusId | 'shroud', StatusInfo> = {
-  shroud: {
+export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
+  guard: {
     label: 'Guard',
     description: 'Blocks damage until your next turn.',
   },
@@ -107,7 +107,7 @@ const areaSuffix = (target: 'one' | 'all', isMelee = false): string => {
 /**
  * One line of card text. When `attacker` is given, numbers are a live
  * preview: damage after the villain's wrath, type buff and dread, and
- * Shroud with Protection added. When `target` is given too (the hero
+ * Guard with Protection added. When `target` is given too (the hero
  * the card is aimed at), single-target numbers are for that hero: a
  * Range card's long-range bonus, and Reap's damage from its Hex.
  * `cardDef` gives the type and reach.
@@ -150,7 +150,7 @@ export const describeCardEffect = (
       const bonus = attacker ? typeBonus(attacker, cardDef.type) : 0;
       return `Deal ${target.statuses.hex * effect.multiplier + bonus} damage.`;
     }
-    case 'shroud': {
+    case 'guard': {
       const amount = attacker
         ? guardAmount(effect.amount, attacker)
         : effect.amount;
@@ -274,7 +274,7 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
         text: `${effect.amount}`,
         label: `Dread ${effect.amount}`,
       };
-    case 'shroud': {
+    case 'guard': {
       const amount = scaled(effect.amount);
       return {
         kind: 'guard',

@@ -1,6 +1,6 @@
 // ===================================================================
 // COMBATANT RULES
-// Pure helpers for damage, shroud and statuses. Both the villain and the
+// Pure helpers for damage, guard and statuses. Both the villain and the
 // heroes are Combatants, so one set of rules covers both sides.
 // ===================================================================
 
@@ -51,7 +51,7 @@ const DAMAGE_BUFF_OF: Partial<Record<CardType, BuffId>> = {
 export const createCombatant = (hp: number, maxHp: number): Combatant => ({
   hp,
   maxHp,
-  shroud: 0,
+  guard: 0,
   statuses: NO_STATUSES,
   damageTaken: 0,
 });
@@ -120,16 +120,16 @@ export const attackDamage = (
 
 // --- UPDATES (EACH RETURNS A NEW COMBATANT) ---
 
-/** Takes a hit: shroud absorbs first, the rest comes off HP. */
+/** Takes a hit: guard absorbs first, the rest comes off HP. */
 export const takeDamage = <T extends Combatant>(
   target: T,
   amount: number
 ): T => {
-  const absorbed = Math.min(target.shroud, amount);
+  const absorbed = Math.min(target.guard, amount);
   const dealt = amount - absorbed;
   return {
     ...target,
-    shroud: target.shroud - absorbed,
+    guard: target.guard - absorbed,
     hp: Math.max(0, target.hp - dealt),
     damageTaken: target.damageTaken + dealt,
   };
@@ -160,7 +160,7 @@ export const takeHit = <T extends Combatant>(
   return loseHp(cleared, bleed);
 };
 
-/** Loses HP directly, ignoring shroud (hex, poison and burn). */
+/** Loses HP directly, ignoring guard (hex, poison and burn). */
 export const loseHp = <T extends Combatant>(target: T, amount: number): T => ({
   ...target,
   hp: Math.max(0, target.hp - amount),
@@ -173,17 +173,17 @@ export const heal = <T extends Combatant>(target: T, amount: number): T => ({
   hp: Math.min(target.maxHp, target.hp + amount),
 });
 
-/** Shroud a card gives, plus the villain's Protection. */
+/** Guard a card gives, plus the villain's Protection. */
 export const guardAmount = (base: number, owner: Combatant): number =>
   base + owner.statuses.protection;
 
-/** Adds shroud. */
-export const addShroud = <T extends Combatant>(
+/** Adds guard. */
+export const addGuard = <T extends Combatant>(
   target: T,
   amount: number
 ): T => ({
   ...target,
-  shroud: target.shroud + amount,
+  guard: target.guard + amount,
 });
 
 /** Adds stacks of a status. */
@@ -196,10 +196,10 @@ export const addStatus = <T extends Combatant>(
   statuses: { ...target.statuses, [status]: target.statuses[status] + amount },
 });
 
-/** Removes all shroud (at the start of the owner's turn). */
-export const clearShroud = <T extends Combatant>(target: T): T => ({
+/** Removes all guard (at the start of the owner's turn). */
+export const clearGuard = <T extends Combatant>(target: T): T => ({
   ...target,
-  shroud: 0,
+  guard: 0,
 });
 
 /** Whether this Hex is the empowered kind (odd, last digit 3). */

@@ -6,7 +6,7 @@
 // small random nudge and tilt, the newest drawn on top, while the ones
 // under it dim so the fresh number always reads first. The number is the HP
 // lost; the part a Guard soaked up shows beside it as a grey shield number. What a hero
-// gains from its own move (heal, Shroud, Wrath) pops as "+N" + icon.
+// gains from its own move (heal, Guard, Wrath) pops as "+N" + icon.
 // ===================================================================
 
 import type { CSSProperties } from 'react';
@@ -64,7 +64,7 @@ const BURIED_OPACITY = 0.55;
 
 /** Blocked damage is drawn smaller than damage dealt. */
 const BLOCKED_SCALE = 0.65;
-/** Gains (heal, Shroud, Wrath) are drawn a little smaller than hits. */
+/** Gains (heal, Guard, Wrath) are drawn a little smaller than hits. */
 const GAIN_SCALE = 0.75;
 
 // --- SUBCOMPONENTS ---
@@ -83,7 +83,7 @@ const BlockedPart = ({
   scale: number;
 }) => (
   <span className="flex items-center gap-0.5 opacity-85 drop-shadow-[0_0_2px_black]">
-    <Glyph name="shield" className="size-[0.9em] text-shroud" />
+    <Glyph name="shield" className="size-[0.9em] text-guard" />
     <span
       className="font-display font-black text-ink [-webkit-text-stroke:1px_var(--color-surface-sunken)]"
       style={{ fontSize: popFontPx(blocked, typical, scale) }}

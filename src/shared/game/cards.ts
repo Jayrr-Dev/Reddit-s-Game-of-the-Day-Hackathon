@@ -42,7 +42,7 @@ const dread = (amount: number, target: 'one' | 'all' = 'one'): CardEffect => ({
   amount,
   target,
 });
-const shroud = (amount: number): CardEffect => ({ kind: 'shroud', amount });
+const guard = (amount: number): CardEffect => ({ kind: 'guard', amount });
 const wrath = (amount: number): CardEffect => ({ kind: 'wrath', amount });
 const buff = (which: BuffId, amount: number): CardEffect => ({
   kind: 'buff',
@@ -90,7 +90,7 @@ const card = (
 export const CARDS = {
   // STARTER DECK
   backhand: card('Backhand', 'melee', 1, 'starter', [hit(6)]),
-  darkCloak: card('Dark Cloak', 'defend', 1, 'starter', [shroud(5)]),
+  darkCloak: card('Dark Cloak', 'defend', 1, 'starter', [guard(5)]),
   mourningCurse: card('Mourning Curse', 'curse', 1, 'starter', [
     hit(4),
     hex(2),
@@ -100,12 +100,12 @@ export const CARDS = {
   // COMMON
   cruelSlash: card('Cruel Slash', 'melee', 1, 'common', [hit(9)]),
   twinDaggers: card('Twin Daggers', 'melee', 1, 'common', [hit(4, 2)]),
-  boneWard: card('Bone Ward', 'defend', 1, 'common', [shroud(8)]),
+  boneWard: card('Bone Ward', 'defend', 1, 'common', [guard(8)]),
   whisperHex: card('Whisper Hex', 'curse', 0, 'common', [hex(3)]),
   quickJab: card('Quick Jab', 'melee', 0, 'common', [hit(3), draw(1)]),
-  sneer: card('Sneer', 'curse', 1, 'common', [shroud(5), dread(1)]),
+  sneer: card('Sneer', 'curse', 1, 'common', [guard(5), dread(1)]),
   fortressOfSpite: card('Fortress of Spite', 'defend', 2, 'common', [
-    shroud(14),
+    guard(14),
   ]),
   sear: card('Sear', 'melee', 1, 'common', [hit(5), burn(3)]),
   cleave: card('Cleave', 'melee', 1, 'common', [hitAll(6)]),
@@ -115,13 +115,13 @@ export const CARDS = {
   hexfire: card('Hexfire', 'magic', 1, 'common', [hit(6), hex(1)]),
   barbedVolley: card('Barbed Volley', 'range', 1, 'common', [hit(2, 3)]),
   flurry: card('Flurry', 'melee', 1, 'common', [hit(3, 3)]),
-  spikedGuard: card('Spiked Guard', 'melee', 1, 'common', [hit(5), shroud(5)]),
+  spikedGuard: card('Spiked Guard', 'melee', 1, 'common', [hit(5), guard(5)]),
   blackArrow: card('Black Arrow', 'range', 1, 'common', [hit(7)]),
   retreatingShot: card('Retreating Shot', 'range', 1, 'common', [
     hit(4),
-    shroud(4),
+    guard(4),
   ]),
-  wardingBolt: card('Warding Bolt', 'magic', 1, 'common', [hit(4), shroud(4)]),
+  wardingBolt: card('Warding Bolt', 'magic', 1, 'common', [hit(4), guard(4)]),
   // Fight-long buffs. One type each, so they hit harder than Wrath per
   // stack; Piercing and Surge are a bit bigger because fewer cards use them.
   // TARGET N: pick a hero per shot (the same one again is fine)
@@ -142,7 +142,7 @@ export const CARDS = {
     'defend',
     1,
     'common',
-    [shroud(4), buff('protection', 2)],
+    [guard(4), buff('protection', 2)],
     FADES
   ),
 
@@ -151,7 +151,7 @@ export const CARDS = {
   seethe: card('Seethe', 'buff', 1, 'uncommon', [wrath(2)], FADES),
   ruin: card('Ruin', 'melee', 2, 'uncommon', [hit(16)]),
   coldResolve: card('Cold Resolve', 'defend', 1, 'uncommon', [
-    shroud(6),
+    guard(6),
     draw(2),
   ]),
   dreadGaze: card('Dread Gaze', 'curse', 1, 'uncommon', [
@@ -162,7 +162,7 @@ export const CARDS = {
   stormOfBlades: card('Storm of Blades', 'melee', 2, 'uncommon', [hit(3, 4)]),
   plague: card('Plague', 'curse', 2, 'uncommon', [hex(4, 'all')]),
   darkBulwark: card('Dark Bulwark', 'defend', 2, 'uncommon', [
-    shroud(10),
+    guard(10),
     wrath(1),
   ]),
   drain: card('Drain', 'melee', 1, 'uncommon', [hit(6), heal(3)]),

@@ -22,7 +22,7 @@ export const GraveView = ({ maxHp, onAction }: GraveViewProps) => {
     'flex w-full flex-col items-start rounded-xl bg-surface-raised p-4 text-left ring-1 ring-edge hover:ring-accent';
   return (
     <div className="flex w-full max-w-sm flex-col items-center gap-3 animate-rise">
-      <Glyph name="grave" className="size-12 text-shroud" />
+      <Glyph name="grave" className="size-12 text-guard" />
       <h2 className="font-display text-xl font-bold">Her Grave</h2>
       <p className="text-center text-sm italic text-ink-muted">
         The flowers you left are still here. So is the anger.

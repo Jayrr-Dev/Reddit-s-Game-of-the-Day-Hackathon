@@ -33,14 +33,14 @@ const weakestUid = (combat: CombatState, handIndex: number): number => {
   return [...legal].sort((a, b) => a.hp - b.hp)[0]?.uid ?? 0;
 };
 
-/** Picks a hand slot to play, preferring shroud when attacked. */
+/** Picks a hand slot to play, preferring guard when attacked. */
 const pickHandIndex = (combat: CombatState): number | null => {
   const playable = combat.hand
     .map((cardId, index) => ({ cardId, index }))
     .filter(({ index }) => canPlayCard(combat, index));
-  const wantsGuard = isUnderAttack(combat) && combat.player.shroud < 8;
+  const wantsGuard = isUnderAttack(combat) && combat.player.guard < 8;
   const guard = playable.find(({ cardId }) =>
-    getCard(cardId).effects.some((effect) => effect.kind === 'shroud')
+    getCard(cardId).effects.some((effect) => effect.kind === 'guard')
   );
   const choice = wantsGuard && guard ? guard : playable[0];
   return choice ? choice.index : null;

@@ -27,7 +27,7 @@ const newlyFallen = (
 ): HeroUnit[] =>
   before
     .filter((unit) => !after.some((alive) => alive.uid === unit.uid))
-    .map((unit) => ({ ...unit, hp: 0, shroud: 0 }));
+    .map((unit) => ({ ...unit, hp: 0, guard: 0 }));
 
 /** How long one hero's death plays. */
 const deathMsOf = (unit: HeroUnit): number =>

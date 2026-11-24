@@ -4,7 +4,7 @@
 // what a hero is about to do (intents) are arrowheads with a black
 // rim, pointed on the left and flat on the right ("< |"), like a blow
 // coming in, filled with the colour of what they do (black icon and
-// number); effects already in play (statuses such as Shroud,
+// number); effects already in play (statuses such as Guard,
 // Hex, Wrath) are dark square tiles, and a boss passive (Vigor) is a
 // gold one.
 // ===================================================================

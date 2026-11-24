@@ -1,9 +1,9 @@
 // ===================================================================
 // USE HIT POPS
-// Watches HP and shroud and, whenever someone is hit, adds a "pop" that
-// floats over them for a moment: the HP lost, and the part their shroud
+// Watches HP and guard and, whenever someone is hit, adds a "pop" that
+// floats over them for a moment: the HP lost, and the part their guard
 // blocked. Heroes also pop what they gain from their own moves (healing,
-// Shroud, Wrath) in the same spot, and anyone pops a debuff (Hex,
+// Guard, Wrath) in the same spot, and anyone pops a debuff (Hex,
 // Dread ...) when one is laid on them. A hit that no attack dealt names
 // the status that ticked (Hex, Poison, Burn), so it draws that effect. Each pop also drives the effect drawn
 // over the character (see ImpactOverlay). Two hooks share the same rules:
@@ -35,7 +35,7 @@ export type TickKind = 'hex' | 'poison' | 'burn';
 export type PopKind =
   | 'hit'
   | 'heal'
-  | 'shroud'
+  | 'guard'
   | 'wrath'
   | 'momentum'
   | BuffId
@@ -44,7 +44,7 @@ export type PopKind =
   | 'bleedBurst';
 
 /**
- * One pop's numbers: for a hit, HP lost and damage the shroud soaked up;
+ * One pop's numbers: for a hit, HP lost and damage the guard soaked up;
  * for a gain, how much was gained (blocked is 0).
  */
 export type Hit = {
@@ -76,7 +76,7 @@ export type HitPop = PlayerHitPop & {
 /** What we remember about a hero between looks. */
 type HeroLook = {
   hp: number;
-  shroud: number;
+  guard: number;
   damageTaken: number;
   wrath: number;
   hex: number;
@@ -94,7 +94,7 @@ const HIT_POP_MS = 1400;
 /** How a hero that left the field looks: it lost whatever HP it had. */
 const goneAfter = (old: HeroLook): Omit<HeroLook, 'point'> => ({
   hp: 0,
-  shroud: 0,
+  guard: 0,
   damageTaken: old.damageTaken + old.hp,
   wrath: 0,
   hex: 0,
@@ -129,13 +129,13 @@ const VILLAIN_GAINS: readonly (StatusId & PopKind)[] = [
 
 // --- HELPERS ---
 /** The numbers a hit is read from (HP, Guard, and damage taken). */
-type HitLook = { hp: number; shroud: number; damageTaken: number };
+type HitLook = { hp: number; guard: number; damageTaken: number };
 
 /**
  * The hit between two looks, or null if there was none. The damage is
  * what got past Guard, overkill included (from damageTaken, since HP
- * stops at 0); lost shroud counts as blocked only when `countsBlocked`
- * (shroud also fades on its own at turn changes, which is not a hit).
+ * stops at 0); lost guard counts as blocked only when `countsBlocked`
+ * (guard also fades on its own at turn changes, which is not a hit).
  */
 const hitBetween = (
   before: HitLook,
@@ -143,8 +143,8 @@ const hitBetween = (
   countsBlocked: boolean
 ): Hit | null => {
   const amount = Math.max(0, after.damageTaken - before.damageTaken);
-  const shroudLost = Math.max(0, before.shroud - after.shroud);
-  const blocked = countsBlocked ? shroudLost : 0;
+  const guardLost = Math.max(0, before.guard - after.guard);
+  const blocked = countsBlocked ? guardLost : 0;
   const isKill = before.hp > 0 && after.hp <= 0;
   return amount > 0 || blocked > 0
     ? { kind: 'hit', amount, blocked, isKill }
@@ -192,14 +192,14 @@ export const splitIntoBlows = (hit: Hit, strikes: number): Hit[] => {
   });
 };
 
-/** What a hero gained between two looks (heal, Shroud, Wrath). */
+/** What a hero gained between two looks (heal, Guard, Wrath). */
 const gainsBetween = (
-  before: Pick<HeroLook, 'hp' | 'shroud' | 'wrath'>,
-  after: Pick<HeroLook, 'hp' | 'shroud' | 'wrath'>
+  before: Pick<HeroLook, 'hp' | 'guard' | 'wrath'>,
+  after: Pick<HeroLook, 'hp' | 'guard' | 'wrath'>
 ): Hit[] => {
   const gains: [PopKind, number][] = [
     ['heal', after.hp - before.hp],
-    ['shroud', after.shroud - before.shroud],
+    ['guard', after.guard - before.guard],
     ['wrath', after.wrath - before.wrath],
   ];
   return gains
@@ -251,7 +251,7 @@ const lookAt = (
       unit.uid,
       {
         hp: unit.hp,
-        shroud: unit.shroud,
+        guard: unit.guard,
         damageTaken: unit.damageTaken,
         wrath: unit.statuses.wrath,
         hex: unit.statuses.hex,
@@ -281,7 +281,7 @@ const heroPopsSince = (
     const now = unit
       ? {
           hp: unit.hp,
-          shroud: unit.shroud,
+          guard: unit.guard,
           damageTaken: unit.damageTaken,
           wrath: unit.statuses.wrath,
           hex: unit.statuses.hex,
@@ -349,8 +349,8 @@ const usePopQueue = <T extends Hit>(history: HitHistory) => {
 // --- HOOKS ---
 /**
  * The numbers to show over heroes right now. `isHeroTurn` is true
- * while the heroes' turn plays out: their shroud fading then is not a
- * block, and what their moves give them (heal, Shroud, Wrath) pops.
+ * while the heroes' turn plays out: their guard fading then is not a
+ * block, and what their moves give them (heal, Guard, Wrath) pops.
  * `cardType` is the type of the card you played last, which colours
  * its hits; on the heroes' turn the only harm to them is Hex ticking,
  * so those hits take the Curse colour.
@@ -396,8 +396,8 @@ const villainGainsBetween = (before: Combatant, after: Combatant): Hit[] => {
     blocked: 0,
   }));
   const guard = {
-    kind: 'shroud' as const,
-    amount: after.shroud - before.shroud,
+    kind: 'guard' as const,
+    amount: after.guard - before.guard,
     blocked: 0,
     isQuiet: true,
   };

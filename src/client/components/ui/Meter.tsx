@@ -1,6 +1,6 @@
 // ===================================================================
 // METER (ATOM)
-// A horizontal bar for HP, with an optional shroud overlay label.
+// A horizontal bar for HP, with an optional guard overlay label.
 // ===================================================================
 
 export type MeterProps = {
