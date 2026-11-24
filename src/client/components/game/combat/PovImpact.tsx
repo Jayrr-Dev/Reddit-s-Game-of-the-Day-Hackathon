@@ -27,7 +27,7 @@ import { popScale } from '../../../lib/popSize';
 import { seeded, spread } from '../../../lib/seeded';
 import { CurseSigil } from './CurseSigil';
 import { driftOf } from '../../../lib/popDrift';
-import { HitLine } from './HitNumbers';
+import { HitLine, specialToneOf } from './HitNumbers';
 import { MagicBurst } from './MagicBurst';
 import { Puncture } from './Puncture';
 import { Slice } from './Slice';
@@ -220,6 +220,7 @@ const HitNumber = ({ pop }: { pop: PlayerHitPop }) => (
       blocked={pop.blocked}
       typical={pop.typical}
       source={pop.source}
+      tone={specialToneOf(pop)}
       armored={pop.armored}
       isKill={pop.isKill}
     />
