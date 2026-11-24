@@ -94,6 +94,8 @@ export const FIELD_ATTR = 'data-battlefield';
 export const HERO_ANCHOR_ATTR = 'data-hero-anchor';
 /** Marks the raised (held) card in the hand. */
 export const HELD_CARD_ATTR = 'data-held-card';
+/** Marks each card's slot in the hand, valued by its hand index. */
+export const HAND_SLOT_ATTR = 'data-hand-slot';
 /** Marks the card being dragged (it follows the pointer). */
 export const DRAGGED_CARD_ATTR = 'data-dragged-card';
 /** Marks the villain's portrait (where hero shots fly to). */

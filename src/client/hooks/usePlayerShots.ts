@@ -2,7 +2,7 @@
 // USE PLAYER SHOTS
 // Your Range and Magic cards fire before they land: an arrow or a
 // magic bolt zips from the card itself (where it was released: the
-// dragged card, or the held one in the hand) to each hero it hits, one per hit,
+// dragged card, or its slot in the hand) to each hero it hits, one per hit,
 // staggered like the hits themselves (HIT_STAGGER_MS), so each impact
 // lands as its shot arrives. The view waits PLAYER_SHOT_FLIGHT_MS
 // before playing the card, then the hits pop on arrival.
@@ -22,7 +22,7 @@ import type {
 } from '../components/game/combat/Projectile';
 import {
   DRAGGED_CARD_ATTR,
-  HELD_CARD_ATTR,
+  HAND_SLOT_ATTR,
   VILLAIN_ANCHOR_ATTR,
   type Point,
 } from './useCardDrag';
@@ -33,6 +33,8 @@ import { bodyPointOf } from './useHitPops';
 /** What a played card fires: which shot, at whom, how many times. */
 export type ShotPlan = {
   kind: ProjectileKind;
+  /** The played card's place in the hand (where its shots launch). */
+  handIndex: number;
   targetUids: number[];
   hits: number;
 };
@@ -65,6 +67,7 @@ export const shotPlanOf = (
       : (action.targetUids ?? [action.targetUid ?? -1]);
   return {
     kind: type === 'range' ? 'arrow' : 'bolt',
+    handIndex: action.handIndex,
     targetUids,
     hits: damage.hits,
   };
@@ -89,19 +92,21 @@ export const sweepTargetsOf = (
 };
 
 /**
- * Where shots leave from, nearest first: the centre of the card being
- * dragged, else of the held card in the hand, else your portrait. Read
- * as the card is released, so it is still where you let go of it.
+ * Where a card's shots leave from, nearest first: the card being
+ * dragged, else that card's own slot in the hand (held or not: an area
+ * card plays on a single tap, never held), else your portrait as a last
+ * resort. Read as the card is released, so it is still where you let go.
  */
-const SHOT_ORIGINS = [
-  DRAGGED_CARD_ATTR,
-  HELD_CARD_ATTR,
-  VILLAIN_ANCHOR_ATTR,
-] as const;
+const shotOriginSelectors = (handIndex: number): readonly string[] => [
+  `[${DRAGGED_CARD_ATTR}]`,
+  `[${HAND_SLOT_ATTR}="${handIndex}"]`,
+  `[${VILLAIN_ANCHOR_ATTR}]`,
+];
 
 /** The centre of the first shot origin on screen, or null. */
-const launchPoint = (): Point | null => {
-  const rect = SHOT_ORIGINS.map((attr) => document.querySelector(`[${attr}]`))
+const launchPoint = (handIndex: number): Point | null => {
+  const rect = shotOriginSelectors(handIndex)
+    .map((selector) => document.querySelector(selector))
     .find((element) => element !== null)
     ?.getBoundingClientRect();
   return rect
@@ -139,7 +144,7 @@ export const usePlayerShots = () => {
    * returns true if any flew (false when nothing could be placed).
    */
   const fire = useCallback((plan: ShotPlan): boolean => {
-    const from = launchPoint();
+    const from = launchPoint(plan.handIndex);
     if (!from) return false;
     const aims = Array.from(
       { length: plan.hits },

@@ -12,7 +12,11 @@ import type { PointerEvent, ReactNode } from 'react';
 import { HAND_ATTR } from '../../../hooks/useCardFlights';
 import { canPlayCard } from '../../../../shared/game/combat';
 import type { CombatState } from '../../../../shared/game/types';
-import { HELD_CARD_ATTR, type CardBox } from '../../../hooks/useCardDrag';
+import {
+  HAND_SLOT_ATTR,
+  HELD_CARD_ATTR,
+  type CardBox,
+} from '../../../hooks/useCardDrag';
 import { useHandIds } from '../../../hooks/useHandIds';
 import { CardView } from '../CardView';
 import { LIFT_SCALE } from './DraggedCard';
@@ -60,6 +64,8 @@ const slotLeft = (offset: number): string =>
 
 // --- SUBCOMPONENTS ---
 type HandSlotProps = {
+  /** Its card's place in the hand (shots launch from the played slot). */
+  handIndex: number;
   offset: number;
   isHeld: boolean;
   isLifted: boolean;
@@ -75,6 +81,7 @@ type HandSlotProps = {
  * this is a one-off animation started by an event (the release).
  */
 const HandSlot = ({
+  handIndex,
   offset,
   isHeld,
   isLifted,
@@ -122,6 +129,7 @@ const HandSlot = ({
       className={`absolute bottom-3 flex origin-bottom touch-none select-none justify-center transition-[left,transform] duration-200 ${isHeld ? 'z-10' : ''} ${isLifted ? 'opacity-0' : ''}`}
       onPointerDown={onPress}
       style={{ left: slotLeft(offset), transform }}
+      {...{ [HAND_SLOT_ATTR]: handIndex }}
       {...(isHeld ? { [HELD_CARD_ATTR]: true } : {})}
     >
       {children}
@@ -155,6 +163,7 @@ export const FanHand = ({
         return (
           <HandSlot
             key={keys[index]}
+            handIndex={index}
             offset={index - middle}
             isHeld={index === heldIndex}
             isLifted={isLifted}
