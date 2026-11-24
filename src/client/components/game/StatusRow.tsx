@@ -36,7 +36,7 @@ import { Chip, type ChipProps } from '../ui/Chip';
 // --- TYPES ---
 /** One status as a chip, with its tooltip text. */
 type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
-  Pick<ChipProps, 'fill' | 'pips' | 'isPulsing'> & {
+  Pick<ChipProps, 'fill' | 'pips'> & {
     key: StatusId | PassiveId | 'guard';
     title: string;
     description: string;
@@ -100,7 +100,7 @@ const passiveChipsOf = (passives: readonly PassiveId[]): StatusChip[] =>
  * odd, it is PRIMED (a solid purple tile: it burns before the next
  * turn); even, it is a plain dark tile and the tooltip says it waits.
  * Adding a stack flips it, which is the choice: burst now or hold.
- * Odd and ending in 3, it burns double: that chip PULSES.
+ * Odd and ending in 3, it burns double: the chip says x2.
  */
 const hexChipOf = (hex: number): Partial<StatusChip> => {
   const burn = hexBurnAmount(hex);
@@ -113,10 +113,9 @@ const hexChipOf = (hex: number): Partial<StatusChip> => {
   if (isDoubled)
     return {
       fill: toneVarOf(STATUS_LOOK.hex),
-      // The doubled burn is the big hit: show what it really deals, and
-      // pulse so the player sees it coming.
+      // The doubled burn is the big hit: show what it really deals (the
+      // unit itself wears a throbbing sigil, see HexAura).
       text: `${hex}\u00d72`,
-      isPulsing: true,
       description: `Ends in 3: burns for ${burn} (double) before its next turn, then clears.`,
     };
   return {
@@ -179,7 +178,6 @@ const StatusChipView = ({ chip }: { chip: StatusChip }) => (
     toneClass={chip.toneClass}
     fill={chip.fill}
     pips={chip.pips}
-    isPulsing={chip.isPulsing}
     shape="square"
     info={{ title: chip.title, description: chip.description }}
   />

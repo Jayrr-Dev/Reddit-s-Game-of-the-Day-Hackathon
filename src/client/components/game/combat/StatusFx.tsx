@@ -21,6 +21,7 @@ import {
 import { POP_LOOK, toneVarOf } from '../../../content/visuals';
 import { seeded, spread } from '../../../lib/seeded';
 import { Glyph, type GlyphName } from '../../ui/Glyph';
+import { HexSigil } from './HexSigil';
 
 // --- CONSTANTS ---
 /** Time between particles of one layer starting (ms). */
@@ -55,14 +56,7 @@ const SHAPE_PATHS: Record<Exclude<FxShape, 'icon'>, ReactNode> = {
     />
   ),
   shard: <path d="M5 0 6.7 5 5 10 3.3 5Z" fill="currentColor" />,
-  sigil: (
-    <g fill="none" stroke="currentColor" strokeWidth="0.6">
-      <circle cx="5" cy="5" r="4.4" />
-      <circle cx="5" cy="5" r="3.3" strokeDasharray="1 0.8" />
-      <path d="M5 1.7 7.9 6.7H2.1Z" />
-      <path d="M5 8.3 2.1 3.3H7.9Z" />
-    </g>
-  ),
+  sigil: <HexSigil />,
   drop: (
     <path
       d="M5 .5C6.5 3 8 4.8 8 6.6a3 3 0 0 1-6 0C2 4.8 3.5 3 5 .5Z"

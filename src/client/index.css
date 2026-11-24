@@ -2016,45 +2016,55 @@ textarea,
 }
 
 /* -------------------------------------------------------------------
-   CHIP PULSE: a status chip glowing in its tone, on and off, when a big
-   effect is about to go off (Hex about to burn double). The glow is a
-   pseudo-element whose opacity pulses: opacity and transform only.
+   HEX AURA: the Hex sigil turning over a hexed unit (HexAura.tsx). Its
+   data-state sets how loud it is: waiting (even Hex) faint and slow,
+   primed (odd) bright, doubled (ends in 3) brightest, fast and
+   throbbing. Transform and opacity only; reduced motion holds it still.
    ------------------------------------------------------------------- */
-@keyframes chip-pulse {
+.hex-aura {
+  transform: translate(-50%, -50%);
+  transition: opacity 300ms ease-out;
+}
+.hex-aura[data-state='waiting'] {
+  opacity: 0.28;
+}
+.hex-aura[data-state='primed'] {
+  opacity: 0.6;
+}
+.hex-aura[data-state='doubled'] {
+  opacity: 0.9;
+  animation: hex-aura-throb 900ms ease-in-out infinite;
+}
+.hex-aura-spin {
+  animation: hex-aura-spin 9s linear infinite;
+}
+.hex-aura[data-state='primed'] .hex-aura-spin {
+  animation-duration: 6s;
+}
+.hex-aura[data-state='doubled'] .hex-aura-spin {
+  animation-duration: 3s;
+}
+@keyframes hex-aura-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes hex-aura-throb {
   0%,
   100% {
-    opacity: 0.15;
-    transform: scale(0.96);
+    opacity: 0.6;
+    transform: translate(-50%, -50%) scale(0.95);
   }
   50% {
     opacity: 1;
-    transform: scale(1.08);
+    transform: translate(-50%, -50%) scale(1.08);
   }
 }
 
-.chip-pulse {
-  /* Its own stack, so the glow sits over the tile but under the text. */
-  isolation: isolate;
-}
-
-.chip-pulse::after {
-  content: '';
-  z-index: -1;
-  position: absolute;
-  inset: -2px;
-  border-radius: 4px;
-  pointer-events: none;
-  background: rgb(255 255 255 / 0.28);
-  box-shadow:
-    0 0 6px 2px var(--chip-pulse-tone, currentColor),
-    0 0 12px 3px var(--chip-pulse-tone, currentColor);
-  animation: chip-pulse 900ms ease-in-out infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .chip-pulse::after {
-    animation: none;
-    opacity: 0.7;
+  .hex-aura,
+  .hex-aura-spin {
+    animation: none !important;
   }
 }
 

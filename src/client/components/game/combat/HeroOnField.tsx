@@ -32,6 +32,7 @@ import { bossEntranceOf } from '../../../content/bossEntrances';
 import { figureAspect, headTopShare } from '../../../lib/heroFigure';
 import { moodOf } from '../../../lib/heroMood';
 import { seeded } from '../../../lib/seeded';
+import { HexAura } from './HexAura';
 import { HeroFigure } from './HeroFigure';
 import { HeroPlate } from './HeroPlate';
 import { PickMark } from './PickMark';
@@ -469,6 +470,7 @@ export const HeroOnField = ({
                 />
               </div>
             </div>
+            <HexAura hex={unit.statuses.hex} />
             {pickMarker && <PickMark marker={pickMarker} />}
             {unit.joinedMidFight && <ArrivalLight />}
             <div

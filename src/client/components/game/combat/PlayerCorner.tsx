@@ -12,6 +12,7 @@ import type { Combatant } from '../../../../shared/game/types';
 import type { PlayerHitPop } from '../../../hooks/useHitPops';
 import { VILLAIN_ANCHOR_ATTR } from '../../../hooks/useCardDrag';
 import { HitStack } from './HitNumbers';
+import { HexAura } from './HexAura';
 import { ImpactOverlay } from './ImpactOverlay';
 
 // --- COMPONENT ---
@@ -63,6 +64,8 @@ export const PlayerCorner = ({
             </g>
           </svg>
         </div>
+        {/* THE HEX SIGIL TURNS OVER YOU WHILE YOU ARE HEXED */}
+        <HexAura hex={player.statuses.hex} />
         {/* HIT MARKS, ARROWS AND GLOWS OVER THE PORTRAIT */}
         <ImpactOverlay pops={hits.filter((hit) => hit.kind !== 'hit')} />
         {/* GAINS PILE UP AT THE PORTRAIT'S TOP RIGHT, EACH FLOATING OFF
