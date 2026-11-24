@@ -14,7 +14,7 @@ import {
   guardAmount,
   typeBonus,
 } from './combatant.ts';
-import { getHero } from './heroes.ts';
+import { foldPerHitAfflictions, getHero } from './heroes.ts';
 import { foldImbuedDamage, imbuedEffects } from './imbue.ts';
 import {
   ELEMENT_ON_HIT,
@@ -26,6 +26,7 @@ import {
   EXHAUST_USES,
   SHOCK_BURST_FACTOR,
   SHOCK_HITS,
+  STATUS_IS_AFFLICTION,
 } from './rules.ts';
 import { usesOf } from './uses.ts';
 import {
@@ -573,6 +574,10 @@ const describeStatusLine = (
   return `${STATUS_INFO[effect.kind].label}${areaWord(effect.target)} ${amount}`;
 };
 
+/** True for an effect kind that lays an affliction (Burn, Hex ...). */
+const isAfflictionKind = (kind: CardEffect['kind']): boolean =>
+  kind in STATUS_IS_AFFLICTION && STATUS_IS_AFFLICTION[kind as StatusId];
+
 /** The line for what a card's element lays on each hit, if anything. */
 const elementLines = (cardDef: CardDef): string[] => {
   const onHit = cardDef.element ? ELEMENT_ON_HIT[cardDef.element] : null;
@@ -595,9 +600,16 @@ export const describeCardRules = (
   const cardDef = getCard(cardId);
   // Imbued damage reads inside the card's own Damage number (8 -> 13).
   const { own } = foldImbuedDamage(cardDef.effects, imbuedEffects(imbues));
-  const lines = own.map((effect) =>
-    describeCardEffect(effect, cardDef, attacker, target)
+  // An attack's afflictions land on every hit: a multi-hit card says so.
+  const isMultiHit = cardDef.effects.some(
+    (effect) => effect.kind === 'damage' && effect.hits > 1
   );
+  const lines = own.map((effect) => {
+    const line = describeCardEffect(effect, cardDef, attacker, target);
+    return isMultiHit && isAfflictionKind(effect.kind)
+      ? `${line} per hit`
+      : line;
+  });
   const targetLine = cardDef.targets > 1 ? [`Target ${cardDef.targets}`] : [];
   return [...targetLine, ...lines, ...elementLines(cardDef)];
 };
@@ -789,16 +801,17 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
  * (Thunder Talons: Shock 6 ×3). None for other effects.
  */
 const perHitIntents = (unit: HeroUnit, effect: HeroEffect): Intent[] => {
-  if (effect.kind !== 'attack' || !effect.perHit) return [];
-  const { status, amount } = effect.perHit;
-  const scaled = scaleByMight(amount, unit.might);
-  return [
-    {
-      kind: status,
+  if (effect.kind !== 'attack') return [];
+  return (effect.perHit ?? []).map(({ status, amount }) => {
+    const scaled =
+      status === 'weaken' ? amount : scaleByMight(amount, unit.might);
+    const intentKind: IntentKind = status === 'hex' ? 'curse' : status;
+    return {
+      kind: intentKind,
       text: effect.hits > 1 ? `${scaled}×${effect.hits}` : `${scaled}`,
       label: `${STATUS_INFO[status].label} ${scaled} on every hit`,
-    },
-  ];
+    };
+  });
 };
 
 /** The chip for a hero with no move it can make from where it stands. */
@@ -824,7 +837,7 @@ export type MoveIntent = {
 const describeMove = (unit: HeroUnit, heroMove: HeroMove): MoveIntent => ({
   name: heroMove.name,
   isSignature: heroMove.isSignature ?? false,
-  intents: heroMove.effects
+  intents: foldPerHitAfflictions(heroMove.effects)
     .flatMap((effect) => [
       describeHeroEffect(unit, effect),
       ...perHitIntents(unit, effect),

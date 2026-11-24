@@ -54,7 +54,7 @@ import {
   EXHAUST_USES,
   RESERVE_ENERGY_SLOTS,
 } from './rules.ts';
-import { getHero } from './heroes.ts';
+import { foldPerHitAfflictions, getHero } from './heroes.ts';
 import {
   BACK_STEP_COST,
   CARDS_PER_TURN,
@@ -1553,13 +1553,37 @@ void test('hero moves can buff, guard or heal every hero (chip reads ALL)', () =
   assert.ok(lead?.label.includes('every hero'));
 });
 
+// --- AFFLICTIONS ON HIT ---
+void test("an attack card's afflictions land on every hit that lands", () => {
+  const state = withHand(fightWith([]), ['barbedVolley']);
+  const uid = state.heroes[0]?.uid ?? -1;
+  const after = playCard(state, 0, uid);
+  const hero = after.heroes.find((unit) => unit.uid === uid);
+  // Barbed Volley: Damage 2 x3, Bleed 2 on each of the 3 hits.
+  assert.equal(hero?.statuses.bleed, 6);
+  assert.ok(describeCard('barbedVolley').includes('Bleed 2 per hit'));
+  // One hit, one proc (and no "per hit" on the text).
+  assert.ok(describeCard('cruelSlash').includes('Bleed 3'));
+});
+
+void test("a hero move's afflictions ride its attack, one per hit", () => {
+  const breath = getHero('holyDragon').moves.find(
+    (m) => m.name === 'Holy Breath'
+  )!;
+  const [attack, ...rest] = foldPerHitAfflictions(breath.effects);
+  assert.equal(rest.length, 0, 'Burn folded into the attack');
+  assert.ok(attack?.kind === 'attack');
+  assert.deepEqual(attack.perHit, [{ status: 'burn', amount: 4 }]);
+});
+
 void test('the Holy Dragon breathes fire: its breaths lay Burn', () => {
   const moves = getHero('holyDragon').moves;
   const burns = moves.filter((m) =>
     m.effects.some(
       (e) =>
         e.kind === 'burn' ||
-        (e.kind === 'attack' && e.perHit?.status === 'burn')
+        (e.kind === 'attack' &&
+          (e.perHit ?? []).some((proc) => proc.status === 'burn'))
     )
   );
   assert.deepEqual(

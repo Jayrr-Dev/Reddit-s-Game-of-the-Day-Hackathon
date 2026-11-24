@@ -70,7 +70,7 @@ import {
   typeBonus,
 } from './combatant.ts';
 import { isLongRangeOn } from './features.ts';
-import { getHero, type HeroId } from './heroes.ts';
+import { foldPerHitAfflictions, getHero, type HeroId } from './heroes.ts';
 // A cycle (movement.ts reads combatOutcome) is safe: both sides only
 // call each other inside functions, never while loading.
 import { moveFree } from './movement.ts';
@@ -104,6 +104,7 @@ import {
   OUT_OF_RANGE_ROW,
   OUT_OF_RANGE_TYPES,
   PIERCE_DAMAGE_FACTOR,
+  STATUS_IS_AFFLICTION,
 } from './rules.ts';
 import type {
   CardDef,
@@ -114,6 +115,7 @@ import type {
   Combatant,
   HeroAttackType,
   HeroEffect,
+  HeroHitProc,
   HeroMove,
   HeroUnit,
   Imbue,
@@ -962,6 +964,11 @@ type PlayPlan = PlayContext & {
   imbued: readonly ImbuableEffect[];
 };
 
+/** True for a card effect that lays an affliction (Burn 3, Hex 1 ...). */
+const isAfflictionEffect = (effect: CardEffect): boolean =>
+  effect.kind in STATUS_IS_AFFLICTION &&
+  STATUS_IS_AFFLICTION[effect.kind as StatusId];
+
 /**
  * Resolves a paid-for card and returns the state after every beat (each
  * hit of each pick). Splitting hits changes nothing: a card's hits all
@@ -978,10 +985,19 @@ const cardBeats = (
   const cardDef = getCard(cardId);
   // Imbued damage joins the card's own Damage; the rest proc per hit.
   const { own, extra } = foldImbuedDamage(cardDef.effects, plan.imbued);
-  const beats = own.flatMap(oneHitAtATime);
-  const imbuedBeats = extra.flatMap(oneHitAtATime);
   const isProcPerHit = cardDef.effects.some(
     (effect) => effect.kind === 'damage'
+  );
+  // AFFLICTIONS ON HIT: an attack card's own afflictions proc on every
+  // hit that lands, just like imbued ones (Barbed Volley 2x3, Bleed 2:
+  // Bleed 6). A card with no damage lays them once.
+  const isOnHitOwn = (effect: CardEffect) =>
+    isProcPerHit && isAfflictionEffect(effect);
+  const beats = own
+    .filter((effect) => !isOnHitOwn(effect))
+    .flatMap(oneHitAtATime);
+  const imbuedBeats = [...own.filter(isOnHitOwn), ...extra].flatMap(
+    oneHitAtATime
   );
   const states: CombatState[] = [];
   let current = paid;
@@ -1471,18 +1487,25 @@ const heroShoots = (
           ? dodge(ready.player)
           : takeHit(ready.player, perHit, type),
     };
-    // PER HIT: a landed hit lays its affliction too (Thunder Talons).
-    current =
-      isStruck && effect.perHit
-        ? afflictVillain(
-            struck,
-            effect.perHit.status,
-            scaleByMight(effect.perHit.amount, actor.might)
-          )
-        : struck;
+    // PER HIT: a landed hit (one that took HP or Guard; a hit for 0
+    // procs nothing) lays the attack's afflictions too.
+    const hasLanded = isStruck && villainWasHit(ready.player, struck.player);
+    current = hasLanded
+      ? (effect.perHit ?? []).reduce(
+          (laid, proc) =>
+            afflictVillain(laid, proc.status, procAmount(proc, actor)),
+          struck
+        )
+      : struck;
   }
   return current;
 };
+
+/** A per-hit affliction's stacks: scaled by might (Weaken counts turns). */
+const procAmount = (proc: HeroHitProc, actor: HeroUnit): number =>
+  proc.status === 'weaken'
+    ? proc.amount
+    : scaleByMight(proc.amount, actor.might);
 
 /** The hero with its Aloft set: 1 flies it up, 0 brings it down. */
 const withAloft = (unit: HeroUnit, aloft: number): HeroUnit => ({
@@ -1507,7 +1530,8 @@ const heroActs = (
   if (!actor || isDefeated(state.player)) return state;
   const planned = plannedHeroMove(actor, state.heroes);
 
-  const effects = planned?.move.effects ?? [];
+  // A move's afflictions ride its attack: one proc per landed hit.
+  const effects = foldPerHitAfflictions(planned?.move.effects ?? []);
   const hasAttack = effects.some((effect) => effect.kind === 'attack');
   // A HIT FOR 0 PROCS NOTHING: a move whose attacks all came to 0 (missed,
   // dodged, or stopped by Armor) lays none of its effects on the villain.

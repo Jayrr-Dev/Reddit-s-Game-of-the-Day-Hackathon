@@ -10,6 +10,7 @@ import type {
   HeroAttackType,
   HeroDef,
   HeroEffect,
+  HeroHitAffliction,
   HeroMove,
   HeroRow,
   HeroSize,
@@ -297,7 +298,7 @@ export const HEROES = {
       move('Sanctuary Wings', guard(20)),
       move('Dragonfire', {
         ...spell(5, 3),
-        perHit: { status: 'burn', amount: 3 },
+        perHit: [{ status: 'burn', amount: 3 }],
       }),
       signature(move('Halo of Judgment', revive(), spell(26))),
       move('Radiant Roar', wrath(2)),
@@ -320,7 +321,7 @@ export const HEROES = {
     // LIGHTNING: it lays Shock, and its own triple hits set it off
     move('Thunder Talons', {
       ...strike(5, 3),
-      perHit: { status: 'shock', amount: 6 },
+      perHit: [{ status: 'shock', amount: 6 }],
     }),
     move('Smite', detonate()),
     move('Storm Wings', guard(18), shock(4)),
@@ -355,3 +356,43 @@ export const CHAMPION_IDS: readonly HeroId[] = [
   'seris',
   'valen',
 ];
+
+// --- AFFLICTIONS ON HIT ---
+/** The hero effects that are afflictions laid on the villain. */
+const HIT_AFFLICTIONS: ReadonlySet<HeroEffect['kind']> =
+  new Set<HeroHitAffliction>([
+    'hex',
+    'poison',
+    'burn',
+    'frost',
+    'bleed',
+    'shock',
+    'weaken',
+  ]);
+
+/** True for an affliction effect (Burn 4, Hex 2 ...) a move lays. */
+const isHitAffliction = (
+  effect: HeroEffect
+): effect is Extract<HeroEffect, { kind: HeroHitAffliction }> =>
+  HIT_AFFLICTIONS.has(effect.kind);
+
+/**
+ * A move's effects with its afflictions folded into its attack, so
+ * they land on every hit that lands (Holy Breath 8x2, Burn 4: Burn 4 a
+ * hit). A move with no attack keeps them as they are (laid once).
+ */
+export const foldPerHitAfflictions = (
+  effects: readonly HeroEffect[]
+): HeroEffect[] => {
+  const attackAt = effects.findIndex((effect) => effect.kind === 'attack');
+  const attack = effects[attackAt];
+  if (attack?.kind !== 'attack') return [...effects];
+  const procs = effects.filter(isHitAffliction).map((effect) => ({
+    status: effect.kind,
+    amount: effect.amount,
+  }));
+  const folded = { ...attack, perHit: [...(attack.perHit ?? []), ...procs] };
+  return effects
+    .map((effect) => (effect === attack ? folded : effect))
+    .filter((effect) => !isHitAffliction(effect));
+};

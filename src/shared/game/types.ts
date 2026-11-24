@@ -302,8 +302,12 @@ export type CardDef = {
 export type HeroAttackType = Extract<CardType, 'melee' | 'range' | 'magic'>;
 
 /** One step of a hero's move. `allies` means every living hero. */
-/** The afflictions a hero attack can lay on every hit (Thunder Talons). */
-export type HeroHitAffliction = 'shock' | 'burn' | 'poison' | 'bleed';
+/** The afflictions a hero attack can lay on every hit that lands. */
+export type HeroHitAffliction =
+  'hex' | 'poison' | 'burn' | 'frost' | 'bleed' | 'shock' | 'weaken';
+
+/** One affliction an attack lays on each hit that lands. */
+export type HeroHitProc = { status: HeroHitAffliction; amount: number };
 
 export type HeroEffect =
   | {
@@ -313,8 +317,11 @@ export type HeroEffect =
       type: HeroAttackType;
       /** Homing: its hits can't be dodged (they skip Instinct). */
       isHoming?: boolean;
-      /** An affliction laid on the villain by every hit that lands. */
-      perHit?: { status: HeroHitAffliction; amount: number };
+      /**
+       * Afflictions laid on the villain by every hit that lands. A move's
+       * own affliction effects join these (see foldPerHitAfflictions).
+       */
+      perHit?: readonly HeroHitProc[];
     }
   | { kind: 'hex'; amount: number }
   | { kind: 'poison'; amount: number }
