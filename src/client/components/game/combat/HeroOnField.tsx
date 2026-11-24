@@ -486,7 +486,7 @@ export const HeroOnField = ({
           style={bodyStyle}
           {...{ [HERO_ANCHOR_ATTR]: true }}
         >
-          {/* IDLE SWAY: figure, pick mark and plate rock together */}
+          {/* IDLE SWAY: figure and pick mark rock together */}
           <div
             className="relative h-full w-full origin-bottom animate-hero-sway"
             style={swayStyle(unit)}
@@ -511,12 +511,15 @@ export const HeroOnField = ({
             <HexAura hex={unit.statuses.hex} />
             {pickMarker && <PickMark marker={pickMarker} />}
             {unit.joinedMidFight && <ArrivalLight />}
-            <div
-              className="absolute left-1/2 flex -translate-x-1/2 justify-center"
-              style={plateStyle(size)}
-            >
-              <HeroPlate unit={unit} field={field} isFocused={isFocused} />
-            </div>
+          </div>
+          {/* PLATE: outside the sway, so its text never tilts (a tilted,
+              scaled-down plate rasterizes blurry) and its chips hold
+              still under the finger. */}
+          <div
+            className="absolute inset-x-0 flex justify-center"
+            style={plateStyle(size)}
+          >
+            <HeroPlate unit={unit} field={field} isFocused={isFocused} />
           </div>
         </div>
       </div>
