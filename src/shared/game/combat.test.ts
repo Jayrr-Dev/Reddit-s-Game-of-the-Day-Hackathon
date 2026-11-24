@@ -385,7 +385,9 @@ void test('card text damage always equals the damage the engine deals', () => {
         ...start.player,
         statuses: { ...NO_STATUSES, ...buffs },
       };
-      const [line = ''] = describeCard(cardId, player);
+      // Aimed at the Squire, so Dread counts too.
+      const squire = start.heroes[0];
+      const [line = ''] = describeCard(cardId, player, squire);
       const perHit = Number(/Deal (\d+)/.exec(line)?.[1]);
       const hits = Number(/(\d+) times/.exec(line)?.[1] ?? 1);
       // The Squire stands in front, so no Range card gets its bonus.
@@ -470,6 +472,19 @@ void test('card text shows the damage for the aimed-at hero', () => {
   assert.match(describeCard('blackArrow', player, archer).join(' '), /16/);
   // Not aimed: the bonus that needs a target is left out.
   assert.match(describeCard('blackArrow', player).join(' '), /12/);
+});
+
+void test('card text in hand shows only buffs; Dread waits for an aim', () => {
+  const start = squireAndArcher(['spiteBolt']);
+  const player = {
+    ...start.player,
+    statuses: { ...start.player.statuses, wrath: 2, piercing: 2, dread: 1 },
+  };
+  const squire = heroNamed(start, 'squire') as HeroUnit;
+  // In hand: 6 + 2 Wrath + 2 Piercing, Dread left out.
+  assert.match(describeCard('spiteBolt', player).join(' '), /Deal 10 /);
+  // Aimed at the Squire (in front, no long-range bonus): 10 x 0.75.
+  assert.match(describeCard('spiteBolt', player, squire).join(' '), /Deal 7 /);
 });
 
 // --- CARD TEXT FITS ---

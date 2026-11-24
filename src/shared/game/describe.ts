@@ -7,7 +7,12 @@
 
 import { targetRuleOf } from './battlefield.ts';
 import { getCard, type CardId } from './cards.ts';
-import { attackDamage, guardAmount, typeBonus } from './combatant.ts';
+import {
+  attackDamage,
+  buffedAttackDamage,
+  guardAmount,
+  typeBonus,
+} from './combatant.ts';
 import { getHero } from './heroes.ts';
 import {
   cardHitOn,
@@ -84,8 +89,11 @@ export const describeCardEffect = (
   const isMelee = !cardDef.reach;
   switch (effect.kind) {
     case 'damage': {
+      // In hand (no target) only the villain's own buffs count; Dread
+      // and the target's own modifiers join once the card is aimed.
+      const damageOf = target ? attackDamage : buffedAttackDamage;
       const perHit = attacker
-        ? attackDamage(effect.amount, attacker, cardDef.type)
+        ? damageOf(effect.amount, attacker, cardDef.type)
         : effect.amount;
       const isAimed = target !== undefined && effect.target === 'one';
       const amount = isAimed ? cardHitOn(target, perHit, cardDef) : perHit;

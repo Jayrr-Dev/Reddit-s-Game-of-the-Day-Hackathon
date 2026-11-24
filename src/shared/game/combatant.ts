@@ -76,6 +76,22 @@ export const damageFactorOf = (
  * dread. Wrath and the buff (Might, Surge or Piercing, by card type) add
  * first, then Momentum (Melee only) and dread scale, matching the UI.
  */
+/**
+ * A hit from the attacker's own buffs only (Wrath, its type's buff,
+ * Momentum): what a card in hand shows before it is aimed. Debuffs on
+ * the attacker (Dread) and anything about the target apply only once
+ * it is aimed (attackDamage, then cardHitOn).
+ */
+export const buffedAttackDamage = (
+  base: number,
+  attacker: Combatant,
+  type?: CardType
+): number => {
+  const momentum = hasMomentumFor(attacker, type) ? MOMENTUM_DAMAGE_FACTOR : 1;
+  const withBuffs = base + attacker.statuses.wrath + typeBonus(attacker, type);
+  return Math.max(0, Math.floor(withBuffs * momentum));
+};
+
 export const attackDamage = (
   base: number,
   attacker: Combatant,
