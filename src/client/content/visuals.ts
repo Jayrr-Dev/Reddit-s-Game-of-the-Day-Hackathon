@@ -56,6 +56,7 @@ export const KEYWORD_LOOK: Record<CardKeyword, Look> = {
   hold: { glyph: 'padlock', toneClass: 'text-accent' },
   piercing: { glyph: 'arrowhead', toneClass: 'text-accent' },
   remove: { glyph: 'cardBurn', toneClass: 'text-ink-muted' },
+  exhaust: { glyph: 'ghost', toneClass: 'text-ink-muted' },
   rampage: { glyph: 'battleAxe', toneClass: 'text-hp' },
   distance: { glyph: 'sprint', toneClass: 'text-range' },
   longRange: { glyph: 'eye', toneClass: 'text-range' },
@@ -136,6 +137,12 @@ export const CARD_LOOK: Record<
     frameClass: 'bg-card-curse',
     glowVar: 'var(--color-hex)',
   },
+  utility: {
+    glyph: 'potion',
+    typeName: 'Utility',
+    frameClass: 'bg-card-utility',
+    glowVar: 'var(--color-heal)',
+  },
 };
 
 // --- STATUS CHIPS ---
@@ -170,6 +177,13 @@ export const ELEMENT_LOOK: Record<MagicElement, ElementLook> = {
     toneClass: 'text-frost',
     energy: 'var(--color-frost)',
     core: 'white',
+    burst: 'ring',
+  },
+  healing: {
+    glyph: 'plus',
+    toneClass: 'text-heal',
+    energy: 'var(--color-heal)',
+    core: 'color-mix(in oklab, var(--color-heal) 25%, white)',
     burst: 'ring',
   },
 };

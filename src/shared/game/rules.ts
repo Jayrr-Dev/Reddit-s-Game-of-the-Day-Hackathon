@@ -57,10 +57,17 @@ export const BASE_ROW_COUNT = 2;
 /**
  * OUT OF RANGE: the farthest row. A Range or Magic shot fired from it,
  * or into it, lands only this share of the time (rolled per hit on the
- * fight's seeded rng). Long Range ignores it, both ways.
+ * fight's seeded rng). Longrange ignores it, both ways.
  */
 export const OUT_OF_RANGE_ROW: HeroRow = 'horizon';
 export const OUT_OF_RANGE_HIT_CHANCE = 0.5;
+
+// --- EXHAUST ---
+/**
+ * How many times an Exhaust card can be played in a run (unless the
+ * card prints its own number) before it's gone from the deck.
+ */
+export const EXHAUST_USES = 3;
 /** The shot types Out of Range applies to (Melee never fires that far). */
 export const OUT_OF_RANGE_TYPES: ReadonlySet<CardType> = new Set([
   'range',
@@ -143,6 +150,7 @@ export type ElementOnHit = { status: StatusId; amount: number };
 export const ELEMENT_ON_HIT: Record<MagicElement, ElementOnHit | null> = {
   fire: null,
   ice: { status: 'frost', amount: 1 },
+  healing: null,
 };
 
 // --- THE KINGDOM ---

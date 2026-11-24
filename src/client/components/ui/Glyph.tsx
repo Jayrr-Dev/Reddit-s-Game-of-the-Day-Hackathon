@@ -38,7 +38,9 @@ export type GlyphName =
   | 'cards'
   | 'cardBurn'
   | 'battleAxe'
-  | 'sprint';
+  | 'sprint'
+  | 'potion'
+  | 'plus';
 
 export type GlyphProps = {
   name: GlyphName;

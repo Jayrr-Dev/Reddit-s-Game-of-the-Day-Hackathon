@@ -95,10 +95,16 @@ type CardTraits = {
   keywords?: readonly CardKeyword[];
   targets?: number;
   element?: MagicElement;
+  /** An Exhaust card's own number of uses (default EXHAUST_USES). */
+  uses?: number;
 };
 const REMOVES: CardTraits = { keywords: ['remove'] };
+/** Consumables: a few uses in the run (EXHAUST_USES), then gone. */
+const EXHAUSTS: CardTraits = { keywords: ['exhaust'] };
 const FIRE: CardTraits = { element: 'fire' };
 const ICE: CardTraits = { element: 'ice' };
+/** Healing magic: a green + on its type ribbon. */
+const HEALING: CardTraits = { element: 'healing' };
 const HOLDS: CardTraits = { keywords: ['hold'] };
 const PIERCES: CardTraits = { keywords: ['piercing'] };
 const RAMPAGES: CardTraits = { keywords: ['rampage'] };
@@ -119,7 +125,7 @@ const card = (
   cost: number,
   rarity: CardRarity,
   effects: CardEffect[],
-  { keywords = [], targets = 1, element }: CardTraits = {}
+  { keywords = [], targets = 1, element, uses }: CardTraits = {}
 ): CardDef => ({
   name,
   type,
@@ -128,6 +134,7 @@ const card = (
   effects,
   keywords,
   ...(element ? { element } : {}),
+  ...(uses ? { uses } : {}),
   reach: REACHING_TYPES.has(type),
   targets,
 });
@@ -137,6 +144,31 @@ export const CARDS = {
   // STARTER DECK
   backhand: card('Backhand', 'melee', 1, 'starter', [hit(6)]),
   darkCloak: card('Dark Cloak', 'defend', 1, 'starter', [guard(5)]),
+  healingPotion: card(
+    'Healing Potion',
+    'utility',
+    0,
+    'starter',
+    [heal(10)],
+    EXHAUSTS
+  ),
+  // UTILITY: consumables, all Exhaust (one use for the whole run)
+  antidote: card(
+    'Antidote',
+    'utility',
+    0,
+    'common',
+    [cleanse, heal(4)],
+    EXHAUSTS
+  ),
+  swiftTonic: card(
+    'Swift Tonic',
+    'utility',
+    0,
+    'uncommon',
+    [energy(2), draw(1)],
+    EXHAUSTS
+  ),
   // Curses never strike: they lay Hex (an odd Hex burns before the
   // hero's next turn; see hexBurn), so their damage arrives a turn late.
   mourningCurse: card('Mourning Curse', 'curse', 1, 'starter', [hex(3)]),
@@ -193,6 +225,24 @@ export const CARDS = {
   ]),
   venomDart: card('Venom Dart', 'range', 1, 'common', [hit(3), poison(4)]),
   frostBolt: card('Frost Bolt', 'magic', 1, 'common', [hit(3, 2)], ICE),
+  // HEALING SPELLS: reusable Magic heals (unlike the Exhaust potions)
+  mend: card('Mend', 'magic', 1, 'common', [heal(7)], HEALING),
+  siphonBolt: card(
+    'Siphon Bolt',
+    'magic',
+    1,
+    'uncommon',
+    [hit(5), heal(4)],
+    HEALING
+  ),
+  darkRenewal: card(
+    'Dark Renewal',
+    'magic',
+    2,
+    'rare',
+    [heal(14), cleanse],
+    HEALING
+  ),
   serratedSlash: card('Serrated Slash', 'melee', 1, 'common', [
     hit(4),
     bleed(4),
@@ -354,7 +404,7 @@ export function isCardId(value: unknown): value is CardId {
 export const getCard = (id: CardId): CardDef => CARDS[id];
 
 /**
- * True while a keyword is in play: Long Range only with the three-row
+ * True while a keyword is in play: Longrange only with the three-row
  * flag on (see features.ts). An off keyword is neither printed nor
  * applied.
  */
@@ -393,4 +443,5 @@ export const STARTER_DECK: readonly CardId[] = [
   'darkCloak',
   'darkCloak',
   'mourningCurse',
+  'healingPotion',
 ];

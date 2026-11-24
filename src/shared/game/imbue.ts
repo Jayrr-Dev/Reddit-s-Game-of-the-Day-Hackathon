@@ -129,12 +129,14 @@ const firesShots = (cardId: CardId): boolean =>
  * Hold and Remove on any card, Piercing on a card that hits one hero,
  * the free moves (Rampage on kill, Distance on hit) on any card that
  * deals damage,
- * Long Range on a card that fires Range or Magic damage.
+ * Longrange on a card that fires Range or Magic damage.
  */
 const KEYWORD_FITS: Record<CardKeyword, (cardId: CardId) => boolean> = {
   hold: () => true,
   piercing: hitsOneHero,
   remove: () => true,
+  // Exhaust is only printed (on consumables): no imbue grants it.
+  exhaust: () => false,
   rampage: dealsDamage,
   distance: dealsDamage,
   longRange: firesShots,

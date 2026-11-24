@@ -18,7 +18,9 @@ import {
   ELEMENT_ON_HIT,
   OUT_OF_RANGE_HIT_CHANCE,
   OUT_OF_RANGE_ROW,
+  EXHAUST_USES,
 } from './rules.ts';
+import { usesOf } from './uses.ts';
 import {
   cardHitOn,
   heroAttackOf,
@@ -132,7 +134,7 @@ export const PASSIVE_INFO: Record<PassiveId, StatusInfo> = {
     description: 'Boss passive\nTakes **two** moves every turn',
   },
   longRange: {
-    label: 'Long Range',
+    label: 'Longrange',
     description: 'Its shots ignore **Out of Range**',
   },
 };
@@ -239,6 +241,10 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
     label: 'Remove',
     description: "Once played, it's out for the rest of the fight",
   },
+  exhaust: {
+    label: 'Use',
+    description: `Play it ${EXHAUST_USES} times in the run\nThen it **Exhausts**: gone for good`,
+  },
   rampage: {
     label: 'Rampage',
     description: '**Charge** on kill',
@@ -248,7 +254,7 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
     description: "On hit: a free **Back Step**\nOnly if there's room",
   },
   longRange: {
-    label: 'Long Range',
+    label: 'Longrange',
     description: 'Ignores **Out of Range**\nNever misses into **Line 3**',
   },
 };
@@ -329,7 +335,7 @@ export const OUT_OF_RANGE_INFO: StatusInfo = {
   label: 'Out of Range',
   description: `**Range** and **Magic** shots from or into **${rowLabel(OUT_OF_RANGE_ROW)}**\nLand only **${Math.round(
     OUT_OF_RANGE_HIT_CHANCE * 100
-  )}%** of the time\nBoth ways: you and the heroes\n**Long Range** ignores it`,
+  )}%** of the time\nBoth ways: you and the heroes\n**Longrange** ignores it`,
 };
 
 export const GLOSSARY: Readonly<Record<string, StatusInfo>> =
@@ -349,6 +355,15 @@ export const GLOSSARY: Readonly<Record<string, StatusInfo>> =
 /** How each keyword reads on a card. */
 const KEYWORD_LABEL = (keyword: CardKeyword): string =>
   KEYWORD_INFO[keyword].label;
+
+/**
+ * An Exhaust card's count, counting up to its last use: "Use 1/3" on
+ * a fresh card, "Use 3/3" on its last.
+ */
+const useCountLabel = (cardId: CardId, usesSpent: number): string => {
+  const uses = usesOf(cardId) ?? EXHAUST_USES;
+  return `${KEYWORD_INFO.exhaust.label} ${usesSpent + 1}/${uses}`;
+};
 
 /** How many hits a card lands in one play: each damage hit, per pick. */
 const hitsPerPlay = (cardDef: CardDef): number =>
@@ -461,12 +476,17 @@ export const describeCardRules = (
 export const describeCard = (
   cardId: CardId,
   attacker?: Combatant,
-  target?: HeroUnit
+  target?: HeroUnit,
+  usesSpent = 0
 ): string[] => {
   const cardDef = getCard(cardId);
   const keywordLine = cardDef.keywords
     .filter(isKeywordOn)
-    .map(KEYWORD_LABEL)
+    .map((keyword) =>
+      keyword === 'exhaust'
+        ? useCountLabel(cardId, usesSpent)
+        : KEYWORD_LABEL(keyword)
+    )
     .join(', ');
   const traitLines = keywordLine ? [keywordLine] : [];
   return [...describeCardRules(cardId, attacker, target), ...traitLines];

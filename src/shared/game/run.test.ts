@@ -14,6 +14,9 @@ import {
   runReducer,
 } from './run.ts';
 import { playBotRun } from './testBot.ts';
+import type { RunState } from './run.ts';
+import type { CombatState } from './types.ts';
+import { EXHAUST_USES } from './rules.ts';
 
 const DAY = '2026-11-23';
 
@@ -44,7 +47,8 @@ void test('heroes grow stronger deeper in the kingdom', () => {
 void test('a run starts at the first crossroads with the starter deck', () => {
   const run = createRun(DAY);
   assert.equal(run.phase.kind, 'route');
-  assert.equal(run.deck.length, 10);
+  assert.equal(run.deck.length, 11);
+  assert.ok(run.deck.includes('healingPotion'), 'one Healing Potion');
 });
 
 void test('actions that do not fit the phase are ignored', () => {
@@ -92,4 +96,68 @@ void test('abandoning ends the run and keeps the score so far', () => {
   assert.ok(isRunOver(abandoned));
   assert.deepEqual(abandoned.stats, run.stats);
   assert.ok(isRunAction({ type: 'abandon' }));
+});
+
+// --- EXHAUST ---
+/** A first fight against one hero on 1 HP, with `hand` in hand. */
+const lastHeroFight = (hand: CombatState['hand']): RunState => {
+  const run = runReducer(createRun(DAY), { type: 'chooseStop', option: 0 });
+  if (run.phase.kind !== 'combat') throw new Error('no fight');
+  const { combat } = run.phase;
+  const [hero] = combat.heroes;
+  if (!hero) throw new Error('no hero');
+  const lastHero = { ...hero, hp: 1, row: 'front' as const };
+  return {
+    ...run,
+    phase: {
+      ...run.phase,
+      combat: { ...combat, heroes: [lastHero], hand, energy: 5 },
+    },
+  };
+};
+
+/** Plays the potion (when `drink`), then the Backhand to win the fight. */
+const winWith = (run: RunState, drink: boolean): RunState => {
+  const uid = run.phase.kind === 'combat' ? run.phase.combat.heroes[0]?.uid : 0;
+  const drank = drink
+    ? runReducer(run, { type: 'playCard', handIndex: 0, targetUid: -1 })
+    : run;
+  const backhand = drink ? 0 : 1;
+  return runReducer(drank, {
+    type: 'playCard',
+    handIndex: backhand,
+    targetUid: uid ?? 0,
+  });
+};
+
+void test('an Exhaust card counts its uses across fights', () => {
+  const run = lastHeroFight(['healingPotion', 'backhand']);
+  const won = winWith(run, true);
+  assert.equal(won.phase.kind, 'reward');
+  assert.deepEqual(won.deck, run.deck, 'one use spent: still in the deck');
+  assert.equal(won.usesSpent.healingPotion, 1);
+});
+
+void test('its last use takes it out of the deck for the run', () => {
+  const fresh = lastHeroFight(['healingPotion', 'backhand']);
+  if (fresh.phase.kind !== 'combat') throw new Error('no fight');
+  const usesSpent = { healingPotion: EXHAUST_USES - 1 };
+  const run: RunState = {
+    ...fresh,
+    usesSpent,
+    phase: { ...fresh.phase, combat: { ...fresh.phase.combat, usesSpent } },
+  };
+  const won = winWith(run, true);
+  assert.equal(won.phase.kind, 'reward');
+  assert.ok(!won.deck.includes('healingPotion'));
+  assert.equal(won.deck.length, run.deck.length - 1);
+  assert.equal(won.usesSpent.healingPotion, undefined);
+});
+
+void test('an Exhaust card not played is untouched', () => {
+  const run = lastHeroFight(['healingPotion', 'backhand']);
+  const won = winWith(run, false);
+  assert.equal(won.phase.kind, 'reward');
+  assert.deepEqual(won.deck, run.deck);
+  assert.deepEqual(won.usesSpent, {});
 });

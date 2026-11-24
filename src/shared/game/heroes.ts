@@ -151,7 +151,7 @@ export const HEROES = {
     move('Rousing Ballad', wrath(1, 'allies')),
     move('Mocking Verse', weaken(1), spell(2)),
   ]),
-  // Long Range: its arrows land from the Horizon too.
+  // Longrange: its arrows land from the Horizon too.
   archer: hero(
     'Archer',
     'grunt',

@@ -145,10 +145,10 @@ void test('Reach and curses can hit the back row', () => {
   assert.equal(targetRuleOf('whisperHex'), 'any');
 });
 
-void test('a card type decides its reach: Melee, Defend and Buff stay short', () => {
+void test('a card type decides its reach: only Range, Magic and Curse reach', () => {
   for (const cardId of ALL_CARD_IDS) {
     const { type, reach } = getCard(cardId);
-    const isShort = type === 'melee' || type === 'defend' || type === 'buff';
+    const isShort = !['range', 'magic', 'curse'].includes(type);
     assert.equal(reach, !isShort, `${cardId} (${type})`);
   }
   assert.equal(targetRuleOf('cruelSlash'), 'front');
@@ -304,7 +304,7 @@ void test('Guard cards are Defend; Buff keeps the true buffs', () => {
 });
 
 // --- THREE-ROW FLAG OFF (see rows.test.ts for it on) ---
-void test('with the three-row flag off, Long Range is neither printed nor offered', () => {
+void test('with the three-row flag off, Longrange is neither printed nor offered', () => {
   assert.equal(hasKeyword('soulLance', 'longRange'), false);
   assert.equal(hasKeyword('soulLance', 'hold'), true);
   assert.equal(isCardInPlay('eagleEye'), false);

@@ -91,6 +91,8 @@
   /* The deck and the End Turn button keep the old night blue. */
   --color-deck: #2c4675;
   --color-card-curse: #5a2a86;
+  /* Utility: a deep bottle green (consumables, like the Heal tone). */
+  --color-card-utility: #2a7550;
   --color-parchment: #dccaa2;
   --color-on-parchment: #2b1b12;
 

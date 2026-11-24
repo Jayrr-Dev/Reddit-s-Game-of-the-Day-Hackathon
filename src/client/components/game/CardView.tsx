@@ -51,6 +51,8 @@ export type CardViewProps = {
   isSelected?: boolean;
   /** Gifts this card carries from Imbue cards (shown as badges). */
   imbues?: readonly Imbue[];
+  /** Uses already spent on an Exhaust card ("Use 2/3" after one). */
+  usesSpent?: number;
   /** Glows teal while an Imbue card could imbue it. */
   isImbueTarget?: boolean;
   /** Pulses while the imbue arrow points at it. */
@@ -304,6 +306,7 @@ export const CardView = ({
   isDisabled = false,
   isSelected = false,
   imbues = [],
+  usesSpent = 0,
   isImbueTarget = false,
   isImbueAimed = false,
   isFaded = false,
@@ -350,13 +353,15 @@ export const CardView = ({
       <span
         className={`flex w-full min-h-0 flex-1 flex-col justify-center rounded-b-sm bg-parchment text-on-parchment ${look.rules}`}
       >
-        {describeCard(cardId, attacker, target).map((line, index) => (
-          <RulesLine
-            key={line}
-            text={line}
-            printed={printedLines[index] ?? line}
-          />
-        ))}
+        {describeCard(cardId, attacker, target, usesSpent).map(
+          (line, index) => (
+            <RulesLine
+              key={line}
+              text={line}
+              printed={printedLines[index] ?? line}
+            />
+          )
+        )}
       </span>
       <TypeRibbon
         typeName={typeLook.typeName}

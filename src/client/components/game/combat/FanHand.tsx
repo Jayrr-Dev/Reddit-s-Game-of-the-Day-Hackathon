@@ -19,6 +19,7 @@ import {
   type CardBox,
 } from '../../../hooks/useCardDrag';
 import { useHandIds } from '../../../hooks/useHandIds';
+import { usesSpentOn } from '../../../../shared/game/uses';
 import { CardView } from '../CardView';
 import { LIFT_SCALE } from './DraggedCard';
 
@@ -183,6 +184,7 @@ export const FanHand = ({
               size="fan"
               isSelected={index === heldIndex}
               imbues={imbuesAt(combat, index)}
+              usesSpent={usesSpentOn(combat.usesSpent, cardId)}
               isImbueTarget={imbueSlots.includes(index)}
               isImbueAimed={index === imbueAimedSlot}
               // While an Imbue aims, the cards it can't go on fade back.

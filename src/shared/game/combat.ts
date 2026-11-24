@@ -107,7 +107,9 @@ import type {
   MovementId,
   PassiveId,
   TimedBuff,
+  UsesSpent,
 } from './types.ts';
+import { spendUse } from './uses.ts';
 
 // --- SETUP ---
 export type CombatSetup = {
@@ -118,6 +120,8 @@ export type CombatSetup = {
   /** Hero strength multiplier for this depth (1 = base stats). */
   might: number;
   seed: RngState;
+  /** Uses already spent on the run's Exhaust cards (default none). */
+  usesSpent?: UsesSpent;
 };
 
 /** Scales a hero number by might, rounding to a whole number. */
@@ -149,6 +153,8 @@ export const startCombat = (setup: CombatSetup): CombatState => {
     drawPile,
     discardPile: [],
     removedPile: [],
+    exhausted: [],
+    usesSpent: setup.usesSpent ?? {},
     handImbues: [],
     stowedImbues: [],
     timedBuffs: [],
@@ -441,7 +447,7 @@ export const isLongRangeShot = (unit: HeroUnit, cardDef: CardDef): boolean =>
 /**
  * True when a shot of `type` that starts or ends in `row` may miss: a
  * Range or Magic shot touching the Horizon (OUT_OF_RANGE_ROW), unless
- * the shooter has Long Range. It applies both ways: to the villain's
+ * the shooter has Longrange. It applies both ways: to the villain's
  * cards aimed into the Horizon and to heroes shooting from it.
  */
 export const isOutOfRangeShot = (
@@ -618,7 +624,7 @@ const reapHex = (
 
 /**
  * How this play differs from the printed card: imbue slot, Piercing,
- * Long Range (printed or imbued).
+ * Longrange (printed or imbued).
  */
 type PlayContext = { slot: number; isPiercing: boolean; isLongRange: boolean };
 
@@ -923,6 +929,32 @@ const planPlay = (
 };
 
 /**
+ * Where a played card goes. An Exhaust card spends a use; on its last
+ * one it Exhausts (out of the fight, and the run drops it after).
+ * Remove and Imbue cards (used up once played) leave the fight too.
+ * Every other card goes to the discard pile.
+ */
+const pileThePlayed = (
+  state: CombatState,
+  cardId: CardId,
+  imbues: readonly Imbue[]
+): CombatState => {
+  const { usesSpent, isExhausted } = spendUse(state.usesSpent, cardId);
+  const isRemoved =
+    isExhausted ||
+    cardHasKeyword(cardId, imbues, 'remove') ||
+    imbueEffectOf(cardId) !== undefined;
+  const spent = {
+    ...state,
+    usesSpent,
+    exhausted: isExhausted ? [...state.exhausted, cardId] : state.exhausted,
+  };
+  return isRemoved
+    ? { ...spent, removedPile: [...spent.removedPile, cardId] }
+    : { ...spent, discardPile: [...spent.discardPile, cardId] };
+};
+
+/**
  * Plays the card in `handIndex` at the hero with `targetUid` (or, for a
  * Target N card, at each hero in `targetUids` in turn; the same hero
  * may be picked more than once). Illegal plays (no such card, not
@@ -953,14 +985,7 @@ export const playCard = (
     cardId,
     imbues
   );
-  // Remove cards and Imbue cards (used up once played) leave the fight.
-  const isRemoved =
-    cardHasKeyword(cardId, imbues, 'remove') ||
-    imbueEffectOf(cardId) !== undefined;
-  const settled = isRemoved
-    ? { ...kept, removedPile: [...kept.removedPile, cardId] }
-    : { ...kept, discardPile: [...kept.discardPile, cardId] };
-  const cleared = removeFallen(settled);
+  const cleared = removeFallen(pileThePlayed(kept, cardId, imbues));
   const outcome: PlayOutcome = {
     hasKilled: cleared.slain > state.slain,
     hasHit: hasLandedHit(state, cleared),
@@ -1221,13 +1246,13 @@ const applyHeroEffect = (
   }
 };
 
-/** True for a hero whose shots ignore Out of Range (Long Range). */
+/** True for a hero whose shots ignore Out of Range (Longrange). */
 export const hasLongRangePassive = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
   passivesOf(unit).includes('longRange');
 
 /**
  * A hero's attack on the villain, hit by hit. Fired from the Horizon, a
- * Range or Magic hit rolls for Out of Range first (Long Range heroes
+ * Range or Magic hit rolls for Out of Range first (Longrange heroes
  * never miss); a miss counts on the villain (missedShots) so the view
  * can pop "Miss". Imperative: each roll moves the rng on.
  */

@@ -143,7 +143,13 @@ export type TimedBuff = {
 // --- IMBUE ---
 /** A keyword a card can be printed with or imbued with. */
 export type CardKeyword =
-  'hold' | 'piercing' | 'remove' | 'rampage' | 'distance' | 'longRange';
+  | 'hold'
+  | 'piercing'
+  | 'remove'
+  | 'exhaust'
+  | 'rampage'
+  | 'distance'
+  | 'longRange';
 /**
  * Effects an imbue may grant. Pull and Push are left out: they change
  * who a card may aim at, and an imbue never changes a card's aim.
@@ -169,16 +175,17 @@ export type CardRarity = 'starter' | 'common' | 'uncommon' | 'rare';
  * its burst and the icon on its type pill), and some elements add to
  * every hit (see ELEMENT_ON_HIT in rules.ts: Ice lays Frost).
  */
-export type MagicElement = 'fire' | 'ice';
+export type MagicElement = 'fire' | 'ice' | 'healing';
 
 /**
  * What kind of card it is. Shown on the card, and it decides reach:
  * Melee hits the front row only; Range, Magic and Curse reach any hero.
  * Defend and Buff cards act on the villain: Defend cards are mainly
  * Guard, Buff cards power the villain up (Wrath, buffs, energy, healing).
+ * Utility cards are consumables (potions and tonics): they all Exhaust.
  */
 export type CardType =
-  'melee' | 'range' | 'magic' | 'defend' | 'buff' | 'curse';
+  'melee' | 'range' | 'magic' | 'defend' | 'buff' | 'curse' | 'utility';
 
 export type CardDef = {
   name: string;
@@ -189,11 +196,14 @@ export type CardDef = {
   /**
    * Its printed keywords: Hold stays in hand at the end of the turn;
    * Piercing hits also strike the hero right behind the target; Remove
-   * goes to the Remove pile once played.
+   * goes to the Remove pile once played; Exhaust does too, and also
+   * leaves the deck for the rest of the run.
    */
   keywords: readonly CardKeyword[];
   /** A Magic card's element (its look and on-hit rule), if any. */
   element?: MagicElement;
+  /** An Exhaust card's own number of uses (default EXHAUST_USES). */
+  uses?: number;
   /**
    * Reach cards can hit the back row. Without Reach, damage is melee and
    * only reaches the front row (curses and Hex always reach). Derived
@@ -291,7 +301,7 @@ export type HeroDef = {
    * [1] makes a T. Such a hero never changes row.
    */
   backCols?: readonly number[];
-  /** Built-in traits, e.g. Vigor: two moves a turn; Long Range. */
+  /** Built-in traits, e.g. Vigor: two moves a turn; Longrange. */
   passives?: readonly PassiveId[];
   /** Who acts first on the heroes' turn: higher goes earlier. */
   speed: number;
@@ -328,6 +338,13 @@ export type MovementRecord = {
 /** Battle imbues waiting in the piles for their card to be drawn. */
 export type StowedImbue = { cardId: CardId; imbues: Imbue[] };
 
+/**
+ * Uses spent on the current copy of each Exhaust card, for the run.
+ * Copies can't be told apart, so they wear one at a time: once a copy
+ * is used up the count starts again for the next.
+ */
+export type UsesSpent = Partial<Record<CardId, number>>;
+
 export type CombatState = {
   player: Combatant;
   heroes: HeroUnit[];
@@ -335,8 +352,12 @@ export type CombatState = {
   hand: CardId[];
   drawPile: CardId[];
   discardPile: CardId[];
-  /** Cards out of play for the rest of the fight (Remove). */
+  /** Cards out of play for the rest of the fight (Remove, Exhaust). */
   removedPile: CardId[];
+  /** Exhaust cards used up in this fight: the run drops them after. */
+  exhausted: CardId[];
+  /** Uses spent on each Exhaust card's current copy (see uses.ts). */
+  usesSpent: UsesSpent;
   /** What each card in hand is imbued with, slot for slot with `hand`. */
   handImbues: Imbue[][];
   /**

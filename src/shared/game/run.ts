@@ -28,7 +28,8 @@ import {
   SCORE_PER_REGION,
   SCORE_PER_WAVE,
 } from './rules.ts';
-import type { CombatState, MovementId } from './types.ts';
+import type { CombatState, MovementId, UsesSpent } from './types.ts';
+import { deckWithout } from './uses.ts';
 
 // --- TYPES ---
 export type RunStats = {
@@ -53,6 +54,8 @@ export type RunState = {
   hp: number;
   maxHp: number;
   deck: CardId[];
+  /** Uses spent on each Exhaust card in the deck (see uses.ts). */
+  usesSpent: UsesSpent;
   stats: RunStats;
   phase: RunPhase;
 };
@@ -113,6 +116,7 @@ export const createRun = (dailyKey: string): RunState => ({
   hp: PLAYER_MAX_HP,
   maxHp: PLAYER_MAX_HP,
   deck: [...STARTER_DECK],
+  usesSpent: {},
   stats: EMPTY_STATS,
   phase: { kind: 'route', options: routeOptions(dailyKey, 1) },
 });
@@ -146,6 +150,7 @@ const enterStop = (state: RunState, stop: Stop): RunState => {
     heroIds: stop.heroIds,
     might: mightAt(state.stop),
     seed: stopSeed(state.dailyKey, 'combat', state.stop),
+    usesSpent: state.usesSpent,
   });
   return { ...state, phase: { kind: 'combat', stop, combat } };
 };
@@ -193,6 +198,8 @@ const settleCombat = (
   return {
     ...state,
     hp: Math.min(state.maxHp, combat.player.hp + victoryHeal),
+    deck: deckWithout(state.deck, combat.exhausted),
+    usesSpent: combat.usesSpent,
     stats,
     phase: { kind: 'reward', offers },
   };

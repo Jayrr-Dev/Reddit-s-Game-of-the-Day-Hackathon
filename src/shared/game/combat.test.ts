@@ -42,6 +42,7 @@ import {
   describeImbueGift,
 } from './describe.ts';
 import { imbueSlotsFor } from './imbue.ts';
+import { EXHAUST_USES } from './rules.ts';
 import { getHero } from './heroes.ts';
 import {
   BACK_STEP_COST,
@@ -1345,6 +1346,57 @@ void test('an imbued effect on a multi-hit card reads per hit', () => {
     'Poison 3 per hit'
   );
   assert.equal(describeImbueGift(poison, getCard('backhand')), 'Poison 3');
+});
+
+// --- UTILITY AND EXHAUST ---
+void test('a Healing Potion heals you and is kept until its last use', () => {
+  const state = cloakFight(['healingPotion']);
+  const hurt = { ...state, player: { ...state.player, hp: 30 } };
+  const after = playCard(hurt, 0, -1);
+  assert.ok(after.player.hp > 30);
+  assert.deepEqual(after.discardPile, ['healingPotion']);
+  assert.equal(after.usesSpent.healingPotion, 1);
+  assert.deepEqual(after.exhausted, []);
+});
+
+void test('the last use Exhausts the card out of the fight', () => {
+  const state = cloakFight(['healingPotion']);
+  const worn = { ...state, usesSpent: { healingPotion: EXHAUST_USES - 1 } };
+  const after = playCard(worn, 0, -1);
+  assert.deepEqual(after.removedPile, ['healingPotion']);
+  assert.deepEqual(after.exhausted, ['healingPotion']);
+  // The next copy starts fresh.
+  assert.equal(after.usesSpent.healingPotion, undefined);
+});
+
+void test('an Exhaust card reads Use N/3, counting up', () => {
+  assert.ok(describeCard('healingPotion').includes(`Use 1/${EXHAUST_USES}`));
+  assert.ok(
+    describeCard('healingPotion', undefined, undefined, 1).includes(
+      `Use 2/${EXHAUST_USES}`
+    )
+  );
+});
+
+void test('Utility cards are consumables: every one Exhausts', () => {
+  const utilities = ALL_CARD_IDS.filter((id) => getCard(id).type === 'utility');
+  assert.ok(utilities.length >= 3);
+  for (const id of utilities)
+    assert.ok(getCard(id).keywords.includes('exhaust'), id);
+});
+
+void test('healing spells are Magic, reusable, and heal you', () => {
+  for (const cardId of ['mend', 'siphonBolt', 'darkRenewal'] as CardId[]) {
+    const cardDef = getCard(cardId);
+    assert.equal(cardDef.type, 'magic', cardId);
+    assert.ok(!cardDef.keywords.includes('exhaust'), cardId);
+    const state = cloakFight([cardId]);
+    const hurt = { ...state, player: { ...state.player, hp: 20 }, energy: 5 };
+    const uid = hurt.heroes[0]?.uid ?? -1;
+    const after = playCard(hurt, 0, uid);
+    assert.ok(after.player.hp > 20, cardId);
+    assert.ok(after.discardPile.includes(cardId), `${cardId} is reused`);
+  }
 });
 
 // --- ENFEEBLE ---

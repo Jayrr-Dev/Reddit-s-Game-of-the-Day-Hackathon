@@ -2,7 +2,7 @@
 // THREE-ROW FIELD TESTS
 // The Front line, the Backline and the Horizon: moving between rows,
 // Charge and Back Step, Piercing down a column, Out of Range misses
-// (both ways), Long Range, and the cap on cells heroes may fill.
+// (both ways), Longrange, and the cap on cells heroes may fill.
 // ===================================================================
 
 import { test } from 'node:test';
@@ -227,12 +227,12 @@ void test('a miss is seeded: the same fight misses the same way', () => {
   );
 });
 
-void test('Long Range cards never miss into the Horizon', () => {
+void test('Longrange cards never miss into the Horizon', () => {
   const shots = shotsIntoHorizon('soulLance', 40);
   assert.ok(shots.every((shot) => shot.landed));
 });
 
-void test('an Eagle Eye imbue gives a shot Long Range', () => {
+void test('an Eagle Eye imbue gives a shot Longrange', () => {
   const shots = Array.from({ length: 40 }, (_, index) => {
     const state = fightAt(
       [['priest', 'horizon', 1]],
@@ -261,7 +261,7 @@ void test('an imbue only lands with a shot that lands', () => {
   }
 });
 
-void test('Long Range goes on Range and Magic damage cards only', () => {
+void test('Longrange goes on Range and Magic damage cards only', () => {
   const gift = { kind: 'keyword', keyword: 'longRange' } as const;
   assert.equal(canImbueOnto(gift, 'spiteBolt', []), true);
   assert.equal(canImbueOnto(gift, 'hexfire', []), true);
@@ -288,7 +288,7 @@ void test('heroes shooting from the Horizon land about half the time', () => {
   assert.ok(smitesFrom('priest', 'back', 30).every((shot) => shot.landed));
 });
 
-void test('a Long Range hero (the Archer) never misses from the Horizon', () => {
+void test('a Longrange hero (the Archer) never misses from the Horizon', () => {
   const shots = smitesFrom('archer', 'horizon', 40);
   assert.ok(shots.every((shot) => shot.landed && !shot.missed));
 });
