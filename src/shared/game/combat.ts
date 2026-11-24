@@ -276,15 +276,16 @@ const resolveTargets = (
 
 // --- CARD EFFECTS ---
 
+/** True when a card hits `unit` at its proper range (Range at the back row). */
+export const isLongRangeShot = (unit: HeroUnit, cardDef: CardDef): boolean =>
+  cardDef.type === 'range' && unit.row === 'back';
+
 /** One villain hit on a hero: a Range card at a back-row hero hits harder. */
 export const cardHitOn = (
   unit: HeroUnit,
   perHit: number,
   cardDef: CardDef
-): number =>
-  cardDef.type === 'range' && unit.row === 'back'
-    ? longRangeHit(perHit)
-    : perHit;
+): number => (isLongRangeShot(unit, cardDef) ? longRangeHit(perHit) : perHit);
 
 /**
  * Deals `hits` hits of villain attack damage to the targets. FOLLOW

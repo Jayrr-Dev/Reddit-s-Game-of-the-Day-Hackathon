@@ -44,9 +44,13 @@ export const createCombatant = (hp: number, maxHp: number): Combatant => ({
 // --- QUERIES ---
 export const isDefeated = (combatant: Combatant): boolean => combatant.hp <= 0;
 
+/** The buff that powers up a card type's damage, if any. */
+export const damageBuffOf = (type?: CardType): BuffId | undefined =>
+  type ? DAMAGE_BUFF_OF[type] : undefined;
+
 /** Extra damage per hit a card of `type` gets from the attacker's buffs. */
 export const typeBonus = (attacker: Combatant, type?: CardType): number => {
-  const buff = type ? DAMAGE_BUFF_OF[type] : undefined;
+  const buff = damageBuffOf(type);
   return buff ? attacker.statuses[buff] : 0;
 };
 

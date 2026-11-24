@@ -10,6 +10,7 @@ import type { CardId } from '../../../../shared/game/cards';
 import type { Combatant, HeroUnit } from '../../../../shared/game/types';
 import type { CardBox } from '../../../hooks/useCardDrag';
 import { CardView } from '../CardView';
+import { CardMath } from './CardMath';
 
 // --- TYPES ---
 export type DraggedCardProps = {
@@ -57,6 +58,10 @@ export const DraggedCard = ({
       filter: glowFilter(glow),
     }}
   >
+    {/* THE DAMAGE MATH FLOATS JUST ABOVE THE CARD */}
+    <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2">
+      <CardMath cardId={cardId} attacker={attacker} target={target} />
+    </div>
     <CardView
       cardId={cardId}
       attacker={attacker}

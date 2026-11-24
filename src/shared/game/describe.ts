@@ -7,13 +7,25 @@
 
 import { targetRuleOf } from './battlefield.ts';
 import { getCard, type CardId } from './cards.ts';
-import { attackDamage, guardAmount, typeBonus } from './combatant.ts';
+import {
+  attackDamage,
+  damageBuffOf,
+  guardAmount,
+  hasMomentumFor,
+  typeBonus,
+} from './combatant.ts';
 import {
   cardHitOn,
   heroAttackOf,
+  isLongRangeShot,
   plannedHeroMove,
   scaleByMight,
 } from './combat.ts';
+import {
+  DREAD_DAMAGE_FACTOR,
+  LONG_RANGE_DAMAGE_FACTOR,
+  MOMENTUM_DAMAGE_FACTOR,
+} from './rules.ts';
 import type {
   CardDef,
   CardEffect,
@@ -139,6 +151,94 @@ export const describeCard = (
   );
   const targetLine = cardDef.targets > 1 ? [`Target ${cardDef.targets}.`] : [];
   return [...targetLine, ...lines, ...(cardDef.fades ? ['Fades.'] : [])];
+};
+
+// --- CARD MATH ---
+/**
+ * One step of a card's damage math: the printed base, a flat bonus from
+ * a status ("+ 8 Wrath"), or a multiplier ("x 1.5 Momentum"). `source`
+ * names what the step comes from, so the UI can show its icon.
+ */
+export type MathTerm =
+  | { kind: 'base'; amount: number }
+  | { kind: 'add'; amount: number; source: StatusId }
+  | { kind: 'times'; factor: number; source: StatusId | 'longRange' };
+
+/** How a card's damage per hit is worked out, step by step. */
+export type CardMath = { terms: MathTerm[]; total: number };
+
+/**
+ * The damage math for a card's first damage effect, as `attacker` would
+ * play it at `target`: base, then flat bonuses, then multipliers (the
+ * same order attackDamage and cardHitOn use). Null for cards that deal
+ * no plain damage, or when nothing changes the printed number.
+ */
+export const describeCardMath = (
+  cardId: CardId,
+  attacker: Combatant,
+  target?: HeroUnit
+): CardMath | null => {
+  const cardDef = getCard(cardId);
+  const effect = cardDef.effects.find((each) => each.kind === 'damage');
+  if (!effect || effect.kind !== 'damage') return null;
+  const buff = damageBuffOf(cardDef.type);
+  const adds: MathTerm[] = [
+    { kind: 'add', amount: attacker.statuses.wrath, source: 'wrath' },
+    ...(buff
+      ? [
+          {
+            kind: 'add',
+            amount: attacker.statuses[buff],
+            source: buff,
+          } as const,
+        ]
+      : []),
+  ];
+  const isLongRange =
+    target !== undefined &&
+    effect.target === 'one' &&
+    isLongRangeShot(target, cardDef);
+  const times: MathTerm[] = [
+    ...(hasMomentumFor(attacker, cardDef.type)
+      ? [
+          {
+            kind: 'times',
+            factor: MOMENTUM_DAMAGE_FACTOR,
+            source: 'momentum',
+          } as const,
+        ]
+      : []),
+    ...(attacker.statuses.dread > 0
+      ? [
+          {
+            kind: 'times',
+            factor: DREAD_DAMAGE_FACTOR,
+            source: 'dread',
+          } as const,
+        ]
+      : []),
+    ...(isLongRange
+      ? [
+          {
+            kind: 'times',
+            factor: LONG_RANGE_DAMAGE_FACTOR,
+            source: 'longRange',
+          } as const,
+        ]
+      : []),
+  ];
+  const terms: MathTerm[] = [
+    { kind: 'base', amount: effect.amount },
+    ...adds.filter((term) => term.kind === 'add' && term.amount !== 0),
+    ...times,
+  ];
+  if (terms.length === 1) return null;
+  const perHit = attackDamage(effect.amount, attacker, cardDef.type);
+  const total =
+    target && effect.target === 'one'
+      ? cardHitOn(target, perHit, cardDef)
+      : perHit;
+  return { terms, total };
 };
 
 /** True when playing this card needs the player to pick a hero. */
