@@ -91,7 +91,10 @@
   --animate-ember: ember 480ms ease-out forwards;
   --animate-impact-slash: impact-slash 1000ms ease-out forwards;
   --animate-impact-puncture: impact-puncture 1000ms ease-out forwards;
-  --animate-impact-plus: impact-plus 1000ms ease-out forwards;
+  --animate-magic-flash: magic-flash 760ms ease-out both;
+  --animate-magic-rays: magic-rays 760ms ease-out both;
+  --animate-magic-curls: magic-curls 760ms ease-out both;
+  --animate-magic-sparks: magic-sparks 760ms ease-out both;
   --animate-impact-arrow: impact-arrow 900ms ease-out forwards;
   --animate-impact-glow: impact-glow 900ms ease-out forwards;
   --animate-impact-rise: impact-rise 900ms ease-out both;
@@ -138,25 +141,72 @@
       transform: scale(1);
     }
   }
-  /* A Magic spark: pops out past full size, settles, then fades. */
-  @keyframes impact-plus {
+  /* A Magic burst, in four overlapping beats (see MagicBurst.tsx):
+     flash, rays, curls, sparks. Transform and opacity only. */
+  @keyframes magic-flash {
     0% {
-      opacity: 0;
-      transform: scale(0);
+      opacity: 1;
+      transform: scale(0.3) rotate(0deg);
     }
     15% {
       opacity: 1;
-      transform: scale(1.3);
+      transform: scale(1.15) rotate(12deg);
     }
-    30% {
+    35% {
+      opacity: 0;
+      transform: scale(0.8) rotate(20deg);
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes magic-rays {
+    0%,
+    6% {
+      opacity: 0;
+      transform: scale(0.35);
+    }
+    16% {
+      opacity: 1;
       transform: scale(1);
     }
-    60% {
+    40% {
+      opacity: 0;
+      transform: scale(1.12);
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes magic-curls {
+    0%,
+    28% {
+      opacity: 0;
+      transform: scale(0.85) rotate(0deg);
+    }
+    40% {
+      opacity: 1;
+    }
+    68% {
+      opacity: 0;
+      transform: scale(1.25) rotate(14deg);
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+  @keyframes magic-sparks {
+    0%,
+    50% {
+      opacity: 0;
+      transform: scale(0.9) rotate(0deg);
+    }
+    62% {
       opacity: 1;
     }
     100% {
       opacity: 0;
-      transform: scale(0.8);
+      transform: scale(1.35) rotate(-10deg);
     }
   }
   /* A buff (up) or debuff (down) arrow: drifts its way and fades. */

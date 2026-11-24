@@ -4,7 +4,7 @@
 // so you can read what just happened to them without reading numbers:
 //   HIT     Melee (and the heroes' own attacks)  a thin black slice
 //           Range                                 an arrow hole with cracks
-//           Magic                                 a blue plus
+//           Magic                                 an arcane burst (rays, curls, sparks)
 //           Curse (Hex ticking, curse cards)      a purple glow
 //   HEAL    green pluses rising off the body, and a green glow
 //   BUFF    a green arrow up over the face, and a glow in its colour
@@ -18,6 +18,7 @@
 import type { CSSProperties } from 'react';
 import { POP_LOOK, toneVarOf } from '../../../content/visuals';
 import { seeded, spread } from '../../../lib/seeded';
+import { MagicBurst } from './MagicBurst';
 import { Puncture } from './Puncture';
 import { Slice } from './Slice';
 import type { PlayerHitPop } from '../../../hooks/useHitPops';
@@ -69,26 +70,15 @@ const Slash = ({ id }: { id: number }) => {
 
 /** A Range shot: an arrow hole, turned any which way. */
 const Hole = ({ id }: { id: number }) => (
-  <span className="absolute aspect-square w-[52%]" style={placeAt(id, 0, 180)}>
+  <span className="absolute aspect-square w-[36%]" style={placeAt(id, 0, 180)}>
     <Puncture id={id} className="animate-impact-puncture" />
   </span>
 );
 
-/** A Magic spark: a small blue plus. */
-const Plus = ({ id }: { id: number }) => (
-  <span className="absolute aspect-square w-[18%]" style={placeAt(id, 0, 15)}>
-    <svg
-      viewBox="0 0 10 10"
-      className="block size-full animate-impact-plus drop-shadow-[0_0_3px_var(--color-shroud)]"
-      aria-hidden="true"
-    >
-      <path
-        d="M5 1v8M1 5h8"
-        stroke="var(--color-shroud)"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
-    </svg>
+/** A Magic hit: an arcane burst, turned any which way. */
+const Burst = ({ id }: { id: number }) => (
+  <span className="absolute aspect-square w-[64%]" style={placeAt(id, 0, 180)}>
+    <MagicBurst id={id} />
   </span>
 );
 
@@ -160,7 +150,7 @@ const Arrow = ({ id, isUp }: { id: number; isUp: boolean }) => (
 /** The effect for one hit, by the type of card that dealt it. */
 const HitMark = ({ pop }: { pop: PlayerHitPop }) => {
   if (pop.source === 'range') return <Hole id={pop.id} />;
-  if (pop.source === 'magic') return <Plus id={pop.id} />;
+  if (pop.source === 'magic') return <Burst id={pop.id} />;
   if (pop.source === 'curse') return <Glow tone={CURSE_GLOW} />;
   return <Slash id={pop.id} />;
 };
