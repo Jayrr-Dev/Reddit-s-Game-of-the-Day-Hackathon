@@ -2,8 +2,8 @@
 // POV IMPACT
 // When a hero's attack lands on you, it lands on the screen itself, as
 // if you were looking out of the villain's eyes. Every hit draws:
-//   HURT LAYER   a vignette closing in from the edges (blood red; a
-//                cold blue when your Guard took it all), a glitch flash
+//   HURT LAYER   a vignette closing in from the edges (blood red, or
+//                Hex purple for a curse), a glitch flash
 //                of red and cyan bands, and a shake of the whole view,
 //                all scaled to the damage
 //   MARK         one per blow (a multi-hit pops once per blow, see
@@ -11,8 +11,12 @@
 //                screen: Melee  long blood-red slashes
 //                               Range  big arrow holes with cracks
 //                               Magic  a screen-wide arcane blast
-// Blocked hits draw their mark faded. Hero arrows fly at the centre
-// too (POV_ANCHOR_ATTR, see HeroShots).
+//                               Curse  a purple sigil and skull (Hex
+//                                      eating at you: no attack type)
+// Each hit's damage number pops on top of its mark (not by the
+// portrait) and floats off left, up or right at random.
+// A hit your Guard took whole only shades the edges a faint black.
+// Hero arrows fly at the centre too (POV_ANCHOR_ATTR, see HeroShots).
 // PERFORMANCE: transform and opacity animations only; each mark is
 // mounted when its blow lands and leaves with its pop.
 // ===================================================================
@@ -21,6 +25,9 @@ import { useEffect, type CSSProperties, type RefObject } from 'react';
 import type { PlayerHitPop } from '../../../hooks/useHitPops';
 import { popScale } from '../../../lib/popSize';
 import { seeded, spread } from '../../../lib/seeded';
+import { CurseSigil } from './CurseSigil';
+import { driftOf } from '../../../lib/popDrift';
+import { HitLine } from './HitNumbers';
 import { MagicBurst } from './MagicBurst';
 import { Puncture } from './Puncture';
 import { Slice } from './Slice';
@@ -35,7 +42,11 @@ const SCATTER_Y = 16;
 const SLASH_ANGLES = [-28, 24, -52, 8, 44, -12] as const;
 /** The vignette's colour for a hit that hurt, and one fully blocked. */
 const HURT_TONE = 'rgb(200 20 40 / 0.85)';
-const BLOCKED_TONE = 'rgb(122 147 214 / 0.7)';
+const BLOCKED_TONE = 'rgb(0 0 0 / 0.55)';
+/** A fully blocked hit only shades the edges faintly. */
+const BLOCKED_PEAK = 0.5;
+/** A curse's vignette: Hex purple. */
+const CURSE_TONE = 'rgb(130 60 200 / 0.8)';
 /** How strong the vignette gets: at least this, more for big hits. */
 const VIGNETTE_MIN = 0.45;
 const VIGNETTE_PER_SCALE = 0.3;
@@ -44,6 +55,9 @@ const SHAKE_PX_PER_SCALE = 6;
 const SHAKE_MS = 360;
 
 // --- HELPERS ---
+/** True for harm with no attack behind it (a curse: Hex ticking). */
+const isCurse = (pop: PlayerHitPop): boolean => pop.source === undefined;
+
 /** True for a hit your Guard took entirely. */
 const isBlockedOnly = (pop: PlayerHitPop): boolean => pop.amount === 0;
 
@@ -56,6 +70,9 @@ const markPlace = (seed: number): CSSProperties => ({
   left: `${50 + spread(seed, 1) * SCATTER_X}%`,
   top: `${50 + spread(seed, 2) * SCATTER_Y}%`,
 });
+
+/** Where a hit lands: its blow's spot, scattered by its id. */
+const seedOf = (pop: PlayerHitPop): number => pop.id * 7;
 
 /** Shakes an element once, harder for a bigger hit (Web Animations). */
 const shake = (element: HTMLElement | null, scale: number) => {
@@ -76,7 +93,7 @@ const shake = (element: HTMLElement | null, scale: number) => {
 // --- SUBCOMPONENTS ---
 /** One blow's mark, by the kind of attack that struck it. */
 const Mark = ({ pop }: { pop: PlayerHitPop }) => {
-  const seed = pop.id * 7;
+  const seed = seedOf(pop);
   const style = markPlace(seed);
   if (pop.source === 'range')
     return (
@@ -85,6 +102,15 @@ const Mark = ({ pop }: { pop: PlayerHitPop }) => {
         style={{ ...style, rotate: `${seeded(seed, 3) * 360}deg` }}
       >
         <Puncture id={seed} className="animate-impact-puncture" />
+      </span>
+    );
+  if (isCurse(pop))
+    return (
+      <span
+        className="absolute aspect-square w-[62%] -translate-1/2"
+        style={{ left: '50%', top: '50%' }}
+      >
+        <CurseSigil />
       </span>
     );
   if (pop.source === 'magic')
@@ -96,7 +122,7 @@ const Mark = ({ pop }: { pop: PlayerHitPop }) => {
         <MagicBurst id={seed} />
       </span>
     );
-  // MELEE (AND ANYTHING ELSE): A LONG SLASH ACROSS THE VIEW
+  // MELEE: A LONG SLASH ACROSS THE VIEW
   const angle = SLASH_ANGLES[seed % SLASH_ANGLES.length] ?? 0;
   return (
     <span
@@ -111,10 +137,18 @@ const Mark = ({ pop }: { pop: PlayerHitPop }) => {
   );
 };
 
-/** The edges closing in: red for a hurt, blue for a blocked hit. */
+/** The edges closing in: red for a hurt, purple for a curse, faint black for a blocked hit. */
+const toneOf = (pop: PlayerHitPop): string => {
+  if (isBlockedOnly(pop)) return BLOCKED_TONE;
+  return isCurse(pop) ? CURSE_TONE : HURT_TONE;
+};
+
+/** The edges closing in, in the hit's tone (see toneOf). */
 const Vignette = ({ pop }: { pop: PlayerHitPop }) => {
-  const tone = isBlockedOnly(pop) ? BLOCKED_TONE : HURT_TONE;
-  const peak = Math.min(1, VIGNETTE_MIN + VIGNETTE_PER_SCALE * sizeOf(pop));
+  const tone = toneOf(pop);
+  const peak = isBlockedOnly(pop)
+    ? BLOCKED_PEAK
+    : Math.min(1, VIGNETTE_MIN + VIGNETTE_PER_SCALE * sizeOf(pop));
   return (
     <span
       className="pov-vignette absolute inset-0"
@@ -142,18 +176,44 @@ const Glitch = ({ id }: { id: number }) => (
   </>
 );
 
-/** Everything one hit draws on the screen. */
-const PovHit = ({ pop }: { pop: PlayerHitPop }) => (
-  <>
-    <Vignette pop={pop} />
-    {!isBlockedOnly(pop) && <Glitch id={pop.id} />}
-    <span
-      className={`absolute inset-0 ${isBlockedOnly(pop) ? 'opacity-45' : ''}`}
-    >
-      <Mark pop={pop} />
-    </span>
-  </>
+/**
+ * The damage number, popping on top of the blow's mark and floating off
+ * left, up or right at random (see driftOf).
+ */
+const HitNumber = ({ pop }: { pop: PlayerHitPop }) => (
+  <span
+    className="absolute -translate-1/2 whitespace-nowrap"
+    style={{ ...markPlace(seedOf(pop)), ...driftOf(pop.id) }}
+  >
+    <HitLine
+      amount={pop.amount}
+      blocked={pop.blocked}
+      typical={pop.typical}
+      source={pop.source}
+      isKill={pop.isKill}
+    />
+  </span>
 );
+
+/**
+ * Everything one hit draws on the screen, its number on top. A hit
+ * your Guard took whole only shades the edges a faint black: no mark,
+ * glitch or shake.
+ */
+const PovHit = ({ pop }: { pop: PlayerHitPop }) =>
+  isBlockedOnly(pop) ? (
+    <>
+      <Vignette pop={pop} />
+      <HitNumber pop={pop} />
+    </>
+  ) : (
+    <>
+      <Vignette pop={pop} />
+      {!isCurse(pop) && <Glitch id={pop.id} />}
+      <Mark pop={pop} />
+      <HitNumber pop={pop} />
+    </>
+  );
 
 // --- COMPONENT ---
 /**

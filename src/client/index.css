@@ -327,13 +327,14 @@
       transform: scale(1);
     }
     /* HOLD, THEN DRIFT UP, SWELL AND FADE */
+    /* --pop-drift-x: a sideways float (0 for straight up, see HitStack) */
     55% {
       opacity: 1;
-      transform: translateY(-6px) scale(1);
+      transform: translate(calc(var(--pop-drift-x, 0px) * 0.15), -6px) scale(1);
     }
     100% {
       opacity: 0;
-      transform: translateY(-40px) scale(1.6);
+      transform: translate(var(--pop-drift-x, 0px), -40px) scale(1.6);
     }
   }
 
@@ -1910,5 +1911,83 @@ textarea,
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--color-accent) var(--color-surface-sunken);
+  }
+}
+
+/* -------------------------------------------------------------------
+   CURSE SIGIL (POV): a curse landing on you blooms a turning purple
+   sigil, its skull flares, and wisps of hex smoke rise off it.
+   ------------------------------------------------------------------- */
+@keyframes curse-sigil {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(-40deg);
+  }
+  18% {
+    opacity: 1;
+    transform: scale(1.05) rotate(0deg);
+  }
+  70% {
+    opacity: 0.85;
+    transform: scale(1) rotate(25deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.15) rotate(40deg);
+  }
+}
+
+@keyframes curse-skull {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  45% {
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+@keyframes curse-wisp {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.6);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-260%) scale(1.8);
+  }
+}
+
+.curse-sigil {
+  opacity: 0;
+  animation: curse-sigil 1100ms ease-out forwards;
+}
+
+.curse-skull {
+  opacity: 0;
+  animation: curse-skull 1000ms ease-out forwards;
+}
+
+.curse-wisp {
+  opacity: 0;
+  animation: curse-wisp 900ms ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .curse-sigil,
+  .curse-skull,
+  .curse-wisp {
+    animation-duration: 1ms;
   }
 }

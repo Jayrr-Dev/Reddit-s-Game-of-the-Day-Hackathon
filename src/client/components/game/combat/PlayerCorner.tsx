@@ -65,9 +65,15 @@ export const PlayerCorner = ({
         </div>
         {/* HIT MARKS, ARROWS AND GLOWS OVER THE PORTRAIT */}
         <ImpactOverlay pops={hits.filter((hit) => hit.kind !== 'hit')} />
-        {/* HITS PILE UP ABOVE THE PORTRAIT, NUDGED RIGHT (AWAY FROM THE EDGE) */}
-        <div className="pointer-events-none absolute bottom-full left-1 z-40 mb-1">
-          <HitStack hits={hits} align="start" />
+        {/* GAINS PILE UP AT THE PORTRAIT'S TOP RIGHT, EACH FLOATING OFF
+            LEFT, UP OR RIGHT AT RANDOM (hits pop on the screen, see
+            PovImpact) */}
+        <div className="pointer-events-none absolute bottom-[70%] left-[85%] z-40">
+          <HitStack
+            hits={hits.filter((hit) => hit.kind !== 'hit')}
+            align="start"
+            isDrifting
+          />
         </div>
       </div>
       <span className="relative -mb-1 -ml-5 flex h-7 min-w-8 items-center justify-center px-1.5 bg-surface-raised pb-1 font-display text-sm font-black text-ink ring-1 ring-accent/70 [clip-path:polygon(0_0,100%_0,100%_60%,50%_100%,0_60%)]">

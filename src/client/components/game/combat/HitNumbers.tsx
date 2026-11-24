@@ -15,6 +15,7 @@ import { CARD_LOOK, POP_LOOK } from '../../../content/visuals';
 import type { HitPop, PlayerHitPop, PopKind } from '../../../hooks/useHitPops';
 import { ImpactOverlay } from './ImpactOverlay';
 import { popFontPx } from '../../../lib/popSize';
+import { driftOf } from '../../../lib/popDrift';
 import { spread } from '../../../lib/seeded';
 import { Glyph } from '../../ui/Glyph';
 
@@ -225,10 +226,13 @@ const pileStyleOf = (
 export const HitStack = ({
   hits,
   align = 'center',
+  isDrifting = false,
 }: {
   hits: readonly PlayerHitPop[];
   /** Centre the pile on its anchor, or start it there (near an edge). */
   align?: PileAlign;
+  /** True to float each number off left, up or right at random. */
+  isDrifting?: boolean;
 }) => {
   const newestId = hits[hits.length - 1]?.id;
   return (
@@ -239,6 +243,7 @@ export const HitStack = ({
           className={`absolute bottom-0 whitespace-nowrap transition-opacity duration-150 ${align === 'center' ? 'left-1/2' : 'left-0'}`}
           style={{
             ...pileStyleOf(hit, index, align),
+            ...(isDrifting ? driftOf(hit.id) : {}),
             zIndex: index,
             opacity: hit.id === newestId ? 1 : BURIED_OPACITY,
           }}
