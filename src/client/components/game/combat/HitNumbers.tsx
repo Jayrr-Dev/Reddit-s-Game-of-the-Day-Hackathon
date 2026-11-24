@@ -46,8 +46,8 @@ const TONE_STRENGTH = '78%';
 const SHOCK_TONE = 'var(--color-shock)';
 
 /** How far (px) a piled number may land from its spot, each way. */
-const PILE_JITTER_X_PX = 8;
-const PILE_JITTER_Y_PX = 5;
+const PILE_JITTER_X_PX = 22;
+const PILE_JITTER_Y_PX = 14;
 /**
  * Each later hit in a burst steps this far (px) right and up from the
  * last, so a fast multi-hit cascades into a readable, overlapping run

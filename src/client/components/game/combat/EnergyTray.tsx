@@ -67,7 +67,7 @@ export const EnergyTray = ({
         <span
           key={`reserve-${index}`}
           title="Reserve: unspent energy carries over to your next turn"
-          className={`${PIP_SHAPE} ml-1 ring-2 ring-ink-muted ${index < litReserve ? LIT_PIP : 'bg-transparent'}`}
+          className={`${PIP_SHAPE} ml-1 ring-1 ring-ink-muted ${index < litReserve ? LIT_PIP : 'bg-transparent'}`}
         />
       ))}
     </div>

@@ -330,6 +330,9 @@ const withoutBurst = (hit: Hit | null, burst: Hit | undefined): Hit | null => {
   return amount > 0 || hit.blocked > 0 ? { ...hit, amount } : null;
 };
 
+/** How far down a hero's drawn box its hits land (0 top, 1 feet). */
+const BODY_FOCUS_Y = 0.58;
+
 /** The middle of a hero's drawn body, or null if it is not on screen. */
 export const bodyPointOf = (uid: number): Point | null => {
   const body = document.querySelector(
@@ -337,7 +340,10 @@ export const bodyPointOf = (uid: number): Point | null => {
   );
   if (!body) return null;
   const rect = body.getBoundingClientRect();
-  return { x: rect.left + rect.width / 2, y: rect.top + rect.height * 0.4 };
+  return {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height * BODY_FOCUS_Y,
+  };
 };
 
 /** Snapshots every hero, keeping the last known point of fallen ones. */
