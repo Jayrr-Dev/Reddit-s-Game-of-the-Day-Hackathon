@@ -151,10 +151,17 @@ export const HEROES = {
     move('Rousing Ballad', wrath(1, 'allies')),
     move('Mocking Verse', weaken(1), spell(2)),
   ]),
-  archer: hero('Archer', 'grunt', 10, 110, 7, BACK, [
-    move('Volley', shoot(2, 3)),
-    move('Aimed Shot', shoot(7)),
-  ]),
+  // Long Range: its arrows land from the Horizon too.
+  archer: hero(
+    'Archer',
+    'grunt',
+    10,
+    110,
+    7,
+    BACK,
+    [move('Volley', shoot(2, 3)), move('Aimed Shot', shoot(7))],
+    ['longRange']
+  ),
   priest: hero('Priest', 'grunt', 12, 50, 5, BACK, [
     move('Smite', spell(4)),
     move('Mend', heal(5), cleanse()),

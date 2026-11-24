@@ -5,6 +5,7 @@
 // source of truth for both the rules and the UI.
 // ===================================================================
 
+import { isLongRangeOn } from './features.ts';
 import type {
   BuffId,
   Duration,
@@ -102,6 +103,7 @@ const HOLDS: CardTraits = { keywords: ['hold'] };
 const PIERCES: CardTraits = { keywords: ['piercing'] };
 const RAMPAGES: CardTraits = { keywords: ['rampage'] };
 const DISTANCES: CardTraits = { keywords: ['distance'] };
+const LONG_RANGES: CardTraits = { keywords: ['longRange'] };
 
 /** Card types that can hit the back row (Melee only hits the front). */
 const REACHING_TYPES: ReadonlySet<CardType> = new Set([
@@ -266,6 +268,9 @@ export const CARDS = {
   vanish: card('Vanish', 'buff', 0, 'uncommon', [
     imbue({ kind: 'keyword', keyword: 'distance' }),
   ]),
+  eagleEye: card('Eagle Eye', 'buff', 0, 'uncommon', [
+    imbue({ kind: 'keyword', keyword: 'longRange' }),
+  ]),
   reap: card('Reap', 'magic', 1, 'uncommon', [reap(2)]),
   seethe: card('Seethe', 'buff', 1, 'uncommon', [wrath(2)], REMOVES),
   impale: card('Impale', 'melee', 2, 'uncommon', [hit(10)], PIERCES),
@@ -288,8 +293,17 @@ export const CARDS = {
   ]),
   drain: card('Drain', 'melee', 1, 'uncommon', [hit(6), heal(3)]),
   shadowBarrage: card('Shadow Barrage', 'magic', 2, 'uncommon', [hit(3, 4)]),
-  rainOfThorns: card('Rain of Thorns', 'range', 2, 'uncommon', [hitAll(5)]),
-  soulLance: card('Soul Lance', 'magic', 2, 'uncommon', [hit(14)], HOLDS),
+  rainOfThorns: card(
+    'Rain of Thorns',
+    'range',
+    2,
+    'uncommon',
+    [hitAll(5)],
+    LONG_RANGES
+  ),
+  soulLance: card('Soul Lance', 'magic', 2, 'uncommon', [hit(14)], {
+    keywords: ['hold', 'longRange'],
+  }),
   tyrantsStance: card(
     "Tyrant's Stance",
     'buff',
@@ -339,13 +353,33 @@ export function isCardId(value: unknown): value is CardId {
 /** Looks up a card definition. */
 export const getCard = (id: CardId): CardDef => CARDS[id];
 
-/** True when the card is printed with `keyword`. */
-export const hasKeyword = (id: CardId, keyword: CardKeyword): boolean =>
-  CARDS[id].keywords.includes(keyword);
+/**
+ * True while a keyword is in play: Long Range only with the three-row
+ * flag on (see features.ts). An off keyword is neither printed nor
+ * applied.
+ */
+export const isKeywordOn = (keyword: CardKeyword): boolean =>
+  keyword !== 'longRange' || isLongRangeOn();
 
-/** Card ids of one rarity, used to build reward offers. */
+/** True when the card is printed with `keyword` (and it is in play). */
+export const hasKeyword = (id: CardId, keyword: CardKeyword): boolean =>
+  CARDS[id].keywords.includes(keyword) && isKeywordOn(keyword);
+
+/**
+ * True when a card can be offered: an Imbue card that grants a keyword
+ * not in play (Eagle Eye with the three-row flag off) cannot.
+ */
+export const isCardInPlay = (id: CardId): boolean =>
+  CARDS[id].effects.every(
+    (effect) =>
+      effect.kind !== 'imbue' ||
+      effect.gift.kind !== 'keyword' ||
+      isKeywordOn(effect.gift.keyword)
+  );
+
+/** Card ids of one rarity that are in play, used to build reward offers. */
 export const cardsOfRarity = (rarity: CardRarity): CardId[] =>
-  ALL_CARD_IDS.filter((id) => CARDS[id].rarity === rarity);
+  ALL_CARD_IDS.filter((id) => CARDS[id].rarity === rarity && isCardInPlay(id));
 
 /** The deck every villain starts the day with. */
 export const STARTER_DECK: readonly CardId[] = [

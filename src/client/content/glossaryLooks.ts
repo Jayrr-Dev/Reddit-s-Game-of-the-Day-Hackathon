@@ -14,7 +14,9 @@ import {
   FORCE_PUSH_INFO,
   IMBUE_INFO,
   KEYWORD_INFO,
+  OUT_OF_RANGE_INFO,
   PASSIVE_INFO,
+  ROW_INFO,
   STATUS_INFO,
 } from '../../shared/game/describe';
 import {
@@ -48,6 +50,12 @@ const GLOSSARY_LOOK: ReadonlyMap<string, Look> = new Map([
   ['Magic', INTENT_LOOK.magic],
   ['Charge', { glyph: 'bolt', toneClass: 'text-energy' }],
   ['Back Step', { glyph: 'march', toneClass: 'text-guard' }],
+  // The rows: Line 1 to Line 3 (Line 3 is Out of Range, faded).
+  ...Object.values(ROW_INFO).map((info): [string, Look] => [
+    info.label,
+    { glyph: 'march', toneClass: 'text-ink-muted' },
+  ]),
+  [OUT_OF_RANGE_INFO.label, { glyph: 'eye', toneClass: 'text-ink-muted' }],
 ]);
 
 /** The look of a glossary word, if it is one. */

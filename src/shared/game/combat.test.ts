@@ -4,7 +4,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { advanceMelee } from './battlefield.ts';
+import { advanceHeroes } from './battlefield.ts';
 import { ALL_CARD_IDS, getCard, type CardId } from './cards.ts';
 import { canMove, move, movementCost } from './movement.ts';
 import {
@@ -52,7 +52,7 @@ import type { CombatState, HeroUnit } from './types.ts';
 /** A fight's lines once settled: melee heroes have stepped up. */
 const settled = (state: CombatState): CombatState => ({
   ...state,
-  heroes: advanceMelee(state.heroes),
+  heroes: advanceHeroes(state.heroes),
 });
 
 /** A fight against one Squire (in the front row) with the given deck. */

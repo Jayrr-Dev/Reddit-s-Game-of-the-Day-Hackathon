@@ -167,6 +167,16 @@ const GainLine = ({
 }) => {
   if (kind === 'hit') return null;
   const look = POP_LOOK[kind];
+  // OUT OF RANGE: the shot missed, so the word replaces a number.
+  if (kind === 'miss')
+    return (
+      <div
+        className={`font-display font-black uppercase whitespace-nowrap animate-hit-pop drop-shadow-[0_1px_2px_black] ${look.toneClass}`}
+        style={{ fontSize: popFontPx(typical, typical, GAIN_SCALE) }}
+      >
+        Miss
+      </div>
+    );
   return (
     <div
       className={`flex items-center gap-0.5 font-display font-black whitespace-nowrap animate-hit-pop drop-shadow-[0_1px_2px_black] ${look.toneClass}`}

@@ -143,6 +143,12 @@ export const takeDamage = <T extends Combatant>(
   };
 };
 
+/** A shot at it missed (Out of Range): counted so the view pops "Miss". */
+export const missShot = <T extends Combatant>(target: T): T => ({
+  ...target,
+  missedShots: (target.missedShots ?? 0) + 1,
+});
+
 /**
  * Takes a hit of a type (a card's, or a hero attack's) and counts it
  * toward Bleed: while bleeding, each non-Magic hit in a row adds one,

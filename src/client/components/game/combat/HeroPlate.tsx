@@ -17,7 +17,11 @@ import {
 } from '../../../../shared/game/describe';
 import { passivesOf } from '../../../../shared/game/combat';
 import { getHero } from '../../../../shared/game/heroes';
-import type { HeroSize, HeroUnit } from '../../../../shared/game/types';
+import type {
+  HeroRow,
+  HeroSize,
+  HeroUnit,
+} from '../../../../shared/game/types';
 import { drawSizeOf } from '../../../content/heroLooks';
 import { HERO_STATUS_ROWS, INTENT_LOOK } from '../../../content/visuals';
 import { Chip } from '../../ui/Chip';
@@ -117,6 +121,13 @@ export const IntentChips = ({
 );
 
 // --- COMPONENT ---
+/** Farther rows wear smaller plates (perspective), the Horizon smallest. */
+const PLATE_SCALE_CLASS: Record<HeroRow, string> = {
+  front: '',
+  back: 'scale-[0.8]',
+  horizon: 'scale-[0.65]',
+};
+
 /** Renders one hero's plate; the focused hero's name is lit gold. */
 export const HeroPlate = ({ unit, field, isFocused }: HeroPlateProps) => {
   const look = PLATE_LOOK[drawSizeOf(unit)];
@@ -126,7 +137,7 @@ export const HeroPlate = ({ unit, field, isFocused }: HeroPlateProps) => {
     : isFocused
       ? 'text-accent'
       : 'text-ink';
-  const scaleClass = unit.row === 'back' ? 'scale-[0.8]' : '';
+  const scaleClass = PLATE_SCALE_CLASS[unit.row];
   return (
     <div
       {...{ [PLATE_UID_ATTR]: unit.uid }}

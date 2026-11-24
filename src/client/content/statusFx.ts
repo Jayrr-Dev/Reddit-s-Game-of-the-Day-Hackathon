@@ -70,6 +70,8 @@ export type FxKind = Exclude<PopKind, 'hit'>;
 
 // --- TABLE ---
 export const STATUS_FX: Record<FxKind, FxSpec> = {
+  /** A miss (Out of Range): nothing lands, so nothing is drawn. */
+  miss: { layers: [], hasGlow: false },
   heal: {
     layers: [{ shape: 'plus', motion: 'rise', count: 4, size: 16 }],
     hasGlow: true,

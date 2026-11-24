@@ -58,12 +58,14 @@ export const KEYWORD_LOOK: Record<CardKeyword, Look> = {
   remove: { glyph: 'cardBurn', toneClass: 'text-ink-muted' },
   rampage: { glyph: 'battleAxe', toneClass: 'text-hp' },
   distance: { glyph: 'sprint', toneClass: 'text-range' },
+  longRange: { glyph: 'eye', toneClass: 'text-range' },
 };
 
 // --- BOSS PASSIVES ---
 /** Boss passives are gold tiles (see StatusRow), so they read as innate. */
 export const PASSIVE_LOOK: Record<PassiveId, Look & { text: string }> = {
   vigor: { glyph: 'crown', toneClass: 'text-accent', text: '×2' },
+  longRange: { glyph: 'eye', toneClass: 'text-range', text: '' },
 };
 
 // --- HERO INTENTS ---
@@ -223,6 +225,7 @@ export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   frost: STATUS_LOOK.frost,
   bleed: STATUS_LOOK.bleed,
   bleedBurst: STATUS_LOOK.bleed,
+  miss: { glyph: 'eye', toneClass: 'text-ink-muted' },
   weaken: STATUS_LOOK.weaken,
   enfeeble: STATUS_LOOK.enfeeble,
 };
@@ -244,14 +247,15 @@ export const MOVEMENT_LOOK: Record<MovementId, MovementLook> = {
     label: 'Charge',
     glyph: 'bolt',
     description:
-      'Brings the back row to the front\nYour next **Melee** card deals **+50%**',
+      'Closes in until a hero is in **Line 1**\nYour next **Melee** card deals **+50%**',
     speedLines: 'in',
     toneClass: 'bg-blood shadow-[0_0_14px_var(--color-blood)]',
   },
   backStep: {
     label: 'Back Step',
     glyph: 'march',
-    description: 'Sends every hero to the back row\nOut of **Melee** reach',
+    description:
+      'Sends every hero back **1** line, to **Line 2**\nOut of **Melee** reach',
     speedLines: 'out',
     toneClass:
       'bg-surface-raised shadow-[0_0_14px_var(--color-guard)] [&_svg]:rotate-180',

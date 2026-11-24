@@ -57,9 +57,10 @@ export type StatusId =
 export type Statuses = Record<StatusId, number>;
 /**
  * A boss's built-in trait: always on, never stacks or fades.
- * vigor  acts twice every heroes' turn
+ * vigor      acts twice every heroes' turn
+ * longRange  its shots ignore Out of Range (see OUT_OF_RANGE_HIT_CHANCE)
  */
-export type PassiveId = 'vigor';
+export type PassiveId = 'vigor' | 'longRange';
 
 /** Anything with HP that fights: the villain or a hero. */
 export type Combatant = {
@@ -74,6 +75,11 @@ export type Combatant = {
    * 40-damage blow on a 10 HP hero still reads 40.
    */
   damageTaken: number;
+  /**
+   * Shots at it that missed this fight (Out of Range). Display only:
+   * the view diffs it to pop "Miss". Missing on older saves (0).
+   */
+  missedShots?: number;
   /** Non-Magic hits taken in a row while bleeding (see Bleed). */
   bleedHits?: number;
   /** True when Protection was cast this turn (else it lapses at turn end). */
@@ -112,9 +118,9 @@ export type BaseCardEffect =
   | { kind: 'draw'; amount: number }
   | { kind: 'energy'; amount: number }
   | { kind: 'heal'; amount: number }
-  /** Drags the target from the back row into the front row. */
+  /** Drags the target one row nearer (Force Pull). */
   | { kind: 'pull' }
-  /** Shoves the target from the front row into the back row. */
+  /** Shoves the target one row farther (Force Push). */
   | { kind: 'push' };
 
 // --- DURATION ---
@@ -137,7 +143,7 @@ export type TimedBuff = {
 // --- IMBUE ---
 /** A keyword a card can be printed with or imbued with. */
 export type CardKeyword =
-  'hold' | 'piercing' | 'remove' | 'rampage' | 'distance';
+  'hold' | 'piercing' | 'remove' | 'rampage' | 'distance' | 'longRange';
 /**
  * Effects an imbue may grant. Pull and Push are left out: they change
  * who a card may aim at, and an imbue never changes a card's aim.
@@ -259,10 +265,12 @@ export type HeroTier = 'grunt' | 'elite' | 'champion' | 'boss';
 
 // --- BATTLEFIELD ---
 /**
- * The heroes stand on a grid 3 columns wide and 2 rows deep. Fighters
- * take the front row; healers, buffers and archers keep to the back.
+ * The heroes stand on a grid 3 columns wide and 3 rows deep (see
+ * BATTLEFIELD_ROWS): the Front line, the Backline and the Horizon.
+ * Fighters take the front; healers, buffers and archers the Backline.
+ * The Horizon is where a new horde marches in from, and Out of Range.
  */
-export type HeroRow = 'front' | 'back';
+export type HeroRow = 'front' | 'back' | 'horizon';
 /** How many columns a hero fills: grunts 1, elites 2, champions 3. */
 export type HeroSize = 1 | 2 | 3;
 export type HeroDef = {
@@ -283,7 +291,7 @@ export type HeroDef = {
    * [1] makes a T. Such a hero never changes row.
    */
   backCols?: readonly number[];
-  /** Built-in traits (bosses only), e.g. Vigor: two moves a turn. */
+  /** Built-in traits, e.g. Vigor: two moves a turn; Long Range. */
   passives?: readonly PassiveId[];
   /** Who acts first on the heroes' turn: higher goes earlier. */
   speed: number;

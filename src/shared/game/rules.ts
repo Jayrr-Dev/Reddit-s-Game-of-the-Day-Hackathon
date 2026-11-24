@@ -4,7 +4,7 @@
 // nowhere else, so the engine, the UI and the server always agree.
 // ===================================================================
 
-import type { MagicElement, StatusId } from './types.ts';
+import type { CardType, HeroRow, MagicElement, StatusId } from './types.ts';
 
 // --- THE VILLAIN ---
 export const PLAYER_MAX_HP = 60;
@@ -16,19 +16,20 @@ export const MAX_HAND_SIZE = 10;
 export const MAX_IMBUES_PER_CARD = 3;
 /**
  * Energy it costs the villain to Charge: when the front row is empty,
- * the back row only steps up when the villain charges at them.
+ * the field closes in (up to CHARGE_ROWS rows) when the villain charges.
  */
 export const CHARGE_COST = 1;
 /** Momentum (gained by charging) multiplies the next Melee card's damage. */
 export const MOMENTUM_DAMAGE_FACTOR = 1.5;
 /**
- * Energy it costs the villain to Back Step: with the back row empty, the
- * whole front row is pushed back to the back row (out of melee reach).
+ * Energy it costs the villain to Back Step: with everyone in the front
+ * row, the field falls back BACK_STEP_ROWS row (out of melee reach).
  */
 export const BACK_STEP_COST = 1;
 /**
- * Range attacks at their proper range (a villain card at a back-row
- * hero, a hero shooting from the back row) deal this much damage.
+ * Range attacks at their proper range (a villain card at a hero past
+ * the front row, a hero shooting from past the front row) deal this
+ * much damage.
  */
 export const LONG_RANGE_DAMAGE_FACTOR = 1.3;
 /**
@@ -38,8 +39,43 @@ export const LONG_RANGE_DAMAGE_FACTOR = 1.3;
 export const MOVEMENT_STREAK_COST = 1;
 
 // --- BATTLEFIELD ---
-/** Columns in each row of the hero battlefield (rows are front and back). */
+/** Columns in each row of the hero battlefield. */
 export const BATTLEFIELD_COLUMNS = 3;
+/**
+ * The battlefield's rows, nearest to the villain first: Line 1, Line 2
+ * and Line 3 (the Horizon). Every row rule (pulls, pushes, Charge, Back
+ * Step, Piercing) walks this list (see activeRows in battlefield.ts),
+ * so its length is the row count. With the three-row flag off (see
+ * features.ts) only the first BASE_ROW_COUNT rows are in play.
+ */
+export const BATTLEFIELD_ROWS: readonly HeroRow[] = [
+  'front',
+  'back',
+  'horizon',
+];
+export const BASE_ROW_COUNT = 2;
+/**
+ * OUT OF RANGE: the farthest row. A Range or Magic shot fired from it,
+ * or into it, lands only this share of the time (rolled per hit on the
+ * fight's seeded rng). Long Range ignores it, both ways.
+ */
+export const OUT_OF_RANGE_ROW: HeroRow = 'horizon';
+export const OUT_OF_RANGE_HIT_CHANCE = 0.5;
+/** The shot types Out of Range applies to (Melee never fires that far). */
+export const OUT_OF_RANGE_TYPES: ReadonlySet<CardType> = new Set([
+  'range',
+  'magic',
+]);
+/**
+ * Most battlefield cells heroes may fill at once (of the 9), summons
+ * and revivals included, so there is always room left to move. A big
+ * hero counts every cell it fills. A summon or revival past it fizzles.
+ */
+export const MAX_HERO_CELLS = 6;
+/** Rows a Charge closes at most (it stops once someone is in the front). */
+export const CHARGE_ROWS = 2;
+/** Rows a Back Step falls back. */
+export const BACK_STEP_ROWS = 1;
 
 // --- STATUSES ---
 /** A combatant with weaken deals this fraction of its attack damage. */

@@ -6,7 +6,7 @@
 // ===================================================================
 
 import { targetRuleOf } from './battlefield.ts';
-import { getCard, type CardId } from './cards.ts';
+import { getCard, isKeywordOn, type CardId } from './cards.ts';
 import {
   attackDamage,
   buffedAttackDamage,
@@ -14,7 +14,11 @@ import {
   typeBonus,
 } from './combatant.ts';
 import { getHero } from './heroes.ts';
-import { ELEMENT_ON_HIT } from './rules.ts';
+import {
+  ELEMENT_ON_HIT,
+  OUT_OF_RANGE_HIT_CHANCE,
+  OUT_OF_RANGE_ROW,
+} from './rules.ts';
 import {
   cardHitOn,
   heroAttackOf,
@@ -22,6 +26,7 @@ import {
   scaleByMight,
 } from './combat.ts';
 import type {
+  HeroRow,
   CardDef,
   CardEffect,
   CardKeyword,
@@ -126,6 +131,10 @@ export const PASSIVE_INFO: Record<PassiveId, StatusInfo> = {
     label: 'Vigor',
     description: 'Boss passive\nTakes **two** moves every turn',
   },
+  longRange: {
+    label: 'Long Range',
+    description: 'Its shots ignore **Out of Range**',
+  },
 };
 
 // --- CARD TEXT ---
@@ -133,7 +142,7 @@ export const PASSIVE_INFO: Record<PassiveId, StatusInfo> = {
 /** " to ALL" suffix for area effects; melee sweeps the front only. */
 const areaSuffix = (target: 'one' | 'all', isMelee = false): string => {
   if (target === 'one') return '';
-  return isMelee ? ' to the front row' : ' to ALL';
+  return isMelee ? ` to ${rowLabel('front')}` : ' to ALL';
 };
 
 /**
@@ -233,6 +242,10 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
     label: 'Distance',
     description: "On kill: a free **Back Step**\nOnly if there's room",
   },
+  longRange: {
+    label: 'Long Range',
+    description: 'Ignores **Out of Range**\nNever misses into **Line 3**',
+  },
 };
 
 // --- DURATIONS ---
@@ -264,11 +277,11 @@ export const IMBUE_INFO: StatusInfo = {
 /** What Force Pull and Force Push mean, wherever they show. */
 export const FORCE_PULL_INFO: StatusInfo = {
   label: 'Force Pull',
-  description: 'Pulls the target hero to the **front row**',
+  description: 'Pulls the target hero **one line** nearer',
 };
 export const FORCE_PUSH_INFO: StatusInfo = {
   label: 'Force Push',
-  description: 'Pushes the target hero to the **back row**',
+  description: 'Pushes the target hero **one line** back',
 };
 /** What Cleanse means, wherever it shows. */
 export const CLEANSE_INFO: StatusInfo = {
@@ -283,6 +296,37 @@ export const CLEANSE_INFO: StatusInfo = {
  * badges and chips read the same entries, so a definition lives here
  * only.
  */
+/**
+ * What players call each row (Line 1 is nearest the villain) and what
+ * it means. The engine's names (front, back, horizon) never show.
+ */
+export const ROW_INFO: Record<HeroRow, StatusInfo> = {
+  front: {
+    label: 'Line 1',
+    description: 'The nearest row\n**Melee** reaches only here',
+  },
+  back: {
+    label: 'Line 2',
+    description: 'The middle row\nArchers and healers keep here',
+  },
+  horizon: {
+    label: 'Line 3',
+    description:
+      'The farthest row\nNew heroes march in from here\nShots from or into it are **Out of Range**',
+  },
+};
+
+/** A row's player-facing name: "Line 1", "Line 2", "Line 3". */
+export const rowLabel = (row: HeroRow): string => ROW_INFO[row].label;
+
+/** Shots from or into the Horizon may miss (see OUT_OF_RANGE_HIT_CHANCE). */
+export const OUT_OF_RANGE_INFO: StatusInfo = {
+  label: 'Out of Range',
+  description: `**Range** and **Magic** shots from or into **${rowLabel(OUT_OF_RANGE_ROW)}**\nLand only **${Math.round(
+    OUT_OF_RANGE_HIT_CHANCE * 100
+  )}%** of the time\nBoth ways: you and the heroes\n**Long Range** ignores it`,
+};
+
 export const GLOSSARY: Readonly<Record<string, StatusInfo>> =
   Object.fromEntries(
     [
@@ -292,6 +336,8 @@ export const GLOSSARY: Readonly<Record<string, StatusInfo>> =
       CLEANSE_INFO,
       FORCE_PULL_INFO,
       FORCE_PUSH_INFO,
+      ...Object.values(ROW_INFO),
+      OUT_OF_RANGE_INFO,
     ].map((info) => [info.label, info])
   );
 
@@ -397,7 +443,10 @@ export const describeCard = (
   target?: HeroUnit
 ): string[] => {
   const cardDef = getCard(cardId);
-  const keywordLine = cardDef.keywords.map(KEYWORD_LABEL).join(', ');
+  const keywordLine = cardDef.keywords
+    .filter(isKeywordOn)
+    .map(KEYWORD_LABEL)
+    .join(', ');
   const traitLines = keywordLine ? [keywordLine] : [];
   return [...describeCardRules(cardId, attacker, target), ...traitLines];
 };
@@ -532,11 +581,11 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
   }
 };
 
-/** The chip for a hero with no move it can make from the back row. */
+/** The chip for a hero with no move it can make from where it stands. */
 const ADVANCE_INTENT: Intent = {
   kind: 'advance',
   text: '',
-  label: 'Steps up to the front row',
+  label: 'Steps one line nearer',
 };
 
 /**

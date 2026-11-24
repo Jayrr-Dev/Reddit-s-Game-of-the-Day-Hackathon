@@ -6,14 +6,27 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  advanceMelee,
+  advanceHeroes,
   canPull,
   legalTargets,
   sizeOf,
   targetRuleOf,
 } from './battlefield.ts';
-import { ALL_CARD_IDS, getCard, type CardId } from './cards.ts';
-import { canPlayCard, endTurn, playCard, startCombat } from './combat.ts';
+import {
+  ALL_CARD_IDS,
+  cardsOfRarity,
+  getCard,
+  hasKeyword,
+  isCardInPlay,
+  type CardId,
+} from './cards.ts';
+import {
+  canPlayCard,
+  endTurn,
+  passivesOf,
+  playCard,
+  startCombat,
+} from './combat.ts';
 import { canMove, move } from './movement.ts';
 import { CHARGE_COST } from './rules.ts';
 import type { HeroId } from './heroes.ts';
@@ -38,7 +51,7 @@ const freshFight = (heroIds: HeroId[]): CombatState =>
  */
 const fight = (heroIds: HeroId[], hand: CardId[]): CombatState => {
   const fresh = freshFight(heroIds);
-  return { ...fresh, heroes: advanceMelee(fresh.heroes), hand, energy: 9 };
+  return { ...fresh, heroes: advanceHeroes(fresh.heroes), hand, energy: 9 };
 };
 
 /** Finds a hero on the field by catalog id. */
@@ -284,4 +297,13 @@ void test('Guard cards are Defend; Buff keeps the true buffs', () => {
     if (type === 'defend' || type === 'buff')
       assert.equal(type === 'defend', isMainlyGuard, cardId);
   }
+});
+
+// --- THREE-ROW FLAG OFF (the default; see rows.test.ts for it on) ---
+void test('with the three-row flag off, Long Range is neither printed nor offered', () => {
+  assert.equal(hasKeyword('soulLance', 'longRange'), false);
+  assert.equal(hasKeyword('soulLance', 'hold'), true);
+  assert.equal(isCardInPlay('eagleEye'), false);
+  assert.ok(!cardsOfRarity('uncommon').includes('eagleEye'));
+  assert.deepEqual(passivesOf({ heroId: 'archer' }), []);
 });

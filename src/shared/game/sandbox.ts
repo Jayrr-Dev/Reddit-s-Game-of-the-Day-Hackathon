@@ -8,7 +8,7 @@
 // ===================================================================
 
 import { cellCountOf } from './battlefield.ts';
-import { ALL_CARD_IDS } from './cards.ts';
+import { ALL_CARD_IDS, isCardInPlay } from './cards.ts';
 import { combatOutcome, endTurn, playCard, startCombat } from './combat.ts';
 import { CHAMPION_IDS, ELITE_IDS, GRUNT_IDS, type HeroId } from './heroes.ts';
 import { move } from './movement.ts';
@@ -25,7 +25,7 @@ export type SandboxAction = PlayCardAction | { type: 'endTurn' } | MoveAction;
 /** So much HP the heroes can't win; you test, you don't lose. */
 export const SANDBOX_HP = 999;
 /**
- * Most battlefield cells a horde may fill (the field has 6). Keeping
+ * Most battlefield cells a horde may fill (MAX_HERO_CELLS is 6). Keeping
  * one free guarantees every mix fits, e.g. a champion (3) + an elite
  * (2), or two elites + a grunt. A boss (6 cells) never rolls; it has
  * its own scenario.
@@ -127,7 +127,7 @@ export const rollDummies = (seed: RngState): [HeroId[], RngState] => {
 const sandboxSetup = (heroIds: readonly HeroId[], seed: RngState) => ({
   hp: SANDBOX_HP,
   maxHp: SANDBOX_HP,
-  deck: ALL_CARD_IDS,
+  deck: ALL_CARD_IDS.filter(isCardInPlay),
   heroIds,
   might: 1,
   seed,

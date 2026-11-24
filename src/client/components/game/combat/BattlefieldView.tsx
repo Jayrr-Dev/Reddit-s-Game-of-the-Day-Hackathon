@@ -1,8 +1,8 @@
 // ===================================================================
 // BATTLEFIELD VIEW
-// The 3 x 2 battlefield as a parallax scene. Layers, back to front:
-// backdrop -> back row -> ground shade -> front row -> foreground. The
-// front row always draws over the back row. The camera (--cam) leans
+// The 3 x 3 battlefield as a parallax scene. Layers, back to front:
+// backdrop -> Horizon -> Backline -> ground shade -> Front line ->
+// foreground. A nearer row always draws over a farther one. The camera (--cam) leans
 // toward the focused hero, and the stage sways gently on its own.
 // Heroes that change rows glide there (see useRowMoves); fallen heroes
 // play their death in place first (see useFallenHeroes). A boss's first
@@ -10,7 +10,7 @@
 // ===================================================================
 
 import { useRef, type ReactNode } from 'react';
-import { sizeOf } from '../../../../shared/game/battlefield';
+import { activeRows, sizeOf } from '../../../../shared/game/battlefield';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
 import type { HeroRow, HeroUnit } from '../../../../shared/game/types';
 import { isBoss, type HeroAction } from '../../../content/heroLooks';
@@ -45,7 +45,16 @@ export type BattlefieldViewProps = {
 /** How far (px) the camera leans per column away from the centre. */
 const CAMERA_LEAN_PX = 26;
 /** Parallax depth of each row's layer. */
-const ROW_DEPTH: Record<HeroRow, number> = { back: 0.65, front: 1 };
+const ROW_DEPTH: Record<HeroRow, number> = {
+  horizon: 0.45,
+  back: 0.65,
+  front: 1,
+};
+/** Rows past the front, drawn farthest first (nearer rows on top). */
+const farRowsFarthestFirst = (): HeroRow[] =>
+  activeRows()
+    .filter((row) => row !== 'front')
+    .toReversed();
 
 // --- HELPERS ---
 /** Camera offset (px) that leans toward the focused hero. */
@@ -148,7 +157,11 @@ export const BattlefieldView = ({
       style={cssVars({ '--cam': cameraFor(focused) })}
     >
       <Backdrop hue={hue} />
-      <RowLayer depth={ROW_DEPTH.back}>{renderRow('back')}</RowLayer>
+      {farRowsFarthestFirst().map((row) => (
+        <RowLayer key={row} depth={ROW_DEPTH[row]}>
+          {renderRow(row)}
+        </RowLayer>
+      ))}
       <div
         className="parallax-layer pointer-events-none absolute -inset-x-8 bottom-0 h-1/2"
         style={{

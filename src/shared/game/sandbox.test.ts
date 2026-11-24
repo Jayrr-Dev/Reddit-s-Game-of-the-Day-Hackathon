@@ -88,7 +88,7 @@ void test('a boss is never pulled, pushed or moved by Back Step', () => {
   const [dragon] = heroes;
   assert.ok(dragon);
   assert.equal(canPush(heroes, dragon), false);
-  assert.equal(fallBack(heroes)[0]?.row, 'front');
+  assert.equal(fallBack(heroes, 1)[0]?.row, 'front');
 });
 
 void test('random dummies never roll a boss', () => {

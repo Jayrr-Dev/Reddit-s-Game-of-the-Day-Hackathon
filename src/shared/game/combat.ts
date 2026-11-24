@@ -17,7 +17,7 @@
 // ===================================================================
 
 import {
-  advanceMelee,
+  advanceHeroes,
   canPull,
   canPush,
   affectsSelf,
@@ -29,10 +29,13 @@ import {
   pushHero,
   targetRuleOf,
   type UnplacedHero,
+  cellCountOf,
   cellsOf,
+  freeHeroCells,
   isAloft,
   isCellOpen,
   heroesPiercedPast,
+  rowDepth,
   summonSeats,
 } from './battlefield.ts';
 import { getCard, type CardId } from './cards.ts';
@@ -55,9 +58,11 @@ import {
   hasMomentumFor,
   heal,
   isDefeated,
+  missShot,
   takeHit,
   typeBonus,
 } from './combatant.ts';
+import { isLongRangeOn } from './features.ts';
 import { getHero, type HeroId } from './heroes.ts';
 // A cycle (movement.ts reads combatOutcome) is safe: both sides only
 // call each other inside functions, never while loading.
@@ -74,13 +79,16 @@ import {
   removeFromHand,
   stowPlayedImbues,
 } from './imbue.ts';
-import { shuffle, type RngState } from './rng.ts';
+import { nextFloat, shuffle, type RngState } from './rng.ts';
 import {
   CARDS_PER_TURN,
   ELEMENT_ON_HIT,
   LONG_RANGE_DAMAGE_FACTOR,
   ENERGY_PER_TURN,
   MAX_HAND_SIZE,
+  OUT_OF_RANGE_HIT_CHANCE,
+  OUT_OF_RANGE_ROW,
+  OUT_OF_RANGE_TYPES,
   PIERCE_DAMAGE_FACTOR,
 } from './rules.ts';
 import type {
@@ -228,7 +236,10 @@ const VIGOR_ACTIONS = 2;
 /** A hero's built-in traits (none for most). */
 export const passivesOf = (
   unit: Pick<HeroUnit, 'heroId'>
-): readonly PassiveId[] => getHero(unit.heroId).passives ?? [];
+): readonly PassiveId[] =>
+  (getHero(unit.heroId).passives ?? []).filter(
+    (passive) => passive !== 'longRange' || isLongRangeOn()
+  );
 
 /** How many moves a hero makes each heroes' turn: 2 with Vigor, else 1. */
 export const actionsOf = (unit: Pick<HeroUnit, 'heroId'>): number =>
@@ -266,8 +277,8 @@ const longRangeHit = (perHit: number): number =>
 
 /**
  * How one hero attack lands from where the hero stands: its type and
- * damage per hit. A Range attack from the back row is at its proper
- * range (LONG_RANGE_DAMAGE_FACTOR); made up close (from the front row)
+ * damage per hit. A Range attack from past the front row is at its
+ * proper range (LONG_RANGE_DAMAGE_FACTOR); made up close (the front row)
  * it loses that bonus but is still a Range hit (its VFX, Bleed and
  * anything else that reads the type all see Range).
  */
@@ -277,7 +288,7 @@ export const heroAttackOf = (
 ): { type: HeroAttackType; perHit: number } => {
   const perHit = attackDamage(scaleByMight(effect.amount, unit.might), unit);
   if (effect.type !== 'range') return { type: effect.type, perHit };
-  const isLongRange = unit.row === 'back';
+  const isLongRange = rowDepth(unit.row) > 0;
   return { type: 'range', perHit: isLongRange ? longRangeHit(perHit) : perHit };
 };
 
@@ -419,9 +430,62 @@ const resolveTargets = (
 
 // --- CARD EFFECTS ---
 
-/** True when a card hits `unit` at its proper range (Range at the back row). */
+/**
+ * True when a card hits `unit` at its proper range (Range at a hero
+ * past the front row).
+ */
 export const isLongRangeShot = (unit: HeroUnit, cardDef: CardDef): boolean =>
-  cardDef.type === 'range' && unit.row === 'back';
+  cardDef.type === 'range' && rowDepth(unit.row) > 0;
+
+// --- OUT OF RANGE ---
+/**
+ * True when a shot of `type` that starts or ends in `row` may miss: a
+ * Range or Magic shot touching the Horizon (OUT_OF_RANGE_ROW), unless
+ * the shooter has Long Range. It applies both ways: to the villain's
+ * cards aimed into the Horizon and to heroes shooting from it.
+ */
+export const isOutOfRangeShot = (
+  type: CardDef['type'] | HeroAttackType,
+  row: HeroUnit['row'],
+  hasLongRange: boolean
+): boolean =>
+  !hasLongRange && OUT_OF_RANGE_TYPES.has(type) && row === OUT_OF_RANGE_ROW;
+
+/**
+ * Rolls one Out of Range shot on the fight's seeded rng (so the server's
+ * replay rolls the same): true when it lands.
+ */
+const rollShot = (state: CombatState): [boolean, CombatState] => {
+  const [roll, rng] = nextFloat(state.rng);
+  return [roll < OUT_OF_RANGE_HIT_CHANCE, { ...state, rng }];
+};
+
+/**
+ * One villain shot at each hero in `uids`, in order. A shot that is Out
+ * of Range rolls first; a miss lays nothing (no damage, no element) and
+ * counts on the hero (missedShots) so the view can pop "Miss".
+ * Imperative: each roll moves the rng on for the next.
+ */
+const shootHeroes = (
+  state: CombatState,
+  uids: readonly number[],
+  land: (unit: HeroUnit) => HeroUnit,
+  cardDef: CardDef,
+  hasLongRange: boolean
+): CombatState => {
+  let current = state;
+  for (const uid of uids) {
+    const unit = current.heroes.find((hero) => hero.uid === uid);
+    if (!unit) continue;
+    if (!isOutOfRangeShot(cardDef.type, unit.row, hasLongRange)) {
+      current = updateHeroes(current, [uid], land);
+      continue;
+    }
+    const [lands, rolled] = rollShot(current);
+    current = updateHeroes(rolled, [uid], lands ? land : missShot);
+  }
+  return current;
+};
 
 /**
  * The damage multiplier a card gets from the hero it is aimed at (1
@@ -464,14 +528,14 @@ const villainAttack = (
   effect: Extract<CardEffect, { kind: 'damage' }>,
   targetUid: number,
   cardDef: CardDef,
-  isPiercing: boolean
+  play: PlayContext
 ): CombatState => {
   const isMelee = !cardDef.reach;
   const perHit = attackDamage(effect.amount, state.player, cardDef.type);
   const isFollowThrough = effect.target === 'one';
   const pierceHit = Math.floor(perHit * PIERCE_DAMAGE_FACTOR);
   return Array.from({ length: effect.hits }).reduce<CombatState>((current) => {
-    const struck = updateHeroes(
+    const struck = shootHeroes(
       current,
       resolveTargets(
         current,
@@ -480,31 +544,39 @@ const villainAttack = (
         isMelee,
         isFollowThrough
       ),
-      (unit) => elementalHit(unit, cardHitOn(unit, perHit, cardDef), cardDef)
+      (unit) => elementalHit(unit, cardHitOn(unit, perHit, cardDef), cardDef),
+      cardDef,
+      play.isLongRange
     );
-    return isPiercing && effect.target === 'one'
-      ? pierceBehind(struck, targetUid, pierceHit, cardDef)
+    return play.isPiercing && effect.target === 'one'
+      ? pierceBehind(struck, targetUid, pierceHit, cardDef, play.isLongRange)
       : struck;
   }, state);
 };
 
 /**
  * A Piercing hit's second half: the same hit (scaled by
- * PIERCE_DAMAGE_FACTOR) on the living hero in line with the target
- * (see heroesPiercedPast). Nobody in line, nothing happens.
+ * PIERCE_DAMAGE_FACTOR) on every living hero in the target's column
+ * (see heroesPiercedPast), each rolled for Out of Range on its own.
+ * Nobody in line, nothing happens.
  */
 const pierceBehind = (
   state: CombatState,
   targetUid: number,
   amount: number,
-  cardDef: CardDef
+  cardDef: CardDef,
+  hasLongRange: boolean
 ): CombatState => {
   const target = state.heroes.find((unit) => unit.uid === targetUid);
   if (!target) return state;
   const living = state.heroes.filter((unit) => !isDefeated(unit));
   const inLineUids = heroesPiercedPast(living, target).map((unit) => unit.uid);
-  return updateHeroes(state, inLineUids, (unit) =>
-    elementalHit(unit, cardHitOn(unit, amount, cardDef), cardDef)
+  return shootHeroes(
+    state,
+    inLineUids,
+    (unit) => elementalHit(unit, cardHitOn(unit, amount, cardDef), cardDef),
+    cardDef,
+    hasLongRange
   );
 };
 
@@ -530,16 +602,25 @@ const reapHex = (
   state: CombatState,
   multiplier: number,
   targetUid: number,
-  cardDef: CardDef
+  cardDef: CardDef,
+  hasLongRange: boolean
 ): CombatState => {
   const bonus = typeBonus(state.player, cardDef.type);
-  return updateHeroes(state, resolveTargets(state, 'one', targetUid), (unit) =>
-    takeHit(unit, unit.statuses.hex * multiplier + bonus, cardDef.type)
+  return shootHeroes(
+    state,
+    resolveTargets(state, 'one', targetUid),
+    (unit) =>
+      takeHit(unit, unit.statuses.hex * multiplier + bonus, cardDef.type),
+    cardDef,
+    hasLongRange
   );
 };
 
-/** How this play differs from the printed card: imbue slot, Piercing. */
-type PlayContext = { slot: number; isPiercing: boolean };
+/**
+ * How this play differs from the printed card: imbue slot, Piercing,
+ * Long Range (printed or imbued).
+ */
+type PlayContext = { slot: number; isPiercing: boolean; isLongRange: boolean };
 
 /**
  * Resolves one effect of the card `cardDef` (its type picks the buff).
@@ -554,7 +635,7 @@ const applyCardEffect = (
 ): CombatState => {
   switch (effect.kind) {
     case 'damage':
-      return villainAttack(state, effect, targetUid, cardDef, play.isPiercing);
+      return villainAttack(state, effect, targetUid, cardDef, play);
     case 'hex':
     case 'poison':
     case 'burn':
@@ -573,7 +654,13 @@ const applyCardEffect = (
         enfeeble
       );
     case 'reap':
-      return reapHex(state, effect.multiplier, targetUid, cardDef);
+      return reapHex(
+        state,
+        effect.multiplier,
+        targetUid,
+        cardDef,
+        play.isLongRange
+      );
     case 'guard': {
       const amount = guardAmount(effect.amount, state.player);
       return { ...state, player: addGuard(state.player, amount) };
@@ -782,12 +869,16 @@ const cardBeats = (
   return states;
 };
 
-/** True when the card in that hand slot pierces (printed or imbued). */
-const isPiercingPlay = (state: CombatState, handIndex: number): boolean => {
+/** True when the card in that hand slot has `keyword` (printed or imbued). */
+const isPlayWith = (
+  state: CombatState,
+  handIndex: number,
+  keyword: CardKeyword
+): boolean => {
   const cardId = state.hand[handIndex];
   return (
     cardId !== undefined &&
-    cardHasKeyword(cardId, imbuesAt(state, handIndex), 'piercing')
+    cardHasKeyword(cardId, imbuesAt(state, handIndex), keyword)
   );
 };
 
@@ -813,7 +904,8 @@ const planPlay = (
     picks: requestedPicks(getCard(cardId), targetUid, targetUids),
     imbued: imbuedEffects(imbuesAt(state, handIndex)),
     slot: asked > handIndex ? asked - 1 : asked,
-    isPiercing: isPiercingPlay(state, handIndex),
+    isPiercing: isPlayWith(state, handIndex, 'piercing'),
+    isLongRange: isPlayWith(state, handIndex, 'longRange'),
   };
 };
 
@@ -899,7 +991,8 @@ export const wouldFell = (
     picks,
     imbued: imbuedEffects(imbuesAt(state, handIndex)),
     slot: -1,
-    isPiercing: isPiercingPlay(state, handIndex),
+    isPiercing: isPlayWith(state, handIndex, 'piercing'),
+    isLongRange: isPlayWith(state, handIndex, 'longRange'),
   };
   const beats = cardBeats(payForCard(state, handIndex), cardId, plan);
   const target = beats.at(-1)?.heroes.find((unit) => unit.uid === uid);
@@ -1010,7 +1103,8 @@ const reviveFallen = (state: CombatState): CombatState => {
   let nextUid = state.nextUid;
   const stillFallen: HeroUnit[] = [];
   for (const ghost of state.fallen) {
-    if (!cellsOf(ghost).every((cell) => isCellOpen(heroes, cell))) {
+    const isFull = cellCountOf(ghost) > freeHeroCells(heroes);
+    if (isFull || !cellsOf(ghost).every((cell) => isCellOpen(heroes, cell))) {
       stillFallen.push(ghost);
       continue;
     }
@@ -1039,16 +1133,8 @@ const applyHeroEffect = (
 ): CombatState => {
   const scaled = (amount: number) => scaleByMight(amount, actor.might);
   switch (effect.kind) {
-    case 'attack': {
-      const { type, perHit } = heroAttackOf(actor, effect);
-      return Array.from({ length: effect.hits }).reduce<CombatState>(
-        (current) => ({
-          ...current,
-          player: takeHit(current.player, perHit, type),
-        }),
-        state
-      );
-    }
+    case 'attack':
+      return heroShoots(state, actor, effect);
     case 'hex':
     case 'poison':
     case 'burn':
@@ -1090,6 +1176,36 @@ const applyHeroEffect = (
     case 'soar':
       return updateHeroes(state, [actor.uid], (unit) => withAloft(unit, 1));
   }
+};
+
+/** True for a hero whose shots ignore Out of Range (Long Range). */
+export const hasLongRangePassive = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
+  passivesOf(unit).includes('longRange');
+
+/**
+ * A hero's attack on the villain, hit by hit. Fired from the Horizon, a
+ * Range or Magic hit rolls for Out of Range first (Long Range heroes
+ * never miss); a miss counts on the villain (missedShots) so the view
+ * can pop "Miss". Imperative: each roll moves the rng on.
+ */
+const heroShoots = (
+  state: CombatState,
+  actor: HeroUnit,
+  effect: Extract<HeroEffect, { kind: 'attack' }>
+): CombatState => {
+  const { type, perHit } = heroAttackOf(actor, effect);
+  const mayMiss = isOutOfRangeShot(type, actor.row, hasLongRangePassive(actor));
+  let current = state;
+  for (let hit = 0; hit < effect.hits; hit += 1) {
+    const [lands, rolled] = mayMiss ? rollShot(current) : [true, current];
+    current = {
+      ...rolled,
+      player: lands
+        ? takeHit(rolled.player, perHit, type)
+        : missShot(rolled.player),
+    };
+  }
+  return current;
 };
 
 /** The hero with its Aloft set: 1 flies it up, 0 brings it down. */
@@ -1265,8 +1381,9 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
     }
   }
 
-  // 3. MELEE HEROES IN THE BACK ROW STEP UP, THEN THE NEXT VILLAIN TURN
-  const advanced = { ...current, heroes: advanceMelee(current.heroes) };
+  // 3. HEROES BEHIND THEIR HOME ROW STEP ONE ROW TOWARD IT (MELEE CLOSE
+  //    IN, ARCHERS COME IN OFF THE HORIZON), THEN THE NEXT VILLAIN TURN
+  const advanced = { ...current, heroes: advanceHeroes(current.heroes) };
   steps.push({
     actorUid: null,
     attackType: null,

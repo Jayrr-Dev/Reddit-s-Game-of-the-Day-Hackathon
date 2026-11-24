@@ -15,22 +15,22 @@
 
 import { fallBack, isDeep, stepForward } from './battlefield.ts';
 import { combatOutcome } from './combat.ts';
-import { BACK_STEP_COST, CHARGE_COST, MOVEMENT_STREAK_COST } from './rules.ts';
-import type {
-  CombatState,
-  HeroRow,
-  HeroUnit,
-  MovementId,
-  StatusId,
-} from './types.ts';
+import {
+  BACK_STEP_COST,
+  BACK_STEP_ROWS,
+  CHARGE_COST,
+  CHARGE_ROWS,
+  MOVEMENT_STREAK_COST,
+} from './rules.ts';
+import type { CombatState, HeroUnit, MovementId, StatusId } from './types.ts';
 
 // --- TYPES ---
 /** One movement's rules. */
 export type MovementDef = {
   /** Energy it costs with no streak running. */
   baseCost: number;
-  /** It is offered only while every hero stands in this row. */
-  needsAllIn: HeroRow;
+  /** It is offered only while the heroes stand like this. */
+  fitsFormation: (heroes: readonly HeroUnit[]) => boolean;
   /** How the heroes' places change when the villain moves. */
   reshape: (heroes: HeroUnit[]) => HeroUnit[];
   /**
@@ -42,25 +42,28 @@ export type MovementDef = {
 
 // --- REGISTRY ---
 export const MOVEMENTS: Record<MovementId, MovementDef> = {
-  /** Rush the back row: it steps up, and the next Melee card hits harder. */
+  /**
+   * Rush an empty front row: the field closes in up to CHARGE_ROWS rows
+   * (until someone stands in front), and the next Melee card hits harder.
+   */
   charge: {
     baseCost: CHARGE_COST,
-    needsAllIn: 'back',
-    reshape: stepForward,
+    fitsFormation: (heroes) => heroes.every((unit) => unit.row !== 'front'),
+    reshape: (heroes) => stepForward(heroes, CHARGE_ROWS),
     grants: { status: 'momentum', amount: 1 },
   },
-  /** Fall back from a full front row: the whole field ends up at range. */
+  /** Fall back from a full front row: the field drops BACK_STEP_ROWS row. */
   backStep: {
     baseCost: BACK_STEP_COST,
-    needsAllIn: 'front',
-    reshape: fallBack,
+    fitsFormation: (heroes) => heroes.every((unit) => unit.row === 'front'),
+    reshape: (heroes) => fallBack(heroes, BACK_STEP_ROWS),
   },
 };
 
 /** What a locked move says while a boss reaches into the back row. */
 const BLOCKED_BY_BOSS: Record<MovementId, string> = {
-  charge: 'A boss holds the field: there is no back row to rush.',
-  backStep: 'A boss holds the back row too: there is no room to fall back.',
+  charge: 'A boss holds the field: there is no line to rush.',
+  backStep: 'A boss holds Line 2 too: there is no room to fall back.',
 };
 
 /** Every movement id, in the order they are offered. */
@@ -87,8 +90,7 @@ export const movementCost = (state: CombatState, move: MovementId): number =>
 
 /** True while the formation allows `move` (cost aside). */
 const isFormationFor = (state: CombatState, move: MovementId): boolean =>
-  state.heroes.length > 0 &&
-  state.heroes.every((unit) => unit.row === MOVEMENTS[move].needsAllIn);
+  state.heroes.length > 0 && MOVEMENTS[move].fitsFormation(state.heroes);
 
 /** The movement the field offers right now, if any (cost aside). */
 export const offeredMovement = (state: CombatState): MovementId | null =>

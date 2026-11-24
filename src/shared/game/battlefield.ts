@@ -1,31 +1,41 @@
 // ===================================================================
 // BATTLEFIELD
 // Where heroes stand. The field is a grid BATTLEFIELD_COLUMNS wide and
-// two rows deep; each hero fills `size` neighbouring columns in one row.
+// BATTLEFIELD_ROWS deep (nearest first: the Front line, the Backline,
+// the Horizon); each hero fills `size` neighbouring columns in one row.
 // A hero with `backCols` (a boss) stands in the front row and also fills
 // those columns of the back row, so its footprint can be any shape (all
 // six cells, or a T: the front row plus the back centre). It never
 // changes row. Bosses are immovable: a pull or push aimed at them fails.
 //
-// RULES
+// RULES (every move shifts by whole rows, never sideways on its own)
 //   - Melee cards hit the front row only. Reach cards, curses and Hex
-//     hit any hero.
-//   - A pull drags a back-row hero forward into its own columns. If
-//     someone stands there, the front row slides sideways to make room,
-//     so a pull only fails when the front row has no space left. A push
-//     is the mirror image.
-//   - A new horde forms up in the back row as far as it has room
-//     (overflow stays in front), out of melee reach. At the end of each heroes' turn, every
-//     melee-minded hero (one whose home row is the front) in the back
-//     row steps up if there is room. Ranged heroes hold the back row
-//     until the villain Charges.
-//   - Back Step: with the back row empty, the villain falls back and
-//     the whole front row ends up in the back row.
+//     hit any hero (Range and Magic shots into the Horizon may miss:
+//     see Out of Range in combat.ts).
+//   - A pull drags a hero one row nearer, into its own columns. If
+//     someone stands there, that row slides sideways to make room, so a
+//     pull only fails when that row has no space left. A push is the
+//     mirror image: one row farther.
+//   - A new horde marches in one row behind its home row as far as it
+//     has room (melee in the Backline, ranged on the Horizon). At the
+//     end of each heroes' turn, every hero behind its home row steps one
+//     row toward it if there is room.
+//   - Charge: with the front row empty, the field closes in by up to
+//     CHARGE_ROWS rows, until someone stands in the front row.
+//   - Back Step: with everyone in the front row, the field falls back
+//     BACK_STEP_ROWS row.
+//   - Piercing runs down the target's whole column, every row.
 // ===================================================================
 
 import { getCard, type CardId } from './cards.ts';
 import { getHero } from './heroes.ts';
-import { BATTLEFIELD_COLUMNS } from './rules.ts';
+import {
+  BATTLEFIELD_COLUMNS,
+  BASE_ROW_COUNT,
+  BATTLEFIELD_ROWS,
+  MAX_HERO_CELLS,
+} from './rules.ts';
+import { FEATURES } from './features.ts';
 import type { CardDef, HeroRow, HeroSize, HeroUnit } from './types.ts';
 
 // --- TYPES ---
@@ -37,11 +47,11 @@ export type UnplacedHero = Omit<HeroUnit, 'row' | 'col'>;
  * - none:     the card needs no target
  * - front:    melee; front row only
  * - any:      Reach or a curse; any hero
- * - pullable: a back-row hero with room for it in the front row, or an
- *             immovable one in the back row (a boss: the pull fails on
- *             it, but the rest of the card still lands)
- * - pushable: a front-row hero with room for it in the back row, or an
- *             immovable one in the front row (the push fails the same way)
+ * - pullable: a hero past the front row with room one row nearer, or an
+ *             immovable one past the front row (a boss: the pull fails
+ *             on it, but the rest of the card still lands)
+ * - pushable: a hero short of the last row with room one row farther,
+ *             or an immovable one there (the push fails the same way)
  */
 export type TargetRule = 'none' | 'front' | 'any' | 'pullable' | 'pushable';
 
@@ -50,6 +60,29 @@ export type TargetRule = 'none' | 'front' | 'any' | 'pullable' | 'pushable';
 /** Columns a hero fills, e.g. col 1 size 2 -> [1, 2]. */
 const spanOf = (col: number, size: number): number[] =>
   Array.from({ length: size }, (_, offset) => col + offset);
+
+/**
+ * The rows in play, nearest first: all of BATTLEFIELD_ROWS with the
+ * three-row flag on, else the first BASE_ROW_COUNT (read on each call,
+ * so a test can flip the flag).
+ */
+export const activeRows = (): readonly HeroRow[] =>
+  FEATURES.threeRowField
+    ? BATTLEFIELD_ROWS
+    : BATTLEFIELD_ROWS.slice(0, BASE_ROW_COUNT);
+
+/** A row's depth: 0 for the front row, 1 for the next, and so on. */
+export const rowDepth = (row: HeroRow): number => BATTLEFIELD_ROWS.indexOf(row);
+
+/**
+ * The row `steps` rows farther from the villain (negative: nearer), or
+ * null when that runs off the field.
+ */
+export const rowShifted = (row: HeroRow, steps: number): HeroRow | null =>
+  activeRows()[rowDepth(row) + steps] ?? null;
+
+/** The farthest row's depth (Line 3, or Line 2 with the flag off). */
+const lastRowDepth = (): number => activeRows().length - 1;
 
 /** How many columns a hero fills. */
 export const sizeOf = (unit: Pick<HeroUnit, 'heroId'>): HeroSize =>
@@ -97,27 +130,32 @@ const pierceLaneOf = (unit: HeroUnit): number =>
   unit.col + Math.floor((sizeOf(unit) - 1) / 2);
 
 /**
- * The hero a Piercing hit on `unit` passes on to (as a list: none or
- * one): the hero in the other row of its pierce lane (pierceLaneOf).
- * A pierce runs through the whole column either way, so a front hero
- * pierces to the one behind it and a back hero to the one in front.
- * A deep hero (a boss filling both rows) is the whole column already.
- * Aloft heroes are out of reach.
+ * The heroes a Piercing hit on `unit` passes on to: everyone else in
+ * its pierce lane (pierceLaneOf), in every row, nearest row first. A
+ * pierce runs down the whole column either way, so a Backline target
+ * pierces the hero in front of it and the one on the Horizon behind it.
+ * A deep hero (a boss) counts once however many rows it fills. Aloft
+ * heroes are out of reach.
  */
 export const heroesPiercedPast = (
   heroes: readonly HeroUnit[],
   unit: HeroUnit
 ): HeroUnit[] => {
-  if (isDeep(unit)) return [];
   const lane = pierceLaneOf(unit);
-  const row = otherRow(unit.row);
-  const inLine = heroes.find(
-    (other) =>
-      other.uid !== unit.uid &&
-      !isAloft(other) &&
-      cellsOf(other).some((cell) => cell.row === row && cell.col === lane)
-  );
-  return inLine ? [inLine] : [];
+  const nearestDepthInLane = (other: HeroUnit): number =>
+    Math.min(
+      ...cellsOf(other)
+        .filter((cell) => cell.col === lane)
+        .map((cell) => rowDepth(cell.row))
+    );
+  return heroes
+    .filter(
+      (other) =>
+        other.uid !== unit.uid &&
+        !isAloft(other) &&
+        cellsOf(other).some((cell) => cell.col === lane)
+    )
+    .sort((a, b) => nearestDepthInLane(a) - nearestDepthInLane(b));
 };
 
 /** The rows a hero stands in: its own, plus the back for a deep one. */
@@ -128,9 +166,21 @@ export const rowsOf = (unit: Pick<HeroUnit, 'heroId' | 'row'>): HeroRow[] =>
 export const cellCountOf = (unit: Pick<HeroUnit, 'heroId'>): number =>
   sizeOf(unit) + backColsOf(unit).length;
 
-/** The row a hero is not in. */
-const otherRow = (row: HeroRow): HeroRow =>
-  row === 'front' ? 'back' : 'front';
+/** Cells heroes may still fill before the field is full (MAX_HERO_CELLS). */
+export const freeHeroCells = (heroes: readonly HeroUnit[]): number =>
+  MAX_HERO_CELLS - heroes.reduce((cells, unit) => cells + cellCountOf(unit), 0);
+
+/**
+ * Rows to try for a hero whose home is `home`: home first, then the
+ * others by how far they are from it (the farther one first on a tie,
+ * so overflow drifts out of reach rather than into it).
+ */
+const rowsByNearnessTo = (home: HeroRow): HeroRow[] =>
+  [...activeRows()].sort(
+    (a, b) =>
+      Math.abs(rowDepth(a) - rowDepth(home)) -
+        Math.abs(rowDepth(b) - rowDepth(home)) || rowDepth(b) - rowDepth(a)
+  );
 
 /** True when no hero (other than `ignoreUid`) stands in those columns. */
 const isSpanOpen = (
@@ -160,6 +210,7 @@ const PREFERRED_COLUMNS: Record<
 > = {
   front: { 1: [1, 0, 2], 2: [0, 1], 3: [0] },
   back: { 1: [0, 2, 1], 2: [1, 0], 3: [0] },
+  horizon: { 1: [1, 0, 2], 2: [0, 1], 3: [0] },
 };
 
 /**
@@ -185,7 +236,7 @@ const firstOpenColumn = (
 
 // --- FORMATION ---
 
-/** Places one hero: its own row first, then the other row. */
+/** Places one hero: its own row first, then the others, nearest first. */
 const placeHero = (
   placed: readonly HeroUnit[],
   unit: UnplacedHero
@@ -196,7 +247,7 @@ const placeHero = (
     const col = firstOpenColumn(placed, 'front', size, backCols);
     return { ...unit, row: 'front', col: col ?? 0 };
   }
-  for (const candidate of [row, otherRow(row)]) {
+  for (const candidate of rowsByNearnessTo(row)) {
     const col = firstOpenColumn(placed, candidate, size);
     if (col !== null) return { ...unit, row: candidate, col };
   }
@@ -208,16 +259,27 @@ const placeHero = (
 export const isMeleeMinded = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
   getHero(unit.heroId).row === 'front';
 
+/** How many rows a hero stands behind its home row (0 at home or nearer). */
+const rowsBehindHome = (unit: HeroUnit): number =>
+  rowDepth(unit.row) - rowDepth(getHero(unit.heroId).row);
+
 /**
- * A new horde marches in from the back: each melee-minded hero placed in
- * the front row drops back while the back row has room, in uid order
- * (imperative: each move changes the room left for the next).
+ * A new horde marches in from afar: every hero placed at its home row
+ * drops one row back while that row has room. The farthest homes go
+ * first (ranged onto the Horizon, freeing the Backline for the melee),
+ * then uid order. Imperative: each move changes the room left for the
+ * next.
  */
-const marchInFromBack = (heroes: HeroUnit[]): HeroUnit[] => {
+const marchInFromAfar = (heroes: HeroUnit[]): HeroUnit[] => {
+  const order = [...heroes].sort(
+    (a, b) =>
+      rowDepth(getHero(b.heroId).row) - rowDepth(getHero(a.heroId).row) ||
+      a.uid - b.uid
+  );
   let field = heroes;
-  for (const unit of heroes) {
+  for (const unit of order) {
     const current = field.find((hero) => hero.uid === unit.uid);
-    if (current && isMeleeMinded(current) && canPush(field, current))
+    if (current && rowsBehindHome(current) === 0 && canPush(field, current))
       field = pushHero(field, current.uid);
   }
   return field;
@@ -225,9 +287,9 @@ const marchInFromBack = (heroes: HeroUnit[]): HeroUnit[] => {
 
 /**
  * Lines a horde up on the battlefield. Everyone first takes their home
- * row (big heroes placed first so they always find room), then the
- * melee heroes drop back as far as the back row has room, so a new wave
- * starts out of melee reach. The result keeps the original order (uids).
+ * row (big heroes placed first so they always find room), then each
+ * drops one row back as far as there is room, so a new wave starts out
+ * of melee reach. The result keeps the original order (uids).
  */
 export const formUp = (units: readonly UnplacedHero[]): HeroUnit[] => {
   const bySizeDesc = [...units].sort((a, b) => cellCountOf(b) - cellCountOf(a));
@@ -239,16 +301,35 @@ export const formUp = (units: readonly UnplacedHero[]): HeroUnit[] => {
     (unit) =>
       placed.find((hero) => hero.uid === unit.uid) ?? placeHero([], unit)
   );
-  return marchInFromBack(ordered);
+  return marchInFromAfar(ordered);
 };
 
 /**
- * When the front row is empty, every back-row hero steps forward. Used
- * when the villain Charges.
+ * Shifts every hero `steps` rows (negative: nearer), keeping columns.
+ * Deep heroes (bosses) never change row. The caller makes sure nobody
+ * runs off the field; anyone who would just stays put.
  */
-export const stepForward = (heroes: HeroUnit[]): HeroUnit[] => {
-  const hasFront = heroes.some((unit) => unit.row === 'front');
-  return hasFront ? heroes : heroes.map((unit) => ({ ...unit, row: 'front' }));
+const shiftField = (heroes: readonly HeroUnit[], steps: number): HeroUnit[] =>
+  heroes.map((unit) => {
+    const row = rowShifted(unit.row, steps);
+    return isDeep(unit) || row === null ? unit : { ...unit, row };
+  });
+
+/** The depth of the nearest row anyone stands in (0: the front row). */
+const nearestDepth = (heroes: readonly HeroUnit[]): number =>
+  Math.min(...heroes.map((unit) => rowDepth(unit.row)));
+
+/**
+ * Charge: when the front row is empty, the whole field closes in by up
+ * to `maxRows` rows, stopping once someone stands in the front row (a
+ * field on the Horizon only, with maxRows 2, lands in the front row).
+ */
+export const stepForward = (
+  heroes: readonly HeroUnit[],
+  maxRows: number
+): HeroUnit[] => {
+  if (heroes.length === 0) return [...heroes];
+  return shiftField(heroes, -Math.min(maxRows, nearestDepth(heroes)));
 };
 
 // --- SUMMONS ---
@@ -257,7 +338,7 @@ export const stepForward = (heroes: HeroUnit[]): HeroUnit[] => {
  * Where `count` summoned heroes of `size` would stand: open columns in
  * the rows the summoner stands in (its own row first), nearest to it
  * first (left wins a tie). Fewer than `count` when those rows run out
- * of room; empty when they are full.
+ * of room or the heroes would fill more than MAX_HERO_CELLS cells.
  * Imperative: each seat taken changes the room left for the next.
  */
 export const summonSeats = (
@@ -271,9 +352,10 @@ export const summonSeats = (
     (a, b) => Math.abs(a - centre) - Math.abs(b - centre) || a - b
   );
   const seats: Cell[] = [];
+  const wanted = Math.min(count, Math.floor(freeHeroCells(heroes) / size));
   for (const row of rowsOf(summoner)) {
     for (const col of byNearness) {
-      if (seats.length === count) return seats;
+      if (seats.length >= wanted) return seats;
       const span = spanOf(col, size);
       const isTaken = seats.some(
         (seat) =>
@@ -339,7 +421,7 @@ const keepsOrder = (
 };
 
 /**
- * How the hero would be seated if it moved to the other row: it keeps
+ * How the hero would be seated if it moved to `row`: it keeps
  * its own columns when it can, and that row's heroes slide sideways to
  * make room, never passing each other. Picks the seating that moves
  * everyone the least (moving the hero itself costs most, so it shifts
@@ -348,12 +430,12 @@ const keepsOrder = (
  * Brute force on purpose: a row is 3 columns and at most 3 heroes, so
  * there are only a few dozen seatings to try.
  */
-const seatInOtherRow = (
+const seatInRow = (
   heroes: readonly HeroUnit[],
-  unit: HeroUnit
+  unit: HeroUnit,
+  row: HeroRow | null
 ): Seating | null => {
-  if (isDeep(unit)) return null;
-  const row = otherRow(unit.row);
+  if (isDeep(unit) || row === null || row === unit.row) return null;
   const rowHeroes = heroes
     .filter((other) => other.row === row && !isImmovable(other))
     .sort((a, b) => a.col - b.col);
@@ -388,24 +470,26 @@ const seatInOtherRow = (
   return best && new Map(best.map(({ uid, col }) => [uid, col]));
 };
 
-/** True when a pull would work on this hero right now. */
+/** True when a pull (one row nearer) would work on this hero right now. */
 export const canPull = (heroes: readonly HeroUnit[], unit: HeroUnit) =>
-  unit.row === 'back' &&
   !isImmovable(unit) &&
-  seatInOtherRow(heroes, unit) !== null;
+  seatInRow(heroes, unit, rowShifted(unit.row, -1)) !== null;
 
-/** True when a push would work on this hero right now. */
+/** True when a push (one row farther) would work on this hero right now. */
 export const canPush = (heroes: readonly HeroUnit[], unit: HeroUnit) =>
-  unit.row === 'front' &&
   !isImmovable(unit) &&
-  seatInOtherRow(heroes, unit) !== null;
+  seatInRow(heroes, unit, rowShifted(unit.row, 1)) !== null;
 
-/** Moves one hero to `row`, sliding that row over to make room. */
-const moveTo = (heroes: HeroUnit[], uid: number, row: HeroRow) => {
+/**
+ * Moves one hero `steps` rows (-1 nearer, 1 farther), sliding that row
+ * over to make room. No-op when blocked.
+ */
+const moveRows = (heroes: HeroUnit[], uid: number, steps: number) => {
   const unit = heroes.find((hero) => hero.uid === uid);
-  if (!unit || unit.row === row || isImmovable(unit)) return heroes;
-  const seating = seatInOtherRow(heroes, unit);
-  if (!seating) return heroes;
+  if (!unit || isImmovable(unit)) return heroes;
+  const row = rowShifted(unit.row, steps);
+  const seating = seatInRow(heroes, unit, row);
+  if (!seating || row === null) return heroes;
   // No stepForward here: pushing the last front hero back leaves the
   // front empty until the villain Charges.
   return heroes.map((hero) => {
@@ -415,32 +499,41 @@ const moveTo = (heroes: HeroUnit[], uid: number, row: HeroRow) => {
   });
 };
 
-/** Pull: the hero steps into the front row (no-op if blocked). */
+/** Pull: the hero steps one row nearer (no-op if blocked). */
 export const pullHero = (heroes: HeroUnit[], uid: number) =>
-  moveTo(heroes, uid, 'front');
+  moveRows(heroes, uid, -1);
 
-/** Push: the hero falls back into the back row (no-op if blocked). */
+/** Push: the hero falls one row back (no-op if blocked). */
 export const pushHero = (heroes: HeroUnit[], uid: number) =>
-  moveTo(heroes, uid, 'back');
+  moveRows(heroes, uid, 1);
 
 /**
- * End of the heroes' turn: each melee-minded hero in the back row steps
- * up if the front row has room, in uid order (imperative: each step
- * changes the room left for the next).
+ * End of the heroes' turn: each hero standing behind its home row steps
+ * one row toward it if there is room (melee close in on the front;
+ * archers come in off the Horizon to the Backline), in uid order
+ * (imperative: each step changes the room left for the next).
  */
-export const advanceMelee = (heroes: HeroUnit[]): HeroUnit[] => {
+export const advanceHeroes = (heroes: HeroUnit[]): HeroUnit[] => {
   let field = heroes;
   for (const unit of heroes) {
     const current = field.find((hero) => hero.uid === unit.uid);
-    if (current && isMeleeMinded(current) && canPull(field, current))
+    if (current && rowsBehindHome(current) > 0 && canPull(field, current))
       field = pullHero(field, current.uid);
   }
   return field;
 };
 
-/** Back Step: the whole field (all in the front row) falls back a row. */
-export const fallBack = (heroes: readonly HeroUnit[]): HeroUnit[] =>
-  heroes.map((unit) => (isDeep(unit) ? unit : { ...unit, row: 'back' }));
+/**
+ * Back Step: the whole field (all in the front row) falls back `rows`
+ * rows, no farther than the last row.
+ */
+export const fallBack = (
+  heroes: readonly HeroUnit[],
+  rows: number
+): HeroUnit[] => {
+  const farthest = Math.max(...heroes.map((unit) => rowDepth(unit.row)), 0);
+  return shiftField(heroes, Math.min(rows, lastRowDepth() - farthest));
+};
 
 // --- TARGETING ---
 
@@ -520,12 +613,13 @@ export const legalTargets = (
     case 'pullable':
       return reachable.filter(
         (unit) =>
-          (isImmovable(unit) && unit.row === 'back') || canPull(heroes, unit)
+          (isImmovable(unit) && rowDepth(unit.row) > 0) || canPull(heroes, unit)
       );
     case 'pushable':
       return reachable.filter(
         (unit) =>
-          (isImmovable(unit) && unit.row === 'front') || canPush(heroes, unit)
+          (isImmovable(unit) && rowDepth(unit.row) < lastRowDepth()) ||
+          canPush(heroes, unit)
       );
   }
 };

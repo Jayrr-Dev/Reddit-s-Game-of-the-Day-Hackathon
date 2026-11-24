@@ -24,7 +24,7 @@
 
 import { isSelfEffect, targetRuleOf } from './battlefield.ts';
 import { getCard, hasKeyword, type CardId } from './cards.ts';
-import { MAX_IMBUES_PER_CARD } from './rules.ts';
+import { MAX_IMBUES_PER_CARD, OUT_OF_RANGE_TYPES } from './rules.ts';
 import type {
   CardEffect,
   CardKeyword,
@@ -120,10 +120,15 @@ const hitsOneHero = (cardId: CardId): boolean =>
 const dealsDamage = (cardId: CardId): boolean =>
   getCard(cardId).effects.some((effect) => effect.kind === 'damage');
 
+/** True when a card fires Range or Magic damage (Out of Range applies). */
+const firesShots = (cardId: CardId): boolean =>
+  dealsDamage(cardId) && OUT_OF_RANGE_TYPES.has(getCard(cardId).type);
+
 /**
  * Which cards each keyword may go on (besides one that already has it):
  * Hold and Remove on any card, Piercing on a card that hits one hero,
- * the on-kill moves (Rampage, Distance) on any card that deals damage.
+ * the on-kill moves (Rampage, Distance) on any card that deals damage,
+ * Long Range on a card that fires Range or Magic damage.
  */
 const KEYWORD_FITS: Record<CardKeyword, (cardId: CardId) => boolean> = {
   hold: () => true,
@@ -131,6 +136,7 @@ const KEYWORD_FITS: Record<CardKeyword, (cardId: CardId) => boolean> = {
   remove: () => true,
   rampage: dealsDamage,
   distance: dealsDamage,
+  longRange: firesShots,
 };
 
 /**

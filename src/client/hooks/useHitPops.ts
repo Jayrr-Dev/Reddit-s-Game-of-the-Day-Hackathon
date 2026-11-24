@@ -44,7 +44,9 @@ export type PopKind =
   | BuffId
   | DebuffKind
   /** Bleed went off: a spray of blood over the unit (quiet). */
-  | 'bleedBurst';
+  | 'bleedBurst'
+  /** A shot Out of Range missed: "Miss" floats up, nothing is drawn. */
+  | 'miss';
 
 /**
  * One pop's numbers: for a hit, HP lost and damage the guard soaked up;
@@ -83,6 +85,7 @@ type HeroLook = {
   hp: number;
   guard: number;
   damageTaken: number;
+  missedShots: number;
   wrath: number;
   hex: number;
   poison: number;
@@ -102,6 +105,7 @@ const goneAfter = (old: HeroLook): Omit<HeroLook, 'point'> => ({
   hp: 0,
   guard: 0,
   damageTaken: old.damageTaken + old.hp,
+  missedShots: old.missedShots,
   wrath: 0,
   hex: 0,
   poison: 0,
@@ -160,6 +164,21 @@ const hitBetween = (
     ? { kind: 'hit', amount, blocked, isKill }
     : null;
 };
+
+/**
+ * Shots that missed between two looks (Out of Range), as one "Miss"
+ * pop each. Older saves have no count yet: they read as 0.
+ */
+const missesBetween = (
+  before: Pick<Combatant, 'missedShots'>,
+  after: Pick<Combatant, 'missedShots'>
+): Hit[] =>
+  Array.from(
+    {
+      length: Math.max(0, (after.missedShots ?? 0) - (before.missedShots ?? 0)),
+    },
+    () => ({ kind: 'miss' as const, amount: 0, blocked: 0 })
+  );
 
 /**
  * Which status ticked between two looks, for a hit no attack dealt:
@@ -263,6 +282,7 @@ const lookAt = (
         hp: unit.hp,
         guard: unit.guard,
         damageTaken: unit.damageTaken,
+        missedShots: unit.missedShots ?? 0,
         wrath: unit.statuses.wrath,
         hex: unit.statuses.hex,
         poison: unit.statuses.poison,
@@ -295,6 +315,7 @@ const heroPopsSince = (
           hp: unit.hp,
           guard: unit.guard,
           damageTaken: unit.damageTaken,
+          missedShots: unit.missedShots ?? 0,
           wrath: unit.statuses.wrath,
           hex: unit.statuses.hex,
           poison: unit.statuses.poison,
@@ -311,13 +332,16 @@ const heroPopsSince = (
     const hit = found ? { ...found, source, element, tick } : null;
     const gains = isHeroTurn && unit ? gainsBetween(old, now) : [];
     const debuffs = unit ? debuffsBetween(old, now) : [];
+    const misses = missesBetween(old, now);
     const point = bodyPointOf(uid) ?? old.point;
     if (!point) return [];
-    return [...(hit ? [hit] : []), ...gains, ...debuffs].map((pop) => ({
-      ...pop,
-      uid,
-      point,
-    }));
+    return [...(hit ? [hit] : []), ...misses, ...gains, ...debuffs].map(
+      (pop) => ({
+        ...pop,
+        uid,
+        point,
+      })
+    );
   });
 
 // --- SHARED HOOK ---
@@ -455,8 +479,14 @@ export const usePlayerHits = (
       : [];
     const gains = villainGainsBetween(last.player, player);
     const debuffs = debuffsBetween(last.player.statuses, player.statuses);
+    const misses = missesBetween(last.player, player);
     lastRef.current = { player, turn };
-    const fresh = [...(firstBlow ? [firstBlow] : []), ...gains, ...debuffs];
+    const fresh = [
+      ...(firstBlow ? [firstBlow] : []),
+      ...misses,
+      ...gains,
+      ...debuffs,
+    ];
     if (fresh.length > 0) add(fresh);
     // LATER BLOWS LAND IN TURN (no cleanup: a blow already struck)
     laterBlows.forEach((blow, index) =>

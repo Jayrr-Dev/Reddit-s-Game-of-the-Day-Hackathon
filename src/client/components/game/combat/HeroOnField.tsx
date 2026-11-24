@@ -1,13 +1,21 @@
 // ===================================================================
 // HERO ON FIELD
 // One hero placed on the 3 x 2 battlefield. Front-row heroes are drawn
-// tall and low; back-row heroes small, higher and dimmer, so depth
+// tall and low; Backline heroes smaller, higher and dimmer, Horizon
+// heroes smallest and faded (Out of Range), so depth
 // reads at a glance. Each hero wears its own health plate on top. Tapping a hero focuses it (and aims the selected
 // card at it when that is a legal target).
 // ===================================================================
 
 import type { CSSProperties } from 'react';
-import { isAloft, isDeep, sizeOf } from '../../../../shared/game/battlefield';
+import {
+  isAloft,
+  isDeep,
+  rowDepth,
+  sizeOf,
+} from '../../../../shared/game/battlefield';
+import { rowLabel } from '../../../../shared/game/describe';
+import { FEATURES } from '../../../../shared/game/features';
 import { getHero } from '../../../../shared/game/heroes';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
 import type {
@@ -60,13 +68,24 @@ export type HeroOnFieldProps = {
 
 // --- CONSTANTS ---
 /** Where each row stands, as a share of the battlefield height. */
-// Boxes include the plate on top. Front plates end below where back
-// plates begin, so the two rows' plates never cover each other.
+// Boxes include the plate on top. Each row's plates end below where
+// the next row's begin, so plates never cover each other. Farther rows
+// are drawn smaller (perspective): the Horizon smallest.
 type RowBox = { bottom: string; height: string };
-const ROW_BOX: Record<HeroRow, RowBox> = {
+const THREE_ROW_BOX: Record<HeroRow, RowBox> = {
+  front: { bottom: '2%', height: '50%' },
+  back: { bottom: '54%', height: '22%' },
+  horizon: { bottom: '77%', height: '14%' },
+};
+/** With the three-row flag off: the original two rows, roomier. */
+const TWO_ROW_BOX: Record<HeroRow, RowBox> = {
   front: { bottom: '2%', height: '56%' },
   back: { bottom: '63%', height: '25%' },
+  horizon: THREE_ROW_BOX.horizon,
 };
+/** The row boxes for the field in play (read per render: see features.ts). */
+const rowBoxOf = (row: HeroRow): RowBox =>
+  (FEATURES.threeRowField ? THREE_ROW_BOX : TWO_ROW_BOX)[row];
 /**
  * A 2-deep hero fills both rows, from the front row's foot. It stops
  * short of the back row's top: its plate is taller (name, bar, chips)
@@ -83,6 +102,7 @@ const BOSS_BOX: Record<HeroRow, RowBox> = {
   // Its feet stand above the Charge / Back Step pill along the field's foot.
   front: { bottom: '9%', height: '70%' },
   back: { bottom: '20%', height: '60%' },
+  horizon: { bottom: '30%', height: '50%' },
 };
 /** A deep boss (both rows), feet likewise above the movement pill. */
 const BOSS_DEEP_BOX: RowBox = { bottom: '9%', height: '74%' };
@@ -117,16 +137,25 @@ const bodyActionClass = (action: HeroAction): string =>
     : BODY_ACTION_CLASS[action.style];
 
 /**
- * March-in stagger (ms): heroes enter one column after another, the
- * back row a beat behind the front, so a new wave reads as a march.
+ * March-in stagger (ms): heroes enter one column after another, each
+ * row a beat behind the one nearer, so a new wave reads as a march.
  */
 const MARCH_STAGGER_PER_COL_MS = 70;
-const MARCH_BACK_ROW_DELAY_MS = 90;
+const MARCH_ROW_DELAY_MS = 90;
 
 /** When this hero starts marching in. */
 const marchDelayMs = (unit: HeroUnit): number =>
-  unit.col * MARCH_STAGGER_PER_COL_MS +
-  (unit.row === 'back' ? MARCH_BACK_ROW_DELAY_MS : 0);
+  unit.col * MARCH_STAGGER_PER_COL_MS + rowDepth(unit.row) * MARCH_ROW_DELAY_MS;
+
+/**
+ * How far-off each row looks: the Backline a little dimmed, the Horizon
+ * dimmed and faded (it is Out of Range). Filter and opacity only.
+ */
+const ROW_TINT_CLASS: Record<HeroRow, string> = {
+  front: '',
+  back: 'brightness-75',
+  horizon: 'brightness-60 opacity-70',
+};
 
 /**
  * Idle sway: each hero rocks on its own period, phase and strength, so
@@ -138,6 +167,7 @@ const SWAY_PERIOD_SPREAD_MS = 2000;
 const SWAY_PX: Record<HeroRow, { min: number; spread: number }> = {
   front: { min: 2.5, spread: 1.5 },
   back: { min: 1.2, spread: 0.8 },
+  horizon: { min: 0.6, spread: 0.4 },
 };
 /** Tilt (deg) per px of sway, so the rock reads as weight shifting. */
 const SWAY_TILT_PER_PX = 0.3;
@@ -170,7 +200,7 @@ const boxStyle = (unit: HeroUnit): CSSProperties => {
   return {
     left: `${unit.col * columnShare}%`,
     width: `${sizeOf(unit) * columnShare}%`,
-    ...(isDeep(unit) ? DEEP_BOX : ROW_BOX[unit.row]),
+    ...(isDeep(unit) ? DEEP_BOX : rowBoxOf(unit.row)),
   };
 };
 
@@ -407,7 +437,6 @@ export const HeroOnField = ({
     return isBoss(unit) ? <BossDeath unit={unit} /> : <DyingHero unit={unit} />;
   const hero = getHero(unit.heroId);
   const size = drawSizeOf(unit);
-  const isBack = unit.row === 'back';
   const focusClass = isFocused
     ? 'drop-shadow-[0_0_10px_var(--color-accent)]'
     : '';
@@ -423,7 +452,7 @@ export const HeroOnField = ({
       type="button"
       onClick={() => onTap(unit.uid)}
       {...{ [HERO_UID_ATTR]: unit.uid, [HERO_ROW_ATTR]: unit.row }}
-      aria-label={`${hero.name}, ${unit.hp} of ${unit.maxHp} HP, ${unit.row} row`}
+      aria-label={`${hero.name}, ${unit.hp} of ${unit.maxHp} HP, ${rowLabel(unit.row)}`}
       className={`pointer-events-auto absolute transition-[left,bottom,width,height,scale,opacity,filter] duration-700 ${AIM_CLASS[aim]}`}
       style={boxStyle(unit)}
       data-aloft={isAloft(unit) ? '' : undefined}
@@ -455,7 +484,7 @@ export const HeroOnField = ({
           >
             {/* FLIGHT: rises into the sky while Aloft (index.css, FLIGHT) */}
             <div
-              className={`hero-flight h-full w-full ${isBack ? 'brightness-75' : ''} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
+              className={`hero-flight h-full w-full ${isDeep(unit) ? '' : ROW_TINT_CLASS[unit.row]} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
             >
               {/* FLINCH: re-keyed by each new hit, so it plays once per hit */}
               <div
