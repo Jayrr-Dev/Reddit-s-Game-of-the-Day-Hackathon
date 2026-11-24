@@ -10,6 +10,8 @@ import {
   DREAD_DAMAGE_FACTOR,
   FROST_DAMAGE_PER_STACK,
   HEX_DECAY,
+  HEX_EMPOWERED_DIGIT,
+  HEX_EMPOWERED_MULTIPLIER,
   MOMENTUM_DAMAGE_FACTOR,
 } from './rules.ts';
 import type {
@@ -200,14 +202,25 @@ export const clearShroud = <T extends Combatant>(target: T): T => ({
 });
 
 /**
+ * What a Hex of this size burns for this turn: nothing when even, its
+ * value when odd, and HEX_EMPOWERED_MULTIPLIER times that when its last
+ * digit is HEX_EMPOWERED_DIGIT (3 -> 6, 13 -> 26).
+ */
+export const hexBurnAmount = (hex: number): number => {
+  if (hex <= 0 || hex % 2 === 0) return 0;
+  const isEmpowered = hex % 10 === HEX_EMPOWERED_DIGIT;
+  return isEmpowered ? hex * HEX_EMPOWERED_MULTIPLIER : hex;
+};
+
+/**
  * Hex, right before its bearer's turn: it burns for its value on odd
  * counts only (1, 3, 5 ... nothing on 2, 4 ...), then drops by
- * HEX_DECAY, clearing at 0. So Hex 5 deals 5, 0, 3, 0, 1, then is gone.
+ * HEX_DECAY, clearing at 0. So Hex 5 deals 5, 0, 6 (a 3 doubles), 0, 1, then is gone.
  */
 export const hexBurn = <T extends Combatant>(target: T): T => {
   const { hex } = target.statuses;
   if (hex <= 0) return target;
-  const burned = hex % 2 === 1 ? loseHp(target, hex) : target;
+  const burned = loseHp(target, hexBurnAmount(hex));
   return {
     ...burned,
     statuses: { ...burned.statuses, hex: Math.max(0, hex - HEX_DECAY) },

@@ -41,7 +41,9 @@ import { useHeroTurn } from '../../hooks/useHeroTurn';
 import { useMoveFailPops } from '../../hooks/useMoveFailPops';
 import {
   PLAYER_SHOT_FLIGHT_MS,
+  MELEE_SWEEP_MS,
   shotPlanOf,
+  sweepTargetsOf,
   usePlayerShots,
 } from '../../hooks/usePlayerShots';
 import {
@@ -217,7 +219,7 @@ export const CombatView = ({
   // Recent hits, so damage numbers are sized against a typical hit.
   const [hitHistory] = useState(() => new HitHistory());
   const { pops: moveFails, show: showMoveFail } = useMoveFailPops();
-  const { shots, fire: fireShots } = usePlayerShots();
+  const { shots, sweeps, fire: fireShots, swing } = usePlayerShots();
   // True while your shots fly, before the card lands.
   const [isShooting, setIsShooting] = useState(false);
   const routeAction = useCallback(
@@ -248,11 +250,29 @@ export const CombatView = ({
           }, PLAYER_SHOT_FLIGHT_MS);
           return;
         }
+        // Melee cards swing across their targets; the slices follow.
+        const swept = sweepTargetsOf(realCombat, action);
+        if (swept && swing(swept)) {
+          setIsShooting(true);
+          window.setTimeout(() => {
+            setIsShooting(false);
+            playCardHits(action);
+          }, MELEE_SWEEP_MS);
+          return;
+        }
         return playCardHits(action);
       }
       onAction(action);
     },
-    [playHeroTurn, playCardHits, onAction, realCombat, showMoveFail, fireShots]
+    [
+      playHeroTurn,
+      playCardHits,
+      onAction,
+      realCombat,
+      showMoveFail,
+      fireShots,
+      swing,
+    ]
   );
   const controls = useCombatControls(combat, routeAction);
   const cardFlights = useCardFlights(combat);
@@ -308,7 +328,7 @@ export const CombatView = ({
           onTapHero={controls.tapHero}
         />
         <HeroShots acting={heroTurn.acting} />
-        <PlayerShots shots={shots} />
+        <PlayerShots shots={shots} sweeps={sweeps} />
         {burst && (
           <SpeedLines
             key={burst.count}

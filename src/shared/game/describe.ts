@@ -42,7 +42,8 @@ export const STATUS_INFO: Record<StatusId | 'shroud', StatusInfo> = {
   },
   hex: {
     label: 'Hex',
-    description: 'Before its turn: burns for this much if odd, then -1.',
+    description:
+      'Before its turn: burns for this much if odd (double if it ends in 3), then -1.',
   },
   burn: {
     label: 'Burn',

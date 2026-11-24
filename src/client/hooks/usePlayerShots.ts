@@ -6,6 +6,8 @@
 // staggered like the hits themselves (HIT_STAGGER_MS), so each impact
 // lands as its shot arrives. The view waits PLAYER_SHOT_FLIGHT_MS
 // before playing the card, then the hits pop on arrival.
+// Melee cards swing instead: a silver sweep crosses every hero the card
+// hits (see MeleeSweep), MELEE_SWEEP_MS before the red slices land.
 // ===================================================================
 
 import { useCallback, useRef, useState } from 'react';
@@ -13,6 +15,7 @@ import { cardAreaTargets } from '../../shared/game/battlefield';
 import { getCard } from '../../shared/game/cards';
 import type { PlayCardAction } from '../../shared/game/run';
 import type { CombatState } from '../../shared/game/types';
+import { sweepAcross, type SweepFlight } from '../lib/meleeSweep';
 import type {
   ProjectileFlight,
   ProjectileKind,
@@ -37,6 +40,10 @@ export type ShotPlan = {
 // --- CONSTANTS ---
 /** A shot's flight time (matches --animate-hero-shot). */
 export const PLAYER_SHOT_FLIGHT_MS = 220;
+/** A melee swing crosses its targets in this long, then the hits land. */
+export const MELEE_SWEEP_MS = 200;
+/** How long a sweep stays mounted (matches .melee-sweep in index.css). */
+const SWEEP_LIFETIME_MS = 360;
 
 // --- HELPERS ---
 /**
@@ -64,6 +71,24 @@ export const shotPlanOf = (
 };
 
 /**
+ * The heroes a Melee card's swing crosses when played this way (every
+ * one it hits), or null for any other card or one that deals no damage.
+ */
+export const sweepTargetsOf = (
+  combat: CombatState,
+  action: PlayCardAction
+): number[] | null => {
+  const cardId = combat.hand[action.handIndex];
+  if (cardId === undefined) return null;
+  const { type, effects } = getCard(cardId);
+  const damage = effects.find((effect) => effect.kind === 'damage');
+  if (!damage || type !== 'melee') return null;
+  return damage.target === 'all'
+    ? cardAreaTargets(combat.heroes, cardId).map((unit) => unit.uid)
+    : (action.targetUids ?? [action.targetUid ?? -1]);
+};
+
+/**
  * Where shots leave from, nearest first: the centre of the card being
  * dragged, else of the held card in the hand, else your portrait. Read
  * as the card is released, so it is still where you let go of it.
@@ -88,7 +113,26 @@ const launchPoint = (): Point | null => {
 /** Your shots in flight, and fire() to loose a card's shots. */
 export const usePlayerShots = () => {
   const [shots, setShots] = useState<ProjectileFlight[]>([]);
+  const [sweeps, setSweeps] = useState<SweepFlight[]>([]);
   const nextIdRef = useRef(0);
+
+  /**
+   * Swings a Melee card across its targets; returns true if the sweep
+   * could be placed (false when none of them is on screen).
+   */
+  const swing = useCallback((targetUids: readonly number[]): boolean => {
+    const points = targetUids
+      .map(bodyPointOf)
+      .filter((point): point is Point => point !== null);
+    const sweep = sweepAcross(nextIdRef.current++, points);
+    if (!sweep) return false;
+    setSweeps((current) => [...current, sweep]);
+    window.setTimeout(
+      () => setSweeps((current) => current.filter((s) => s.id !== sweep.id)),
+      SWEEP_LIFETIME_MS
+    );
+    return true;
+  }, []);
 
   /**
    * Looses a card's shots, hit by hit (each hit at every target), and
@@ -121,5 +165,5 @@ export const usePlayerShots = () => {
     return true;
   }, []);
 
-  return { shots, fire } as const;
+  return { shots, sweeps, fire, swing } as const;
 };

@@ -13,6 +13,7 @@ import {
   burnTick,
   frostThaw,
   hexBurn,
+  hexBurnAmount,
   takeDamage,
   takeHit,
   addStatus,
@@ -105,7 +106,7 @@ void test('hex is left alone by end-of-turn upkeep', () => {
 });
 
 void test('hex burns for its value only when odd, then drops by 1', () => {
-  for (const hex of [1, 2, 3, 4, 5]) {
+  for (const hex of [1, 2, 4, 5, 7]) {
     const burned = hexBurn({
       ...createCombatant(100, 100),
       statuses: { ...NO_STATUSES, hex },
@@ -116,7 +117,7 @@ void test('hex burns for its value only when odd, then drops by 1', () => {
   }
 });
 
-void test('hex 5 burns 5, then 3, then 1, then is gone', () => {
+void test('hex 5 burns 5, then 3 doubled, then 1, then is gone', () => {
   let unit = {
     ...createCombatant(100, 100),
     statuses: { ...NO_STATUSES, hex: 5 },
@@ -127,8 +128,26 @@ void test('hex 5 burns 5, then 3, then 1, then is gone', () => {
     losses.push(unit.hp - next.hp);
     unit = next;
   }
-  assert.deepEqual(losses, [5, 0, 3, 0, 1, 0]);
+  assert.deepEqual(losses, [5, 0, 6, 0, 1, 0]);
   assert.equal(unit.statuses.hex, 0);
+});
+
+void test('an odd hex ending in 3 burns double', () => {
+  for (const [hex, loss] of [
+    [3, 6],
+    [13, 26],
+    [23, 46],
+  ] as const) {
+    assert.equal(hexBurnAmount(hex), loss, `hex ${hex} reads ${loss}`);
+    const burned = hexBurn({
+      ...createCombatant(100, 100),
+      statuses: { ...NO_STATUSES, hex },
+    });
+    assert.equal(burned.hp, 100 - loss, `hex ${hex} burns ${loss}`);
+    assert.equal(burned.statuses.hex, hex - 1);
+  }
+  assert.equal(hexBurnAmount(4), 0, 'even hex never burns');
+  assert.equal(hexBurnAmount(11), 11, 'only a last digit of 3 doubles');
 });
 
 void test('a hexed hero burns before it acts, and its hex drops', () => {
@@ -155,7 +174,7 @@ void test('a hexed hero burns before it acts, and its hex drops', () => {
   const burnIndex = steps.findIndex(
     (step) =>
       step.actorUid === null &&
-      step.state.heroes[0]?.hp === hexed.heroes[0]!.hp - 3
+      step.state.heroes[0]?.hp === hexed.heroes[0]!.hp - 6 // Hex 3 ends in 3: doubled
   );
   const actIndex = steps.findIndex((step) => step.actorUid === squireUid);
   assert.ok(burnIndex > 0 && burnIndex < actIndex, 'burns, then acts');

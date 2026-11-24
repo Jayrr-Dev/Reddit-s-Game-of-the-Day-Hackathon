@@ -18,6 +18,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { PASSIVE_INFO, STATUS_INFO } from '../../../shared/game/describe';
+import { hexBurnAmount } from '../../../shared/game/combatant';
 import { BLEED_HITS } from '../../../shared/game/rules';
 import type {
   Combatant,
@@ -97,15 +98,21 @@ const passiveChipsOf = (passives: readonly PassiveId[]): StatusChip[] =>
  * Adding a stack flips it, which is the choice: burst now or hold.
  */
 const hexChipOf = (hex: number): Partial<StatusChip> => {
-  const isPrimed = hex % 2 === 1;
-  return isPrimed
-    ? {
-        fill: toneVarOf(STATUS_LOOK.hex),
-        description: `Odd: burns for ${hex} before its next turn, then -1.`,
-      }
-    : {
-        description: `Even: no burn this turn, just -1 (burns for ${hex - 1} the turn after).`,
-      };
+  const burn = hexBurnAmount(hex);
+  const isPrimed = burn > 0;
+  const isDoubled = burn > hex;
+  if (!isPrimed)
+    return {
+      description: `Even: no burn this turn, just -1 (burns for ${hexBurnAmount(hex - 1)} the turn after).`,
+    };
+  return {
+    fill: toneVarOf(STATUS_LOOK.hex),
+    // A doubled burn shows what it will really deal, so it reads at a glance.
+    ...(isDoubled ? { text: `${hex}\u00d72` } : {}),
+    description: isDoubled
+      ? `Ends in 3: burns for ${burn} (double) before its next turn, then -1.`
+      : `Odd: burns for ${burn} before its next turn, then -1.`,
+  };
 };
 
 /**

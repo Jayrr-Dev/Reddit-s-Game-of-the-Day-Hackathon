@@ -48,6 +48,10 @@ export const BLEED_HITS = 3;
 export const FROST_DAMAGE_PER_STACK = 1;
 /** Hex drops by this much every turn (it burns only on odd counts). */
 export const HEX_DECAY = 1;
+/** An odd Hex whose last digit is this (3, 13, 23...) burns harder. */
+export const HEX_EMPOWERED_DIGIT = 3;
+/** How much harder that Hex burns (Hex 3 burns for 6). */
+export const HEX_EMPOWERED_MULTIPLIER = 2;
 
 // --- THE KINGDOM ---
 /** Regions in conquest order. Each ends with its champion (see heroes.ts). */
