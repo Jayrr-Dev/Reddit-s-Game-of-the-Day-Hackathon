@@ -18,7 +18,7 @@ import {
 import { useDrawOrder } from '../../../hooks/useDrawOrder';
 import { prefersReducedMotion } from '../../../lib/motion';
 import { canPlayCard } from '../../../../shared/game/combat';
-import { imbuesAt } from '../../../../shared/game/imbue';
+import { cardImbuesAt } from '../../../../shared/game/imbue';
 import type { CombatState } from '../../../../shared/game/types';
 import {
   HAND_SLOT_ATTR,
@@ -257,7 +257,7 @@ export const FanHand = ({
               attacker={combat.player}
               size="fan"
               isSelected={index === heldIndex}
-              imbues={imbuesAt(combat, index)}
+              imbues={cardImbuesAt(combat, index)}
               usesSpent={usesSpentOn(combat.usesSpent, cardId)}
               isImbueTarget={imbueSlots.includes(index)}
               isImbueAimed={index === imbueAimedSlot}

@@ -83,6 +83,7 @@ import {
   imbueSlot,
   imbueSlotsFor,
   imbuesAt,
+  cardImbuesAt,
   removeFromHand,
   stowPlayedImbues,
 } from './imbue.ts';
@@ -1019,7 +1020,7 @@ const isPlayWith = (
   const cardId = state.hand[handIndex];
   return (
     cardId !== undefined &&
-    cardHasKeyword(cardId, imbuesAt(state, handIndex), keyword)
+    cardHasKeyword(cardId, cardImbuesAt(state, handIndex), keyword)
   );
 };
 
@@ -1128,7 +1129,7 @@ export const playCard = (
   );
   // A played card's imbues landed with it and go to the pile with it
   // (they last the battle).
-  const imbues = imbuesAt(state, handIndex);
+  const imbues = cardImbuesAt(state, handIndex);
   const kept = stowPlayedImbues(
     lapseActionBuffs(resolved, state.timedBuffs.length),
     cardId,

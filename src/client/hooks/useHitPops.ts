@@ -166,6 +166,7 @@ const VILLAIN_GAINS: readonly (StatusId & PopKind)[] = [
   'reinforce',
   'brace',
   'sharpshooter',
+  'berserker',
   'bane',
   'instinct',
   'armor',

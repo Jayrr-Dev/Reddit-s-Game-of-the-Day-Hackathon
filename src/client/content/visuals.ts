@@ -48,6 +48,8 @@ export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
   surge: { glyph: 'swirl', toneClass: 'text-magic' },
   hone: { glyph: 'bow', toneClass: 'text-range' },
   sharpshooter: { glyph: 'targeting', toneClass: 'text-range' },
+  // Berserker boosts Melee, so it wears the Melee red (like Might).
+  berserker: { glyph: 'battleAxe', toneClass: 'text-hp' },
   // Bane boosts afflictions, so it wears the Curse colour (Hex purple).
   bane: { glyph: 'flask', toneClass: 'text-hex' },
   // Instinct is defence (it turns hits aside): Guard blue.
@@ -282,6 +284,7 @@ export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   surge: STATUS_LOOK.surge,
   hone: STATUS_LOOK.hone,
   sharpshooter: STATUS_LOOK.sharpshooter,
+  berserker: STATUS_LOOK.berserker,
   bane: STATUS_LOOK.bane,
   instinct: STATUS_LOOK.instinct,
   reinforce: STATUS_LOOK.reinforce,

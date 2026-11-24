@@ -523,6 +523,14 @@ export const CARDS = {
   gravePact: card('Grave Pact', 'buff', 1, 'rare', [heal(8)], REMOVES),
   // LEGENDARY: the rarest offers (see RARITY_ODDS)
   doom: card('Doom', 'curse', 3, 'legendary', [hex(33)], REMOVES),
+  berserker: card(
+    'Berserker',
+    'buff',
+    2,
+    'legendary',
+    [buff('berserker', 1)],
+    REMOVES
+  ),
   undyingHatred: card('Undying Hatred', 'melee', 2, 'rare', [hit(20)], {
     ...RAMPAGES,
     ...BLUNT,

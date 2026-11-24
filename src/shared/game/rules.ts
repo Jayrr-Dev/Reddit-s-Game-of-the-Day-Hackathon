@@ -6,6 +6,7 @@
 
 import type {
   BuffId,
+  CardKeyword,
   CardType,
   HeroRow,
   MagicElement,
@@ -57,7 +58,19 @@ export const INSTINCT_DODGE_CHANCES: readonly number[] = [
 /** Stacks at which Instinct becomes Ultra Instinct. */
 export const ULTRA_INSTINCT_STACKS = INSTINCT_DODGE_CHANCES.length - 1;
 /** Buffs that are on or off: their stacks are never printed or shown. */
-export const ON_OFF_BUFFS: ReadonlySet<BuffId> = new Set(['sharpshooter']);
+export const ON_OFF_BUFFS: ReadonlySet<BuffId> = new Set([
+  'sharpshooter',
+  'berserker',
+]);
+/**
+ * On/off buffs that give every card of a type a keyword while on, as if
+ * imbued (see cardImbuesAt). Berserker: every Melee card has Rampage.
+ */
+export const BUFF_KEYWORDS: readonly {
+  buff: BuffId;
+  type: CardType;
+  keyword: CardKeyword;
+}[] = [{ buff: 'berserker', type: 'melee', keyword: 'rampage' }];
 /**
  * Energy it costs the villain to Back Step: with everyone in the front
  * row, the field falls back BACK_STEP_ROWS row (out of melee reach).
@@ -178,6 +191,7 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   hone: false,
   reinforce: false,
   sharpshooter: false,
+  berserker: false,
   bane: false,
   instinct: false,
   momentum: false,

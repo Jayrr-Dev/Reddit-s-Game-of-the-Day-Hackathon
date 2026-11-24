@@ -52,7 +52,7 @@ import {
 import {
   cardHasKeyword,
   imbueEffectOf,
-  imbuesAt,
+  cardImbuesAt,
 } from '../../shared/game/imbue';
 import type { RunAction } from '../../shared/game/run';
 import { useImbuePick } from './useImbuePick';
@@ -346,7 +346,7 @@ export const useCombatControls = (
   const isPiercingDrag =
     drag !== null &&
     dragCard !== undefined &&
-    cardHasKeyword(dragCard, imbuesAt(combat, drag.handIndex), 'piercing');
+    cardHasKeyword(dragCard, cardImbuesAt(combat, drag.handIndex), 'piercing');
   const pierceUids =
     isPiercingDrag && hoverUnit
       ? heroesPiercedPast(combat.heroes, hoverUnit).map((unit) => unit.uid)

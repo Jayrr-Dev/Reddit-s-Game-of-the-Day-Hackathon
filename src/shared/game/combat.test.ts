@@ -46,7 +46,7 @@ import {
   describeImbueGift,
   KEYWORD_INFO,
 } from './describe.ts';
-import { imbueSlotsFor } from './imbue.ts';
+import { cardImbuesAt, imbueSlotsFor } from './imbue.ts';
 import { ALOFT_EVASION, EXHAUST_USES, RESERVE_ENERGY_SLOTS } from './rules.ts';
 import { getHero } from './heroes.ts';
 import {
@@ -2182,6 +2182,22 @@ void test('Sharpshooter: Range hits deal 20% more, other types are unchanged', (
   ]);
   assert.deepEqual(describeCard('backhand', after.player), ['Damage 6']);
   assert.deepEqual(describeCard('sharpshooter'), ['Sharpshooter', 'Remove']);
+});
+
+// --- BERSERKER ---
+void test('Berserker gives every Melee card Rampage for the fight', () => {
+  const state = rampageFight(['berserker', 'backhand', 'blackArrow']);
+  const berserk = playCard(state, 0, 0);
+  assert.equal(berserk.player.statuses.berserker, 1);
+  assert.equal(getCard('berserker').rarity, 'legendary');
+  assert.deepEqual(describeCard('berserker'), ['Berserker', 'Remove']);
+  // The plain Backhand kills and now Charges for free.
+  const after = playCard(berserk, 0, berserk.heroes[0]?.uid ?? -1);
+  assert.equal(after.freeMove?.move, 'charge');
+  // Melee only: the bow shot is untouched.
+  assert.equal(cardImbuesAt(berserk, 0).length, 1, 'Backhand: Rampage');
+  assert.equal(cardImbuesAt(berserk, 1).length, 0, 'Black Arrow: none');
+  // Without it, the Backhand kill makes no move (see Rampage tests).
 });
 
 // --- BANE ---

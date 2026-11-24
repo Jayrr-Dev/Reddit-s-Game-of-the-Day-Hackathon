@@ -48,6 +48,7 @@ export const NO_STATUSES: Statuses = {
   hone: 0,
   reinforce: 0,
   sharpshooter: 0,
+  berserker: 0,
   bane: 0,
   instinct: 0,
   momentum: 0,

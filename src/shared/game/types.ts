@@ -41,6 +41,7 @@ import type { RngState } from './rng.ts';
  *              Poison, Burn, Frost, Bleed, Shock; see BANE_AFFLICTIONS)
  * - sharpshooter: on or off; your shots ignore Out of Range and Range
  *   hits deal SHARPSHOOTER_DAMAGE_FACTOR times as much
+ * - berserker: on or off; every Melee card has Rampage (BUFF_KEYWORDS)
  * Momentum comes from charging: while above 0 the next Melee card deals
  * 50% more damage (every hit of it), then it is spent; it is lost at
  * the end of the turn if no Melee card used it.
@@ -54,6 +55,7 @@ export type BuffId =
   | 'hone'
   | 'reinforce'
   | 'sharpshooter'
+  | 'berserker'
   | 'bane'
   | 'instinct';
 export type StatusId =

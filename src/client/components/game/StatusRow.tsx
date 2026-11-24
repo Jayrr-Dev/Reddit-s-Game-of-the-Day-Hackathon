@@ -91,6 +91,7 @@ const STATUS_ORDER: readonly StatusId[] = [
   'might',
   'hone',
   'sharpshooter',
+  'berserker',
   'bane',
   'momentum',
   'rush',

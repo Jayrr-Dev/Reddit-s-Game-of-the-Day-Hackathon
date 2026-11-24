@@ -24,7 +24,11 @@
 
 import { isSelfEffect, targetRuleOf } from './battlefield.ts';
 import { getCard, hasKeyword, type CardId } from './cards.ts';
-import { MAX_IMBUES_PER_CARD, OUT_OF_RANGE_TYPES } from './rules.ts';
+import {
+  BUFF_KEYWORDS,
+  MAX_IMBUES_PER_CARD,
+  OUT_OF_RANGE_TYPES,
+} from './rules.ts';
 import type {
   CardEffect,
   CardKeyword,
@@ -42,6 +46,24 @@ export type ImbueEffect = Extract<CardEffect, { kind: 'imbue' }>;
 /** The imbues on the card in hand slot `index` (none for a bad slot). */
 export const imbuesAt = (state: CombatState, index: number): Imbue[] =>
   state.handImbues[index] ?? [];
+
+/**
+ * Keywords the villain's on/off buffs give this card (Berserker: Rampage
+ * on Melee), shaped as imbues so they play and show like imbued ones.
+ * Never stored in handImbues: they last only while the buff is on.
+ */
+const buffImbuesOf = (state: CombatState, cardId: CardId): Imbue[] =>
+  BUFF_KEYWORDS.filter(
+    ({ buff, type }) =>
+      state.player.statuses[buff] > 0 && getCard(cardId).type === type
+  ).map(({ keyword }) => ({ gift: { kind: 'keyword', keyword } }));
+
+/** Everything a card in hand carries when played: its imbues and buff keywords. */
+export const cardImbuesAt = (state: CombatState, index: number): Imbue[] => {
+  const cardId = state.hand[index];
+  const own = imbuesAt(state, index);
+  return cardId === undefined ? own : [...own, ...buffImbuesOf(state, cardId)];
+};
 
 /** The card's Imbue effect, or undefined for any other card. */
 export const imbueEffectOf = (cardId: CardId): ImbueEffect | undefined =>

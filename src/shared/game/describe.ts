@@ -166,6 +166,10 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
     label: 'Sharpshooter',
     description: `Your shots ignore **Out of Range**\nEvery **Range** hit deals **${SHARPSHOOTER_BONUS_TEXT}**`,
   },
+  berserker: {
+    label: 'Berserker',
+    description: 'Every **Melee** card has **Rampage**\n(**Charge** on kill)',
+  },
   aloft: {
     label: 'Aloft',
     description: `Out of **Melee** reach until it dives\nEvades **${Math.round(ALOFT_EVASION * 100)}%** of **Range** and **Magic** hits\n**Curses** always land`,
