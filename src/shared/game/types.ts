@@ -108,7 +108,7 @@ export type BaseCardEffect =
   /** Casts Protection on the villain (tiers up when cast turn after turn). */
   | { kind: 'protect' }
   /** Grants the villain a fight-long buff. */
-  | { kind: 'buff'; buff: BuffId; amount: number }
+  | { kind: 'buff'; buff: BuffId; amount: number; duration?: Duration }
   | { kind: 'draw'; amount: number }
   | { kind: 'energy'; amount: number }
   | { kind: 'heal'; amount: number }
@@ -117,11 +117,27 @@ export type BaseCardEffect =
   /** Shoves the target from the front row into the back row. */
   | { kind: 'push' };
 
+// --- DURATION ---
+/**
+ * How long a gift lasts, printed after it in italics ("this turn"):
+ *   action  until the next card is played (that card still gets it)
+ *   turn    until the end of this turn
+ *   battle  for the whole fight (an imbue survives being played)
+ * Without one, a buff lasts the fight and an imbue lasts until its card
+ * is played.
+ */
+export type Duration = 'action' | 'turn' | 'battle';
+
+/** A buff that wears off: taken back off the villain when it lapses. */
+export type TimedBuff = {
+  buff: BuffId;
+  amount: number;
+  duration: Exclude<Duration, 'battle'>;
+};
+
 // --- IMBUE ---
 /** A keyword a card can be printed with or imbued with. */
-export type CardKeyword = 'hold' | 'piercing';
-/** How long an imbue lasts: to the end of this turn, or the whole fight. */
-export type ImbueDuration = 'turn' | 'battle';
+export type CardKeyword = 'hold' | 'piercing' | 'remove';
 /**
  * Effects an imbue may grant. Pull and Push are left out: they change
  * who a card may aim at, and an imbue never changes a card's aim.
@@ -131,8 +147,11 @@ export type ImbuableEffect = Exclude<BaseCardEffect, { kind: 'pull' | 'push' }>;
 export type ImbueGift =
   | { kind: 'keyword'; keyword: CardKeyword }
   | { kind: 'effect'; effect: ImbuableEffect };
-/** A gift on one card, and how long it lasts. */
-export type Imbue = { gift: ImbueGift; duration: ImbueDuration };
+/**
+ * A gift on one card. It stays until that card is played, then is
+ * spent, unless a duration says otherwise.
+ */
+export type Imbue = { gift: ImbueGift; duration?: Duration };
 
 /** One step of a card. A card's effects resolve in order. */
 export type CardEffect =
@@ -157,11 +176,10 @@ export type CardDef = {
   cost: number;
   rarity: CardRarity;
   effects: readonly CardEffect[];
-  /** A fading card leaves the fight after it is played. */
-  fades: boolean;
   /**
    * Its printed keywords: Hold stays in hand at the end of the turn;
-   * Piercing hits also strike the hero right behind the target.
+   * Piercing hits also strike the hero right behind the target; Remove
+   * goes to the Remove pile once played.
    */
   keywords: readonly CardKeyword[];
   /**
@@ -301,7 +319,8 @@ export type CombatState = {
   hand: CardId[];
   drawPile: CardId[];
   discardPile: CardId[];
-  fadedPile: CardId[];
+  /** Cards out of play for the rest of the fight (Remove). */
+  removedPile: CardId[];
   /** What each card in hand is imbued with, slot for slot with `hand`. */
   handImbues: Imbue[][];
   /**
@@ -309,6 +328,8 @@ export type CombatState = {
    * card can't be told apart there, so the next copy drawn takes them.
    */
   stowedImbues: StowedImbue[];
+  /** Buffs that wear off after the next card or at the end of the turn. */
+  timedBuffs: TimedBuff[];
   turn: number;
   /** Heroes defeated so far in this fight. */
   slain: number;

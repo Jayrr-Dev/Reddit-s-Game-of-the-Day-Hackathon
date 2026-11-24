@@ -37,6 +37,7 @@ import {
   affectsHeroes,
   affectsSelf,
   cardAreaTargets,
+  heroesBehind,
   targetRuleOf,
 } from '../../shared/game/battlefield';
 import { getCard, type CardId } from '../../shared/game/cards';
@@ -47,7 +48,11 @@ import {
   targetsFor,
   wouldFell,
 } from '../../shared/game/combat';
-import { imbueEffectOf } from '../../shared/game/imbue';
+import {
+  cardHasKeyword,
+  imbueEffectOf,
+  imbuesAt,
+} from '../../shared/game/imbue';
 import type { RunAction } from '../../shared/game/run';
 import { useImbuePick } from './useImbuePick';
 import type { CombatState } from '../../shared/game/types';
@@ -325,6 +330,21 @@ export const useCombatControls = (
     ? (dropState.target?.point ?? drag?.tip ?? null)
     : null;
 
+  // PIERCING: a Piercing card locked on a front hero also hits the
+  // heroes right behind it, so each gets its own arrow and lock.
+  const isPiercingDrag =
+    drag !== null &&
+    dragCard !== undefined &&
+    cardHasKeyword(dragCard, imbuesAt(combat, drag.handIndex), 'piercing');
+  const pierceUids =
+    isPiercingDrag && hoverUnit
+      ? heroesBehind(combat.heroes, hoverUnit).map((unit) => unit.uid)
+      : [];
+  /** Where each pierced hero's arrow lands. */
+  const pierceAimPoints: Point[] = (drag?.nearHeroes ?? [])
+    .filter((hero: HeroAnchor) => pierceUids.includes(hero.uid))
+    .map((hero) => hero.point);
+
   // AREA CARDS: the heroes in the blast, shown red while it is held.
   const blastUids =
     isHolding && targetRuleOf(heldCard) === 'none'
@@ -341,6 +361,7 @@ export const useCombatControls = (
       if (!blastUids.includes(uid)) return 'illegal';
       return isDropLive ? 'struck' : 'marked';
     }
+    if (pierceUids.includes(uid)) return 'locked';
     if (!legalUids.includes(uid)) return 'illegal';
     return uid === hoverUid ? 'locked' : 'legal';
   };
@@ -421,6 +442,8 @@ export const useCombatControls = (
     imbueAimedSlot: imbue.arrow?.isLive ? imbue.arrow.slot : null,
     drag,
     aimPoint,
+    /** Arrows to the heroes a locked Piercing card also hits. */
+    pierceAimPoints,
     isDropLive,
     isLethal,
     aimFactor,

@@ -120,8 +120,10 @@ export const Tooltip = ({
     event.stopPropagation();
     wasPressShownRef.current = false;
   };
+  /** A mouse hovering with no button held (not one dragging a card). */
   const onPointerEnter = (event: PointerEvent) => {
-    if (event.pointerType === 'mouse') showAfter(HOVER_DELAY_MS);
+    if (event.pointerType === 'mouse' && event.buttons === 0)
+      showAfter(HOVER_DELAY_MS);
   };
 
   return (

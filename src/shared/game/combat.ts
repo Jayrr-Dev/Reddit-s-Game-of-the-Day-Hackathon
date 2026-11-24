@@ -67,8 +67,9 @@ import {
   imbueSlot,
   imbueSlotsFor,
   imbuesAt,
+  lapseImbues,
   removeFromHand,
-  stowImbues,
+  stowBattleImbues,
 } from './imbue.ts';
 import { shuffle, type RngState } from './rng.ts';
 import {
@@ -90,6 +91,7 @@ import type {
   HeroMove,
   HeroUnit,
   PassiveId,
+  TimedBuff,
 } from './types.ts';
 
 // --- SETUP ---
@@ -131,9 +133,10 @@ export const startCombat = (setup: CombatSetup): CombatState => {
     hand: [],
     drawPile,
     discardPile: [],
-    fadedPile: [],
+    removedPile: [],
     handImbues: [],
     stowedImbues: [],
+    timedBuffs: [],
     turn: 0,
     slain: 0,
     rng,
@@ -561,10 +564,7 @@ const applyCardEffect = (
         player: addStatus(state.player, 'brace', effect.amount),
       };
     case 'buff':
-      return {
-        ...state,
-        player: addStatus(state.player, effect.buff, effect.amount),
-      };
+      return grantBuff(state, effect);
     case 'wrath':
       return {
         ...state,
@@ -587,7 +587,7 @@ const applyCardEffect = (
     case 'imbue':
       return imbueSlot(state, play.slot, {
         gift: effect.gift,
-        duration: effect.duration,
+        ...(effect.duration ? { duration: effect.duration } : {}),
       });
   }
 };
@@ -640,11 +640,70 @@ const spendMomentum = (state: CombatState, cardDef: CardDef): CombatState =>
       }
     : state;
 
-/** Spends the card's energy and takes it (and its imbues) out of the hand. */
+/**
+ * Spends the card's energy and takes it (and its imbues) out of the
+ * hand. Playing it is an action, so "this action" imbues left on other
+ * cards lapse.
+ */
 const payForCard = (state: CombatState, handIndex: number): CombatState => {
   const cardId = state.hand[handIndex];
   const cost = cardId === undefined ? 0 : getCard(cardId).cost;
-  return removeFromHand({ ...state, energy: state.energy - cost }, handIndex);
+  const paid = removeFromHand(
+    { ...state, energy: state.energy - cost },
+    handIndex
+  );
+  return lapseImbues(paid, ['action']);
+};
+
+// --- TIMED BUFFS ---
+/** Grants a buff; a timed one is logged so it can be taken back. */
+const grantBuff = (
+  state: CombatState,
+  effect: Extract<CardEffect, { kind: 'buff' }>
+): CombatState => {
+  const player = addStatus(state.player, effect.buff, effect.amount);
+  const { duration } = effect;
+  if (duration === undefined || duration === 'battle')
+    return { ...state, player };
+  const timed: TimedBuff = {
+    buff: effect.buff,
+    amount: effect.amount,
+    duration,
+  };
+  return { ...state, player, timedBuffs: [...state.timedBuffs, timed] };
+};
+
+/** Takes lapsing timed buffs back off the villain (never below 0). */
+const takeBackBuffs = (
+  player: Combatant,
+  lapsing: readonly TimedBuff[]
+): Combatant =>
+  lapsing.reduce(
+    (current, { buff, amount }) => ({
+      ...current,
+      statuses: {
+        ...current.statuses,
+        [buff]: Math.max(0, current.statuses[buff] - amount),
+      },
+    }),
+    player
+  );
+
+/**
+ * After a play: "this action" buffs that were up before it (so this
+ * card got them) lapse. Ones this card granted are kept for the next.
+ */
+const lapseActionBuffs = (
+  played: CombatState,
+  countBefore: number
+): CombatState => {
+  const isLapsing = (buff: TimedBuff, index: number) =>
+    index < countBefore && buff.duration === 'action';
+  return {
+    ...played,
+    player: takeBackBuffs(played.player, played.timedBuffs.filter(isLapsing)),
+    timedBuffs: played.timedBuffs.filter((buff, i) => !isLapsing(buff, i)),
+  };
 };
 
 /** A multi-hit damage effect split into single hits (same numbers). */
@@ -766,14 +825,17 @@ export const playCard = (
     cardBeats(paid, cardId, plan).at(-1) ?? paid,
     cardDef
   );
-  // A fading card takes its imbues with it; a discarded one stows them.
-  const settled = cardDef.fades
-    ? { ...resolved, fadedPile: [...resolved.fadedPile, cardId] }
-    : stowImbues(
-        { ...resolved, discardPile: [...resolved.discardPile, cardId] },
-        cardId,
-        imbuesAt(state, handIndex)
-      );
+  // Playing a card spends its imbues (they landed with it); battle ones
+  // go to the pile with it.
+  const imbues = imbuesAt(state, handIndex);
+  const kept = stowBattleImbues(
+    lapseActionBuffs(resolved, state.timedBuffs.length),
+    cardId,
+    imbues
+  );
+  const settled = cardHasKeyword(cardId, imbues, 'remove')
+    ? { ...kept, removedPile: [...kept.removedPile, cardId] }
+    : { ...kept, discardPile: [...kept.discardPile, cardId] };
   return removeFallen(settled);
 };
 
@@ -1104,10 +1166,16 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
 
   // 1. DISCARD THE HAND (HOLD CARDS STAY), THE VILLAIN'S UPKEEP (POISON
   //    TICKS), AND THE HEROES' GUARD FROM LAST ROUND FADES
+  // "This turn" and "this action" gifts lapse first.
+  const lapsed: CombatState = {
+    ...lapseImbues(state, ['action', 'turn']),
+    player: takeBackBuffs(state.player, state.timedBuffs),
+    timedBuffs: [],
+  };
   const discarded: CombatState = {
-    ...discardHand(state),
+    ...discardHand(lapsed),
     // The villain's turn was its action: Burn and Frost, then upkeep.
-    player: endOfTurnUpkeep(afterAction(state.player)),
+    player: endOfTurnUpkeep(afterAction(lapsed.player)),
     // Enfeeble laid on this turn holds; any older lapses.
     heroes: state.heroes.map((unit) => enfeebleCheck(expireGuard(unit))),
   };

@@ -3,7 +3,7 @@
 // A card pile drawn as a small stack: the top card shows the count,
 // and more card edges peek out behind it as the pile grows, so you can
 // read how full it is at a glance. An empty pile is a dashed outline.
-// Used for the draw pile (right) and the discard pile (left). Tapping
+// Used for the draw pile (right), the discard and Remove piles (left). Tapping
 // it opens the pile to see its cards (PileDialog).
 // ===================================================================
 

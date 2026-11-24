@@ -15,7 +15,7 @@ import { CardView } from '../CardView';
 import { SCROLL_FADE_STYLE } from '../../../lib/scrollFade';
 
 // --- TYPES ---
-export type PileId = 'draw' | 'discard';
+export type PileId = 'draw' | 'discard' | 'removed';
 
 export type PileDialogProps = {
   pile: PileId;
@@ -31,10 +31,14 @@ export type PileDialogProps = {
 const PILE_TEXT: Record<PileId, { title: string; note: string }> = {
   draw: { title: 'Draw pile', note: 'Sorted by name: the order is a secret.' },
   discard: { title: 'Discard pile', note: 'Most recent first.' },
+  removed: {
+    title: 'Remove pile',
+    note: 'Out of play until the fight is over. Most recent first.',
+  },
 };
 
 // --- HELPERS ---
-/** The order a pile is shown in: draw by name, discard newest first. */
+/** The order a pile is shown in: draw by name, the others newest first. */
 const shownOrder = (pile: PileId, cards: readonly CardId[]): CardId[] =>
   pile === 'draw'
     ? [...cards].sort((a, b) => getCard(a).name.localeCompare(getCard(b).name))

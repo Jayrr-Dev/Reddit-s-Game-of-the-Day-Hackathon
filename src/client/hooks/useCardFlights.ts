@@ -4,6 +4,7 @@
 // see where cards go:
 //   draw      draw pile -> hand, one per card drawn
 //   discard   hand -> discard pile, one per card discarded or played
+//   remove    hand -> Remove pile, one per card played with Remove
 //   shuffle   discard -> draw pile in a quick stream (the discard
 //             refilled the draw pile), then the draw pile riffles,
 //             and only then do the draws fly
@@ -24,10 +25,15 @@ export type CardFlight = {
   delayMs: number;
 };
 
-type PileCounts = { draw: number; discard: number; hand: number };
+type PileCounts = {
+  draw: number;
+  discard: number;
+  removed: number;
+  hand: number;
+};
 
 // --- CONSTANTS ---
-/** Marks the two piles and the hand in the DOM (where flights go). */
+/** Marks the piles and the hand in the DOM (where flights go). */
 export const PILE_ATTR = 'data-pile';
 export const HAND_ATTR = 'data-hand';
 /** One flight's length (matches --animate-card-flight). */
@@ -53,6 +59,7 @@ const centreOf = (selector: string): Point | null => {
 const anchors = () => ({
   draw: centreOf(`[${PILE_ATTR}="draw"]`),
   discard: centreOf(`[${PILE_ATTR}="discard"]`),
+  removed: centreOf(`[${PILE_ATTR}="removed"]`),
   hand: centreOf(`[${HAND_ATTR}]`),
 });
 
@@ -112,10 +119,12 @@ const flightsFor = (
   const drawStartMs = isShuffle ? shuffleEndMs + RIFFLE_MS : 0;
   const drawn = Math.max(0, after.hand - before.hand);
   const discarded = isShuffle ? 0 : Math.max(0, after.discard - before.discard);
+  const removed = Math.max(0, after.removed - before.removed);
   return {
     flights: [
       ...shuffled,
       ...flightsBetween(at.hand, at.discard, discarded, 0, DRAW_STAGGER_MS),
+      ...flightsBetween(at.hand, at.removed, removed, 0, DRAW_STAGGER_MS),
       ...flightsBetween(at.draw, at.hand, drawn, drawStartMs, DRAW_STAGGER_MS),
     ],
     riffleAtMs: isShuffle ? shuffleEndMs : null,
@@ -131,14 +140,15 @@ export const useCardFlights = (combat: CombatState): CardFlight[] => {
   const counts: PileCounts = {
     draw: combat.drawPile.length,
     discard: combat.discardPile.length,
+    removed: combat.removedPile.length,
     hand: combat.hand.length,
   };
-  const { draw, discard, hand } = counts;
+  const { draw, discard, removed, hand } = counts;
 
   // PILE SIZES CHANGED -> LAUNCH FLIGHTS (the first render only records)
   useLayoutEffect(() => {
     const before = countsRef.current;
-    const after = { draw, discard, hand };
+    const after = { draw, discard, removed, hand };
     countsRef.current = after;
     if (!before) return;
     const planned = flightsFor(before, after);
@@ -157,7 +167,7 @@ export const useCardFlights = (combat: CombatState): CardFlight[] => {
       () => setFlights((current) => current.filter((f) => !ids.has(f.id))),
       lastLandsMs
     );
-  }, [draw, discard, hand]);
+  }, [draw, discard, removed, hand]);
 
   return flights;
 };

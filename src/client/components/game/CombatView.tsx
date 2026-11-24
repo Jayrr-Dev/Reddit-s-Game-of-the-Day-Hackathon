@@ -19,7 +19,7 @@
 // ===================================================================
 
 import { useCallback, useRef, useState, type ReactNode } from 'react';
-import { getCard } from '../../../shared/game/cards';
+import { getCard, type CardId } from '../../../shared/game/cards';
 import { movementFailsOn } from '../../../shared/game/combat';
 import {
   canMove,
@@ -108,6 +108,14 @@ const cardTop = ({ center, height }: CardBox): Point => ({
   y: center.y - height / 2,
 });
 
+/** The cards in each pile, by its id. */
+const pileCards = (combat: CombatState, pile: PileId): readonly CardId[] =>
+  ({
+    draw: combat.drawPile,
+    discard: combat.discardPile,
+    removed: combat.removedPile,
+  })[pile];
+
 // --- SUBCOMPONENTS ---
 /**
  * The row above the hand: portrait + discard pile | effects + energy |
@@ -140,6 +148,14 @@ const PlayerBar = ({
           side="left"
           pile="discard"
           onOpen={() => onOpenPile('discard')}
+        />
+        <PileStack
+          count={combat.removedPile.length}
+          label="Cards removed from play this fight"
+          toneClass="bg-surface-sunken"
+          side="left"
+          pile="removed"
+          onOpen={() => onOpenPile('removed')}
         />
       </div>
       <div className="relative flex min-w-0 flex-col items-center gap-1 pb-1">
@@ -383,6 +399,16 @@ export const CombatView = ({
               retract={controls.arrowRetract}
             />
           )}
+          {/* PIERCING: one more arrow to each hero behind the lock */}
+          {aimShown &&
+            controls.pierceAimPoints.map((point) => (
+              <AimArrow
+                key={`${point.x},${point.y}`}
+                from={cardTop(drag.card)}
+                to={point}
+                isLive={controls.isDropLive}
+              />
+            ))}
         </>
       )}
       {controls.imbueArrow && (
@@ -400,7 +426,7 @@ export const CombatView = ({
       {openPile && (
         <PileDialog
           pile={openPile}
-          cards={openPile === 'draw' ? combat.drawPile : combat.discardPile}
+          cards={pileCards(combat, openPile)}
           attacker={combat.player}
           onClose={closePile}
         />

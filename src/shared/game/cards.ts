@@ -7,13 +7,13 @@
 
 import type {
   BuffId,
+  Duration,
   CardDef,
   CardEffect,
   CardKeyword,
   CardRarity,
   CardType,
   ImbuableEffect,
-  ImbueDuration,
   ImbueGift,
 } from './types.ts';
 
@@ -63,10 +63,16 @@ const weaken = (amount: number, target: 'one' | 'all' = 'one'): CardEffect => ({
 });
 const guard = (amount: number): CardEffect => ({ kind: 'guard', amount });
 const wrath = (amount: number): CardEffect => ({ kind: 'wrath', amount });
-const buff = (which: BuffId, amount: number): CardEffect => ({
+/** A buff for the fight, or only for `duration` (this action, this turn). */
+const buff = (
+  which: BuffId,
+  amount: number,
+  duration?: Duration
+): CardEffect => ({
   kind: 'buff',
   buff: which,
   amount,
+  ...(duration ? { duration } : {}),
 });
 const protect: CardEffect = { kind: 'protect' };
 const cleanse: CardEffect = { kind: 'cleanse' };
@@ -74,11 +80,14 @@ const draw = (amount: number): CardEffect => ({ kind: 'draw', amount });
 const energy = (amount: number): CardEffect => ({ kind: 'energy', amount });
 const heal = (amount: number): CardEffect => ({ kind: 'heal', amount });
 const reap = (multiplier: number): CardEffect => ({ kind: 'reap', multiplier });
-/** Imbues another card in hand with a keyword or an effect. */
-const imbue = (gift: ImbueGift, duration: ImbueDuration): CardEffect => ({
+/**
+ * Imbues another card in hand with a keyword or an effect, until that
+ * card is played (or for `duration`).
+ */
+const imbue = (gift: ImbueGift, duration?: Duration): CardEffect => ({
   kind: 'imbue',
   gift,
-  duration,
+  ...(duration ? { duration } : {}),
 });
 const giftHold: ImbueGift = { kind: 'keyword', keyword: 'hold' };
 const giftOf = (effect: ImbuableEffect): ImbueGift => ({
@@ -89,15 +98,14 @@ const pull: CardEffect = { kind: 'pull' };
 const push: CardEffect = { kind: 'push' };
 
 /**
- * Optional card traits: fading (default no), keywords such as Hold and
- * Piercing (default none) and Target N (default 1).
+ * Optional card traits: keywords such as Hold, Piercing and Remove
+ * (default none) and Target N (default 1).
  */
 type CardTraits = {
-  fades?: boolean;
   keywords?: readonly CardKeyword[];
   targets?: number;
 };
-const FADES: CardTraits = { fades: true };
+const REMOVES: CardTraits = { keywords: ['remove'] };
 const HOLDS: CardTraits = { keywords: ['hold'] };
 const PIERCES: CardTraits = { keywords: ['piercing'] };
 
@@ -115,14 +123,13 @@ const card = (
   cost: number,
   rarity: CardRarity,
   effects: CardEffect[],
-  { fades = false, keywords = [], targets = 1 }: CardTraits = {}
+  { keywords = [], targets = 1 }: CardTraits = {}
 ): CardDef => ({
   name,
   type,
   cost,
   rarity,
   effects,
-  fades,
   keywords,
   reach: REACHING_TYPES.has(type),
   targets,
@@ -164,15 +171,21 @@ export const CARDS = {
   ]),
   wardingBolt: card('Warding Bolt', 'magic', 1, 'common', [hit(4), guard(4)]),
   // IMBUE: grant another card in hand a keyword or an effect
-  holdFast: card('Hold Fast', 'buff', 0, 'common', [imbue(giftHold, 'turn')]),
+  holdFast: card('Hold Fast', 'buff', 0, 'common', [imbue(giftHold)]),
   barbedTip: card('Barbed Tip', 'buff', 0, 'common', [
-    imbue({ kind: 'keyword', keyword: 'piercing' }, 'turn'),
+    imbue({ kind: 'keyword', keyword: 'piercing' }),
   ]),
   emberRune: card('Ember Rune', 'buff', 0, 'common', [
-    imbue(giftOf({ kind: 'burn', amount: 3, target: 'one' }), 'turn'),
+    imbue(giftOf({ kind: 'burn', amount: 4, target: 'one' }), 'turn'),
+  ]),
+  keenEdge: card('Keen Edge', 'buff', 0, 'common', [
+    imbue(
+      giftOf({ kind: 'damage', amount: 5, hits: 1, target: 'one' }),
+      'action'
+    ),
   ]),
   venomCoat: card('Venom Coat', 'buff', 1, 'common', [
-    imbue(giftOf({ kind: 'poison', amount: 3, target: 'one' }), 'battle'),
+    imbue(giftOf({ kind: 'poison', amount: 3, target: 'one' })),
   ]),
   // AFFLICTIONS: one card each for Poison, Frost, Bleed and Enfeeble
   sapStrength: card('Sap Strength', 'curse', 1, 'common', [
@@ -197,16 +210,37 @@ export const CARDS = {
   reapingCuts: card('Reaping Cuts', 'melee', 1, 'common', [hit(4)], {
     targets: 2,
   }),
-  bloodlust: card('Bloodlust', 'buff', 1, 'common', [buff('might', 2)], FADES),
-  darkSurge: card('Dark Surge', 'buff', 1, 'common', [buff('surge', 3)], FADES),
-  deadeye: card('Deadeye', 'buff', 1, 'common', [buff('hone', 3)], FADES),
+  bloodlust: card(
+    'Bloodlust',
+    'buff',
+    1,
+    'common',
+    [buff('might', 2)],
+    REMOVES
+  ),
+  darkSurge: card(
+    'Dark Surge',
+    'buff',
+    1,
+    'common',
+    [buff('surge', 3)],
+    REMOVES
+  ),
+  deadeye: card('Deadeye', 'buff', 1, 'common', [buff('hone', 3)], REMOVES),
+  // TIMED BUFFS: cheaper or bigger, but they wear off
+  steadyAim: card('Steady Aim', 'buff', 0, 'common', [
+    buff('hone', 4, 'action'),
+  ]),
+  battleFury: card('Battle Fury', 'buff', 1, 'common', [
+    buff('might', 3, 'turn'),
+  ]),
   bulwark: card('Bulwark', 'buff', 1, 'common', [protect]),
   standFirm: card('Stand Firm', 'defend', 1, 'common', [
     guard(5),
     { kind: 'brace', amount: 1 },
   ]),
   ironRune: card('Iron Rune', 'buff', 0, 'common', [
-    imbue(giftOf({ kind: 'brace', amount: 1 }), 'battle'),
+    imbue(giftOf({ kind: 'brace', amount: 1 })),
   ]),
   purge: card('Purge', 'buff', 0, 'common', [cleanse]),
   ironHide: card(
@@ -215,21 +249,25 @@ export const CARDS = {
     1,
     'common',
     [guard(4), buff('reinforce', 2)],
-    FADES
+    REMOVES
   ),
 
   // UNCOMMON
+  wardRune: card('Ward Rune', 'buff', 1, 'uncommon', [
+    imbue(giftOf({ kind: 'guard', amount: 4 })),
+  ]),
+  purifyingRune: card('Purifying Rune', 'buff', 1, 'uncommon', [
+    imbue(giftOf({ kind: 'cleanse' })),
+  ]),
   soulbind: card('Soulbind', 'buff', 1, 'uncommon', [
     imbue(giftHold, 'battle'),
   ]),
-  wardRune: card('Ward Rune', 'buff', 1, 'uncommon', [
-    imbue(giftOf({ kind: 'guard', amount: 4 }), 'battle'),
-  ]),
-  purifyingRune: card('Purifying Rune', 'buff', 1, 'uncommon', [
-    imbue(giftOf({ kind: 'cleanse' }), 'battle'),
+  lastRites: card('Last Rites', 'buff', 0, 'uncommon', [
+    imbue({ kind: 'keyword', keyword: 'remove' }),
+    draw(1),
   ]),
   reap: card('Reap', 'magic', 1, 'uncommon', [reap(2)]),
-  seethe: card('Seethe', 'buff', 1, 'uncommon', [wrath(2)], FADES),
+  seethe: card('Seethe', 'buff', 1, 'uncommon', [wrath(2)], REMOVES),
   impale: card('Impale', 'melee', 2, 'uncommon', [hit(10)], PIERCES),
   ruin: card('Ruin', 'melee', 2, 'uncommon', [hit(16)], HOLDS),
   coldResolve: card('Cold Resolve', 'defend', 1, 'uncommon', [
@@ -241,7 +279,7 @@ export const CARDS = {
     hex(1, 'all'),
     draw(1),
   ]),
-  bloodPact: card('Blood Pact', 'buff', 0, 'uncommon', [energy(2)], FADES),
+  bloodPact: card('Blood Pact', 'buff', 0, 'uncommon', [energy(2)], REMOVES),
   stormOfBlades: card('Storm of Blades', 'melee', 2, 'uncommon', [hit(3, 4)]),
   plague: card('Plague', 'curse', 2, 'uncommon', [hex(4, 'all')]),
   darkBulwark: card('Dark Bulwark', 'defend', 2, 'uncommon', [
@@ -258,14 +296,14 @@ export const CARDS = {
     1,
     'uncommon',
     [buff('might', 2), buff('reinforce', 2)],
-    FADES
+    REMOVES
   ),
 
   // RARE
   cataclysm: card('Cataclysm', 'magic', 3, 'rare', [hitAll(14)], HOLDS),
-  vengeance: card('Vengeance', 'buff', 1, 'rare', [wrath(3)], FADES),
-  gravePact: card('Grave Pact', 'buff', 1, 'rare', [heal(8)], FADES),
-  doom: card('Doom', 'curse', 2, 'rare', [hex(9)], FADES),
+  vengeance: card('Vengeance', 'buff', 1, 'rare', [wrath(3)], REMOVES),
+  gravePact: card('Grave Pact', 'buff', 1, 'rare', [heal(8)], REMOVES),
+  doom: card('Doom', 'curse', 2, 'rare', [hex(9)], REMOVES),
   undyingHatred: card('Undying Hatred', 'melee', 2, 'rare', [hit(20)]),
   ascendance: card(
     'Ascendance',
@@ -273,7 +311,7 @@ export const CARDS = {
     2,
     'rare',
     [buff('might', 3), buff('surge', 3)],
-    FADES
+    REMOVES
   ),
 } as const satisfies Record<string, CardDef>;
 

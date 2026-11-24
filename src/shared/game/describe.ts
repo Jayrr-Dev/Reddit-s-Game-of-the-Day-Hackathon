@@ -24,8 +24,8 @@ import type {
   CardDef,
   CardEffect,
   CardKeyword,
+  Duration,
   Imbue,
-  ImbueDuration,
   ImbueGift,
   Combatant,
   HeroAttackType,
@@ -186,7 +186,7 @@ export const describeCardEffect = (
     case 'protect':
       return 'Gain Protection. Recast next turn to raise it.';
     case 'buff':
-      return `Gain ${effect.amount} ${STATUS_INFO[effect.buff].label}.`;
+      return `Gain ${effect.amount} ${STATUS_INFO[effect.buff].label}${durationSuffix(effect.duration)}.`;
     case 'draw':
       return `Draw ${effect.amount} card${effect.amount === 1 ? '' : 's'}.`;
     case 'energy':
@@ -198,26 +198,85 @@ export const describeCardEffect = (
     case 'push':
       return 'Push it to the back.';
     case 'imbue':
-      return describeImbueEffect(effect, cardDef);
+      return describeImbueEffect(effect);
   }
 };
 
 // --- IMBUE TEXT ---
+/** Each keyword's name and what it does (its badge's tooltip). */
+export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
+  hold: {
+    label: 'Hold',
+    description: 'Stays in your hand at the end of the turn.',
+  },
+  piercing: {
+    label: 'Piercing',
+    description: 'Each hit also strikes the hero right behind its target.',
+  },
+  remove: {
+    label: 'Remove',
+    description:
+      'Once played, goes to the Remove pile until the fight is over.',
+  },
+};
+
+// --- DURATIONS ---
+/**
+ * How each duration reads on a card (in italics, after its gift) and
+ * what it means (a badge's tooltip).
+ */
+export const DURATION_INFO: Record<Duration, StatusInfo> = {
+  action: {
+    label: 'this action',
+    description: 'Lasts until the next card is played.',
+  },
+  turn: { label: 'this turn', description: 'Lasts until the end of the turn.' },
+  battle: {
+    label: 'this battle',
+    description: 'Lasts the whole fight, even after the card is played.',
+  },
+};
+
+/** " this turn" after a timed gift; nothing for a lasting one. */
+const durationSuffix = (duration: Duration | undefined): string =>
+  duration ? ` ${DURATION_INFO[duration].label}` : '';
+/** What Imbue means, wherever it shows. */
+export const IMBUE_INFO: StatusInfo = {
+  label: 'Imbue',
+  description:
+    'Give another card in your hand this keyword or effect. It lasts until that card is played, unless it says how long.',
+};
+/** What Cleanse means, wherever it shows. */
+export const CLEANSE_INFO: StatusInfo = {
+  label: 'Cleanse',
+  description: 'Removes 1 random affliction from you.',
+};
+
+/**
+ * THE GLOSSARY: every word with a meaning of its own (statuses,
+ * keywords, Imbue, Cleanse), by the name it is printed with.
+ * Card text bolds these and explains them on hover or long press, and
+ * badges and chips read the same entries, so a definition lives here
+ * only.
+ */
+export const GLOSSARY: Readonly<Record<string, StatusInfo>> =
+  Object.fromEntries(
+    [
+      ...Object.values(STATUS_INFO),
+      ...Object.values(KEYWORD_INFO),
+      IMBUE_INFO,
+      CLEANSE_INFO,
+    ].map((info) => [info.label, info])
+  );
+
 /** How each keyword reads on a card. */
-const KEYWORD_LABEL: Record<CardKeyword, string> = {
-  hold: 'Hold',
-  piercing: 'Piercing',
-};
-/** How each imbue duration reads. */
-export const DURATION_LABEL: Record<ImbueDuration, string> = {
-  turn: 'this turn',
-  battle: 'this battle',
-};
+const KEYWORD_LABEL = (keyword: CardKeyword): string =>
+  KEYWORD_INFO[keyword].label;
 
 /** What an imbue grants, as card text: "Hold." or "Apply 3 Poison.". */
 export const describeImbueGift = (gift: ImbueGift, cardDef: CardDef): string =>
   gift.kind === 'keyword'
-    ? `${KEYWORD_LABEL[gift.keyword]}.`
+    ? `${KEYWORD_LABEL(gift.keyword)}.`
     : describeCardEffect(gift.effect, cardDef);
 
 /**
@@ -225,7 +284,7 @@ export const describeImbueGift = (gift: ImbueGift, cardDef: CardDef): string =>
  * hand: "Hold", "3 Poison", "Cleanse", "+2 dmg".
  */
 export const imbueTag = (gift: ImbueGift): string => {
-  if (gift.kind === 'keyword') return KEYWORD_LABEL[gift.keyword];
+  if (gift.kind === 'keyword') return KEYWORD_LABEL(gift.keyword);
   const { effect } = gift;
   switch (effect.kind) {
     case 'damage':
@@ -260,14 +319,12 @@ export const imbueTag = (gift: ImbueGift): string => {
   }
 };
 
-/** An Imbue card's own line: what it grants and for how long. */
-const describeImbueEffect = (
-  { gift, duration }: Imbue,
-  cardDef: CardDef
-): string =>
-  gift.kind === 'keyword'
-    ? `Imbue ${KEYWORD_LABEL[gift.keyword]} ${DURATION_LABEL[duration]}.`
-    : `Imbue ${DURATION_LABEL[duration]}: ${describeImbueGift(gift, cardDef)}`;
+/**
+ * An Imbue card's own line: what it grants, and for how long when that
+ * isn't "until that card is played" ("Imbue Hold this battle.").
+ */
+const describeImbueEffect = ({ gift, duration }: Imbue): string =>
+  `Imbue ${imbueTag(gift)}${durationSuffix(duration)}.`;
 
 // --- STATUS LINES ---
 /** Card effects that lay a status on heroes ("Apply 2 Hex."). */
@@ -319,10 +376,11 @@ const groupForText = (
   }, []);
 
 /**
- * All text lines for a card: the effects (its type shows reach),
- * then "Hold." and "Fades." when it has those traits.
+ * A card's rules lines: Target N, then its effects (its type shows
+ * reach). Its keywords are left out: on screen they are
+ * badges (see describeCard for the full text).
  */
-export const describeCard = (
+export const describeCardRules = (
   cardId: CardId,
   attacker?: Combatant,
   target?: HeroUnit
@@ -334,11 +392,23 @@ export const describeCard = (
       : describeCardEffect(group, cardDef, attacker, target)
   );
   const targetLine = cardDef.targets > 1 ? [`Target ${cardDef.targets}.`] : [];
-  const traitLines = [
-    ...cardDef.keywords.map((keyword) => `${KEYWORD_LABEL[keyword]}.`),
-    ...(cardDef.fades ? ['Fades.'] : []),
-  ];
-  return [...targetLine, ...lines, ...traitLines];
+  return [...targetLine, ...lines];
+};
+
+/**
+ * All text lines for a card: its rules, then a line per keyword
+ * ("Hold.", "Piercing.", "Remove.").
+ */
+export const describeCard = (
+  cardId: CardId,
+  attacker?: Combatant,
+  target?: HeroUnit
+): string[] => {
+  const cardDef = getCard(cardId);
+  const traitLines = cardDef.keywords.map(
+    (keyword) => `${KEYWORD_LABEL(keyword)}.`
+  );
+  return [...describeCardRules(cardId, attacker, target), ...traitLines];
 };
 
 /** True when playing this card needs the player to pick a hero. */

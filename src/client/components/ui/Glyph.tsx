@@ -31,7 +31,12 @@ export type GlyphName =
   | 'wound'
   | 'aegis'
   | 'shatter'
-  | 'anchor';
+  | 'anchor'
+  | 'padlock'
+  | 'arrowhead'
+  | 'ghost'
+  | 'cards'
+  | 'cardBurn';
 
 export type GlyphProps = {
   name: GlyphName;

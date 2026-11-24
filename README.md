@@ -124,7 +124,7 @@ Replace `src/client/components/PlaceholderGame.tsx` and keep its contract: call 
 
 ## Credits
 
-Icons from [game-icons.net](https://game-icons.net) by Lorc, Sbed, Carl Olsen and Skoll, licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The picks and their sources are listed in `src/client/content/gameIcons.ts`.
+Icons from [game-icons.net](https://game-icons.net) by Lorc, Sbed, Carl Olsen, Skoll and Delapouite, licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The picks and their sources are listed in `src/client/content/gameIcons.ts`.
 
 ## Useful links
 

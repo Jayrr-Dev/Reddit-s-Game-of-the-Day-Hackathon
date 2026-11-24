@@ -522,10 +522,23 @@ void test('a card that costs too much is refused', () => {
   assert.equal(playCard(broke, 0, 1), broke);
 });
 
-void test('a fading card leaves the fight after use', () => {
+void test('a card with Remove goes to the Remove pile after use', () => {
   const after = playCard(withHand(fightWith(['seethe']), ['seethe']), 0, 1);
-  assert.deepEqual(after.fadedPile, ['seethe']);
+  assert.deepEqual(after.removedPile, ['seethe']);
+  assert.deepEqual(after.discardPile, []);
   assert.equal(after.player.statuses.wrath, 2);
+  assert.ok(describeCard('seethe').includes('Remove.'));
+});
+
+void test('removed cards stay out of the reshuffle', () => {
+  const state = {
+    ...withHand(fightWith(['seethe']), ['seethe']),
+    drawPile: [],
+    discardPile: [],
+  };
+  const after = endTurn(playCard(state, 0, 1));
+  assert.deepEqual(after.hand, []);
+  assert.deepEqual(after.removedPile, ['seethe']);
 });
 
 void test('killing the last hero wins the fight and counts it as slain', () => {
@@ -1250,27 +1263,15 @@ const cloakFight = (hand: CardId[]): CombatState =>
     hand
   );
 
-void test('Imbue Hold for this turn keeps a card one end of turn only', () => {
+void test('an imbued Hold keeps a card in hand every turn until it is played', () => {
   const state = cloakFight(['holdFast', 'backhand']);
   const imbued = playCard(state, 0, 0, undefined, 1);
   assert.deepEqual(imbued.hand, ['backhand']);
-  const turn2 = endTurn(imbued);
-  assert.ok(
-    turn2.hand.includes('backhand'),
-    'held through the first end of turn'
-  );
-  const turn3 = endTurn(turn2);
-  assert.ok(!turn3.hand.includes('backhand'), 'the turn imbue has worn off');
-});
-
-void test('Imbue Hold for this battle keeps a card every end of turn', () => {
-  const state = cloakFight(['soulbind', 'backhand']);
-  const imbued = playCard(state, 0, 0, undefined, 1);
   const later = endTurn(endTurn(endTurn(imbued)));
-  assert.ok(later.hand.includes('backhand'));
+  assert.ok(later.hand.includes('backhand'), 'held turn after turn');
 });
 
-void test('an imbued effect lands when the card is played', () => {
+void test('an imbued effect lands once, the first time the card is played', () => {
   const state = cloakFight(['venomCoat', 'backhand']);
   const uid = state.heroes[0]?.uid ?? -1;
   const imbued = playCard(state, 0, uid, undefined, 1);
@@ -1278,23 +1279,19 @@ void test('an imbued effect lands when the card is played', () => {
   const hero = after.heroes.find((unit) => unit.uid === uid);
   assert.equal(hero?.statuses.poison, 3);
   assert.equal(hero?.hp, 14 - 6);
+  // Spent: nothing waits in the piles for the Backhand.
+  assert.equal(after.stowedImbues.length, 0);
 });
 
-void test('a battle imbue follows its card through the discard and back', () => {
+void test('an unplayed imbued card keeps its imbue through the discard and back', () => {
   const state = cloakFight(['venomCoat', 'backhand']);
-  const uid = state.heroes[0]?.uid ?? -1;
-  const played = playCard(playCard(state, 0, uid, undefined, 1), 0, uid);
-  assert.equal(played.stowedImbues.length, 1);
-  // Only the Backhand left to draw: it comes back still imbued.
-  const redrawn = endTurn({
-    ...played,
-    drawPile: ['backhand'],
-    discardPile: [],
-  });
-  const slot = redrawn.hand.indexOf('backhand');
+  const imbued = playCard(state, 0, 0, undefined, 1);
+  const discarded = endTurn({ ...imbued, drawPile: [], discardPile: [] });
+  // Only the Backhand to draw: it is discarded, reshuffled and redrawn.
+  const slot = discarded.hand.indexOf('backhand');
   assert.ok(slot >= 0);
-  assert.equal(redrawn.handImbues[slot]?.length, 1);
-  assert.equal(redrawn.stowedImbues.length, 0);
+  assert.equal(discarded.handImbues[slot]?.length, 1);
+  assert.equal(discarded.stowedImbues.length, 0);
 });
 
 void test('a hero effect can only be imbued onto a card that aims at a hero', () => {
@@ -1312,11 +1309,9 @@ void test('an Imbue card needs another card in hand to imbue', () => {
   assert.equal(playCard(state, 0, 0, undefined, 0), state);
 });
 
-void test('Imbue cards say what they grant and for how long', () => {
-  assert.deepEqual(describeCard('holdFast'), ['Imbue Hold this turn.']);
-  assert.deepEqual(describeCard('venomCoat'), [
-    'Imbue this battle: Apply 3 Poison.',
-  ]);
+void test('Imbue cards say what they grant', () => {
+  assert.deepEqual(describeCard('holdFast'), ['Imbue Hold.']);
+  assert.deepEqual(describeCard('venomCoat'), ['Imbue 3 Poison.']);
 });
 
 // --- ENFEEBLE ---
@@ -1467,4 +1462,97 @@ void test('Stand Firm guards and braces; Brace can be imbued', () => {
   assert.equal(after.player.statuses.brace, 1);
   assert.ok(after.player.guard > 0);
   assert.equal(STATUS_IS_AFFLICTION.brace, false);
+});
+
+// --- REMOVE, STACKING AND DURATIONS ---
+void test('Remove can be imbued: the card goes to the Remove pile once played', () => {
+  const state = cloakFight(['lastRites', 'backhand']);
+  const imbued = playCard(state, 0, 0, undefined, 1);
+  assert.equal(imbued.hand.length, 2, 'Last Rites draws a card');
+  const slot = imbued.hand.indexOf('backhand');
+  const after = playCard(imbued, slot, imbued.heroes[0]?.uid ?? -1);
+  assert.deepEqual(after.removedPile, ['backhand']);
+  assert.ok(!after.discardPile.includes('backhand'));
+});
+
+void test('a keyword can not be imbued onto a card that already has it', () => {
+  // Printed: Impale already pierces.
+  const printed = laneFight(['barbedTip', 'impale']);
+  assert.equal(canPlayCard(printed, 0), false);
+  // Imbued: a second Hold Fast finds no card without Hold.
+  const state = cloakFight(['holdFast', 'backhand', 'holdFast']);
+  const imbued = playCard(state, 0, 0, undefined, 1);
+  assert.deepEqual(imbued.hand, ['backhand', 'holdFast']);
+  assert.equal(canPlayCard(imbued, 1), false);
+});
+
+void test('a stackable effect stacks when imbued twice', () => {
+  const state = cloakFight(['venomCoat', 'venomCoat', 'backhand']);
+  const uid = state.heroes[0]?.uid ?? -1;
+  const once = playCard(state, 0, uid, undefined, 2);
+  const twice = playCard({ ...once, energy: 3 }, 0, uid, undefined, 1);
+  const after = playCard({ ...twice, energy: 3 }, 0, uid);
+  const hero = after.heroes.find((unit) => unit.uid === uid);
+  assert.equal(hero?.statuses.poison, 6);
+});
+
+void test('an effect that does not stack can not be imbued twice', () => {
+  const state = cloakFight(['purifyingRune', 'backhand', 'purifyingRune']);
+  const imbued = playCard({ ...state, energy: 5 }, 0, 0, undefined, 1);
+  assert.deepEqual(imbued.hand, ['backhand', 'purifyingRune']);
+  assert.equal(canPlayCard(imbued, 1), false);
+});
+
+void test('a battle imbue comes back with the card after it is played', () => {
+  const state = cloakFight(['soulbind', 'backhand']);
+  const uid = state.heroes[0]?.uid ?? -1;
+  const imbued = playCard(state, 0, 0, undefined, 1);
+  const played = playCard(imbued, 0, uid);
+  // The Backhand is reshuffled and drawn again, Hold and all.
+  const later = endTurn({ ...played, drawPile: [] });
+  const slot = later.hand.indexOf('backhand');
+  assert.ok(slot >= 0);
+  assert.equal(later.handImbues[slot]?.[0]?.duration, 'battle');
+  assert.deepEqual(describeCard('soulbind'), ['Imbue Hold this battle.']);
+});
+
+void test('a turn imbue is gone at the end of the turn', () => {
+  const state = cloakFight(['emberRune', 'backhand']);
+  const imbued = playCard(state, 0, 0, undefined, 1);
+  assert.equal(imbued.handImbues[0]?.length, 1);
+  const later = endTurn({ ...imbued, drawPile: [], discardPile: [] });
+  const slot = later.hand.indexOf('backhand');
+  assert.equal(later.handImbues[slot]?.length ?? 0, 0);
+  assert.equal(later.stowedImbues.length, 0);
+  assert.deepEqual(describeCard('emberRune'), ['Imbue 4 Burn this turn.']);
+});
+
+void test('an action imbue is lost if another card is played first', () => {
+  const state = cloakFight(['keenEdge', 'backhand', 'darkCloak']);
+  const imbued = playCard(state, 0, 0, undefined, 1);
+  const slot = imbued.hand.indexOf('backhand');
+  assert.equal(imbued.handImbues[slot]?.length, 1);
+  const other = playCard(imbued, imbued.hand.indexOf('darkCloak'), 0);
+  const backhand = other.hand.indexOf('backhand');
+  assert.equal(other.handImbues[backhand]?.length ?? 0, 0);
+});
+
+void test('an action buff lasts for the next card only', () => {
+  const state = cloakFight(['steadyAim', 'blackArrow', 'blackArrow']);
+  const uid = state.heroes[0]?.uid ?? -1;
+  const aimed = playCard(state, 0, 0);
+  assert.equal(aimed.player.statuses.hone, 4);
+  const first = playCard(aimed, 0, uid);
+  assert.equal(first.player.statuses.hone, 0, 'spent on the first arrow');
+  assert.deepEqual(describeCard('steadyAim'), ['Gain 4 Hone this action.']);
+});
+
+void test('a turn buff wears off at the end of the turn', () => {
+  const state = cloakFight(['battleFury']);
+  const before = state.player.statuses.might;
+  const furious = playCard(state, 0, 0);
+  assert.equal(furious.player.statuses.might, before + 3);
+  const later = endTurn(furious);
+  assert.equal(later.player.statuses.might, before);
+  assert.deepEqual(describeCard('battleFury'), ['Gain 3 Might this turn.']);
 });

@@ -1,15 +1,22 @@
 // ===================================================================
 // IMBUE
-// An Imbue card grants another card in hand a keyword (Hold) or one
-// more effect (Poison, Guard, Cleanse ...), for this turn or the whole
-// battle. The gifts live beside the hand, slot for slot (handImbues),
-// so piles stay plain card ids.
-//   PLAYED   the card's imbued effects land once, at its first pick.
-//   END TURN a card with Hold stays in hand; then every turn imbue
-//            wears off.
-//   PILES    a card leaving the hand stows its battle imbues; copies of
-//            a card can't be told apart in a shuffled pile, so the
-//            next copy drawn takes them back.
+// An Imbue card grants another card in hand a keyword (Hold, Piercing,
+// Remove) or one more effect (Poison, Guard, Cleanse ...), until that
+// card is played. The gifts live beside the hand, slot for slot
+// (handImbues), so piles stay plain card ids.
+//   PLAYED   the card's imbued effects land once, at its first pick,
+//            and are spent (a battle imbue goes with it, see PILES).
+//   END TURN a card with Hold stays in hand; the rest are discarded
+//            and keep their imbues (see PILES).
+//   PILES    a card that leaves the hand stows its imbues; copies of a
+//            card can't be told apart in a shuffled pile, so the next
+//            copy drawn takes them back.
+//   DURATION an imbue may carry one (types.ts, Duration): "this action"
+//            lapses when another card is played first, "this turn" at
+//            the end of the turn, "this battle" survives being played.
+//   STACKING a gift the card already has (printed or imbued) only goes
+//            on again if it stacks (GIFT_STACKS): Poison 3 + Poison 3
+//            makes 6; a second Hold or Cleanse has nowhere to go.
 // An imbue never changes who a card may aim at: an effect that hits a
 // hero can only go on a card that already aims at one hero.
 // Pure functions, like the rest of the engine.
@@ -21,6 +28,7 @@ import type {
   CardEffect,
   CardKeyword,
   CombatState,
+  Duration,
   Imbue,
   ImbuableEffect,
   ImbueGift,
@@ -60,6 +68,48 @@ export const cardHasKeyword = (
 const holdsCard = (cardId: CardId, imbues: readonly Imbue[]): boolean =>
   cardHasKeyword(cardId, imbues, 'hold');
 
+// --- STACKING ---
+/**
+ * True for an effect that adds up when a card has it twice (an amount
+ * to add); false for one that does the same thing however often it is
+ * there. Keywords never stack.
+ */
+const EFFECT_STACKS: Record<ImbuableEffect['kind'], boolean> = {
+  damage: true,
+  hex: true,
+  poison: true,
+  burn: true,
+  frost: true,
+  bleed: true,
+  weaken: true,
+  guard: true,
+  wrath: true,
+  brace: true,
+  buff: true,
+  reap: true,
+  draw: true,
+  energy: true,
+  heal: true,
+  enfeeble: false,
+  protect: false,
+  cleanse: false,
+};
+
+/** What makes two effects "the same" for stacking: kind, and buff. */
+const sameEffect = (a: CardEffect, b: ImbuableEffect): boolean =>
+  a.kind === b.kind &&
+  (a.kind !== 'buff' || b.kind !== 'buff' || a.buff === b.buff);
+
+/** True when the card already has this effect, printed or imbued. */
+const hasEffect = (
+  cardId: CardId,
+  imbues: readonly Imbue[],
+  effect: ImbuableEffect
+): boolean =>
+  [...getCard(cardId).effects, ...imbuedEffects(imbues)].some((own) =>
+    sameEffect(own, effect)
+  );
+
 /** True when a card aims a single-target hit at one hero. */
 const hitsOneHero = (cardId: CardId): boolean =>
   getCard(cardId).effects.some(
@@ -67,25 +117,35 @@ const hitsOneHero = (cardId: CardId): boolean =>
   );
 
 /**
- * Which cards each keyword may go on (besides one already printed with
- * it): Hold on any card, Piercing on a card that hits one hero.
+ * Which cards each keyword may go on (besides one that already has it):
+ * Hold and Remove on any card, Piercing on a card that hits one hero.
  */
 const KEYWORD_FITS: Record<CardKeyword, (cardId: CardId) => boolean> = {
   hold: () => true,
   piercing: hitsOneHero,
+  remove: () => true,
 };
 
 /**
- * True when `gift` may go on `cardId`. A keyword goes on a card that
- * lacks it and fits it (KEYWORD_FITS); a self effect goes on any card; a hero effect only on a card that
- * already aims at one hero (and never as an area effect), so the
- * card's aim stays the same.
+ * True when `gift` may go on `cardId` (already imbued with `imbues`).
+ * A keyword goes on a card that lacks it and fits it (KEYWORD_FITS). An
+ * effect the card already has goes on only if it stacks. A self effect
+ * goes on any card; a hero effect only on a card that already aims at
+ * one hero (and never as an area effect), so the card's aim stays the
+ * same.
  */
-export const canImbueOnto = (gift: ImbueGift, cardId: CardId): boolean => {
+export const canImbueOnto = (
+  gift: ImbueGift,
+  cardId: CardId,
+  imbues: readonly Imbue[] = []
+): boolean => {
   if (gift.kind === 'keyword')
     return (
-      !hasKeyword(cardId, gift.keyword) && KEYWORD_FITS[gift.keyword](cardId)
+      !cardHasKeyword(cardId, imbues, gift.keyword) &&
+      KEYWORD_FITS[gift.keyword](cardId)
     );
+  const isRepeat = hasEffect(cardId, imbues, gift.effect);
+  if (isRepeat && !EFFECT_STACKS[gift.effect.kind]) return false;
   if (isSelfEffect(gift.effect)) return true;
   const isArea = 'target' in gift.effect && gift.effect.target === 'all';
   return !isArea && targetRuleOf(cardId) !== 'none';
@@ -100,7 +160,10 @@ export const imbueSlotsFor = (
   const imbue = cardId === undefined ? undefined : imbueEffectOf(cardId);
   if (!imbue) return [];
   return state.hand.flatMap((other, index) =>
-    index !== handIndex && canImbueOnto(imbue.gift, other) ? [index] : []
+    index !== handIndex &&
+    canImbueOnto(imbue.gift, other, imbuesAt(state, index))
+      ? [index]
+      : []
   );
 };
 
@@ -112,7 +175,10 @@ export const imbueSlot = (
   imbue: Imbue
 ): CombatState => {
   const cardId = state.hand[slot];
-  if (cardId === undefined || !canImbueOnto(imbue.gift, cardId)) return state;
+  const isAllowed =
+    cardId !== undefined &&
+    canImbueOnto(imbue.gift, cardId, imbuesAt(state, slot));
+  if (!isAllowed) return state;
   return {
     ...state,
     handImbues: state.hand.map((_, index) =>
@@ -152,24 +218,22 @@ export const addToHand = (state: CombatState, cardId: CardId): CombatState => {
   };
 };
 
-/** Stows a card's battle imbues as it goes to the discard pile. */
-export const stowImbues = (
+/** Stows a card's imbues as it goes to a pile. */
+const stowImbues = (
   state: CombatState,
   cardId: CardId,
   imbues: readonly Imbue[]
-): CombatState => {
-  const lasting = imbues.filter(({ duration }) => duration === 'battle');
-  return lasting.length === 0
+): CombatState =>
+  imbues.length === 0
     ? state
     : {
         ...state,
-        stowedImbues: [...state.stowedImbues, { cardId, imbues: lasting }],
+        stowedImbues: [...state.stowedImbues, { cardId, imbues: [...imbues] }],
       };
-};
 
 /**
- * End of turn: cards with Hold stay in hand, the rest go to the
- * discard pile (stowing their battle imbues); then turn imbues wear off.
+ * End of turn: cards with Hold stay in hand with their imbues; the rest
+ * go to the discard pile, stowing theirs.
  */
 export const discardHand = (state: CombatState): CombatState => {
   const slots = state.hand.map((cardId, index) => ({
@@ -178,12 +242,10 @@ export const discardHand = (state: CombatState): CombatState => {
   }));
   const kept = slots.filter((slot) => holdsCard(slot.cardId, slot.imbues));
   const dropped = slots.filter((slot) => !holdsCard(slot.cardId, slot.imbues));
-  const lastingOf = (imbues: readonly Imbue[]) =>
-    imbues.filter(({ duration }) => duration === 'battle');
   const discarded: CombatState = {
     ...state,
     hand: kept.map((slot) => slot.cardId),
-    handImbues: kept.map((slot) => lastingOf(slot.imbues)),
+    handImbues: kept.map((slot) => slot.imbues),
     discardPile: [...state.discardPile, ...dropped.map((slot) => slot.cardId)],
   };
   return dropped.reduce(
@@ -191,3 +253,45 @@ export const discardHand = (state: CombatState): CombatState => {
     discarded
   );
 };
+
+/**
+ * A played card's battle imbues go to the pile with it, so the next copy
+ * drawn takes them back; the rest were spent by the play.
+ */
+export const stowBattleImbues = (
+  state: CombatState,
+  cardId: CardId,
+  imbues: readonly Imbue[]
+): CombatState =>
+  stowImbues(
+    state,
+    cardId,
+    imbues.filter((imbue) => imbue.duration === 'battle')
+  );
+
+/** True when an imbue lasts past any of these durations' ends. */
+const outlasts =
+  (ending: readonly Duration[]) =>
+  (imbue: Imbue): boolean =>
+    imbue.duration === undefined || !ending.includes(imbue.duration);
+
+/**
+ * Drops every imbue whose duration is ending (in hand and in the
+ * piles): "action" ones when a card is played, "action" and "turn"
+ * ones at the end of the turn.
+ */
+export const lapseImbues = (
+  state: CombatState,
+  ending: readonly Duration[]
+): CombatState => ({
+  ...state,
+  handImbues: state.hand.map((_, slot) =>
+    imbuesAt(state, slot).filter(outlasts(ending))
+  ),
+  stowedImbues: state.stowedImbues
+    .map((stowed) => ({
+      ...stowed,
+      imbues: stowed.imbues.filter(outlasts(ending)),
+    }))
+    .filter((stowed) => stowed.imbues.length > 0),
+});

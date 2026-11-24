@@ -132,29 +132,6 @@ export const RARITY_GEM: Record<CardRarity, string | null> = {
   rare: 'bg-accent',
 };
 
-/** Words drawn bold in rules text (statuses and card keywords). */
-export const RULES_KEYWORDS = [
-  'Hex',
-  'Weaken',
-  'Enfeeble',
-  'Poison',
-  'Burn',
-  'Frost',
-  'Bleed',
-  'Guard',
-  'Wrath',
-  'Might',
-  'Surge',
-  'Hone',
-  'Piercing',
-  'Reinforce',
-  'Brace',
-  'Protection',
-  'Hold',
-  'Fades',
-  'ALL',
-] as const;
-
 // --- STOPS ---
 export const STOP_LOOK: Record<StopKind, Look> = {
   horde: { glyph: 'sword', toneClass: 'text-hp' },

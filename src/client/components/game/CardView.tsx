@@ -7,18 +7,26 @@
 //   rules panel   parchment with the rules text, keywords in bold
 //   type ribbon   the type (Melee, Range, Magic, Defend, Buff, Curse) and rarity
 // The frame and outer glow are coloured by type (see CARD_LOOK).
-// The text comes from describeCard, so it always matches what the card
-// really does (including live wrath/weaken math, and the hero it is
-// aimed at while dragged).
+// The text comes from describeCardRules, so it always matches what the
+// card really does (including live wrath/weaken math, and the hero it
+// is aimed at while dragged). Keywords and Fades show as badges under
+// the cost orb (CardBadges); every glossary word in the text is bold
+// and explains itself on hover or long press.
 // ===================================================================
 
 import { Fragment } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
-import { describeCard } from '../../../shared/game/describe';
+import {
+  describeCardRules,
+  DURATION_INFO,
+  GLOSSARY,
+} from '../../../shared/game/describe';
 import type { Combatant, HeroUnit, Imbue } from '../../../shared/game/types';
-import { CARD_LOOK, RARITY_GEM, RULES_KEYWORDS } from '../../content/visuals';
+import { CARD_LOOK, RARITY_GEM } from '../../content/visuals';
 import { Glyph, type GlyphName } from '../ui/Glyph';
-import { ImbueBadges } from './ImbueBadges';
+import { cardBadgesOf } from '../../content/cardBadges';
+import { Tooltip } from '../ui/Tooltip';
+import { CardBadges } from './CardBadges';
 
 // --- TYPES ---
 export type CardViewProps = {
@@ -80,8 +88,25 @@ const SIZE_LOOK: Record<CardSize, SizeLook> = {
   },
 };
 
-/** Splits rules text into plain words and bold keywords or numbers. */
-const KEYWORD_PATTERN = new RegExp(`(\\d+|${RULES_KEYWORDS.join('|')})`, 'g');
+/**
+ * Words drawn bold in rules text: every glossary word (longest first,
+ * so no word is cut short by a shorter one), plus ALL.
+ */
+const BOLD_WORDS = [...Object.keys(GLOSSARY), 'ALL'].sort(
+  (a, b) => b.length - a.length
+);
+/** Durations ("this turn"), drawn in italics after their gift. */
+const DURATION_WORDS: readonly string[] = Object.values(DURATION_INFO).map(
+  (info) => info.label
+);
+/**
+ * Splits rules text into plain words and marked parts: bold keywords
+ * or numbers, italic durations.
+ */
+const KEYWORD_PATTERN = new RegExp(
+  `(\\d+|\\b(?:${[...BOLD_WORDS, ...DURATION_WORDS].join('|')})\\b)`,
+  'g'
+);
 
 /**
  * Colour for a number on the live card compared with the printed one:
@@ -109,7 +134,7 @@ const glowOf = (
 
 // --- SUBCOMPONENTS ---
 /**
- * One rules line with keywords and numbers in bold. `printed` is the
+ * One rules line with keywords and numbers in bold, durations in italics. `printed` is the
  * same line without the villain's statuses; both come from the same
  * template, so the Nth number of each lines up for the comparison.
  */
@@ -117,19 +142,43 @@ const RulesLine = ({ text, printed }: { text: string; printed: string }) => {
   const printedParts = printed.split(KEYWORD_PATTERN);
   return (
     <span className="block">
-      {text.split(KEYWORD_PATTERN).map((part, index) =>
-        index % 2 === 1 ? (
-          <b
-            key={index}
-            className={`font-black ${changeClass(part, printedParts[index])}`}
-          >
-            {part}
-          </b>
-        ) : (
-          <Fragment key={index}>{part}</Fragment>
-        )
-      )}
+      {text
+        .split(KEYWORD_PATTERN)
+        .map((part, index) =>
+          index % 2 === 1 ? (
+            <MarkedPart
+              key={index}
+              part={part}
+              changeClassName={changeClass(part, printedParts[index])}
+            />
+          ) : (
+            <Fragment key={index}>{part}</Fragment>
+          )
+        )}
     </span>
+  );
+};
+
+/**
+ * A marked part of a rules line: a duration in italics (no tooltip, to
+ * keep cards calm), else a bold word or number; a glossary word
+ * explains itself on hover.
+ */
+const MarkedPart = ({
+  part,
+  changeClassName,
+}: {
+  part: string;
+  changeClassName: string;
+}) => {
+  if (DURATION_WORDS.includes(part)) return <i>{part}</i>;
+  const bold = <b className={`font-black ${changeClassName}`}>{part}</b>;
+  const info = GLOSSARY[part];
+  if (!info) return bold;
+  return (
+    <Tooltip content={{ title: info.label, description: info.description }}>
+      {bold}
+    </Tooltip>
   );
 };
 
@@ -193,7 +242,7 @@ export const CardView = ({
   const cardDef = getCard(cardId);
   const typeLook = CARD_LOOK[cardDef.type];
   // The card as printed (no statuses), to colour numbers that changed.
-  const printedLines = describeCard(cardId);
+  const printedLines = describeCardRules(cardId);
   const look = SIZE_LOOK[size];
   const glow = glowOf(typeLook.glowVar, isSelected, isImbueTarget);
   return (
@@ -220,7 +269,7 @@ export const CardView = ({
           className="imbue-aim-pulse pointer-events-none absolute inset-0 rounded-lg"
         />
       )}
-      <ImbueBadges imbues={imbues} />
+      <CardBadges badges={cardBadgesOf(cardId, imbues)} size={size} />
       <span
         className={`-mx-[3px] shrink-0 border-y border-black/50 ${typeLook.frameClass} font-display font-black uppercase leading-none tracking-tight text-ink [text-shadow:0_1px_1px_rgb(0_0_0/0.8)] ${look.name}`}
       >
@@ -229,7 +278,7 @@ export const CardView = ({
       <span
         className={`flex w-full min-h-0 flex-1 flex-col justify-center rounded-b-sm bg-parchment text-on-parchment ${look.rules}`}
       >
-        {describeCard(cardId, attacker, target).map((line, index) => (
+        {describeCardRules(cardId, attacker, target).map((line, index) => (
           <RulesLine
             key={line}
             text={line}
