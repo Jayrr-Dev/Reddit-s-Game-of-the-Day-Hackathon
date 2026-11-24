@@ -167,17 +167,19 @@ export const clearShroud = <T extends Combatant>(target: T): T => ({
 });
 
 /**
- * Hex, right before its bearer's turn: it burns for its value on odd
- * counts only (1, 3, 5 ... nothing on 2, 4 ...), then grows by
- * HEX_GROWTH. So a Hex of 1 deals 1, then 0, then 3, then 0, then 5.
+ * Hex, right before its bearer's turn: an odd count burns for its
+ * value and clears; an even one waits, growing by HEX_GROWTH (to odd,
+ * so it burns a turn later). Hex 3 burns 3 now; Hex 2 burns 3 next
+ * turn. Stacking more flips which, so the player picks: burst or hold.
  */
 export const hexBurn = <T extends Combatant>(target: T): T => {
   const { hex } = target.statuses;
   if (hex <= 0) return target;
-  const burned = hex % 2 === 1 ? loseHp(target, hex) : target;
+  const isOdd = hex % 2 === 1;
+  const burned = isOdd ? loseHp(target, hex) : target;
   return {
     ...burned,
-    statuses: { ...burned.statuses, hex: hex + HEX_GROWTH },
+    statuses: { ...burned.statuses, hex: isOdd ? 0 : hex + HEX_GROWTH },
   };
 };
 

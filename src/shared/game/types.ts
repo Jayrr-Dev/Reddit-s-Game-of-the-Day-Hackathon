@@ -14,8 +14,8 @@ import type { RngState } from './rng.ts';
  * players as "Guard", lives on the
  * combatant itself because it resets every turn):
  * - poison: loses this much HP at the end of its turn, then drops by 1
- * - hex:    right before its turn, loses this much HP if it is odd
- *           (nothing when even), then hex grows by 1
+ * - hex:    right before its turn, if odd: loses this much HP and hex
+ *           clears; if even: hex grows by 1 (and burns next turn)
  * - dread: deals 25% less attack damage; drops by 1 at the end of its turn
  * - wrath: adds this much to every hit; lasts the whole fight
  * Buffs, gained from the villain's Buff cards, also last the whole fight:

@@ -97,10 +97,10 @@ const hexChipOf = (hex: number): Partial<StatusChip> => {
   return isPrimed
     ? {
         fill: toneVarOf(STATUS_LOOK.hex),
-        description: `Odd: burns for ${hex} before its next turn, then +1.`,
+        description: `Odd: burns for ${hex} before its next turn, then clears.`,
       }
     : {
-        description: `Even: no burn this turn, just +1 (burns for ${hex + 1} the turn after).`,
+        description: `Even: no burn this turn, just +1 (burns for ${hex + 1} the turn after, then clears).`,
       };
 };
 

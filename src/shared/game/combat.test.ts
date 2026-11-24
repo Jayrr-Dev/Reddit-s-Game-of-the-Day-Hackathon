@@ -100,15 +100,15 @@ void test('hex is left alone by end-of-turn upkeep', () => {
   assert.equal(after.statuses.hex, 3);
 });
 
-void test('hex burns for its value only when odd, then grows by 1', () => {
+void test('an odd hex burns for its value and clears; an even one grows by 1', () => {
   for (const hex of [1, 2, 3, 4, 5]) {
     const burned = hexBurn({
       ...createCombatant(100, 100),
       statuses: { ...NO_STATUSES, hex },
     });
-    const loss = hex % 2 === 1 ? hex : 0;
-    assert.equal(burned.hp, 100 - loss, `hex ${hex} burns ${loss}`);
-    assert.equal(burned.statuses.hex, hex + 1, `hex ${hex} grows`);
+    const isOdd = hex % 2 === 1;
+    assert.equal(burned.hp, 100 - (isOdd ? hex : 0), `hex ${hex} burns`);
+    assert.equal(burned.statuses.hex, isOdd ? 0 : hex + 1, `hex ${hex} after`);
   }
 });
 
@@ -140,7 +140,7 @@ void test('a hexed hero burns before it acts, and its hex grows', () => {
   );
   const actIndex = steps.findIndex((step) => step.actorUid === squireUid);
   assert.ok(burnIndex > 0 && burnIndex < actIndex, 'burns, then acts');
-  assert.equal(steps.at(-1)!.state.heroes[0]!.statuses.hex, 4);
+  assert.equal(steps.at(-1)!.state.heroes[0]!.statuses.hex, 0);
 });
 
 void test('a hexed villain burns at the start of its turn', () => {
@@ -159,10 +159,14 @@ void test('a hexed villain burns at the start of its turn', () => {
   const next = endTurn(hexed);
   // The Bard only sings (Wrath to allies): the 5 lost is the hex.
   assert.equal(next.player.hp, 45);
-  assert.equal(next.player.statuses.hex, 6);
-  // Even now: the next turn it only grows.
-  const after = endTurn(next);
-  assert.equal(after.player.statuses.hex, 7);
+  assert.equal(next.player.statuses.hex, 0);
+  // An even Hex waits a turn, growing to odd, then burns.
+  const even: CombatState = {
+    ...next,
+    player: { ...next.player, statuses: { ...NO_STATUSES, hex: 2 } },
+  };
+  const waited = endTurn(even);
+  assert.equal(waited.player.statuses.hex, 3);
 });
 
 void test("the Rogue's Poisoned Dart poisons instead of hexing", () => {
