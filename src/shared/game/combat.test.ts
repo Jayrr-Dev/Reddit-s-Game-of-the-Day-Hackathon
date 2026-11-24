@@ -1553,6 +1553,34 @@ void test('hero moves can buff, guard or heal every hero (chip reads ALL)', () =
   assert.ok(lead?.label.includes('every hero'));
 });
 
+void test('the Holy Dragon blesses its host; its angels cleanse it', () => {
+  const dragon = getHero('holyDragon').moves.find(
+    (m) => m.name === 'Blessing of the Host'
+  )!;
+  assert.deepEqual(
+    dragon.effects.map((e) => [e.kind, 'who' in e ? e.who : '']),
+    [
+      ['wrath', 'allies'],
+      ['protect', 'allies'],
+    ]
+  );
+  const angel = getHero('angelArcher').moves.find((m) => m.name === 'Purify')!;
+  assert.deepEqual(angel.effects, [{ kind: 'cleanse', who: 'allies' }]);
+  // Protection on heroes: cast on their turn, gone when their next starts.
+  const start = squireAndArcher([]);
+  const squire = start.heroes[0]!;
+  const blessed: CombatState = {
+    ...start,
+    heroes: start.heroes.map((unit) => ({
+      ...unit,
+      statuses: { ...unit.statuses, protection: 1 },
+    })),
+  };
+  const steps = endTurnSteps(blessed);
+  const after = steps[0]!.state.heroes.find((u) => u.uid === squire.uid)!;
+  assert.equal(after.statuses.protection, 0, 'spent as their turn starts');
+});
+
 // --- HOLD ---
 void test('a Hold card stays in hand at end of turn; the rest are discarded', () => {
   // A deck of Dark Cloaks, so the new hand never redraws the Backhand.

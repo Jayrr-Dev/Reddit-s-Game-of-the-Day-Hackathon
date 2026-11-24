@@ -1382,6 +1382,12 @@ const applyHeroEffect = (
         heroTargets(state, actor.uid, effect.who),
         (unit) => heal(unit, scaled(effect.amount))
       );
+    case 'protect':
+      return updateHeroes(
+        state,
+        heroTargets(state, actor.uid, effect.who),
+        castProtection
+      );
     case 'cleanse':
       return cleanseHeroes(state, heroTargets(state, actor.uid, effect.who));
     case 'summon':
@@ -1648,7 +1654,10 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
     // The villain's turn was its action: Burn and Frost, then upkeep.
     player: endOfTurnUpkeep(afterAction(lapsed.player)),
     // Enfeeble laid on this turn holds; any older lapses.
-    heroes: state.heroes.map((unit) => enfeebleCheck(expireGuard(unit))),
+    // Their round buffs (Protection) are spent as their turn starts.
+    heroes: state.heroes.map((unit) =>
+      enfeebleCheck(dropRoundBuffs(expireGuard(unit)))
+    ),
   };
   const steps: TurnStep[] = [
     { actorUid: null, attackType: null, move: null, state: discarded },

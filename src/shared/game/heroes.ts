@@ -71,6 +71,11 @@ const heal = (
   who,
 });
 
+const protect = (who: 'self' | 'allies' = 'allies'): HeroEffect => ({
+  kind: 'protect',
+  who,
+});
+
 const cleanse = (who: 'self' | 'allies' = 'allies'): HeroEffect => ({
   kind: 'cleanse',
   who,
@@ -191,8 +196,10 @@ export const HEROES = {
    * (its summoner, Holy Dragon Unc, most of all needs it).
    */
   angelArcher: hero('Biblical Angel', 'grunt', 14, 50, 7, BACK, [
-    move('Light Arrow', shoot(5)),
+    move('Light Arrow', shoot(1, 6)),
     move('Healing Light', heal(6)),
+    // Purify: lifts an affliction off every hero (the dragon above all).
+    move('Purify', cleanse()),
     move('Volley of Light', shoot(2, 3)),
   ]),
 
@@ -289,6 +296,8 @@ export const HEROES = {
       move('Sanctuary Wings', guard(20)),
       signature(move('Halo of Judgment', revive(), spell(26))),
       move('Radiant Roar', wrath(2)),
+      // Blesses the whole host: Wrath and Protection on every hero.
+      move('Blessing of the Host', wrath(2, 'allies'), protect()),
     ],
     ['vigor']
   ),

@@ -648,6 +648,7 @@ export type IntentKind =
   | 'weaken'
   | 'guard'
   | 'buff'
+  | 'protect'
   | 'heal'
   | 'cleanse'
   | 'summon'
@@ -742,6 +743,12 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
         label: `Heal ${amount}${toWhom(effect.who)}`,
       };
     }
+    case 'protect':
+      return {
+        kind: 'protect',
+        text: effect.who === 'allies' ? 'ALL' : '',
+        label: `Protection${toWhom(effect.who)}\n${STATUS_INFO.protection.description}`,
+      };
     case 'cleanse':
       return {
         kind: 'cleanse',

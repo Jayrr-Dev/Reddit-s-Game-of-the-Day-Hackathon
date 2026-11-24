@@ -326,6 +326,8 @@ export type HeroEffect =
   | { kind: 'guard'; amount: number; who: 'self' | 'allies' }
   | { kind: 'wrath'; amount: number; who: 'self' | 'allies' }
   | { kind: 'heal'; amount: number; who: 'self' | 'allies' }
+  /** Casts Protection (a tier up) on itself or every hero; spent when their next turn starts. */
+  | { kind: 'protect'; who: 'self' | 'allies' }
   /** Removes 1 random affliction from itself, or from each ally. */
   | { kind: 'cleanse'; who: 'self' | 'allies' }
   /**

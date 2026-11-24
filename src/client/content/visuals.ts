@@ -113,6 +113,7 @@ export const INTENT_LOOK: Record<IntentKind, Look> = {
   buff: STATUS_LOOK.wrath,
   heal: { glyph: 'heart', toneClass: 'text-heal' },
   cleanse: { glyph: 'drop', toneClass: 'text-heal' },
+  protect: STATUS_LOOK.protection,
   summon: { glyph: 'eye', toneClass: 'text-accent' },
   revive: { glyph: 'altar', toneClass: 'text-accent' },
   soar: STATUS_LOOK.aloft,
