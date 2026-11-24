@@ -60,7 +60,7 @@ export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
   {
     id: 'holyDragon',
     name: 'Holy Dragon Unc',
-    blurb: 'A boss in a T that calls Angel Archers to its flanks.',
+    blurb: 'A boss in a T that calls Biblical Angels to its flanks.',
     heroIds: ['holyDragon'],
   },
   {

@@ -164,9 +164,14 @@ export const HEROES = {
   ]),
 
   // SUMMONS (ONLY EVER CALLED ONTO THE FIELD BY ANOTHER HERO)
-  /** An eye ringed by feathered wings, loosing arrows of light. */
-  angelArcher: hero('Angel Archer', 'grunt', 14, 50, 7, BACK, [
+  /**
+   * A Biblical Angel: an eye ringed by feathered wings. It looses arrows
+   * of light, and every third move bathes every ally in Healing Light
+   * (its summoner, Holy Dragon Unc, most of all needs it).
+   */
+  angelArcher: hero('Biblical Angel', 'grunt', 14, 50, 7, BACK, [
     move('Light Arrow', shoot(5)),
+    move('Healing Light', heal(6)),
     move('Volley of Light', shoot(2, 3)),
   ]),
 
@@ -219,7 +224,7 @@ export const HEROES = {
   /**
    * A great ivory dragon boss in a T: the whole front row and the back
    * row's centre. Its Vigor (a boss passive) gives it
-   * two moves a turn: it opens by calling two Angel Archers to its
+   * two moves a turn: it opens by calling two Biblical Angels to its
    * flanks (and calls more whenever a flank is empty when the call
    * comes round again), then breathes holy fire, shields itself, brings
    * down its signature Halo of Judgment (which also raises every fallen

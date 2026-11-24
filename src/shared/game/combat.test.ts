@@ -916,6 +916,35 @@ void test('a summon fills the flanks of the summoner with fresh uids', () => {
   assert.equal(after.nextUid, 4);
 });
 
+void test('a Biblical Angel heals the hurt dragon on its second move', () => {
+  const angel = getHero('angelArcher');
+  assert.equal(angel.name, 'Biblical Angel');
+  const healMove = angel.moves[1]!;
+  const healing = healMove.effects.find((effect) => effect.kind === 'heal');
+  assert.ok(healing && healing.kind === 'heal' && healing.who === 'allies');
+  // Summon the angels, then hurt the dragon and line the angels up to heal.
+  const summoned = endTurn(dragonFight());
+  const dragon = summoned.heroes.find((unit) => unit.heroId === 'holyDragon')!;
+  const hurt: CombatState = {
+    ...summoned,
+    heroes: summoned.heroes.map((unit) =>
+      unit.heroId === 'holyDragon'
+        ? { ...unit, hp: unit.maxHp - 100 }
+        : unit.heroId === 'angelArcher'
+          ? { ...unit, moveIndex: 1 }
+          : unit
+    ),
+  };
+  const angelUids = hurt.heroes
+    .filter((unit) => unit.heroId === 'angelArcher')
+    .map((unit) => unit.uid);
+  const healed = endTurnSteps(hurt)
+    .filter((step) => angelUids.includes(step.actorUid ?? -1))
+    .at(-1)!.state;
+  const after = healed.heroes.find((unit) => unit.uid === dragon.uid)!;
+  assert.ok(after.hp > dragon.maxHp - 100, 'the angels heal the dragon');
+});
+
 void test('a summoner with full flanks skips its summon', () => {
   const summoned = endTurn(dragonFight());
   const dragon = summoned.heroes.find((unit) => unit.heroId === 'holyDragon')!;
