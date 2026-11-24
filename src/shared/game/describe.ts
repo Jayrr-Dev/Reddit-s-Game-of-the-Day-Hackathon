@@ -92,6 +92,11 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
     description:
       'Cuts the damage it deals: I 25%, II 50%, III 75%. Lasts a turn; reapply next turn to deepen it.',
   },
+  brace: {
+    label: 'Brace',
+    description:
+      'Your Guard does not expire at the start of your turn. -1 each turn it keeps it.',
+  },
   reinforce: {
     label: 'Reinforce',
     description: 'Adds this much to every Guard your cards give.',
@@ -174,6 +179,8 @@ export const describeCardEffect = (
     }
     case 'wrath':
       return `Gain ${effect.amount} Wrath.`;
+    case 'brace':
+      return `Gain ${effect.amount} Brace.`;
     case 'cleanse':
       return 'Cleanse 1 random affliction.';
     case 'protect':
@@ -236,6 +243,8 @@ export const imbueTag = (gift: ImbueGift): string => {
       return `${effect.amount} ${STATUS_INFO[effect.buff].label}`;
     case 'enfeeble':
       return 'Enfeeble';
+    case 'brace':
+      return `${effect.amount} Brace`;
     case 'reap':
       return 'Reap';
     case 'cleanse':

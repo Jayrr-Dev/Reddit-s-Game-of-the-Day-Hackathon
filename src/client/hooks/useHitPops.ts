@@ -39,6 +39,7 @@ export type PopKind =
   | 'wrath'
   | 'momentum'
   | 'protection'
+  | 'brace'
   | BuffId
   | DebuffKind
   /** Bleed went off: a spray of blood over the unit (quiet). */
@@ -130,6 +131,7 @@ const VILLAIN_GAINS: readonly (StatusId & PopKind)[] = [
   'surge',
   'hone',
   'reinforce',
+  'brace',
 ];
 
 // --- HELPERS ---

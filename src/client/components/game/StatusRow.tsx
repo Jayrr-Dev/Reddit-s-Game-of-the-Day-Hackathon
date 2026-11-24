@@ -64,6 +64,7 @@ const STATUS_ORDER: readonly StatusId[] = [
   'aloft',
   'protection',
   'reinforce',
+  'brace',
   // ATTACK
   'wrath',
   'might',

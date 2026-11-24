@@ -45,7 +45,7 @@ import {
   cleanseOne,
   attackDamage,
   damageFactorOf,
-  clearGuard,
+  expireGuard,
   createCombatant,
   afterAction,
   endOfTurnUpkeep,
@@ -555,6 +555,11 @@ const applyCardEffect = (
     }
     case 'protect':
       return { ...state, player: castProtection(state.player) };
+    case 'brace':
+      return {
+        ...state,
+        player: addStatus(state.player, 'brace', effect.amount),
+      };
     case 'buff':
       return {
         ...state,
@@ -1047,7 +1052,7 @@ const startPlayerTurn = (state: CombatState): CombatState =>
   drawCards(
     {
       ...state,
-      player: hexBurn(clearGuard(state.player)),
+      player: hexBurn(expireGuard(state.player)),
       energy: ENERGY_PER_TURN,
       turn: state.turn + 1,
     },
@@ -1104,7 +1109,7 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
     // The villain's turn was its action: Burn and Frost, then upkeep.
     player: endOfTurnUpkeep(afterAction(state.player)),
     // Enfeeble laid on this turn holds; any older lapses.
-    heroes: state.heroes.map((unit) => enfeebleCheck(clearGuard(unit))),
+    heroes: state.heroes.map((unit) => enfeebleCheck(expireGuard(unit))),
   };
   const steps: TurnStep[] = [
     { actorUid: null, attackType: null, move: null, state: discarded },

@@ -20,6 +20,7 @@ import {
   takeHit,
   addStatus,
   createCombatant,
+  expireGuard,
   NO_STATUSES,
 } from './combatant.ts';
 import {
@@ -1444,4 +1445,26 @@ void test('status effects in a row share one line of card text', () => {
     'Gain 5 Guard.',
     'Apply 1 Weaken and 1 Hex.',
   ]);
+});
+
+// --- BRACE ---
+void test('Brace keeps Guard from expiring, one turn per stack', () => {
+  const unit = { ...createCombatant(30, 30), guard: 10 };
+  const braced = { ...unit, statuses: { ...unit.statuses, brace: 2 } };
+  const turn1 = expireGuard(braced);
+  assert.equal(turn1.guard, 10);
+  assert.equal(turn1.statuses.brace, 1);
+  const turn2 = expireGuard(turn1);
+  assert.equal(turn2.guard, 10);
+  assert.equal(turn2.statuses.brace, 0);
+  assert.equal(expireGuard(turn2).guard, 0, 'Brace spent: Guard expires');
+  assert.equal(expireGuard(unit).guard, 0, 'no Brace: Guard expires');
+});
+
+void test('Stand Firm guards and braces; Brace can be imbued', () => {
+  const state = cloakFight(['standFirm']);
+  const after = playCard(state, 0, 0);
+  assert.equal(after.player.statuses.brace, 1);
+  assert.ok(after.player.guard > 0);
+  assert.equal(STATUS_IS_AFFLICTION.brace, false);
 });

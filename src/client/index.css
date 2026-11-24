@@ -1367,9 +1367,13 @@
    digits' own height (cap height to baseline), so flex centring puts
    the digits, not the font's empty ascent and descent, in the middle.
    Browsers without text-box fall back to a tight line height. */
+/* A number centred in a coin or badge: lining digits, the line box
+   trimmed to the digit's own height, and no letter-spacing (a parent's
+   tracking adds space after the last digit and pushes it off centre). */
 @utility num-center {
   display: block;
   line-height: 1;
+  letter-spacing: 0;
   font-variant-numeric: lining-nums tabular-nums;
   text-box: trim-both cap alphabetic;
 }

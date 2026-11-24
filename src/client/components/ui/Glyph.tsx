@@ -30,7 +30,8 @@ export type GlyphName =
   | 'snowflake'
   | 'wound'
   | 'aegis'
-  | 'shatter';
+  | 'shatter'
+  | 'anchor';
 
 export type GlyphProps = {
   name: GlyphName;

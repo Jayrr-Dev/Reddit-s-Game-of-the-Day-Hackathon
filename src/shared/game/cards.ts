@@ -201,6 +201,13 @@ export const CARDS = {
   darkSurge: card('Dark Surge', 'buff', 1, 'common', [buff('surge', 3)], FADES),
   deadeye: card('Deadeye', 'buff', 1, 'common', [buff('hone', 3)], FADES),
   bulwark: card('Bulwark', 'buff', 1, 'common', [protect]),
+  standFirm: card('Stand Firm', 'defend', 1, 'common', [
+    guard(5),
+    { kind: 'brace', amount: 1 },
+  ]),
+  ironRune: card('Iron Rune', 'buff', 0, 'common', [
+    imbue(giftOf({ kind: 'brace', amount: 1 }), 'battle'),
+  ]),
   purge: card('Purge', 'buff', 0, 'common', [cleanse]),
   ironHide: card(
     'Iron Hide',

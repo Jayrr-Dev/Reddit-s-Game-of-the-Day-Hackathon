@@ -60,6 +60,7 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   bleed: true,
   weaken: true,
   enfeeble: true,
+  brace: false,
   wrath: false,
   might: false,
   surge: false,

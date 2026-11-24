@@ -43,6 +43,7 @@ export const NO_STATUSES: Statuses = {
   momentum: 0,
   protection: 0,
   enfeeble: 0,
+  brace: 0,
   aloft: 0,
 };
 
@@ -286,11 +287,16 @@ export const addStatus = <T extends Combatant>(
   statuses: { ...target.statuses, [status]: target.statuses[status] + amount },
 });
 
-/** Removes all guard (at the start of the owner's turn). */
-export const clearGuard = <T extends Combatant>(target: T): T => ({
-  ...target,
-  guard: 0,
-});
+/**
+ * Guard expiring at the start of its owner's turn: all of it goes,
+ * unless the owner has Brace, which keeps it all for this turn and
+ * drops by 1.
+ */
+export const expireGuard = <T extends Combatant>(target: T): T => {
+  const { brace } = target.statuses;
+  if (brace <= 0 || target.guard <= 0) return { ...target, guard: 0 };
+  return { ...target, statuses: { ...target.statuses, brace: brace - 1 } };
+};
 
 /** Whether this Hex is the empowered kind (odd, last digit 3). */
 const isEmpoweredHex = (hex: number): boolean =>

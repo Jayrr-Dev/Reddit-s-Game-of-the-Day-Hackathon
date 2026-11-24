@@ -123,6 +123,14 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     ],
     hasGlow: true,
   },
+  /** Brace (Guard holds): the anchor drops and digs in behind a shield. */
+  brace: {
+    layers: [
+      { shape: 'shield', motion: 'flash', count: 1, size: 60 },
+      { shape: 'icon', motion: 'slam', count: 1, size: 42 },
+    ],
+    hasGlow: true,
+  },
   /**
    * Protection (cuts each hit by tier): the aegis flashes up behind a
    * spreading ward of rings.

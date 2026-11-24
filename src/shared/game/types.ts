@@ -50,6 +50,8 @@ export type StatusId =
   | 'protection'
   /** Cuts the damage its bearer deals by tier; lapses unless reapplied. */
   | 'enfeeble'
+  /** Keeps Guard from expiring, one turn per stack. */
+  | 'brace'
   | 'aloft'
   | BuffId;
 export type Statuses = Record<StatusId, number>;
@@ -98,6 +100,8 @@ export type BaseCardEffect =
   /** Deals damage equal to the target's hex times `multiplier`. */
   | { kind: 'reap'; multiplier: number }
   | { kind: 'guard'; amount: number }
+  /** Grants the villain Brace: its Guard lasts this many turns longer. */
+  | { kind: 'brace'; amount: number }
   | { kind: 'wrath'; amount: number }
   /** Removes 1 random affliction from the villain (see STATUS_IS_AFFLICTION). */
   | { kind: 'cleanse' }
