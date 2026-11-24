@@ -98,7 +98,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   bleed: {
     label: 'Bleed',
     description:
-      'Each **Melee** or **Range** hit it takes deals this much more\nThen goes down by **1**',
+      'Each **Melee** or **Range** hit it takes deals **⅓** of this more (rounded up)\nThen goes down by **1**',
   },
   shock: {
     label: 'Shock',

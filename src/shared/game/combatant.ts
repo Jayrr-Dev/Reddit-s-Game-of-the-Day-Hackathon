@@ -18,6 +18,7 @@ import {
   MOMENTUM_DAMAGE_FACTOR,
   SHARPSHOOTER_DAMAGE_FACTOR,
   PHYSICAL_TYPES,
+  BLEED_BITE_FACTOR,
   TIERED_CUT_BY_TIER,
   TIERED_MAX_TIER,
   STATUS_IS_AFFLICTION,
@@ -229,17 +230,23 @@ export const takeHit = <T extends Combatant>(
   return countShockHit(bleeds ? bleedOnHit(hit) : hit);
 };
 
+/** What a Bleed bites for: BLEED_BITE_FACTOR of it, rounded up. */
+export const bleedBiteOf = (bleed: number): number =>
+  // The tiny nudge keeps float error (e.g. 6 x 1/3 = 2.0000001) from rounding up.
+  bleed > 0 ? Math.ceil(bleed * BLEED_BITE_FACTOR - 1e-9) : 0;
+
 /**
- * Bleed on a physical hit taken: the unit loses its Bleed in HP (past
- * Guard), counted in bleedTaken, then Bleed drops by 1.
+ * Bleed on a physical hit taken: the unit loses its bite (a third of its
+ * Bleed, past Guard), counted in bleedTaken, then Bleed drops by 1.
  */
 const bleedOnHit = <T extends Combatant>(target: T): T => {
   const { bleed } = target.statuses;
   if (bleed <= 0) return target;
-  const bled = loseHp(target, bleed);
+  const bite = bleedBiteOf(bleed);
+  const bled = loseHp(target, bite);
   return {
     ...bled,
-    bleedTaken: (target.bleedTaken ?? 0) + bleed,
+    bleedTaken: (target.bleedTaken ?? 0) + bite,
     statuses: { ...bled.statuses, bleed: bleed - 1 },
   };
 };
