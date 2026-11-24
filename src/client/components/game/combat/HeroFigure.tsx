@@ -190,35 +190,174 @@ const Cape = ({ f, fill }: { f: Frame; fill: Tone }) => {
 };
 
 /**
- * Both arms hanging from the shoulders; the right one ends at the hand
- * holding the prop. Mail sleeves for armoured heroes, cloth otherwise.
+ * How the arms hold the prop:
+ *   one  the weapon hand grips it; the off hand rests at the hip
+ *   two  the off hand reaches across to grip just below the weapon hand
+ *   bow  the off hand draws the string (and pulls back on a shot)
+ */
+type Grip = 'one' | 'two' | 'bow';
+
+/** The grip a hero uses, from its prop and look. */
+const gripOf = (look: HeroLook): Grip =>
+  look.prop === 'longbow' ? 'bow' : look.isTwoHanded ? 'two' : 'one';
+
+/** One arm: a thick bent stroke from shoulder through elbow to hand. */
+const Limb = ({
+  points,
+  width,
+  fill,
+}: {
+  points: readonly Point[];
+  width: number;
+  fill: string;
+}) => (
+  <polyline
+    points={pts(...points)}
+    fill="none"
+    stroke={fill}
+    strokeWidth={width}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  />
+);
+
+/**
+ * Both arms, as two jointed strokes. The weapon arm (right) always
+ * ends at the hand holding the prop; the off arm (left) follows the
+ * grip. Mail sleeves for armoured heroes, cloth otherwise. For a bow
+ * the off forearm and hand sit in their own groups so CSS can draw
+ * them back with the string (the forearm shortens about the elbow).
  */
 const Arms = ({
   f,
   look,
   mail,
+  k,
 }: {
   f: Frame;
   look: HeroLook;
   mail: MailFills;
+  k: number;
 }) => {
   const isMail = look.armor !== 'cloth';
-  const width = f.r * 0.6;
-  const left: Point[] = [
-    [f.mid - f.sw + 1, f.shoulderY + f.r * 0.3],
-    [f.mid - f.sw - width, f.shoulderY + f.r * 0.7],
-    [f.mid - f.sw - width * 0.8, f.hand[1] + 2],
-    [f.mid - f.sw + width * 0.3, f.hand[1] + 2],
+  const litFill = isMail ? `url(#${mail.lit})` : look.robe.lit;
+  const shadeFill = isMail ? `url(#${mail.shade})` : look.robe.shade;
+  const width = f.r * 0.55;
+  const [handX, handY] = f.hand;
+  const shoulderY = f.shoulderY + f.r * 0.45;
+  const leftShoulder: Point = [f.mid - f.sw * 0.9, shoulderY];
+  const rightShoulder: Point = [f.mid + f.sw * 0.9, shoulderY];
+  const weaponArm: Point[] = [
+    rightShoulder,
+    [rightShoulder[0] + f.r * 0.3, (shoulderY + handY) / 2],
+    [handX, handY],
   ];
+  const grip = gripOf(look);
+  const skin = look.skin.shade;
+  const handR = f.r * 0.28;
   return (
     <>
-      <polygon
-        points={pts(...left)}
-        fill={isMail ? `url(#${mail.lit})` : look.robe.lit}
-      />
-      <polygon
-        points={pts(...mirror(f.mid, left))}
-        fill={isMail ? `url(#${mail.shade})` : look.robe.shade}
+      <Limb points={weaponArm} width={width} fill={shadeFill} />
+      {grip === 'one' && (
+        <>
+          <Limb
+            points={[
+              leftShoulder,
+              [leftShoulder[0] - f.r * 0.3, (shoulderY + 66) / 2],
+              [leftShoulder[0] - f.r * 0.05, 66],
+            ]}
+            width={width}
+            fill={litFill}
+          />
+          <circle
+            cx={leftShoulder[0] - f.r * 0.05}
+            cy={66}
+            r={handR}
+            fill={skin}
+          />
+        </>
+      )}
+      {grip === 'two' && (
+        <>
+          <Limb
+            points={[
+              leftShoulder,
+              [f.mid - f.r * 0.2, (shoulderY + handY) / 2 + f.r * 0.6],
+              [handX - f.r * 0.1, handY + f.r * 0.55],
+            ]}
+            width={width}
+            fill={litFill}
+          />
+          <circle
+            cx={handX - f.r * 0.1}
+            cy={handY + f.r * 0.55}
+            r={handR}
+            fill={skin}
+          />
+        </>
+      )}
+      {grip === 'bow' && (
+        <DrawArm
+          shoulder={leftShoulder}
+          elbow={[f.mid - f.r * 0.2, handY]}
+          nock={[handX - 2 * k, handY]}
+          width={width}
+          fill={litFill}
+          skin={skin}
+          handR={handR}
+          pull={8 * k}
+        />
+      )}
+    </>
+  );
+};
+
+/**
+ * The bow's drawing arm: upper arm to an elbow level with the string,
+ * then a forearm along the arrow to the hand on the nock. --draw-scale
+ * is how short the forearm gets at full draw (pulling `pull` units).
+ */
+const DrawArm = ({
+  shoulder,
+  elbow,
+  nock,
+  width,
+  fill,
+  skin,
+  handR,
+  pull,
+}: {
+  shoulder: Point;
+  elbow: Point;
+  nock: Point;
+  width: number;
+  fill: string;
+  skin: string;
+  handR: number;
+  pull: number;
+}) => {
+  const forearm = Math.max(1, nock[0] - elbow[0]);
+  const drawScale = Math.max(0.2, (forearm - pull) / forearm);
+  return (
+    <>
+      <Limb points={[shoulder, elbow]} width={width} fill={fill} />
+      <g
+        className="hero-draw-forearm"
+        style={
+          {
+            transformOrigin: `${elbow[0]}px ${elbow[1]}px`,
+            '--draw-scale': drawScale,
+          } as CSSProperties
+        }
+      >
+        <Limb points={[elbow, nock]} width={width} fill={fill} />
+      </g>
+      <circle
+        className="hero-draw-hand"
+        cx={nock[0]}
+        cy={nock[1]}
+        r={handR}
+        fill={skin}
       />
     </>
   );
@@ -1346,9 +1485,9 @@ export const HeroFigure = ({
       {isArmored && <MailPatterns ids={mail} />}
       {look.cape && <Cape f={f} fill={look.cape} />}
       {gear.back}
-      <Arms f={f} look={look} mail={mail} />
       <Body f={f} look={look} />
       {isArmored && <Coif f={f} mail={mail} />}
+      <Arms f={f} look={look} mail={mail} k={k} />
       {look.armor === 'plate' && <Pauldrons f={f} />}
       <Head f={f} look={look} />
       {gear.front}
@@ -1368,6 +1507,18 @@ export const HeroFigure = ({
         />
         <CastEffects at={prop.tip} r={f.r} accent={look.accent} />
       </g>
+      {/* FORWARD CUT: a streak across the body where the blade passes */}
+      <polygon
+        className="hero-swipe"
+        points={pts(
+          [f.mid + f.sw * 1.3, f.shoulderY - f.r * 0.6],
+          [f.mid + f.sw * 1.1, f.shoulderY - f.r * 1.0],
+          [f.mid - f.sw * 1.4, 78],
+          [f.mid - f.sw * 1.25, 80]
+        )}
+        fill="white"
+        opacity="0"
+      />
       {/* THE HAND HOLDING IT */}
       <circle cx={handX} cy={handY} r={f.r * 0.28} fill={look.skin.shade} />
     </svg>

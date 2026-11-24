@@ -44,6 +44,7 @@ import { useSmoothPoint } from '../../hooks/useSmoothPoint';
 import { HitHistory } from '../../lib/popSize';
 import { AimArrow } from './combat/AimArrow';
 import { BattlefieldView } from './combat/BattlefieldView';
+import { HeroShots } from './combat/HeroShots';
 import { MOVEMENT_LOOK } from '../../content/visuals';
 import { MovementButton } from './combat/MovementButton';
 import { DraggedCard } from './combat/DraggedCard';
@@ -237,6 +238,7 @@ export const CombatView = ({
           acting={heroTurn.acting}
           onTapHero={controls.tapHero}
         />
+        <HeroShots acting={heroTurn.acting} />
         {burst && (
           <SpeedLines
             key={burst.count}

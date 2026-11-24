@@ -69,6 +69,8 @@ export type HeroLook = {
   armor: Armor;
   /** A ragged-hemmed cape hanging behind, if the hero wears one. */
   cape?: Tone;
+  /** True for heavy weapons held in both hands (the off hand joins). */
+  isTwoHanded?: true;
 };
 
 // --- PALETTE ---
@@ -172,6 +174,7 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     accent: '#c0392f',
     armor: 'plate',
     cape: OXBLOOD,
+    isTwoHanded: true,
   },
   archmage: {
     headgear: 'wizardHat',
@@ -194,6 +197,7 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     gear: STEEL,
     accent: '#d1a04e',
     armor: 'plate',
+    isTwoHanded: true,
   },
   lysa: {
     headgear: 'leafCirclet',
@@ -227,6 +231,7 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     accent: '#c0392f',
     armor: 'plate',
     cape: OXBLOOD,
+    isTwoHanded: true,
   },
   seris: {
     headgear: 'ponytailTiara',
@@ -249,6 +254,7 @@ export const HERO_LOOKS: Record<HeroId, HeroLook> = {
     accent: '#fff0b0',
     armor: 'plate',
     cape: BURNT_ORANGE,
+    isTwoHanded: true,
   },
 };
 
@@ -260,10 +266,14 @@ export type HeroActionStyle = 'melee' | 'range' | 'magic' | 'support';
  *   slash  a wide sideways sweep
  *   chop   raised high behind, brought hard down
  *   stab   levelled, pulled back, then thrust forward
- *   upcut  from low, swept up and across
+ *   upcut    from low, swept up and across
+ *   forward  raised over the shoulder, then cut diagonally down toward
+ *            the camera (the villain): the hero lunges in, the blade
+ *            grows as it comes closer, and a streak marks the cut
  */
-export type MeleeSwing = 'slash' | 'chop' | 'stab' | 'upcut';
+export type MeleeSwing = 'slash' | 'chop' | 'stab' | 'upcut' | 'forward';
 export const MELEE_SWINGS: readonly MeleeSwing[] = [
+  'forward',
   'slash',
   'chop',
   'stab',

@@ -8,6 +8,7 @@
 
 import type { Combatant } from '../../../../shared/game/types';
 import type { PlayerHitPop } from '../../../hooks/useHitPops';
+import { VILLAIN_ANCHOR_ATTR } from '../../../hooks/useCardDrag';
 import { HitStack } from './HitNumbers';
 import { ImpactOverlay } from './ImpactOverlay';
 
@@ -26,6 +27,7 @@ export const PlayerCorner = ({
   return (
     <div
       className="relative size-14 shrink-0"
+      {...{ [VILLAIN_ANCHOR_ATTR]: true }}
       aria-label={`Your health ${player.hp} of ${player.maxHp}`}
     >
       <div

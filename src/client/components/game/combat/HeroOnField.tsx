@@ -66,6 +66,12 @@ const BODY_ACTION_CLASS: Record<HeroActionStyle, string> = {
   support: 'animate-hero-pulse',
 };
 
+/** The body's motion for a move; a forward cut lunges deeper. */
+const bodyActionClass = (action: HeroAction): string =>
+  action.style === 'melee' && action.swing === 'forward'
+    ? 'animate-hero-lunge-deep'
+    : BODY_ACTION_CLASS[action.style];
+
 /**
  * March-in stagger (ms): heroes enter one column after another, the
  * back row a beat behind the front, so a new wave reads as a march.
@@ -238,7 +244,7 @@ export const HeroOnField = ({
         style={{ animationDelay: `${marchDelayMs(unit)}ms` }}
       >
         <div
-          className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${action ? BODY_ACTION_CLASS[action.style] : ''}`}
+          className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${action ? bodyActionClass(action) : ''}`}
           style={bodyStyle}
           {...{ [HERO_ANCHOR_ATTR]: true }}
         >

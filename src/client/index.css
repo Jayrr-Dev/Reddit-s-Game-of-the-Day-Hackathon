@@ -81,9 +81,11 @@
   --animate-hit-pop: hit-pop 1400ms ease-out forwards;
   --animate-gain-float: gain-float 1100ms ease-out forwards;
   --animate-hero-lunge: hero-lunge 560ms ease-in-out;
+  --animate-hero-lunge-deep: hero-lunge-deep 560ms ease-in-out;
   --animate-hero-recoil: hero-recoil 560ms ease-out;
   --animate-hero-cast: hero-cast 560ms ease-in-out;
   --animate-hero-pulse: hero-pulse 560ms ease-in-out;
+  --animate-hero-shot: hero-shot 220ms cubic-bezier(0.4, 0, 0.9, 0.7) both;
   --animate-hero-sway: hero-sway 4s ease-in-out infinite;
   --animate-hero-death: hero-death 520ms ease-in forwards;
   --animate-tooltip-in: tooltip-in 120ms ease-out;
@@ -345,6 +347,27 @@
   /* A hero's attack: winds up, lunges toward the villain (down and
      bigger), then settles back. Scale composes with the body's own
      centring translate. */
+  /* A forward cut at the camera: rears back, then dives in big. */
+  @keyframes hero-lunge-deep {
+    0%,
+    100% {
+      scale: 1;
+      translate: -50% 0;
+    }
+    35% {
+      scale: 0.92;
+      translate: -50% -5%;
+    }
+    52% {
+      scale: 1.28;
+      translate: -50% 12%;
+    }
+    70% {
+      scale: 1.2;
+      translate: -50% 9%;
+    }
+  }
+
   /* A ranged shot: a slight lean back as the string is drawn, then a
      small kick toward the villain when it is loosed. */
   @keyframes hero-recoil {
@@ -360,6 +383,23 @@
     60% {
       scale: 1.05;
       translate: -50% 2%;
+    }
+  }
+
+  /* An archer's arrow crossing the screen into the villain: hidden
+     until released (it waits out its animation-delay), then flies the
+     whole path and is gone on impact. */
+  @keyframes hero-shot {
+    0% {
+      opacity: 1;
+      transform: translate(0, 0);
+    }
+    92% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translate(var(--shot-dx), var(--shot-dy));
     }
   }
 
@@ -582,8 +622,9 @@
    same as HERO_ATTACK_MS, and touches only transform and opacity.
    Distances use --k (the prop's scale, set on the drawing) so a big
    champion's bow draws as far, for its size, as a grunt's.
-     melee    one of four swings (data-swing): a sideways slash, an
-              overhead chop, a levelled stab, or a rising upcut
+     melee    one of five swings (data-swing): a forward cut at the
+              camera, a sideways slash, an overhead chop, a levelled
+              stab, or a rising upcut
      range    the arrow appears, the string halves pivot into a V as it
               is drawn and the bow bends; on release the string snaps
               past straight and the arrow flies off
@@ -669,6 +710,47 @@
   }
 }
 
+/* FORWARD: the blade rises over the shoulder, then sweeps diagonally
+   down across the body toward the camera, growing as it nears. */
+@keyframes swing-forward {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.6, 1);
+  }
+  35% {
+    transform: rotate(-35deg) translateY(-4px) scale(1);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 0.5);
+  }
+  50% {
+    transform: rotate(-135deg) scale(1.55);
+  }
+  60% {
+    transform: rotate(-125deg) scale(1.4);
+  }
+  75% {
+    transform: rotate(-120deg) scale(1.3);
+  }
+}
+
+/* The streak of the forward cut: a flash where the blade passes. */
+@keyframes swipe-flash {
+  0%,
+  44% {
+    opacity: 0;
+    transform: scaleX(0.3);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scaleX(1);
+  }
+  68%,
+  100% {
+    opacity: 0;
+    transform: scaleX(1.1);
+  }
+}
+
 /* RANGE: draw (0-55%), hold a beat, loose (62%), settle. */
 @keyframes prop-shoot {
   0%,
@@ -728,6 +810,8 @@
   }
 }
 
+/* The arrow on the string: appears, is drawn back, and is gone the
+   moment it is loosed (HeroShots flies it across to the villain). */
 @keyframes arrow-loose {
   0% {
     opacity: 0;
@@ -741,14 +825,40 @@
     opacity: 1;
     transform: translateX(calc(var(--k) * -8px));
   }
-  80% {
-    opacity: 1;
-    transform: translateX(calc(var(--k) * 60px));
-  }
-  81%,
+  58%,
   100% {
     opacity: 0;
-    transform: translateX(calc(var(--k) * 60px));
+    transform: translateX(calc(var(--k) * 10px));
+  }
+}
+
+/* The drawing hand rides the nock back, then springs forward. */
+@keyframes draw-hand {
+  0%,
+  12%,
+  100% {
+    transform: translateX(0);
+  }
+  55% {
+    transform: translateX(calc(var(--k) * -8px));
+  }
+  62% {
+    transform: translateX(calc(var(--k) * -2px));
+  }
+}
+
+/* Its forearm shortens about the elbow so the hand stays attached. */
+@keyframes draw-forearm {
+  0%,
+  12%,
+  100% {
+    transform: scaleX(1);
+  }
+  55% {
+    transform: scaleX(var(--draw-scale));
+  }
+  62% {
+    transform: scaleX(calc((1 + 3 * var(--draw-scale)) / 4));
   }
 }
 
@@ -874,6 +984,7 @@
 .hero-rune,
 .hero-spark,
 .hero-burst,
+.hero-swipe,
 .hero-floor-sigil {
   transform-box: fill-box;
   transform-origin: center;
@@ -901,6 +1012,14 @@
   animation: swing-upcut 560ms;
 }
 
+[data-swing='forward'] .hero-prop {
+  animation: swing-forward 560ms;
+}
+
+[data-swing='forward'] .hero-swipe {
+  animation: swipe-flash 560ms ease-out;
+}
+
 [data-action='range'] .hero-prop {
   animation: prop-shoot 560ms ease-out;
 }
@@ -919,6 +1038,14 @@
 
 [data-action='range'] .hero-arrow {
   animation: arrow-loose 560ms linear;
+}
+
+[data-action='range'] .hero-draw-hand {
+  animation: draw-hand 560ms ease-out;
+}
+
+[data-action='range'] .hero-draw-forearm {
+  animation: draw-forearm 560ms ease-out;
 }
 
 [data-action='magic'] .hero-prop {
