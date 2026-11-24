@@ -43,12 +43,13 @@ const WING = {
   innerShade: '#5b4465',
 };
 const LION = { lit: '#e2ab62', shade: '#c38b47' };
-const LION_DEEP = '#8a5a30';
 const TALON = { lit: '#f4c84f', shade: '#d9a93a' };
 const BEAK = { lit: '#f2c14e', shade: '#d8a23a' };
 const TUFT = '#5d4466';
 const FEATURE = '#2a1d1a';
 const CLAW_LIGHT = '#fff6dc';
+const CLAW_DARK = '#3a2a20';
+const SCALE_LINE = '#c99a32';
 
 // --- CONSTANTS: SHAPES (ART COORDINATES, LEFT SIDE) ---
 const GRIFFON_HALO: HaloSpec = { centre: [766, 178], radius: 165, stroke: 10 };
@@ -109,12 +110,12 @@ const HIND_PAW: readonly Point[] = [
   [578, 935],
   [462, 935],
 ];
-/** The dark belly between the legs. */
+/** The lion belly between the legs, in the body's own tan (no dark gap). */
 const BELLY: readonly Point[] = [
   [640, 760],
   [768, 760],
-  [768, 935],
-  [640, 935],
+  [768, 900],
+  [640, 900],
 ];
 /** The cream breast under the white plumage. */
 const BREAST_SHAPE: readonly Point[] = [
@@ -141,22 +142,67 @@ const PLUMAGE_SHAPE: readonly Point[] = [
   [662, 500],
   [768, 690],
 ];
+/** An eagle's foreleg: a scaled shank tapering down to the ankle. */
 const FORELEG: readonly Point[] = [
-  [692, 780],
-  [736, 780],
-  [730, 895],
-  [700, 895],
+  [690, 770],
+  [740, 770],
+  [732, 862],
+  [716, 884],
+  [700, 862],
 ];
-const TALONS: readonly Point[] = [
-  [688, 893],
-  [744, 893],
-  [752, 950],
-  [736, 924],
-  [726, 968],
-  [716, 926],
-  [702, 968],
-  [696, 926],
-  [678, 952],
+/** Scale bands across the shank (thin dark lines). */
+const SHANK_SCALES: readonly (readonly Point[])[] = [
+  [
+    [694, 800],
+    [737, 800],
+  ],
+  [
+    [696, 825],
+    [735, 825],
+  ],
+  [
+    [699, 850],
+    [733, 850],
+  ],
+];
+/** Three toes fanned forward from the ankle: outer, middle, inner. */
+const TOES: readonly (readonly Point[])[] = [
+  [
+    [700, 868],
+    [714, 876],
+    [692, 934],
+    [678, 928],
+  ],
+  [
+    [707, 874],
+    [724, 874],
+    [726, 944],
+    [708, 944],
+  ],
+  [
+    [716, 870],
+    [730, 866],
+    [756, 926],
+    [744, 934],
+  ],
+];
+/** A dark hooked claw at the tip of each toe. */
+const CLAWS: readonly (readonly Point[])[] = [
+  [
+    [677, 926],
+    [694, 932],
+    [680, 958],
+  ],
+  [
+    [707, 942],
+    [727, 942],
+    [716, 972],
+  ],
+  [
+    [742, 932],
+    [758, 924],
+    [754, 958],
+  ],
 ];
 const BEAK_SHAPE: readonly Point[] = [
   [768, 205],
@@ -292,6 +338,41 @@ const Pair = ({
   </>
 );
 
+/**
+ * Both forelegs as an eagle's: a scaled gold shank, three toes fanned
+ * forward, each ending in a dark hooked claw (left drawn, right mirrored).
+ */
+const Talons = () => (
+  <>
+    <Pair left={FORELEG} lit={TALON.lit} shade={TALON.shade} />
+    {[...SHANK_SCALES, ...SHANK_SCALES.map(mirrored)].map((line, index) => (
+      <polyline
+        key={`band-${index}`}
+        points={pts(line)}
+        fill="none"
+        stroke={SCALE_LINE}
+        strokeWidth="2.5"
+      />
+    ))}
+    {TOES.map((toe, index) => (
+      <Pair
+        key={`toe-${index}`}
+        left={toe}
+        lit={TALON.lit}
+        shade={TALON.shade}
+      />
+    ))}
+    {CLAWS.map((claw, index) => (
+      <Pair
+        key={`claw-${index}`}
+        left={claw}
+        lit={CLAW_DARK}
+        shade={CLAW_DARK}
+      />
+    ))}
+  </>
+);
+
 /** Both wings, each beating around its root. */
 const Wings = () => (
   <>
@@ -382,10 +463,9 @@ export const GrandGriffon = ({ mood }: { mood: HeroMood }) => (
     <HaloRing halo={GRIFFON_HALO} />
     <Pair left={HAUNCH} lit={LION.lit} shade={LION.shade} />
     <Pair left={HIND_PAW} lit={LION.lit} shade={LION.shade} />
-    <Pair left={BELLY} lit={LION_DEEP} shade={LION_DEEP} />
+    <Pair left={BELLY} lit={LION.shade} shade={LION.shade} />
     <Pair left={BREAST_SHAPE} lit={BREAST.lit} shade={BREAST.shade} />
-    <Pair left={FORELEG} lit={TALON.lit} shade={TALON.shade} />
-    <Pair left={TALONS} lit={TALON.lit} shade={TALON.shade} />
+    <Talons />
     <Pair left={PLUMAGE_SHAPE} lit={PLUMAGE.lit} shade={PLUMAGE.shade} />
     <Face mood={mood} />
     <ClawStreaks />

@@ -79,9 +79,12 @@ const DEEP_BOX: RowBox = { bottom: '2%', height: '78%' };
  * Its plate stays clear of the top bar either way.
  */
 const BOSS_BOX: Record<HeroRow, RowBox> = {
-  front: { bottom: '2%', height: '74%' },
+  // Its feet stand above the Charge / Back Step pill along the field's foot.
+  front: { bottom: '9%', height: '70%' },
   back: { bottom: '20%', height: '60%' },
 };
+/** A deep boss (both rows), feet likewise above the movement pill. */
+const BOSS_DEEP_BOX: RowBox = { bottom: '9%', height: '74%' };
 /** How many columns wide a boss is drawn. */
 const BOSS_DRAW_COLUMNS = 3;
 /**
@@ -160,7 +163,7 @@ const boxStyle = (unit: HeroUnit): CSSProperties => {
     return {
       left: `${(centre - BOSS_DRAW_COLUMNS / 2) * columnShare}%`,
       width: `${BOSS_DRAW_COLUMNS * columnShare}%`,
-      ...(isDeep(unit) ? DEEP_BOX : BOSS_BOX[unit.row]),
+      ...(isDeep(unit) ? BOSS_DEEP_BOX : BOSS_BOX[unit.row]),
     };
   }
   return {
