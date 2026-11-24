@@ -279,22 +279,44 @@ const rowsBehindHome = (unit: HeroUnit): number =>
   rowDepth(unit.row) - rowDepth(getHero(unit.heroId).row);
 
 /**
+ * An Anchored hero (the Ballista) is set up on the farthest row it has
+ * room on, before the march: it never walks, so it starts at the back.
+ */
+const anchorFarBack = (heroes: HeroUnit[], uid: number): HeroUnit[] => {
+  let field = heroes;
+  // Imperative: step it back a row at a time until it can't go farther.
+  for (let step = 0; step < BATTLEFIELD_ROWS.length; step += 1) {
+    const moved = shiftWhole(field, uid, 1);
+    if (moved === field) break;
+    field = moved;
+  }
+  return field;
+};
+
+/**
  * A new horde marches in from afar: every hero placed at its home row
- * drops one row back while that row has room. The farthest homes go
- * first (ranged onto the Horizon, freeing the Backline for the melee),
- * then uid order. Imperative: each move changes the room left for the
- * next.
+ * drops one row back while that row has room. Anchored heroes set up on
+ * the farthest row first, then the farthest homes go (ranged onto the
+ * Horizon, freeing the Backline for the melee), then uid order.
+ * Imperative: each move changes the room left for the next.
  */
 const marchInFromAfar = (heroes: HeroUnit[]): HeroUnit[] => {
   const order = [...heroes].sort(
     (a, b) =>
+      Number(isAnchored(b)) - Number(isAnchored(a)) ||
       rowDepth(getHero(b.heroId).row) - rowDepth(getHero(a.heroId).row) ||
       a.uid - b.uid
   );
   let field = heroes;
   for (const unit of order) {
     const current = field.find((hero) => hero.uid === unit.uid);
-    if (current && rowsBehindHome(current) === 0 && canPush(field, current))
+    if (current && isAnchored(current))
+      field = anchorFarBack(field, current.uid);
+    else if (
+      current &&
+      rowsBehindHome(current) === 0 &&
+      canPush(field, current)
+    )
       field = pushHero(field, current.uid);
   }
   return field;

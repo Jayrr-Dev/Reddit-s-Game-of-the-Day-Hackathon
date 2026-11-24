@@ -381,7 +381,7 @@ void test('the Ballista is Anchored: nothing pushes it, but you can close in', (
   const lone = fightAt([['ballista', 'back', 1]]);
   assert.ok(canMove(lone, 'charge'));
   assert.equal(unitAt(move(lone, 'charge'), 0).row, 'front');
-  // It never walks on its own: it stays where it spawns.
+  // It starts on the farthest line and never walks on its own.
   const fresh = startCombat({
     hp: 60,
     maxHp: 60,
@@ -390,7 +390,7 @@ void test('the Ballista is Anchored: nothing pushes it, but you can close in', (
     might: 1,
     seed: 1,
   });
-  assert.equal(fresh.heroes[0]?.row, 'back');
+  assert.equal(fresh.heroes[0]?.row, 'horizon', 'starts farthest back');
   const far = fightAt([['ballista', 'horizon', 1]]);
   assert.equal(advanceHeroes(far.heroes)[0]?.row, 'horizon');
 });
