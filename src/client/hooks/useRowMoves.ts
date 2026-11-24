@@ -9,7 +9,9 @@
 //            lunges toward you and the heroes grow into the front row,
 //            as if the villain marched closer.
 //   PULL     one hero is dragged forward: a fast yank with a little
-//            overshoot. (A push plays the same move in reverse.)
+//            overshoot. (A push plays the same move in reverse.) Cartoon
+//            motion lines streak out behind the hero as it flies and
+//            fade as it lands.
 // ===================================================================
 
 import { useLayoutEffect, useRef, type RefObject } from 'react';
@@ -31,6 +33,23 @@ const MOVE_TIMING: Record<MoveKind, KeyframeAnimationOptions> = {
   // The overshoot (1.35) makes the yank snap past and settle.
   pull: { duration: 420, easing: 'cubic-bezier(0.55, 0, 0.25, 1.35)' },
 };
+
+/**
+ * The motion lines behind a pulled or pushed hero, each as [offset
+ * across the travel (px), length (px), thickness (px)]: uneven, so
+ * they read as hand-drawn speed streaks.
+ */
+const MOTION_LINES: readonly (readonly [number, number, number])[] = [
+  [-42, 70, 4],
+  [-22, 120, 5],
+  [-2, 92, 4],
+  [18, 140, 5],
+  [38, 80, 4],
+];
+/** Space (px) between the hero's middle and the lines' near ends. */
+const MOTION_LINE_GAP_PX = 30;
+/** How long (ms) the lines outlast the move itself as they fade. */
+const MOTION_LINE_LINGER_MS = 180;
 
 /** Wait (ms) after a death before the row steps up (most of the death). */
 const MOVE_AFTER_DEATH_MS = 380;
@@ -101,6 +120,44 @@ const flyFrom = (
     // fill 'backwards' holds the old spot during the delay.
     { ...MOVE_TIMING[kind], delay, fill: 'backwards' }
   );
+  if (kind === 'pull') trailLines(body, dx, dy, delay);
+};
+
+/**
+ * Motion lines for a pull or push: streaks trailing behind the body,
+ * opposite the way it travels (from its old spot, `dx`/`dy` back), that
+ * shrink into the hero and fade as it lands. Drawn as a child of the
+ * body, so they fly with it, and removed when done.
+ * PERFORMANCE: a handful of divs animating transform and opacity.
+ */
+const trailLines = (
+  body: HTMLElement,
+  dx: number,
+  dy: number,
+  delay: number
+) => {
+  const angle = Math.atan2(-dy, -dx);
+  const trail = document.createElement('div');
+  trail.setAttribute('aria-hidden', 'true');
+  trail.style.cssText = `position:absolute;left:50%;top:45%;width:0;height:0;pointer-events:none;rotate:${angle}rad`;
+  const timing = MOVE_TIMING.pull;
+  const duration = Number(timing.duration) + MOTION_LINE_LINGER_MS;
+  MOTION_LINES.forEach(([offset, length, thickness], index) => {
+    const line = document.createElement('span');
+    line.style.cssText = `position:absolute;right:${MOTION_LINE_GAP_PX}px;top:${offset}px;width:${length}px;height:${thickness}px;border-radius:9999px;background:linear-gradient(to left, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0));filter:drop-shadow(0 0 2px rgb(0 0 0 / 0.6));transform-origin:100% 50%;opacity:0`;
+    trail.appendChild(line);
+    line.animate(
+      [
+        { opacity: 0, transform: 'scaleX(0.3)' },
+        { opacity: 0.95, transform: 'scaleX(1)', offset: 0.2 },
+        { opacity: 0.7, transform: 'scaleX(0.8)', offset: 0.65 },
+        { opacity: 0, transform: 'scaleX(0)' },
+      ],
+      { duration, delay: delay + index * 25, easing: 'ease-out' }
+    );
+  });
+  body.appendChild(trail);
+  window.setTimeout(() => trail.remove(), delay + duration + 200);
 };
 
 /** Swells the scenery (not the heroes) and settles it back. */
