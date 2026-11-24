@@ -1,10 +1,8 @@
 // ===================================================================
 // CARD BADGES (DATA)
-// The small icon badges stacked under a card's cost coin: its printed
-// keywords (Hold, Piercing, Remove, Rampage,
-// Distance) and every gift an Imbue card gave
-// it. Each is an icon, with a number where the gift has one ("3" on a
-// Poison drop), a small hourglass when the gift is timed ("this
+// The small icon badges stacked under a card's cost coin: every gift
+// an Imbue card gave it (its printed keywords are card text). Each is
+// an icon, with a number where the gift has one ("3" on a Poison drop), a small hourglass when the gift is timed ("this
 // turn"), and a tooltip from the glossary. The same gift imbued twice
 // shows once with the amounts added (Poison 3 + 3 = 6). Icons and
 // colours come from the same looks as the status chips, so a badge
@@ -176,31 +174,14 @@ const mergeStacked = (badges: readonly CardBadge[]): CardBadge[] =>
     );
   }, []);
 
-/** A printed trait's badge. */
-const traitBadgeOf = (
-  key: string,
-  look: Look,
-  info: StatusInfo
-): CardBadge => ({
-  key,
-  ...look,
-  isImbued: false,
-  title: info.label,
-  description: info.description,
-});
-
-/** Every badge a card shows: printed traits first, then its imbues. */
+/**
+ * Every badge a card shows: one per gift from an Imbue card. Its own
+ * printed keywords are card text instead (see describeCard).
+ */
 export const cardBadgesOf = (
   cardId: CardId,
   imbues: readonly Imbue[] = []
-): CardBadge[] => {
-  const { keywords } = getCard(cardId);
-  return [
-    ...keywords.map((keyword) =>
-      traitBadgeOf(keyword, KEYWORD_LOOK[keyword], KEYWORD_INFO[keyword])
-    ),
-    ...mergeStacked(
-      imbues.map((imbue, index) => imbueBadgeOf(imbue, index, cardId))
-    ),
-  ];
-};
+): CardBadge[] =>
+  mergeStacked(
+    imbues.map((imbue, index) => imbueBadgeOf(imbue, index, cardId))
+  );

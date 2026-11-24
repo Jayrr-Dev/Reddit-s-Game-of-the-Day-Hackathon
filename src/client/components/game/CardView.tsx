@@ -4,12 +4,13 @@
 //   cost orb      energy cost, top-left, overlapping the frame
 //   art window    an arched window with the type's glyph
 //   name banner   the name across the middle in the display font
-//   rules panel   parchment with the rules text, keywords in bold
-//   rarity gem    set into the banner's bottom edge (starters have none)
+//   rules panel   parchment with the rules text, glossary words in
+//                 bold, and the card's own keywords on the last line
+//   rarity gem    a bead just under the banner (starters have none)
 //   type ribbon   the type (Melee, Range, Magic, Defend, Buff, Curse),
 //                 with a Magic card's element icon (Fire, Ice) before it
 // The frame and outer glow are coloured by type (see CARD_LOOK).
-// The text comes from describeCardRules, so it always matches what the
+// The text comes from describeCard, so it always matches what the
 // card really does (including live wrath/weaken math, and the hero it
 // is aimed at while dragged). Keywords and Fades show as badges under
 // the cost orb (CardBadges); every glossary word in the text is bold
@@ -19,7 +20,7 @@
 import { Fragment } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import {
-  describeCardRules,
+  describeCard,
   DURATION_INFO,
   GLOSSARY,
 } from '../../../shared/game/describe';
@@ -88,7 +89,7 @@ const SIZE_LOOK: Record<CardSize, SizeLook> = {
     rules: 'text-[8px] leading-[1.15] px-0.5',
     ribbon: 'text-[6px] px-1.5 gap-0.5',
     ribbonIcon: 'size-2',
-    gem: 'size-[5px]',
+    gem: 'size-[4px]',
   },
   offer: {
     box: 'h-40 w-[6.5rem]',
@@ -99,7 +100,7 @@ const SIZE_LOOK: Record<CardSize, SizeLook> = {
     rules: 'text-[10px] leading-snug px-1',
     ribbon: 'text-[8px] px-2 gap-1',
     ribbonIcon: 'size-2.5',
-    gem: 'size-[7px]',
+    gem: 'size-[5px]',
   },
 };
 
@@ -247,9 +248,9 @@ const TypeRibbon = ({
 );
 
 /**
- * The rarity gem: a small diamond in its rarity's colour, cut with a
- * light facet on top and shade below, in a thin gold setting, centred
- * on the name banner's bottom edge (under the text, never over it).
+ * The rarity gem: a small round bead in its rarity's colour, lit from
+ * the top left, with a black outline. It hangs just under the name
+ * banner, centred, so it never touches the letters of a long name.
  */
 const RarityGem = ({
   gemClass,
@@ -260,13 +261,13 @@ const RarityGem = ({
 }) => (
   <span
     aria-hidden
-    className={`absolute left-1/2 top-full z-10 ${sizeClass} -translate-x-1/2 -translate-y-1/2 rotate-45 overflow-hidden ${gemClass} ring-1 ring-energy shadow-[0_1px_2px_rgb(0_0_0/0.7)]`}
+    className={`absolute left-1/2 top-full z-10 mt-px ${sizeClass} -translate-x-1/2 overflow-hidden rounded-full ${gemClass} ring-1 ring-black`}
   >
     <span className="absolute inset-0 bg-gradient-to-br from-white/75 via-transparent via-45% to-black/45" />
   </span>
 );
 
-/** The name banner, with the rarity gem set into its bottom edge. */
+/** The name banner, with the rarity gem hanging just under it. */
 const NameBanner = ({
   name,
   frameClass,
@@ -303,7 +304,7 @@ export const CardView = ({
   const cardDef = getCard(cardId);
   const typeLook = CARD_LOOK[cardDef.type];
   // The card as printed (no statuses), to colour numbers that changed.
-  const printedLines = describeCardRules(cardId);
+  const printedLines = describeCard(cardId);
   const look = SIZE_LOOK[size];
   const glow = glowOf(typeLook.glowVar, isSelected, isImbueTarget);
   return (
@@ -340,7 +341,7 @@ export const CardView = ({
       <span
         className={`flex w-full min-h-0 flex-1 flex-col justify-center rounded-b-sm bg-parchment text-on-parchment ${look.rules}`}
       >
-        {describeCardRules(cardId, attacker, target).map((line, index) => (
+        {describeCard(cardId, attacker, target).map((line, index) => (
           <RulesLine
             key={line}
             text={line}

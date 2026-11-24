@@ -37,7 +37,7 @@ import {
   affectsHeroes,
   affectsSelf,
   cardAreaTargets,
-  heroesBehind,
+  heroesPiercedPast,
   targetRuleOf,
 } from '../../shared/game/battlefield';
 import { getCard, type CardId } from '../../shared/game/cards';
@@ -337,15 +337,15 @@ export const useCombatControls = (
     ? (dropState.target?.point ?? drag?.tip ?? null)
     : null;
 
-  // PIERCING: a Piercing card locked on a front hero also hits the
-  // heroes right behind it, so each gets its own arrow and lock.
+  // PIERCING: a Piercing card locked on a hero also hits the hero in
+  // the other row of its column, so that one gets its own arrow and lock.
   const isPiercingDrag =
     drag !== null &&
     dragCard !== undefined &&
     cardHasKeyword(dragCard, imbuesAt(combat, drag.handIndex), 'piercing');
   const pierceUids =
     isPiercingDrag && hoverUnit
-      ? heroesBehind(combat.heroes, hoverUnit).map((unit) => unit.uid)
+      ? heroesPiercedPast(combat.heroes, hoverUnit).map((unit) => unit.uid)
       : [];
   /** Where each pierced hero's arrow lands. */
   const pierceAimPoints: Point[] = (drag?.nearHeroes ?? [])

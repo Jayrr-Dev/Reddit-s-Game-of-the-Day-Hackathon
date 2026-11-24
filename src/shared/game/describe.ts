@@ -212,7 +212,8 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
   },
   piercing: {
     label: 'Piercing',
-    description: 'Each hit also strikes the hero right behind its target.',
+    description:
+      "Each hit also strikes the hero in the other row of its target's column.",
   },
   remove: {
     label: 'Remove',
@@ -413,8 +414,8 @@ export const describeCardRules = (
 };
 
 /**
- * All text lines for a card: its rules, then a line per keyword
- * ("Hold.", "Piercing.", "Remove.").
+ * All text lines for a card: its rules, then its keywords together on
+ * one last line ("Hold.", or "Hold. Piercing.").
  */
 export const describeCard = (
   cardId: CardId,
@@ -422,9 +423,10 @@ export const describeCard = (
   target?: HeroUnit
 ): string[] => {
   const cardDef = getCard(cardId);
-  const traitLines = cardDef.keywords.map(
-    (keyword) => `${KEYWORD_LABEL(keyword)}.`
-  );
+  const keywordLine = cardDef.keywords
+    .map((keyword) => `${KEYWORD_LABEL(keyword)}.`)
+    .join(' ');
+  const traitLines = keywordLine ? [keywordLine] : [];
   return [...describeCardRules(cardId, attacker, target), ...traitLines];
 };
 

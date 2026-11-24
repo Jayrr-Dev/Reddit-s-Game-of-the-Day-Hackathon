@@ -1423,13 +1423,28 @@ void test('a wide front hero is pierced through one lane only', () => {
   assert.equal(secondLost, 0, 'one column, not the whole back row');
 });
 
-void test('a Piercing hit on the back row has nobody behind to hit', () => {
+void test('a Piercing hit on the back row strikes the front hero in its lane', () => {
   const state = laneFight(['blackArrow']);
-  const back = state.heroes[2]?.uid ?? -1;
-  const after = playCard(state, 0, back);
-  const [frontLost, behindLost] = hpLost(state, after);
-  assert.equal(frontLost, 0);
-  assert.equal(behindLost, 0);
+  const behind = state.heroes[1]?.uid ?? -1;
+  const after = playCard(state, 0, behind);
+  const [frontLost, backLost, besideLost] = hpLost(state, after);
+  assert.ok((backLost ?? 0) > 0);
+  assert.ok((frontLost ?? 0) > 0, 'pierced forward, through the lane');
+  assert.equal(besideLost, 0, 'one column only');
+  // Lane 1 has nobody up front: nothing more to hit.
+  const lone = playCard(state, 0, state.heroes[2]?.uid ?? -1);
+  assert.equal(hpLost(state, lone)[0], 0);
+});
+
+void test('every pick of a Target N card pierces its own lane', () => {
+  const state = laneFight(['barbedTip', 'forkedBolt']);
+  const imbued = playCard(state, 0, 0, undefined, 1);
+  const back = state.heroes[1]?.uid ?? -1;
+  const after = playCard(imbued, 0, back, [back, back]);
+  const [frontLost, backLost, besideLost] = hpLost(state, after);
+  assert.ok((backLost ?? 0) > 0);
+  assert.equal(frontLost, backLost, 'pierced once per pick');
+  assert.equal(besideLost, 0);
 });
 
 void test('a plain hit does not pierce', () => {

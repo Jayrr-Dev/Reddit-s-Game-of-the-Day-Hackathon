@@ -32,7 +32,7 @@ import {
   cellsOf,
   isAloft,
   isCellOpen,
-  heroesBehind,
+  heroesPiercedPast,
   summonSeats,
 } from './battlefield.ts';
 import { getCard, type CardId } from './cards.ts';
@@ -489,8 +489,8 @@ const villainAttack = (
 
 /**
  * A Piercing hit's second half: the same hit (scaled by
- * PIERCE_DAMAGE_FACTOR) on every living hero directly behind the target
- * (see heroesBehind). Nobody behind, nothing happens.
+ * PIERCE_DAMAGE_FACTOR) on the living hero in line with the target
+ * (see heroesPiercedPast). Nobody in line, nothing happens.
  */
 const pierceBehind = (
   state: CombatState,
@@ -501,8 +501,8 @@ const pierceBehind = (
   const target = state.heroes.find((unit) => unit.uid === targetUid);
   if (!target) return state;
   const living = state.heroes.filter((unit) => !isDefeated(unit));
-  const behindUids = heroesBehind(living, target).map((unit) => unit.uid);
-  return updateHeroes(state, behindUids, (unit) =>
+  const inLineUids = heroesPiercedPast(living, target).map((unit) => unit.uid);
+  return updateHeroes(state, inLineUids, (unit) =>
     elementalHit(unit, cardHitOn(unit, amount, cardDef), cardDef)
   );
 };
