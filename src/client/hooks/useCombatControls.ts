@@ -35,7 +35,12 @@ import {
   targetRuleOf,
 } from '../../shared/game/battlefield';
 import { getCard, type CardId } from '../../shared/game/cards';
-import { canPlayCard, targetsFor, wouldFell } from '../../shared/game/combat';
+import {
+  canPlayCard,
+  targetDamageFactor,
+  targetsFor,
+  wouldFell,
+} from '../../shared/game/combat';
 import type { RunAction } from '../../shared/game/run';
 import type { CombatState } from '../../shared/game/types';
 
@@ -262,6 +267,12 @@ export const useCombatControls = (
     drag !== null &&
     hoverUid !== null &&
     wouldFell(combat, drag.handIndex, [...priorPicks, hoverUid], hoverUid);
+  /** The damage multiplier the locked hero gives the card (1 = none). */
+  const hoverUnit = combat.heroes.find((unit) => unit.uid === hoverUid);
+  const aimFactor =
+    hoverUnit && dragCard !== undefined
+      ? targetDamageFactor(hoverUnit, getCard(dragCard))
+      : 1;
   /** How far the arrow has shrunk back toward the card (0..1). */
   const arrowRetract = drag?.pullBack ?? 0;
   /** How brightly the dragged card glows (self cards only). */
@@ -340,6 +351,7 @@ export const useCombatControls = (
     aimPoint,
     isDropLive,
     isLethal,
+    aimFactor,
     arrowRetract,
     selfGlow,
     aimOf,

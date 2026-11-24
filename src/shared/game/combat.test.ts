@@ -25,11 +25,7 @@ import {
   startCombat,
   wouldFell,
 } from './combat.ts';
-import {
-  describeCard,
-  describeCardMath,
-  describeHeroIntent,
-} from './describe.ts';
+import { describeCard, describeHeroIntent } from './describe.ts';
 import { BACK_STEP_COST, CARDS_PER_TURN, ENERGY_PER_TURN } from './rules.ts';
 import type { CombatState, HeroUnit } from './types.ts';
 
@@ -391,24 +387,17 @@ void test('Back Step pushes a full front row back for 1 energy', () => {
   assert.equal(next.heroes[0]?.row, 'front');
 });
 
-void test('card math lists each buff step and matches the damage dealt', () => {
+void test('card text shows the damage for the aimed-at hero', () => {
   const start = squireAndArcher(['blackArrow']);
   const player = {
     ...start.player,
     statuses: { ...start.player.statuses, wrath: 2, piercing: 3 },
   };
   const archer = heroNamed(start, 'archer') as HeroUnit;
-  const math = describeCardMath('blackArrow', player, archer);
-  assert.deepEqual(
-    math?.terms.map((term) =>
-      term.kind === 'base' ? term.amount : term.source
-    ),
-    [7, 'wrath', 'piercing', 'longRange']
-  );
-  // (7 + 2 + 3) x 1.3 = 15.6, rounded to 16.
-  assert.equal(math?.total, 16);
-  // No buffs, no target: nothing to explain.
-  assert.equal(describeCardMath('blackArrow', start.player), null);
+  // (7 + 2 + 3) x 1.3 long range = 15.6, rounded to 16.
+  assert.match(describeCard('blackArrow', player, archer).join(' '), /16/);
+  // Not aimed: the bonus that needs a target is left out.
+  assert.match(describeCard('blackArrow', player).join(' '), /12/);
 });
 
 // --- CARD TEXT FITS ---

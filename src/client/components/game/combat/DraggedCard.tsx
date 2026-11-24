@@ -3,14 +3,14 @@
 // The card lifted out of the hand while it is being dragged. It is
 // drawn on a fixed, click-through layer at the finger, slightly
 // enlarged, while its slot in the hand stays empty. Cards that act on
-// the villain glow gold, brighter the higher they are pulled.
+// the villain glow gold, brighter the higher they are pulled. While it
+// is aimed at a hero, its text shows the damage that hero would take.
 // ===================================================================
 
 import type { CardId } from '../../../../shared/game/cards';
 import type { Combatant, HeroUnit } from '../../../../shared/game/types';
 import type { CardBox } from '../../../hooks/useCardDrag';
 import { CardView } from '../CardView';
-import { CardMath } from './CardMath';
 
 // --- TYPES ---
 export type DraggedCardProps = {
@@ -58,10 +58,6 @@ export const DraggedCard = ({
       filter: glowFilter(glow),
     }}
   >
-    {/* THE DAMAGE MATH FLOATS JUST ABOVE THE CARD */}
-    <div className="absolute bottom-full left-1/2 mb-2 -translate-x-1/2">
-      <CardMath cardId={cardId} attacker={attacker} target={target} />
-    </div>
     <CardView
       cardId={cardId}
       attacker={attacker}

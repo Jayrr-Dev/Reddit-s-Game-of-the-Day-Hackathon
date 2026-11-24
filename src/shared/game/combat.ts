@@ -280,6 +280,13 @@ const resolveTargets = (
 export const isLongRangeShot = (unit: HeroUnit, cardDef: CardDef): boolean =>
   cardDef.type === 'range' && unit.row === 'back';
 
+/**
+ * The damage multiplier a card gets from the hero it is aimed at (1
+ * when the target adds nothing). Today only a long-range shot does.
+ */
+export const targetDamageFactor = (unit: HeroUnit, cardDef: CardDef): number =>
+  isLongRangeShot(unit, cardDef) ? LONG_RANGE_DAMAGE_FACTOR : 1;
+
 /** One villain hit on a hero: a Range card at a back-row hero hits harder. */
 export const cardHitOn = (
   unit: HeroUnit,
