@@ -22,7 +22,7 @@ import type { RngState } from './rng.ts';
  *           takes, from anyone, it loses this much HP and clears (a
  *           Magic hit resets the count; see Combatant.bleedHits)
  * - hex:    right before its turn, loses this much HP if it is odd
- *           (nothing when even), then hex grows by 1
+ *           (nothing when even), then hex drops by 1
  * - dread: deals 25% less attack damage; drops by 1 at the end of its turn
  * - wrath: adds this much to every hit; lasts the whole fight
  * Buffs, gained from the villain's Buff cards, also last the whole fight:

@@ -9,7 +9,7 @@ import {
   BLEED_HITS,
   DREAD_DAMAGE_FACTOR,
   FROST_DAMAGE_PER_STACK,
-  HEX_GROWTH,
+  HEX_DECAY,
   MOMENTUM_DAMAGE_FACTOR,
 } from './rules.ts';
 import type {
@@ -201,8 +201,8 @@ export const clearShroud = <T extends Combatant>(target: T): T => ({
 
 /**
  * Hex, right before its bearer's turn: it burns for its value on odd
- * counts only (1, 3, 5 ... nothing on 2, 4 ...), then grows by
- * HEX_GROWTH. So a Hex of 1 deals 1, then 0, then 3, then 0, then 5.
+ * counts only (1, 3, 5 ... nothing on 2, 4 ...), then drops by
+ * HEX_DECAY, clearing at 0. So Hex 5 deals 5, 0, 3, 0, 1, then is gone.
  */
 export const hexBurn = <T extends Combatant>(target: T): T => {
   const { hex } = target.statuses;
@@ -210,7 +210,7 @@ export const hexBurn = <T extends Combatant>(target: T): T => {
   const burned = hex % 2 === 1 ? loseHp(target, hex) : target;
   return {
     ...burned,
-    statuses: { ...burned.statuses, hex: hex + HEX_GROWTH },
+    statuses: { ...burned.statuses, hex: Math.max(0, hex - HEX_DECAY) },
   };
 };
 

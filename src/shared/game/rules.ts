@@ -46,8 +46,8 @@ export const AFTER_ACTION_DIVISOR = 2;
 export const BLEED_HITS = 3;
 /** Each stack of Frost takes this much off every hit its bearer deals. */
 export const FROST_DAMAGE_PER_STACK = 1;
-/** Hex grows by this much every turn (it burns only on odd counts). */
-export const HEX_GROWTH = 1;
+/** Hex drops by this much every turn (it burns only on odd counts). */
+export const HEX_DECAY = 1;
 
 // --- THE KINGDOM ---
 /** Regions in conquest order. Each ends with its champion (see heroes.ts). */

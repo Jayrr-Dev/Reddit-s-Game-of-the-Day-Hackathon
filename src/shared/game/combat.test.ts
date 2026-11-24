@@ -104,7 +104,7 @@ void test('hex is left alone by end-of-turn upkeep', () => {
   assert.equal(after.statuses.hex, 3);
 });
 
-void test('hex burns for its value only when odd, then grows by 1', () => {
+void test('hex burns for its value only when odd, then drops by 1', () => {
   for (const hex of [1, 2, 3, 4, 5]) {
     const burned = hexBurn({
       ...createCombatant(100, 100),
@@ -112,11 +112,26 @@ void test('hex burns for its value only when odd, then grows by 1', () => {
     });
     const loss = hex % 2 === 1 ? hex : 0;
     assert.equal(burned.hp, 100 - loss, `hex ${hex} burns ${loss}`);
-    assert.equal(burned.statuses.hex, hex + 1, `hex ${hex} grows`);
+    assert.equal(burned.statuses.hex, hex - 1, `hex ${hex} drops`);
   }
 });
 
-void test('a hexed hero burns before it acts, and its hex grows', () => {
+void test('hex 5 burns 5, then 3, then 1, then is gone', () => {
+  let unit = {
+    ...createCombatant(100, 100),
+    statuses: { ...NO_STATUSES, hex: 5 },
+  };
+  const losses: number[] = [];
+  for (let turn = 0; turn < 6; turn += 1) {
+    const next = hexBurn(unit);
+    losses.push(unit.hp - next.hp);
+    unit = next;
+  }
+  assert.deepEqual(losses, [5, 0, 3, 0, 1, 0]);
+  assert.equal(unit.statuses.hex, 0);
+});
+
+void test('a hexed hero burns before it acts, and its hex drops', () => {
   // Settled, so the Squire stands in the front row and can swing.
   const fight = settled(
     startCombat({
@@ -144,7 +159,7 @@ void test('a hexed hero burns before it acts, and its hex grows', () => {
   );
   const actIndex = steps.findIndex((step) => step.actorUid === squireUid);
   assert.ok(burnIndex > 0 && burnIndex < actIndex, 'burns, then acts');
-  assert.equal(steps.at(-1)!.state.heroes[0]!.statuses.hex, 4);
+  assert.equal(steps.at(-1)!.state.heroes[0]!.statuses.hex, 2);
 });
 
 void test('a hexed villain burns at the start of its turn', () => {
@@ -163,10 +178,10 @@ void test('a hexed villain burns at the start of its turn', () => {
   const next = endTurn(hexed);
   // The Bard only sings (Wrath to allies): the 5 lost is the hex.
   assert.equal(next.player.hp, 45);
-  assert.equal(next.player.statuses.hex, 6);
-  // Even now: the next turn it only grows.
+  assert.equal(next.player.statuses.hex, 4);
+  // Even now: the next turn it only drops.
   const after = endTurn(next);
-  assert.equal(after.player.statuses.hex, 7);
+  assert.equal(after.player.statuses.hex, 3);
 });
 
 void test('burn deals its value, then halves (a half rounds down)', () => {
