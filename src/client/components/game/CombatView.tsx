@@ -179,7 +179,7 @@ const PlayerBar = ({
         )}
         <GuardGainPops guard={combat.player.guard} />
         <StatusRow combatant={combat.player} />
-        <EnergyTray energy={combat.energy} />
+        <EnergyTray energy={combat.energy} reserve={combat.reserve} />
       </div>
       <div className="justify-self-end">
         <TurnCorner

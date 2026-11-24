@@ -408,6 +408,8 @@ export type CombatState = {
   player: Combatant;
   heroes: HeroUnit[];
   energy: number;
+  /** Unspent energy carried over from last turn (RESERVE_ENERGY_SLOTS). */
+  reserve: number;
   hand: CardId[];
   drawPile: CardId[];
   discardPile: CardId[];

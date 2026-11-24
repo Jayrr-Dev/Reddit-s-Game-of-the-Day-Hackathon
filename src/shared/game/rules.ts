@@ -15,6 +15,12 @@ import type {
 // --- THE VILLAIN ---
 export const PLAYER_MAX_HP = 60;
 export const ENERGY_PER_TURN = 3;
+/**
+ * RESERVE ENERGY: how much unspent energy can carry over when you end
+ * your turn. It sits in the reserve slots through the heroes' turn and
+ * is added on top of the next turn's ENERGY_PER_TURN.
+ */
+export const RESERVE_ENERGY_SLOTS = 1;
 export const CARDS_PER_TURN = 5;
 /** Cards drawn beyond this are discarded instead of added to the hand. */
 export const MAX_HAND_SIZE = 10;

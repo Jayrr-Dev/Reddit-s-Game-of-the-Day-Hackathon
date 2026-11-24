@@ -91,6 +91,7 @@ import {
   ELEMENT_ON_HIT,
   LONG_RANGE_DAMAGE_FACTOR,
   ENERGY_PER_TURN,
+  RESERVE_ENERGY_SLOTS,
   MAX_HAND_SIZE,
   INSTINCT_DODGE_CHANCES,
   OUT_OF_RANGE_HIT_CHANCE,
@@ -165,6 +166,7 @@ export const startCombat = (setup: CombatSetup): CombatState => {
       )
     ),
     energy: 0,
+    reserve: 0,
     hand: [],
     drawPile,
     discardPile: [],
@@ -1504,15 +1506,16 @@ export const heroTurnOrder = (heroes: readonly HeroUnit[]): HeroUnit[] =>
 // --- VILLAIN TURN ---
 
 /**
- * Begins a villain turn: guard and last turn's Protection fade, Hex
- * burns, energy refills, new hand.
+ * Begins a villain turn: guard and last round's buffs fade, Hex burns,
+ * energy refills (plus whatever the reserve kept), new hand.
  */
 const startPlayerTurn = (state: CombatState): CombatState =>
   drawCards(
     {
       ...state,
       player: hexBurn(dropRoundBuffs(expireGuard(state.player))),
-      energy: ENERGY_PER_TURN,
+      energy: ENERGY_PER_TURN + state.reserve,
+      reserve: 0,
       turn: state.turn + 1,
     },
     CARDS_PER_TURN
@@ -1571,6 +1574,9 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
   };
   const discarded: CombatState = {
     ...discardHand(lapsed),
+    // RESERVE ENERGY: unspent energy fills the reserve slots; the rest is lost.
+    energy: 0,
+    reserve: Math.min(lapsed.energy, RESERVE_ENERGY_SLOTS),
     // The villain's turn was its action: Burn and Frost, then upkeep.
     player: endOfTurnUpkeep(afterAction(lapsed.player)),
     // Enfeeble laid on this turn holds; any older lapses.

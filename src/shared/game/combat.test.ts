@@ -46,7 +46,7 @@ import {
   KEYWORD_INFO,
 } from './describe.ts';
 import { imbueSlotsFor } from './imbue.ts';
-import { ALOFT_EVASION, EXHAUST_USES } from './rules.ts';
+import { ALOFT_EVASION, EXHAUST_USES, RESERVE_ENERGY_SLOTS } from './rules.ts';
 import { getHero } from './heroes.ts';
 import {
   BACK_STEP_COST,
@@ -2168,4 +2168,28 @@ void test('Doom is Legendary: 3 energy, Hex 33', () => {
   assert.equal(doom.rarity, 'legendary');
   assert.equal(doom.cost, 3);
   assert.ok(doom.effects.some((e) => e.kind === 'hex' && e.amount === 33));
+});
+
+// --- RESERVE ENERGY ---
+void test('unspent energy carries over into the reserve, up to its slots', () => {
+  const start = startCombat({
+    hp: 999,
+    maxHp: 999,
+    deck: ['backhand', 'backhand', 'backhand', 'backhand', 'backhand'],
+    heroIds: ['squire'],
+    might: 1,
+    seed: 1,
+  });
+  assert.equal(start.reserve, 0);
+  // Ending with all 3 left keeps only RESERVE_ENERGY_SLOTS of them.
+  const steps = endTurnSteps(start);
+  const heroesTurn = steps[0]!.state;
+  assert.equal(heroesTurn.reserve, RESERVE_ENERGY_SLOTS);
+  assert.equal(heroesTurn.energy, 0);
+  const next = steps.at(-1)!.state;
+  assert.equal(next.energy, ENERGY_PER_TURN + RESERVE_ENERGY_SLOTS);
+  assert.equal(next.reserve, 0);
+  // Ending with nothing left keeps nothing.
+  const spent = endTurn({ ...next, energy: 0 });
+  assert.equal(spent.energy, ENERGY_PER_TURN);
 });
