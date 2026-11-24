@@ -1490,7 +1490,7 @@ void test('each status reads as its name and number, one per line', () => {
   assert.deepEqual(describeCard('sneer'), ['Guard 5', 'Weaken 1', 'Hex 1']);
   assert.deepEqual(describeCard('beckon'), ['Force Pull', 'Weaken 1', 'Hex 1']);
   assert.ok(describeCard('hurlAside').includes('Force Push'));
-  assert.ok(describeCard('plague').includes('Hex 4 to ALL'));
+  assert.ok(describeCard('plague').includes('Hex ALL 4'));
   for (const id of ALL_CARD_IDS)
     assert.ok(!describeCard(id).join(' ').includes('Apply'), id);
 });

@@ -139,11 +139,17 @@ export const PASSIVE_INFO: Record<PassiveId, StatusInfo> = {
 
 // --- CARD TEXT ---
 
-/** " to ALL" suffix for area effects; melee sweeps the front only. */
-const areaSuffix = (target: 'one' | 'all', isMelee = false): string => {
-  if (target === 'one') return '';
-  return isMelee ? ` to ${rowLabel('front')}` : ' to ALL';
-};
+/**
+ * " ALL" after an area effect's name ("Damage ALL 14", "Hex ALL 4").
+ * A melee sweep only reaches the front, so it reads "to Line 1" after
+ * the number instead (see areaSuffix).
+ */
+const areaWord = (target: 'one' | 'all', isMelee = false): string =>
+  target === 'all' && !isMelee ? ' ALL' : '';
+
+/** " to Line 1" after a melee sweep's number; nothing otherwise. */
+const areaSuffix = (target: 'one' | 'all', isMelee = false): string =>
+  target === 'all' && isMelee ? ` to ${rowLabel('front')}` : '';
 
 /**
  * One line of card text. When `attacker` is given, numbers are a live
@@ -171,7 +177,7 @@ export const describeCardEffect = (
       const isAimed = target !== undefined && effect.target === 'one';
       const amount = isAimed ? cardHitOn(target, perHit, cardDef) : perHit;
       const times = effect.hits > 1 ? ` ×${effect.hits}` : '';
-      return `Damage ${amount}${times}${areaSuffix(effect.target, isMelee)}`;
+      return `Damage${areaWord(effect.target, isMelee)} ${amount}${times}${areaSuffix(effect.target, isMelee)}`;
     }
     case 'hex':
     case 'poison':
@@ -181,7 +187,7 @@ export const describeCardEffect = (
     case 'weaken':
       return describeStatusLine(effect);
     case 'enfeeble':
-      return `Enfeeble${areaSuffix(effect.target)}`;
+      return `Enfeeble${areaWord(effect.target)}`;
     case 'reap': {
       if (!target) return `Damage ${effect.multiplier}× Hex`;
       const bonus = attacker ? typeBonus(attacker, cardDef.type) : 0;
@@ -401,9 +407,9 @@ type AppliedStatus = Extract<
   { kind: 'hex' | 'poison' | 'burn' | 'frost' | 'bleed' | 'weaken' }
 >;
 
-/** A status laid on heroes, as its name and number: "Hex 2", "Hex 4 to ALL". */
+/** A status laid on heroes, as its name and number: "Hex 2", "Hex ALL 4". */
 const describeStatusLine = (effect: AppliedStatus): string =>
-  `${STATUS_INFO[effect.kind].label} ${effect.amount}${areaSuffix(effect.target)}`;
+  `${STATUS_INFO[effect.kind].label}${areaWord(effect.target)} ${effect.amount}`;
 
 /** The line for what a card's element lays on each hit, if anything. */
 const elementLines = (cardDef: CardDef): string[] => {
