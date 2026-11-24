@@ -14,6 +14,7 @@ import {
   typeBonus,
 } from './combatant.ts';
 import { getHero } from './heroes.ts';
+import { ELEMENT_ON_HIT } from './rules.ts';
 import {
   cardHitOn,
   heroAttackOf,
@@ -383,6 +384,14 @@ const groupForText = (
     return [...groups, [effect]];
   }, []);
 
+/** The line for what a card's element lays on each hit, if anything. */
+const elementLines = (cardDef: CardDef): string[] => {
+  const onHit = cardDef.element ? ELEMENT_ON_HIT[cardDef.element] : null;
+  if (!onHit) return [];
+  const { label } = STATUS_INFO[onHit.status];
+  return [`Apply ${onHit.amount} ${label} per hit.`];
+};
+
 /**
  * A card's rules lines: Target N, then its effects (its type shows
  * reach). Its keywords are left out: on screen they are
@@ -400,7 +409,7 @@ export const describeCardRules = (
       : describeCardEffect(group, cardDef, attacker, target)
   );
   const targetLine = cardDef.targets > 1 ? [`Target ${cardDef.targets}.`] : [];
-  return [...targetLine, ...lines];
+  return [...targetLine, ...lines, ...elementLines(cardDef)];
 };
 
 /**

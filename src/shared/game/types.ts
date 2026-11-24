@@ -163,8 +163,9 @@ export type CardEffect =
 export type CardRarity = 'starter' | 'common' | 'uncommon' | 'rare';
 
 /**
- * A Magic card's element. For now it only changes how the spell looks
- * (its bolt, its burst and the icon on its type pill), not what it does.
+ * A Magic card's element. It changes how the spell looks (its bolt,
+ * its burst and the icon on its type pill), and some elements add to
+ * every hit (see ELEMENT_ON_HIT in rules.ts: Ice lays Frost).
  */
 export type MagicElement = 'fire' | 'ice';
 
@@ -189,7 +190,7 @@ export type CardDef = {
    * goes to the Remove pile once played.
    */
   keywords: readonly CardKeyword[];
-  /** A Magic card's element (its look), if it has one. */
+  /** A Magic card's element (its look and on-hit rule), if any. */
   element?: MagicElement;
   /**
    * Reach cards can hit the back row. Without Reach, damage is melee and

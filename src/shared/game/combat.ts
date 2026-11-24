@@ -77,6 +77,7 @@ import {
 import { shuffle, type RngState } from './rng.ts';
 import {
   CARDS_PER_TURN,
+  ELEMENT_ON_HIT,
   LONG_RANGE_DAMAGE_FACTOR,
   ENERGY_PER_TURN,
   MAX_HAND_SIZE,
@@ -478,7 +479,7 @@ const villainAttack = (
         isMelee,
         isFollowThrough
       ),
-      (unit) => takeHit(unit, cardHitOn(unit, perHit, cardDef), cardDef.type)
+      (unit) => elementalHit(unit, cardHitOn(unit, perHit, cardDef), cardDef)
     );
     return isPiercing && effect.target === 'one'
       ? pierceBehind(struck, targetUid, pierceHit, cardDef)
@@ -502,8 +503,22 @@ const pierceBehind = (
   const living = state.heroes.filter((unit) => !isDefeated(unit));
   const behindUids = heroesBehind(living, target).map((unit) => unit.uid);
   return updateHeroes(state, behindUids, (unit) =>
-    takeHit(unit, cardHitOn(unit, amount, cardDef), cardDef.type)
+    elementalHit(unit, cardHitOn(unit, amount, cardDef), cardDef)
   );
+};
+
+/**
+ * One card hit on a hero, plus whatever the card's element lays on
+ * every hit (ELEMENT_ON_HIT: Ice adds Frost).
+ */
+const elementalHit = (
+  unit: HeroUnit,
+  amount: number,
+  cardDef: CardDef
+): HeroUnit => {
+  const hit = takeHit(unit, amount, cardDef.type);
+  const onHit = cardDef.element ? ELEMENT_ON_HIT[cardDef.element] : null;
+  return onHit ? addStatus(hit, onHit.status, onHit.amount) : hit;
 };
 
 /**

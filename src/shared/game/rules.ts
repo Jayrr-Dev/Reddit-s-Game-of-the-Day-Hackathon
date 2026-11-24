@@ -4,7 +4,7 @@
 // nowhere else, so the engine, the UI and the server always agree.
 // ===================================================================
 
-import type { StatusId } from './types.ts';
+import type { MagicElement, StatusId } from './types.ts';
 
 // --- THE VILLAIN ---
 export const PLAYER_MAX_HP = 60;
@@ -95,6 +95,19 @@ export const HEX_BURN_LOSS = 1 / 3;
 export const HEX_EMPOWERED_DIGIT = 3;
 /** How much harder that Hex burns (Hex 3 burns for 6). */
 export const HEX_EMPOWERED_MULTIPLIER = 2;
+
+// --- MAGIC ELEMENTS ---
+/** A status an element lays on every hit, and how much. */
+export type ElementOnHit = { status: StatusId; amount: number };
+
+/**
+ * What each Magic element adds to every hit its card lands (null: the
+ * element is only a look). Ice chills: 1 Frost per hit.
+ */
+export const ELEMENT_ON_HIT: Record<MagicElement, ElementOnHit | null> = {
+  fire: null,
+  ice: { status: 'frost', amount: 1 },
+};
 
 // --- THE KINGDOM ---
 /** Regions in conquest order. Each ends with its champion (see heroes.ts). */

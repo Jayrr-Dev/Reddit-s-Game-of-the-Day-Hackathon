@@ -1702,3 +1702,18 @@ void test('Distance can be imbued onto an attack', () => {
   assert.equal(after.lastMovement?.move, 'backStep');
   assert.ok(describeCard('retreatingShot').includes('Distance.'));
 });
+
+// --- ELEMENTS ---
+void test('every hit of an Ice card applies Frost (Frost Bolt hits twice)', () => {
+  const state = withHand(fightWith([]), ['frostBolt']);
+  const uid = state.heroes[0]?.uid ?? -1;
+  const after = playCard(state, 0, uid);
+  const hero = after.heroes.find((unit) => unit.uid === uid);
+  assert.equal(hero?.statuses.frost, 2, 'one Frost per hit');
+  assert.ok(describeCard('frostBolt').includes('Apply 1 Frost per hit.'));
+  // Fire stays a look only.
+  const fire = withHand(fightWith([]), ['hexfire']);
+  const burnt = playCard(fire, 0, uid).heroes.find((unit) => unit.uid === uid);
+  assert.equal(burnt?.statuses.frost, 0);
+  assert.equal(burnt?.statuses.burn, 0);
+});

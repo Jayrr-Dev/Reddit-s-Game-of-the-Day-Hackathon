@@ -47,11 +47,6 @@ const poison = (amount: number): CardEffect => ({
   amount,
   target: 'one',
 });
-const frost = (amount: number): CardEffect => ({
-  kind: 'frost',
-  amount,
-  target: 'one',
-});
 const bleed = (amount: number): CardEffect => ({
   kind: 'bleed',
   amount,
@@ -204,7 +199,7 @@ export const CARDS = {
     hex(1),
   ]),
   venomDart: card('Venom Dart', 'range', 1, 'common', [hit(3), poison(4)]),
-  frostBolt: card('Frost Bolt', 'magic', 1, 'common', [hit(5), frost(2)], ICE),
+  frostBolt: card('Frost Bolt', 'magic', 1, 'common', [hit(3, 2)], ICE),
   serratedSlash: card('Serrated Slash', 'melee', 1, 'common', [
     hit(4),
     bleed(4),
