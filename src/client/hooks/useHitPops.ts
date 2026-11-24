@@ -79,6 +79,8 @@ export type Hit = {
   isQuiet?: boolean;
   /** True when this hit took the target from alive to 0 HP. */
   isKill?: boolean;
+  /** For a hit: damage the target's Armor soaked (its armor icon). */
+  armored?: number;
 };
 
 /**
@@ -99,6 +101,7 @@ type HeroLook = {
   guard: number;
   damageTaken: number;
   missedShots: number;
+  armorSoaked: number;
   wrath: number;
   hex: number;
   poison: number;
@@ -121,6 +124,7 @@ const goneAfter = (old: HeroLook): Omit<HeroLook, 'point'> => ({
   guard: 0,
   damageTaken: old.damageTaken + old.hp,
   missedShots: old.missedShots,
+  armorSoaked: old.armorSoaked,
   wrath: 0,
   hex: 0,
   poison: 0,
@@ -166,7 +170,12 @@ const VILLAIN_GAINS: readonly (StatusId & PopKind)[] = [
 
 // --- HELPERS ---
 /** The numbers a hit is read from (HP, Guard, and damage taken). */
-type HitLook = { hp: number; guard: number; damageTaken: number };
+type HitLook = {
+  hp: number;
+  guard: number;
+  damageTaken: number;
+  armorSoaked?: number | undefined;
+};
 
 /**
  * The hit between two looks, or null if there was none. The damage is
@@ -183,8 +192,12 @@ const hitBetween = (
   const guardLost = Math.max(0, before.guard - after.guard);
   const blocked = countsBlocked ? guardLost : 0;
   const isKill = before.hp > 0 && after.hp <= 0;
-  return amount > 0 || blocked > 0
-    ? { kind: 'hit', amount, blocked, isKill }
+  const armored = Math.max(
+    0,
+    (after.armorSoaked ?? 0) - (before.armorSoaked ?? 0)
+  );
+  return amount > 0 || blocked > 0 || armored > 0
+    ? { kind: 'hit', amount, blocked, isKill, armored }
     : null;
 };
 
@@ -243,6 +256,9 @@ export const splitIntoBlows = (hit: Hit, strikes: number): Hit[] => {
   const total = hit.amount + hit.blocked;
   const perBlow = Math.floor(total / strikes);
   let guardLeft = hit.blocked;
+  // Armor soaks the same off every blow (any remainder on the last).
+  const armored = hit.armored ?? 0;
+  const armorPerBlow = Math.floor(armored / strikes);
   return Array.from({ length: strikes }, (_, blow) => {
     const isLast = blow === strikes - 1;
     const damage = isLast ? total - perBlow * (strikes - 1) : perBlow;
@@ -252,6 +268,7 @@ export const splitIntoBlows = (hit: Hit, strikes: number): Hit[] => {
       ...hit,
       amount: damage - blocked,
       blocked,
+      armored: isLast ? armored - armorPerBlow * (strikes - 1) : armorPerBlow,
       isKill: isLast && hit.isKill === true,
     };
   });
@@ -336,6 +353,7 @@ const lookAt = (
         guard: unit.guard,
         damageTaken: unit.damageTaken,
         missedShots: unit.missedShots ?? 0,
+        armorSoaked: unit.armorSoaked ?? 0,
         wrath: unit.statuses.wrath,
         hex: unit.statuses.hex,
         poison: unit.statuses.poison,
@@ -372,6 +390,7 @@ const heroPopsSince = (
           guard: unit.guard,
           damageTaken: unit.damageTaken,
           missedShots: unit.missedShots ?? 0,
+          armorSoaked: unit.armorSoaked ?? 0,
           wrath: unit.statuses.wrath,
           hex: unit.statuses.hex,
           poison: unit.statuses.poison,

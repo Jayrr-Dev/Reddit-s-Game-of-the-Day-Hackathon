@@ -220,6 +220,7 @@ const HitNumber = ({ pop }: { pop: PlayerHitPop }) => (
       blocked={pop.blocked}
       typical={pop.typical}
       source={pop.source}
+      armored={pop.armored}
       isKill={pop.isKill}
     />
   </span>

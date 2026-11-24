@@ -2131,6 +2131,16 @@ void test('Armor N takes N off each physical hit, never magic', () => {
   assert.equal(endOfTurnUpkeep(armored).statuses.armor, 2, 'it lasts');
 });
 
+void test('Armor counts what it soaks, so the hit number can show it', () => {
+  const armored = addStatus(createCombatant(30, 30), 'armor', 3);
+  const partly = takeHit(armored, 5, 'melee');
+  assert.equal(partly.armorSoaked, 3);
+  const fully = takeHit(partly, 2, 'range');
+  assert.equal(fully.armorSoaked, 5, 'a hit of 2 loses only 2');
+  assert.equal(takeHit(armored, 5, 'magic').armorSoaked ?? 0, 0);
+  assert.equal(takeHit(armored, 5, 'melee', true).armorSoaked ?? 0, 0);
+});
+
 void test('Plate Armor gives the villain Armor 2; Sir Brannoc starts armored', () => {
   const state = withHand(fightWith(['darkCloak']), ['plateArmor']);
   assert.equal(playCard(state, 0, -1).player.statuses.armor, 2);

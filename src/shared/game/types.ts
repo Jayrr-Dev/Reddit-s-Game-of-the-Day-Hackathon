@@ -105,6 +105,8 @@ export type Combatant = {
    * the view diffs it to pop "Miss". Missing on older saves (0).
    */
   missedShots?: number;
+  /** Damage Armor has soaked in the fight, for the hit number's armor icon. */
+  armorSoaked?: number;
   /** Hits and afflictions dodged (Instinct), for the "Dodge" pop. */
   dodgedHits?: number;
   /** Hits taken this turn while shocked (see Shock). */

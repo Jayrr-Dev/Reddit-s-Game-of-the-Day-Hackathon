@@ -210,10 +210,18 @@ export const takeHit = <T extends Combatant>(
   type: CardType,
   isPiercing = false
 ): T => {
+  const afterProtection = isPiercing ? amount : protectedAmount(target, amount);
   const reduced = isPiercing
     ? amount
-    : armoredAmount(target, protectedAmount(target, amount), type);
-  const hit = takeDamage(target, reduced);
+    : armoredAmount(target, afterProtection, type);
+  // ARMOR SOAK: counted so the view can show the armor icon on the hit.
+  const soaked = afterProtection - reduced;
+  const hit = takeDamage(
+    soaked > 0
+      ? { ...target, armorSoaked: (target.armorSoaked ?? 0) + soaked }
+      : target,
+    reduced
+  );
   const { shock } = hit.statuses;
   if (shock <= 0) return hit;
   const inARow = (hit.shockHits ?? 0) + 1;

@@ -75,22 +75,30 @@ const WORD_POPS: Partial<Record<PopKind, string>> = {
 };
 
 // --- SUBCOMPONENTS ---
+/** What soaked part of a hit: Guard (a shield) or Armor (a breastplate). */
+type Soaker = 'guard' | 'armor';
+
 /**
- * The part a Guard soaked up: a grey shield and number beside the HP
- * loss. `scale` sizes it (small next to an HP number, full size when
+ * The part a Guard or Armor soaked up: its icon and number beside the
+ * HP loss. `scale` sizes it (small next to an HP number, full size when
  * Guard took the whole hit).
  */
 const BlockedPart = ({
   blocked,
   typical,
   scale,
+  by = 'guard',
 }: {
   blocked: number;
   typical: number;
   scale: number;
+  by?: Soaker;
 }) => (
   <span className="flex items-center gap-0.5 opacity-85 drop-shadow-[0_0_2px_black]">
-    <Glyph name="shield" className="size-[0.9em] text-guard" />
+    <Glyph
+      name={POP_LOOK[by].glyph}
+      className={`size-[0.9em] ${POP_LOOK[by].toneClass}`}
+    />
     <span
       className="font-display font-black text-ink [-webkit-text-stroke:1px_var(--color-surface-sunken)]"
       style={{ fontSize: popFontPx(blocked, typical, scale) }}
@@ -103,8 +111,9 @@ const BlockedPart = ({
 /**
  * One hit. The big number is the HP actually lost, after Guard, so it
  * always matches the health bar; the part a Guard soaked up sits beside
- * it as a grey shield number. A hit Guard took whole shows only the
- * shield number, since no HP was lost.
+ * it as a grey shield number, and the part Armor soaked as a
+ * breastplate number. A hit Guard took whole shows only the shield
+ * number, since no HP was lost; a hit Armor took whole shows "0".
  */
 export const HitLine = ({
   amount,
@@ -112,6 +121,7 @@ export const HitLine = ({
   typical,
   source,
   tone: toneOverride,
+  armored = 0,
   isKill = false,
 }: {
   /** HP lost past Guard (overkill included, so it can exceed HP left). */
@@ -124,16 +134,27 @@ export const HitLine = ({
   source?: CardType | undefined;
   /** A colour that wins over the type's (a Shock burst's yellow). */
   tone?: string | undefined;
+  /** Damage the target's Armor soaked. */
+  armored?: number | undefined;
   /** True when the hit felled its target: a black skull follows it. */
   isKill?: boolean | undefined;
 }) => {
-  const isFullyBlocked = amount === 0;
+  const isGuardedWhole = amount === 0 && blocked > 0;
   const fontSize = popFontPx(amount, typical);
   const tone = toneOverride ?? toneOf(source);
-  if (isFullyBlocked) {
+  const armorPart = armored > 0 && (
+    <BlockedPart
+      blocked={armored}
+      typical={typical}
+      scale={BLOCKED_SCALE}
+      by="armor"
+    />
+  );
+  if (isGuardedWhole) {
     return (
-      <div className="flex items-center animate-hit-pop">
+      <div className="flex items-center gap-1 animate-hit-pop">
         <BlockedPart blocked={blocked} typical={typical} scale={1} />
+        {armorPart}
       </div>
     );
   }
@@ -161,6 +182,7 @@ export const HitLine = ({
           scale={BLOCKED_SCALE}
         />
       )}
+      {armorPart}
     </div>
   );
 };
@@ -208,6 +230,7 @@ const PopLine = ({ hit }: { hit: PlayerHitPop }) =>
       typical={hit.typical}
       source={hit.source}
       tone={hit.kind === 'shockBurst' ? SHOCK_TONE : undefined}
+      armored={hit.armored}
       isKill={hit.isKill}
     />
   ) : (
