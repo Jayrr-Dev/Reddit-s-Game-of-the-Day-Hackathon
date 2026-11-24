@@ -143,8 +143,18 @@ const PLUMAGE_SHAPE: readonly Point[] = [
   [662, 500],
   [768, 690],
 ];
+/**
+ * How far (art units) each talon sits out from where it was first
+ * traced, so the legs stand under the chest's sides, where its arms
+ * would be. The left leg moves left, its mirrored twin right.
+ */
+const TALON_SPREAD = 65;
+/** A left-leg part moved out by TALON_SPREAD. */
+const spreadOut = (points: readonly Point[]): Point[] =>
+  points.map(([x, y]) => [x - TALON_SPREAD, y] as const);
+
 /** An eagle's foreleg: a scaled shank tapering down to the ankle. */
-const FORELEG: readonly Point[] = [
+const FORELEG_TRACED: readonly Point[] = [
   [690, 770],
   [740, 770],
   [732, 862],
@@ -152,7 +162,7 @@ const FORELEG: readonly Point[] = [
   [700, 862],
 ];
 /** Scale bands across the shank (thin dark lines). */
-const SHANK_SCALES: readonly (readonly Point[])[] = [
+const SHANK_SCALES_TRACED: readonly (readonly Point[])[] = [
   [
     [694, 800],
     [737, 800],
@@ -167,7 +177,7 @@ const SHANK_SCALES: readonly (readonly Point[])[] = [
   ],
 ];
 /** Three toes fanned forward from the ankle: outer, middle, inner. */
-const TOES: readonly (readonly Point[])[] = [
+const TOES_TRACED: readonly (readonly Point[])[] = [
   [
     [700, 868],
     [714, 876],
@@ -188,7 +198,7 @@ const TOES: readonly (readonly Point[])[] = [
   ],
 ];
 /** A dark hooked claw at the tip of each toe. */
-const CLAWS: readonly (readonly Point[])[] = [
+const CLAWS_TRACED: readonly (readonly Point[])[] = [
   [
     [677, 926],
     [694, 932],
@@ -205,6 +215,12 @@ const CLAWS: readonly (readonly Point[])[] = [
     [754, 958],
   ],
 ];
+
+// THE TALONS, SPREAD under the chest's sides (see TALON_SPREAD)
+const FORELEG = spreadOut(FORELEG_TRACED);
+const SHANK_SCALES = SHANK_SCALES_TRACED.map(spreadOut);
+const TOES = TOES_TRACED.map(spreadOut);
+const CLAWS = CLAWS_TRACED.map(spreadOut);
 const BEAK_SHAPE: readonly Point[] = [
   [768, 205],
   [735, 222],
