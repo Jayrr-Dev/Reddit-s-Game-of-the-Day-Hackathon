@@ -197,8 +197,15 @@ export const Tooltip = ({
       showAfter(HOVER_DELAY_MS);
   };
 
-  /** A popover's click: toggles it, and is not a tap on what's behind. */
-  const onPopoverClick = (event: MouseEvent) => {
+  /**
+   * A popover opens on the press, not the click: heroes bob, so a small
+   * chip can slip out from under the pointer before it lifts (and a
+   * click needs press and release on the same element). The press
+   * toggles it; the click that follows is swallowed so it isn't a tap
+   * on the hero behind.
+   */
+  const onPopoverPress = (event: PointerEvent) => {
+    if (event.button !== 0) return;
     event.stopPropagation();
     const rect = triggerRef.current?.getBoundingClientRect();
     setPlacement((open) =>
@@ -206,6 +213,10 @@ export const Tooltip = ({
         ? null
         : placeFloating(rect, MAX_WIDTH, POPOVER_MIN_ROOM_ABOVE)
     );
+  };
+  const popoverHandlers = {
+    onPointerDown: onPopoverPress,
+    onClick: (event: MouseEvent) => event.stopPropagation(),
   };
   const hoverHandlers = {
     onPointerEnter,
@@ -225,7 +236,7 @@ export const Tooltip = ({
             ? `${content.title}: ${content.description}`
             : content.title
         }
-        {...(isPopover ? { onClick: onPopoverClick } : hoverHandlers)}
+        {...(isPopover ? popoverHandlers : hoverHandlers)}
         onContextMenu={(event) => event.preventDefault()}
         className={`pointer-events-auto ${isInline ? 'inline' : 'inline-flex'}`}
       >
