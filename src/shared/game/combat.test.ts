@@ -1205,3 +1205,20 @@ void test('a move with two effects is one action; only the dragon has two', () =
   const dragon = fight.heroes.find((unit) => unit.heroId === 'holyDragon')!;
   assert.equal(describeHeroIntent(dragon, fight.heroes).moves.length, 2);
 });
+
+// --- HOLD ---
+void test('a Hold card stays in hand at end of turn; the rest are discarded', () => {
+  // A deck of Dark Cloaks, so the new hand never redraws the Backhand.
+  const deck: CardId[] = Array.from({ length: 12 }, () => 'darkCloak');
+  const state = withHand(fightWith(deck), ['ruin', 'backhand']);
+  const after = endTurn(state);
+  assert.ok(after.hand.includes('ruin'));
+  assert.ok(!after.discardPile.includes('ruin'));
+  assert.ok(after.discardPile.includes('backhand'));
+});
+
+void test('Hold is a card trait, printed on the card', () => {
+  assert.equal(getCard('ruin').holds, true);
+  assert.equal(getCard('backhand').holds, false);
+  assert.ok(describeCard('ruin').includes('Hold.'));
+});

@@ -184,7 +184,7 @@ export const describeCardEffect = (
 
 /**
  * All text lines for a card: the effects (its type shows reach),
- * then "Fades." when it does.
+ * then "Hold." and "Fades." when it has those traits.
  */
 export const describeCard = (
   cardId: CardId,
@@ -196,7 +196,11 @@ export const describeCard = (
     describeCardEffect(effect, cardDef, attacker, target)
   );
   const targetLine = cardDef.targets > 1 ? [`Target ${cardDef.targets}.`] : [];
-  return [...targetLine, ...lines, ...(cardDef.fades ? ['Fades.'] : [])];
+  const traitLines = [
+    ...(cardDef.holds ? ['Hold.'] : []),
+    ...(cardDef.fades ? ['Fades.'] : []),
+  ];
+  return [...targetLine, ...lines, ...traitLines];
 };
 
 /** True when playing this card needs the player to pick a hero. */

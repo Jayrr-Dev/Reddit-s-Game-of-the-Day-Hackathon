@@ -58,9 +58,13 @@ const reap = (multiplier: number): CardEffect => ({ kind: 'reap', multiplier });
 const pull: CardEffect = { kind: 'pull' };
 const push: CardEffect = { kind: 'push' };
 
-/** Optional card traits: fading (default no) and Target N (default 1). */
-type CardTraits = { fades?: boolean; targets?: number };
+/**
+ * Optional card traits: fading, Hold (stays in hand at end of turn;
+ * both default no) and Target N (default 1).
+ */
+type CardTraits = { fades?: boolean; holds?: boolean; targets?: number };
 const FADES: CardTraits = { fades: true };
+const HOLDS: CardTraits = { holds: true };
 
 /** Card types that can hit the back row (Melee only hits the front). */
 const REACHING_TYPES: ReadonlySet<CardType> = new Set([
@@ -76,7 +80,7 @@ const card = (
   cost: number,
   rarity: CardRarity,
   effects: CardEffect[],
-  { fades = false, targets = 1 }: CardTraits = {}
+  { fades = false, holds = false, targets = 1 }: CardTraits = {}
 ): CardDef => ({
   name,
   type,
@@ -84,6 +88,7 @@ const card = (
   rarity,
   effects,
   fades,
+  holds,
   reach: REACHING_TYPES.has(type),
   targets,
 });
@@ -153,7 +158,7 @@ export const CARDS = {
   // UNCOMMON
   reap: card('Reap', 'magic', 1, 'uncommon', [reap(2)]),
   seethe: card('Seethe', 'buff', 1, 'uncommon', [wrath(2)], FADES),
-  ruin: card('Ruin', 'melee', 2, 'uncommon', [hit(16)]),
+  ruin: card('Ruin', 'melee', 2, 'uncommon', [hit(16)], HOLDS),
   coldResolve: card('Cold Resolve', 'defend', 1, 'uncommon', [
     guard(6),
     draw(2),
@@ -172,7 +177,7 @@ export const CARDS = {
   drain: card('Drain', 'melee', 1, 'uncommon', [hit(6), heal(3)]),
   shadowBarrage: card('Shadow Barrage', 'magic', 2, 'uncommon', [hit(3, 4)]),
   rainOfThorns: card('Rain of Thorns', 'range', 2, 'uncommon', [hitAll(5)]),
-  soulLance: card('Soul Lance', 'magic', 2, 'uncommon', [hit(14)]),
+  soulLance: card('Soul Lance', 'magic', 2, 'uncommon', [hit(14)], HOLDS),
   tyrantsStance: card(
     "Tyrant's Stance",
     'buff',
@@ -183,7 +188,7 @@ export const CARDS = {
   ),
 
   // RARE
-  cataclysm: card('Cataclysm', 'magic', 3, 'rare', [hitAll(14)]),
+  cataclysm: card('Cataclysm', 'magic', 3, 'rare', [hitAll(14)], HOLDS),
   vengeance: card('Vengeance', 'buff', 1, 'rare', [wrath(3)], FADES),
   gravePact: card('Grave Pact', 'buff', 1, 'rare', [heal(8)], FADES),
   doom: card('Doom', 'curse', 2, 'rare', [hex(9)], FADES),

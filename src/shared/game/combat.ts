@@ -977,12 +977,16 @@ const hexBurnStep = (state: CombatState, uid: number): TurnStep | null => {
 export const endTurnSteps = (state: CombatState): TurnStep[] => {
   if (combatOutcome(state) !== 'ongoing') return [];
 
-  // 1. DISCARD THE HAND, THE VILLAIN'S UPKEEP (POISON TICKS), AND THE
-  //    HEROES' GUARD FROM LAST ROUND FADES
+  // 1. DISCARD THE HAND (HOLD CARDS STAY), THE VILLAIN'S UPKEEP (POISON
+  //    TICKS), AND THE HEROES' GUARD FROM LAST ROUND FADES
+  const isHeld = (cardId: CardId) => getCard(cardId).holds;
   const discarded: CombatState = {
     ...state,
-    hand: [],
-    discardPile: [...state.discardPile, ...state.hand],
+    hand: state.hand.filter(isHeld),
+    discardPile: [
+      ...state.discardPile,
+      ...state.hand.filter((cardId) => !isHeld(cardId)),
+    ],
     // The villain's turn was its action: Burn and Frost, then upkeep.
     player: endOfTurnUpkeep(afterAction(state.player)),
     heroes: state.heroes.map(clearGuard),

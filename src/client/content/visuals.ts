@@ -141,6 +141,8 @@ export const RULES_KEYWORDS = [
   'Piercing',
   'Reinforce',
   'Protection',
+  'Hold',
+  'Fades',
   'ALL',
 ] as const;
 

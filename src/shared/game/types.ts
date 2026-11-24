@@ -126,6 +126,8 @@ export type CardDef = {
   effects: readonly CardEffect[];
   /** A fading card leaves the fight after it is played. */
   fades: boolean;
+  /** A Hold card stays in hand at the end of the turn instead of being discarded. */
+  holds: boolean;
   /**
    * Reach cards can hit the back row. Without Reach, damage is melee and
    * only reaches the front row (curses and Hex always reach). Derived
