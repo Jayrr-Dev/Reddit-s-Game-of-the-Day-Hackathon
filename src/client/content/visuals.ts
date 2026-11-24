@@ -180,6 +180,7 @@ export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   burn: STATUS_LOOK.burn,
   frost: STATUS_LOOK.frost,
   bleed: STATUS_LOOK.bleed,
+  bleedBurst: STATUS_LOOK.bleed,
   dread: STATUS_LOOK.dread,
 };
 

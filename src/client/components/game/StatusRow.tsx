@@ -35,7 +35,7 @@ import { Chip, type ChipProps } from '../ui/Chip';
 // --- TYPES ---
 /** One status as a chip, with its tooltip text. */
 type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
-  Pick<ChipProps, 'fill'> & {
+  Pick<ChipProps, 'fill' | 'pips'> & {
     key: StatusId | PassiveId | 'shroud';
     title: string;
     description: string;
@@ -108,9 +108,23 @@ const hexChipOf = (hex: number): Partial<StatusChip> => {
       };
 };
 
-/** Bleed's chip: its value and the hits in a row so far, "6 · 2/3". */
-const bleedText = (combatant: Combatant): string =>
-  `${combatant.statuses.bleed} · ${combatant.bleedHits ?? 0}/${BLEED_HITS}`;
+/**
+ * Bleed's chip: its value, with the hits in a row so far as pips. One
+ * hit from bursting, it is PRIMED: a solid blood-red tile.
+ */
+const bleedChipOf = (combatant: Combatant): Partial<StatusChip> => {
+  const hits = combatant.bleedHits ?? 0;
+  const isPrimed = hits >= BLEED_HITS - 1;
+  return {
+    pips: { filled: hits, total: BLEED_HITS },
+    ...(isPrimed
+      ? {
+          fill: toneVarOf(STATUS_LOOK.bleed),
+          description: `Primed: the next non-Magic hit bursts it for ${combatant.statuses.bleed}.`,
+        }
+      : {}),
+  };
+};
 
 /** Every active effect on a combatant as chips, Guard first. */
 const statusChipsOf = (combatant: Combatant): StatusChip[] => {
@@ -130,13 +144,11 @@ const statusChipsOf = (combatant: Combatant): StatusChip[] => {
     (id): StatusChip => ({
       key: id,
       ...STATUS_LOOK[id],
-      text:
-        id === 'bleed'
-          ? bleedText(combatant)
-          : chipText(id, combatant.statuses[id]),
+      text: chipText(id, combatant.statuses[id]),
       title: STATUS_INFO[id].label,
       description: STATUS_INFO[id].description,
       ...(id === 'hex' ? hexChipOf(combatant.statuses[id]) : {}),
+      ...(id === 'bleed' ? bleedChipOf(combatant) : {}),
     })
   );
   return [...shroud, ...statuses];
@@ -149,6 +161,7 @@ const StatusChipView = ({ chip }: { chip: StatusChip }) => (
     text={chip.text}
     toneClass={chip.toneClass}
     fill={chip.fill}
+    pips={chip.pips}
     shape="square"
     info={{ title: chip.title, description: chip.description }}
   />
@@ -178,6 +191,7 @@ const StatusPopover = ({
             text={chip.text}
             toneClass={chip.toneClass}
             fill={chip.fill}
+            pips={chip.pips}
             shape="square"
           />
         </span>
@@ -295,6 +309,7 @@ export const StatusRow = ({
             text={chip.text}
             toneClass={chip.toneClass}
             fill={chip.fill}
+            pips={chip.pips}
             shape="square"
           />
         ))}

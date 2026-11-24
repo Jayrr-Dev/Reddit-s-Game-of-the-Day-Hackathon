@@ -32,6 +32,11 @@ export type ChipProps = {
    * first (an intent's secondary effects: one move, one arrow).
    */
   extras?: readonly ChipPart[];
+  /**
+   * A count drawn as small bars after the number (a square's only),
+   * e.g. Bleed's hits in a row: `filled` of `total` lit.
+   */
+  pips?: { filled: number; total: number } | undefined;
 };
 
 /** One icon + value inside a badge. */
@@ -64,6 +69,18 @@ const BadgeContent = ({
   </>
 );
 
+/** A count as small upright bars, the first `filled` lit. */
+const Pips = ({ filled, total }: { filled: number; total: number }) => (
+  <span className="ml-0.5 inline-flex items-center gap-px">
+    {Array.from({ length: total }, (_, index) => (
+      <span
+        key={index}
+        className={`h-2 w-[3px] rounded-[1px] bg-current ${index < filled ? '' : 'opacity-25'}`}
+      />
+    ))}
+  </span>
+);
+
 /** Renders one badge, with its tooltip when it has `info`. */
 export const Chip = ({ info, ...badge }: ChipProps) =>
   info ? (
@@ -86,6 +103,7 @@ const Badge = ({
   shape = 'arrow',
   fill,
   extras = [],
+  pips,
 }: Omit<ChipProps, 'info'>) =>
   shape === 'square' ? (
     <span
@@ -93,6 +111,7 @@ const Badge = ({
       style={fill ? { backgroundColor: fill } : undefined}
     >
       <BadgeContent glyph={glyph} text={text} iconClass="" />
+      {pips && <Pips {...pips} />}
     </span>
   ) : (
     <span className={`inline-flex bg-black p-px ${ARROW_CLIP}`}>

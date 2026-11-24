@@ -185,9 +185,45 @@ const HitMark = ({ pop }: { pop: PlayerHitPop }) => {
   return <Slash pop={pop} />;
 };
 
+/** Droplets a Bleed burst sprays: [angle deg, distance % of the box]. */
+const BLEED_DROPS: readonly (readonly [number, number])[] = [
+  [-90, 46],
+  [-50, 40],
+  [-10, 44],
+  [30, 38],
+  [70, 42],
+  [110, 40],
+  [150, 44],
+  [190, 38],
+  [230, 42],
+];
+
+/** Bleed going off: a blood-red flash and droplets bursting outward. */
+const BleedBurst = ({ id }: { id: number }) => (
+  <>
+    <Glow tone="var(--color-bleed)" />
+    {BLEED_DROPS.map(([deg, distance], index) => {
+      const rad = ((deg + spread(id, index + 5) * 12) * Math.PI) / 180;
+      return (
+        <span
+          key={deg}
+          className="bleed-drop absolute left-1/2 top-1/2 size-[9%] rounded-full bg-bleed"
+          style={
+            {
+              '--dx': `${(Math.cos(rad) * distance).toFixed(1)}cqw`,
+              '--dy': `${(Math.sin(rad) * distance).toFixed(1)}cqh`,
+            } as CSSProperties
+          }
+        />
+      );
+    })}
+  </>
+);
+
 /** The effect for one pop: a hit mark, or a status arrow and glow. */
 const Impact = ({ pop }: { pop: PlayerHitPop }) => {
   if (pop.kind === 'hit') return <HitMark pop={pop} />;
+  if (pop.kind === 'bleedBurst') return <BleedBurst id={pop.id} />;
   if (pop.kind === 'heal')
     return (
       <>
@@ -210,7 +246,10 @@ const Impact = ({ pop }: { pop: PlayerHitPop }) => {
  * which should cover the character's body.
  */
 export const ImpactOverlay = ({ pops }: { pops: readonly PlayerHitPop[] }) => (
-  <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+  <div
+    className="pointer-events-none absolute inset-0 [container-type:size]"
+    aria-hidden="true"
+  >
     {pops.map((pop) => (
       <Impact key={pop.id} pop={pop} />
     ))}

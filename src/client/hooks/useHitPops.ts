@@ -29,7 +29,15 @@ export type DebuffKind =
 
 /** What a pop shows: a hit, something gained, or a debuff laid on. */
 export type PopKind =
-  'hit' | 'heal' | 'shroud' | 'wrath' | 'momentum' | BuffId | DebuffKind;
+  | 'hit'
+  | 'heal'
+  | 'shroud'
+  | 'wrath'
+  | 'momentum'
+  | BuffId
+  | DebuffKind
+  /** Bleed went off: a spray of blood over the unit (quiet). */
+  | 'bleedBurst';
 
 /**
  * One pop's numbers: for a hit, HP lost and damage the shroud soaked up;
@@ -178,17 +186,29 @@ const gainsBetween = (
     .map(([kind, amount]) => ({ kind, amount, blocked: 0 }));
 };
 
-/** Debuffs laid on between two looks: effect only, no number. */
+/**
+ * Debuffs laid on between two looks, plus a Bleed that went off (it
+ * had stacks and now has none): effect only, no number.
+ */
 const debuffsBetween = (
   before: Record<DebuffKind, number>,
   after: Record<DebuffKind, number>
-): Hit[] =>
-  DEBUFFS.map((kind) => ({
+): Hit[] => {
+  const laid: Hit[] = DEBUFFS.map((kind) => ({
     kind,
     amount: after[kind] - before[kind],
     blocked: 0,
     isQuiet: true,
   })).filter((debuff) => debuff.amount > 0);
+  const hasBurst = before.bleed > 0 && after.bleed === 0;
+  const burst: Hit = {
+    kind: 'bleedBurst',
+    amount: before.bleed,
+    blocked: 0,
+    isQuiet: true,
+  };
+  return hasBurst ? [...laid, burst] : laid;
+};
 
 /** The middle of a hero's drawn body, or null if it is not on screen. */
 export const bodyPointOf = (uid: number): Point | null => {
