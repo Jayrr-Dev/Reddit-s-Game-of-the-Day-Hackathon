@@ -36,6 +36,7 @@ import {
   playCard,
   playCardSteps,
   startCombat,
+  targetsFor,
   wouldFell,
   autoTargets,
   playDamageFactor,
@@ -2578,4 +2579,23 @@ void test('a Randomly card needs no aim and each hit picks a hero anew', () => {
   assert.ok(spreads.some(([squire = 0]) => squire > 0));
   assert.ok(spreads.some(([, archer = 0]) => archer > 0));
   assert.ok(spreads.every((lost) => lost.reduce((a, b) => a + b, 0) > 0));
+});
+
+// --- MELEE KNOCKBACK REACH ---
+void test('a Melee Knockback card only targets the front row, even if blocked', () => {
+  const state = startCombat({
+    hp: 99,
+    maxHp: 99,
+    deck: ['backhand'],
+    heroIds: ['holt', 'paladin'],
+    might: 1,
+    seed: 3,
+  });
+  for (const card of ['hurlAside', 'ruin'] as const) {
+    assert.deepEqual(
+      targetsFor(state, card).map((unit) => unit.heroId),
+      ['holt'],
+      `${card}: Holt in front, not the Paladin behind`
+    );
+  }
 });

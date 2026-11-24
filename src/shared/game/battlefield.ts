@@ -680,13 +680,18 @@ const isSingleTarget = (effect: CardDef['effects'][number]): boolean =>
 export const targetRuleOf = (cardId: CardId): TargetRule => {
   const { effects, reach } = getCard(cardId);
   const kinds = effects.map((effect) => effect.kind);
+  // A Melee strike reaches the front row only, even with Knockback or
+  // Pull on it (a blocked target is still hit, it just doesn't move).
+  const isMeleeStrike =
+    !reach &&
+    effects.some(
+      (effect) => effect.kind === 'damage' && effect.target === 'one'
+    );
+  if (isMeleeStrike) return 'front';
   if (kinds.includes('pull')) return 'pullable';
   if (kinds.includes('push')) return 'pushable';
   if (!effects.some(isSingleTarget)) return 'none';
-  const isMelee = effects.some(
-    (effect) => effect.kind === 'damage' && effect.target === 'one'
-  );
-  return isMelee && !reach ? 'front' : 'any';
+  return 'any';
 };
 
 // --- WHO A CARD AFFECTS ---
