@@ -9,9 +9,10 @@ import {
   BLEED_HITS,
   DREAD_DAMAGE_FACTOR,
   FROST_DAMAGE_PER_STACK,
-  HEX_DECAY,
+  HEX_BURN_LOSS,
   HEX_EMPOWERED_DIGIT,
   HEX_EMPOWERED_MULTIPLIER,
+  HEX_GROWTH,
   MOMENTUM_DAMAGE_FACTOR,
 } from './rules.ts';
 import type {
@@ -201,6 +202,10 @@ export const clearShroud = <T extends Combatant>(target: T): T => ({
   shroud: 0,
 });
 
+/** Whether this Hex is the empowered kind (odd, last digit 3). */
+const isEmpoweredHex = (hex: number): boolean =>
+  hex % 2 === 1 && hex % 10 === HEX_EMPOWERED_DIGIT;
+
 /**
  * What a Hex of this size burns for this turn: nothing when even, its
  * value when odd, and HEX_EMPOWERED_MULTIPLIER times that when its last
@@ -208,14 +213,28 @@ export const clearShroud = <T extends Combatant>(target: T): T => ({
  */
 export const hexBurnAmount = (hex: number): number => {
   if (hex <= 0 || hex % 2 === 0) return 0;
-  const isEmpowered = hex % 10 === HEX_EMPOWERED_DIGIT;
-  return isEmpowered ? hex * HEX_EMPOWERED_MULTIPLIER : hex;
+  return isEmpoweredHex(hex) ? hex * HEX_EMPOWERED_MULTIPLIER : hex;
 };
 
 /**
- * Hex, right before its bearer's turn: it burns for its value on odd
- * counts only (1, 3, 5 ... nothing on 2, 4 ...), then drops by
- * HEX_DECAY, clearing at 0. So Hex 5 deals 5, 0, 6 (a 3 doubles), 0, 1, then is gone.
+ * What a Hex becomes after its bearer's turn starts:
+ *   even         grows by HEX_GROWTH (it is building toward a burn)
+ *   odd          burned, so it loses HEX_BURN_LOSS of itself, ROUNDED UP,
+ *                so it always drops by at least 1 and never sticks
+ *                (1 -> 0, 5 -> 3, 7 -> 4)
+ *   odd, ends 3  burned double, so it clears
+ */
+export const hexAfterTurn = (hex: number): number => {
+  if (hex <= 0) return 0;
+  if (hex % 2 === 0) return hex + HEX_GROWTH;
+  if (isEmpoweredHex(hex)) return 0;
+  return hex - Math.ceil(hex * HEX_BURN_LOSS);
+};
+
+/**
+ * Hex, right before its bearer's turn: it burns (see hexBurnAmount),
+ * then moves on (see hexAfterTurn). So Hex 7 deals 7, 0, 5, 6 and is
+ * gone (7 -> 4 -> 5 -> 3 -> cleared).
  */
 export const hexBurn = <T extends Combatant>(target: T): T => {
   const { hex } = target.statuses;
@@ -223,7 +242,7 @@ export const hexBurn = <T extends Combatant>(target: T): T => {
   const burned = loseHp(target, hexBurnAmount(hex));
   return {
     ...burned,
-    statuses: { ...burned.statuses, hex: Math.max(0, hex - HEX_DECAY) },
+    statuses: { ...burned.statuses, hex: hexAfterTurn(hex) },
   };
 };
 

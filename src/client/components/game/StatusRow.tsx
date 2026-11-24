@@ -18,7 +18,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { PASSIVE_INFO, STATUS_INFO } from '../../../shared/game/describe';
-import { hexBurnAmount } from '../../../shared/game/combatant';
+import { hexAfterTurn, hexBurnAmount } from '../../../shared/game/combatant';
 import { BLEED_HITS } from '../../../shared/game/rules';
 import type {
   Combatant,
@@ -36,7 +36,7 @@ import { Chip, type ChipProps } from '../ui/Chip';
 // --- TYPES ---
 /** One status as a chip, with its tooltip text. */
 type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
-  Pick<ChipProps, 'fill' | 'pips'> & {
+  Pick<ChipProps, 'fill' | 'pips' | 'isPulsing'> & {
     key: StatusId | PassiveId | 'shroud';
     title: string;
     description: string;
@@ -96,6 +96,7 @@ const passiveChipsOf = (passives: readonly PassiveId[]): StatusChip[] =>
  * odd, it is PRIMED (a solid purple tile: it burns before the next
  * turn); even, it is a plain dark tile and the tooltip says it waits.
  * Adding a stack flips it, which is the choice: burst now or hold.
+ * Odd and ending in 3, it burns double: that chip PULSES.
  */
 const hexChipOf = (hex: number): Partial<StatusChip> => {
   const burn = hexBurnAmount(hex);
@@ -103,15 +104,20 @@ const hexChipOf = (hex: number): Partial<StatusChip> => {
   const isDoubled = burn > hex;
   if (!isPrimed)
     return {
-      description: `Even: no burn this turn, just -1 (burns for ${hexBurnAmount(hex - 1)} the turn after).`,
+      description: `Even: no burn this turn, grows to ${hexAfterTurn(hex)} (and burns the turn after).`,
+    };
+  if (isDoubled)
+    return {
+      fill: toneVarOf(STATUS_LOOK.hex),
+      // The doubled burn is the big hit: show what it really deals, and
+      // pulse so the player sees it coming.
+      text: `${hex}\u00d72`,
+      isPulsing: true,
+      description: `Ends in 3: burns for ${burn} (double) before its next turn, then clears.`,
     };
   return {
     fill: toneVarOf(STATUS_LOOK.hex),
-    // A doubled burn shows what it will really deal, so it reads at a glance.
-    ...(isDoubled ? { text: `${hex}\u00d72` } : {}),
-    description: isDoubled
-      ? `Ends in 3: burns for ${burn} (double) before its next turn, then -1.`
-      : `Odd: burns for ${burn} before its next turn, then -1.`,
+    description: `Odd: burns for ${burn} before its next turn, then drops to ${hexAfterTurn(hex)}.`,
   };
 };
 
@@ -169,6 +175,7 @@ const StatusChipView = ({ chip }: { chip: StatusChip }) => (
     toneClass={chip.toneClass}
     fill={chip.fill}
     pips={chip.pips}
+    isPulsing={chip.isPulsing}
     shape="square"
     info={{ title: chip.title, description: chip.description }}
   />

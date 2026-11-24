@@ -2042,3 +2042,46 @@ textarea,
     animation-duration: 1ms;
   }
 }
+
+/* -------------------------------------------------------------------
+   CHIP PULSE: a status chip glowing in its tone, on and off, when a big
+   effect is about to go off (Hex about to burn double). The glow is a
+   pseudo-element whose opacity pulses: opacity and transform only.
+   ------------------------------------------------------------------- */
+@keyframes chip-pulse {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+.chip-pulse {
+  /* Its own stack, so the glow sits over the tile but under the text. */
+  isolation: isolate;
+}
+
+.chip-pulse::after {
+  content: '';
+  z-index: -1;
+  position: absolute;
+  inset: -2px;
+  border-radius: 4px;
+  pointer-events: none;
+  background: rgb(255 255 255 / 0.28);
+  box-shadow:
+    0 0 6px 2px var(--chip-pulse-tone, currentColor),
+    0 0 12px 3px var(--chip-pulse-tone, currentColor);
+  animation: chip-pulse 900ms ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip-pulse::after {
+    animation: none;
+    opacity: 0.7;
+  }
+}

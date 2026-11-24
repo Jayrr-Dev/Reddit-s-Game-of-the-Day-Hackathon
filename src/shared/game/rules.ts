@@ -46,9 +46,11 @@ export const AFTER_ACTION_DIVISOR = 2;
 export const BLEED_HITS = 3;
 /** Each stack of Frost takes this much off every hit its bearer deals. */
 export const FROST_DAMAGE_PER_STACK = 1;
-/** Hex drops by this much every turn (it burns only on odd counts). */
-export const HEX_DECAY = 1;
-/** An odd Hex whose last digit is this (3, 13, 23...) burns harder. */
+/** An even Hex (it does not burn) grows by this much each turn. */
+export const HEX_GROWTH = 1;
+/** After an odd Hex burns, it loses this share of itself (rounded up). */
+export const HEX_BURN_LOSS = 1 / 3;
+/** An odd Hex whose last digit is this (3, 13, 23...) burns harder, then clears. */
 export const HEX_EMPOWERED_DIGIT = 3;
 /** How much harder that Hex burns (Hex 3 burns for 6). */
 export const HEX_EMPOWERED_MULTIPLIER = 2;

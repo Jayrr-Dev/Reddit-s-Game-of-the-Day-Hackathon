@@ -37,6 +37,11 @@ export type ChipProps = {
    * e.g. Bleed's hits in a row: `filled` of `total` lit.
    */
   pips?: { filled: number; total: number } | undefined;
+  /**
+   * A square that pulses with a glow in its tone: a big effect is about
+   * to go off (e.g. Hex about to burn double). See index.css "CHIP PULSE".
+   */
+  isPulsing?: boolean | undefined;
 };
 
 /** One icon + value inside a badge. */
@@ -104,11 +109,16 @@ const Badge = ({
   fill,
   extras = [],
   pips,
+  isPulsing = false,
 }: Omit<ChipProps, 'info'>) =>
   shape === 'square' ? (
     <span
-      className={`inline-flex items-center gap-0.5 rounded-[3px] px-1 py-0.5 text-[11px] font-bold ring-1 ${fill ? 'text-black ring-black' : `bg-surface-sunken ring-edge ${toneClass}`}`}
-      style={fill ? { backgroundColor: fill } : undefined}
+      className={`inline-flex items-center gap-0.5 rounded-[3px] px-1 py-0.5 text-[11px] font-bold ring-1 ${fill ? 'text-black ring-black' : `bg-surface-sunken ring-edge ${toneClass}`} ${isPulsing ? 'chip-pulse relative' : ''}`}
+      style={
+        fill
+          ? { backgroundColor: fill, ['--chip-pulse-tone' as string]: fill }
+          : undefined
+      }
     >
       <BadgeContent glyph={glyph} text={text} iconClass="" />
       {pips && <Pips {...pips} />}
