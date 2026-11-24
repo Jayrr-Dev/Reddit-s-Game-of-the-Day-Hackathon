@@ -14,6 +14,7 @@ import {
   typeBonus,
 } from './combatant.ts';
 import { getHero } from './heroes.ts';
+import { foldImbuedDamage, imbuedEffects } from './imbue.ts';
 import {
   ELEMENT_ON_HIT,
   OUT_OF_RANGE_HIT_CHANCE,
@@ -463,10 +464,13 @@ const elementLines = (cardDef: CardDef): string[] => {
 export const describeCardRules = (
   cardId: CardId,
   attacker?: Combatant,
-  target?: HeroUnit
+  target?: HeroUnit,
+  imbues: readonly Imbue[] = []
 ): string[] => {
   const cardDef = getCard(cardId);
-  const lines = cardDef.effects.map((effect) =>
+  // Imbued damage reads inside the card's own Damage number (8 -> 13).
+  const { own } = foldImbuedDamage(cardDef.effects, imbuedEffects(imbues));
+  const lines = own.map((effect) =>
     describeCardEffect(effect, cardDef, attacker, target)
   );
   const targetLine = cardDef.targets > 1 ? [`Target ${cardDef.targets}`] : [];
@@ -482,7 +486,8 @@ export const describeCard = (
   cardId: CardId,
   attacker?: Combatant,
   target?: HeroUnit,
-  usesSpent = 0
+  usesSpent = 0,
+  imbues: readonly Imbue[] = []
 ): string[] => {
   const cardDef = getCard(cardId);
   const keywordLine = cardDef.keywords
@@ -494,7 +499,10 @@ export const describeCard = (
     )
     .join(', ');
   const traitLines = keywordLine ? [keywordLine] : [];
-  return [...describeCardRules(cardId, attacker, target), ...traitLines];
+  return [
+    ...describeCardRules(cardId, attacker, target, imbues),
+    ...traitLines,
+  ];
 };
 
 /** True when playing this card needs the player to pick a hero. */

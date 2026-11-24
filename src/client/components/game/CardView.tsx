@@ -353,7 +353,7 @@ export const CardView = ({
       <span
         className={`flex w-full min-h-0 flex-1 flex-col justify-center rounded-b-sm bg-parchment text-on-parchment ${look.rules}`}
       >
-        {describeCard(cardId, attacker, target, usesSpent).map(
+        {describeCard(cardId, attacker, target, usesSpent, imbues).map(
           (line, index) => (
             <RulesLine
               key={line}

@@ -72,6 +72,7 @@ import {
   addToHand,
   cardHasKeyword,
   discardHand,
+  foldImbuedDamage,
   imbueEffectOf,
   imbuedEffects,
   imbueSlot,
@@ -104,6 +105,7 @@ import type {
   HeroMove,
   HeroUnit,
   Imbue,
+  ImbuableEffect,
   CardKeyword,
   MovementId,
   PassiveId,
@@ -844,7 +846,7 @@ const requestedPicks = (
  */
 type PlayPlan = PlayContext & {
   picks: readonly number[];
-  imbued: readonly CardEffect[];
+  imbued: readonly ImbuableEffect[];
 };
 
 /**
@@ -861,8 +863,10 @@ const cardBeats = (
   plan: PlayPlan
 ): CombatState[] => {
   const cardDef = getCard(cardId);
-  const beats = cardDef.effects.flatMap(oneHitAtATime);
-  const imbuedBeats = plan.imbued.flatMap(oneHitAtATime);
+  // Imbued damage joins the card's own Damage; the rest proc per hit.
+  const { own, extra } = foldImbuedDamage(cardDef.effects, plan.imbued);
+  const beats = own.flatMap(oneHitAtATime);
+  const imbuedBeats = extra.flatMap(oneHitAtATime);
   const isProcPerHit = cardDef.effects.some(
     (effect) => effect.kind === 'damage'
   );

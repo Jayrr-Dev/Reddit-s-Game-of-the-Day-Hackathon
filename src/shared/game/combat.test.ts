@@ -1305,6 +1305,29 @@ void test('an imbue on a multi-hit card lands once per hit', () => {
   assert.equal(hero?.statuses.poison, 9);
 });
 
+void test("imbued damage adds to the card's own Damage (Keen Edge on Backhand: 6 + 5)", () => {
+  const state = cloakFight(['keenEdge', 'backhand']);
+  const uid = state.heroes[0]?.uid ?? -1;
+  const imbued = playCard(state, 0, uid, undefined, 1);
+  const keen = imbued.handImbues[0] ?? [];
+  assert.deepEqual(describeCard('backhand', undefined, undefined, 0, keen), [
+    'Damage 11',
+  ]);
+  const hpBefore = imbued.heroes.find((unit) => unit.uid === uid)?.hp ?? 0;
+  const after = playCard(imbued, 0, uid);
+  const hero = after.heroes.find((unit) => unit.uid === uid);
+  assert.equal(hpBefore - (hero?.hp ?? 0), 11, 'one hit of 11');
+});
+
+void test('imbued damage adds to every hit of a multi-hit card', () => {
+  const state = cloakFight(['keenEdge', 'flurry']);
+  const imbued = playCard(state, 0, 0, undefined, 1);
+  const keen = imbued.handImbues[0] ?? [];
+  assert.deepEqual(describeCard('flurry', undefined, undefined, 0, keen), [
+    'Damage 8 ×3',
+  ]);
+});
+
 void test('an unplayed imbued card keeps its imbue through the discard and back', () => {
   const state = cloakFight(['venomCoat', 'backhand']);
   const imbued = playCard(state, 0, 0, undefined, 1);

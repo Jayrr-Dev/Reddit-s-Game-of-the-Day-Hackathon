@@ -53,6 +53,42 @@ export const imbueEffectOf = (cardId: CardId): ImbueEffect | undefined =>
 export const imbuedEffects = (imbues: readonly Imbue[]): ImbuableEffect[] =>
   imbues.flatMap(({ gift }) => (gift.kind === 'effect' ? [gift.effect] : []));
 
+/** A card's effects once its imbues are folded in (see foldImbuedDamage). */
+export type FoldedEffects = {
+  /** The card's own effects, Damage raised by any imbued damage. */
+  own: CardEffect[];
+  /** Imbued effects that still land on their own, after each hit. */
+  extra: ImbuableEffect[];
+};
+
+/**
+ * Folds imbued damage into the card's own Damage: Keen Edge (+5) on a
+ * Damage 8 card makes it Damage 13 (every hit, on a multi-hit card),
+ * so the number on the card is the number that lands. A card with no
+ * Damage of its own keeps imbued damage as a separate hit. Every other
+ * imbued effect stays extra.
+ */
+export const foldImbuedDamage = (
+  cardEffects: readonly CardEffect[],
+  imbued: readonly ImbuableEffect[]
+): FoldedEffects => {
+  const bonus = imbued.reduce(
+    (sum, effect) => sum + (effect.kind === 'damage' ? effect.amount : 0),
+    0
+  );
+  const hasOwnDamage = cardEffects.some((effect) => effect.kind === 'damage');
+  if (!hasOwnDamage || bonus === 0)
+    return { own: [...cardEffects], extra: [...imbued] };
+  return {
+    own: cardEffects.map((effect) =>
+      effect.kind === 'damage'
+        ? { ...effect, amount: effect.amount + bonus }
+        : effect
+    ),
+    extra: imbued.filter((effect) => effect.kind !== 'damage'),
+  };
+};
+
 /** True when a card has `keyword`, printed or imbued. */
 export const cardHasKeyword = (
   cardId: CardId,
