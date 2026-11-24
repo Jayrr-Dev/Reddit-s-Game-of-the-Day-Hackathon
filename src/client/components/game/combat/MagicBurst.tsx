@@ -23,7 +23,7 @@ const MIN_RAYS = 7;
 const EXTRA_RAYS = 5;
 const SPARK_COUNT = 14;
 const TICK_COUNT = 12;
-const ENERGY = 'color-mix(in oklab, var(--color-shroud) 65%, #9ff3ff)';
+const ENERGY = 'color-mix(in oklab, var(--color-magic) 65%, #d8f7ff)';
 /** A dark underline so the energy reads on light and blue armour. */
 const SHADOW = 'rgb(10 6 20 / 0.7)';
 const CORE = 'white';

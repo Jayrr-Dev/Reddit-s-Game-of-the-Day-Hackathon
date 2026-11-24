@@ -51,6 +51,8 @@
   --color-hp: #c8324a;
   --color-shroud: #7a93d6;
   --color-hex: #a463e8;
+  /* Magic: a light sky blue, kept clear of Guard's deeper periwinkle. */
+  --color-magic: #7fd8f5;
   --color-dread: #6f7f9e;
   --color-wrath: #e0663a;
   --color-heal: #5fbf7f;
@@ -64,7 +66,7 @@
   /* --- CARD CATEGORIES --- */
   --color-card-melee: #8e1f33;
   --color-card-range: #5b636d;
-  --color-card-magic: #1f6577;
+  --color-card-magic: #2a7ea3;
   --color-card-buff: #2c4675;
   --color-card-curse: #5a2a86;
   --color-parchment: #dccaa2;

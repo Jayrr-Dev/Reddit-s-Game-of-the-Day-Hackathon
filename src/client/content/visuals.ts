@@ -32,7 +32,7 @@ export const STATUS_LOOK: Record<StatusId | 'shroud', Look> = {
   wrath: { glyph: 'flame', toneClass: 'text-wrath' },
   // Buffs wear their card type's icon and colour (see CARD_LOOK).
   might: { glyph: 'sword', toneClass: 'text-hp' },
-  surge: { glyph: 'swirl', toneClass: 'text-shroud' },
+  surge: { glyph: 'swirl', toneClass: 'text-magic' },
   piercing: { glyph: 'bow', toneClass: 'text-range' },
   protection: { glyph: 'shield', toneClass: 'text-accent' },
   momentum: { glyph: 'bolt', toneClass: 'text-energy' },
@@ -43,7 +43,7 @@ export const INTENT_LOOK: Record<IntentKind, Look> = {
   attack: { glyph: 'sword', toneClass: 'text-hp' },
   // Hero attacks wear their type's colour, like the villain's cards.
   range: { glyph: 'bow', toneClass: 'text-range' },
-  magic: { glyph: 'swirl', toneClass: 'text-shroud' },
+  magic: { glyph: 'swirl', toneClass: 'text-magic' },
   advance: { glyph: 'march', toneClass: 'text-ink' },
   curse: { glyph: 'skull', toneClass: 'text-hex' },
   dread: STATUS_LOOK.dread,
@@ -78,7 +78,7 @@ export const CARD_LOOK: Record<
     glyph: 'swirl',
     typeName: 'Magic',
     frameClass: 'bg-card-magic',
-    glowVar: 'var(--color-shroud)',
+    glowVar: 'var(--color-magic)',
   },
   buff: {
     glyph: 'shield',
