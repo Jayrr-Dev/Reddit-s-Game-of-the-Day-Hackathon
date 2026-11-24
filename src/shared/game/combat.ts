@@ -237,7 +237,8 @@ const longRangeHit = (perHit: number): number =>
  * How one hero attack lands from where the hero stands: its type and
  * damage per hit. A Range attack from the back row is at its proper
  * range (LONG_RANGE_DAMAGE_FACTOR); made up close (from the front row)
- * it lands as a plain Melee hit.
+ * it loses that bonus but is still a Range hit (its VFX, Bleed and
+ * anything else that reads the type all see Range).
  */
 export const heroAttackOf = (
   unit: HeroUnit,
@@ -245,9 +246,8 @@ export const heroAttackOf = (
 ): { type: HeroAttackType; perHit: number } => {
   const perHit = attackDamage(scaleByMight(effect.amount, unit.might), unit);
   if (effect.type !== 'range') return { type: effect.type, perHit };
-  return unit.row === 'front'
-    ? { type: 'melee', perHit }
-    : { type: 'range', perHit: longRangeHit(perHit) };
+  const isLongRange = unit.row === 'back';
+  return { type: 'range', perHit: isLongRange ? longRangeHit(perHit) : perHit };
 };
 
 /** Heroes this card may be aimed at now (every hero for untargeted cards). */

@@ -754,7 +754,7 @@ void test('a melee hero in the back row skips to a move it can make, or advances
   assert.equal(heroNamed(after, 'squire')?.moveIndex, 0);
 });
 
-void test('a Range hero shoots harder from the back and strikes plainly up close', () => {
+void test('a Range hero shoots harder from the back, and plainly (still Range) up close', () => {
   const fresh = startCombat({
     hp: 60,
     maxHp: 60,
@@ -767,10 +767,10 @@ void test('a Range hero shoots harder from the back and strikes plainly up close
   // Volley 2x3 from the back: Range at 130% (2.6 rounds to 3).
   const [shot] = describeHeroIntent(archer, fresh.heroes).intents;
   assert.deepEqual([shot?.kind, shot?.text], ['range', '3×3']);
-  // Up close it lands as plain Melee.
+  // Up close it loses the bonus but is still a Range shot.
   const upClose = { ...archer, row: 'front' as const };
   const [strike] = describeHeroIntent(upClose, fresh.heroes).intents;
-  assert.deepEqual([strike?.kind, strike?.text], ['attack', '2×3']);
+  assert.deepEqual([strike?.kind, strike?.text], ['range', '2×3']);
 });
 
 void test('Back Step pushes a full front row back for 1 energy', () => {
