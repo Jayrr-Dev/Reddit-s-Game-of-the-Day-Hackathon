@@ -80,7 +80,7 @@ export const OUT_OF_RANGE_TYPES: ReadonlySet<CardType> = new Set([
  */
 export const MAX_HERO_CELLS = 6;
 /** Rows a Charge closes at most (it stops once someone is in the front). */
-export const CHARGE_ROWS = 2;
+export const CHARGE_ROWS = 1;
 /** Rows a Back Step falls back. */
 export const BACK_STEP_ROWS = 1;
 

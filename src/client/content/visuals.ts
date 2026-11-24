@@ -37,16 +37,17 @@ export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
   bleed: { glyph: 'wound', toneClass: 'text-bleed' },
   weaken: { glyph: 'eye', toneClass: 'text-weaken' },
   enfeeble: { glyph: 'shatter', toneClass: 'text-enfeeble' },
-  // Every buff wears the Buff card type's orange (one token, --color-buff);
-  // the icon says which kind of card it boosts.
+  // Each buff wears the colour of what it boosts: Melee red, Range
+  // silver, Magic sky blue, Guard and defence blue. Wrath boosts every
+  // hit, so it keeps the Buff card type's orange.
   wrath: { glyph: 'fist', toneClass: 'text-buff' },
-  might: { glyph: 'sword', toneClass: 'text-buff' },
-  surge: { glyph: 'swirl', toneClass: 'text-buff' },
-  hone: { glyph: 'bow', toneClass: 'text-buff' },
-  reinforce: { glyph: 'shield', toneClass: 'text-buff' },
-  brace: { glyph: 'anchor', toneClass: 'text-buff' },
-  momentum: { glyph: 'bolt', toneClass: 'text-energy' },
-  protection: { glyph: 'aegis', toneClass: 'text-buff' },
+  might: { glyph: 'sword', toneClass: 'text-hp' },
+  surge: { glyph: 'swirl', toneClass: 'text-magic' },
+  hone: { glyph: 'bow', toneClass: 'text-range' },
+  reinforce: { glyph: 'shield', toneClass: 'text-guard' },
+  brace: { glyph: 'anchor', toneClass: 'text-guard' },
+  momentum: { glyph: 'bolt', toneClass: 'text-hp' },
+  protection: { glyph: 'aegis', toneClass: 'text-guard' },
   aloft: { glyph: 'wing', toneClass: 'text-accent' },
 };
 
@@ -273,7 +274,7 @@ export const MOVEMENT_LOOK: Record<MovementId, MovementLook> = {
     label: 'Charge',
     glyph: 'bolt',
     description:
-      'You move up to **2** lines closer, until a hero is in **Line 1**\nYour next **Melee** card deals **+50%**',
+      'You move **1** line closer\nYour next **Melee** card deals **+50%**',
     speedLines: 'in',
     toneClass: 'bg-blood shadow-[0_0_14px_var(--color-blood)]',
   },
