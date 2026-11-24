@@ -38,73 +38,85 @@ import type {
 } from './types.ts';
 
 // --- STATUS GLOSSARY ---
+/**
+ * A glossary entry. `description` is tiny markup for its tooltip: one
+ * bullet per line ("\n"), and **bold** for key words and numbers (a
+ * bold glossary word also shows its icon, see Tooltip).
+ */
 export type StatusInfo = { label: string; description: string };
 
 export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   guard: {
     label: 'Guard',
-    description: 'Blocks damage until your next turn.',
+    description: 'Blocks damage\nGone at the start of your next turn',
   },
   hex: {
     label: 'Hex',
     description:
-      'Before its turn: if odd, burns for this much, then loses a third (ends in 3: double, then clears). If even, +1.',
+      'Before its turn, if **odd**: deals this much, then loses a third\nIf it ends in **3**: doubles, then clears\nIf **even**: +1',
   },
   burn: {
     label: 'Burn',
     description:
-      'After each action: lose this much HP, then halve (rounds down).',
+      'Loses this much HP after each action\nThen halves (rounds down)',
   },
   frost: {
     label: 'Frost',
-    description: 'Every hit deals this much less. Halves after each action.',
+    description:
+      'Each hit it deals is this much weaker\nHalves after each action',
   },
   bleed: {
     label: 'Bleed',
     description:
-      'Stacks. The 3rd non-Magic hit in a row deals this much, then clears. Magic resets the count.',
+      'The **3rd** non-Magic hit in a row deals this much, then clears\n**Magic** hits reset the count',
   },
   poison: {
     label: 'Poison',
-    description: 'Lose this much HP each turn, then -1.',
+    description: 'Loses this much HP each turn\nThen goes down by **1**',
   },
   weaken: {
     label: 'Weaken',
-    description: '25% less damage. -1 each turn.',
+    description: 'Deals **25%** less damage\nGoes down by **1** each turn',
   },
-  wrath: { label: 'Wrath', description: 'Adds this much damage to every hit.' },
-  might: { label: 'Might', description: 'Adds this much to every Melee hit.' },
-  surge: { label: 'Surge', description: 'Adds this much to every Magic hit.' },
+  wrath: { label: 'Wrath', description: 'Every hit deals this much more' },
+  might: {
+    label: 'Might',
+    description: 'Every **Melee** hit deals this much more',
+  },
+  surge: {
+    label: 'Surge',
+    description: 'Every **Magic** hit deals this much more',
+  },
   hone: {
     label: 'Hone',
-    description: 'Adds this much to every Range hit.',
+    description: 'Every **Range** hit deals this much more',
   },
   momentum: {
     label: 'Momentum',
-    description: 'Next Melee card this turn +50%.',
+    description: 'Your next **Melee** card this turn deals **+50%**',
   },
   protection: {
     label: 'Protection',
     description:
-      'Cuts each hit: I 25%, II 50%, III 75%. Recast next turn to raise it, or it lapses.',
+      "Cuts each hit you take: I **25%**, II **50%**, III **75%**\nEach cast this turn raises it a tier\nLasts through the heroes' turn",
   },
   enfeeble: {
     label: 'Enfeeble',
     description:
-      'Cuts the damage it deals: I 25%, II 50%, III 75%. Lasts a turn; reapply next turn to deepen it.',
+      'Cuts the damage it deals: I **25%**, II **50%**, III **75%**\nLasts a turn; reapply to deepen it',
   },
   brace: {
     label: 'Brace',
     description:
-      'Your Guard does not expire at the start of your turn. -1 each turn it keeps it.',
+      "Your **Guard** doesn't expire at the start of your turn\nGoes down by **1** each turn it holds",
   },
   reinforce: {
     label: 'Reinforce',
-    description: 'Adds this much to every Guard your cards give.',
+    description: 'Every **Guard** your cards give is this much bigger',
   },
   aloft: {
     label: 'Aloft',
-    description: 'Out of reach until it dives.',
+    description: 'Out of reach until it dives',
   },
 };
 
@@ -112,7 +124,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
 export const PASSIVE_INFO: Record<PassiveId, StatusInfo> = {
   vigor: {
     label: 'Vigor',
-    description: 'Boss passive: makes two moves every turn.',
+    description: 'Boss passive\nTakes **two** moves every turn',
   },
 };
 
@@ -202,25 +214,24 @@ export const describeCardEffect = (
 export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
   hold: {
     label: 'Hold',
-    description: 'Stays in your hand at the end of the turn.',
+    description: 'Stays in your hand at the end of the turn',
   },
   piercing: {
     label: 'Piercing',
     description:
-      "Each hit also strikes the hero in the other row of its target's column.",
+      'Also hits the hero behind or in front of the target\nSame column only',
   },
   remove: {
     label: 'Remove',
-    description:
-      'Once played, goes to the Remove pile until the fight is over.',
+    description: "Once played, it's out for the rest of the fight",
   },
   rampage: {
     label: 'Rampage',
-    description: 'On kill: Charge if possible (paying its usual cost).',
+    description: "On kill: a free **Charge**\nOnly if there's room",
   },
   distance: {
     label: 'Distance',
-    description: 'On kill: Back Step if possible (paying its usual cost).',
+    description: "On kill: a free **Back Step**\nOnly if there's room",
   },
 };
 
@@ -232,12 +243,12 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
 export const DURATION_INFO: Record<Duration, StatusInfo> = {
   action: {
     label: 'this action',
-    description: 'Lasts until the next card is played.',
+    description: 'Until the next card is played',
   },
-  turn: { label: 'this turn', description: 'Lasts until the end of the turn.' },
+  turn: { label: 'this turn', description: 'Until the end of the turn' },
   battle: {
     label: 'this battle',
-    description: 'Lasts the whole fight, even after the card is played.',
+    description: 'For the whole fight',
   },
 };
 
@@ -248,21 +259,21 @@ const durationSuffix = (duration: Duration | undefined): string =>
 export const IMBUE_INFO: StatusInfo = {
   label: 'Imbue',
   description:
-    'Give another card in your hand this keyword or effect for the rest of the battle. Remove this card.',
+    'Gives another card in your hand this keyword or effect\nIt lasts the whole battle\nThen **Remove** this card',
 };
 /** What Force Pull and Force Push mean, wherever they show. */
 export const FORCE_PULL_INFO: StatusInfo = {
   label: 'Force Pull',
-  description: 'Pulls the target hero to the front row.',
+  description: 'Pulls the target hero to the **front row**',
 };
 export const FORCE_PUSH_INFO: StatusInfo = {
   label: 'Force Push',
-  description: 'Pushes the target hero to the back row.',
+  description: 'Pushes the target hero to the **back row**',
 };
 /** What Cleanse means, wherever it shows. */
 export const CLEANSE_INFO: StatusInfo = {
   label: 'Cleanse',
-  description: 'Removes 1 random affliction from you.',
+  description: 'Removes **1** random affliction from you',
 };
 
 /**

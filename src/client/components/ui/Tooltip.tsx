@@ -18,13 +18,23 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { Glyph } from './Glyph';
+import { RichText } from './RichText';
+import { lookOfTerm } from '../../content/glossaryLooks';
+import type { Look } from '../../content/visuals';
 import {
   placeFloating,
   type FloatingPlacement,
 } from '../../lib/floatingPlacement';
 
 // --- TYPES ---
-export type TooltipContent = { title: string; description?: string };
+export type TooltipContent = {
+  title: string;
+  /** Glossary markup: a line per bullet, **bold** words (RichText). */
+  description?: string;
+  /** The title's icon and colour; a glossary word finds its own. */
+  look?: Look;
+};
 
 type Placement = FloatingPlacement;
 
@@ -39,6 +49,22 @@ const MAX_WIDTH = 200;
 const MIN_ROOM_ABOVE = 70;
 
 // --- SUBCOMPONENTS ---
+/** The bold title, in its term's colour with its icon when it has one. */
+const TooltipTitle = ({
+  title,
+  look,
+}: {
+  title: string;
+  look: Look | undefined;
+}) => (
+  <p
+    className={`flex items-center gap-1 text-xs font-bold ${look?.toneClass ?? 'text-ink'}`}
+  >
+    {look && <Glyph name={look.glyph} className="size-3.5 shrink-0" />}
+    {title}
+  </p>
+);
+
 /**
  * The label and its arrow. It spans MAX_WIDTH but centres its content,
  * so a short label stays small and sits over its trigger.
@@ -56,11 +82,14 @@ const TooltipLabel = ({
     style={{ left: placement.left, top: placement.top, width: MAX_WIDTH }}
   >
     <div className="relative rounded-md border border-edge bg-surface-raised px-2.5 py-1.5 text-left shadow-[0_6px_18px_rgb(0_0_0/0.5)]">
-      <p className="text-xs font-semibold text-ink">{content.title}</p>
+      <TooltipTitle
+        title={content.title}
+        look={content.look ?? lookOfTerm(content.title)}
+      />
       {content.description && (
-        <p className="text-[11px] leading-snug text-ink-muted">
-          {content.description}
-        </p>
+        <div className="mt-0.5 text-[11px] leading-snug text-ink-muted">
+          <RichText text={content.description} />
+        </div>
       )}
     </div>
     {/* ARROW: a rotated square sharing the label's border */}

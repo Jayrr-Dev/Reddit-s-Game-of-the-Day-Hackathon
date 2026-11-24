@@ -40,6 +40,7 @@ import {
   addGuard,
   addStatus,
   castProtection,
+  dropProtection,
   enfeeble,
   enfeebleCheck,
   cleanseOne,
@@ -60,7 +61,7 @@ import {
 import { getHero, type HeroId } from './heroes.ts';
 // A cycle (movement.ts reads combatOutcome) is safe: both sides only
 // call each other inside functions, never while loading.
-import { move } from './movement.ts';
+import { moveFree } from './movement.ts';
 import {
   addToHand,
   cardHasKeyword,
@@ -147,6 +148,7 @@ export const startCombat = (setup: CombatSetup): CombatState => {
     slain: 0,
     rng,
     lastMovement: null,
+    freeMove: null,
     nextUid: setup.heroIds.length + 1,
     fallen: [],
   };
@@ -867,9 +869,7 @@ const KILL_MOVES: readonly { keyword: CardKeyword; move: MovementId }[] = [
 
 /**
  * After a card slays a hero, each on-kill keyword it has (printed or
- * imbued) makes its move through the normal movement rules: only when
- * that move is on offer and paid at its usual cost, streak included.
- * When it isn't possible, `move` changes nothing.
+ * imbued) makes its move for free, when there's room (see moveFree).
  */
 const moveOnKill = (
   state: CombatState,
@@ -878,7 +878,7 @@ const moveOnKill = (
 ): CombatState =>
   KILL_MOVES.filter(({ keyword }) =>
     cardHasKeyword(cardId, imbues, keyword)
-  ).reduce((moved, kill) => move(moved, kill.move), state);
+  ).reduce((moved, kill) => moveFree(moved, kill.move), state);
 
 /**
  * True when playing the card in `handIndex` with exactly these picks
@@ -1150,12 +1150,15 @@ export const heroTurnOrder = (heroes: readonly HeroUnit[]): HeroUnit[] =>
 
 // --- VILLAIN TURN ---
 
-/** Begins a villain turn: guard fades, Hex burns, energy refills, new hand. */
+/**
+ * Begins a villain turn: guard and last turn's Protection fade, Hex
+ * burns, energy refills, new hand.
+ */
 const startPlayerTurn = (state: CombatState): CombatState =>
   drawCards(
     {
       ...state,
-      player: hexBurn(expireGuard(state.player)),
+      player: hexBurn(dropProtection(expireGuard(state.player))),
       energy: ENERGY_PER_TURN,
       turn: state.turn + 1,
     },

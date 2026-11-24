@@ -344,6 +344,12 @@ export type CombatState = {
   rng: RngState;
   /** The last movement (its streak raises the next one's cost). */
   lastMovement: MovementRecord | null;
+  /**
+   * The last free move an on-kill keyword made (Rampage, Distance): a
+   * fresh object each time, so the view can play its speed lines. It
+   * costs nothing and never counts toward the movement streak.
+   */
+  freeMove: { move: MovementId } | null;
   /** The uid the next hero to join (a summon) gets; never reused. */
   nextUid: number;
   /** Heroes fallen this fight, as they fell (a revive brings them back). */

@@ -97,7 +97,11 @@ export const CardBadges = ({
         <span key={badge.key} className="flex flex-col items-center">
           <Stem heightClass={SIZE_LOOK[size].stem} />
           <Tooltip
-            content={{ title: badge.title, description: badge.description }}
+            content={{
+              title: badge.title,
+              description: badge.description,
+              look: badge,
+            }}
           >
             <Socket badge={badge} size={size} />
           </Tooltip>

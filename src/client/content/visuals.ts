@@ -8,6 +8,7 @@
 import type { IntentKind } from '../../shared/game/describe';
 import type { StopKind } from '../../shared/game/kingdom';
 import type {
+  CardKeyword,
   CardRarity,
   CardType,
   MagicElement,
@@ -47,6 +48,16 @@ export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
   momentum: { glyph: 'bolt', toneClass: 'text-energy' },
   protection: { glyph: 'aegis', toneClass: 'text-buff' },
   aloft: { glyph: 'wing', toneClass: 'text-accent' },
+};
+
+// --- KEYWORDS ---
+/** Each keyword's icon (its words come from KEYWORD_INFO). */
+export const KEYWORD_LOOK: Record<CardKeyword, Look> = {
+  hold: { glyph: 'padlock', toneClass: 'text-accent' },
+  piercing: { glyph: 'arrowhead', toneClass: 'text-accent' },
+  remove: { glyph: 'cardBurn', toneClass: 'text-ink-muted' },
+  rampage: { glyph: 'battleAxe', toneClass: 'text-hp' },
+  distance: { glyph: 'sprint', toneClass: 'text-range' },
 };
 
 // --- BOSS PASSIVES ---
@@ -232,14 +243,15 @@ export const MOVEMENT_LOOK: Record<MovementId, MovementLook> = {
   charge: {
     label: 'Charge',
     glyph: 'bolt',
-    description: 'Pull the back row forward. Next Melee card +50%.',
+    description:
+      'Brings the back row to the front\nYour next **Melee** card deals **+50%**',
     speedLines: 'in',
     toneClass: 'bg-blood shadow-[0_0_14px_var(--color-blood)]',
   },
   backStep: {
     label: 'Back Step',
     glyph: 'march',
-    description: 'Push every hero to the back row, out of Melee reach.',
+    description: 'Sends every hero to the back row\nOut of **Melee** reach',
     speedLines: 'out',
     toneClass:
       'bg-surface-raised shadow-[0_0_14px_var(--color-guard)] [&_svg]:rotate-180',

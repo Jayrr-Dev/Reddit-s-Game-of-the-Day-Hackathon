@@ -187,8 +187,9 @@ export const protectedAmount = (target: Combatant, amount: number): number =>
   Math.round(amount * (1 - tierCut(target.statuses.protection)));
 
 /**
- * Casts Protection: tier I, or one tier up when it is still up from the
- * turn before. Marked cast this turn, so the end of the turn keeps it.
+ * Casts Protection: tier I, or one tier up for each cast this turn (to
+ * III). Marked cast this turn, so the end of the turn keeps it for the
+ * heroes' turn; it clears when your next turn starts (dropProtection).
  */
 export const castProtection = <T extends Combatant>(target: T): T => ({
   ...target,
@@ -197,6 +198,12 @@ export const castProtection = <T extends Combatant>(target: T): T => ({
     ...target.statuses,
     protection: raiseTier(target.statuses.protection),
   },
+});
+
+/** Your turn starts: last turn's Protection is spent. */
+export const dropProtection = <T extends Combatant>(target: T): T => ({
+  ...target,
+  statuses: { ...target.statuses, protection: 0 },
 });
 
 /**

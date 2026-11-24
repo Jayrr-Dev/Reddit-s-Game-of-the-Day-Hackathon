@@ -104,12 +104,18 @@ export const movementBlockReason = (
   move: MovementId
 ): string | null => (state.heroes.some(isDeep) ? BLOCKED_BY_BOSS[move] : null);
 
-/** True when the villain can make `move`: fight on, formation fits, paid. */
-export const canMove = (state: CombatState, move: MovementId): boolean =>
+/**
+ * True when the field has room for `move`: fight on, the formation fits
+ * and no boss holds the rows (cost aside).
+ */
+const hasRoomFor = (state: CombatState, move: MovementId): boolean =>
   combatOutcome(state) === 'ongoing' &&
   isFormationFor(state, move) &&
-  movementBlockReason(state, move) === null &&
-  state.energy >= movementCost(state, move);
+  movementBlockReason(state, move) === null;
+
+/** True when the villain can make `move`: there's room, and it's paid. */
+export const canMove = (state: CombatState, move: MovementId): boolean =>
+  hasRoomFor(state, move) && state.energy >= movementCost(state, move);
 
 // --- ACTIONS ---
 /** Raises one villain status to at least `amount`. */
@@ -147,4 +153,23 @@ export const move = (state: CombatState, moveId: MovementId): CombatState => {
     heroes: def.reshape(state.heroes),
   };
   return grant(paid, def.grants);
+};
+
+/**
+ * Makes `move` for free (an on-kill keyword: Rampage, Distance): only
+ * when there's room, at no cost and outside the movement streak. Does
+ * nothing when there's no room.
+ */
+export const moveFree = (
+  state: CombatState,
+  moveId: MovementId
+): CombatState => {
+  if (!hasRoomFor(state, moveId)) return state;
+  const def = MOVEMENTS[moveId];
+  const moved: CombatState = {
+    ...state,
+    freeMove: { move: moveId },
+    heroes: def.reshape(state.heroes),
+  };
+  return grant(moved, def.grants);
 };

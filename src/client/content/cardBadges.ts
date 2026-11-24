@@ -19,12 +19,8 @@ import {
   describeImbueGift,
   type StatusInfo,
 } from '../../shared/game/describe';
-import type {
-  CardKeyword,
-  Imbue,
-  ImbuableEffect,
-} from '../../shared/game/types';
-import { INTENT_LOOK, STATUS_LOOK, type Look } from './visuals';
+import type { Imbue, ImbuableEffect } from '../../shared/game/types';
+import { INTENT_LOOK, KEYWORD_LOOK, STATUS_LOOK, type Look } from './visuals';
 
 // --- TYPES ---
 export type CardBadge = Look & {
@@ -39,14 +35,6 @@ export type CardBadge = Look & {
 type BadgeLook = Look & { count?: number; info: StatusInfo };
 
 // --- LOOKS ---
-/** Each keyword's icon (its words come from KEYWORD_INFO). */
-const KEYWORD_LOOK: Record<CardKeyword, Look> = {
-  hold: { glyph: 'padlock', toneClass: 'text-accent' },
-  piercing: { glyph: 'arrowhead', toneClass: 'text-accent' },
-  remove: { glyph: 'cardBurn', toneClass: 'text-ink-muted' },
-  rampage: { glyph: 'battleAxe', toneClass: 'text-hp' },
-  distance: { glyph: 'sprint', toneClass: 'text-range' },
-};
 
 /** A plain action's own words (no status of its own to name it). */
 const action = (label: string, description: string): StatusInfo => ({
@@ -141,7 +129,7 @@ const imbueBadgeOf = (
     ...shown,
     key: `imbue-${index}`,
     title: `${IMBUE_INFO.label}: ${info.label}`,
-    description: `${gives} ${info.description} Lasts the battle.`,
+    description: `**${gives}** for the whole battle\n${info.description}`,
   };
 };
 

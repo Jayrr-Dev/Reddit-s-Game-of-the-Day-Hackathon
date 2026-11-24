@@ -16,17 +16,22 @@ export type MovementBurst = { move: MovementId; count: number };
 // --- HOOK ---
 /** The speed-lines burst to draw now, if any. */
 export const useMovementBurst = (shown: CombatState) => {
-  const { lastMovement } = shown;
-  const [seen, setSeen] = useState(lastMovement);
+  // A paid move (lastMovement) or a free on-kill one (freeMove): each
+  // is a fresh object, so a new one means a new move.
+  const { lastMovement, freeMove } = shown;
+  const [seen, setSeen] = useState({ lastMovement, freeMove });
   const [burst, setBurst] = useState<MovementBurst>();
 
   // A NEW MOVEMENT ON THE FIELD: burst once, the way that move goes.
   // Adjusted while rendering (React's pattern for state that follows a
   // changed input), so no effect re-renders twice.
-  if (lastMovement !== seen) {
-    setSeen(lastMovement);
-    if (lastMovement) {
-      const { move } = lastMovement;
+  const isNewPaid = lastMovement !== seen.lastMovement;
+  const isNewFree = freeMove !== seen.freeMove;
+  if (isNewPaid || isNewFree) {
+    setSeen({ lastMovement, freeMove });
+    const made = (isNewFree ? freeMove : null) ?? lastMovement;
+    if (made) {
+      const { move } = made;
       setBurst((last) => ({ move, count: (last?.count ?? 0) + 1 }));
     }
   }

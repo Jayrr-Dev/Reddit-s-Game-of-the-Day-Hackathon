@@ -14,7 +14,6 @@ import {
   frostThaw,
   hexBurn,
   hexBurnAmount,
-  castProtection,
   cleanseOne,
   takeDamage,
   takeHit,
@@ -42,7 +41,6 @@ import { imbueSlotsFor } from './imbue.ts';
 import { getHero } from './heroes.ts';
 import {
   BACK_STEP_COST,
-  CHARGE_COST,
   CARDS_PER_TURN,
   ENERGY_PER_TURN,
   MAX_IMBUES_PER_CARD,
@@ -640,31 +638,37 @@ void test('Protection cuts each hit by its tier: I 25%, II 50%, III 75%', () => 
   assert.deepEqual([0, 1, 2, 3].map(lost), [20, 15, 10, 5]);
 });
 
-void test('Protection tiers up when cast on back-to-back turns, to III at most', () => {
-  let unit = createCombatant(100, 100);
+void test('Protection tiers up with each cast in one turn, to III at most', () => {
+  const bulwarks = withHand(fightWith(['backhand']), [
+    'bulwark',
+    'bulwark',
+    'bulwark',
+    'bulwark',
+  ]);
   const tiers: number[] = [];
-  for (let turn = 0; turn < 4; turn += 1) {
-    unit = endOfTurnUpkeep(castProtection(unit));
-    tiers.push(unit.statuses.protection);
+  let state = { ...bulwarks, energy: 9 };
+  for (let cast = 0; cast < 4; cast += 1) {
+    state = playCard(state, 0, -1);
+    tiers.push(state.player.statuses.protection);
   }
   assert.deepEqual(tiers, [1, 2, 3, 3]);
 });
 
-void test('Protection drops at the end of a turn it was not recast', () => {
-  const cast = endOfTurnUpkeep(castProtection(createCombatant(100, 100)));
-  assert.equal(cast.statuses.protection, 1, 'it covers the heroes turn');
-  assert.equal(endOfTurnUpkeep(cast).statuses.protection, 0, 'then lapses');
-  // Recast after a lapse starts over at I.
-  const again = endOfTurnUpkeep(castProtection(endOfTurnUpkeep(cast)));
-  assert.equal(again.statuses.protection, 1);
-});
-
-void test('the Bulwark card casts Protection', () => {
-  const start = withHand(fightWith(['backhand']), ['bulwark']);
-  const after = playCard(start, 0, -1);
-  assert.equal(after.player.statuses.protection, 1);
-  // Still up through the heroes' turn.
-  assert.equal(endTurn(after).player.statuses.protection, 1);
+void test("Protection covers the heroes' turn, then clears for a fresh start", () => {
+  const start = withHand(fightWith(['backhand']), ['bulwark', 'bulwark']);
+  const twice = playCard(playCard(start, 0, -1), 0, -1);
+  assert.equal(twice.player.statuses.protection, 2);
+  const steps = endTurnSteps(twice);
+  const heroTurn = steps.slice(0, -1).map((step) => step.state);
+  assert.ok(
+    heroTurn.every((state) => state.player.statuses.protection === 2),
+    "up through the heroes' turn"
+  );
+  const next = steps.at(-1)?.state;
+  assert.equal(next?.player.statuses.protection, 0, 'gone on your next turn');
+  // A new cast starts over at I.
+  const recast = playCard(withHand(next ?? twice, ['bulwark']), 0, -1);
+  assert.equal(recast.player.statuses.protection, 1);
 });
 
 void test('afflictions are the harmful statuses, flagged in one table', () => {
@@ -1641,41 +1645,6 @@ const rampageFight = (hand: CardId[]): CombatState => {
   };
 };
 
-void test('a Rampage kill that empties the front row Charges, paying its cost', () => {
-  const state = rampageFight(['cleave']);
-  const after = playCard(state, 0, state.heroes[0]?.uid ?? -1);
-  const archer = after.heroes.find((unit) => unit.heroId === 'archer');
-  assert.equal(archer?.row, 'front', 'the back row stepped up');
-  assert.equal(after.player.statuses.momentum, 1);
-  assert.equal(after.energy, state.energy - 1 - CHARGE_COST);
-  assert.equal(after.lastMovement?.streak, 1);
-});
-
-void test('Rampage does nothing without a kill, or when Charge is not possible', () => {
-  // No kill: the Squire stands.
-  const tough = squireAndArcher(['cleave']);
-  const unhurt = playCard(tough, 0, tough.heroes[0]?.uid ?? -1);
-  assert.equal(unhurt.lastMovement, null);
-  // A kill, but no energy left to pay for the Charge.
-  const broke = { ...rampageFight(['cleave']), energy: 1 };
-  const after = playCard(broke, 0, broke.heroes[0]?.uid ?? -1);
-  assert.equal(after.lastMovement, null);
-  assert.equal(after.energy, 0);
-  // A plain card kills without charging.
-  const plain = rampageFight(['backhand']);
-  const plainAfter = playCard(plain, 0, plain.heroes[0]?.uid ?? -1);
-  assert.equal(plainAfter.lastMovement, null);
-});
-
-void test('Rampage can be imbued onto an attack', () => {
-  const state = rampageFight(['redMist', 'backhand']);
-  const imbued = playCard(state, 0, 0, undefined, 1);
-  const after = playCard(imbued, 0, imbued.heroes[0]?.uid ?? -1);
-  assert.ok(after.lastMovement, 'the imbued Backhand charged');
-  assert.ok(describeCard('cleave').includes('Rampage'));
-});
-
-// --- DISTANCE ---
 /** Squire (front) and Archer (back, 1 HP): one kill leaves only the front. */
 const distanceFight = (hand: CardId[]): CombatState => {
   const state = squireAndArcher(hand);
@@ -1691,27 +1660,72 @@ const distanceFight = (hand: CardId[]): CombatState => {
 const archerUid = (state: CombatState): number =>
   state.heroes.find((unit) => unit.heroId === 'archer')?.uid ?? -1;
 
-void test('a Distance kill that leaves only the front row Back Steps, paying its cost', () => {
+/** The Distance fight, its first card imbued with Rampage. */
+const distanceRampage = (hand: CardId[]): CombatState => {
+  const state = distanceFight(hand);
+  return {
+    ...state,
+    handImbues: [[{ gift: { kind: 'keyword', keyword: 'rampage' } }]],
+  };
+};
+
+void test('a Rampage kill that empties the front row Charges for free', () => {
+  const state = rampageFight(['cleave']);
+  const after = playCard(state, 0, state.heroes[0]?.uid ?? -1);
+  const archer = after.heroes.find((unit) => unit.heroId === 'archer');
+  assert.equal(archer?.row, 'front', 'the back row stepped up');
+  assert.equal(after.player.statuses.momentum, 1);
+  assert.equal(after.energy, state.energy - 1, 'only the card was paid');
+  assert.equal(after.lastMovement, null, 'no movement streak either');
+  assert.equal(after.freeMove?.move, 'charge');
+  // Even with no energy left, a kill still Charges.
+  const broke = { ...rampageFight(['cleave']), energy: 1 };
+  const brokeAfter = playCard(broke, 0, broke.heroes[0]?.uid ?? -1);
+  assert.equal(brokeAfter.freeMove?.move, 'charge');
+});
+
+void test('Rampage does nothing without a kill, or without room to Charge', () => {
+  // No kill: the Squire stands.
+  const tough = squireAndArcher(['cleave']);
+  assert.equal(playCard(tough, 0, tough.heroes[0]?.uid ?? -1).freeMove, null);
+  // A kill in the back row leaves the Squire up front: no room to Charge.
+  const back = distanceRampage(['blackArrow']);
+  assert.equal(playCard(back, 0, archerUid(back)).freeMove, null);
+  // A plain card kills without charging.
+  const plain = rampageFight(['backhand']);
+  assert.equal(playCard(plain, 0, plain.heroes[0]?.uid ?? -1).freeMove, null);
+});
+
+void test('Rampage can be imbued onto an attack', () => {
+  const state = rampageFight(['redMist', 'backhand']);
+  const imbued = playCard(state, 0, 0, undefined, 1);
+  const after = playCard(imbued, 0, imbued.heroes[0]?.uid ?? -1);
+  assert.equal(after.freeMove?.move, 'charge', 'the imbued Backhand charged');
+  assert.ok(describeCard('cleave').includes('Rampage'));
+});
+
+// --- DISTANCE ---
+void test('a Distance kill that leaves only the front row Back Steps for free', () => {
   const state = distanceFight(['retreatingShot']);
   const after = playCard(state, 0, archerUid(state));
   const squire = after.heroes.find((unit) => unit.heroId === 'squire');
   assert.equal(squire?.row, 'back', 'the villain fell back');
-  assert.equal(after.energy, state.energy - 1 - BACK_STEP_COST);
-  assert.equal(after.lastMovement?.move, 'backStep');
+  assert.equal(after.energy, state.energy - 1, 'only the card was paid');
+  assert.equal(after.freeMove?.move, 'backStep');
+  const broke = { ...distanceFight(['retreatingShot']), energy: 1 };
+  assert.equal(playCard(broke, 0, archerUid(broke)).freeMove?.move, 'backStep');
 });
 
-void test('Distance does nothing without a kill or the energy to Back Step', () => {
+void test('Distance does nothing without a kill', () => {
   const tough = squireAndArcher(['retreatingShot']);
-  assert.equal(playCard(tough, 0, archerUid(tough)).lastMovement, null);
-  const broke = { ...distanceFight(['retreatingShot']), energy: 1 };
-  assert.equal(playCard(broke, 0, archerUid(broke)).lastMovement, null);
+  assert.equal(playCard(tough, 0, archerUid(tough)).freeMove, null);
 });
 
 void test('Distance can be imbued onto an attack', () => {
   const state = distanceFight(['vanish', 'venomDart']);
   const imbued = playCard(state, 0, 0, undefined, 1);
   const after = playCard(imbued, 0, archerUid(imbued));
-  assert.equal(after.lastMovement?.move, 'backStep');
+  assert.equal(after.freeMove?.move, 'backStep');
   assert.ok(describeCard('retreatingShot').includes('Distance'));
 });
 

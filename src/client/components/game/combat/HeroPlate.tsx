@@ -92,7 +92,7 @@ const MoveArrow = ({ move }: { move: MoveIntent }) => {
       }))}
       info={{
         title: move.name,
-        description: move.intents.map((intent) => intent.label).join('. '),
+        description: move.intents.map((intent) => intent.label).join('\n'),
       }}
     />
   );
