@@ -49,23 +49,24 @@
 
   /* --- STATS AND STATUSES --- */
   --color-hp: #c8324a;
-  --color-shroud: #7a93d6;
+  /* Guard is a Defend effect: it wears the Defend card type's blue. */
+  --color-shroud: var(--color-defend);
   --color-hex: #a463e8;
   --color-poison: #9ccf3a;
-  /* Burn: fire orange. Rage: Wrath's own crimson (Burn owns the flame). */
+  /* Burn: fire orange. */
   --color-burn: #ff7a1a;
-  --color-rage: #e8455e;
   --color-frost: #8fd8ff;
-  /* Bleed: a dark arterial red, apart from Wrath's crimson (rage). */
+  /* Bleed: a dark arterial red, apart from Melee's red (hp). */
   --color-bleed: #c0142e;
-  /* Magic: a light sky blue, kept clear of Guard's deeper periwinkle. */
+  /* Magic: a light sky blue, kept clear of Defend's (and Guard's) deeper blue. */
   --color-magic: #7fd8f5;
   /* Defend's glow, a clear bright blue. */
   --color-defend: #5b86ff;
   /* Buff's glow, a bright amber. */
   --color-buff: #f59a3c;
   --color-dread: #6f7f9e;
-  --color-wrath: #e0663a;
+  /* Wrath is a Buff: it wears the Buff card type's orange. */
+  --color-wrath: var(--color-buff);
   --color-heal: #5fbf7f;
   /* Range: steel arrows, silver grey (cards, chips, hit numbers, streaks). */
   --color-range: #b9c2cc;

@@ -34,12 +34,13 @@ export const STATUS_LOOK: Record<StatusId | 'shroud', Look> = {
   frost: { glyph: 'snowflake', toneClass: 'text-frost' },
   bleed: { glyph: 'wound', toneClass: 'text-bleed' },
   dread: { glyph: 'eye', toneClass: 'text-dread' },
-  wrath: { glyph: 'fist', toneClass: 'text-rage' },
-  // Buffs wear their card type's icon and colour (see CARD_LOOK).
-  might: { glyph: 'sword', toneClass: 'text-hp' },
-  surge: { glyph: 'swirl', toneClass: 'text-magic' },
-  piercing: { glyph: 'bow', toneClass: 'text-range' },
-  protection: { glyph: 'shield', toneClass: 'text-accent' },
+  // Every buff wears the Buff card type's orange (one token, --color-buff);
+  // the icon says which kind of card it boosts.
+  wrath: { glyph: 'fist', toneClass: 'text-buff' },
+  might: { glyph: 'sword', toneClass: 'text-buff' },
+  surge: { glyph: 'swirl', toneClass: 'text-buff' },
+  piercing: { glyph: 'bow', toneClass: 'text-buff' },
+  protection: { glyph: 'shield', toneClass: 'text-buff' },
   momentum: { glyph: 'bolt', toneClass: 'text-energy' },
   aloft: { glyph: 'wing', toneClass: 'text-accent' },
 };
