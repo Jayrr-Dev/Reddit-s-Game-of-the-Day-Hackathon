@@ -706,15 +706,12 @@ const isSingleTarget = (effect: CardDef['effects'][number]): boolean =>
 export const targetRuleOf = (cardId: CardId): TargetRule => {
   const { effects, reach, type } = getCard(cardId);
   const kinds = effects.map((effect) => effect.kind);
-  // Melee chooses a front-row target even when its knockback is blocked.
-  if (type === 'melee' && effects.some(isSingleTarget)) return 'front';
+  // A front-row Melee target still takes the strike when Knockback is blocked.
+  if (type === 'melee' && !reach && effects.some(isSingleTarget)) return 'front';
   if (kinds.includes('pull')) return 'pullable';
   if (effects.some((effect) => effect.kind === 'push' && effect.target !== 'all')) return 'pushable';
   if (!effects.some(isSingleTarget)) return 'none';
-  const isMelee = effects.some(
-    (effect) => effect.kind === 'damage' && effect.target === 'one'
-  );
-  return isMelee && !reach ? 'front' : 'any';
+  return 'any';
 };
 
 // --- WHO A CARD AFFECTS ---

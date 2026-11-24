@@ -335,7 +335,7 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
   piercing: {
     label: 'Piercing',
     description:
-      'Hit all units in a single column\nIgnores **Armor** and **Protection**',
+      'Hit all units in a single column\nIgnores **Armor**, **Protection** and **Guard**',
   },
   remove: {
     label: 'Remove',

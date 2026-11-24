@@ -221,7 +221,7 @@ export const dodge = <T extends Combatant>(target: T): T => ({
  * toward Shock: while shocked, every hit (any type) this turn adds
  * one, and the SHOCK_HITS-th bursts for the whole Shock (past Guard) and clears
  * it. A Piercing hit skips the
- * target's damage reductions (Protection, Armor); Guard still soaks it.
+ * target's damage reductions and Guard (Protection, Armor, Guard).
  */
 export const takeHit = <T extends Combatant>(
   target: T,
@@ -229,10 +229,10 @@ export const takeHit = <T extends Combatant>(
   type: CardType,
   isPiercing = false
 ): T => {
-  const afterProtection = isPiercing ? amount : protectedAmount(target, amount);
-  const reduced = isPiercing
-    ? amount
-    : armoredAmount(target, afterProtection, type);
+  // PIERCING: past Protection, Armor and Guard, straight to HP.
+  if (isPiercing) return countShockHit(loseHp(target, amount));
+  const afterProtection = protectedAmount(target, amount);
+  const reduced = armoredAmount(target, afterProtection, type);
   // ARMOR SOAK: counted so the view can show the armor icon on the hit.
   const soaked = afterProtection - reduced;
   const hit = takeDamage(

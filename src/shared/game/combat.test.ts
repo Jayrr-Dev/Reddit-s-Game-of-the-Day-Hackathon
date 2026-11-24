@@ -36,6 +36,7 @@ import {
   playCard,
   playCardSteps,
   startCombat,
+  targetsFor,
   wouldFell,
   autoTargets,
   playDamageFactor,
@@ -2511,12 +2512,15 @@ void test('Plate Armor gives the villain Armor 2; Sir Brannoc starts armored', (
   assert.equal(maiden?.statuses.armor, 3);
 });
 
-void test('Piercing ignores Armor and Protection (not Guard)', () => {
+void test('Piercing ignores Armor, Protection and Guard', () => {
   const tough = castProtection(
     addStatus({ ...createCombatant(30, 30), guard: 1 }, 'armor', 2)
   );
-  assert.equal(takeHit(tough, 8, 'range', true).hp, 23, '8 - 1 Guard');
-  assert.ok(takeHit(tough, 8, 'range').hp > 23, 'unpierced is reduced');
+  const pierced = takeHit(tough, 8, 'range', true);
+  assert.equal(pierced.hp, 22, 'all 8, straight to HP');
+  assert.equal(pierced.guard, 1, 'Guard is left standing');
+  assert.ok(takeHit(tough, 8, 'range').hp > 22, 'unpierced is reduced');
+  assert.ok(KEYWORD_INFO.piercing.description.includes('Guard'));
   assert.ok(KEYWORD_INFO.piercing.description.includes('Armor'));
 });
 
@@ -2616,4 +2620,23 @@ void test('a Randomly card needs no aim and each hit picks a hero anew', () => {
   assert.ok(spreads.some(([squire = 0]) => squire > 0));
   assert.ok(spreads.some(([, archer = 0]) => archer > 0));
   assert.ok(spreads.every((lost) => lost.reduce((a, b) => a + b, 0) > 0));
+});
+
+// --- MELEE KNOCKBACK REACH ---
+void test('a Melee Knockback card only targets the front row, even if blocked', () => {
+  const state = startCombat({
+    hp: 99,
+    maxHp: 99,
+    deck: ['backhand'],
+    heroIds: ['holt', 'paladin'],
+    might: 1,
+    seed: 3,
+  });
+  for (const card of ['hurlAside', 'ruin'] as const) {
+    assert.deepEqual(
+      targetsFor(state, card).map((unit) => unit.heroId),
+      ['holt'],
+      `${card}: Holt in front, not the Paladin behind`
+    );
+  }
 });
