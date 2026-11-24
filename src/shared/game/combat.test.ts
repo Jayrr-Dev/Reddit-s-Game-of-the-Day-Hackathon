@@ -411,16 +411,15 @@ void test('new shock stacks on top and keeps the count', () => {
   assert.equal(burst.hp, 50 - 3 - 6);
 });
 
-void test('a magic hit resets the shock count', () => {
+void test('a magic hit counts toward Shock like any other', () => {
   const shocked = {
     ...createCombatant(50, 50),
     statuses: { ...NO_STATUSES, shock: 6 },
   };
-  const hit = takeHit(takeHit(shocked, 1, 'melee'), 1, 'melee');
+  const hit = takeHit(takeHit(shocked, 1, 'magic'), 1, 'melee');
   const zapped = takeHit(hit, 1, 'magic');
-  assert.equal(zapped.shockHits ?? 0, 0);
-  const again = takeHit(takeHit(zapped, 1, 'melee'), 1, 'melee');
-  assert.equal(again.statuses.shock, 6, 'only 2 in a row since the zap');
+  assert.equal(zapped.statuses.shock, 0, 'the 3rd hit bursts it');
+  assert.equal(zapped.hp, 50 - 3 - 6);
 });
 
 void test('a hero shocked by the villain: three melee hits', () => {

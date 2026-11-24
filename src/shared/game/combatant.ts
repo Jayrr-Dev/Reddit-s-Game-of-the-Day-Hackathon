@@ -198,9 +198,9 @@ export const dodge = <T extends Combatant>(target: T): T => ({
 
 /**
  * Takes a hit of a type (a card's, or a hero attack's) and counts it
- * toward Shock: while shocked, each non-Magic hit in a row adds one,
- * and the SHOCK_HITS-th bursts for the whole Shock (past Guard) and
- * clears it; a Magic hit resets the count. A Piercing hit skips the
+ * toward Shock: while shocked, every hit (any type) adds one, and the
+ * SHOCK_HITS-th bursts for the whole Shock (past Guard) and clears
+ * it. A Piercing hit skips the
  * target's damage reductions (Protection, Armor); Guard still soaks it.
  */
 export const takeHit = <T extends Combatant>(
@@ -215,7 +215,6 @@ export const takeHit = <T extends Combatant>(
   const hit = takeDamage(target, reduced);
   const { shock } = hit.statuses;
   if (shock <= 0) return hit;
-  if (type === 'magic') return { ...hit, shockHits: 0 };
   const inARow = (hit.shockHits ?? 0) + 1;
   if (inARow < SHOCK_HITS) return { ...hit, shockHits: inARow };
   const cleared = {

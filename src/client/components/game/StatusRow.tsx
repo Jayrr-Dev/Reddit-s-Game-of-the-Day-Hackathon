@@ -181,7 +181,7 @@ const shockChipOf = (combatant: Combatant): Partial<StatusChip> => {
     shockStage: shockStageOf(hits),
     ...(isPrimed
       ? {
-          description: `Primed: the next non-Magic hit bursts it for ${combatant.statuses.shock}.`,
+          description: `Primed: the next hit bursts it for ${combatant.statuses.shock}.`,
         }
       : {}),
   };

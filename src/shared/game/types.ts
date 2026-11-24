@@ -18,9 +18,9 @@ import type { RngState } from './rng.ts';
  *           move; the villain's whole turn), then halves (3 -> 1, 1 -> 0)
  * - frost:  every hit it deals is 1 lower per stack (never below 0);
  *           halves the same way after each of its actions
- * - shock:  stacks; on the SHOCK_HITS-th non-Magic hit in a row it
- *           takes, from anyone, it loses this much HP and clears (a
- *           Magic hit resets the count; see Combatant.shockHits)
+ * - shock:  stacks; on the SHOCK_HITS-th hit it takes (any type,
+ *           from anyone), it loses this much HP and clears (see
+ *           Combatant.shockHits)
  * - bleed:  loses this much HP right after each of its actions (a hero
  *           move; the villain's whole turn), then drops by 1
  * - hex:    right before its turn, loses this much HP if it is odd
