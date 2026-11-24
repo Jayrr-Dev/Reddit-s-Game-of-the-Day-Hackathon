@@ -99,7 +99,7 @@ const MoveArrow = ({ move }: { move: MoveIntent }) => {
 
 /**
  * The hero's next moves, one arrow per move: one for most heroes, two
- * for a boss that acts twice a turn.
+ * for the dragon, which acts twice a turn.
  */
 export const IntentChips = ({
   unit,

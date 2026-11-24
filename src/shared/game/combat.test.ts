@@ -557,7 +557,7 @@ const dragonFight = (): CombatState =>
     seed: 4,
   });
 
-void test('a boss makes two moves a turn: Unc summons, then breathes', () => {
+void test('the dragon makes two moves a turn: Unc summons, then breathes', () => {
   const start = dragonFight();
   const [dragon] = start.heroes;
   assert.ok(dragon);
@@ -662,8 +662,11 @@ const griffonFight = (): CombatState =>
     seed: 4,
   });
 
-/** The griffon after one heroes' turn: it slashed, then flew up. */
-const griffonAloft = (): CombatState => endTurn(griffonFight());
+/** The griffon after its first move (Triple Slice). */
+const griffonSlashed = (): CombatState => endTurn(griffonFight());
+
+/** The griffon a turn later: it took off (Heavenly Drive). */
+const griffonAloft = (): CombatState => endTurn(griffonSlashed());
 
 /** The griffon in a state's field. */
 const griffonOf = (state: CombatState): HeroUnit =>
@@ -673,18 +676,16 @@ void test('Heavenly Drive flies the griffon up and ends its turn', () => {
   const start = griffonFight();
   assert.deepEqual(
     plannedHeroMoves(griffonOf(start), start.heroes).map((p) => p.move.name),
-    ['Triple Slice', 'Heavenly Drive']
+    ['Triple Slice']
   );
+  const slashed = griffonSlashed();
   const after = griffonAloft();
   const griffon = griffonOf(after);
   assert.equal(griffon.statuses.aloft, 1);
   assert.equal(griffon.moveIndex, 2);
-  // Only the Triple Slice (6 x 3) landed.
-  assert.equal(after.player.hp, 999 - 18);
-  assert.equal(
-    describeHeroIntent(griffon, after.heroes).name,
-    'Heavenly Dive, then Triple Slice'
-  );
+  // Taking off deals no damage.
+  assert.equal(after.player.hp, slashed.player.hp);
+  assert.equal(describeHeroIntent(griffon, after.heroes).name, 'Heavenly Dive');
 });
 
 void test('a hero Aloft cannot be aimed at or hit by any card', () => {
@@ -713,17 +714,17 @@ void test('a turn later the griffon dives down with one crushing blow', () => {
   );
   assert.deepEqual(
     griffonSteps.map((step) => step.move?.name),
-    ['Heavenly Dive', 'Triple Slice']
+    ['Heavenly Dive']
   );
   assert.equal(griffonSteps[0]?.move?.isSignature, true);
   const landed = steps.at(-1)!.state;
   assert.equal(griffonOf(landed).statuses.aloft, 0);
-  assert.equal(aloft.player.hp - landed.player.hp, 34 + 18);
+  assert.equal(aloft.player.hp - landed.player.hp, 34);
   // Back on the ground it can be hit again.
   assert.equal(canPlayCard({ ...landed, hand: ['backhand'] }, 0), true);
 });
 
-void test('a move with two effects is one action; only a boss has two', () => {
+void test('a move with two effects is one action; only the dragon has two', () => {
   const fight = startCombat({
     hp: 60,
     maxHp: 60,

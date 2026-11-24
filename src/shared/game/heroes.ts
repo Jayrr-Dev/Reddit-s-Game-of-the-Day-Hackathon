@@ -132,8 +132,8 @@ const hero = (
   ...(actions === undefined ? {} : { actions }),
 });
 
-/** A boss makes two moves every heroes' turn. */
-const BOSS_ACTIONS = 2;
+/** The Holy Dragon makes two moves every heroes' turn (no other hero does). */
+const DRAGON_ACTIONS = 2;
 
 // --- CATALOG ---
 export const HEROES = {
@@ -239,34 +239,23 @@ export const HEROES = {
       signature(move('Halo of Judgment', revive(), spell(26))),
       move('Radiant Roar', wrath(2)),
     ],
-    BOSS_ACTIONS
+    DRAGON_ACTIONS
   ),
   /**
    * A haloed griffon boss down the centre column, flanked by open
-   * slots. Two moves a turn, and it loves its Triple Slice. Its
-   * signature Heavenly Drive takes two turns (both signature moves): it
-   * flies up out of reach
-   * (ending its turn, Aloft), then a turn later dives down with one
-   * crushing blow. The cycle is even, so the take-off always falls on
-   * its second action.
+   * slots. One move a turn (only the dragon acts twice), and it loves
+   * its Triple Slice. Its signature Heavenly Drive takes two turns (both
+   * signature moves): it flies up out of reach (Aloft), then the next
+   * turn dives down with one crushing blow.
    */
-  grandGriffon: hero(
-    'Grand Griffon Rio',
-    'boss',
-    420,
-    275,
-    8,
-    BOSS_COLUMN,
-    [
-      move('Triple Slice', strike(6, 3)),
-      signature(move('Heavenly Drive', soar())),
-      signature(move('Heavenly Dive', strike(34))),
-      move('Triple Slice', strike(6, 3)),
-      move('Gale Wings', shroud(18)),
-      move('Proud Cry', wrath(2)),
-    ],
-    BOSS_ACTIONS
-  ),
+  grandGriffon: hero('Grand Griffon Rio', 'boss', 420, 275, 8, BOSS_COLUMN, [
+    move('Triple Slice', strike(6, 3)),
+    signature(move('Heavenly Drive', soar())),
+    signature(move('Heavenly Dive', strike(34))),
+    move('Triple Slice', strike(6, 3)),
+    move('Gale Wings', shroud(18)),
+    move('Proud Cry', wrath(2)),
+  ]),
 } as const satisfies Record<string, HeroDef>;
 
 // --- DERIVED DATA ---
