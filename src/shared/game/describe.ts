@@ -167,7 +167,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   },
   sharpshooter: {
     label: 'Sharpshooter',
-    description: `Your shots ignore **Out of Range**\nEvery **Range** hit deals **${SHARPSHOOTER_BONUS_TEXT}**`,
+    description: `**+50%** hit accuracy\nEvery **Range** hit deals **${SHARPSHOOTER_BONUS_TEXT}**`,
   },
   berserker: {
     label: 'Berserker',
