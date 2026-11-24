@@ -7,6 +7,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Point } from './useCardDrag';
+import { prefersReducedMotion } from '../lib/motion';
 
 // --- CONSTANTS ---
 /** Share of the remaining distance covered each frame (0..1). */
@@ -15,9 +16,6 @@ const EASE_PER_FRAME = 0.3;
 const SETTLE_PX = 0.5;
 
 // --- HELPERS ---
-/** True when the player asked the system for less motion. */
-const prefersReducedMotion = (): boolean =>
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // --- HOOK ---
 /**

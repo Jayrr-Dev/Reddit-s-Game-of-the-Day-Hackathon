@@ -2,7 +2,7 @@
 // USE CARD FLIGHTS
 // Small card backs that fly between the piles and the hand, so you can
 // see where cards go:
-//   draw      draw pile -> hand, one per card drawn
+//   (draws: the drawn cards themselves fly in, see FanHand)
 //   discard   hand -> discard pile, one per card discarded or played
 //   remove    hand -> Remove pile, one per card played with Remove
 //   shuffle   discard -> draw pile in a quick stream (the discard
@@ -39,7 +39,7 @@ export const HAND_ATTR = 'data-hand';
 /** One flight's length (matches --animate-card-flight). */
 export const CARD_FLIGHT_MS = 380;
 /** Gap between cards flying one after another. */
-const DRAW_STAGGER_MS = 70;
+export const DRAW_STAGGER_MS = 70;
 const SHUFFLE_STAGGER_MS = 35;
 /** Most cards drawn in a shuffle stream (a long one reads as a blur). */
 const SHUFFLE_MAX_CARDS = 8;
@@ -116,8 +116,6 @@ const flightsFor = (
   const shuffleEndMs = isShuffle
     ? (shuffled.at(-1)?.delayMs ?? 0) + CARD_FLIGHT_MS
     : 0;
-  const drawStartMs = isShuffle ? shuffleEndMs + RIFFLE_MS : 0;
-  const drawn = Math.max(0, after.hand - before.hand);
   const discarded = isShuffle ? 0 : Math.max(0, after.discard - before.discard);
   const removed = Math.max(0, after.removed - before.removed);
   return {
@@ -125,7 +123,6 @@ const flightsFor = (
       ...shuffled,
       ...flightsBetween(at.hand, at.discard, discarded, 0, DRAW_STAGGER_MS),
       ...flightsBetween(at.hand, at.removed, removed, 0, DRAW_STAGGER_MS),
-      ...flightsBetween(at.draw, at.hand, drawn, drawStartMs, DRAW_STAGGER_MS),
     ],
     riffleAtMs: isShuffle ? shuffleEndMs : null,
   };

@@ -9,7 +9,14 @@
 
 import { useLayoutEffect, useRef } from 'react';
 import type { PointerEvent, ReactNode } from 'react';
-import { HAND_ATTR } from '../../../hooks/useCardFlights';
+import {
+  CARD_FLIGHT_MS,
+  DRAW_STAGGER_MS,
+  HAND_ATTR,
+  PILE_ATTR,
+} from '../../../hooks/useCardFlights';
+import { useDrawOrder } from '../../../hooks/useDrawOrder';
+import { prefersReducedMotion } from '../../../lib/motion';
 import { canPlayCard } from '../../../../shared/game/combat';
 import { imbuesAt } from '../../../../shared/game/imbue';
 import type { CombatState } from '../../../../shared/game/types';
@@ -73,6 +80,50 @@ const slotTransform = (offset: number, isHeld: boolean): string => {
 const slotLeft = (offset: number): string =>
   `round(calc(50% + ${offset} * var(--slot)), 1px)`;
 
+/** A drawn card leaves the draw pile this small, and grows into place. */
+const DRAWN_START_SCALE = 0.3;
+/** A gentle ease-out, so a drawn card lands softly in its slot. */
+const DRAW_EASING = 'cubic-bezier(0.2, 0.75, 0.3, 1)';
+
+/**
+ * Flies a just-drawn slot in from the draw pile: it starts small over
+ * the pile and grows into its fan pose, `delayMs` after the draw. It
+ * waits hidden over the pile until then (fill: backwards). Imperative:
+ * a one-off animation started when the card mounts.
+ */
+const flyInFromDrawPile = (
+  slot: HTMLElement,
+  transform: string,
+  delayMs: number
+) => {
+  const pile = document.querySelector(`[${PILE_ATTR}="draw"]`);
+  const hand = slot.offsetParent;
+  if (!pile || !hand || prefersReducedMotion()) return;
+  const pileBox = pile.getBoundingClientRect();
+  const handBox = hand.getBoundingClientRect();
+  // From the slot's own centre (layout box, before its fan pose).
+  const dx =
+    pileBox.left + pileBox.width / 2 - (handBox.left + slot.offsetLeft);
+  const dy =
+    pileBox.top +
+    pileBox.height / 2 -
+    (handBox.top + slot.offsetTop + slot.offsetHeight / 2);
+  const start = `translateX(-50%) translate(${dx}px, ${dy}px) scale(${DRAWN_START_SCALE})`;
+  slot.animate(
+    [
+      { transform: start, opacity: 0 },
+      { opacity: 1, offset: 0.25 },
+      { transform, opacity: 1 },
+    ],
+    {
+      duration: CARD_FLIGHT_MS,
+      delay: delayMs,
+      easing: DRAW_EASING,
+      fill: 'backwards',
+    }
+  );
+};
+
 // --- SUBCOMPONENTS ---
 type HandSlotProps = {
   /** Its card's place in the hand (shots launch from the played slot). */
@@ -81,6 +132,8 @@ type HandSlotProps = {
   isHeld: boolean;
   isLifted: boolean;
   liftedBox: CardBox | null;
+  /** For a card just drawn: how long after the draw it flies in (ms). */
+  drawDelayMs: number | null;
   onPress: (event: PointerEvent<HTMLElement>) => void;
   children: ReactNode;
 };
@@ -97,6 +150,7 @@ const HandSlot = ({
   isHeld,
   isLifted,
   liftedBox,
+  drawDelayMs,
   onPress,
   children,
 }: HandSlotProps) => {
@@ -106,6 +160,15 @@ const HandSlot = ({
   // While its card is lifted the slot stays in the fan pose (never the
   // raised "held" pose), so letting go starts no second transition.
   const transform = slotTransform(offset, isHeld && !isLifted);
+
+  // DRAW: a just-drawn card flies in from the draw pile (mount only).
+  const drawDelayRef = useRef(drawDelayMs);
+  const mountTransformRef = useRef(transform);
+  useLayoutEffect(() => {
+    const delayMs = drawDelayRef.current;
+    if (slotRef.current && delayMs !== null)
+      flyInFromDrawPile(slotRef.current, mountTransformRef.current, delayMs);
+  }, []);
 
   // RETURN GLIDE: runs before paint, so the card never flashes in place.
   useLayoutEffect(() => {
@@ -148,6 +211,10 @@ const HandSlot = ({
   );
 };
 
+/** A drawn card's fly-in delay: one stagger step per card before it. */
+const drawDelayOf = (order: number | undefined): number | null =>
+  order === undefined ? null : order * DRAW_STAGGER_MS;
+
 // --- COMPONENT ---
 /** Renders the fanned hand. */
 export const FanHand = ({
@@ -161,6 +228,7 @@ export const FanHand = ({
   draggedBox,
 }: FanHandProps) => {
   const keys = useHandIds(combat.hand, combat.turn);
+  const drawOrder = useDrawOrder(keys);
   const count = combat.hand.length;
   const middle = (count - 1) / 2;
   // --slot: the gap between card centres, tighter when the hand is big.
@@ -181,6 +249,7 @@ export const FanHand = ({
             isHeld={index === heldIndex}
             isLifted={isLifted}
             liftedBox={isLifted ? draggedBox : null}
+            drawDelayMs={drawDelayOf(drawOrder.get(keys[index] ?? ''))}
             onPress={(event) => onPressCard(index, event)}
           >
             <CardView
