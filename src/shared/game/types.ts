@@ -75,6 +75,7 @@ export type StatusId =
   | 'aloft'
   /** Rush: the next this-many movements this turn cost 0. */
   | 'rush'
+  | 'armor'
   | BuffId;
 export type Statuses = Record<StatusId, number>;
 /**
@@ -124,6 +125,8 @@ export type BaseCardEffect =
   | { kind: 'vex'; amount: number; target: CardTarget }
   /** The next `amount` movements this turn cost 0 (see Rush). */
   | { kind: 'rush'; amount: number }
+  /** Armor N: each physical (Melee, Range) hit on you is N lower. */
+  | { kind: 'armor'; amount: number }
   | { kind: 'poison'; amount: number; target: CardTarget }
   | { kind: 'burn'; amount: number; target: CardTarget }
   | { kind: 'frost'; amount: number; target: CardTarget }
@@ -341,6 +344,8 @@ export type HeroDef = {
   passives?: readonly PassiveId[];
   /** Who acts first on the heroes' turn: higher goes earlier. */
   speed: number;
+  /** Armor the hero starts every fight with (see the Armor status). */
+  armor?: number;
 };
 
 // --- COMBAT STATE ---

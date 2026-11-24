@@ -301,6 +301,14 @@ export const CARDS = {
     REMOVES
   ),
   bane: card('Bane', 'buff', 1, 'uncommon', [buff('bane', 3)], REMOVES),
+  plateArmor: card(
+    'Plate Armor',
+    'buff',
+    1,
+    'uncommon',
+    [{ kind: 'armor', amount: 2 }],
+    REMOVES
+  ),
   // Move a hero two lines while cursing it.
   forcePull: card('Force Pull', 'curse', 1, 'uncommon', [pull(2), hex(2)]),
   forcePush: card('Force Push', 'curse', 1, 'uncommon', [knockback(2), hex(2)]),

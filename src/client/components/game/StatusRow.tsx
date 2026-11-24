@@ -89,6 +89,7 @@ const STATUS_ORDER: readonly StatusId[] = [
   'bane',
   'momentum',
   'rush',
+  'armor',
   // MAGIC
   'surge',
   // DEBUFFS

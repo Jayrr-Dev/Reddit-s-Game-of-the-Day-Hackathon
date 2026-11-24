@@ -49,6 +49,7 @@ export type PopKind =
   | 'momentum'
   | 'protection'
   | 'brace'
+  | 'armor'
   | BuffId
   | DebuffKind
   /** Shock went off: a spray of blood over the unit (quiet). */
@@ -157,6 +158,7 @@ const VILLAIN_GAINS: readonly (StatusId & PopKind)[] = [
   'sharpshooter',
   'bane',
   'instinct',
+  'armor',
 ];
 
 // --- HELPERS ---

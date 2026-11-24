@@ -142,8 +142,11 @@ const createHeroUnit = (
   uid: number,
   might: number
 ): UnplacedHero => {
-  const maxHp = scaleByMight(getHero(heroId).maxHp, might);
-  return { ...createCombatant(maxHp, maxHp), uid, heroId, moveIndex: 0, might };
+  const { maxHp: baseHp, armor = 0 } = getHero(heroId);
+  const maxHp = scaleByMight(baseHp, might);
+  const unit = createCombatant(maxHp, maxHp);
+  const statuses = { ...unit.statuses, armor };
+  return { ...unit, statuses, uid, heroId, moveIndex: 0, might };
 };
 
 /** Starts a fight: shuffles the deck and deals the first hand. */
@@ -558,7 +561,13 @@ const villainAttack = (
         isMelee,
         isFollowThrough
       ),
-      (unit) => elementalHit(unit, cardHitOn(unit, perHit, cardDef), cardDef),
+      (unit) =>
+        elementalHit(
+          unit,
+          cardHitOn(unit, perHit, cardDef),
+          cardDef,
+          play.isPiercing
+        ),
       cardDef,
       play.isLongRange
     );
@@ -588,7 +597,9 @@ const pierceBehind = (
   return shootHeroes(
     state,
     inLineUids,
-    (unit) => elementalHit(unit, cardHitOn(unit, amount, cardDef), cardDef),
+    // Everyone in the column takes a Piercing hit (no Armor, no Protection).
+    (unit) =>
+      elementalHit(unit, cardHitOn(unit, amount, cardDef), cardDef, true),
     cardDef,
     hasLongRange
   );
@@ -601,9 +612,10 @@ const pierceBehind = (
 const elementalHit = (
   unit: HeroUnit,
   amount: number,
-  cardDef: CardDef
+  cardDef: CardDef,
+  isPiercing: boolean
 ): HeroUnit => {
-  const hit = takeHit(unit, amount, cardDef.type);
+  const hit = takeHit(unit, amount, cardDef.type, isPiercing);
   const onHit = cardDef.element ? ELEMENT_ON_HIT[cardDef.element] : null;
   return onHit ? addStatus(hit, onHit.status, onHit.amount) : hit;
 };
@@ -690,6 +702,7 @@ const applyCardEffect = (
       return { ...state, player: castProtection(state.player) };
     case 'brace':
     case 'rush':
+    case 'armor':
       return {
         ...state,
         player: addStatus(state.player, effect.kind, effect.amount),

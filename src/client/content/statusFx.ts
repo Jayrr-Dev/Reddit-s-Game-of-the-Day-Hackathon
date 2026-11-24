@@ -126,6 +126,11 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     ],
     hasGlow: true,
   },
+  /** Armor: the breastplate flashes and settles. */
+  armor: {
+    layers: [{ shape: 'icon', motion: 'flash', count: 1, size: 42 }],
+    hasGlow: true,
+  },
   /** Instinct (dodge): the dodging figure flashes, chevrons rise. */
   instinct: {
     layers: [

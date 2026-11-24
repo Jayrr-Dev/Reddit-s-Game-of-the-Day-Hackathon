@@ -20,6 +20,7 @@ import {
   takeHit,
   addStatus,
   createCombatant,
+  castProtection,
   expireGuard,
   NO_STATUSES,
 } from './combatant.ts';
@@ -41,6 +42,7 @@ import {
   describeCard,
   describeHeroIntent,
   describeImbueGift,
+  KEYWORD_INFO,
 } from './describe.ts';
 import { imbueSlotsFor } from './imbue.ts';
 import { EXHAUST_USES } from './rules.ts';
@@ -2042,4 +2044,38 @@ void test('Rush lasts the turn, not past it', () => {
     statuses: { ...NO_STATUSES, rush: 2 },
   };
   assert.equal(endOfTurnUpkeep(rushed).statuses.rush, 0);
+});
+
+// --- ARMOR ---
+void test('Armor N takes N off each physical hit, never magic', () => {
+  const armored = addStatus(createCombatant(30, 30), 'armor', 2);
+  assert.equal(takeHit(armored, 5, 'melee').hp, 27, 'melee: 5 - 2');
+  assert.equal(takeHit(armored, 5, 'range').hp, 27, 'range: 5 - 2');
+  assert.equal(takeHit(armored, 5, 'magic').hp, 25, 'magic ignores it');
+  assert.equal(takeHit(armored, 1, 'melee').hp, 30, 'never below 0');
+  assert.equal(endOfTurnUpkeep(armored).statuses.armor, 2, 'it lasts');
+});
+
+void test('Plate Armor gives the villain Armor 2; Sir Brannoc starts armored', () => {
+  const state = withHand(fightWith(['darkCloak']), ['plateArmor']);
+  assert.equal(playCard(state, 0, -1).player.statuses.armor, 2);
+  assert.equal(describeCard('plateArmor')[0], 'Armor 2');
+  const maiden = startCombat({
+    hp: 60,
+    maxHp: 60,
+    deck: ['darkCloak'],
+    heroIds: ['brannoc'],
+    might: 1,
+    seed: 7,
+  }).heroes[0];
+  assert.equal(maiden?.statuses.armor, 3);
+});
+
+void test('Piercing ignores Armor and Protection (not Guard)', () => {
+  const tough = castProtection(
+    addStatus({ ...createCombatant(30, 30), guard: 1 }, 'armor', 2)
+  );
+  assert.equal(takeHit(tough, 8, 'range', true).hp, 23, '8 - 1 Guard');
+  assert.ok(takeHit(tough, 8, 'range').hp > 23, 'unpierced is reduced');
+  assert.ok(KEYWORD_INFO.piercing.description.includes('Armor'));
 });

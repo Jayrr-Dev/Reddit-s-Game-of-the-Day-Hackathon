@@ -690,6 +690,7 @@ const SELF_EFFECT_KINDS: ReadonlySet<CardDef['effects'][number]['kind']> =
     'protect',
     'brace',
     'rush',
+    'armor',
     'imbue',
   ]);
 

@@ -156,6 +156,11 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
     label: 'Aloft',
     description: 'Out of reach until it dives',
   },
+  armor: {
+    label: 'Armor',
+    description:
+      'Each **Melee** or **Range** hit taken is this much lower\nLasts the whole fight',
+  },
   rush: {
     label: 'Rush',
     description:
@@ -248,6 +253,7 @@ export const describeCardEffect = (
       return `Wrath ${effect.amount}`;
     case 'brace':
     case 'rush':
+    case 'armor':
       return `${STATUS_INFO[effect.kind].label} ${effect.amount}`;
     case 'cleanse':
       return CLEANSE_INFO.label;
@@ -282,7 +288,8 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
   },
   piercing: {
     label: 'Piercing',
-    description: 'Hit all units in a single column',
+    description:
+      'Hit all units in a single column\nIgnores **Armor** and **Protection**',
   },
   remove: {
     label: 'Remove',
@@ -468,6 +475,7 @@ export const imbueTag = (gift: ImbueGift): string => {
       return 'Enfeeble';
     case 'brace':
     case 'rush':
+    case 'armor':
       return `${STATUS_INFO[effect.kind].label} ${effect.amount}`;
     case 'reap':
       return 'Reap';

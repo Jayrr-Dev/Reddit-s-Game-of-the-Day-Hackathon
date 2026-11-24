@@ -16,6 +16,7 @@ import {
   BANE_AFFLICTIONS,
   MOMENTUM_DAMAGE_FACTOR,
   SHARPSHOOTER_DAMAGE_FACTOR,
+  PHYSICAL_TYPES,
   TIERED_CUT_BY_TIER,
   TIERED_MAX_TIER,
   STATUS_IS_AFFLICTION,
@@ -53,6 +54,7 @@ export const NO_STATUSES: Statuses = {
   brace: 0,
   aloft: 0,
   rush: 0,
+  armor: 0,
 };
 
 /** Which buff powers up each card type's damage (curses and buffs: none). */
@@ -176,6 +178,12 @@ export const takeDamage = <T extends Combatant>(
   };
 };
 
+/** A hit after Armor: a physical one is Armor lower, never below 0. */
+const armoredAmount = (target: Combatant, amount: number, type: CardType) =>
+  PHYSICAL_TYPES.has(type)
+    ? Math.max(0, amount - target.statuses.armor)
+    : amount;
+
 /** A shot at it missed (Out of Range): counted so the view pops "Miss". */
 export const missShot = <T extends Combatant>(target: T): T => ({
   ...target,
@@ -192,14 +200,19 @@ export const dodge = <T extends Combatant>(target: T): T => ({
  * Takes a hit of a type (a card's, or a hero attack's) and counts it
  * toward Shock: while shocked, each non-Magic hit in a row adds one,
  * and the SHOCK_HITS-th bursts for the whole Shock (past Guard) and
- * clears it; a Magic hit resets the count.
+ * clears it; a Magic hit resets the count. A Piercing hit skips the
+ * target's damage reductions (Protection, Armor); Guard still soaks it.
  */
 export const takeHit = <T extends Combatant>(
   target: T,
   amount: number,
-  type: CardType
+  type: CardType,
+  isPiercing = false
 ): T => {
-  const hit = takeDamage(target, protectedAmount(target, amount));
+  const reduced = isPiercing
+    ? amount
+    : armoredAmount(target, protectedAmount(target, amount), type);
+  const hit = takeDamage(target, reduced);
   const { shock } = hit.statuses;
   if (shock <= 0) return hit;
   if (type === 'magic') return { ...hit, shockHits: 0 };

@@ -151,6 +151,7 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   protection: false,
   aloft: false,
   rush: false,
+  armor: false,
 };
 
 /**
@@ -160,6 +161,12 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
  * climbs a tier, up to TIERED_MAX_TIER; a turn without renewal and it
  * lapses.
  */
+/** Hit types Armor blunts: physical blows, not Magic or Curses. */
+export const PHYSICAL_TYPES: ReadonlySet<CardType> = new Set([
+  'melee',
+  'range',
+]);
+
 export const TIERED_CUT_BY_TIER = [0, 0.25, 0.5, 0.75] as const;
 export const TIERED_MAX_TIER = 3;
 /**

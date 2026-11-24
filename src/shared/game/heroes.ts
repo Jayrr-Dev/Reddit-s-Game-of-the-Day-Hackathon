@@ -144,6 +144,9 @@ const hero = (
   ...(passives === undefined ? {} : { passives }),
 });
 
+/** Gives a hero Armor N for every fight (see the Armor status). */
+const armored = (def: HeroDef, armor: number): HeroDef => ({ ...def, armor });
+
 // --- CATALOG ---
 export const HEROES = {
   // GRUNTS (THE HORDE)
@@ -233,11 +236,15 @@ export const HEROES = {
     move('Holy Fire', burn(5)),
     move('Smite the Wicked', spell(11)),
   ]),
-  brannoc: hero('Sir Brannoc', 'champion', 70, 220, 3, CHAMPION, [
-    move('Iron Wall', guard(15)),
-    move('Gatebreaker', strike(18)),
-    move('Hammer Blows', strike(8, 2)),
-  ]),
+  // The knight: Armor 3 blunts every Melee and Range blow.
+  brannoc: armored(
+    hero('Sir Brannoc', 'champion', 70, 220, 3, CHAMPION, [
+      move('Iron Wall', guard(15)),
+      move('Gatebreaker', strike(18)),
+      move('Hammer Blows', strike(8, 2)),
+    ]),
+    3
+  ),
   seris: hero("Seris, the Queen's Blade", 'champion', 58, 330, 9, CHAMPION, [
     move('Dance of Blades', strike(4, 4)),
     move('Feint', weaken(2), guard(8)),

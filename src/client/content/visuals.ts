@@ -58,6 +58,7 @@ export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
   aloft: { glyph: 'wing', toneClass: 'text-accent' },
   // Rush makes movements free, so it wears the energy colour.
   rush: { glyph: 'heartbeat', toneClass: 'text-energy' },
+  armor: { glyph: 'breastplate', toneClass: 'text-guard' },
 };
 
 // --- KEYWORDS ---
@@ -257,6 +258,7 @@ export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   instinct: STATUS_LOOK.instinct,
   reinforce: STATUS_LOOK.reinforce,
   brace: STATUS_LOOK.brace,
+  armor: STATUS_LOOK.armor,
   momentum: STATUS_LOOK.momentum,
   protection: STATUS_LOOK.protection,
   hex: STATUS_LOOK.hex,
