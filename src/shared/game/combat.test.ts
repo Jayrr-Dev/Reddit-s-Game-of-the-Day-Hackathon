@@ -53,6 +53,7 @@ import {
   ALOFT_EVASION,
   BANE_AFFLICTIONS,
   BLEED_BITE_FACTOR,
+  RAMPAGE_MOMENTUM_FACTOR,
   EXHAUST_USES,
   RESERVE_ENERGY_SLOTS,
 } from './rules.ts';
@@ -1176,6 +1177,15 @@ void test('playDamageFactor combines Charge, Weaken and the target bonus', () =>
     statuses: { ...charged.statuses, weaken: 1 },
   };
   assert.equal(playDamageFactor(chargedAndWeakened, squire, melee), 1.13);
+  // RAMPAGE doubles Momentum's bonus: +50% becomes +100%.
+  assert.equal(RAMPAGE_MOMENTUM_FACTOR, 2);
+  assert.equal(attackDamage(10, charged, 'melee'), 15);
+  assert.equal(attackDamage(10, charged, 'melee', true), 20);
+  assert.equal(attackDamage(10, villain, 'melee', true), 10, 'no Momentum');
+  const quickJab = getCard('quickJab');
+  assert.ok(quickJab.keywords.includes('rampage'));
+  assert.equal(playDamageFactor(charged, squire, quickJab), 2);
+  assert.ok(describeCard('quickJab', charged).includes('Damage 6'), '3 x 2');
 });
 
 /** A fresh fight against the Holy Dragon alone. */

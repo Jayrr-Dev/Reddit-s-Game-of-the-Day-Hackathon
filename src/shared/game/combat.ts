@@ -563,10 +563,12 @@ export const targetDamageFactor = (unit: HeroUnit, cardDef: CardDef): number =>
 export const playDamageFactor = (
   attacker: Combatant,
   unit: HeroUnit,
-  cardDef: CardDef
+  cardDef: CardDef,
+  isRampage = cardDef.keywords.includes('rampage')
 ): number => {
   const factor =
-    damageFactorOf(attacker, cardDef.type) * targetDamageFactor(unit, cardDef);
+    damageFactorOf(attacker, cardDef.type, isRampage) *
+    targetDamageFactor(unit, cardDef);
   return Math.round(factor * 100) / 100;
 };
 
@@ -592,7 +594,12 @@ const villainAttack = (
   play: PlayContext
 ): CombatState => {
   const isMelee = !cardDef.reach;
-  const perHit = attackDamage(effect.amount, state.player, cardDef.type);
+  const perHit = attackDamage(
+    effect.amount,
+    state.player,
+    cardDef.type,
+    play.isRampage
+  );
   const isFollowThrough = effect.target === 'one';
   const pierceHit = Math.floor(perHit * PIERCE_DAMAGE_FACTOR);
   return Array.from({ length: effect.hits }).reduce<CombatState>((current) => {
@@ -717,7 +724,13 @@ const reapHex = (
  * How this play differs from the printed card: imbue slot, Piercing,
  * Longrange (printed or imbued).
  */
-type PlayContext = { slot: number; isPiercing: boolean; isLongRange: boolean };
+type PlayContext = {
+  slot: number;
+  isPiercing: boolean;
+  isLongRange: boolean;
+  /** Rampage (printed or imbued): Momentum's bonus doubles. */
+  isRampage: boolean;
+};
 
 /**
  * Resolves one effect of the card `cardDef` (its type picks the buff).
@@ -1127,6 +1140,7 @@ const planPlay = (
     slot: asked > handIndex ? asked - 1 : asked,
     isPiercing: isPlayWith(state, handIndex, 'piercing'),
     isLongRange: ignoresOutOfRange(state, handIndex),
+    isRampage: isPlayWith(state, handIndex, 'rampage'),
   };
 };
 
@@ -1263,6 +1277,7 @@ export const wouldFell = (
     slot: -1,
     isPiercing: isPlayWith(state, handIndex, 'piercing'),
     isLongRange: ignoresOutOfRange(state, handIndex),
+    isRampage: isPlayWith(state, handIndex, 'rampage'),
   };
   const beats = cardBeats(payForCard(state, handIndex), cardId, plan);
   const target = beats.at(-1)?.heroes.find((unit) => unit.uid === uid);

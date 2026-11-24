@@ -17,6 +17,7 @@ import {
   HEX_GROWTH,
   BANE_AFFLICTIONS,
   MOMENTUM_DAMAGE_FACTOR,
+  RAMPAGE_MOMENTUM_FACTOR,
   SHARPSHOOTER_DAMAGE_FACTOR,
   PHYSICAL_TYPES,
   BLEED_BITE_FACTOR,
@@ -113,12 +114,20 @@ export const hasMomentumFor = (attacker: Combatant, type?: CardType) =>
 export const hasSharpshooterFor = (attacker: Combatant, type?: CardType) =>
   type === 'range' && attacker.statuses.sharpshooter > 0;
 
+/** Momentum's multiplier: doubled bonus on a Rampage card. */
+const momentumFactorOf = (isRampage: boolean): number =>
+  isRampage ? RAMPAGE_MOMENTUM_FACTOR : MOMENTUM_DAMAGE_FACTOR;
+
 /**
- * The attacker's own boosts for a card type: Momentum (Melee) and
- * Sharpshooter (Range). 1 when none applies.
+ * The attacker's own boosts for a card type: Momentum (Melee; more on a
+ * Rampage card) and Sharpshooter (Range). 1 when none applies.
  */
-const boostFactorOf = (attacker: Combatant, type?: CardType): number =>
-  (hasMomentumFor(attacker, type) ? MOMENTUM_DAMAGE_FACTOR : 1) *
+const boostFactorOf = (
+  attacker: Combatant,
+  type?: CardType,
+  isRampage = false
+): number =>
+  (hasMomentumFor(attacker, type) ? momentumFactorOf(isRampage) : 1) *
   (hasSharpshooterFor(attacker, type) ? SHARPSHOOTER_DAMAGE_FACTOR : 1);
 
 /**
@@ -127,9 +136,10 @@ const boostFactorOf = (attacker: Combatant, type?: CardType): number =>
  */
 export const damageFactorOf = (
   attacker: Combatant,
-  type?: CardType
+  type?: CardType,
+  isRampage = false
 ): number => {
-  const boost = boostFactorOf(attacker, type);
+  const boost = boostFactorOf(attacker, type, isRampage);
   const weaken = attacker.statuses.weaken > 0 ? WEAKEN_DAMAGE_FACTOR : 1;
   const enfeeble = 1 - tierCut(attacker.statuses.enfeeble);
   return boost * weaken * enfeeble;
@@ -149,19 +159,23 @@ export const damageFactorOf = (
 export const buffedAttackDamage = (
   base: number,
   attacker: Combatant,
-  type?: CardType
+  type?: CardType,
+  isRampage = false
 ): number => {
   const withBuffs = base + attacker.statuses.wrath + typeBonus(attacker, type);
-  return Math.max(0, Math.floor(withBuffs * boostFactorOf(attacker, type)));
+  const boost = boostFactorOf(attacker, type, isRampage);
+  return Math.max(0, Math.floor(withBuffs * boost));
 };
 
 export const attackDamage = (
   base: number,
   attacker: Combatant,
-  type?: CardType
+  type?: CardType,
+  isRampage = false
 ): number => {
   const withWrath = base + attacker.statuses.wrath + typeBonus(attacker, type);
-  const factored = Math.floor(withWrath * damageFactorOf(attacker, type));
+  const factor = damageFactorOf(attacker, type, isRampage);
+  const factored = Math.floor(withWrath * factor);
   const frost = attacker.statuses.frost * FROST_DAMAGE_PER_STACK;
   return Math.max(0, factored - frost);
 };

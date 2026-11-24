@@ -307,8 +307,17 @@ export const useCombatControls = (
   /** Every damage multiplier on this play at the locked hero (1 = none). */
   const hoverUnit = combat.heroes.find((unit) => unit.uid === hoverUid);
   const aimFactor =
-    hoverUnit && dragCard !== undefined
-      ? playDamageFactor(combat.player, hoverUnit, getCard(dragCard))
+    hoverUnit && dragCard !== undefined && drag
+      ? playDamageFactor(
+          combat.player,
+          hoverUnit,
+          getCard(dragCard),
+          cardHasKeyword(
+            dragCard,
+            cardImbuesAt(combat, drag.handIndex),
+            'rampage'
+          )
+        )
       : 1;
   /** The chance each shot lands on the locked hero (0.5 Out of Range). */
   const aimChance =

@@ -34,6 +34,8 @@ export const MAX_IMBUES_PER_CARD = 3;
 export const CHARGE_COST = 1;
 /** Momentum (gained by charging) multiplies the next Melee card's damage. */
 export const MOMENTUM_DAMAGE_FACTOR = 1.5;
+/** A Rampage card gets double Momentum's bonus: +50% becomes +100%. */
+export const RAMPAGE_MOMENTUM_FACTOR = 1 + (MOMENTUM_DAMAGE_FACTOR - 1) * 2;
 /** Sharpshooter multiplies every Range hit (and its shots never miss). */
 export const SHARPSHOOTER_DAMAGE_FACTOR = 1.2;
 /**

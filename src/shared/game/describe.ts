@@ -15,7 +15,7 @@ import {
   typeBonus,
 } from './combatant.ts';
 import { foldPerHitAfflictions, getHero } from './heroes.ts';
-import { foldImbuedDamage, imbuedEffects } from './imbue.ts';
+import { cardHasKeyword, foldImbuedDamage, imbuedEffects } from './imbue.ts';
 import {
   ELEMENT_ON_HIT,
   ON_OFF_BUFFS,
@@ -229,13 +229,14 @@ const areaSuffix = (target: AimTarget, isMelee = false): string => {
  * Guard with Reinforce added. When `target` is given too (the hero
  * the card is aimed at), single-target numbers are for that hero: a
  * Range card's long-range bonus, and Reap's damage from its Hex.
- * `cardDef` gives the type and reach.
+ * `cardDef` gives the type and reach; `isRampage` doubles Momentum's bonus.
  */
 export const describeCardEffect = (
   effect: CardEffect,
   cardDef: CardDef,
   attacker?: Combatant,
-  target?: HeroUnit
+  target?: HeroUnit,
+  isRampage = false
 ): string => {
   const isMelee = !cardDef.reach;
   switch (effect.kind) {
@@ -244,7 +245,7 @@ export const describeCardEffect = (
       // and the target's own modifiers join once the card is aimed.
       const damageOf = target ? attackDamage : buffedAttackDamage;
       const perHit = attacker
-        ? damageOf(effect.amount, attacker, cardDef.type)
+        ? damageOf(effect.amount, attacker, cardDef.type, isRampage)
         : effect.amount;
       const isAimed = target !== undefined && effect.target === 'one';
       const amount = isAimed ? cardHitOn(target, perHit, cardDef) : perHit;
@@ -331,7 +332,7 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
   },
   rampage: {
     label: 'Rampage',
-    description: '**Charge** on kill',
+    description: '**Charge** on kill\n**Momentum** gives it double the bonus',
   },
   distance: {
     label: 'Distance',
@@ -595,8 +596,15 @@ export const describeCardRules = (
   const isMultiHit = cardDef.effects.some(
     (effect) => effect.kind === 'damage' && effect.hits > 1
   );
+  const isRampage = cardHasKeyword(cardId, imbues, 'rampage');
   const lines = own.map((effect) => {
-    const line = describeCardEffect(effect, cardDef, attacker, target);
+    const line = describeCardEffect(
+      effect,
+      cardDef,
+      attacker,
+      target,
+      isRampage
+    );
     return isMultiHit && isAfflictionKind(effect.kind)
       ? `${line} per hit`
       : line;
