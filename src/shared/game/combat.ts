@@ -58,6 +58,9 @@ import {
   typeBonus,
 } from './combatant.ts';
 import { getHero, type HeroId } from './heroes.ts';
+// A cycle (movement.ts reads combatOutcome) is safe: both sides only
+// call each other inside functions, never while loading.
+import { move } from './movement.ts';
 import {
   addToHand,
   cardHasKeyword,
@@ -90,6 +93,9 @@ import type {
   HeroEffect,
   HeroMove,
   HeroUnit,
+  Imbue,
+  CardKeyword,
+  MovementId,
   PassiveId,
   TimedBuff,
 } from './types.ts';
@@ -836,8 +842,32 @@ export const playCard = (
   const settled = cardHasKeyword(cardId, imbues, 'remove')
     ? { ...kept, removedPile: [...kept.removedPile, cardId] }
     : { ...kept, discardPile: [...kept.discardPile, cardId] };
-  return removeFallen(settled);
+  const cleared = removeFallen(settled);
+  const hasKilled = cleared.slain > state.slain;
+  return hasKilled ? moveOnKill(cleared, cardId, imbues) : cleared;
 };
+
+// --- ON-KILL MOVES ---
+/** The keywords that make the villain move after a kill, and the move. */
+const KILL_MOVES: readonly { keyword: CardKeyword; move: MovementId }[] = [
+  { keyword: 'berserk', move: 'charge' },
+  { keyword: 'distance', move: 'backStep' },
+];
+
+/**
+ * After a card slays a hero, each on-kill keyword it has (printed or
+ * imbued) makes its move through the normal movement rules: only when
+ * that move is on offer and paid at its usual cost, streak included.
+ * When it isn't possible, `move` changes nothing.
+ */
+const moveOnKill = (
+  state: CombatState,
+  cardId: CardId,
+  imbues: readonly Imbue[]
+): CombatState =>
+  KILL_MOVES.filter(({ keyword }) =>
+    cardHasKeyword(cardId, imbues, keyword)
+  ).reduce((moved, kill) => move(moved, kill.move), state);
 
 /**
  * True when playing the card in `handIndex` with exactly these picks

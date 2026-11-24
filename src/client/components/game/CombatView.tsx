@@ -6,7 +6,8 @@
 //   Battlefield   3 x 2 parallax scene; every hero wears its own plate
 //   HitNumbers    damage numbers that pop over the hero that was hit
 // Charge (when the front row is empty) brings the back row up with a
-// speed-lines burst (SpeedLines) and grants Momentum.
+// speed-lines burst (SpeedLines) and grants Momentum. A Berserk kill
+// Charges on its own (a Distance kill Back Steps), with the same burst.
 // End Turn plays the heroes' turn out (useHeroTurn): heroes attack in
 // speed order, staggered, before the real state takes over.
 //   Bottom band   PlayerCorner (portrait + HP) + discard pile | your
@@ -40,6 +41,7 @@ import { useCardFlights } from '../../hooks/useCardFlights';
 import { useCardHits } from '../../hooks/useCardHits';
 import { useHeroTurn } from '../../hooks/useHeroTurn';
 import { useMoveFailPops } from '../../hooks/useMoveFailPops';
+import { useMovementBurst } from '../../hooks/useMovementBurst';
 import {
   PLAYER_SHOT_FLIGHT_MS,
   MELEE_SWEEP_MS,
@@ -234,9 +236,8 @@ export const CombatView = ({
     type: CardType;
     element?: MagicElement | undefined;
   }>();
-  // The last movement with a running count, so each one re-keys (and
-  // replays) its speed lines.
-  const [burst, setBurst] = useState<{ move: MovementId; count: number }>();
+  // Speed lines for every movement, Berserk Charges included.
+  const burst = useMovementBurst(combat);
   // Recent hits, so damage numbers are sized against a typical hit.
   const [hitHistory] = useState(() => new HitHistory());
   const { pops: moveFails, show: showMoveFail } = useMoveFailPops();
@@ -246,10 +247,6 @@ export const CombatView = ({
   const routeAction = useCallback(
     (action: RunAction) => {
       if (action.type === 'endTurn') return playHeroTurn();
-      if (action.type === 'move') {
-        const { move } = action;
-        setBurst((last) => ({ move, count: (last?.count ?? 0) + 1 }));
-      }
       if (action.type === 'playCard') {
         const cardId = realCombat.hand[action.handIndex];
         setLastCard(cardId ? getCard(cardId) : undefined);

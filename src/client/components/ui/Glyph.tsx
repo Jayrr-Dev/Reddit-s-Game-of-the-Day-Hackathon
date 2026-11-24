@@ -36,7 +36,9 @@ export type GlyphName =
   | 'arrowhead'
   | 'ghost'
   | 'cards'
-  | 'cardBurn';
+  | 'cardBurn'
+  | 'battleAxe'
+  | 'sprint';
 
 export type GlyphProps = {
   name: GlyphName;

@@ -119,14 +119,21 @@ const hitsOneHero = (cardId: CardId): boolean =>
     (effect) => effect.kind === 'damage' && effect.target === 'one'
   );
 
+/** True when a card deals damage to heroes (so it can slay one). */
+const dealsDamage = (cardId: CardId): boolean =>
+  getCard(cardId).effects.some((effect) => effect.kind === 'damage');
+
 /**
  * Which cards each keyword may go on (besides one that already has it):
- * Hold and Remove on any card, Piercing on a card that hits one hero.
+ * Hold and Remove on any card, Piercing on a card that hits one hero,
+ * the on-kill moves (Berserk, Distance) on any card that deals damage.
  */
 const KEYWORD_FITS: Record<CardKeyword, (cardId: CardId) => boolean> = {
   hold: () => true,
   piercing: hitsOneHero,
   remove: () => true,
+  berserk: dealsDamage,
+  distance: dealsDamage,
 };
 
 /**

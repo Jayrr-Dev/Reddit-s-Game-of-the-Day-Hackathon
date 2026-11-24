@@ -112,6 +112,8 @@ const FIRE: CardTraits = { element: 'fire' };
 const ICE: CardTraits = { element: 'ice' };
 const HOLDS: CardTraits = { keywords: ['hold'] };
 const PIERCES: CardTraits = { keywords: ['piercing'] };
+const BERSERKS: CardTraits = { keywords: ['berserk'] };
+const DISTANCES: CardTraits = { keywords: ['distance'] };
 
 /** Card types that can hit the back row (Melee only hits the front). */
 const REACHING_TYPES: ReadonlySet<CardType> = new Set([
@@ -161,8 +163,8 @@ export const CARDS = {
     guard(14),
   ]),
   sear: card('Sear', 'melee', 1, 'common', [hit(5), burn(3)]),
-  cleave: card('Cleave', 'melee', 1, 'common', [hitAll(6)]),
-  spiteBolt: card('Spite Bolt', 'range', 1, 'common', [hit(6)]),
+  cleave: card('Cleave', 'melee', 1, 'common', [hitAll(6)], BERSERKS),
+  spiteBolt: card('Spite Bolt', 'range', 1, 'common', [hit(6)], DISTANCES),
   hurlAside: card('Hurl Aside', 'melee', 1, 'common', [hit(5), push]),
   beckon: card('Beckon', 'curse', 0, 'common', [pull, weaken(1), hex(1)]),
   hexfire: card('Hexfire', 'magic', 1, 'common', [hit(6), hex(1)], FIRE),
@@ -170,10 +172,14 @@ export const CARDS = {
   flurry: card('Flurry', 'melee', 1, 'common', [hit(3, 3)]),
   spikedGuard: card('Spiked Guard', 'melee', 1, 'common', [hit(5), guard(5)]),
   blackArrow: card('Black Arrow', 'range', 1, 'common', [hit(7)], PIERCES),
-  retreatingShot: card('Retreating Shot', 'range', 1, 'common', [
-    hit(4),
-    guard(4),
-  ]),
+  retreatingShot: card(
+    'Retreating Shot',
+    'range',
+    1,
+    'common',
+    [hit(4), guard(4)],
+    DISTANCES
+  ),
   wardingBolt: card('Warding Bolt', 'magic', 1, 'common', [hit(4), guard(4)]),
   // IMBUE: grant another card in hand a keyword or an effect
   holdFast: card('Hold Fast', 'buff', 0, 'common', [imbue(giftHold)]),
@@ -271,6 +277,12 @@ export const CARDS = {
     imbue({ kind: 'keyword', keyword: 'remove' }),
     draw(1),
   ]),
+  redMist: card('Red Mist', 'buff', 0, 'uncommon', [
+    imbue({ kind: 'keyword', keyword: 'berserk' }),
+  ]),
+  vanish: card('Vanish', 'buff', 0, 'uncommon', [
+    imbue({ kind: 'keyword', keyword: 'distance' }),
+  ]),
   reap: card('Reap', 'magic', 1, 'uncommon', [reap(2)]),
   seethe: card('Seethe', 'buff', 1, 'uncommon', [wrath(2)], REMOVES),
   impale: card('Impale', 'melee', 2, 'uncommon', [hit(10)], PIERCES),
@@ -312,7 +324,14 @@ export const CARDS = {
   vengeance: card('Vengeance', 'buff', 1, 'rare', [wrath(3)], REMOVES),
   gravePact: card('Grave Pact', 'buff', 1, 'rare', [heal(8)], REMOVES),
   doom: card('Doom', 'curse', 2, 'rare', [hex(9)], REMOVES),
-  undyingHatred: card('Undying Hatred', 'melee', 2, 'rare', [hit(20)]),
+  undyingHatred: card(
+    'Undying Hatred',
+    'melee',
+    2,
+    'rare',
+    [hit(20)],
+    BERSERKS
+  ),
   ascendance: card(
     'Ascendance',
     'buff',

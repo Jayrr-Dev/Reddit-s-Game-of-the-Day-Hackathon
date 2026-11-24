@@ -1,7 +1,8 @@
 // ===================================================================
 // CARD BADGES (DATA)
 // The small icon badges stacked under a card's cost coin: its printed
-// keywords (Hold, Piercing, Remove) and every gift an Imbue card gave
+// keywords (Hold, Piercing, Remove, Berserk,
+// Distance) and every gift an Imbue card gave
 // it. Each is an icon, with a number where the gift has one ("3" on a
 // Poison drop), a small hourglass when the gift is timed ("this
 // turn"), and a tooltip from the glossary. The same gift imbued twice
@@ -51,6 +52,8 @@ const KEYWORD_LOOK: Record<CardKeyword, Look> = {
   hold: { glyph: 'padlock', toneClass: 'text-accent' },
   piercing: { glyph: 'arrowhead', toneClass: 'text-accent' },
   remove: { glyph: 'cardBurn', toneClass: 'text-ink-muted' },
+  berserk: { glyph: 'battleAxe', toneClass: 'text-hp' },
+  distance: { glyph: 'sprint', toneClass: 'text-range' },
 };
 
 /** A plain action's own words (no status of its own to name it). */

@@ -137,7 +137,8 @@ export type TimedBuff = {
 
 // --- IMBUE ---
 /** A keyword a card can be printed with or imbued with. */
-export type CardKeyword = 'hold' | 'piercing' | 'remove';
+export type CardKeyword =
+  'hold' | 'piercing' | 'remove' | 'berserk' | 'distance';
 /**
  * Effects an imbue may grant. Pull and Push are left out: they change
  * who a card may aim at, and an imbue never changes a card's aim.
@@ -313,6 +314,8 @@ export type MovementId = 'charge' | 'backStep';
 
 /** The last movement: on what turn, and how many in a row so far. */
 export type MovementRecord = {
+  /** Which move it was (its speed lines show the way). */
+  move: MovementId;
   turn: number;
   streak: number;
 };

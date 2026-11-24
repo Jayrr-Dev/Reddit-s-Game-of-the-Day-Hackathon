@@ -213,7 +213,7 @@ void test('a push sends a front-row hero back and the field re-forms', () => {
 });
 
 void test('when the front row falls, the back row holds until a Charge', () => {
-  const state = fight(['squire', 'priest'], ['undyingHatred']);
+  const state = fight(['squire', 'priest'], ['ruin']);
   const after = playCard(state, 0, unitOf(state, 'squire').uid);
   assert.equal(after.heroes.length, 1);
   assert.equal(unitOf(after, 'priest').row, 'back');
@@ -229,7 +229,7 @@ void test('Charge is refused while anyone holds the front or energy is short', (
   assert.equal(canMove(state, 'charge'), false);
   assert.equal(move(state, 'charge'), state);
   const felled = playCard(
-    fight(['squire', 'priest'], ['undyingHatred']),
+    fight(['squire', 'priest'], ['ruin']),
     0,
     unitOf(state, 'squire').uid
   );
@@ -240,7 +240,7 @@ void test('Charge is refused while anyone holds the front or energy is short', (
 
 void test('charging gives Momentum: the next Melee card hits 50% harder, once', () => {
   const felled = playCard(
-    fight(['squire', 'priest'], ['undyingHatred', 'twinDaggers', 'backhand']),
+    fight(['squire', 'priest'], ['ruin', 'twinDaggers', 'backhand']),
     0,
     unitOf(fight(['squire', 'priest'], []), 'squire').uid
   );
@@ -255,7 +255,7 @@ void test('charging gives Momentum: the next Melee card hits 50% harder, once', 
 
 void test('a front-row sweep cannot be played while the front row is empty', () => {
   const felled = playCard(
-    fight(['squire', 'priest'], ['undyingHatred', 'cleave', 'plague', 'drain']),
+    fight(['squire', 'priest'], ['ruin', 'cleave', 'plague', 'drain']),
     0,
     unitOf(fight(['squire', 'priest'], []), 'squire').uid
   );
@@ -268,7 +268,7 @@ void test('a front-row sweep cannot be played while the front row is empty', () 
 
 void test('Momentum unused by the end of the turn is lost', () => {
   const felled = playCard(
-    fight(['squire', 'priest'], ['undyingHatred', 'darkCloak']),
+    fight(['squire', 'priest'], ['ruin', 'darkCloak']),
     0,
     unitOf(fight(['squire', 'priest'], []), 'squire').uid
   );

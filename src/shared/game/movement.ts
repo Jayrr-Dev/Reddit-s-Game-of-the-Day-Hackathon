@@ -139,7 +139,11 @@ export const move = (state: CombatState, moveId: MovementId): CombatState => {
   const paid: CombatState = {
     ...state,
     energy: state.energy - movementCost(state, moveId),
-    lastMovement: { turn: state.turn, streak: streakOf(state) + 1 },
+    lastMovement: {
+      move: moveId,
+      turn: state.turn,
+      streak: streakOf(state) + 1,
+    },
     heroes: def.reshape(state.heroes),
   };
   return grant(paid, def.grants);

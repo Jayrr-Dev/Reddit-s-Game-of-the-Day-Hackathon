@@ -42,6 +42,7 @@ import { imbueSlotsFor } from './imbue.ts';
 import { getHero } from './heroes.ts';
 import {
   BACK_STEP_COST,
+  CHARGE_COST,
   CARDS_PER_TURN,
   ENERGY_PER_TURN,
   MAX_IMBUES_PER_CARD,
@@ -1614,4 +1615,90 @@ void test('Buff cards can not be imbued', () => {
   // Hold Fast fits any card, but never a Buff card (Imbue cards included).
   const state = cloakFight(['holdFast', 'seethe', 'ironRune', 'backhand']);
   assert.deepEqual(imbueSlotsFor(state, 0), [3]);
+});
+
+// --- BERSERK ---
+/** Squire (front, 1 HP) and Archer (back): one kill empties the front. */
+const berserkFight = (hand: CardId[]): CombatState => {
+  const state = squireAndArcher(hand);
+  return {
+    ...state,
+    heroes: state.heroes.map((unit) =>
+      unit.heroId === 'squire' ? { ...unit, hp: 1 } : unit
+    ),
+  };
+};
+
+void test('a Berserk kill that empties the front row Charges, paying its cost', () => {
+  const state = berserkFight(['cleave']);
+  const after = playCard(state, 0, state.heroes[0]?.uid ?? -1);
+  const archer = after.heroes.find((unit) => unit.heroId === 'archer');
+  assert.equal(archer?.row, 'front', 'the back row stepped up');
+  assert.equal(after.player.statuses.momentum, 1);
+  assert.equal(after.energy, state.energy - 1 - CHARGE_COST);
+  assert.equal(after.lastMovement?.streak, 1);
+});
+
+void test('Berserk does nothing without a kill, or when Charge is not possible', () => {
+  // No kill: the Squire stands.
+  const tough = squireAndArcher(['cleave']);
+  const unhurt = playCard(tough, 0, tough.heroes[0]?.uid ?? -1);
+  assert.equal(unhurt.lastMovement, null);
+  // A kill, but no energy left to pay for the Charge.
+  const broke = { ...berserkFight(['cleave']), energy: 1 };
+  const after = playCard(broke, 0, broke.heroes[0]?.uid ?? -1);
+  assert.equal(after.lastMovement, null);
+  assert.equal(after.energy, 0);
+  // A plain card kills without charging.
+  const plain = berserkFight(['backhand']);
+  const plainAfter = playCard(plain, 0, plain.heroes[0]?.uid ?? -1);
+  assert.equal(plainAfter.lastMovement, null);
+});
+
+void test('Berserk can be imbued onto an attack', () => {
+  const state = berserkFight(['redMist', 'backhand']);
+  const imbued = playCard(state, 0, 0, undefined, 1);
+  const after = playCard(imbued, 0, imbued.heroes[0]?.uid ?? -1);
+  assert.ok(after.lastMovement, 'the imbued Backhand charged');
+  assert.ok(describeCard('cleave').includes('Berserk.'));
+});
+
+// --- DISTANCE ---
+/** Squire (front) and Archer (back, 1 HP): one kill leaves only the front. */
+const distanceFight = (hand: CardId[]): CombatState => {
+  const state = squireAndArcher(hand);
+  return {
+    ...state,
+    heroes: state.heroes.map((unit) =>
+      unit.heroId === 'archer' ? { ...unit, hp: 1 } : unit
+    ),
+  };
+};
+
+/** The uid of the Archer in a fight. */
+const archerUid = (state: CombatState): number =>
+  state.heroes.find((unit) => unit.heroId === 'archer')?.uid ?? -1;
+
+void test('a Distance kill that leaves only the front row Back Steps, paying its cost', () => {
+  const state = distanceFight(['retreatingShot']);
+  const after = playCard(state, 0, archerUid(state));
+  const squire = after.heroes.find((unit) => unit.heroId === 'squire');
+  assert.equal(squire?.row, 'back', 'the villain fell back');
+  assert.equal(after.energy, state.energy - 1 - BACK_STEP_COST);
+  assert.equal(after.lastMovement?.move, 'backStep');
+});
+
+void test('Distance does nothing without a kill or the energy to Back Step', () => {
+  const tough = squireAndArcher(['retreatingShot']);
+  assert.equal(playCard(tough, 0, archerUid(tough)).lastMovement, null);
+  const broke = { ...distanceFight(['retreatingShot']), energy: 1 };
+  assert.equal(playCard(broke, 0, archerUid(broke)).lastMovement, null);
+});
+
+void test('Distance can be imbued onto an attack', () => {
+  const state = distanceFight(['vanish', 'venomDart']);
+  const imbued = playCard(state, 0, 0, undefined, 1);
+  const after = playCard(imbued, 0, archerUid(imbued));
+  assert.equal(after.lastMovement?.move, 'backStep');
+  assert.ok(describeCard('retreatingShot').includes('Distance.'));
 });
