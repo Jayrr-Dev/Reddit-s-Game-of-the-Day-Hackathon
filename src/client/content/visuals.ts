@@ -42,6 +42,7 @@ export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
   piercing: { glyph: 'bow', toneClass: 'text-buff' },
   reinforce: { glyph: 'shield', toneClass: 'text-buff' },
   momentum: { glyph: 'bolt', toneClass: 'text-energy' },
+  protection: { glyph: 'aegis', toneClass: 'text-buff' },
   aloft: { glyph: 'wing', toneClass: 'text-accent' },
 };
 
@@ -138,6 +139,7 @@ export const RULES_KEYWORDS = [
   'Surge',
   'Piercing',
   'Reinforce',
+  'Protection',
   'ALL',
 ] as const;
 
@@ -176,6 +178,7 @@ export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   piercing: STATUS_LOOK.piercing,
   reinforce: STATUS_LOOK.reinforce,
   momentum: STATUS_LOOK.momentum,
+  protection: STATUS_LOOK.protection,
   hex: STATUS_LOOK.hex,
   poison: STATUS_LOOK.poison,
   burn: STATUS_LOOK.burn,

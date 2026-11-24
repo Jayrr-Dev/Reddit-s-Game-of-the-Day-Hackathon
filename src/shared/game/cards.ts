@@ -49,6 +49,7 @@ const buff = (which: BuffId, amount: number): CardEffect => ({
   buff: which,
   amount,
 });
+const protect: CardEffect = { kind: 'protect' };
 const draw = (amount: number): CardEffect => ({ kind: 'draw', amount });
 const energy = (amount: number): CardEffect => ({ kind: 'energy', amount });
 const heal = (amount: number): CardEffect => ({ kind: 'heal', amount });
@@ -137,6 +138,7 @@ export const CARDS = {
   bloodlust: card('Bloodlust', 'buff', 1, 'common', [buff('might', 2)], FADES),
   darkSurge: card('Dark Surge', 'buff', 1, 'common', [buff('surge', 3)], FADES),
   deadeye: card('Deadeye', 'buff', 1, 'common', [buff('piercing', 3)], FADES),
+  bulwark: card('Bulwark', 'buff', 1, 'common', [protect]),
   ironHide: card(
     'Iron Hide',
     'defend',

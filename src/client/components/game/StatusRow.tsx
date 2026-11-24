@@ -43,6 +43,8 @@ type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
   };
 
 // --- CONSTANTS ---
+/** Protection's tier as its chip shows it (index = tier). */
+const PROTECTION_TIER_NUMERALS = ['', 'I', 'II', 'III'] as const;
 /**
  * Left to right, grouped by what they do (Guard itself is drawn first):
  * defence, then attack, then magic, then debuffs.
@@ -50,6 +52,7 @@ type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
 const STATUS_ORDER: readonly StatusId[] = [
   // DEFENCE
   'aloft',
+  'protection',
   'reinforce',
   // ATTACK
   'wrath',
@@ -78,6 +81,7 @@ const POPOVER_MIN_ROOM_ABOVE = 200;
  */
 const chipText = (id: StatusId, value: number): string => {
   if (id === 'momentum') return '+50%';
+  if (id === 'protection') return PROTECTION_TIER_NUMERALS[value] ?? '';
   return id === 'aloft' ? '' : String(value);
 };
 

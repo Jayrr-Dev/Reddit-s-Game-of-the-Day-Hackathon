@@ -46,6 +46,13 @@ export const AFTER_ACTION_DIVISOR = 2;
 export const BLEED_HITS = 3;
 /** Each stack of Frost takes this much off every hit its bearer deals. */
 export const FROST_DAMAGE_PER_STACK = 1;
+/**
+ * Protection's share of each hit it stops, by tier (I, II, III). Cast
+ * on back-to-back turns it climbs a tier, up to PROTECTION_MAX_TIER; a
+ * turn without a recast and it lapses.
+ */
+export const PROTECTION_CUT_BY_TIER = [0, 0.25, 0.5, 0.75] as const;
+export const PROTECTION_MAX_TIER = 3;
 /** An even Hex (it does not burn) grows by this much each turn. */
 export const HEX_GROWTH = 1;
 /** After an odd Hex burns, it loses this share of itself (rounded up). */

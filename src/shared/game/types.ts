@@ -47,6 +47,7 @@ export type StatusId =
   | 'dread'
   | 'wrath'
   | 'momentum'
+  | 'protection'
   | 'aloft'
   | BuffId;
 export type Statuses = Record<StatusId, number>;
@@ -71,6 +72,8 @@ export type Combatant = {
   damageTaken: number;
   /** Non-Magic hits taken in a row while bleeding (see Bleed). */
   bleedHits?: number;
+  /** True when Protection was cast this turn (else it lapses at turn end). */
+  protectionCast?: boolean;
 };
 
 // --- CARDS ---
@@ -90,6 +93,8 @@ export type CardEffect =
   | { kind: 'reap'; multiplier: number }
   | { kind: 'guard'; amount: number }
   | { kind: 'wrath'; amount: number }
+  /** Casts Protection on the villain (tiers up when cast turn after turn). */
+  | { kind: 'protect' }
   /** Grants the villain a fight-long buff. */
   | { kind: 'buff'; buff: BuffId; amount: number }
   | { kind: 'draw'; amount: number }

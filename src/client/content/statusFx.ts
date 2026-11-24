@@ -108,6 +108,17 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     ],
     hasGlow: true,
   },
+  /**
+   * Protection (cuts each hit by tier): the aegis flashes up behind a
+   * spreading ward of rings.
+   */
+  protection: {
+    layers: [
+      { shape: 'ring', motion: 'flash', count: 2, size: 96 },
+      { shape: 'icon', motion: 'flash', count: 1, size: 52 },
+    ],
+    hasGlow: true,
+  },
   /** Momentum (Charge: next Melee +50%): a bolt dashes in on speed lines. */
   momentum: {
     layers: [

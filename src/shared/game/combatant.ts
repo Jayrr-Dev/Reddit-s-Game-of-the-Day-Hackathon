@@ -14,6 +14,8 @@ import {
   HEX_EMPOWERED_MULTIPLIER,
   HEX_GROWTH,
   MOMENTUM_DAMAGE_FACTOR,
+  PROTECTION_CUT_BY_TIER,
+  PROTECTION_MAX_TIER,
 } from './rules.ts';
 import type {
   BuffId,
@@ -37,6 +39,7 @@ export const NO_STATUSES: Statuses = {
   piercing: 0,
   reinforce: 0,
   momentum: 0,
+  protection: 0,
   aloft: 0,
 };
 
@@ -146,7 +149,7 @@ export const takeHit = <T extends Combatant>(
   amount: number,
   type: CardType
 ): T => {
-  const hit = takeDamage(target, amount);
+  const hit = takeDamage(target, protectedAmount(target, amount));
   const { bleed } = hit.statuses;
   if (bleed <= 0) return hit;
   if (type === 'magic') return { ...hit, bleedHits: 0 };
@@ -159,6 +162,29 @@ export const takeHit = <T extends Combatant>(
   };
   return loseHp(cleared, bleed);
 };
+
+/**
+ * A hit after Protection: its tier's share (PROTECTION_CUT_BY_TIER) is
+ * stopped, rounded to the nearest whole. Ticks (loseHp) ignore it.
+ */
+export const protectedAmount = (target: Combatant, amount: number): number => {
+  const cut = PROTECTION_CUT_BY_TIER[target.statuses.protection] ?? 0;
+  return Math.round(amount * (1 - cut));
+};
+
+/**
+ * Casts Protection: tier I, or one tier up (to PROTECTION_MAX_TIER) when
+ * it is still up from the turn before. Marked cast this turn, so the
+ * end of the turn keeps it.
+ */
+export const castProtection = <T extends Combatant>(target: T): T => ({
+  ...target,
+  protectionCast: true,
+  statuses: {
+    ...target.statuses,
+    protection: Math.min(PROTECTION_MAX_TIER, target.statuses.protection + 1),
+  },
+});
 
 /** Loses HP directly, ignoring guard (hex, poison and burn). */
 export const loseHp = <T extends Combatant>(target: T, amount: number): T => ({
@@ -290,6 +316,9 @@ export const endOfTurnUpkeep = <T extends Combatant>(target: T): T => {
       poison: Math.max(0, poison - 1),
       dread: Math.max(0, dread - 1),
       momentum: 0,
+      // Protection cast this turn covers the turn ahead; else it lapses.
+      protection: target.protectionCast ? target.statuses.protection : 0,
     },
+    protectionCast: false,
   };
 };

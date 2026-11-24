@@ -14,6 +14,7 @@ import {
   frostThaw,
   hexBurn,
   hexBurnAmount,
+  castProtection,
   takeDamage,
   takeHit,
   addStatus,
@@ -604,6 +605,42 @@ void test('Reinforce adds to every Guard a card gives', () => {
     player: { ...start.player, statuses: { ...NO_STATUSES, reinforce: 2 } },
   };
   assert.equal(playCard(guarded, 0, -1).player.guard, 7);
+});
+
+void test('Protection cuts each hit by its tier: I 25%, II 50%, III 75%', () => {
+  const shielded = (tier: number) => ({
+    ...createCombatant(100, 100),
+    statuses: { ...NO_STATUSES, protection: tier },
+  });
+  const lost = (tier: number) => 100 - takeHit(shielded(tier), 20, 'melee').hp;
+  assert.deepEqual([0, 1, 2, 3].map(lost), [20, 15, 10, 5]);
+});
+
+void test('Protection tiers up when cast on back-to-back turns, to III at most', () => {
+  let unit = createCombatant(100, 100);
+  const tiers: number[] = [];
+  for (let turn = 0; turn < 4; turn += 1) {
+    unit = endOfTurnUpkeep(castProtection(unit));
+    tiers.push(unit.statuses.protection);
+  }
+  assert.deepEqual(tiers, [1, 2, 3, 3]);
+});
+
+void test('Protection drops at the end of a turn it was not recast', () => {
+  const cast = endOfTurnUpkeep(castProtection(createCombatant(100, 100)));
+  assert.equal(cast.statuses.protection, 1, 'it covers the heroes turn');
+  assert.equal(endOfTurnUpkeep(cast).statuses.protection, 0, 'then lapses');
+  // Recast after a lapse starts over at I.
+  const again = endOfTurnUpkeep(castProtection(endOfTurnUpkeep(cast)));
+  assert.equal(again.statuses.protection, 1);
+});
+
+void test('the Bulwark card casts Protection', () => {
+  const start = withHand(fightWith(['backhand']), ['bulwark']);
+  const after = playCard(start, 0, -1);
+  assert.equal(after.player.statuses.protection, 1);
+  // Still up through the heroes' turn.
+  assert.equal(endTurn(after).player.statuses.protection, 1);
 });
 
 void test('buff cards grant their buff for the rest of the fight', () => {

@@ -38,6 +38,7 @@ import { getCard, type CardId } from './cards.ts';
 import {
   addGuard,
   addStatus,
+  castProtection,
   attackDamage,
   damageFactorOf,
   clearGuard,
@@ -481,6 +482,8 @@ const applyCardEffect = (
       const amount = guardAmount(effect.amount, state.player);
       return { ...state, player: addGuard(state.player, amount) };
     }
+    case 'protect':
+      return { ...state, player: castProtection(state.player) };
     case 'buff':
       return {
         ...state,

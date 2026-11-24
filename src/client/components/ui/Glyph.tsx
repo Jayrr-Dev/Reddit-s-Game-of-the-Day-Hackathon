@@ -28,7 +28,8 @@ export type GlyphName =
   | 'drop'
   | 'fist'
   | 'snowflake'
-  | 'wound';
+  | 'wound'
+  | 'aegis';
 
 export type GlyphProps = {
   name: GlyphName;

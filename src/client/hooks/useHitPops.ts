@@ -38,6 +38,7 @@ export type PopKind =
   | 'guard'
   | 'wrath'
   | 'momentum'
+  | 'protection'
   | BuffId
   | DebuffKind
   /** Bleed went off: a spray of blood over the unit (quiet). */
@@ -120,6 +121,7 @@ const DEBUFFS: readonly DebuffKind[] = [
 /** Fight-long statuses the villain can gain from cards; each pops "+N". */
 const VILLAIN_GAINS: readonly (StatusId & PopKind)[] = [
   'momentum',
+  'protection',
   'wrath',
   'might',
   'surge',

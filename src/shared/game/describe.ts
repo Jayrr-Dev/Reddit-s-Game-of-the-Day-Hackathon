@@ -78,6 +78,11 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
     label: 'Momentum',
     description: 'Next Melee card this turn +50%.',
   },
+  protection: {
+    label: 'Protection',
+    description:
+      'Cuts each hit: I 25%, II 50%, III 75%. Recast next turn to raise it, or it lapses.',
+  },
   reinforce: {
     label: 'Reinforce',
     description: 'Adds this much to every Guard your cards give.',
@@ -158,6 +163,8 @@ export const describeCardEffect = (
     }
     case 'wrath':
       return `Gain ${effect.amount} Wrath.`;
+    case 'protect':
+      return 'Gain Protection. Recast next turn to raise it.';
     case 'buff':
       return `Gain ${effect.amount} ${STATUS_INFO[effect.buff].label}.`;
     case 'draw':
