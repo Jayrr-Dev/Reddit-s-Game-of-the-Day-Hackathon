@@ -1,7 +1,8 @@
 // ===================================================================
 // POP TONE
 // The colours a damage number takes over its card type's own: a Shock
-// burst's lightning yellow, or a ticking status's colour (Burn orange).
+// burst's lightning yellow, or a ticking status's colour (Burn orange,
+// Poison green, Bleed red, Hex purple).
 // ===================================================================
 
 import type { PlayerHitPop, TickKind } from '../hooks/useHitPops';
@@ -9,9 +10,12 @@ import type { PlayerHitPop, TickKind } from '../hooks/useHitPops';
 // --- CONSTANTS ---
 /** A Shock burst's number: lightning yellow. */
 const SHOCK_TONE = 'var(--color-shock)';
-/** Statuses whose tick damage pops in their own colour (Sam: Burn orange). */
-const TICK_TONES: Partial<Record<TickKind, string>> = {
+/** Each ticking status's damage pops in that status's own colour. */
+const TICK_TONES: Record<TickKind, string> = {
   burn: 'var(--color-burn)',
+  poison: 'var(--color-poison)',
+  bleed: 'var(--color-bleed)',
+  hex: 'var(--color-hex)',
 };
 
 /**
