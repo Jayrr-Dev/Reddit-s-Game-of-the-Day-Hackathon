@@ -2165,10 +2165,11 @@ textarea,
 }
 
 /* A lightning strike: the bolt cracks down from the sky onto the body
-   (its foot sits at the box's bottom), flickers, then fades. */
+   (its foot sits at the box's bottom), flickers, holds bright long
+   enough to read, then fades. Must end before HIT_POP_MS (1400ms). */
 .status-fx-smite {
   animation-name: fx-smite;
-  animation-duration: 640ms;
+  animation-duration: 1300ms;
   animation-timing-function: linear;
   transform-origin: 50% 100%;
 }
@@ -2177,19 +2178,26 @@ textarea,
     opacity: 0;
     transform: translate(-50%, -100%) scale(0.6, 0.2);
   }
-  6% {
+  4% {
     opacity: 1;
     transform: translate(-50%, -100%) scale(1.15, 1);
   }
-  18% {
+  10% {
     opacity: 0.35;
   }
-  26% {
+  15% {
     opacity: 1;
     transform: translate(-50%, -100%) scale(0.9, 1);
   }
-  60% {
-    opacity: 0.9;
+  22% {
+    opacity: 0.5;
+  }
+  28% {
+    opacity: 1;
+    transform: translate(-50%, -100%) scale(1.05, 1);
+  }
+  75% {
+    opacity: 0.95;
     transform: translate(-50%, -100%) scale(1, 1);
   }
   100% {

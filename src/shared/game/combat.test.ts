@@ -53,6 +53,7 @@ import {
   CARDS_PER_TURN,
   ENERGY_PER_TURN,
   MAX_IMBUES_PER_CARD,
+  SHOCK_HITS,
   STATUS_IS_AFFLICTION,
 } from './rules.ts';
 import type { CombatState, HeroUnit, ImbueGift } from './types.ts';
@@ -384,20 +385,24 @@ void test('a Bleeding hero loses HP after its move', () => {
   assert.ok(after.hp <= hero.hp - 4);
 });
 
-void test('shock bursts and clears on the 3rd hit', () => {
+void test('shock bursts and clears on the 4th hit', () => {
+  assert.equal(SHOCK_HITS, 4);
   const shocked = {
     ...createCombatant(50, 50),
     statuses: { ...NO_STATUSES, shock: 6 },
   };
-  const once = takeHit(shocked, 2, 'melee');
-  const twice = takeHit(once, 2, 'range');
-  assert.equal(twice.shockHits, 2);
-  assert.equal(twice.hp, 46);
-  const thrice = takeHit(twice, 2, 'melee');
-  // Three hits of 2, then the shock (6).
-  assert.equal(thrice.hp, 38);
-  assert.equal(thrice.statuses.shock, 0);
-  assert.equal(thrice.shockHits ?? 0, 0);
+  const thrice = takeHit(
+    takeHit(takeHit(shocked, 2, 'melee'), 2, 'range'),
+    2,
+    'melee'
+  );
+  assert.equal(thrice.shockHits, 3);
+  assert.equal(thrice.hp, 44);
+  const burst = takeHit(thrice, 2, 'melee');
+  // Four hits of 2, then the shock (6).
+  assert.equal(burst.hp, 36);
+  assert.equal(burst.statuses.shock, 0);
+  assert.equal(burst.shockHits ?? 0, 0);
 });
 
 void test('new shock stacks on top and keeps the count', () => {
@@ -405,11 +410,15 @@ void test('new shock stacks on top and keeps the count', () => {
     ...createCombatant(50, 50),
     statuses: { ...NO_STATUSES, shock: 2 },
   };
-  const hit = takeHit(takeHit(shocked, 1, 'melee'), 1, 'melee');
+  const hit = takeHit(
+    takeHit(takeHit(shocked, 1, 'melee'), 1, 'melee'),
+    1,
+    'melee'
+  );
   const stacked = addStatus(hit, 'shock', 4);
-  assert.equal(stacked.shockHits, 2);
+  assert.equal(stacked.shockHits, 3);
   const burst = takeHit(stacked, 1, 'melee');
-  assert.equal(burst.hp, 50 - 3 - 6);
+  assert.equal(burst.hp, 50 - 4 - 6);
 });
 
 void test('Shock hits must come in one turn: the count resets at upkeep', () => {
@@ -428,13 +437,17 @@ void test('a magic hit counts toward Shock like any other', () => {
     ...createCombatant(50, 50),
     statuses: { ...NO_STATUSES, shock: 6 },
   };
-  const hit = takeHit(takeHit(shocked, 1, 'magic'), 1, 'melee');
+  const hit = takeHit(
+    takeHit(takeHit(shocked, 1, 'magic'), 1, 'melee'),
+    1,
+    'range'
+  );
   const zapped = takeHit(hit, 1, 'magic');
-  assert.equal(zapped.statuses.shock, 0, 'the 3rd hit bursts it');
-  assert.equal(zapped.hp, 50 - 3 - 6);
+  assert.equal(zapped.statuses.shock, 0, 'the 4th hit bursts it');
+  assert.equal(zapped.hp, 50 - 4 - 6);
 });
 
-void test('a hero shocked by the villain: three melee hits', () => {
+void test('a hero shocked by the villain: four melee hits', () => {
   const fight = settled(
     startCombat({
       hp: 999,
@@ -447,8 +460,8 @@ void test('a hero shocked by the villain: three melee hits', () => {
   );
   const shocked: CombatState = {
     ...fight,
-    hand: ['backhand', 'backhand', 'backhand'],
-    energy: 3,
+    hand: ['backhand', 'backhand', 'backhand', 'backhand'],
+    energy: 4,
     heroes: fight.heroes.map((unit) => ({
       ...unit,
       hp: 99,
@@ -457,9 +470,12 @@ void test('a hero shocked by the villain: three melee hits', () => {
     })),
   };
   const uid = shocked.heroes[0]!.uid;
-  const after = [0, 0, 0].reduce((state) => playCard(state, 0, uid), shocked);
+  const after = [0, 0, 0, 0].reduce(
+    (state) => playCard(state, 0, uid),
+    shocked
+  );
   const maiden = after.heroes.find((unit) => unit.uid === uid)!;
-  assert.equal(maiden.hp, 99 - 6 * 3 - 5);
+  assert.equal(maiden.hp, 99 - 6 * 4 - 5);
   assert.equal(maiden.statuses.shock, 0);
 });
 
@@ -1259,7 +1275,7 @@ void test('Range and Magic reach a hero Aloft but it evades most shots', () => {
   assert.ok(landed > 0 && landed < 25, `landed ${landed} of 60`);
 });
 
-void test('the griffon calls lightning: Shock its own triple hits discharge', () => {
+void test('the griffon calls lightning: Shock its triple hits charge', () => {
   const start = griffonFight();
   const griffon = griffonOf(start);
   const atMove = (moveIndex: number): CombatState => ({
@@ -1275,17 +1291,20 @@ void test('the griffon calls lightning: Shock its own triple hits discharge', ()
   // Storm Wings guards and charges more Shock without attacking.
   const wings = endTurn(atMove(names.indexOf('Storm Wings')));
   assert.ok(wings.player.statuses.shock > 0);
-  // The next Triple Slice's 3rd hit sets the Shock off and clears it.
-  const primed = {
+  // Its Triple Slice charges the Shock 3 of the SHOCK_HITS (4) hits:
+  // one more hit that turn, from any hero, sets it off.
+  const shocked = {
     ...atMove(0),
     player: {
       ...start.player,
       statuses: { ...start.player.statuses, shock: 6 },
     },
   };
-  const sliced = endTurn(primed);
-  assert.equal(sliced.player.statuses.shock, 0);
-  assert.equal(start.player.hp - sliced.player.hp, 6 * 3 + 6);
+  const sliced = endTurnSteps(shocked).find(
+    (step) => step.actorUid === griffon.uid
+  )!.state;
+  assert.equal(sliced.player.shockHits, 3);
+  assert.equal(sliced.player.statuses.shock, 6);
 });
 
 void test('a turn later the griffon dives down with one crushing blow', () => {

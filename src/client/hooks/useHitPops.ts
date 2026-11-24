@@ -286,14 +286,31 @@ const debuffsBetween = (
     blocked: 0,
     isQuiet: true,
   })).filter((debuff) => debuff.amount > 0);
-  const hasBurst = before.shock > 0 && after.shock === 0;
-  const burst: Hit = {
-    kind: 'shockBurst',
-    amount: before.shock,
-    blocked: 0,
-    isQuiet: true,
-  };
-  return hasBurst ? [...laid, burst] : laid;
+  const burst = shockBurstBetween(before, after);
+  return burst ? [...laid, burst] : laid;
+};
+
+/**
+ * A Shock that went off between two looks (it had stacks, now none):
+ * its damage as its own number, in the Shock colour.
+ */
+const shockBurstBetween = (
+  before: Pick<Record<DebuffKind, number>, 'shock'>,
+  after: Pick<Record<DebuffKind, number>, 'shock'>
+): Hit | null =>
+  before.shock > 0 && after.shock === 0
+    ? { kind: 'shockBurst', amount: before.shock, blocked: 0 }
+    : null;
+
+/**
+ * The hit with a Shock burst's damage taken out, since the burst shows
+ * it as its own number (the engine lands both in one step). Null when
+ * nothing is left.
+ */
+const withoutBurst = (hit: Hit | null, burst: Hit | undefined): Hit | null => {
+  if (!hit || !burst) return hit;
+  const amount = Math.max(0, hit.amount - burst.amount);
+  return amount > 0 || hit.blocked > 0 ? { ...hit, amount } : null;
 };
 
 /** The middle of a hero's drawn body, or null if it is not on screen. */
@@ -367,12 +384,13 @@ const heroPopsSince = (
           enfeeble: unit.statuses.enfeeble,
         }
       : goneAfter(old);
-    const found = hitBetween(old, now, countsBlocked);
+    const debuffs = unit ? debuffsBetween(old, now) : [];
+    const burst = debuffs.find((pop) => pop.kind === 'shockBurst');
+    const found = withoutBurst(hitBetween(old, now, countsBlocked), burst);
     // On the heroes' turn only statuses harm them: name the one that ticked.
     const tick = isHeroTurn ? tickCauseOf(old, now) : undefined;
     const hit = found ? { ...found, source, element, edge, tick } : null;
     const gains = isHeroTurn && unit ? gainsBetween(old, now) : [];
-    const debuffs = unit ? debuffsBetween(old, now) : [];
     const misses = missesBetween(old, now);
     const point = bodyPointOf(uid) ?? old.point;
     if (!point) return [];
@@ -512,7 +530,13 @@ export const usePlayerHits = (
   // VILLAIN CHANGES -> NEW POPS (a multi-hit pops once per blow)
   useEffect(() => {
     const last = lastRef.current;
-    const found = hitBetween(last.player, player, last.turn === turn);
+    const allDebuffs = debuffsBetween(last.player.statuses, player.statuses);
+    const burst = allDebuffs.find((pop) => pop.kind === 'shockBurst');
+    const debuffs = allDebuffs.filter((pop) => pop !== burst);
+    const found = withoutBurst(
+      hitBetween(last.player, player, last.turn === turn),
+      burst
+    );
     // Untyped harm (no hero attack landing) is a status ticking.
     const tick =
       source === null
@@ -522,7 +546,6 @@ export const usePlayerHits = (
       ? splitIntoBlows({ ...found, source: source ?? undefined, tick }, strikes)
       : [];
     const gains = villainGainsBetween(last.player, player);
-    const debuffs = debuffsBetween(last.player.statuses, player.statuses);
     const misses = missesBetween(last.player, player);
     const dodges = dodgesBetween(last.player, player);
     lastRef.current = { player, turn };
@@ -534,10 +557,16 @@ export const usePlayerHits = (
       ...debuffs,
     ];
     if (fresh.length > 0) add(fresh);
-    // LATER BLOWS LAND IN TURN (no cleanup: a blow already struck)
+    // LATER BLOWS LAND IN TURN (no cleanup: a blow already struck), and
+    // a Shock burst goes off with the last of them (its SHOCK_HITS-th hit)
     laterBlows.forEach((blow, index) =>
       window.setTimeout(() => add([blow]), (index + 1) * BLOW_STAGGER_MS)
     );
+    if (burst)
+      window.setTimeout(
+        () => add([burst]),
+        laterBlows.length * BLOW_STAGGER_MS
+      );
   }, [player, turn, source, strikes, add]);
 
   return pops;

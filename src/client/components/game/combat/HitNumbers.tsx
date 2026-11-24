@@ -42,6 +42,8 @@ const toneOf = (source?: CardType): string =>
  * numbers read a little brighter than the card glow they match.
  */
 const TONE_STRENGTH = '78%';
+/** A Shock burst's number: lightning yellow. */
+const SHOCK_TONE = 'var(--color-shock)';
 
 /** How far (px) a piled number may land from its spot, each way. */
 const PILE_JITTER_X_PX = 8;
@@ -109,6 +111,7 @@ export const HitLine = ({
   blocked,
   typical,
   source,
+  tone: toneOverride,
   isKill = false,
 }: {
   /** HP lost past Guard (overkill included, so it can exceed HP left). */
@@ -119,12 +122,14 @@ export const HitLine = ({
   typical: number;
   /** The card type that dealt it, which picks the colour. */
   source?: CardType | undefined;
+  /** A colour that wins over the type's (a Shock burst's yellow). */
+  tone?: string | undefined;
   /** True when the hit felled its target: a black skull follows it. */
   isKill?: boolean | undefined;
 }) => {
   const isFullyBlocked = amount === 0;
   const fontSize = popFontPx(amount, typical);
-  const tone = toneOf(source);
+  const tone = toneOverride ?? toneOf(source);
   if (isFullyBlocked) {
     return (
       <div className="flex items-center animate-hit-pop">
@@ -196,12 +201,13 @@ const GainLine = ({
 
 /** A hit or a gain, whichever the pop is (quiet pops show no number). */
 const PopLine = ({ hit }: { hit: PlayerHitPop }) =>
-  hit.isQuiet ? null : hit.kind === 'hit' ? (
+  hit.isQuiet ? null : hit.kind === 'hit' || hit.kind === 'shockBurst' ? (
     <HitLine
       amount={hit.amount}
       blocked={hit.blocked}
       typical={hit.typical}
       source={hit.source}
+      tone={hit.kind === 'shockBurst' ? SHOCK_TONE : undefined}
       isKill={hit.isKill}
     />
   ) : (

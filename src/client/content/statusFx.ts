@@ -214,14 +214,14 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     hasGlow: true,
   },
   /**
-   * Shock discharging (its 3rd hit): the bolt flashes, lightning lashes
+   * Shock discharging (its SHOCK_HITS-th hit): the bolt flashes, lightning lashes
    * across the body and sparks fly off.
    */
   shockBurst: {
     layers: [
-      { shape: 'bolt', motion: 'smite', count: 1, size: 34 },
+      { shape: 'bolt', motion: 'smite', count: 1, size: 60 },
       { shape: 'icon', motion: 'flash', count: 1, size: 48 },
-      { shape: 'spark', motion: 'burst', count: 12, size: 10 },
+      { shape: 'spark', motion: 'burst', count: 16, size: 13 },
     ],
     hasGlow: true,
   },

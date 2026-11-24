@@ -24,6 +24,7 @@ import {
   SHARPSHOOTER_DAMAGE_FACTOR,
   OUT_OF_RANGE_ROW,
   EXHAUST_USES,
+  SHOCK_HITS,
 } from './rules.ts';
 import { usesOf } from './uses.ts';
 import {
@@ -57,6 +58,18 @@ import type {
  */
 export type StatusInfo = { label: string; description: string };
 
+/** A count as an ordinal word for rules text: 3 -> "3rd", 4 -> "4th". */
+const ordinal = (count: number): string => {
+  const lastTwo = count % 100;
+  const suffix =
+    lastTwo >= 11 && lastTwo <= 13
+      ? 'th'
+      : (({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[
+          count % 10
+        ] ?? 'th');
+  return `${count}${suffix}`;
+};
+
 /** Sharpshooter's Range boost as a percentage ("+20%"). */
 export const SHARPSHOOTER_BONUS_TEXT = `+${Math.round((SHARPSHOOTER_DAMAGE_FACTOR - 1) * 100)}%`;
 
@@ -87,8 +100,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   },
   shock: {
     label: 'Shock',
-    description:
-      'The **3rd** hit taken in one turn deals this much, then clears\nAny hit counts: Melee, Range or Magic',
+    description: `The **${ordinal(SHOCK_HITS)}** hit taken in one turn deals this much, then clears\nAny hit counts: Melee, Range or Magic`,
   },
   poison: {
     label: 'Poison',

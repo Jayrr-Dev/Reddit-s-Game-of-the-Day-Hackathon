@@ -1,6 +1,6 @@
 // ===================================================================
 // USE SHOCK SPLASH
-// Shock's chip disappears the moment it bursts (the 3rd hit clears it),
+// Shock's chip disappears the moment it bursts (the SHOCK_HITS-th hit clears it),
 // so its bolt could never be seen splashing. This keeps a note of the
 // burst for SPLASH_MS: the value that went off, so the status row can
 // show the bolt discharging in step with the damage landing.

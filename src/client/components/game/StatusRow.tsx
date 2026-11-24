@@ -48,7 +48,11 @@ import {
 import { useFitCount } from '../../hooks/useFitCount';
 import { useShockSplash } from '../../hooks/useShockSplash';
 import { Chip, type ChipProps } from '../ui/Chip';
-import { shockStageOf, type ShockStage } from '../../lib/shockStage';
+import {
+  SHOCK_SPLASH,
+  shockChargeOf,
+  type ShockCharge as Charge,
+} from '../../lib/shockStage';
 import { ShockCharge } from './ShockCharge';
 
 // --- TYPES ---
@@ -56,7 +60,7 @@ import { ShockCharge } from './ShockCharge';
 type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
   Pick<ChipProps, 'fill'> & {
     /** Shock's drop stage, drawn in place of its glyph. */
-    shockStage?: ShockStage;
+    shockCharge?: Charge;
     key: StatusId | PassiveId | 'guard' | 'outOfRange';
     title: string;
     description: string;
@@ -178,7 +182,7 @@ const shockChipOf = (combatant: Combatant): Partial<StatusChip> => {
   const hits = combatant.shockHits ?? 0;
   const isPrimed = hits >= SHOCK_HITS - 1;
   return {
-    shockStage: shockStageOf(hits),
+    shockCharge: shockChargeOf(hits),
     ...(isPrimed
       ? {
           description: `Primed: the next hit bursts it for ${combatant.statuses.shock}.`,
@@ -194,12 +198,12 @@ const splashChipOf = (value: number): StatusChip => ({
   text: String(value),
   title: STATUS_INFO.shock.label,
   description: `Burst for ${value}.`,
-  shockStage: 'splash',
+  shockCharge: SHOCK_SPLASH,
 });
 
 /** A chip's own drawing in place of its glyph, if it has one. */
 const chipIconOf = (chip: StatusChip) =>
-  chip.shockStage ? <ShockCharge stage={chip.shockStage} /> : undefined;
+  chip.shockCharge ? <ShockCharge charge={chip.shockCharge} /> : undefined;
 
 /**
  * Every active effect on a combatant as chips, Guard first; `splashed`
