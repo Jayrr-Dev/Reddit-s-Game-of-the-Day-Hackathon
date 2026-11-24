@@ -5,6 +5,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { FEATURES } from './features.ts';
 import {
   advanceHeroes,
   canPull,
@@ -32,6 +33,9 @@ import { CHARGE_COST } from './rules.ts';
 import type { HeroId } from './heroes.ts';
 import { ELITE_IDS, GRUNT_IDS } from './heroes.ts';
 import type { CombatState, HeroUnit } from './types.ts';
+
+// This file checks the two-row field (rows.test.ts covers three rows).
+FEATURES.threeRowField = false;
 
 // --- FIXTURES ---
 /** A fresh fight against `heroIds`, as it forms up (in the back row). */
@@ -299,7 +303,7 @@ void test('Guard cards are Defend; Buff keeps the true buffs', () => {
   }
 });
 
-// --- THREE-ROW FLAG OFF (the default; see rows.test.ts for it on) ---
+// --- THREE-ROW FLAG OFF (see rows.test.ts for it on) ---
 void test('with the three-row flag off, Long Range is neither printed nor offered', () => {
   assert.equal(hasKeyword('soulLance', 'longRange'), false);
   assert.equal(hasKeyword('soulLance', 'hold'), true);

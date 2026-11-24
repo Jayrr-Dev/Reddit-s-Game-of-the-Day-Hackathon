@@ -6,6 +6,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { FEATURES } from './features.ts';
 import { canPush, cellsOf, fallBack, sizeOf } from './battlefield.ts';
 import {
   SANDBOX_SCENARIOS,
@@ -18,6 +19,9 @@ import { ENERGY_PER_TURN } from './rules.ts';
 import { movementFailsOn } from './combat.ts';
 import { canMove, movementBlockReason, offeredMovement } from './movement.ts';
 import type { HeroUnit } from './types.ts';
+
+// This file checks the two-row field (rows.test.ts covers three rows).
+FEATURES.threeRowField = false;
 
 // --- HELPERS ---
 /** Every (row, column) cell a hero stands in, as "row:col". */
