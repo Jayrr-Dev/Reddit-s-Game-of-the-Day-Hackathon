@@ -81,6 +81,9 @@
   --animate-hit-pop: hit-pop 1400ms ease-out forwards;
   --animate-gain-float: gain-float 1100ms ease-out forwards;
   --animate-hero-lunge: hero-lunge 420ms ease-in-out;
+  --animate-hero-recoil: hero-recoil 420ms ease-out;
+  --animate-hero-cast: hero-cast 420ms ease-in-out;
+  --animate-hero-pulse: hero-pulse 420ms ease-in-out;
   --animate-hero-sway: hero-sway 4s ease-in-out infinite;
   --animate-hero-death: hero-death 520ms ease-in forwards;
   --animate-tooltip-in: tooltip-in 120ms ease-out;
@@ -334,6 +337,50 @@
   /* A hero's attack: winds up, lunges toward the villain (down and
      bigger), then settles back. Scale composes with the body's own
      centring translate. */
+  /* A ranged shot: a slight lean back as the string is drawn, then a
+     small kick toward the villain when it is loosed. */
+  @keyframes hero-recoil {
+    0%,
+    100% {
+      scale: 1;
+      translate: -50% 0;
+    }
+    45% {
+      scale: 0.97;
+      translate: -50% -3%;
+    }
+    60% {
+      scale: 1.05;
+      translate: -50% 2%;
+    }
+  }
+
+  /* A spell: the caster rises as the power gathers, then settles. */
+  @keyframes hero-cast {
+    0%,
+    100% {
+      scale: 1;
+      translate: -50% 0;
+    }
+    50% {
+      scale: 1.06;
+      translate: -50% -6%;
+    }
+  }
+
+  /* A support move: a short swell, no lunge. */
+  @keyframes hero-pulse {
+    0%,
+    100% {
+      scale: 1;
+      translate: -50% 0;
+    }
+    40% {
+      scale: 1.07;
+      translate: -50% -2%;
+    }
+  }
+
   @keyframes hero-lunge {
     0%,
     100% {
@@ -518,6 +565,118 @@
     animation: none;
     transition: none;
   }
+}
+
+/* --- HERO ACTIONS ---
+   HeroFigure sets data-action on its drawing while a move plays, and
+   these rules animate the parts inside it (the body's own motion is an
+   animate-hero-* class on its box). Every animation runs 420ms, the
+   same as HERO_ATTACK_MS, and touches only transform and opacity.
+     melee    the weapon winds back, swings through, and returns
+     range    the string draws back, then snaps forward (bow kicks)
+     magic    the staff rises and its tip flares
+     support  a soft aura glows around the hero */
+@keyframes prop-swing {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-50deg);
+  }
+  60% {
+    transform: rotate(65deg);
+  }
+}
+
+@keyframes prop-shoot {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  45% {
+    transform: translateX(-2px) rotate(-6deg);
+  }
+  60% {
+    transform: translateX(3px) rotate(4deg);
+  }
+}
+
+@keyframes string-draw {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(-6px);
+  }
+  55% {
+    transform: translateX(1px);
+  }
+}
+
+@keyframes prop-raise {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(-12deg);
+  }
+}
+
+@keyframes glow-flare {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.4);
+  }
+}
+
+@keyframes aura-glow {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.35;
+  }
+}
+
+/* SVG parts scale and turn around their own box unless told otherwise;
+   the prop sets its origin (the hand) inline, the rest use their middle. */
+.hero-glow,
+.hero-aura {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+[data-action='melee'] .hero-prop {
+  animation: prop-swing 420ms ease-in-out;
+}
+
+[data-action='range'] .hero-prop {
+  animation: prop-shoot 420ms ease-out;
+}
+
+[data-action='range'] .hero-bowstring {
+  animation: string-draw 420ms ease-out;
+}
+
+[data-action='magic'] .hero-prop {
+  animation: prop-raise 420ms ease-in-out;
+}
+
+[data-action='magic'] .hero-glow {
+  animation: glow-flare 420ms ease-out;
+}
+
+[data-action='support'] .hero-aura {
+  animation: aura-glow 420ms ease-in-out;
 }
 
 /* --- NUMBER BADGES ---

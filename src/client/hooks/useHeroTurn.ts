@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { endTurnSteps, type TurnStep } from '../../shared/game/combat';
 import type { RunAction } from '../../shared/game/run';
 import type { CombatState } from '../../shared/game/types';
+import type { HeroActionStyle } from '../content/heroLooks';
 
 // --- TYPES ---
 type Playback = { steps: TurnStep[]; index: number };
@@ -37,13 +38,27 @@ const beatMs = (steps: readonly TurnStep[], index: number): number => {
   return next && next.actorUid !== null ? HERO_STAGGER_MS : HERO_ATTACK_MS;
 };
 
-/** Heroes whose attack is still playing at beat `index` (they overlap). */
-const actingAt = (steps: readonly TurnStep[], index: number): number[] => {
+/**
+ * Heroes whose move is still playing at beat `index` (they overlap),
+ * each with how it animates: its attack type, or 'support' for a move
+ * with no attack (Shroud, heal, Wrath, debuffs).
+ */
+const actingAt = (
+  steps: readonly TurnStep[],
+  index: number
+): ReadonlyMap<number, HeroActionStyle> => {
   const overlap = Math.ceil(HERO_ATTACK_MS / HERO_STAGGER_MS);
-  return steps
-    .slice(Math.max(0, index - overlap + 1), index + 1)
-    .flatMap(({ actorUid }) => (actorUid === null ? [] : [actorUid]));
+  return new Map(
+    steps
+      .slice(Math.max(0, index - overlap + 1), index + 1)
+      .flatMap(({ actorUid, attackType }) =>
+        actorUid === null ? [] : [[actorUid, attackType ?? 'support'] as const]
+      )
+  );
 };
+
+/** Nobody acting (shared so the empty case keeps one identity). */
+const NOBODY_ACTING: ReadonlyMap<number, HeroActionStyle> = new Map();
 
 // --- HOOK ---
 /**
@@ -86,7 +101,8 @@ export const useHeroTurn = (
 
   return {
     shown: step?.state ?? combat,
-    actingUids: playback ? actingAt(playback.steps, playback.index) : [],
+    /** Heroes moving right now, each with its animation style. */
+    acting: playback ? actingAt(playback.steps, playback.index) : NOBODY_ACTING,
     /** How the attack on screen right now lands (it colours your hits). */
     attackType: step?.attackType ?? null,
     isPlaying: playback !== null,

@@ -12,6 +12,7 @@ import { useRef, type ReactNode } from 'react';
 import { sizeOf } from '../../../../shared/game/battlefield';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
 import type { HeroRow, HeroUnit } from '../../../../shared/game/types';
+import type { HeroActionStyle } from '../../../content/heroLooks';
 import { FIELD_ATTR } from '../../../hooks/useCardDrag';
 import { cssVars, depthStyle } from '../../../lib/cssVars';
 import { Backdrop, Foreground } from './Backdrop';
@@ -30,8 +31,8 @@ export type BattlefieldViewProps = {
   aimOf: (uid: number) => AimState;
   /** The Target pick marker on a hero, if a held card picked it. */
   pickMarkerOf: (uid: number) => PickMarker | null;
-  /** Heroes whose attack is playing right now (hero turn). */
-  actingUids: readonly number[];
+  /** Heroes whose move is playing right now, with its style (hero turn). */
+  acting: ReadonlyMap<number, HeroActionStyle>;
   onTapHero: (uid: number) => void;
 };
 
@@ -75,7 +76,7 @@ export const BattlefieldView = ({
   focusUid,
   aimOf,
   pickMarkerOf,
-  actingUids,
+  acting,
   onTapHero,
 }: BattlefieldViewProps) => {
   const fieldRef = useRef<HTMLDivElement>(null);
@@ -94,7 +95,7 @@ export const BattlefieldView = ({
           isFocused={unit.uid === focusUid}
           aim={aimOf(unit.uid)}
           pickMarker={pickMarkerOf(unit.uid)}
-          isActing={actingUids.includes(unit.uid)}
+          action={acting.get(unit.uid) ?? null}
           onTap={onTapHero}
         />
       )),
@@ -107,7 +108,7 @@ export const BattlefieldView = ({
           isFocused={false}
           aim="idle"
           pickMarker={null}
-          isActing={false}
+          action={null}
           isDying
           onTap={onTapHero}
         />

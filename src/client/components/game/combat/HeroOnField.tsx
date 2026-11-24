@@ -21,6 +21,7 @@ import {
   HERO_UID_ATTR,
 } from '../../../hooks/useCardDrag';
 import type { AimState, PickMarker } from '../../../hooks/useCombatControls';
+import type { HeroActionStyle } from '../../../content/heroLooks';
 import { figureAspect, headTopShare } from '../../../lib/heroFigure';
 import { seeded } from '../../../lib/seeded';
 import { HeroFigure } from './HeroFigure';
@@ -34,8 +35,8 @@ export type HeroOnFieldProps = {
   aim: AimState;
   /** Set while a held Target card has picked this hero. */
   pickMarker: PickMarker | null;
-  /** True while this hero's attack animation plays. */
-  isActing: boolean;
+  /** How this hero's move animates while it plays; null when idle. */
+  action: HeroActionStyle | null;
   /** True for a fallen hero playing its death (display only). */
   isDying?: boolean;
   onTap: (uid: number) => void;
@@ -48,6 +49,21 @@ export type HeroOnFieldProps = {
 const ROW_BOX: Record<HeroRow, { bottom: string; height: string }> = {
   front: { bottom: '2%', height: '56%' },
   back: { bottom: '63%', height: '25%' },
+};
+
+/**
+ * How the whole body moves during each kind of move (the prop's own
+ * swing, draw or cast is drawn inside HeroFigure):
+ *   melee    steps forward into the swing
+ *   range    leans back as the shot recoils
+ *   magic    rises as the spell is cast
+ *   support  swells briefly
+ */
+const BODY_ACTION_CLASS: Record<HeroActionStyle, string> = {
+  melee: 'animate-hero-lunge',
+  range: 'animate-hero-recoil',
+  magic: 'animate-hero-cast',
+  support: 'animate-hero-pulse',
 };
 
 /**
@@ -146,7 +162,6 @@ const EMBERS: readonly (readonly [number, number, number])[] = [
  * can target or tap it.
  */
 const DyingHero = ({ unit }: { unit: HeroUnit }) => {
-  const hero = getHero(unit.heroId);
   const size = sizeOf(unit);
   return (
     <div
@@ -159,7 +174,7 @@ const DyingHero = ({ unit }: { unit: HeroUnit }) => {
           className="absolute bottom-0 left-1/2 -translate-x-1/2 origin-bottom animate-hero-death"
           style={bodyStyleOf(size)}
         >
-          <HeroFigure hue={hero.hue} tier={hero.tier} size={size} />
+          <HeroFigure heroId={unit.heroId} size={size} />
         </div>
         {EMBERS.map(([left, delay, drift]) => (
           <span
@@ -196,7 +211,7 @@ export const HeroOnField = ({
   isFocused,
   aim,
   pickMarker,
-  isActing,
+  action,
   isDying = false,
   onTap,
 }: HeroOnFieldProps) => {
@@ -223,7 +238,7 @@ export const HeroOnField = ({
         style={{ animationDelay: `${marchDelayMs(unit)}ms` }}
       >
         <div
-          className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${isActing ? 'animate-hero-lunge' : ''}`}
+          className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${action ? BODY_ACTION_CLASS[action] : ''}`}
           style={bodyStyle}
           {...{ [HERO_ANCHOR_ATTR]: true }}
         >
@@ -235,7 +250,7 @@ export const HeroOnField = ({
             <div
               className={`h-full w-full ${isBack ? 'brightness-75' : ''} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
             >
-              <HeroFigure hue={hero.hue} tier={hero.tier} size={size} />
+              <HeroFigure heroId={unit.heroId} size={size} action={action} />
             </div>
             {pickMarker && <PickMark marker={pickMarker} />}
             <div

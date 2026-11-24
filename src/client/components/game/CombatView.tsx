@@ -234,7 +234,7 @@ export const CombatView = ({
           focusUid={controls.focusUid}
           aimOf={controls.aimOf}
           pickMarkerOf={controls.pickMarkerOf}
-          actingUids={heroTurn.actingUids}
+          acting={heroTurn.acting}
           onTapHero={controls.tapHero}
         />
         {burst && (
