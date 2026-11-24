@@ -31,7 +31,9 @@ export type FxShape =
   /** A whipped arc of liquid, thin at both ends, shedding drips. */
   | 'lash'
   /** A blood splat: a blob with drops flung round it. */
-  | 'splat';
+  | 'splat'
+  /** A lightning bolt striking down from the sky (Shock bursting). */
+  | 'bolt';
 
 /**
  * How a particle moves (index.css "STATUS FX"): rise floats up, fall
@@ -51,7 +53,8 @@ export type FxMotion =
   | 'swing'
   | 'dash'
   | 'whip'
-  | 'splat';
+  | 'splat'
+  | 'smite';
 
 /** One layer of identical particles. */
 export type FxLayer = {
@@ -216,9 +219,9 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
    */
   shockBurst: {
     layers: [
+      { shape: 'bolt', motion: 'smite', count: 1, size: 34 },
       { shape: 'icon', motion: 'flash', count: 1, size: 48 },
-      { shape: 'lash', motion: 'whip', count: 2, size: 96 },
-      { shape: 'spark', motion: 'burst', count: 9, size: 9 },
+      { shape: 'spark', motion: 'burst', count: 12, size: 10 },
     ],
     hasGlow: true,
   },

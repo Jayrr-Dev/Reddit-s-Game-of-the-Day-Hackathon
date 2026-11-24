@@ -111,6 +111,22 @@ const SHAPE_PATHS: Record<Exclude<FxShape, 'icon'>, ReactNode> = {
       <circle cx="7.6" cy="4.7" r=".3" fill="currentColor" />
     </>
   ),
+  /** A lightning bolt from the sky; it strikes at the box's bottom. */
+  bolt: (
+    <>
+      <path
+        d="M6.4-34 3.2-16.5 5.9-16 2.6-3.2 5.2-2.9 4.4 10 7.9-6.2 5.3-6.6 8.6-19 6-19.4 9-34Z"
+        fill="currentColor"
+      />
+      <path
+        d="M7.2-31 4.5-17.6 6.6-17.2 4-4.4 6-4.1 4.9 6.5"
+        fill="none"
+        stroke="#fff"
+        strokeWidth=".6"
+        strokeLinejoin="round"
+      />
+    </>
+  ),
   splat: (
     <>
       <path
@@ -175,6 +191,9 @@ const placeParticle = (
       animationDelay: `${index * 90}ms`,
       '--fx-turn': `${index % 2 === 0 ? -18 : 14}deg`,
     } as CSSProperties;
+  if (motion === 'smite')
+    // The bolt's foot lands on the body's middle (see fx-smite).
+    return { left: '50%', top: '50%' };
   if (motion === 'splat')
     // Lands once the lash has passed, where it struck.
     return { left: '50%', top: '52%', animationDelay: '220ms' };

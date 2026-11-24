@@ -2164,6 +2164,40 @@ textarea,
   animation-duration: 1500ms;
 }
 
+/* A lightning strike: the bolt cracks down from the sky onto the body
+   (its foot sits at the box's bottom), flickers, then fades. */
+.status-fx-smite {
+  animation-name: fx-smite;
+  animation-duration: 640ms;
+  animation-timing-function: linear;
+  transform-origin: 50% 100%;
+}
+@keyframes fx-smite {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -100%) scale(0.6, 0.2);
+  }
+  6% {
+    opacity: 1;
+    transform: translate(-50%, -100%) scale(1.15, 1);
+  }
+  18% {
+    opacity: 0.35;
+  }
+  26% {
+    opacity: 1;
+    transform: translate(-50%, -100%) scale(0.9, 1);
+  }
+  60% {
+    opacity: 0.9;
+    transform: translate(-50%, -100%) scale(1, 1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -100%) scale(0.7, 1);
+  }
+}
+
 /* Lashes across like flung water: whips open from its left end at its
    own tilt (--fx-turn), then thins away as it flies on. */
 @keyframes fx-whip {

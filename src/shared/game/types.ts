@@ -106,7 +106,7 @@ export type Combatant = {
   missedShots?: number;
   /** Hits and afflictions dodged (Instinct), for the "Dodge" pop. */
   dodgedHits?: number;
-  /** Non-Magic hits taken in a row while shocked (see Shock). */
+  /** Hits taken this turn while shocked (see Shock). */
   shockHits?: number;
   /** True when Protection was cast this turn (else it lapses at turn end). */
   protectionCast?: boolean;

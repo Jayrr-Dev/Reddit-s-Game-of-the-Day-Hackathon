@@ -87,7 +87,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   shock: {
     label: 'Shock',
     description:
-      'The **3rd** hit taken deals this much, then clears\nAny hit counts: Melee, Range or Magic',
+      'The **3rd** hit taken in one turn deals this much, then clears\nAny hit counts: Melee, Range or Magic',
   },
   poison: {
     label: 'Poison',

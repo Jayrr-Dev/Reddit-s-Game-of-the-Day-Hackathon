@@ -383,7 +383,7 @@ void test('a Bleeding hero loses HP after its move', () => {
   assert.ok(after.hp <= hero.hp - 4);
 });
 
-void test('shock bursts and clears on the 3rd non-magic hit in a row', () => {
+void test('shock bursts and clears on the 3rd hit', () => {
   const shocked = {
     ...createCombatant(50, 50),
     statuses: { ...NO_STATUSES, shock: 6 },
@@ -409,6 +409,17 @@ void test('new shock stacks on top and keeps the count', () => {
   assert.equal(stacked.shockHits, 2);
   const burst = takeHit(stacked, 1, 'melee');
   assert.equal(burst.hp, 50 - 3 - 6);
+});
+
+void test('Shock hits must come in one turn: the count resets at upkeep', () => {
+  const shocked = {
+    ...createCombatant(50, 50),
+    statuses: { ...NO_STATUSES, shock: 6 },
+  };
+  const twice = takeHit(takeHit(shocked, 1, 'melee'), 1, 'melee');
+  const nextTurn = endOfTurnUpkeep(twice);
+  assert.equal(nextTurn.shockHits ?? 0, 0);
+  assert.equal(takeHit(nextTurn, 1, 'melee').statuses.shock, 6);
 });
 
 void test('a magic hit counts toward Shock like any other', () => {

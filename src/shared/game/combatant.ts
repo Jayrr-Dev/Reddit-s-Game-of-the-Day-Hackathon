@@ -198,8 +198,8 @@ export const dodge = <T extends Combatant>(target: T): T => ({
 
 /**
  * Takes a hit of a type (a card's, or a hero attack's) and counts it
- * toward Shock: while shocked, every hit (any type) adds one, and the
- * SHOCK_HITS-th bursts for the whole Shock (past Guard) and clears
+ * toward Shock: while shocked, every hit (any type) this turn adds
+ * one, and the SHOCK_HITS-th bursts for the whole Shock (past Guard) and clears
  * it. A Piercing hit skips the
  * target's damage reductions (Protection, Armor); Guard still soaks it.
  */
@@ -455,7 +455,8 @@ export const afterAction = <T extends Combatant>(target: T): T =>
 
 /**
  * End-of-turn upkeep: poison deals its damage then weakens by 1, weaken
- * wears off by 1, and unused Momentum is lost. Wrath and buffs are
+ * wears off by 1, unused Momentum is lost, and Shock's hit count
+ * starts over (its 3 hits must come within one turn). Wrath and buffs are
  * permanent for the fight (Hex runs before the turn: see hexBurn).
  */
 export const endOfTurnUpkeep = <T extends Combatant>(target: T): T => {
@@ -477,5 +478,7 @@ export const endOfTurnUpkeep = <T extends Combatant>(target: T): T => {
       ),
     },
     protectionCast: false,
+    // Shock's hits must all land within one turn.
+    shockHits: 0,
   };
 };
