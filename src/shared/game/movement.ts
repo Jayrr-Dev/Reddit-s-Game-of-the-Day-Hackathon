@@ -57,6 +57,12 @@ export const MOVEMENTS: Record<MovementId, MovementDef> = {
   },
 };
 
+/** What a locked move says while a boss holds the whole field. */
+const BLOCKED_BY_BOSS: Record<MovementId, string> = {
+  charge: 'A boss fills the whole field: there is no back row to rush.',
+  backStep: 'A boss fills the whole field: there is no room to fall back.',
+};
+
 /** Every movement id, in the order they are offered. */
 export const MOVEMENT_IDS = Object.keys(MOVEMENTS) as MovementId[];
 
@@ -79,24 +85,30 @@ const streakOf = (state: CombatState): number => {
 export const movementCost = (state: CombatState, move: MovementId): number =>
   MOVEMENTS[move].baseCost + streakOf(state) * MOVEMENT_STREAK_COST;
 
-/**
- * True while the formation allows `move` (cost aside). A boss filling
- * both rows can't be moved, so no movement is offered while one stands.
- */
+/** True while the formation allows `move` (cost aside). */
 const isFormationFor = (state: CombatState, move: MovementId): boolean =>
   state.heroes.length > 0 &&
-  state.heroes.every(
-    (unit) => !isDeep(unit) && unit.row === MOVEMENTS[move].needsAllIn
-  );
+  state.heroes.every((unit) => unit.row === MOVEMENTS[move].needsAllIn);
 
 /** The movement the field offers right now, if any (cost aside). */
 export const offeredMovement = (state: CombatState): MovementId | null =>
   MOVEMENT_IDS.find((move) => isFormationFor(state, move)) ?? null;
 
+/**
+ * Why an offered move can't be made at all (cost aside), or null. A
+ * boss that fills both rows (see isDeep) holds the whole field: there
+ * is nowhere for it to fall back to, so Back Step is shown but locked.
+ */
+export const movementBlockReason = (
+  state: CombatState,
+  move: MovementId
+): string | null => (state.heroes.some(isDeep) ? BLOCKED_BY_BOSS[move] : null);
+
 /** True when the villain can make `move`: fight on, formation fits, paid. */
 export const canMove = (state: CombatState, move: MovementId): boolean =>
   combatOutcome(state) === 'ongoing' &&
   isFormationFor(state, move) &&
+  movementBlockReason(state, move) === null &&
   state.energy >= movementCost(state, move);
 
 // --- ACTIONS ---

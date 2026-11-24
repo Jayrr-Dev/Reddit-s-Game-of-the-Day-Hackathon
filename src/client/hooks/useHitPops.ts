@@ -145,7 +145,7 @@ const debuffsBetween = (
   })).filter((debuff) => debuff.amount > 0);
 
 /** The middle of a hero's drawn body, or null if it is not on screen. */
-const bodyPointOf = (uid: number): Point | null => {
+export const bodyPointOf = (uid: number): Point | null => {
   const body = document.querySelector(
     `[${HERO_UID_ATTR}="${uid}"] [${HERO_ANCHOR_ATTR}]`
   );

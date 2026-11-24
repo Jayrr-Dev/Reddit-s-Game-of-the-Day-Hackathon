@@ -20,8 +20,10 @@
 
 import { useCallback, useState, type ReactNode } from 'react';
 import { getCard } from '../../../shared/game/cards';
+import { movementFailsOn } from '../../../shared/game/combat';
 import {
   canMove,
+  movementBlockReason,
   movementCost,
   offeredMovement,
 } from '../../../shared/game/movement';
@@ -35,6 +37,7 @@ import type { CardBox, Point } from '../../hooks/useCardDrag';
 import { useCombatControls } from '../../hooks/useCombatControls';
 import { useCardHits } from '../../hooks/useCardHits';
 import { useHeroTurn } from '../../hooks/useHeroTurn';
+import { useMoveFailPops } from '../../hooks/useMoveFailPops';
 import {
   useHitPops,
   usePlayerHits,
@@ -49,6 +52,7 @@ import { BattlefieldView } from './combat/BattlefieldView';
 import { HeroShots } from './combat/HeroShots';
 import { MOVEMENT_LOOK } from '../../content/visuals';
 import { MovementButton } from './combat/MovementButton';
+import { MoveFailPops } from './combat/MoveFailPops';
 import { DraggedCard } from './combat/DraggedCard';
 import { EnergyTray } from './combat/EnergyTray';
 import { FanHand } from './combat/FanHand';
@@ -135,6 +139,7 @@ const PlayerBar = ({
               move={movement}
               cost={movementCost(combat, movement)}
               isAffordable={canMove(combat, movement)}
+              blockReason={movementBlockReason(combat, movement)}
               onPress={() => onMove(movement)}
             />
           </div>
@@ -197,6 +202,7 @@ export const CombatView = ({
   const [burst, setBurst] = useState<{ move: MovementId; count: number }>();
   // Recent hits, so damage numbers are sized against a typical hit.
   const [hitHistory] = useState(() => new HitHistory());
+  const { pops: moveFails, show: showMoveFail } = useMoveFailPops();
   const routeAction = useCallback(
     (action: RunAction) => {
       if (action.type === 'endTurn') return playHeroTurn();
@@ -207,11 +213,19 @@ export const CombatView = ({
       if (action.type === 'playCard') {
         const cardId = realCombat.hand[action.handIndex];
         setLastCardType(cardId ? getCard(cardId).type : undefined);
+        // A knockback the target shrugs off shows a cancel sign on it.
+        const { targetUid } = action;
+        if (
+          cardId &&
+          targetUid !== undefined &&
+          movementFailsOn(realCombat, cardId, targetUid)
+        )
+          showMoveFail(targetUid);
         return playCardHits(action);
       }
       onAction(action);
     },
-    [playHeroTurn, playCardHits, onAction, realCombat.hand]
+    [playHeroTurn, playCardHits, onAction, realCombat, showMoveFail]
   );
   const controls = useCombatControls(combat, routeAction);
   const [isPaused, setIsPaused] = useState(false);
@@ -264,6 +278,7 @@ export const CombatView = ({
           />
         )}
         <HitNumbers pops={pops} />
+        <MoveFailPops pops={moveFails} />
       </div>
       {/* BOTTOM BAND: rises over the field's foreground */}
       <div className="relative z-30 -mt-8 flex shrink-0 flex-col">

@@ -87,6 +87,7 @@
   --animate-rise: rise 180ms ease-out;
   --animate-shake: shake 260ms ease-in-out;
   --animate-flinch: flinch 280ms ease-out;
+  --animate-fail-pop: fail-pop 900ms ease-out forwards;
   --animate-villain-blink: villain-blink 5700ms infinite;
   --animate-hit-pop: hit-pop 1400ms ease-out forwards;
   --animate-gain-float: gain-float 1100ms ease-out forwards;
@@ -569,6 +570,30 @@
     100% {
       opacity: 0;
       transform: translate(var(--drift, 0px), -60px) scale(0.3);
+    }
+  }
+
+  /* FAIL POP: the cancel sign slams in past full size, holds, then
+     fades as it lifts a little. */
+  @keyframes fail-pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    18% {
+      opacity: 1;
+      transform: scale(1.2);
+    }
+    32% {
+      transform: scale(1);
+    }
+    70% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-12px) scale(1);
     }
   }
 

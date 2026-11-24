@@ -15,6 +15,8 @@
 
 import {
   advanceMelee,
+  canPull,
+  canPush,
   affectsSelf,
   areaTargets,
   cardAreaTargets,
@@ -426,6 +428,25 @@ const applyCardEffect = (
     case 'push':
       return { ...state, heroes: pushHero(state.heroes, targetUid) };
   }
+};
+
+/**
+ * True when playing this card at that hero would try to pull or push
+ * it and fail (a boss can't be moved), so the view can show it shrug
+ * the knockback off. The rest of the card still lands.
+ */
+export const movementFailsOn = (
+  state: CombatState,
+  cardId: CardId,
+  uid: number
+): boolean => {
+  const unit = state.heroes.find((hero) => hero.uid === uid);
+  if (!unit) return false;
+  return getCard(cardId).effects.some(
+    (effect) =>
+      (effect.kind === 'pull' && !canPull(state.heroes, unit)) ||
+      (effect.kind === 'push' && !canPush(state.heroes, unit))
+  );
 };
 
 /**

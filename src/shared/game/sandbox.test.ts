@@ -15,6 +15,8 @@ import {
   sandboxReducer,
 } from './sandbox.ts';
 import { ENERGY_PER_TURN } from './rules.ts';
+import { movementFailsOn } from './combat.ts';
+import { canMove, movementBlockReason, offeredMovement } from './movement.ts';
 import type { HeroUnit } from './types.ts';
 
 // --- HELPERS ---
@@ -115,4 +117,26 @@ void test('scenario ids are unique and the Holy Dragon has one', () => {
       scenario.heroIds.includes('holyDragon')
     )
   );
+});
+
+void test('a pull on a boss fails but the card still lands', () => {
+  const start = createSandboxWith(5, ['holyDragon']);
+  const dragon = start.heroes[0]!;
+  const state = { ...start, hand: ['chainsOfGrief' as const], energy: 3 };
+  assert.ok(movementFailsOn(state, 'chainsOfGrief', dragon.uid));
+  const after = sandboxReducer(state, {
+    type: 'playCard',
+    handIndex: 0,
+    targetUid: dragon.uid,
+  });
+  const hit = after.heroes[0]!;
+  assert.equal(hit.row, 'front');
+  assert.ok(hit.hp + hit.shroud < dragon.hp + dragon.shroud);
+});
+
+void test('Back Step is offered but locked while a boss fills the field', () => {
+  const state = createSandboxWith(5, ['holyDragon']);
+  assert.equal(offeredMovement(state), 'backStep');
+  assert.ok(movementBlockReason(state, 'backStep'));
+  assert.equal(canMove(state, 'backStep'), false);
 });

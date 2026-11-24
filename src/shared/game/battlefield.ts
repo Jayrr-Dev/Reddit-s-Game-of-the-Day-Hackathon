@@ -41,8 +41,11 @@ export type UnplacedHero = Omit<HeroUnit, 'row' | 'col'>;
  * - none:     the card needs no target
  * - front:    melee; front row only
  * - any:      Reach or a curse; any hero
- * - pullable: a back-row hero with room for it in the front row
- * - pushable: a front-row hero with room for it in the back row
+ * - pullable: a back-row hero with room for it in the front row, or a
+ *             boss (it fills the back row too; the pull fails on it,
+ *             but the rest of the card still lands)
+ * - pushable: a front-row hero with room for it in the back row, or a
+ *             boss (the push fails on it the same way)
  */
 export type TargetRule = 'none' | 'front' | 'any' | 'pullable' | 'pushable';
 
@@ -391,9 +394,9 @@ export const legalTargets = (
     case 'front':
       return heroes.filter((unit) => unit.row === 'front');
     case 'pullable':
-      return heroes.filter((unit) => canPull(heroes, unit));
+      return heroes.filter((unit) => isDeep(unit) || canPull(heroes, unit));
     case 'pushable':
-      return heroes.filter((unit) => canPush(heroes, unit));
+      return heroes.filter((unit) => isDeep(unit) || canPush(heroes, unit));
   }
 };
 

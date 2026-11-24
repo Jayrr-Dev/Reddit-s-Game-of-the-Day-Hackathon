@@ -20,17 +20,25 @@ export const MovementButton = ({
   move,
   cost,
   isAffordable,
+  blockReason,
   onPress,
 }: {
   move: MovementId;
   /** Its energy cost right now. */
   cost: number;
   isAffordable: boolean;
+  /** Why it is locked whatever it costs (shown in its tooltip), or null. */
+  blockReason: string | null;
   onPress: () => void;
 }) => {
   const look = MOVEMENT_LOOK[move];
   return (
-    <Tooltip content={{ title: look.label, description: look.description }}>
+    <Tooltip
+      content={{
+        title: blockReason ? `${look.label} (locked)` : look.label,
+        description: blockReason ?? look.description,
+      }}
+    >
       <button
         type="button"
         onClick={onPress}

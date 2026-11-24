@@ -57,8 +57,12 @@ const ROW_BOX: Record<HeroRow, RowBox> = {
   front: { bottom: '2%', height: '56%' },
   back: { bottom: '63%', height: '25%' },
 };
-/** A boss fills both rows: from the front row's foot to the back's top. */
-const DEEP_BOX: RowBox = { bottom: '2%', height: '86%' };
+/**
+ * A boss fills both rows, from the front row's foot. It stops short of
+ * the back row's top: its plate is taller (name, bar, chips) and would
+ * otherwise clip under the top bar.
+ */
+const DEEP_BOX: RowBox = { bottom: '2%', height: '78%' };
 /**
  * A boss may be drawn this much wider than the field, so it fills both
  * rows' height; only its wingtips spill past the edges.
