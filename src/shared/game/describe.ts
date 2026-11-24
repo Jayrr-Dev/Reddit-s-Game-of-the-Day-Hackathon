@@ -241,7 +241,7 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
   },
   rampage: {
     label: 'Rampage',
-    description: "On kill: a free **Charge**\nOnly if there's room",
+    description: '**Charge** on kill',
   },
   distance: {
     label: 'Distance',
