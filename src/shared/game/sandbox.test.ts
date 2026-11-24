@@ -180,7 +180,7 @@ void test('a test deck leans on its theme: Lightning has Serrated Slash', () => 
 void test('Fire, Poison and Bleed decks: every attack lays its status', () => {
   const themes = [
     ['fire', ['burn']],
-    ['poison', ['poison', 'venom']],
+    ['poison', ['poison']],
     ['bleed', ['bleed']],
   ] as const;
   for (const [deckId, status] of themes) {

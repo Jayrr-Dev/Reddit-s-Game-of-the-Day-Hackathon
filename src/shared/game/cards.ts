@@ -56,11 +56,6 @@ const poison = (amount: number, target: 'one' | 'all' = 'one'): CardEffect => ({
   amount,
   target,
 });
-const venom = (amount: number): CardEffect => ({
-  kind: 'venom',
-  amount,
-  target: 'one',
-});
 const bleed = (amount: number): CardEffect => ({
   kind: 'bleed',
   amount,
@@ -339,9 +334,8 @@ export const CARDS = {
   keenEdge: card('Keen Edge', 'buff', 0, 'common', [
     imbue(giftOf({ kind: 'damage', amount: 5, hits: 1, target: 'one' })),
   ]),
-  // VENOM: bites on every hit the hero takes, so it loves multi-hit cards
-  snakebite: card('Snakebite', 'melee', 1, 'common', [hit(4), venom(3)], SHARP),
-  vipersKiss: card("Viper's Kiss", 'curse', 1, 'uncommon', [venom(5), hex(1)]),
+  // BLEED with no blow: opens wounds that every later hit tears at.
+  hemorrhage: card('Hemorrhage', 'curse', 1, 'uncommon', [bleed(5), hex(1)]),
   // Ids venomCoat/venomDart stay for old saves; both lay Poison (Venom is its own status).
   venomCoat: card('Poison Coat', 'buff', 1, 'common', [
     imbue(giftOf({ kind: 'poison', amount: 3, target: 'one' })),

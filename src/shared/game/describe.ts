@@ -98,11 +98,6 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   bleed: {
     label: 'Bleed',
     description:
-      'Loses this much HP after each action\nGoes down by **1** each time',
-  },
-  venom: {
-    label: 'Venom',
-    description:
       'Each **Melee** or **Range** hit it takes deals this much more\nThen goes down by **1**',
   },
   shock: {
@@ -262,7 +257,6 @@ export const describeCardEffect = (
     case 'burn':
     case 'frost':
     case 'bleed':
-    case 'venom':
     case 'shock':
     case 'vex':
     case 'weaken':
@@ -511,7 +505,6 @@ export const imbueTag = (gift: ImbueGift): string => {
     case 'burn':
     case 'frost':
     case 'bleed':
-    case 'venom':
     case 'shock':
     case 'vex':
     case 'weaken':
@@ -557,7 +550,6 @@ type AppliedStatus = Extract<
       | 'frost'
       | 'shock'
       | 'bleed'
-      | 'venom'
       | 'vex'
       | 'weaken';
   }

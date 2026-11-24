@@ -22,10 +22,8 @@ import type { RngState } from './rng.ts';
  * - shock:  stacks; on the SHOCK_HITS-th hit it takes (any type,
  *           from anyone), it loses this much HP and clears (see
  *           Combatant.shockHits)
- * - bleed:  loses this much HP right after each of its actions (a hero
- *           move; the villain's whole turn), then drops by 1
- * - venom:  each Melee/Range hit it takes (for more than 0) costs this much more
- *           (past Guard), then drops by 1 (see Combatant.venomTaken)
+ * - bleed:  each Melee/Range hit it takes (for more than 0) costs this much
+ *           more (past Guard), then drops by 1 (see Combatant.bleedTaken)
  * - hex:    right before its turn, loses this much HP if it is odd
  *           (nothing when even), then hex drops by 1
  * - vex:    every affliction laid on it gets this many more stacks;
@@ -68,8 +66,6 @@ export type StatusId =
   | 'frost'
   | 'shock'
   | 'bleed'
-  /** Each hit it takes deals this much more, then it drops by 1. */
-  | 'venom'
   /** Afflictions laid on it get this many more stacks; -1 a turn. */
   | 'vex'
   | 'weaken'
@@ -116,8 +112,8 @@ export type Combatant = {
   armorSoaked?: number;
   /** Hits and afflictions dodged (Instinct), for the "Dodge" pop. */
   dodgedHits?: number;
-  /** HP Venom has cost in the fight, for the venom number on a hit. */
-  venomTaken?: number;
+  /** HP Bleed has cost in the fight, for the bleed number on a hit. */
+  bleedTaken?: number;
   /** Hits taken this turn while shocked (see Shock). */
   shockHits?: number;
   /**
@@ -158,7 +154,6 @@ export type BaseCardEffect =
   | { kind: 'frost'; amount: number; target: CardTarget }
   | { kind: 'shock'; amount: number; target: CardTarget }
   | { kind: 'bleed'; amount: number; target: CardTarget }
-  | { kind: 'venom'; amount: number; target: CardTarget }
   | { kind: 'weaken'; amount: number; target: CardTarget }
   /** Enfeebles the target: one tier up when reapplied turn after turn. */
   /** Enfeeble ×N: cast `times` times (default 1), a tier each, to III. */

@@ -105,7 +105,6 @@ const STATUS_ORDER: readonly StatusId[] = [
   'frost',
   'shock',
   'bleed',
-  'venom',
   'weaken',
   'vex',
   'enfeeble',

@@ -123,8 +123,8 @@ export const SANDBOX_DECKS: readonly SandboxDeck[] = [
   {
     id: 'poison',
     name: 'Poison',
-    blurb: 'Poison and Venom, thorns, plus Bane.',
-    fits: anyOf(hasEffect('poison', 'venom'), buffsAny('bane')),
+    blurb: 'Poison darts, coats and thorns, plus Bane.',
+    fits: anyOf(hasEffect('poison'), buffsAny('bane')),
   },
   {
     id: 'bleed',

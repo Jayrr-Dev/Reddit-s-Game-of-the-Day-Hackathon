@@ -216,17 +216,12 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     layers: [{ shape: 'spark', motion: 'burst', count: 5, size: 9 }],
     hasGlow: false,
   },
-  /** Venom laid on: teal drops seep in. */
-  venom: {
-    layers: [{ shape: 'drop', motion: 'fall', count: 4, size: 10 }],
-    hasGlow: true,
-  },
-  /** Venom biting on a hit: a quick teal drip off the wound. */
-  venomBite: {
+  /** Bleed opening on a hit: a quick red drip off the wound. */
+  bleedBite: {
     layers: [{ shape: 'drop', motion: 'fall', count: 5, size: 11 }],
     hasGlow: true,
   },
-  /** Bleed (HP lost each action): heavier drops run down. */
+  /** Bleed laid on: heavier drops run down. */
   bleed: {
     layers: [{ shape: 'drop', motion: 'fall', count: 6, size: 12 }],
     hasGlow: true,

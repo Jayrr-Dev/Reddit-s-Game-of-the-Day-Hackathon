@@ -395,35 +395,6 @@ void test('a frosted hero hits softer, then its frost halves', () => {
   assert.equal(after.statuses.frost, 1);
 });
 
-void test('Bleed takes its value after each action, then drops by 1', () => {
-  const bleeding = {
-    ...createCombatant(50, 50),
-    statuses: { ...NO_STATUSES, bleed: 3 },
-  };
-  const once = afterAction(bleeding);
-  assert.equal(once.hp, 47);
-  assert.equal(once.statuses.bleed, 2);
-  const thrice = afterAction(afterAction(once));
-  assert.equal(thrice.hp, 50 - 3 - 2 - 1);
-  assert.equal(thrice.statuses.bleed, 0);
-});
-
-void test('a Bleeding hero loses HP after its move', () => {
-  const fight = settled(withHand(fightWith([]), []));
-  const bled: CombatState = {
-    ...fight,
-    heroes: fight.heroes.map((unit) => ({
-      ...unit,
-      statuses: { ...unit.statuses, bleed: 4 },
-    })),
-  };
-  const hero = bled.heroes[0]!;
-  const acted = endTurnSteps(bled).find((step) => step.actorUid === hero.uid)!;
-  const after = acted.state.heroes.find((unit) => unit.uid === hero.uid)!;
-  assert.equal(after.statuses.bleed, 3);
-  assert.ok(after.hp <= hero.hp - 4);
-});
-
 void test('shock bursts and clears on the 4th hit', () => {
   assert.equal(SHOCK_HITS, 4);
   const shocked = {
@@ -493,27 +464,29 @@ void test("a shocked hero's own attacks never set off its Shock", () => {
   assert.equal(hero.statuses.shock, 3, 'it only fades by 1');
 });
 
-void test('Venom: each Melee or Range hit taken deals its stacks, then -1', () => {
-  const venomed = {
+void test('Bleed: each Melee or Range hit taken deals its stacks, then -1', () => {
+  const bleeding = {
     ...createCombatant(50, 50),
-    statuses: { ...NO_STATUSES, venom: 3 },
+    statuses: { ...NO_STATUSES, bleed: 3 },
   };
-  const once = takeHit(venomed, 2, 'melee');
+  const once = takeHit(bleeding, 2, 'melee');
   assert.equal(once.hp, 50 - 2 - 3);
-  assert.equal(once.statuses.venom, 2);
-  assert.equal(once.venomTaken, 3, 'counted for the venom number');
+  assert.equal(once.statuses.bleed, 2);
+  assert.equal(once.bleedTaken, 3, 'counted for the bleed number');
   const twice = takeHit(once, 2, 'range');
   assert.equal(twice.hp, 45 - 2 - 2);
-  assert.equal(twice.statuses.venom, 1);
+  assert.equal(twice.statuses.bleed, 1);
   // A hit for 0 sets nothing off, nor does Magic (physical hits only).
-  assert.equal(takeHit(twice, 0, 'melee').statuses.venom, 1);
+  assert.equal(takeHit(twice, 0, 'melee').statuses.bleed, 1);
   const spell = takeHit(twice, 2, 'magic');
-  assert.equal(spell.statuses.venom, 1);
+  assert.equal(spell.statuses.bleed, 1);
   assert.equal(spell.hp, twice.hp - 2);
-  // It does not tick between actions.
-  assert.equal(afterAction(twice).statuses.venom, 1);
-  // Bane adds to it like any affliction.
-  assert.ok(BANE_AFFLICTIONS.has('venom'));
+  // It no longer ticks between actions.
+  const rested = afterAction(twice);
+  assert.equal(rested.statuses.bleed, 1);
+  assert.equal(rested.hp, twice.hp);
+  assert.ok(BANE_AFFLICTIONS.has('bleed'));
+  assert.ok(!('venom' in NO_STATUSES), 'Venom is gone');
 });
 
 void test('new shock stacks on top and keeps the count', () => {
@@ -859,7 +832,6 @@ void test('afflictions are the harmful statuses, flagged in one table', () => {
     'hex',
     'poison',
     'shock',
-    'venom',
     'vex',
     'weaken',
   ]);
@@ -991,7 +963,8 @@ void test('every pick follows reach: a melee pick at the back row hits the front
   const [squire, archer] = start.heroes.map((unit) => unit.uid);
   const picks = [squire ?? -1, archer ?? -1];
   const after = playCard(start, 0, picks[0] ?? -1, picks);
-  assert.deepEqual(hpLost(start, after), [8, 0]);
+  // 4 + 4, and the second cut opens the first one's Bleed 2 (Bleed bites on hits).
+  assert.deepEqual(hpLost(start, after), [10, 0]);
 });
 
 void test('a Target N card shows one beat per pick and ends on the real play', () => {
@@ -1559,8 +1532,10 @@ void test("an attack card's afflictions land on every hit that lands", () => {
   const uid = state.heroes[0]?.uid ?? -1;
   const after = playCard(state, 0, uid);
   const hero = after.heroes.find((unit) => unit.uid === uid);
-  // Barbed Volley: Damage 2 x3, Bleed 2 on each of the 3 hits.
-  assert.equal(hero?.statuses.bleed, 6);
+  // Barbed Volley: Damage 2 x3, Bleed 2 on each hit. Each later hit also
+  // opens the Bleed so far (-1 each time): 2, then 2-1+2 = 3, then 3-1+2 = 4.
+  assert.equal(hero?.statuses.bleed, 4);
+  assert.equal(hero?.bleedTaken, 2 + 3);
   assert.ok(describeCard('barbedVolley').includes('Bleed 2 per hit'));
   // One hit, one proc (and no "per hit" on the text).
   assert.ok(describeCard('cruelSlash').includes('Bleed 3'));

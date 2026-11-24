@@ -40,7 +40,6 @@ export const NO_STATUSES: Statuses = {
   frost: 0,
   shock: 0,
   bleed: 0,
-  venom: 0,
   vex: 0,
   weaken: 0,
   wrath: 0,
@@ -225,23 +224,23 @@ export const takeHit = <T extends Combatant>(
       : target,
     reduced
   );
-  // Venom bites only on a physical (Melee, Range) hit for more than 0.
-  const bites = amount > 0 && PHYSICAL_TYPES.has(type);
-  return countShockHit(bites ? venomBite(hit) : hit);
+  // Bleed opens only on a physical (Melee, Range) hit for more than 0.
+  const bleeds = amount > 0 && PHYSICAL_TYPES.has(type);
+  return countShockHit(bleeds ? bleedOnHit(hit) : hit);
 };
 
 /**
- * Venom bites on a physical hit taken: the unit loses its Venom in HP (past
- * Guard), counted in venomTaken, then Venom drops by 1.
+ * Bleed on a physical hit taken: the unit loses its Bleed in HP (past
+ * Guard), counted in bleedTaken, then Bleed drops by 1.
  */
-const venomBite = <T extends Combatant>(target: T): T => {
-  const { venom } = target.statuses;
-  if (venom <= 0) return target;
-  const bitten = loseHp(target, venom);
+const bleedOnHit = <T extends Combatant>(target: T): T => {
+  const { bleed } = target.statuses;
+  if (bleed <= 0) return target;
+  const bled = loseHp(target, bleed);
   return {
-    ...bitten,
-    venomTaken: (target.venomTaken ?? 0) + venom,
-    statuses: { ...bitten.statuses, venom: venom - 1 },
+    ...bled,
+    bleedTaken: (target.bleedTaken ?? 0) + bleed,
+    statuses: { ...bled.statuses, bleed: bleed - 1 },
   };
 };
 
@@ -489,14 +488,6 @@ export const frostThaw = <T extends Combatant>(target: T): T => {
   return { ...target, statuses: { ...target.statuses, frost: left } };
 };
 
-/** Bleed, right after an action: it deals its value, then drops by 1. */
-export const bleedTick = <T extends Combatant>(target: T): T => {
-  const { bleed } = target.statuses;
-  if (bleed <= 0) return target;
-  const bled = loseHp(target, bleed);
-  return { ...bled, statuses: { ...bled.statuses, bleed: bleed - 1 } };
-};
-
 /** After an action, Shock fades by 1 (no damage; Sam, 2026-11-24). */
 const shockFade = <T extends Combatant>(target: T): T =>
   target.statuses.shock > 0
@@ -508,10 +499,11 @@ const shockFade = <T extends Combatant>(target: T): T =>
 
 /**
  * Everything that runs right after a unit's action (a hero's move, the
- * villain's whole turn): Burn, Bleed, Frost thaws, Shock fades by 1.
+ * villain's whole turn): Burn, Frost thaws, Shock fades by 1. (Bleed
+ * goes off on hits taken instead: see bleedOnHit.)
  */
 export const afterAction = <T extends Combatant>(target: T): T =>
-  shockFade(frostThaw(bleedTick(burnTick(target))));
+  shockFade(frostThaw(burnTick(target)));
 
 /**
  * Poison right before an action (a hero's move; the villain's turn
