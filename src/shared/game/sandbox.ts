@@ -60,8 +60,14 @@ export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
   {
     id: 'holyDragon',
     name: 'Holy Dragon Unc',
-    blurb: 'A boss that fills all six slots on its own.',
+    blurb: 'A boss in a T that calls Angel Archers to its flanks.',
     heroIds: ['holyDragon'],
+  },
+  {
+    id: 'grandGriffon',
+    name: 'Grand Griffon Rio',
+    blurb: 'A boss down the centre that soars out of reach, then dives.',
+    heroIds: ['grandGriffon', 'squire', 'archer'],
   },
   {
     id: 'mixedRows',

@@ -143,3 +143,11 @@ void test('Back Step is offered but locked while a boss reaches back', () => {
   assert.ok(movementBlockReason(state, 'backStep'));
   assert.equal(canMove(state, 'backStep'), false);
 });
+
+void test('Grand Griffon Rio holds the centre column, front and back', () => {
+  const { heroes } = createSandboxWith(5, ['grandGriffon', 'squire']);
+  const griffon = heroes.find((unit) => unit.heroId === 'grandGriffon');
+  assert.ok(griffon);
+  assert.deepEqual(cellNamesOf(griffon), ['front:1', 'back:1']);
+  assert.equal(canPush(heroes, griffon), false);
+});

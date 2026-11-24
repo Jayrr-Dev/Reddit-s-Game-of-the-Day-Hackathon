@@ -23,7 +23,8 @@ export type GlyphName =
   | 'eye'
   | 'cog'
   | 'hourglass'
-  | 'march';
+  | 'march'
+  | 'wing';
 
 export type GlyphProps = {
   name: GlyphName;

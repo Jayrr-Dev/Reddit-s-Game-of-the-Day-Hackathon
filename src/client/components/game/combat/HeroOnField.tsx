@@ -7,7 +7,7 @@
 // ===================================================================
 
 import type { CSSProperties } from 'react';
-import { isDeep, sizeOf } from '../../../../shared/game/battlefield';
+import { isAloft, isDeep, sizeOf } from '../../../../shared/game/battlefield';
 import { getHero } from '../../../../shared/game/heroes';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
 import type {
@@ -74,7 +74,8 @@ const DEEP_BOX: RowBox = { bottom: '2%', height: '78%' };
 /**
  * A boss is drawn as wide as the field, centred on its own slot, and
  * far taller than its row; in the back row it stands higher, behind
- * anyone in front. Its plate stays clear of the top bar either way.
+ * anyone in front. A deep boss (front and back rows) uses DEEP_BOX.
+ * Its plate stays clear of the top bar either way.
  */
 const BOSS_BOX: Record<HeroRow, RowBox> = {
   front: { bottom: '2%', height: '74%' },
@@ -152,13 +153,13 @@ const AIM_CLASS: Record<AimState, string> = {
 /** Absolute box for a hero from its row, column and size. */
 const boxStyle = (unit: HeroUnit): CSSProperties => {
   const columnShare = 100 / BATTLEFIELD_COLUMNS;
-  if (isBoss(unit) && !isDeep(unit)) {
+  if (isBoss(unit)) {
     // Centred on its slot: half the extra width spills to each side.
     const centre = unit.col + sizeOf(unit) / 2;
     return {
       left: `${(centre - BOSS_DRAW_COLUMNS / 2) * columnShare}%`,
       width: `${BOSS_DRAW_COLUMNS * columnShare}%`,
-      ...BOSS_BOX[unit.row],
+      ...(isDeep(unit) ? DEEP_BOX : BOSS_BOX[unit.row]),
     };
   }
   return {
@@ -264,10 +265,13 @@ const GroundShadow = ({
       className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2"
       style={style}
     >
-      <div
-        className="absolute bottom-[1%] left-1/2 h-[6%] -translate-x-1/2 rounded-[50%] bg-black"
-        style={{ width: `${halfWidthShare * 200}%`, opacity }}
-      />
+      {/* SHRINKS AND FADES WHILE THE HERO IS ALOFT (index.css, FLIGHT) */}
+      <div className="hero-flight-shadow absolute inset-0">
+        <div
+          className="absolute bottom-[1%] left-1/2 h-[6%] -translate-x-1/2 rounded-[50%] bg-black"
+          style={{ width: `${halfWidthShare * 200}%`, opacity }}
+        />
+      </div>
     </div>
   );
 };
@@ -390,6 +394,7 @@ export const HeroOnField = ({
       aria-label={`${hero.name}, ${unit.hp} of ${unit.maxHp} HP, ${unit.row} row`}
       className={`pointer-events-auto absolute transition-[left,bottom,width,height,scale,opacity,filter] duration-700 ${AIM_CLASS[aim]}`}
       style={boxStyle(unit)}
+      data-aloft={isAloft(unit) ? '' : undefined}
     >
       {/* MARCHES IN ONCE, WHEN THE HERO FIRST APPEARS (A NEW WAVE) */}
       <div
@@ -407,8 +412,9 @@ export const HeroOnField = ({
             className="relative h-full w-full origin-bottom animate-hero-sway"
             style={swayStyle(unit)}
           >
+            {/* FLIGHT: rises into the sky while Aloft (index.css, FLIGHT) */}
             <div
-              className={`h-full w-full ${isBack ? 'brightness-75' : ''} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
+              className={`hero-flight h-full w-full ${isBack ? 'brightness-75' : ''} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
             >
               {/* FLINCH: re-keyed by each new hit, so it plays once per hit */}
               <div

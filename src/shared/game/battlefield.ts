@@ -71,6 +71,10 @@ export const isDeep = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
 export const isImmovable = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
   isDeep(unit) || getHero(unit.heroId).tier === 'boss';
 
+/** True for a hero flown up out of reach (Aloft): no card can touch it. */
+export const isAloft = (unit: Pick<HeroUnit, 'statuses'>): boolean =>
+  unit.statuses.aloft > 0;
+
 /** One battlefield cell. */
 export type Cell = { row: HeroRow; col: number };
 
@@ -445,36 +449,43 @@ export const affectsSelf = (cardId: CardId): boolean =>
 export const affectsHeroes = (cardId: CardId): boolean =>
   getCard(cardId).effects.some((effect) => !SELF_EFFECT_KINDS.has(effect.kind));
 
-/** The heroes that fit a target rule, in battlefield order. */
+/**
+ * The heroes that fit a target rule, in battlefield order. A hero
+ * Aloft is out of reach of every rule.
+ */
 export const legalTargets = (
   heroes: readonly HeroUnit[],
   rule: TargetRule
 ): HeroUnit[] => {
+  const reachable = heroes.filter((unit) => !isAloft(unit));
   switch (rule) {
     case 'none':
     case 'any':
-      return [...heroes];
+      return reachable;
     case 'front':
-      return heroes.filter((unit) => unit.row === 'front');
+      return reachable.filter((unit) => unit.row === 'front');
     case 'pullable':
-      return heroes.filter(
+      return reachable.filter(
         (unit) =>
           (isImmovable(unit) && unit.row === 'back') || canPull(heroes, unit)
       );
     case 'pushable':
-      return heroes.filter(
+      return reachable.filter(
         (unit) =>
           (isImmovable(unit) && unit.row === 'front') || canPush(heroes, unit)
       );
   }
 };
 
-/** Heroes an area attack hits: melee sweeps the front row, Reach all. */
+/**
+ * Heroes an area attack hits: melee sweeps the front row, Reach all.
+ * A hero Aloft is above it all.
+ */
 export const areaTargets = (
   heroes: readonly HeroUnit[],
   isMelee: boolean
 ): HeroUnit[] =>
-  isMelee ? heroes.filter((unit) => unit.row === 'front') : [...heroes];
+  heroes.filter((unit) => !isAloft(unit) && (!isMelee || unit.row === 'front'));
 
 /**
  * Every hero an area card would hit: hex and dread to ALL reach every

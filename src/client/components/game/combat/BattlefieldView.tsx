@@ -88,6 +88,15 @@ export const BattlefieldView = ({
   const ghosts = useFallenHeroes(heroes);
   // A boss's death shakes the whole field and flashes it white.
   const isBossFalling = ghosts.some(isBoss);
+  // A signature blow struck in Melee (a dive from the sky) lands hard.
+  const isHeavyBlow = [...acting.values()].some(
+    (action) => action.isSignature && action.style === 'melee'
+  );
+  const shakeClass = isBossFalling
+    ? 'animate-field-shake'
+    : isHeavyBlow
+      ? 'animate-dive-shake'
+      : '';
   const focused = heroes.find((unit) => unit.uid === focusUid);
   /** Renders the heroes standing in one row, then any falling there. */
   const renderRow = (row: HeroRow) => [
@@ -127,7 +136,7 @@ export const BattlefieldView = ({
   return (
     <div
       ref={fieldRef}
-      className={`parallax-stage relative min-h-0 flex-1 overflow-hidden ${isBossFalling ? 'animate-field-shake' : ''}`}
+      className={`parallax-stage relative min-h-0 flex-1 overflow-hidden ${shakeClass}`}
       {...{ [FIELD_ATTR]: true }}
       style={cssVars({ '--cam': cameraFor(focused) })}
     >

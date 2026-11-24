@@ -41,6 +41,7 @@ type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> & {
  */
 const STATUS_ORDER: readonly StatusId[] = [
   // DEFENCE
+  'aloft',
   'protection',
   // ATTACK
   'wrath',
@@ -59,9 +60,14 @@ const POPOVER_WIDTH = 230;
 const POPOVER_MIN_ROOM_ABOVE = 200;
 
 // --- HELPERS ---
-/** What a chip says: its stacks, except Momentum, which is a boost. */
-const chipText = (id: StatusId, value: number): string =>
-  id === 'momentum' ? '+50%' : String(value);
+/**
+ * What a chip says: its stacks, except Momentum (a boost) and Aloft
+ * (on or off, so the wing says it all).
+ */
+const chipText = (id: StatusId, value: number): string => {
+  if (id === 'momentum') return '+50%';
+  return id === 'aloft' ? '' : String(value);
+};
 
 /** Every active effect on a combatant as chips, Guard first. */
 const statusChipsOf = (combatant: Combatant): StatusChip[] => {

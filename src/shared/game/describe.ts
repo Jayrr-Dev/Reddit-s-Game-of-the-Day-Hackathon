@@ -62,6 +62,11 @@ export const STATUS_INFO: Record<StatusId | 'shroud', StatusInfo> = {
     label: 'Protection',
     description: 'Adds this much to every Guard your cards give.',
   },
+  aloft: {
+    label: 'Aloft',
+    description:
+      'High in the sky: no card can aim at or hit it until it dives back down.',
+  },
 };
 
 // --- CARD TEXT ---
@@ -166,6 +171,7 @@ export type IntentKind =
   | 'heal'
   | 'summon'
   | 'revive'
+  | 'soar'
   | 'advance';
 
 /** The intent chip for each way a hero attack can land. */
@@ -235,6 +241,12 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
     }
     case 'revive':
       return { kind: 'revive', text: '', label: 'Revives every fallen ally' };
+    case 'soar':
+      return {
+        kind: 'soar',
+        text: '',
+        label: 'Flies up out of reach, then dives next turn',
+      };
     case 'summon':
       return {
         kind: 'summon',

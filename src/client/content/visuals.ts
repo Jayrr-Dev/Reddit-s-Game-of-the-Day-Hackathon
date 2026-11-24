@@ -36,6 +36,7 @@ export const STATUS_LOOK: Record<StatusId | 'shroud', Look> = {
   piercing: { glyph: 'bow', toneClass: 'text-range' },
   protection: { glyph: 'shield', toneClass: 'text-accent' },
   momentum: { glyph: 'bolt', toneClass: 'text-energy' },
+  aloft: { glyph: 'wing', toneClass: 'text-accent' },
 };
 
 // --- HERO INTENTS ---
@@ -52,6 +53,7 @@ export const INTENT_LOOK: Record<IntentKind, Look> = {
   heal: { glyph: 'heart', toneClass: 'text-heal' },
   summon: { glyph: 'eye', toneClass: 'text-accent' },
   revive: { glyph: 'altar', toneClass: 'text-accent' },
+  soar: STATUS_LOOK.aloft,
 };
 
 // --- CARDS ---

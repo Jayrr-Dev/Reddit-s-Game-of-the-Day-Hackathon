@@ -27,6 +27,7 @@ import {
   targetRuleOf,
   type UnplacedHero,
   cellsOf,
+  isAloft,
   isCellOpen,
   summonSeats,
 } from './battlefield.ts';
@@ -180,14 +181,19 @@ export const plannedHeroMove = (
   );
 };
 
+/** True for a move that flies the hero up: it ends the hero's turn. */
+export const isSoaring = (heroMove: HeroMove): boolean =>
+  heroMove.effects.some((effect) => effect.kind === 'soar');
+
 /** How many moves a hero makes each heroes' turn (bosses make more). */
 export const actionsOf = (unit: Pick<HeroUnit, 'heroId'>): number =>
   getHero(unit.heroId).actions ?? 1;
 
 /**
  * Every move a hero will make this turn, in order: its next
- * `actionsOf` moves that it can make from where it stands. Empty when
- * it has none (it only advances).
+ * `actionsOf` moves that it can make from where it stands, cut short
+ * by a move that flies it up (see isSoaring). Empty when it has none
+ * (it only advances).
  */
 export const plannedHeroMoves = (
   unit: HeroUnit,
@@ -200,6 +206,7 @@ export const plannedHeroMoves = (
     const next = plannedHeroMove(cursor, heroes);
     if (!next) break;
     planned.push(next);
+    if (isSoaring(next.move)) break;
     cursor = { ...cursor, moveIndex: next.index + 1 };
   }
   return planned;
@@ -805,13 +812,22 @@ const applyHeroEffect = (
       return summonHeroes(state, actor, effect);
     case 'revive':
       return reviveFallen(state);
+    case 'soar':
+      return updateHeroes(state, [actor.uid], (unit) => withAloft(unit, 1));
   }
 };
+
+/** The hero with its Aloft set: 1 flies it up, 0 brings it down. */
+const withAloft = (unit: HeroUnit, aloft: number): HeroUnit => ({
+  ...unit,
+  statuses: { ...unit.statuses, aloft },
+});
 
 /**
  * One hero takes one action: performs its planned move (if it has one
  * it can make from where it stands) and moves on in its cycle past it;
  * after its last action of the turn (`isLast`) its own upkeep runs too.
+ * A move made from Aloft is the dive: the hero lands once it is done.
  * The actor is re-read after each effect so a wrath gained mid-move
  * applies to the attacks that follow it.
  */
@@ -835,10 +851,14 @@ const heroActs = (
     state
   );
 
-  const settled = updateHeroes(acted, [uid], (unit) => ({
-    ...(isLast ? endOfTurnUpkeep(unit) : unit),
-    moveIndex: planned ? planned.index + 1 : unit.moveIndex,
-  }));
+  const isDiving = planned !== null && isAloft(actor);
+  const settled = updateHeroes(acted, [uid], (unit) => {
+    const landed = isDiving ? withAloft(unit, 0) : unit;
+    return {
+      ...(isLast ? endOfTurnUpkeep(landed) : landed),
+      moveIndex: planned ? planned.index + 1 : unit.moveIndex,
+    };
+  });
   return removeFallen(settled);
 };
 
@@ -923,8 +943,9 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
       if (!actor) break;
       const planned = plannedHeroMove(actor, current.heroes);
       const hasMove = planned !== null;
-      // Out of moves early: this is its last action (upkeep runs now).
-      const isLast = action === actions || !hasMove;
+      // Out of moves early, or flying up: this is its last action
+      // (upkeep runs now).
+      const isLast = action === actions || !hasMove || isSoaring(planned.move);
       const attackType = plannedAttackType(actor, current.heroes);
       const next = heroActs(current, uid, isLast);
       if (next !== current) {

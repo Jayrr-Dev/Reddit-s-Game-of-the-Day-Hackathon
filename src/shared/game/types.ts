@@ -24,9 +24,13 @@ import type { RngState } from './rng.ts';
  * Momentum comes from charging: while above 0 the next Melee card deals
  * 50% more damage (every hit of it), then it is spent; it is lost at
  * the end of the turn if no Melee card used it.
+ * Aloft (heroes only): flown up out of reach. While above 0 no card can
+ * aim at or hit the hero; its next move comes down from the sky and
+ * clears it.
  */
 export type BuffId = 'might' | 'surge' | 'piercing' | 'protection';
-export type StatusId = 'hex' | 'dread' | 'wrath' | 'momentum' | BuffId;
+export type StatusId =
+  'hex' | 'dread' | 'wrath' | 'momentum' | 'aloft' | BuffId;
 export type Statuses = Record<StatusId, number>;
 
 /** Anything with HP that fights: the villain or a hero. */
@@ -124,7 +128,12 @@ export type HeroEffect =
    * Brings every fallen ally back at full HP, into the spot it fell in
    * when that spot is free.
    */
-  | { kind: 'revive' };
+  | { kind: 'revive' }
+  /**
+   * Flies up out of reach (Aloft) and ends the hero's turn. Its next
+   * move, a turn later, is made from the sky and brings it back down.
+   */
+  | { kind: 'soar' };
 
 /**
  * Heroes that only ever join a fight by being summoned. Named here, not

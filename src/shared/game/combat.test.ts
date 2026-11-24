@@ -649,3 +649,76 @@ void test('summoned heroes fall with their summoner', () => {
   assert.equal(after.slain, 3);
   assert.equal(combatOutcome(after), 'won');
 });
+
+// --- GRAND GRIFFON (ALOFT AND THE TWO-TURN DIVE) ---
+/** A fresh fight against Grand Griffon Rio alone. */
+const griffonFight = (): CombatState =>
+  startCombat({
+    hp: 999,
+    maxHp: 999,
+    deck: ['backhand', 'soulLance', 'cleave', 'dreadGaze'],
+    heroIds: ['grandGriffon'],
+    might: 1,
+    seed: 4,
+  });
+
+/** The griffon after one heroes' turn: it slashed, then flew up. */
+const griffonAloft = (): CombatState => endTurn(griffonFight());
+
+/** The griffon in a state's field. */
+const griffonOf = (state: CombatState): HeroUnit =>
+  state.heroes.find((unit) => unit.heroId === 'grandGriffon')!;
+
+void test('Heavenly Drive flies the griffon up and ends its turn', () => {
+  const start = griffonFight();
+  assert.deepEqual(
+    plannedHeroMoves(griffonOf(start), start.heroes).map((p) => p.move.name),
+    ['Triple Slice', 'Heavenly Drive']
+  );
+  const after = griffonAloft();
+  const griffon = griffonOf(after);
+  assert.equal(griffon.statuses.aloft, 1);
+  assert.equal(griffon.moveIndex, 2);
+  // Only the Triple Slice (6 x 3) landed.
+  assert.equal(after.player.hp, 999 - 18);
+  assert.equal(
+    describeHeroIntent(griffon, after.heroes).name,
+    'Heavenly Dive, then Triple Slice'
+  );
+});
+
+void test('a hero Aloft cannot be aimed at or hit by any card', () => {
+  const aloft = griffonAloft();
+  const griffon = griffonOf(aloft);
+  const handOf = (cardId: CardId) => ({
+    ...aloft,
+    hand: [cardId],
+    energy: 3,
+  });
+  for (const cardId of ['backhand', 'soulLance', 'cleave'] as const) {
+    assert.equal(canPlayCard(handOf(cardId), 0), false, cardId);
+    assert.deepEqual(autoTargets(handOf(cardId), 0), [], cardId);
+  }
+  // A card that also helps the villain still plays, but misses it.
+  const gazed = playCard(handOf('dreadGaze'), 0, griffon.uid);
+  assert.equal(griffonOf(gazed).statuses.dread, 0);
+  assert.equal(griffonOf(gazed).hp, griffon.hp);
+});
+
+void test('a turn later the griffon dives down with one crushing blow', () => {
+  const aloft = griffonAloft();
+  const steps = endTurnSteps(aloft);
+  const griffonSteps = steps.filter(
+    (step) => step.actorUid === griffonOf(aloft).uid
+  );
+  assert.deepEqual(
+    griffonSteps.map((step) => step.move?.name),
+    ['Heavenly Dive', 'Triple Slice']
+  );
+  assert.equal(griffonSteps[0]?.move?.isSignature, true);
+  const landed = steps.at(-1)!.state;
+  assert.equal(griffonOf(landed).statuses.aloft, 0);
+  assert.equal(aloft.player.hp - landed.player.hp, 34 + 18);
+  // Back on the ground it can be hit again.
+  assert.equal(canPlayCard({ ...landed, hand: ['backhand'] }, 0), true);
+});

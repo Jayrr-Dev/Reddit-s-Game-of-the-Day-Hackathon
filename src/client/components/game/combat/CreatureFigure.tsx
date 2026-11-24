@@ -29,28 +29,39 @@
 //   of light (the eye flares as it fires) and its eye takes the moods.
 // ===================================================================
 
-import type { CSSProperties, JSX } from 'react';
+import type { JSX } from 'react';
 import type {
   CreatureId,
   HeroAction,
   HeroMood,
 } from '../../../content/heroLooks';
 import type { HeroSize } from '../../../../shared/game/types';
+import {
+  ART_WIDTH,
+  art,
+  mirrored,
+  originAt,
+  polar,
+  pts,
+  type Point,
+} from '../../../lib/creatureArt';
 import { BODY_HEIGHT, BODY_WIDTH } from '../../../lib/heroFigure';
+import { GrandGriffon } from './GriffonFigure';
+import {
+  DeathBurst,
+  HaloLight,
+  HaloRing,
+  HaloShards,
+  type HaloSpec,
+} from './HolyHalo';
 
 // --- TYPES ---
-type Point = readonly [number, number];
-
 export type CreatureFigureProps = {
   heroId: CreatureId;
   size: HeroSize;
   action?: HeroAction | null;
   mood?: HeroMood;
 };
-
-// --- CONSTANTS: CONCEPT ART FRAME ---
-/** The concept art's width (the dragon is mirrored across its middle). */
-const ART_WIDTH = 1536;
 
 // --- CONSTANTS: HOLY DRAGON PALETTE ---
 const IVORY = { lit: '#ece2cf', shade: '#cbbba3' };
@@ -188,18 +199,8 @@ const HORN: readonly Point[] = [
   [740, 245],
   [705, 250],
 ];
-const HALO_CENTRE: Point = [768, 230];
-const HALO_RADIUS = 170;
-const HALO_STROKE = 10;
-/** Rays of the signature move: count, and where they start and end. */
-const RAY_COUNT = 12;
-const RAY_INNER = 200;
-const RAY_OUTER = 380;
-const RAY_HALF_WIDTH_DEG = 4;
-/** The halo breaks into this many shards when the dragon dies. */
-const SHARD_COUNT = 8;
-const SHARD_GAP_DEG = 6;
-const SHARD_FLY = 260;
+/** The dragon's halo, over its brow. */
+const DRAGON_HALO: HaloSpec = { centre: [768, 230], radius: 170, stroke: 10 };
 /** Where the death's light bursts out of the dragon (its chest). */
 const CHEST: Point = [768, 600];
 /** The left eye's centre; eye shapes are offsets from it. */
@@ -212,49 +213,6 @@ const BREATH: readonly Point[] = [
   [546, 1060],
 ];
 const JAW: Point = [768, 440];
-
-// --- HELPERS ---
-/** Concept-art units to viewBox units (one scale for both axes). */
-const ART_SCALE = BODY_WIDTH[3] / ART_WIDTH;
-const art = ([x, y]: Point): Point => [x * ART_SCALE, y * ART_SCALE];
-
-/** Points (in art units) as an SVG points string in viewBox units. */
-const pts = (points: readonly Point[]): string =>
-  points
-    .map(art)
-    .map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`)
-    .join(' ');
-
-/** Mirrors art points across the dragon's centre line. */
-const mirrored = (points: readonly Point[]): Point[] =>
-  points.map(([x, y]) => [ART_WIDTH - x, y] as const);
-
-/** A CSS transform origin at an art point, in viewBox units. */
-const originAt = (point: Point): CSSProperties => {
-  const [x, y] = art(point);
-  return { transformOrigin: `${x}px ${y}px` };
-};
-
-/** A point `radius` art units from `centre`, at `deg` (0 = right). */
-const polar = ([x, y]: Point, radius: number, deg: number): Point => {
-  const rad = (deg * Math.PI) / 180;
-  return [x + radius * Math.cos(rad), y + radius * Math.sin(rad)];
-};
-
-/** One ray of light: a thin wedge from the halo outward. */
-const rayPoints = (deg: number): readonly Point[] => [
-  polar(HALO_CENTRE, RAY_INNER, deg - RAY_HALF_WIDTH_DEG),
-  polar(HALO_CENTRE, RAY_OUTER, deg),
-  polar(HALO_CENTRE, RAY_INNER, deg + RAY_HALF_WIDTH_DEG),
-];
-
-/** An arc of the halo ring (art units), as an SVG path in viewBox units. */
-const arcPath = (fromDeg: number, toDeg: number): string => {
-  const [x1, y1] = art(polar(HALO_CENTRE, HALO_RADIUS, fromDeg));
-  const [x2, y2] = art(polar(HALO_CENTRE, HALO_RADIUS, toDeg));
-  const r = HALO_RADIUS * ART_SCALE;
-  return `M${x1.toFixed(1)} ${y1.toFixed(1)} A${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)}`;
-};
 
 // --- SUBCOMPONENTS: HOLY DRAGON ---
 /** A left part and its mirrored twin, lit and shadowed. */
@@ -289,86 +247,6 @@ const Wings = () => (
     </g>
   </>
 );
-
-/**
- * The light the signature move gathers (hidden until it plays): a glow
- * behind the halo and a wheel of rays around it.
- */
-const JudgmentLight = () => {
-  const [haloX, haloY] = art(HALO_CENTRE);
-  return (
-    <>
-      <circle
-        className="dragon-halo-glow"
-        cx={haloX}
-        cy={haloY}
-        r={HALO_RADIUS * ART_SCALE * 1.3}
-        fill={HOLY_FIRE}
-        opacity="0"
-        style={originAt(HALO_CENTRE)}
-      />
-      <g className="dragon-rays" opacity="0" style={originAt(HALO_CENTRE)}>
-        {Array.from({ length: RAY_COUNT }, (_, index) => {
-          const deg = (360 / RAY_COUNT) * index;
-          return (
-            <polygon key={deg} points={pts(rayPoints(deg))} fill={HOLY_FIRE} />
-          );
-        })}
-      </g>
-    </>
-  );
-};
-
-/**
- * The halo's pieces for the death (hidden until then): each shard is an
- * arc of the ring that flies outward from where it sat.
- */
-const HaloShards = () => {
-  const step = 360 / SHARD_COUNT;
-  return (
-    <g className="dragon-shards">
-      {Array.from({ length: SHARD_COUNT }, (_, index) => {
-        const from = step * index + SHARD_GAP_DEG / 2;
-        const [dx, dy] = polar([0, 0], SHARD_FLY * ART_SCALE, from + step / 2);
-        return (
-          <path
-            key={from}
-            className="dragon-shard"
-            d={arcPath(from, from + step - SHARD_GAP_DEG)}
-            fill="none"
-            stroke={GOLD.lit}
-            strokeWidth={HALO_STROKE * ART_SCALE}
-            strokeLinecap="round"
-            opacity="0"
-            style={
-              {
-                '--dx': `${dx.toFixed(1)}px`,
-                '--dy': `${dy.toFixed(1)}px`,
-                '--spin': `${index % 2 === 0 ? 40 : -40}deg`,
-              } as CSSProperties
-            }
-          />
-        );
-      })}
-    </g>
-  );
-};
-
-/** The light that bursts from the dragon's chest as it dies. */
-const DeathBurst = () => {
-  const [x, y] = art(CHEST);
-  return (
-    <circle
-      className="dragon-burst"
-      cx={x}
-      cy={y}
-      r="14"
-      fill="#fffbe8"
-      opacity="0"
-      style={originAt(CHEST)}
-    />
-  );
-};
 
 // --- SUBCOMPONENTS: HOLY DRAGON FACE ---
 /** Offsets (art units) moved to the left eye's centre. */
@@ -525,22 +403,13 @@ const DragonFace = ({ mood }: { mood: HeroMood }) => {
 
 /** The holy dragon, crouched, wings spread, haloed. */
 const HolyDragon = ({ mood }: { mood: HeroMood }) => {
-  const [haloX, haloY] = art(HALO_CENTRE);
   const [jawX, jawY] = art(JAW);
   return (
     <>
-      <JudgmentLight />
+      <HaloLight halo={DRAGON_HALO} />
       <Wings />
-      <HaloShards />
-      <circle
-        className="dragon-halo"
-        cx={haloX}
-        cy={haloY}
-        r={HALO_RADIUS * ART_SCALE}
-        fill="none"
-        stroke={GOLD.lit}
-        strokeWidth={HALO_STROKE * ART_SCALE}
-      />
+      <HaloShards halo={DRAGON_HALO} />
+      <HaloRing halo={DRAGON_HALO} />
       <polygon points={pts(HAUNCH_SHAPE)} fill={HAUNCH} />
       <polygon points={pts(mirrored(HAUNCH_SHAPE))} fill={HAUNCH} />
       <polygon points={pts(TAIL)} fill={IVORY.shade} />
@@ -567,7 +436,7 @@ const HolyDragon = ({ mood }: { mood: HeroMood }) => {
         opacity="0"
         style={{ transformOrigin: `${jawX}px ${jawY}px` }}
       />
-      <DeathBurst />
+      <DeathBurst at={CHEST} />
     </>
   );
 };
@@ -760,6 +629,7 @@ const CREATURE_DRAWINGS: Record<
 > = {
   holyDragon: HolyDragon,
   angelArcher: AngelArcher,
+  grandGriffon: GrandGriffon,
 };
 
 // --- COMPONENT ---

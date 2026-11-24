@@ -23,6 +23,7 @@ export const NO_STATUSES: Statuses = {
   piercing: 0,
   protection: 0,
   momentum: 0,
+  aloft: 0,
 };
 
 /** Which buff powers up each card type's damage (curses and buffs: none). */

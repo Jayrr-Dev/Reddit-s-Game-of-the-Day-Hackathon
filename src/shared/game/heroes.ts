@@ -76,6 +76,9 @@ const summon = (heroId: SummonId, count: number): HeroEffect => ({
   count,
 });
 
+/** Flies up out of reach; the next move dives back down. */
+const soar = (): HeroEffect => ({ kind: 'soar' });
+
 /** Builds a named move. */
 const move = (name: string, ...effects: HeroEffect[]): HeroMove => ({
   name,
@@ -102,6 +105,8 @@ const HUGE: Placement = { row: 'front', size: 3 };
  * leaving the back flanks for the heroes it summons.
  */
 const BOSS_T: Placement = { row: 'front', size: 3, backCols: [1] };
+/** A boss down the centre column: the front and back centre slots. */
+const BOSS_COLUMN: Placement = { row: 'front', size: 1, backCols: [0] };
 
 /**
  * Builds a hero definition. Speed sets the turn order (higher acts
@@ -233,6 +238,31 @@ export const HEROES = {
       move('Sanctuary Wings', shroud(20)),
       signature(move('Halo of Judgment', revive(), spell(26))),
       move('Radiant Roar', wrath(2)),
+    ],
+    BOSS_ACTIONS
+  ),
+  /**
+   * A haloed griffon boss down the centre column, flanked by open
+   * slots. Two moves a turn, and it loves its Triple Slice. Its
+   * signature Heavenly Drive takes two turns: it flies up out of reach
+   * (ending its turn, Aloft), then a turn later dives down with one
+   * crushing blow. The cycle is even, so the take-off always falls on
+   * its second action.
+   */
+  grandGriffon: hero(
+    'Grand Griffon Rio',
+    'boss',
+    420,
+    275,
+    8,
+    BOSS_COLUMN,
+    [
+      move('Triple Slice', strike(6, 3)),
+      move('Heavenly Drive', soar()),
+      signature(move('Heavenly Dive', strike(34))),
+      move('Triple Slice', strike(6, 3)),
+      move('Gale Wings', shroud(18)),
+      move('Proud Cry', wrath(2)),
     ],
     BOSS_ACTIONS
   ),

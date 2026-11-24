@@ -114,6 +114,8 @@
   --animate-card-flight: card-flight 380ms cubic-bezier(0.4, 0, 0.2, 1) both;
   --animate-boss-flash: boss-flash 1800ms ease-out forwards;
   --animate-field-shake: field-shake 1800ms linear;
+  /* A diving boss lands (after its 260 ms drop, see FLIGHT). */
+  --animate-dive-shake: dive-shake 420ms linear 240ms;
   --animate-impact-slash: impact-slash 1000ms ease-out forwards;
   --animate-impact-puncture: impact-puncture 1000ms ease-out forwards;
   --animate-magic-flash: magic-flash 760ms ease-out both;
@@ -674,6 +676,25 @@
   }
 
   /* The field shakes as the boss's light bursts, then settles. */
+  @keyframes dive-shake {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    15% {
+      transform: translate(0, 7px);
+    }
+    35% {
+      transform: translate(-4px, -3px);
+    }
+    55% {
+      transform: translate(3px, 2px);
+    }
+    75% {
+      transform: translate(-1px, -1px);
+    }
+  }
+
   @keyframes field-shake {
     0%,
     22%,
@@ -1408,7 +1429,7 @@ textarea,
   }
 }
 
-@keyframes dragon-halo-flare {
+@keyframes halo-flare {
   0%,
   100% {
     transform: scale(1);
@@ -1426,7 +1447,7 @@ textarea,
   transform-box: view-box;
 }
 
-.dragon-halo {
+.boss-halo {
   transform-box: fill-box;
   transform-origin: center;
 }
@@ -1444,8 +1465,8 @@ textarea,
   animation: dragon-breath 560ms ease-out;
 }
 
-[data-action='support'] .dragon-halo {
-  animation: dragon-halo-flare 560ms ease-out;
+[data-action='support'] .boss-halo {
+  animation: halo-flare 560ms ease-out;
 }
 
 /* --- SIGNATURE: HALO OF JUDGMENT ---
@@ -1506,21 +1527,21 @@ textarea,
   }
 }
 
-.dragon-halo-glow,
-.dragon-rays,
-.dragon-burst {
+.boss-halo-glow,
+.boss-rays,
+.boss-burst {
   transform-box: view-box;
 }
 
-[data-signature] .dragon-halo {
+[data-signature] .boss-halo {
   animation: judgment-halo 1460ms ease-in-out;
 }
 
-[data-signature] .dragon-halo-glow {
+[data-signature] .boss-halo-glow {
   animation: judgment-glow 1460ms ease-in-out;
 }
 
-[data-signature] .dragon-rays {
+[data-signature] .boss-rays {
   animation: judgment-rays 1460ms ease-in-out;
 }
 
@@ -1599,20 +1620,20 @@ textarea,
   }
 }
 
-.dragon-shard {
+.boss-shard {
   transform-box: fill-box;
   transform-origin: center;
 }
 
-[data-dying] .dragon-halo {
+[data-dying] .boss-halo {
   animation: halo-crack 1800ms linear forwards;
 }
 
-[data-dying] .dragon-shard {
+[data-dying] .boss-shard {
   animation: shard-fly 1800ms ease-out forwards;
 }
 
-[data-dying] .dragon-burst {
+[data-dying] .boss-burst {
   animation: death-burst 1800ms ease-out forwards;
 }
 
@@ -1680,6 +1701,124 @@ textarea,
 
 [data-action] .angel-flare {
   animation: angel-flare 560ms ease-out;
+}
+
+/* --- GRAND GRIFFON ---
+   Its wings beat on every move like the dragon's (and without rest
+   while it is Aloft); Triple Slice rakes three claw streaks in quick
+   succession (delays set inline); on death its feathers burst off it.
+   The halo, the signature light and the death burst are the shared
+   BOSS HALO parts above. */
+@keyframes griffon-flap-left {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(22deg);
+  }
+  70% {
+    transform: rotate(-12deg);
+  }
+}
+
+@keyframes griffon-flap-right {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(-22deg);
+  }
+  70% {
+    transform: rotate(12deg);
+  }
+}
+
+@keyframes griffon-claw {
+  0% {
+    opacity: 0;
+    transform: translate(-6px, -18px) scaleY(0.3);
+  }
+  30% {
+    opacity: 1;
+    transform: translate(0, 0) scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(3px, 8px) scaleY(1.05);
+  }
+}
+
+.griffon-wing-left,
+.griffon-wing-right {
+  transform-box: view-box;
+}
+
+.griffon-claw,
+.griffon-feather {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+[data-action] .griffon-wing-left {
+  animation: griffon-flap-left 560ms ease-in-out;
+}
+
+[data-action] .griffon-wing-right {
+  animation: griffon-flap-right 560ms ease-in-out;
+}
+
+[data-aloft] .griffon-wing-left {
+  animation: griffon-flap-left 380ms ease-in-out infinite;
+}
+
+[data-aloft] .griffon-wing-right {
+  animation: griffon-flap-right 380ms ease-in-out infinite;
+}
+
+[data-action='melee'] .griffon-claw {
+  animation: griffon-claw 260ms ease-out both;
+}
+
+[data-dying] .griffon-feather {
+  animation: shard-fly 1800ms ease-out forwards;
+}
+
+[data-dying] .griffon-wing-left {
+  animation: wing-crumple-left 1800ms ease-in forwards;
+}
+
+[data-dying] .griffon-wing-right {
+  animation: wing-crumple-right 1800ms ease-in forwards;
+}
+
+/* --- FLIGHT (ALOFT) ---
+   A hero Aloft (data-aloft on its field box) rises out of reach: its
+   drawing lifts and shrinks into the sky while its shadow stays on the
+   ground, shrinking and fading. Transitions, so the direction picks the
+   pace: the take-off (rule under [data-aloft]) dips into a crouch, then
+   climbs over a second; the dive (the base rule) drops in a quarter
+   second, accelerating, and the field shakes as it lands. */
+.hero-flight,
+.hero-flight-shadow {
+  transform-origin: 50% 100%;
+  transition:
+    transform 260ms cubic-bezier(0.7, 0, 1, 1),
+    opacity 260ms ease-in;
+}
+
+[data-aloft] .hero-flight {
+  transform: translateY(-72%) scale(0.42);
+  transition: transform 1100ms cubic-bezier(0.35, -0.35, 0.25, 1);
+}
+
+[data-aloft] .hero-flight-shadow {
+  transform: scale(0.4);
+  opacity: 0.45;
+  transition:
+    transform 1100ms ease-out,
+    opacity 1100ms ease-out;
 }
 
 /* --- SCROLLBARS ---
