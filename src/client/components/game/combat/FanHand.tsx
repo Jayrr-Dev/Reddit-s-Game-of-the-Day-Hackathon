@@ -28,6 +28,8 @@ export type FanHandProps = {
   heldIndex: number | null;
   /** Slots the raised Imbue card may imbue: they glow teal. */
   imbueSlots: readonly number[];
+  /** The slot the imbue arrow points at: its glow pulses. */
+  imbueAimedSlot: number | null;
   onTapCard: (handIndex: number) => void;
   /** Pointer down on a card: may become a drag (see useCardDrag). */
   onPressCard: (handIndex: number, event: PointerEvent<HTMLElement>) => void;
@@ -146,6 +148,7 @@ export const FanHand = ({
   combat,
   heldIndex,
   imbueSlots,
+  imbueAimedSlot,
   onTapCard,
   onPressCard,
   draggedIndex,
@@ -181,6 +184,7 @@ export const FanHand = ({
               isSelected={index === heldIndex}
               imbues={imbuesAt(combat, index)}
               isImbueTarget={imbueSlots.includes(index)}
+              isImbueAimed={index === imbueAimedSlot}
               // While imbuing, every card can be tapped (to pick or let go).
               isDisabled={
                 imbueSlots.length === 0 && !canPlayCard(combat, index)

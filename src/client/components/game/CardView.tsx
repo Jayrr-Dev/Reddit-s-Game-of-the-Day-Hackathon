@@ -37,6 +37,8 @@ export type CardViewProps = {
   imbues?: readonly Imbue[];
   /** Glows teal while an Imbue card could imbue it. */
   isImbueTarget?: boolean;
+  /** Pulses while the imbue arrow points at it. */
+  isImbueAimed?: boolean;
   /** "fan" cards sit in the fanned hand; "offer" cards are full size. */
   size?: CardSize;
   onClick?: () => void;
@@ -184,6 +186,7 @@ export const CardView = ({
   isSelected = false,
   imbues = [],
   isImbueTarget = false,
+  isImbueAimed = false,
   size = 'offer',
   onClick,
 }: CardViewProps) => {
@@ -211,6 +214,12 @@ export const CardView = ({
         glowVar={typeLook.glowVar}
         look={look}
       />
+      {isImbueAimed && (
+        <span
+          aria-hidden
+          className="imbue-aim-pulse pointer-events-none absolute inset-0 rounded-lg"
+        />
+      )}
       <ImbueBadges imbues={imbues} />
       <span
         className={`-mx-[3px] shrink-0 border-y border-black/50 ${typeLook.frameClass} font-display font-black uppercase leading-none tracking-tight text-ink [text-shadow:0_1px_1px_rgb(0_0_0/0.8)] ${look.name}`}

@@ -391,6 +391,19 @@ export const useCardDrag = (
   /** True when the last press on a card turned into a drag. */
   const wasDrag = () => didDragRef.current;
 
+  /**
+   * A press that will never drag (the caller skipped pressCard): forget
+   * the last drag, so this press's click counts as a tap.
+   */
+  const pressWithoutDrag = () => {
+    didDragRef.current = false;
+  };
+
   // A drag only exists while its press does (belt and braces).
-  return { drag: press ? drag : null, pressCard, wasDrag } as const;
+  return {
+    drag: press ? drag : null,
+    pressCard,
+    pressWithoutDrag,
+    wasDrag,
+  } as const;
 };

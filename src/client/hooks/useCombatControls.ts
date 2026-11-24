@@ -263,9 +263,14 @@ export const useCombatControls = (
 
   const drags = useCardDrag(startDrag, dropCard);
   const { drag, wasDrag } = drags;
-  /** Pointer down on a card: no drag while an Imbue card is choosing. */
+  /**
+   * Pointer down on a card: no drag while an Imbue card is choosing, but
+   * the press still clears the last drag (the Imbue card's own drag), or
+   * its click would be thrown away as a post-drag click.
+   */
   const pressCard: typeof drags.pressCard = (handIndex, event) => {
-    if (!imbue.isImbuing) drags.pressCard(handIndex, event);
+    if (imbue.isImbuing) return drags.pressWithoutDrag();
+    drags.pressCard(handIndex, event);
   };
   // SNAPPING AND GLOW: worked out fresh from the live drag each render.
   const dragCard = drag ? combat.hand[drag.handIndex] : undefined;
@@ -412,6 +417,8 @@ export const useCombatControls = (
     /** Hand slots the raised Imbue card may imbue (empty otherwise). */
     imbueSlots: imbue.slots,
     imbueArrow: imbue.arrow,
+    /** The slot the live imbue arrow points at (it pulses), or null. */
+    imbueAimedSlot: imbue.arrow?.isLive ? imbue.arrow.slot : null,
     drag,
     aimPoint,
     isDropLive,

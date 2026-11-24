@@ -5,6 +5,7 @@
 //      card it may imbue glows teal.
 //   2. An arrow runs from it to the card under the pointer (live, gold,
 //      over a card it may imbue).
+//      The card it would imbue pulses.
 //   3. Tap a glowing card to imbue it; that plays the Imbue card.
 // Tapping anywhere that is not a card in hand, tapping the Imbue card
 // again, or tapping a card it can't imbue lets it go; nothing is spent.
@@ -19,7 +20,14 @@ import { HAND_SLOT_ATTR, HELD_CARD_ATTR, type Point } from './useCardDrag';
 
 // --- TYPES ---
 /** The arrow from the Imbue card to the card under the pointer. */
-export type ImbueArrow = { from: Point; to: Point; isLive: boolean };
+export type ImbueArrow = {
+  from: Point;
+  to: Point;
+  /** True over a card it may imbue. */
+  isLive: boolean;
+  /** The hand slot the arrow points at. */
+  slot: number;
+};
 
 // --- HELPERS ---
 /** The hand slot an element sits in, or null outside the hand. */
@@ -102,7 +110,7 @@ export const useImbuePick = (
       const isOther = slot !== null && slot !== imbuingIndex;
       setArrow(
         from && to && isOther
-          ? { from, to, isLive: allowed.includes(slot) }
+          ? { from, to, isLive: allowed.includes(slot), slot }
           : null
       );
     };

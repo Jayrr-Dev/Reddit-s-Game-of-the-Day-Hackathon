@@ -2594,3 +2594,29 @@ textarea,
     opacity: 1;
   }
 }
+
+/* --- IMBUE AIM PULSE ---
+   The card the imbue arrow points at: a brighter teal halo that
+   breathes (opacity only). Reduced motion holds it lit. */
+.imbue-aim-pulse {
+  box-shadow:
+    0 0 0 3px var(--color-imbue),
+    0 0 24px 6px var(--color-imbue);
+  animation: imbue-aim-pulse 900ms ease-in-out infinite;
+}
+
+@keyframes imbue-aim-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .imbue-aim-pulse {
+    animation: none;
+  }
+}

@@ -351,6 +351,7 @@ export const CombatView = ({
           combat={combat}
           heldIndex={controls.heldIndex}
           imbueSlots={controls.imbueSlots}
+          imbueAimedSlot={controls.imbueAimedSlot}
           onTapCard={controls.tapCard}
           onPressCard={controls.pressCard}
           draggedIndex={drag?.handIndex ?? null}
