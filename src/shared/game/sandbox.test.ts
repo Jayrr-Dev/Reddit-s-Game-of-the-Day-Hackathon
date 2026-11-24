@@ -8,6 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { sizeOf } from './battlefield.ts';
 import {
+  SANDBOX_SCENARIOS,
   createSandbox,
   createSandboxWith,
   rollDummies,
@@ -77,4 +78,29 @@ void test('a 3-slot creature can turn up among the random dummies', () => {
     rollDummies(seed)[0].includes('holyDragon')
   );
   assert.ok(isRolled);
+});
+
+// --- SCENARIOS ---
+void test('every scenario places all its heroes without overlap', () => {
+  for (const scenario of SANDBOX_SCENARIOS) {
+    const { heroes } = createSandboxWith(9, scenario.heroIds);
+    assert.equal(heroes.length, scenario.heroIds.length, scenario.name);
+    const cells = heroes.flatMap(cellsOf);
+    assert.equal(
+      new Set(cells).size,
+      cells.length,
+      `${scenario.name} overlaps`
+    );
+    assert.ok(heroes.every((unit) => unit.col + sizeOf(unit) <= 3));
+  }
+});
+
+void test('scenario ids are unique and the Holy Dragon has one', () => {
+  const ids = SANDBOX_SCENARIOS.map((scenario) => scenario.id);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.ok(
+    SANDBOX_SCENARIOS.some((scenario) =>
+      scenario.heroIds.includes('holyDragon')
+    )
+  );
 });

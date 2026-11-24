@@ -206,6 +206,6 @@ export const CHAMPION_IDS: readonly HeroId[] = [
 
 /**
  * New units being tried out: they turn up only as target dummies (and
- * in the practice menu's "Summon test creature") until they join a run.
+ * in the practice menu's scenarios) until they join a run.
  */
 export const TEST_CREATURE_IDS: readonly HeroId[] = ['holyDragon'];

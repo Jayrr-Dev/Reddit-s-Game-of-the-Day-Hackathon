@@ -46,6 +46,61 @@ const DUMMY_POOL: readonly { item: HeroId; weight: number }[] = [
   ...TEST_CREATURE_IDS.map((item) => ({ item, weight: 1 })),
 ];
 
+// --- SCENARIOS ---
+/** A preset lineup to practise against, picked from the pause menu. */
+export type SandboxScenario = {
+  id: string;
+  name: string;
+  /** One line on what it tests. */
+  blurb: string;
+  /** Heroes in the fight; the battlefield rules place them. */
+  heroIds: readonly HeroId[];
+};
+
+/**
+ * The preset lineups. Each must fit the field (3 front + 3 back
+ * columns); the sandbox tests check that every hero gets a spot.
+ * Add a scenario by adding an entry here.
+ */
+export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
+  {
+    id: 'holyDragon',
+    name: 'Holy Dragon',
+    blurb: 'The dragon fills the front; a priest, archer and bard behind.',
+    heroIds: ['holyDragon', 'priest', 'bard', 'archer'],
+  },
+  {
+    id: 'mixedRows',
+    name: 'Full field',
+    blurb: 'Every slot taken: fighters in front, ranged and support behind.',
+    heroIds: ['squire', 'shieldmaiden', 'squire', 'archer', 'priest', 'bard'],
+  },
+  {
+    id: 'archers',
+    name: 'Archer volley',
+    blurb: 'All archers: lots of Range hits, front and back.',
+    heroIds: ['archer', 'archer', 'archer', 'archer', 'archer'],
+  },
+  {
+    id: 'tankWall',
+    name: 'Tank wall',
+    blurb: 'Shields up front, healers behind: test Guard breaking.',
+    heroIds: ['shieldmaiden', 'shieldmaiden', 'squire', 'priest', 'priest'],
+  },
+  {
+    id: 'elites',
+    name: 'Elites',
+    blurb: 'A Paladin and an Archmage, each two slots wide.',
+    heroIds: ['paladin', 'squire', 'archmage', 'rogue'],
+  },
+  {
+    id: 'champion',
+    name: 'Champion',
+    blurb: 'Valen the Radiant with a priest and a bard.',
+    heroIds: ['valen', 'priest', 'bard'],
+  },
+];
+
 // --- HORDE ---
 /** Rolls 2 to 5 random heroes that fit the field together. */
 export const rollDummies = (seed: RngState): [HeroId[], RngState] => {
@@ -124,9 +179,9 @@ export const createSandbox = (seed: RngState): CombatState => {
 };
 
 /**
- * A sandbox fight against chosen heroes (e.g. a creature being tried
- * out), placed by the normal battlefield rules. Clearing it rolls a
- * random horde as usual.
+ * A sandbox fight against chosen heroes (e.g. a scenario's lineup),
+ * placed by the normal battlefield rules. Clearing it rolls a random
+ * horde as usual.
  */
 export const createSandboxWith = (
   seed: RngState,
