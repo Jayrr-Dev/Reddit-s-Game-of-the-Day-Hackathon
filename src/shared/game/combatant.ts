@@ -479,7 +479,7 @@ export const incomingAfflictionDamage = (
 ): number =>
   protectedAmount(
     target,
-    // ANTIVENOM: the target's own skill cuts what reaches it.
+    // TOLERANCE: the target's own skill cuts what reaches it.
     Math.round(
       afflictionDamage(amount, source) *
         (1 - afflictionResistOf(target.skillPicks))

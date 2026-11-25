@@ -484,7 +484,7 @@ test('Debilitate: adds 5% per rank to Weaken and Enfeeble cuts', () => {
   );
 });
 
-test('Antivenom: affliction damage taken is 5% lower per rank', () => {
+test('Tolerance: affliction damage taken is 5% lower per rank', () => {
   const a = { branch: 4, tier: 2, slot: 1 };
   const villain = { ...createCombatant(50, 50), skillPicks: [a, a, a, a, a] };
   assert.equal(incomingAfflictionDamage(villain, 20), 15);

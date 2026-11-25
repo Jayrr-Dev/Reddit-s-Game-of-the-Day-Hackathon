@@ -126,7 +126,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
       'Weaken and Enfeeble on the heroes cut 5% more damage per rank (up to +25%, added on)',
   },
   '4-2-1': {
-    name: 'Antivenom',
+    name: 'Tolerance',
     description: 'Affliction damage you take is 5% lower per rank (up to -25%)',
   },
   '4-3-1': {
@@ -404,7 +404,7 @@ export const virulentStacks = (
  */
 export const debuffPowerOf = (picks?: readonly SkillPick[]): number =>
   ranksIn(picks, 4, 2, 0) * EDGE_DAMAGE_PER_RANK;
-/** ANTIVENOM (other afflictions line): affliction damage taken, -5% per rank. */
+/** TOLERANCE (other afflictions line): affliction damage taken, -5% per rank. */
 export const afflictionResistOf = (picks?: readonly SkillPick[]): number =>
   ranksIn(picks, 4, 2, 1) * EDGE_DAMAGE_PER_RANK;
 /** RELENTLESS (other afflictions capstone): afflictions ride blocked hits. */
