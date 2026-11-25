@@ -28,7 +28,7 @@ import {
   ROUND_BUFFS,
 } from './rules.ts';
 import { characterBonuses, healingAmount } from './character.ts';
-import { edgeDamageBonusOf, stackedBuffTurnsOf, momentumSkillBonusOf } from './skills.ts';
+import { buffPowerBonusOf, edgeDamageBonusOf, stackedBuffTurnsOf, momentumSkillBonusOf } from './skills.ts';
 import { pickOne, type RngState } from './rng.ts';
 import type {
   BuffId,
@@ -96,6 +96,13 @@ export const damageBuffOf = (type?: CardType): BuffId | undefined =>
   type ? DAMAGE_BUFF_OF[type] : undefined;
 
 /** Extra damage per hit a card of `type` gets from the attacker's buffs. */
+/**
+ * POTENCY (skill tree): what a buff's flat bonus (Wrath, Might, Surge,
+ * Hone, Reinforce) is worth for this unit, rounded to whole points.
+ */
+export const buffedAmount = (unit: Combatant, amount: number): number =>
+  Math.round(amount * (1 + buffPowerBonusOf(unit.skillPicks)));
+
 export const typeBonus = (attacker: Combatant, type?: CardType): number => {
   const buff = damageBuffOf(type);
   return buff ? attacker.statuses[buff] : 0;
@@ -214,7 +221,7 @@ export const buffedAttackDamage = (
   hits = 1,
   edge?: MeleeEdge
 ): number => {
-  const withBuffs = traitDamage(base, attacker, type, hits) + attacker.statuses.wrath + typeBonus(attacker, type);
+  const withBuffs = traitDamage(base, attacker, type, hits) + buffedAmount(attacker, attacker.statuses.wrath + typeBonus(attacker, type));
   const boost = boostFactorOf(attacker, type, isRampage, edge);
   return Math.max(0, Math.floor(withBuffs * boost));
 };
@@ -227,7 +234,7 @@ export const attackDamage = (
   hits = 1,
   edge?: MeleeEdge
 ): number => {
-  const withWrath = traitDamage(base, attacker, type, hits) + attacker.statuses.wrath + typeBonus(attacker, type);
+  const withWrath = traitDamage(base, attacker, type, hits) + buffedAmount(attacker, attacker.statuses.wrath + typeBonus(attacker, type));
   const factor = damageFactorOf(attacker, type, isRampage, edge);
   const scaled = withWrath * factor;
   const factored = attacker.statuses.enfeeble > 0 ? ceilHitDamage(scaled) : Math.floor(scaled);
@@ -562,7 +569,7 @@ export const heal = <T extends Combatant>(target: T, amount: number): T => ({
 export const guardAmount = (base: number, owner: Combatant, applications = 1): number => {
   const { shieldPercent, shieldFlat } = combatantBonuses(owner);
   return Math.floor(base * (100 + shieldPercent) / 100)
-    + Math.floor(shieldFlat / applications) + owner.statuses.reinforce;
+    + Math.floor(shieldFlat / applications) + buffedAmount(owner, owner.statuses.reinforce);
 };
 
 /** Adds guard. */

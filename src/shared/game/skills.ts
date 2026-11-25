@@ -106,6 +106,11 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     name: 'Deep Pockets',
     description: '+1 max hand size per rank (up to +5)',
   },
+  '3-2-0': {
+    name: 'Potency',
+    description:
+      'Buffs (Wrath, Might, Surge, Hone, Reinforce) are 3% stronger per rank (up to +15%)',
+  },
   '4-0-0': {
     name: 'Grimoire',
     description:
@@ -341,6 +346,11 @@ export const healingSkillBonusOf = (picks?: readonly SkillPick[]): number =>
 /** DEEP POCKETS (Utility line): extra hand slots, one per rank. */
 export const handSizeBonusOf = (picks?: readonly SkillPick[]): number =>
   ranksIn(picks, 3, 2, 1);
+/** POTENCY: buff strength added per rank (Buffs line, second circle). */
+export const POTENCY_PER_RANK = 0.03;
+/** How much stronger buffs' flat bonuses are (0 to 0.15). */
+export const buffPowerBonusOf = (picks?: readonly SkillPick[]): number =>
+  ranksIn(picks, 3, 2, 0) * POTENCY_PER_RANK;
 /** SHOCKWAVE (Blunt capstone): Momentum turns Melee strikes into Cleaves. */
 export const hasMomentumCleave = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 1, 3, 0);

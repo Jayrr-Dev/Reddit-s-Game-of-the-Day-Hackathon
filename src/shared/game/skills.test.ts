@@ -419,3 +419,15 @@ test('Deep Pockets: +1 hand size per rank', () => {
   const dp = { branch: 3, tier: 2, slot: 1 };
   assert.equal(handSizeBonusOf([dp, dp, dp]), 3);
 });
+
+test('Potency: buffs 3% stronger per rank', () => {
+  const pot = { branch: 3, tier: 2, slot: 0 };
+  const base = createCombatant(50, 50);
+  const angry = {
+    ...base,
+    skillPicks: [pot, pot, pot, pot, pot],
+    statuses: { ...base.statuses, wrath: 20 },
+  };
+  assert.equal(attackDamage(0, angry, 'melee'), 23);
+  assert.equal(attackDamage(0, { ...angry, skillPicks: [] }, 'melee'), 20);
+});
