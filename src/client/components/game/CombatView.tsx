@@ -253,7 +253,7 @@ export const CombatView = ({
     return () => setBossMusic(false);
   }, [hasBoss]);
   const previousCombat = useRef(combat);
-  const impactCard = useRef<ReturnType<typeof getCard> | undefined>(undefined);
+  const impactCard = useRef<CardId | undefined>(undefined);
   const musicVolume = useSyncExternalStore(subscribeVolume, () => getVolume('music'));
   const sfxVolume = useSyncExternalStore(subscribeVolume, () => getVolume('sfx'));
   const mapName = MAP_NAMES[terrainIndex % MAP_NAMES.length] ?? MAP_NAMES[0] ?? '';
@@ -267,17 +267,19 @@ export const CombatView = ({
       playCombatImpact(hexTriggered ? 'curse' : heroTurn.attackType ?? undefined, heroTurn.element, undefined, .75);
     }
     else if (combat.player.guard < before.player.guard && heroTurn.isPlaying) playSound('guard', 1.05, .76);
-    else if (combat.player.hp > before.player.hp) playSound('imbue', 1.14, .6);
+    else if (combat.player.hp > before.player.hp) playSound('heal', 1, .68);
     if (combat.heroes.some(unit => {
       const old = before.heroes.find(prior => prior.uid === unit.uid);
       return old && (unit.hp < old.hp || unit.guard < old.guard);
     })) {
-      const card = impactCard.current;
+      const id = impactCard.current;
+      const card = id ? getCard(id) : undefined;
+      const heavy = id === 'siegeBlast' || id === 'hurlAside' || !!card?.effects.some(effect => effect.kind === 'damage' && effect.amount >= 12);
       const hexTriggered = heroTurn.isPlaying && combat.heroes.some(unit => {
         const old = before.heroes.find(prior => prior.uid === unit.uid);
         return old && unit.hp < old.hp && unit.statuses.hex !== old.statuses.hex;
       });
-      playCombatImpact(hexTriggered ? 'curse' : card?.type, card?.element, card?.edge, .76);
+      playCombatImpact(hexTriggered ? 'curse' : card?.type, card?.element, card?.edge, .76, heavy);
     }
     if (combat.heroes.some(unit => !before.heroes.some(old => old.uid === unit.uid))) playSound('move', .85, .65);
   }, [combat, heroTurn.attackType, heroTurn.element, heroTurn.isPlaying]);
@@ -308,14 +310,14 @@ export const CombatView = ({
       if (allowCombatAction && !allowCombatAction(action)) return;
       if (action.type === 'endTurn') {
         impactCard.current = undefined;
-        playSound('menu', .9);
+        playSound('turnEnd', 1, .77);
         return playHeroTurn();
       }
       if (action.type === 'move') impactCard.current = undefined;
       if (action.type === 'playCard') {
         const cardId = realCombat.hand[action.handIndex];
         const card = cardId ? getCard(cardId) : undefined;
-        impactCard.current = card;
+        impactCard.current = cardId;
         setLastCard(card);
         // A knockback the target shrugs off shows a cancel sign on it.
         const { targetUid } = action;
@@ -339,7 +341,7 @@ export const CombatView = ({
         // Melee cards swing across their targets; the slices follow.
         const swept = sweepPlanOf(realCombat, action);
         if (swept && swing(swept)) {
-          if (cardId && card?.edge === 'sharp') playCardSound(cardId);
+          if (cardId) playCardSound(cardId);
           setIsShooting(true);
           window.setTimeout(() => {
             setIsShooting(false);
