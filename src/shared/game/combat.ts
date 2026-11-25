@@ -652,14 +652,14 @@ export const targetDamageFactor = (
 
 /**
  * GUARD BREAK / FLESH WOUND (skill tree): a Blunt Melee card hits a hero
- * with Guard, Armor or Protection harder; a Sharp one hits a hero with none harder.
+ * with Guard or Armor harder; a Sharp one hits a hero with neither harder.
  */
 const skillTargetFactor = (unit: HeroUnit, cardDef: CardDef, picks?: readonly SkillPick[]): number => {
   // BATTLEMAGE / SNIPER (skill tree): Magic at Line 1, Range past it.
   if (cardDef.type === 'magic' && unit.row === 'front') return 1 + battlemageBonusOf(picks);
   if (cardDef.type === 'range' && unit.row !== 'front') return 1 + sniperBonusOf(picks);
   if (cardDef.type !== 'melee') return 1;
-  const isProtected = unit.guard > 0 || unit.statuses.armor > 0 || unit.statuses.protection > 0;
+  const isProtected = unit.guard > 0 || unit.statuses.armor > 0;
   if (cardDef.edge === 'blunt' && isProtected) return 1 + guardBreakBonusOf(picks);
   if (cardDef.edge === 'sharp' && !isProtected) return 1 + fleshWoundBonusOf(picks);
   return 1;
