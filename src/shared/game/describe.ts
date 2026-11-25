@@ -191,7 +191,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   },
   sharpshooter: {
     label: 'Sharpshooter',
-    description: `**+${Math.round(SHARPSHOOTER_ACCURACY_BONUS * 100)}%** hit accuracy\nBonus Accuracy subtracts from dodge. Above 100% shot accuracy can crit.\nRange hits deal **${SHARPSHOOTER_BONUS_TEXT}** damage.`,
+    description: `**+${Math.round(SHARPSHOOTER_ACCURACY_BONUS * 100)}%** hit accuracy\nBonus Accuracy subtracts from dodge. Above 100% shot accuracy can crit.\nRange hits deal **${SHARPSHOOTER_BONUS_TEXT}** damage.\nLasts this many turns (-1 at the end of each turn).`,
   },
   berserker: {
     label: 'Berserker',

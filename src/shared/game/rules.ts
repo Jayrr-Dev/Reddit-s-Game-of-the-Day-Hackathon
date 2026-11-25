@@ -63,7 +63,6 @@ export const BLEED_BITE_FACTOR = 1 / 3;
 /** Buffs that are on or off: their stacks are never printed or shown. */
 export const ON_OFF_BUFFS: ReadonlySet<BuffId> = new Set([
   'reflex',
-  'sharpshooter',
   'berserker',
 ]);
 /**

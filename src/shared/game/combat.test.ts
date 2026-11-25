@@ -2482,12 +2482,12 @@ void test('a turn has a play left while a card or a move can be made', () => {
 void test('Sharpshooter: Range hits deal 20% more, other types are unchanged', () => {
   const state = withHand(fightWith([]), ['sharpshooter', 'blackArrow']);
   const after = playCard(state, 0, 0);
-  assert.equal(after.player.statuses.sharpshooter, 1);
+  assert.equal(after.player.statuses.sharpshooter, 3);
   assert.deepEqual(describeCard('blackArrow', after.player).slice(0, 1), [
     'Damage 8',
   ]);
   assert.deepEqual(describeCard('backhand', after.player), ['Damage 6']);
-  assert.deepEqual(describeCard('sharpshooter'), ['Sharpshooter', 'Remove']);
+  assert.deepEqual(describeCard('sharpshooter'), ['Sharpshooter 3', 'Remove']);
   // +50% accuracy, added to each shot's chance (capped at 100%).
   const hero = after.heroes[0]!;
   const aloft = { ...hero, statuses: { ...hero.statuses, aloft: 1 } };

@@ -41,7 +41,7 @@ import type { SkillPick } from './skills.ts';
  *              lasts through two enemy turns; Stacked Buff tiers I–IV)
  * - bane:      adds this much to every affliction your cards lay (Hex,
  *              Poison, Burn, Frost, Bleed, Shock; see BANE_AFFLICTIONS)
- * - sharpshooter: on or off; +50% hit chance on every shot, and Range
+ * - sharpshooter: lasts N turns (-1 each turn end); +50% hit chance on every shot, and Range
  *   hits deal SHARPSHOOTER_DAMAGE_FACTOR times as much
  * - berserker: on or off; every Melee card has Rampage (BUFF_KEYWORDS)
  * Momentum comes from charging: while above 0 the next Melee card deals

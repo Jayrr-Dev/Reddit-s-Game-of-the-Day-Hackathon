@@ -22,7 +22,6 @@ import {
   tierNumeral,
   OUT_OF_RANGE_INFO,
   PASSIVE_INFO,
-  SHARPSHOOTER_BONUS_TEXT,
   STATUS_INFO,
 } from '../../../shared/game/describe';
 import {
@@ -141,7 +140,6 @@ const POPOVER_MIN_ROOM_ABOVE = 200;
  */
 const chipText = (id: StatusId, value: number): string => {
   if (id === 'momentum') return '+50%';
-  if (id === 'sharpshooter') return SHARPSHOOTER_BONUS_TEXT;
   if (TIERED_STATUSES.has(id)) return tierNumeral(value);
   return id === 'aloft' ? '' : String(value);
 };

@@ -464,7 +464,7 @@ export const CARDS = {
     'buff',
     1,
     'uncommon',
-    [buff('sharpshooter', 1)],
+    [buff('sharpshooter', 3)],
     REMOVES
   ),
   // TIMED BUFFS: cheaper or bigger, but they wear off

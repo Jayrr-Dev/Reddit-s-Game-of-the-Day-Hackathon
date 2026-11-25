@@ -723,6 +723,8 @@ export const endOfTurnUpkeep = <T extends Combatant>(target: T): T => {
       ...target.statuses,
       weaken: Math.max(0, weaken - 1),
       vex: Math.max(0, vex - 1),
+      // SHARPSHOOTER N lasts N turns: one comes off as each turn ends.
+      sharpshooter: Math.max(0, target.statuses.sharpshooter - 1),
       malaise: Math.max(0, (target.statuses.malaise ?? 0) - 1),
       hitLimit: Math.max(0, (target.statuses.hitLimit ?? 0) - 1),
       momentum: 0,
