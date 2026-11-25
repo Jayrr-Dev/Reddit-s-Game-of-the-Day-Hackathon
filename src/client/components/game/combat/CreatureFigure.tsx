@@ -53,6 +53,7 @@ import {
 } from '../../../lib/creatureArt';
 import { BODY_HEIGHT, BODY_WIDTH } from '../../../lib/heroFigure';
 import { GrandGriffon } from './GriffonFigure';
+import { TempestWyrm } from './TempestFigure';
 import {
   DeathBurst,
   HaloLight,
@@ -662,6 +663,7 @@ const CREATURE_DRAWINGS: Record<
   angelArcher: AngelArcher,
   grandGriffon: GrandGriffon,
   ballista: Ballista,
+  tempestWyrm: TempestWyrm,
 };
 
 // --- COMPONENT ---

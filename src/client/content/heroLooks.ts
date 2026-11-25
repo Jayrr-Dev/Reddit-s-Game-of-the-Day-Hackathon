@@ -133,6 +133,7 @@ export const CREATURE_IDS = [
   'angelArcher',
   'grandGriffon',
   'ballista',
+  'tempestWyrm',
 ] as const satisfies readonly HeroId[];
 export type CreatureId = (typeof CREATURE_IDS)[number];
 /** Every hero drawn by the shared humanoid figure. */
@@ -161,6 +162,7 @@ const CREATURE_SHADOW: Record<CreatureId, GroundShadow> = {
   angelArcher: { halfWidthShare: 0.2, opacity: 0.3 },
   grandGriffon: { halfWidthShare: 0.28, opacity: 0.45 },
   ballista: { halfWidthShare: 0.55, opacity: 0.45 },
+  tempestWyrm: { halfWidthShare: 0.46, opacity: 0.5 },
 };
 
 /** The ground shadow a hero casts. */

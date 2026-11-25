@@ -77,6 +77,12 @@ export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
     heroIds: ['grandGriffon'],
   },
   {
+    id: 'tempestWyrm',
+    name: 'Tempest Wyrm Vael',
+    blurb: 'A storm giant filling the front: Shock spears, then Thunderhead.',
+    heroIds: ['tempestWyrm'],
+  },
+  {
     id: 'mixedRows',
     name: 'Full field',
     blurb: 'Every slot taken: fighters in front, ranged and support behind.',

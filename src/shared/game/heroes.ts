@@ -328,6 +328,31 @@ export const HEROES = {
     { ...move('Crossed Talon', strike(3, 6)), isTwoHanded: true },
     move('Proud Cry', wrath(2)),
   ]),
+  /**
+   * A storm giant with a dragon's head, on a T like Sol (it fills the
+   * front). Two moves a turn (Vigor). It drives Shock onto the villain
+   * with its spear and wings, sets it off with Thunderhead, and its
+   * signature Sky Breaker brings down one huge lightning strike.
+   */
+  tempestWyrm: hero(
+    'Tempest Wyrm Vael',
+    'boss',
+    600,
+    215,
+    6,
+    BOSS_T,
+    [
+      move('Storm Spear', {
+        ...strike(9, 2),
+        perHit: [{ status: 'shock', amount: 5 }],
+      }),
+      move('Tempest Wings', guard(22), shock(4)),
+      move('Thunderhead', detonate()),
+      signature({ ...move('Sky Breaker', spell(32)), element: 'lightning' }),
+      move('Storm Roar', wrath(3)),
+    ],
+    ['vigor']
+  ),
 } as const satisfies Record<string, HeroDef>;
 
 // --- DERIVED DATA ---
