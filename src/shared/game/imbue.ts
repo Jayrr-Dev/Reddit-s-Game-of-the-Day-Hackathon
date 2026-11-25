@@ -22,6 +22,7 @@
 // Pure functions, like the rest of the engine.
 // ===================================================================
 
+import { utilityHoldsOf } from './skills.ts';
 import { isSelfEffect, targetRuleOf } from './battlefield.ts';
 import { getCard, hasKeyword, hitsPerPlay, type CardId } from './cards.ts';
 import {
@@ -60,11 +61,16 @@ export const imbuesAt = (state: CombatState, index: number): Imbue[] =>
  * on Melee), shaped as imbues so they play and show like imbued ones.
  * Never stored in handImbues: they last only while the buff is on.
  */
-const buffImbuesOf = (state: CombatState, cardId: CardId): Imbue[] =>
-  BUFF_KEYWORDS.filter(
-    ({ buff, type }) =>
-      state.player.statuses[buff] > 0 && getCard(cardId).type === type
-  ).map(({ keyword }) => ({ gift: { kind: 'keyword', keyword } }));
+const buffImbuesOf = (state: CombatState, cardId: CardId): Imbue[] => {
+  const type = getCard(cardId).type;
+  const fromBuffs = BUFF_KEYWORDS.filter(
+    (entry) => state.player.statuses[entry.buff] > 0 && type === entry.type
+  ).map(({ keyword }) => keyword);
+  // OVERFLOW (skill tree): every Utility card has Hold.
+  const fromSkills: CardKeyword[] =
+    type === 'utility' && utilityHoldsOf(state.player.skillPicks) ? ['hold'] : [];
+  return [...fromBuffs, ...fromSkills].map((keyword) => ({ gift: { kind: 'keyword', keyword } }));
+};
 
 /** Everything a card in hand carries when played: its imbues and buff keywords. */
 export const cardImbuesAt = (state: CombatState, index: number): Imbue[] => {
@@ -329,12 +335,14 @@ const stowImbues = (
  * go to the discard pile, stowing theirs.
  */
 export const discardHand = (state: CombatState): CombatState => {
+  // Stored imbues travel with the card; buff and skill keywords only count.
   const slots = state.hand.map((cardId, index) => ({
     cardId,
     imbues: imbuesAt(state, index),
+    isHeld: holdsCard(cardId, cardImbuesAt(state, index)),
   }));
-  const kept = slots.filter((slot) => holdsCard(slot.cardId, slot.imbues));
-  const dropped = slots.filter((slot) => !holdsCard(slot.cardId, slot.imbues));
+  const kept = slots.filter((slot) => slot.isHeld);
+  const dropped = slots.filter((slot) => !slot.isHeld);
   const discarded: CombatState = {
     ...state,
     hand: kept.map((slot) => slot.cardId),

@@ -128,7 +128,8 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   },
   '3-3-1': {
     name: 'Overflow',
-    description: 'Buffs you gain from cards get +1 stack',
+    description:
+      'Buffs you gain from cards get +1 stack. Utility cards have Hold',
   },
   '1-1-0': {
     name: 'Heavy Hands',
@@ -301,6 +302,9 @@ export const stackedBuffTurnsOf = (picks?: readonly SkillPick[]): number =>
 /** OVERFLOW (Utility capstone): extra stacks on each buff a card gives. */
 export const buffStackBonusOf = (picks?: readonly SkillPick[]): number =>
   hasSkill(picks, 3, 3, 1) ? 1 : 0;
+/** OVERFLOW also gives every Utility card Hold (stays in hand at end of turn). */
+export const utilityHoldsOf = (picks?: readonly SkillPick[]): boolean =>
+  hasSkill(picks, 3, 3, 1);
 /** SHOCKWAVE (Blunt capstone): Momentum turns Melee strikes into Cleaves. */
 export const hasMomentumCleave = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 1, 3, 0);

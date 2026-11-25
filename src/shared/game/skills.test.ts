@@ -2,7 +2,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCharacter, restoreCharacter } from './character.ts';
-import { cardHitOn, playCard, startCombat, targetsFor } from './combat.ts';
+import {
+  cardHitOn,
+  endTurn,
+  playCard,
+  startCombat,
+  targetsFor,
+} from './combat.ts';
 import { getCard } from './cards.ts';
 import {
   addStatus,
@@ -361,4 +367,30 @@ test('Everlasting: Stacked Buffs last one more turn', () => {
 test('Overflow: one more stack per buff', () => {
   assert.equal(buffStackBonusOf([{ branch: 3, tier: 3, slot: 1 }]), 1);
   assert.equal(buffStackBonusOf([]), 0);
+});
+
+test('Overflow gives Utility cards Hold', () => {
+  const potionKept = (
+    picks: { branch: number; tier: number; slot: number }[]
+  ) => {
+    const state = startCombat({
+      hp: 50,
+      maxHp: 50,
+      deck: ['backhand' as const],
+      heroIds: ['squire' as const],
+      might: 1,
+      seed: 3,
+      skillPicks: picks,
+    });
+    const held = {
+      ...state,
+      hand: ['rushPotion' as const],
+      handImbues: [[]],
+      drawPile: Array.from({ length: 12 }, () => 'backhand' as const),
+      discardPile: [],
+    };
+    return !endTurn(held).discardPile.includes('rushPotion');
+  };
+  assert.equal(potionKept([]), false);
+  assert.equal(potionKept([{ branch: 3, tier: 3, slot: 1 }]), true);
 });
