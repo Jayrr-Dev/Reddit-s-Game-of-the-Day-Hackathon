@@ -429,6 +429,14 @@ export const HeroOnField = ({
       data-aloft={isAloft(unit) ? '' : undefined}
       data-acting={action ? '' : undefined}
     >
+      {/* BOSS SHADOW STAYS ON THE GROUND: it waits at the landing spot and
+          grows as the boss comes down (index.css, boss-shadow-arrive). Same
+          size box and container as the body's, so its cq sizes match. */}
+      {isBoss(unit) && (
+        <div className="boss-shadow-arrive pointer-events-none absolute inset-0 origin-bottom [container-type:size]">
+          <GroundShadow unit={unit} style={bodyStyle} />
+        </div>
+      )}
       {/* ENTERS ONCE, WHEN THE HERO FIRST APPEARS: A WAVE MARCHES IN, A
           BOSS DESCENDS OR RISES (its entrance, see BossEntrance) */}
       <div
@@ -443,7 +451,7 @@ export const HeroOnField = ({
         }
       >
         {isBoss(unit) && <BossLanding />}
-        <GroundShadow unit={unit} style={bodyStyle} />
+        {!isBoss(unit) && <GroundShadow unit={unit} style={bodyStyle} />}
         <div
           className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${action ? bodyActionClass(action) : ''}`}
           style={bodyStyle}

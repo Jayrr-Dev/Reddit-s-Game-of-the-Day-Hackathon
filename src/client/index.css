@@ -2572,6 +2572,22 @@ textarea,
   }
 }
 
+/* Its ground shadow stays put at the landing spot: small and faint while
+   the boss is high, full size as it touches down (same timing). */
+.boss-shadow-arrive {
+  animation: boss-shadow-arrive calc(var(--landing-ms, 1300) * 1ms) cubic-bezier(0.55, 0, 0.75, 0.4) both;
+}
+@keyframes boss-shadow-arrive {
+  0% {
+    opacity: 0.2;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Landing: the halo flares around the boss. */
 .boss-flare {
   opacity: 0;
@@ -2630,7 +2646,7 @@ textarea,
 }
 
 /* A tap skips: everything jumps to how it ends. */
-.boss-entrance-skipped :is(.boss-arrive, .boss-flare, .boss-dust),
+.boss-entrance-skipped :is(.boss-arrive, .boss-flare, .boss-dust, .boss-shadow-arrive),
 .boss-entrance-skipped .boss-arrive [role='meter'] {
   animation: none;
 }
