@@ -120,6 +120,10 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     description:
       'Poison, Bleed, Burn, Frost and Shock apply 5% more stacks per rank (up to +25%)',
   },
+  '4-2-1': {
+    name: 'Antivenom',
+    description: 'Affliction damage you take is 5% lower per rank (up to -25%)',
+  },
   '4-3-1': {
     name: 'Relentless',
     description:
@@ -389,6 +393,9 @@ export const virulentStacks = (
   Math.round(
     amount * (1 + ranksIn(picks, 4, 1, 1) * EDGE_DAMAGE_PER_RANK) + 1e-9
   );
+/** ANTIVENOM (other afflictions line): affliction damage taken, -5% per rank. */
+export const afflictionResistOf = (picks?: readonly SkillPick[]): number =>
+  ranksIn(picks, 4, 2, 1) * EDGE_DAMAGE_PER_RANK;
 /** RELENTLESS (other afflictions capstone): afflictions ride blocked hits. */
 export const afflictsThroughBlocksOf = (
   picks?: readonly SkillPick[]

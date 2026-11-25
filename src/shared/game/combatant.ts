@@ -29,6 +29,7 @@ import {
 } from './rules.ts';
 import { characterBonuses, healingAmount } from './character.ts';
 import {
+  afflictionResistOf,
   afflictionSkillBonusOf,
   buffPowerBonusOf,
   edgeDamageBonusOf,
@@ -463,7 +464,15 @@ export const incomingAfflictionDamage = (
   target: Combatant,
   amount: number,
   source?: Combatant
-): number => protectedAmount(target, afflictionDamage(amount, source));
+): number =>
+  protectedAmount(
+    target,
+    // ANTIVENOM: the target's own skill cuts what reaches it.
+    Math.round(
+      afflictionDamage(amount, source) *
+        (1 - afflictionResistOf(target.skillPicks))
+    )
+  );
 
 /**
  * Casts Protection from a hero move: one tier higher (up to IV),

@@ -20,6 +20,7 @@ import {
   createCombatant,
   afflictionAmount,
   afflictionDamage,
+  incomingAfflictionDamage,
   hexAfterTurn,
   hexBurnAmount,
   takeHit,
@@ -469,6 +470,13 @@ test('Virulence: +5% stacks per rank on non-Hex afflictions, rounded', () => {
   assert.equal(afflictionAmount(10, unit, 'bleed'), 13);
   assert.equal(afflictionAmount(4, unit, 'hex'), 4);
   assert.equal(afflictionAmount(4, createCombatant(50, 50), 'poison'), 4);
+});
+
+test('Antivenom: affliction damage taken is 5% lower per rank', () => {
+  const a = { branch: 4, tier: 2, slot: 1 };
+  const villain = { ...createCombatant(50, 50), skillPicks: [a, a, a, a, a] };
+  assert.equal(incomingAfflictionDamage(villain, 20), 15);
+  assert.equal(incomingAfflictionDamage(createCombatant(50, 50), 20), 20);
 });
 
 test('Relentless: a hit Armor blocks to 0 still poisons', () => {
