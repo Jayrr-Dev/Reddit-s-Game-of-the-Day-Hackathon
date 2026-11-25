@@ -25,10 +25,9 @@ export const tiers: Circle[][] = [
     { x: 32, parents: [1] },
   ],
   [
-    { x: -19, parents: [0] },
-    { x: 19, parents: [1] },
+    { x: -32, parents: [0] },
+    { x: 32, parents: [1] },
   ],
-
 ];
 /** Validate coordinates before accepting a purchase from a save or run log. */
 export function isSkillPick(v: unknown): v is SkillPick {
@@ -189,28 +188,47 @@ export function planSkillPath(
 
 /** Resolve a node click into individual purchases that can be replayed in order. */
 export function skillPurchases(c: CharacterState, pick: SkillPick) {
-  const owned = (c.skillPicks ?? []).filter(p => p.branch === pick.branch);
+  const owned = (c.skillPicks ?? []).filter((p) => p.branch === pick.branch);
   const steps: SkillPick[] = [];
   function fill(tier: number, slot: number, target: number) {
     const rank = skillRank(owned, tier, slot);
-    for (let i = rank; i < target; i++) steps.push({ branch: pick.branch, tier, slot });
+    for (let i = rank; i < target; i++)
+      steps.push({ branch: pick.branch, tier, slot });
   }
   if (pick.tier === tiers.length - 1) {
-    if (owned.some(p => p.tier === pick.tier))
-      return { steps: [], message: skillRequirement(c, pick) ?? 'Fully ranked' };
+    if (owned.some((p) => p.tier === pick.tier))
+      return {
+        steps: [],
+        message: skillRequirement(c, pick) ?? 'Fully ranked',
+      };
     fill(0, 0, 1);
-    for (let tier = 1; tier < pick.tier; tier++) fill(tier, pick.slot, skillCap(tier));
+    for (let tier = 1; tier < pick.tier; tier++)
+      fill(tier, pick.slot, skillCap(tier));
   } else if (!skillRank(owned, pick.tier, pick.slot)) {
     const plan = planSkillPath(c, pick);
-    return { steps: (plan.character.skillPicks ?? []).slice(c.skillPicks?.length ?? 0), message: plan.message };
+    return {
+      steps: (plan.character.skillPicks ?? []).slice(c.skillPicks?.length ?? 0),
+      message: plan.message,
+    };
   }
   steps.push(pick);
-  if (steps.length > skillPointsLeft(c)) return { steps: [], message: 'Requires ' + steps.length + (steps.length === 1 ? ' point' : ' points') };
+  if (steps.length > skillPointsLeft(c))
+    return {
+      steps: [],
+      message:
+        'Requires ' +
+        steps.length +
+        (steps.length === 1 ? ' point' : ' points'),
+    };
   let next = c;
   for (const step of steps) {
     const blocked = skillRequirement(next, step);
     if (blocked) return { steps: [], message: blocked };
     next = buySkill(next, step);
   }
-  return { steps, message: 'Spend ' + steps.length + (steps.length === 1 ? ' point' : ' points') };
+  return {
+    steps,
+    message:
+      'Spend ' + steps.length + (steps.length === 1 ? ' point' : ' points'),
+  };
 }

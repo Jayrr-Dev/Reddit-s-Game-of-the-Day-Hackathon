@@ -46,7 +46,10 @@ export function SkillTree({
     const bounds = chart.current!.getBoundingClientRect();
     const rect = target.getBoundingClientRect();
     const y = rect.top + rect.height / 2 - bounds.top;
-    const owned = picks.some(p => p.branch === pick.branch && p.tier === pick.tier && p.slot === pick.slot);
+    const owned = picks.some(
+      (p) =>
+        p.branch === pick.branch && p.tier === pick.tier && p.slot === pick.slot
+    );
     setDetail({
       pick,
       x: rect.left + rect.width / 2 - bounds.left,
@@ -54,7 +57,8 @@ export function SkillTree({
       above: y > bounds.height / 2,
     });
     if (!owned) {
-      for (const step of skillPurchases(character, pick).steps) onSkill(step, true);
+      for (const step of skillPurchases(character, pick).steps)
+        onSkill(step, true);
     }
   }
 
@@ -107,7 +111,7 @@ export function SkillTree({
       >
         <svg
           className={branch !== null ? 'cs-focused-path' : undefined}
-          viewBox={branch !== null ? '0 -49 265 98' : '-219 -218 438 229'}
+          viewBox={branch !== null ? '0 -48 265 108' : '-219 -218 438 229'}
           role="group"
           aria-label="Skill paths"
           onClick={() => setDetail(null)}
@@ -202,9 +206,11 @@ export function SkillTree({
                         />
                         {branch !== null && (
                           <text
+                            // RANK UNDER THE CIRCLE: the path is turned 90°,
+                            // so +x here is down on screen.
                             transform={
                               'translate(' +
-                              node.x +
+                              (node.x + (skillCap(t) === 1 ? 13 : 10.5) + 8) +
                               ' ' +
                               heights[t] +
                               ') rotate(-90)'
@@ -212,7 +218,7 @@ export function SkillTree({
                             textAnchor="middle"
                             dominantBaseline="central"
                             stroke="none"
-                            fill={r ? 'white' : 'var(--color-on-parchment)'}
+                            fill="var(--color-on-parchment)"
                             fontSize="9"
                             fontWeight="700"
                             pointerEvents="none"
@@ -245,15 +251,31 @@ export function SkillTree({
             <strong>
               {branchNames[active.branch]} · {rank}/{skillCap(active.tier)}
             </strong>
-            {rank === 0 && <small>{skillPurchases(character, active).message}</small>}
+            {rank === 0 && (
+              <small>{skillPurchases(character, active).message}</small>
+            )}
             {rank > 0 && rank < skillCap(active.tier) && (
-              <button className="cs-rank-up" type="button" disabled={!skillPurchases(character,active).steps.length} onClick={() => onSkill(active, true)}>
+              <button
+                className="cs-rank-up"
+                type="button"
+                disabled={!skillPurchases(character, active).steps.length}
+                onClick={() => onSkill(active, true)}
+              >
                 Rank up to {rank + 1}/{skillCap(active.tier)}
               </button>
             )}
-            {rank > 0 && <button className="cs-refund" type="button" onClick={() => { onSkill(active); setDetail(null); }}>
-              {planSkillPath(character, active).message}
-            </button>}
+            {rank > 0 && (
+              <button
+                className="cs-refund"
+                type="button"
+                onClick={() => {
+                  onSkill(active);
+                  setDetail(null);
+                }}
+              >
+                {planSkillPath(character, active).message}
+              </button>
+            )}
             <button
               className="cs-tip-close"
               type="button"
