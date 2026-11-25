@@ -486,7 +486,8 @@
   filter: drop-shadow(0 1px 1px rgb(0 0 0 / 70%));
 }
 /* Extend the action's tap area vertically without moving the HP bar or covering adjacent chips. */
-.hero-plate-details { display:grid; grid-template-columns:repeat(2, minmax(max-content, 1fr)); align-items:start; gap:8px; width:max-content; min-width:125%; align-self:center; transform:scale(.8); transform-origin:top center; }
+/* margin-top: the Guard badge hangs ~5px under the HP bar; keep the chips clear of it. */
+.hero-plate-details { margin-top:5px; display:grid; grid-template-columns:repeat(2, minmax(max-content, 1fr)); align-items:start; gap:8px; width:max-content; min-width:125%; align-self:center; transform:scale(.8); transform-origin:top center; }
 .hero-action-chips { grid-column:1; justify-self:end; zoom:1.5; white-space:nowrap; }
 .hero-plate-details > .enemy-status-grid { grid-column:2; justify-self:start; }
 @container duel (max-width: 470px) {
