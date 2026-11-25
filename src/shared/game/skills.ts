@@ -112,6 +112,14 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     name: 'Arcane Focus',
     description: 'Magic cards are +5% more accurate per rank (up to +25%)',
   },
+  '2-3-0': {
+    name: 'Spellpierce',
+    description: 'Magic cards ignore Guard and Armor',
+  },
+  '2-3-1': {
+    name: 'Volley',
+    description: 'Range cards that hit more than once hit 1 more time',
+  },
   '1-1-0': {
     name: 'Heavy Hands',
     description: 'Blunt Melee cards deal +5% damage per rank (up to +25%)',
@@ -254,6 +262,16 @@ export const rangeAccuracyBonusOf = (picks?: readonly SkillPick[]): number =>
 /** ARCANE FOCUS (Magic line): extra Magic accuracy, +5% per rank. */
 export const magicAccuracyBonusOf = (picks?: readonly SkillPick[]): number =>
   ranksIn(picks, 2, 2, 0) * EDGE_DAMAGE_PER_RANK;
+/** SPELLPIERCE (Magic capstone): Magic hits ignore Guard and Armor. */
+export const magicPiercesOf = (picks?: readonly SkillPick[]): boolean =>
+  hasSkill(picks, 2, 3, 0);
+/** VOLLEY (Arrows capstone): a multi-hit Range card's hits, plus one. */
+export const volleyHitsOf = (
+  hits: number,
+  type: CardType,
+  picks?: readonly SkillPick[]
+): number =>
+  type === 'range' && hits > 1 && hasSkill(picks, 2, 3, 1) ? hits + 1 : hits;
 /** SHOCKWAVE (Blunt capstone): Momentum turns Melee strikes into Cleaves. */
 export const hasMomentumCleave = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 1, 3, 0);

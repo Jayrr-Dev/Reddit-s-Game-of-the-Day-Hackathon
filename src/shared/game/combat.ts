@@ -16,7 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
-import { battlemageBonusOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
+import { battlemageBonusOf, magicPiercesOf, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -740,7 +740,10 @@ const villainAttack = (
     hasMomentumCleave(state.player.skillPicks);
   const isFollowThrough = effect.target === 'one' && !isCleave;
   const pierceHit = Math.floor(perHit * PIERCE_DAMAGE_FACTOR);
-  return Array.from({ length: effect.hits }).reduce<CombatState>((current) => {
+  // SPELLPIERCE (skill tree): Magic ignores Guard and Armor like Piercing.
+  const ignoresGuard = play.isPiercing || (cardDef.type === 'magic' && magicPiercesOf(state.player.skillPicks));
+  const hits = volleyHitsOf(effect.hits, cardDef.type, state.player.skillPicks);
+  return Array.from({ length: hits }).reduce<CombatState>((current) => {
     // RANDOMLY: this hit's hero is rolled now, so each hit picks anew.
     const [aim, rolled] =
       effect.target === 'random'
@@ -761,7 +764,7 @@ const villainAttack = (
           unit,
           cardHitOn(unit, perHit, cardDef, state.player.skillPicks) * factor,
           cardDef,
-          play.isPiercing,
+          ignoresGuard,
           state.player
         ),
       cardDef,

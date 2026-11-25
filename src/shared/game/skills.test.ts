@@ -12,6 +12,7 @@ import {
   skillPointsLeft,
   movementDiscountOf,
   reflexDodgeOf,
+  volleyHitsOf,
   magicAccuracyBonusOf,
   cardChanceBonusOf,
   edgeDamageBonusOf,
@@ -332,4 +333,12 @@ test('Battlemage, Sniper and both accuracy circles', () => {
   assert.ok(
     Math.abs(magicAccuracyBonusOf([focus, focus, focus]) - 0.15) < 1e-9
   );
+});
+
+test('Volley adds a hit only to multi-hit Range cards', () => {
+  const volley = [{ branch: 2, tier: 3, slot: 1 }];
+  assert.equal(volleyHitsOf(3, 'range', volley), 4);
+  assert.equal(volleyHitsOf(1, 'range', volley), 1);
+  assert.equal(volleyHitsOf(3, 'magic', volley), 3);
+  assert.equal(volleyHitsOf(3, 'range', []), 3);
 });

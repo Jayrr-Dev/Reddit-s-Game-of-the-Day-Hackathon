@@ -7,6 +7,7 @@
 
 import { healingAmount } from './character.ts';
 import { targetRuleOf } from './battlefield.ts';
+import { volleyHitsOf } from './skills.ts';
 import { getCard, hitsPerPlay, isKeywordOn, type CardId } from './cards.ts';
 import {
   afflictionAmount,
@@ -277,7 +278,8 @@ export const describeCardEffect = (
         : effect.amount;
       const isAimed = target !== undefined && effect.target === 'one';
       const amount = isAimed ? cardHitOn(target, perHit, cardDef, attacker?.skillPicks) : perHit;
-      const times = effect.hits > 1 ? ` ×${effect.hits}` : '';
+      const hits = volleyHitsOf(effect.hits, cardDef.type, attacker?.skillPicks);
+      const times = hits > 1 ? ` ×${hits}` : '';
       return `Damage${areaWord(effect.target, isMelee)} ${amount}${times}${areaSuffix(effect.target, isMelee)}`;
     }
     case 'hex':
