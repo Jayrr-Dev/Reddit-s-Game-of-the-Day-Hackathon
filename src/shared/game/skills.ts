@@ -131,12 +131,12 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   '1-2-0': {
     name: 'Guard Break',
     description:
-      'Blunt Melee cards deal +5% damage per rank to heroes with Guard or Armor (up to +25%)',
+      'Blunt Melee cards deal +5% damage per rank to heroes with Guard, Armor or Protection (up to +25%)',
   },
   '1-2-1': {
     name: 'Flesh Wound',
     description:
-      'Sharp Melee cards deal +5% damage per rank to heroes with no Guard or Armor (up to +25%)',
+      'Sharp Melee cards deal +5% damage per rank to heroes with no Guard, Armor or Protection (up to +25%)',
   },
   '1-3-0': {
     name: 'Shockwave',
