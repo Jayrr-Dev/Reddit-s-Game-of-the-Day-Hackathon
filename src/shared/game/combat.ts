@@ -661,7 +661,7 @@ export const playDamageFactor = (
 ): number => {
   const factor =
     (1 + offensiveBonus(attacker, cardDef.type).percent / 100) *
-    damageFactorOf(attacker, cardDef.type, isRampage) *
+    damageFactorOf(attacker, cardDef.type, isRampage, cardDef.edge) *
     targetDamageFactor(unit, cardDef, attacker.skillPicks);
   return Math.round(factor * 100) / 100;
 };
@@ -709,7 +709,8 @@ const villainAttack = (
     state.player,
     cardDef.type,
     play.isRampage,
-    hitsPerPlay(cardDef)
+    hitsPerPlay(cardDef),
+    cardDef.edge
   );
   // SHOCKWAVE (skill tree): with Momentum, a Melee strike Cleaves.
   const isCleave =
@@ -875,7 +876,7 @@ const applyOnPortrait = (
     case 'reap': {
       const amount = effect.kind === 'reap'
         ? reapDamage(player.statuses.hex, effect.multiplier, player, cardDef.type)
-        : attackDamage(effect.amount, player, cardDef.type, play.isRampage, hitsPerPlay(cardDef));
+        : attackDamage(effect.amount, player, cardDef.type, play.isRampage, hitsPerPlay(cardDef), cardDef.edge);
       const criticalChance = critChance(cardDef.type, 1 + accuracyBonusOf(player, cardDef.type));
       const [critical, current] = criticalChance > 0 && criticalChance < 1 ? rollShot(state, criticalChance)
         : [criticalChance >= 1, state];

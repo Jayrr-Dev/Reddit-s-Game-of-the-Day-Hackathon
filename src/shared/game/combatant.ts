@@ -28,11 +28,12 @@ import {
   ROUND_BUFFS,
 } from './rules.ts';
 import { characterBonuses, healingAmount } from './character.ts';
-import { momentumSkillBonusOf } from './skills.ts';
+import { edgeDamageBonusOf, momentumSkillBonusOf } from './skills.ts';
 import { pickOne, type RngState } from './rng.ts';
 import type {
   BuffId,
   CardType,
+  MeleeEdge,
   Combatant,
   StatusId,
   Statuses,
@@ -161,8 +162,11 @@ const momentumFactorOf = (attacker: Combatant, isRampage: boolean): number => {
 const boostFactorOf = (
   attacker: Combatant,
   type?: CardType,
-  isRampage = false
+  isRampage = false,
+  edge?: MeleeEdge
 ): number =>
+  // HEAVY HANDS / KEEN EDGE (skill tree): +% to Blunt or Sharp Melee.
+  (type === 'melee' && edge ? 1 + edgeDamageBonusOf(attacker.skillPicks, edge) : 1) *
   (hasMomentumFor(attacker, type) ? momentumFactorOf(attacker, isRampage) : 1) *
   (hasSharpshooterFor(attacker, type) ? SHARPSHOOTER_DAMAGE_FACTOR : 1);
 
@@ -173,9 +177,10 @@ const boostFactorOf = (
 export const damageFactorOf = (
   attacker: Combatant,
   type?: CardType,
-  isRampage = false
+  isRampage = false,
+  edge?: MeleeEdge
 ): number => {
-  const boost = boostFactorOf(attacker, type, isRampage);
+  const boost = boostFactorOf(attacker, type, isRampage, edge);
   const weaken = attacker.statuses.weaken > 0 ? WEAKEN_DAMAGE_FACTOR : 1;
   const enfeeble = remainingTierPercent(attacker.statuses.enfeeble) / 100;
   return boost * weaken * enfeeble;
@@ -206,10 +211,11 @@ export const buffedAttackDamage = (
   attacker: Combatant,
   type?: CardType,
   isRampage = false,
-  hits = 1
+  hits = 1,
+  edge?: MeleeEdge
 ): number => {
   const withBuffs = traitDamage(base, attacker, type, hits) + attacker.statuses.wrath + typeBonus(attacker, type);
-  const boost = boostFactorOf(attacker, type, isRampage);
+  const boost = boostFactorOf(attacker, type, isRampage, edge);
   return Math.max(0, Math.floor(withBuffs * boost));
 };
 
@@ -218,10 +224,11 @@ export const attackDamage = (
   attacker: Combatant,
   type?: CardType,
   isRampage = false,
-  hits = 1
+  hits = 1,
+  edge?: MeleeEdge
 ): number => {
   const withWrath = traitDamage(base, attacker, type, hits) + attacker.statuses.wrath + typeBonus(attacker, type);
-  const factor = damageFactorOf(attacker, type, isRampage);
+  const factor = damageFactorOf(attacker, type, isRampage, edge);
   const scaled = withWrath * factor;
   const factored = attacker.statuses.enfeeble > 0 ? ceilHitDamage(scaled) : Math.floor(scaled);
   const frost = attacker.statuses.frost * FROST_DAMAGE_PER_STACK;

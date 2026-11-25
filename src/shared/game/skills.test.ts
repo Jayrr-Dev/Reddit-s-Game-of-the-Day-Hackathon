@@ -11,6 +11,7 @@ import {
   skillPointsLeft,
   movementDiscountOf,
   reflexDodgeOf,
+  edgeDamageBonusOf,
   chargeGuardOf,
   lineTwoRangeBonusOf,
   skillEffectOf,
@@ -229,4 +230,14 @@ test('Lunge reaches Line 2; Shockwave Cleaves with Momentum', () => {
   assert.equal(hurt([]), 1);
   assert.equal(hurt([shock]), 1, 'Line 2 is out of reach');
   assert.equal(hurt([shock, lunge]), 2, 'Cleave + Lunge hits both lines');
+});
+
+test('Heavy Hands and Keen Edge: +5% per rank to Blunt or Sharp Melee', () => {
+  const heavy = { branch: 1, tier: 1, slot: 0 };
+  const picks = [heavy, heavy, heavy, heavy, heavy];
+  assert.ok(Math.abs(edgeDamageBonusOf(picks, 'blunt') - 0.25) < 1e-9);
+  assert.equal(edgeDamageBonusOf(picks, 'sharp'), 0);
+  const villain = { ...createCombatant(50, 50), skillPicks: picks };
+  assert.equal(attackDamage(100, villain, 'melee', false, 1, 'blunt'), 125);
+  assert.equal(attackDamage(100, villain, 'melee', false, 1, 'sharp'), 100);
 });

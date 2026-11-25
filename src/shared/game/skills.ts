@@ -1,6 +1,7 @@
 // --- SKILL POINTS ---
 import type { CharacterState } from './character.ts';
 import { REFLEX_DODGE } from './rules.ts';
+import type { MeleeEdge } from './types.ts';
 
 export const branchNames = [
   'Movement',
@@ -80,6 +81,14 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     name: 'Skirmisher',
     description: '+5% Range damage per rank at heroes on Line 2 (up to +25%)',
   },
+  '1-1-0': {
+    name: 'Heavy Hands',
+    description: 'Blunt Melee cards deal +5% damage per rank (up to +25%)',
+  },
+  '1-1-1': {
+    name: 'Keen Edge',
+    description: 'Sharp Melee cards deal +5% damage per rank (up to +25%)',
+  },
   '1-3-0': {
     name: 'Shockwave',
     description:
@@ -142,6 +151,17 @@ export const SKIRMISHER_PER_RANK = 0.05;
 /** Extra Range damage at Line 2 from Skirmisher (Back Step line, 0 to 0.2). */
 export const lineTwoRangeBonusOf = (picks?: readonly SkillPick[]): number =>
   ranksOf(picks, 2, 1) * SKIRMISHER_PER_RANK;
+/** HEAVY HANDS / KEEN EDGE: damage added per rank to one Melee edge. */
+export const EDGE_DAMAGE_PER_RANK = 0.05;
+/** Extra damage for a Blunt (top line) or Sharp (bottom line) Melee card. */
+export const edgeDamageBonusOf = (
+  picks: readonly SkillPick[] = [],
+  edge: MeleeEdge
+): number =>
+  picks.filter(
+    (p) =>
+      p.branch === 1 && p.tier === 1 && p.slot === (edge === 'blunt' ? 0 : 1)
+  ).length * EDGE_DAMAGE_PER_RANK;
 /** SHOCKWAVE (Blunt capstone): Momentum turns Melee strikes into Cleaves. */
 export const hasMomentumCleave = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 1, 3, 0);

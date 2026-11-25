@@ -273,7 +273,7 @@ export const describeCardEffect = (
       // and the target's own modifiers join once the card is aimed.
       const damageOf = target ? attackDamage : buffedAttackDamage;
       const perHit = attacker
-        ? damageOf(effect.amount, attacker, cardDef.type, isRampage, hitsPerPlay(cardDef))
+        ? damageOf(effect.amount, attacker, cardDef.type, isRampage, hitsPerPlay(cardDef), cardDef.edge)
         : effect.amount;
       const isAimed = target !== undefined && effect.target === 'one';
       const amount = isAimed ? cardHitOn(target, perHit, cardDef, attacker?.skillPicks) : perHit;
