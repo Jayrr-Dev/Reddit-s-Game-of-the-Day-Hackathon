@@ -16,7 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
-import { battlemageBonusOf, magicPiercesOf, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
+import { battlemageBonusOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -741,13 +741,9 @@ const villainAttack = (
   const isFollowThrough = effect.target === 'one' && !isCleave;
   const pierceHit = Math.floor(perHit * PIERCE_DAMAGE_FACTOR);
   // SPELLPIERCE (skill tree): Magic ignores Guard and Armor like Piercing.
-  // Only once the villain has Back Stepped this turn.
-  const hasBackSteppedThisTurn =
-    state.lastMovement?.move === 'backStep' && state.lastMovement.turn === state.turn;
-  const isSpellpierce =
-    cardDef.type === 'magic' && hasBackSteppedThisTurn && magicPiercesOf(state.player.skillPicks);
+  const isSpellpierce = isSpellpierceOn(state.player, cardDef.type);
   const ignoresGuard: boolean | 'spell' = play.isPiercing || (isSpellpierce ? 'spell' : false);
-  const hits = volleyHitsOf(effect.hits, cardDef.type, state.player.skillPicks);
+  const hits = volleyHitsOf(effect.hits, cardDef.type, state.player);
   return Array.from({ length: hits }).reduce<CombatState>((current) => {
     // RANDOMLY: this hit's hero is rolled now, so each hit picks anew.
     const [aim, rolled] =

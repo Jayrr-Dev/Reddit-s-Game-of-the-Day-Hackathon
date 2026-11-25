@@ -1,7 +1,7 @@
 // --- SKILL POINTS ---
 import type { CharacterState } from './character.ts';
 import { REFLEX_DODGE } from './rules.ts';
-import type { CardType, MeleeEdge } from './types.ts';
+import type { CardType, Combatant, MeleeEdge } from './types.ts';
 
 export const branchNames = [
   'Movement',
@@ -119,7 +119,8 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   },
   '2-3-1': {
     name: 'Volley',
-    description: 'Range cards that hit more than once hit 1 more time',
+    description:
+      'After a Back Step, Range cards hit 1 more time for the rest of the turn',
   },
   '1-1-0': {
     name: 'Heavy Hands',
@@ -266,13 +267,26 @@ export const magicAccuracyBonusOf = (picks?: readonly SkillPick[]): number =>
 /** SPELLPIERCE (Magic capstone): Magic hits ignore Guard and Armor. */
 export const magicPiercesOf = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 2, 3, 0);
-/** VOLLEY (Arrows capstone): a multi-hit Range card's hits, plus one. */
+/**
+ * True once the villain has Back Stepped this turn: Reflex comes only
+ * from a Back Step and clears when the villain's next turn starts.
+ */
+const hasBackStepped = (unit: Combatant): boolean => unit.statuses.reflex > 0;
+/** SPELLPIERCE: true while it applies (Magic, after a Back Step). */
+export const isSpellpierceOn = (unit: Combatant, type: CardType): boolean =>
+  type === 'magic' && hasBackStepped(unit) && magicPiercesOf(unit.skillPicks);
+/** VOLLEY (Arrows capstone): after a Back Step, every Range card hits once more. */
 export const volleyHitsOf = (
   hits: number,
   type: CardType,
-  picks?: readonly SkillPick[]
+  unit?: Combatant
 ): number =>
-  type === 'range' && hits > 1 && hasSkill(picks, 2, 3, 1) ? hits + 1 : hits;
+  unit &&
+  type === 'range' &&
+  hasBackStepped(unit) &&
+  hasSkill(unit.skillPicks, 2, 3, 1)
+    ? hits + 1
+    : hits;
 /** SHOCKWAVE (Blunt capstone): Momentum turns Melee strikes into Cleaves. */
 export const hasMomentumCleave = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 1, 3, 0);

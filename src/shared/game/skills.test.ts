@@ -335,10 +335,12 @@ test('Battlemage, Sniper and both accuracy circles', () => {
   );
 });
 
-test('Volley adds a hit only to multi-hit Range cards', () => {
-  const volley = [{ branch: 2, tier: 3, slot: 1 }];
-  assert.equal(volleyHitsOf(3, 'range', volley), 4);
-  assert.equal(volleyHitsOf(1, 'range', volley), 1);
-  assert.equal(volleyHitsOf(3, 'magic', volley), 3);
-  assert.equal(volleyHitsOf(3, 'range', []), 3);
+test('Volley adds a hit to every Range card after a Back Step', () => {
+  const base = createCombatant(50, 50);
+  const archer = { ...base, skillPicks: [{ branch: 2, tier: 3, slot: 1 }] };
+  const stepped = { ...archer, statuses: { ...archer.statuses, reflex: 1 } };
+  assert.equal(volleyHitsOf(1, 'range', stepped), 2);
+  assert.equal(volleyHitsOf(3, 'range', stepped), 4);
+  assert.equal(volleyHitsOf(3, 'magic', stepped), 3);
+  assert.equal(volleyHitsOf(3, 'range', archer), 3, 'no Back Step yet');
 });

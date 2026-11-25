@@ -278,7 +278,7 @@ export const describeCardEffect = (
         : effect.amount;
       const isAimed = target !== undefined && effect.target === 'one';
       const amount = isAimed ? cardHitOn(target, perHit, cardDef, attacker?.skillPicks) : perHit;
-      const hits = volleyHitsOf(effect.hits, cardDef.type, attacker?.skillPicks);
+      const hits = volleyHitsOf(effect.hits, cardDef.type, attacker);
       const times = hits > 1 ? ` ×${hits}` : '';
       return `Damage${areaWord(effect.target, isMelee)} ${amount}${times}${areaSuffix(effect.target, isMelee)}`;
     }
