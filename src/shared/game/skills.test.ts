@@ -111,7 +111,7 @@ test('Invincible turns the next hit to 0, one stack per hit', () => {
   assert.equal(takeHit(second, 9, 'melee').hp, 21, 'then hits land');
 });
 
-test('Invincibility Frames: each Back Step adds Invincible 1; Rage gives energy on a kill', () => {
+test('Invincibility Frames: each Back Step adds Invincible 1; Battle Rush gives energy on a kill', () => {
   const setup = {
     hp: 50,
     maxHp: 50,

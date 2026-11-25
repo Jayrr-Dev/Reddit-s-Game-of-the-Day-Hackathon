@@ -80,7 +80,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     name: 'Skirmisher',
     description: '+5% Range damage per rank at heroes on Line 2 (up to +25%)',
   },
-  '0-3-0': { name: 'Rage', description: 'After a kill, gain 1 energy' },
+  '0-3-0': { name: 'Battle Rush', description: 'After a kill, gain 1 energy' },
   '0-3-1': {
     name: 'Invincibility Frames',
     description:
@@ -130,7 +130,7 @@ export const SKIRMISHER_PER_RANK = 0.05;
 /** Extra Range damage at Line 2 from Skirmisher (Back Step line, 0 to 0.2). */
 export const lineTwoRangeBonusOf = (picks?: readonly SkillPick[]): number =>
   ranksOf(picks, 2, 1) * SKIRMISHER_PER_RANK;
-/** RAGE (Charge capstone): energy gained when a play kills. */
+/** BATTLE RUSH (Charge capstone): energy gained when a play kills. */
 export const rageEnergyOf = (picks?: readonly SkillPick[]): number =>
   hasSkill(picks, 0, 3, 0) ? 1 : 0;
 /** INVINCIBILITY FRAMES (Back Step capstone): Invincible stacks per Back Step. */
