@@ -89,6 +89,11 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     name: 'Keen Edge',
     description: 'Sharp Melee cards deal +5% damage per rank (up to +25%)',
   },
+  '1-2-0': {
+    name: 'Guard Break',
+    description:
+      'Blunt Melee cards deal +5% damage per rank to heroes with Guard (up to +25%)',
+  },
   '1-3-0': {
     name: 'Shockwave',
     description:
@@ -162,6 +167,10 @@ export const edgeDamageBonusOf = (
     (p) =>
       p.branch === 1 && p.tier === 1 && p.slot === (edge === 'blunt' ? 0 : 1)
   ).length * EDGE_DAMAGE_PER_RANK;
+/** GUARD BREAK (Blunt line): extra Blunt damage at a hero with Guard. */
+export const guardBreakBonusOf = (picks: readonly SkillPick[] = []): number =>
+  picks.filter((p) => p.branch === 1 && p.tier === 2 && p.slot === 0).length *
+  EDGE_DAMAGE_PER_RANK;
 /** SHOCKWAVE (Blunt capstone): Momentum turns Melee strikes into Cleaves. */
 export const hasMomentumCleave = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 1, 3, 0);

@@ -2,7 +2,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCharacter, restoreCharacter } from './character.ts';
-import { playCard, startCombat, targetsFor } from './combat.ts';
+import { cardHitOn, playCard, startCombat, targetsFor } from './combat.ts';
+import { getCard } from './cards.ts';
 import { attackDamage, createCombatant, takeHit } from './combatant.ts';
 import { move, movementCost } from './movement.ts';
 import {
@@ -240,4 +241,22 @@ test('Heavy Hands and Keen Edge: +5% per rank to Blunt or Sharp Melee', () => {
   const villain = { ...createCombatant(50, 50), skillPicks: picks };
   assert.equal(attackDamage(100, villain, 'melee', false, 1, 'blunt'), 125);
   assert.equal(attackDamage(100, villain, 'melee', false, 1, 'sharp'), 100);
+});
+
+test('Guard Break: Blunt hits a guarded hero +5% per rank', () => {
+  const brk = { branch: 1, tier: 2, slot: 0 };
+  const picks = [brk, brk, brk, brk, brk];
+  const state = startCombat({
+    hp: 50,
+    maxHp: 50,
+    deck: ['backhand' as const],
+    heroIds: ['squire' as const],
+    might: 1,
+    seed: 3,
+  });
+  const hero = { ...state.heroes[0]!, row: 'front' as const };
+  const blunt = getCard('backhand');
+  assert.equal(blunt.edge, 'blunt');
+  assert.equal(cardHitOn({ ...hero, guard: 5 }, 100, blunt, picks), 125);
+  assert.equal(cardHitOn({ ...hero, guard: 0 }, 100, blunt, picks), 100);
 });

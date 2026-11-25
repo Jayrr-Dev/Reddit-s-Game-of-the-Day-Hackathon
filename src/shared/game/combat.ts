@@ -16,7 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
-import { hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
+import { guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -646,7 +646,15 @@ export const targetDamageFactor = (
   unit: HeroUnit,
   cardDef: CardDef,
   picks?: readonly SkillPick[]
-): number => (isLongRangeShot(unit, cardDef) ? villainLongRangeFactor(unit, picks) : 1);
+): number =>
+  (isLongRangeShot(unit, cardDef) ? villainLongRangeFactor(unit, picks) : 1) *
+  guardBreakFactor(unit, cardDef, picks);
+
+/** GUARD BREAK (skill tree): a Blunt Melee card hits a guarded hero harder. */
+const guardBreakFactor = (unit: HeroUnit, cardDef: CardDef, picks?: readonly SkillPick[]): number =>
+  cardDef.type === 'melee' && cardDef.edge === 'blunt' && unit.guard > 0
+    ? 1 + guardBreakBonusOf(picks)
+    : 1;
 
 /**
  * Every multiplier on one play's damage at one hero, combined: the
@@ -673,7 +681,10 @@ export const cardHitOn = (
   cardDef: CardDef,
   picks?: readonly SkillPick[]
 ): number =>
-  isLongRangeShot(unit, cardDef) ? longRangeHit(perHit, villainLongRangeFactor(unit, picks)) : perHit;
+  Math.round(
+    (isLongRangeShot(unit, cardDef) ? longRangeHit(perHit, villainLongRangeFactor(unit, picks)) : perHit) *
+      guardBreakFactor(unit, cardDef, picks)
+  );
 
 /**
  * SHOCKWAVE preview: every hero a card's one-target Melee strike would
