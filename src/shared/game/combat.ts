@@ -16,7 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
-import { guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
+import { fleshWoundBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -650,11 +650,17 @@ export const targetDamageFactor = (
   (isLongRangeShot(unit, cardDef) ? villainLongRangeFactor(unit, picks) : 1) *
   guardBreakFactor(unit, cardDef, picks);
 
-/** GUARD BREAK (skill tree): a Blunt Melee card hits a hero with Guard or Armor harder. */
-const guardBreakFactor = (unit: HeroUnit, cardDef: CardDef, picks?: readonly SkillPick[]): number =>
-  cardDef.type === 'melee' && cardDef.edge === 'blunt' && (unit.guard > 0 || unit.statuses.armor > 0)
-    ? 1 + guardBreakBonusOf(picks)
-    : 1;
+/**
+ * GUARD BREAK / FLESH WOUND (skill tree): a Blunt Melee card hits a hero
+ * with Guard or Armor harder; a Sharp one hits a hero with neither harder.
+ */
+const guardBreakFactor = (unit: HeroUnit, cardDef: CardDef, picks?: readonly SkillPick[]): number => {
+  if (cardDef.type !== 'melee') return 1;
+  const isProtected = unit.guard > 0 || unit.statuses.armor > 0;
+  if (cardDef.edge === 'blunt' && isProtected) return 1 + guardBreakBonusOf(picks);
+  if (cardDef.edge === 'sharp' && !isProtected) return 1 + fleshWoundBonusOf(picks);
+  return 1;
+};
 
 /**
  * Every multiplier on one play's damage at one hero, combined: the

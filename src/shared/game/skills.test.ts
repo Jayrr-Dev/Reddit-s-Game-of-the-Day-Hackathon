@@ -279,3 +279,20 @@ test('Guard Break also hits armored heroes harder', () => {
   };
   assert.equal(cardHitOn(armored, 100, getCard('backhand'), [brk, brk]), 110);
 });
+
+test('Flesh Wound: Sharp hits an unprotected hero +5% per rank', () => {
+  const fw = { branch: 1, tier: 2, slot: 1 };
+  const picks = [fw, fw, fw, fw, fw];
+  const state = startCombat({
+    hp: 50,
+    maxHp: 50,
+    deck: ['twinDaggers' as const],
+    heroIds: ['squire' as const],
+    might: 1,
+    seed: 3,
+  });
+  const hero = { ...state.heroes[0]!, guard: 0 };
+  const sharp = getCard('twinDaggers');
+  assert.equal(cardHitOn(hero, 100, sharp, picks), 125);
+  assert.equal(cardHitOn({ ...hero, guard: 3 }, 100, sharp, picks), 100);
+});
