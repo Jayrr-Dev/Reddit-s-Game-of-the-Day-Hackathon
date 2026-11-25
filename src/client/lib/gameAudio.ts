@@ -4,6 +4,8 @@ import menuUrl from '../assets/audio/menu.ogg';
 import bluntUrl from '../assets/audio/blunt.ogg';
 import bladeUrl from '../assets/audio/blade.ogg';
 import arrowUrl from '../assets/audio/arrow.ogg';
+import swiftArrowUrl from '../assets/audio/arrow-swift.ogg';
+import cardClickUrl from '../assets/audio/card-click.ogg';
 import arcaneUrl from '../assets/audio/arcane.ogg';
 import curseUrl from '../assets/audio/curse.ogg';
 import guardUrl from '../assets/audio/guard.ogg';
@@ -27,9 +29,10 @@ for (const channel of ['music', 'sfx'] as const) {
       volumes[channel] = Math.max(0, Math.min(100, Number(saved)));
   } catch { /* Session values work without storage. */ }
 }
-const sounds = { draw: drawUrl, menu: menuUrl, blunt: bluntUrl, blade: bladeUrl, arrow: arrowUrl, arcane: arcaneUrl, curse: curseUrl, guard: guardUrl, move: moveUrl, potion: potionUrl, imbue: imbueUrl, shuffle: shuffleUrl, remove: removeUrl, reward: rewardUrl };
+const sounds = { draw: drawUrl, menu: menuUrl, blunt: bluntUrl, blade: bladeUrl, arrow: arrowUrl, swiftArrow: swiftArrowUrl, cardClick: cardClickUrl, arcane: arcaneUrl, curse: curseUrl, guard: guardUrl, move: moveUrl, potion: potionUrl, imbue: imbueUrl, shuffle: shuffleUrl, remove: removeUrl, reward: rewardUrl };
 type Sound = keyof typeof sounds;
 const voices = new Map<HTMLAudioElement, number>();
+const preloaded = new Map<Sound, HTMLAudioElement>();
 const lastCue = new Map<Sound, number>();
 let bossTrack: HTMLAudioElement | undefined;
 let bossActive = false;
@@ -98,13 +101,25 @@ function syncMusic() {
 
 /** Bind once at app startup, outside React's replayable render lifecycle. */
 export function installGameAudio(root: HTMLElement) {
+  for (const name of ['blade', 'arrow', 'swiftArrow', 'arcane', 'cardClick', 'shuffle', 'move', 'blunt'] as const) {
+    if (preloaded.has(name)) continue;
+    const cue = new Audio();
+    cue.preload = 'auto';
+    cue.src = sounds[name];
+    preloaded.set(name, cue);
+  }
   const unlock = () => { unlocked = true; if (volumes.music) syncMusic(); };
   root.addEventListener('pointerup', unlock);
   root.addEventListener('keydown', unlock);
   root.addEventListener('click', event => {
     const button = event.target instanceof Element ? event.target.closest('button') : null;
-    if (!button || button.disabled || button.closest('[inert]') || button.matches('[data-hand-slot] button, [data-move], [data-hero-uid], .table-end, [data-own-sound]')) return;
-    playSound(button.closest('[role="dialog"]') && button.hasAttribute('data-card-size') ? 'draw' : 'menu', 1, 0.65);
+    if (!button || button.disabled || button.closest('[inert]')) return;
+    if (button.hasAttribute('data-card-size')) {
+      playSound('cardClick', 1, 0.56);
+      return;
+    }
+    if (button.matches('[data-move], [data-hero-uid], .table-end, [data-own-sound]')) return;
+    playSound('menu', 1, 0.65);
   }, true);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { for (const sound of voices.keys()) sound.pause(); voices.clear(); }
@@ -138,7 +153,9 @@ export function playSound(name: Sound, rate = 1, gain = 1) {
     const oldest = voices.keys().next().value;
     if (oldest) { oldest.pause(); voices.delete(oldest); }
   }
-  const voice = new Audio(sounds[name]);
+  const cached = preloaded.get(name);
+  const voice = cached && !voices.has(cached) ? cached : new Audio(sounds[name]);
+  if (voice.currentTime > 0) voice.currentTime = 0;
   voices.set(voice, gain);
   voice.volume = (volumes.sfx / 100) ** 2 * gain;
   voice.playbackRate = rate;
@@ -153,10 +170,10 @@ export const playDraw = () => playSound('draw');
 export function playCardSound(id: CardId) {
   const card = getCard(id);
   switch (id) {
-    case 'decimate': return playSound('blade', .63);
-    case 'siegeBlast': return playSound('blunt', .66);
-    case 'reap': return playSound('curse', .78);
-    case 'venomDart': return playSound('arrow', 1.28);
+    case 'decimate': return playSound('blade', .93);
+    case 'siegeBlast': return playSound('blunt', .9);
+    case 'reap': return playSound('curse', 1.08);
+    case 'arrowShot': case 'venomDart': return playSound('swiftArrow');
     case 'killingSpree': return playSound('reward', 1.23);
     case 'healingPotion': case 'rushPotion': case 'swiftTonic': case 'antidote': return playSound('potion');
   }
@@ -165,7 +182,7 @@ export function playCardSound(id: CardId) {
     case 'range': return playSound('arrow');
     case 'magic':
       if (card.element === 'healing') return playSound('imbue', 1.16);
-      return playSound('arcane', card.element === 'ice' ? 1.4 : card.element === 'fire' ? .78 : card.element === 'lightning' ? 1.62 : 1);
+      return playSound('arcane', card.element === 'ice' ? 1.18 : card.element === 'fire' ? .96 : card.element === 'lightning' ? 1.32 : 1.06);
     case 'curse': return playSound('curse');
     case 'defend': return playSound('guard');
     case 'imbue': return playSound('imbue');

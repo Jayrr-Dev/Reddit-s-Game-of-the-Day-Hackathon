@@ -252,6 +252,7 @@ export const CombatView = ({
     return () => setBossMusic(false);
   }, [hasBoss]);
   const previousCombat = useRef(combat);
+  const suppressBluntOverlay = useRef(false);
   useEffect(() => {
     const before = previousCombat.current;
     previousCombat.current = combat;
@@ -259,7 +260,7 @@ export const CombatView = ({
     if (combat.player.hp < before.player.hp) playSound('blunt', .80, .75);
     else if (combat.player.guard < before.player.guard && heroTurn.isPlaying) playSound('guard', .86, .7);
     else if (combat.player.hp > before.player.hp) playSound('imbue', 1.14, .6);
-    if (combat.heroes.some(unit => unit.hp < (before.heroes.find(old => old.uid === unit.uid)?.hp ?? unit.hp))) playSound('blunt', 1.2, .35);
+    if (!suppressBluntOverlay.current && combat.heroes.some(unit => unit.hp < (before.heroes.find(old => old.uid === unit.uid)?.hp ?? unit.hp))) playSound('blunt', 1.2, .27);
     if (combat.heroes.some(unit => !before.heroes.some(old => old.uid === unit.uid))) playSound('move', .85, .65);
   }, [combat, heroTurn.isPlaying]);
   const bossEntrance = useBossEntrance(combat.heroes, bossIntros);
@@ -283,12 +284,17 @@ export const CombatView = ({
   const routeAction = useCallback(
     (action: RunAction) => {
       if (allowCombatAction && !allowCombatAction(action)) return;
-      if (action.type === 'endTurn') { playSound('menu', .74); return playHeroTurn(); }
+      if (action.type === 'endTurn') {
+        suppressBluntOverlay.current = false;
+        playSound('menu', .9);
+        return playHeroTurn();
+      }
       if (action.type === 'move') playSound('move', action.move === 'backStep' ? .84 : 1.17);
       if (action.type === 'playCard') {
         const cardId = realCombat.hand[action.handIndex];
-        if (cardId) playCardSound(cardId);
-        setLastCard(cardId ? getCard(cardId) : undefined);
+        const card = cardId ? getCard(cardId) : undefined;
+        suppressBluntOverlay.current = card?.type === 'melee' && card.edge === 'sharp';
+        setLastCard(card);
         // A knockback the target shrugs off shows a cancel sign on it.
         const { targetUid } = action;
         if (
@@ -300,6 +306,7 @@ export const CombatView = ({
         // Range and Magic cards fire first; the hits land on arrival.
         const plan = shotPlanOf(realCombat, action);
         if (plan && fireShots(plan)) {
+          if (cardId) playCardSound(cardId);
           setIsShooting(true);
           window.setTimeout(() => {
             setIsShooting(false);
@@ -310,13 +317,16 @@ export const CombatView = ({
         // Melee cards swing across their targets; the slices follow.
         const swept = sweepPlanOf(realCombat, action);
         if (swept && swing(swept)) {
+          if (cardId && card?.edge === 'sharp') playCardSound(cardId);
           setIsShooting(true);
           window.setTimeout(() => {
+            if (cardId && card?.edge !== 'sharp') playCardSound(cardId);
             setIsShooting(false);
             playCardHits(action);
           }, MELEE_SWEEP_MS);
           return;
         }
+        if (cardId) playCardSound(cardId);
         return playCardHits(action);
       }
       onAction(action);
