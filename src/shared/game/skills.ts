@@ -1,7 +1,7 @@
 // --- SKILL POINTS ---
 import type { CharacterState } from './character.ts';
 import { REFLEX_DODGE } from './rules.ts';
-import type { MeleeEdge } from './types.ts';
+import type { CardType, MeleeEdge } from './types.ts';
 
 export const branchNames = [
   'Movement',
@@ -80,6 +80,14 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   '0-2-1': {
     name: 'Skirmisher',
     description: '+5% Range damage per rank at heroes on Line 2 (up to +25%)',
+  },
+  '1-0-0': {
+    name: 'Armory',
+    description: 'Melee cards are 30% more likely in card offers',
+  },
+  '2-0-0': {
+    name: 'Quiver',
+    description: 'Range cards are 30% more likely in card offers',
   },
   '1-1-0': {
     name: 'Heavy Hands',
@@ -180,6 +188,24 @@ export const guardBreakBonusOf = (picks: readonly SkillPick[] = []): number =>
 export const fleshWoundBonusOf = (picks: readonly SkillPick[] = []): number =>
   picks.filter((p) => p.branch === 1 && p.tier === 2 && p.slot === 1).length *
   EDGE_DAMAGE_PER_RANK;
+// --- CARD OFFER ODDS ---
+/** ARMORY / QUIVER: offer weight added by a path's entry (10% per point). */
+export const ENTRY_CARD_CHANCE = 0.3;
+/** Which path's entry circle raises which card type's offer odds. */
+const CARD_CHANCE_ENTRIES: Partial<Record<CardType, number>> = {
+  melee: 1,
+  range: 2,
+};
+/** How much more often a card of `type` is offered (0.3 = +30%). */
+export const cardChanceBonusOf = (
+  picks: readonly SkillPick[] = [],
+  type: CardType
+): number => {
+  const branch = CARD_CHANCE_ENTRIES[type];
+  return branch !== undefined && hasSkill(picks, branch, 0, 0)
+    ? ENTRY_CARD_CHANCE
+    : 0;
+};
 /** SHOCKWAVE (Blunt capstone): Momentum turns Melee strikes into Cleaves. */
 export const hasMomentumCleave = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 1, 3, 0);

@@ -12,6 +12,7 @@ import {
   skillPointsLeft,
   movementDiscountOf,
   reflexDodgeOf,
+  cardChanceBonusOf,
   edgeDamageBonusOf,
   chargeGuardOf,
   lineTwoRangeBonusOf,
@@ -295,4 +296,14 @@ test('Flesh Wound: Sharp hits an unprotected hero +5% per rank', () => {
   const sharp = getCard('twinDaggers');
   assert.equal(cardHitOn(hero, 100, sharp, picks), 125);
   assert.equal(cardHitOn({ ...hero, guard: 3 }, 100, sharp, picks), 100);
+});
+
+test('Armory and Quiver: path entries make Melee or Range offers 30% likelier', () => {
+  const armory = { branch: 1, tier: 0, slot: 0 };
+  assert.equal(cardChanceBonusOf([armory], 'melee'), 0.3);
+  assert.equal(cardChanceBonusOf([armory], 'range'), 0);
+  assert.equal(
+    cardChanceBonusOf([{ branch: 2, tier: 0, slot: 0 }], 'range'),
+    0.3
+  );
 });
