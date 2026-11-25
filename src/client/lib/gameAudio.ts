@@ -9,6 +9,7 @@ import bladeUrl from '../assets/audio/blade.ogg';
 import arrowUrl from '../assets/audio/arrow.ogg';
 import swiftArrowUrl from '../assets/audio/arrow-swift.ogg';
 import cardClickUrl from '../assets/audio/card-click.ogg';
+import hoverTickUrl from '../assets/audio/hover-tick.ogg';
 import arcaneUrl from '../assets/audio/arcane.ogg';
 import curseUrl from '../assets/audio/curse.ogg';
 import hexTriggerUrl from '../assets/audio/hex-trigger.ogg';
@@ -45,7 +46,7 @@ for (const channel of ['music', 'sfx'] as const) {
       volumes[channel] = Math.max(0, Math.min(100, Number(saved)));
   } catch { /* Session values work without storage. */ }
 }
-const sounds = { draw: drawUrl, menu: menuUrl, levelUp: levelUpUrl, runeClick: runeClickUrl, equip: equipUrl, blunt: bluntUrl, blade: bladeUrl, arrow: arrowUrl, swiftArrow: swiftArrowUrl, cardClick: cardClickUrl, arcane: arcaneUrl, curse: curseUrl, hexTrigger: hexTriggerUrl, guard: guardUrl, move: moveUrl, potion: potionUrl, imbue: imbueUrl, shuffle: shuffleUrl, remove: removeUrl, reward: rewardUrl, bladeHit: bladeHitUrl, arrowHit: arrowHitUrl, magicFire: magicFireUrl, magicFireHit: magicFireHitUrl, magicIce: magicIceUrl, magicIceHit: magicIceHitUrl, magicLightning: magicLightningUrl, magicLightningHit: magicLightningHitUrl, magicArcaneHit: magicArcaneHitUrl, charge: chargeUrl, backstep: backstepUrl };
+const sounds = { draw: drawUrl, menu: menuUrl, levelUp: levelUpUrl, runeClick: runeClickUrl, equip: equipUrl, blunt: bluntUrl, blade: bladeUrl, arrow: arrowUrl, swiftArrow: swiftArrowUrl, cardClick: cardClickUrl, hoverTick: hoverTickUrl, arcane: arcaneUrl, curse: curseUrl, hexTrigger: hexTriggerUrl, guard: guardUrl, move: moveUrl, potion: potionUrl, imbue: imbueUrl, shuffle: shuffleUrl, remove: removeUrl, reward: rewardUrl, bladeHit: bladeHitUrl, arrowHit: arrowHitUrl, magicFire: magicFireUrl, magicFireHit: magicFireHitUrl, magicIce: magicIceUrl, magicIceHit: magicIceHitUrl, magicLightning: magicLightningUrl, magicLightningHit: magicLightningHitUrl, magicArcaneHit: magicArcaneHitUrl, charge: chargeUrl, backstep: backstepUrl };
 type Sound = keyof typeof sounds;
 const voices = new Map<HTMLAudioElement, number>();
 const preloaded = new Map<Sound, HTMLAudioElement>();
@@ -75,7 +76,7 @@ function syncMusic() {
 
 /** Bind once at app startup, outside React's replayable render lifecycle. */
 export function installGameAudio(root: HTMLElement) {
-  for (const name of ['blade', 'bladeHit', 'arrow', 'swiftArrow', 'arcane', 'magicFire', 'magicIce', 'magicLightning', 'cardClick', 'shuffle', 'blunt', 'guard', 'charge', 'backstep', 'curse', 'hexTrigger', 'arrowHit', 'magicFireHit', 'magicIceHit', 'magicLightningHit', 'runeClick', 'levelUp', 'equip', 'imbue'] as const) {
+  for (const name of ['blade', 'bladeHit', 'arrow', 'swiftArrow', 'arcane', 'magicFire', 'magicIce', 'magicLightning', 'cardClick', 'shuffle', 'blunt', 'guard', 'charge', 'backstep', 'curse', 'hexTrigger', 'arrowHit', 'magicFireHit', 'magicIceHit', 'magicLightningHit', 'runeClick', 'levelUp', 'equip', 'imbue', 'hoverTick'] as const) {
     if (preloaded.has(name)) continue;
     const cue = new Audio();
     cue.preload = 'auto';
@@ -85,6 +86,15 @@ export function installGameAudio(root: HTMLElement) {
   const unlock = () => { unlocked = true; if (volumes.music) syncMusic(); };
   root.addEventListener('pointerup', unlock);
   root.addEventListener('keydown', unlock);
+  root.addEventListener('pointerover', event => {
+    if (!unlocked || (event.pointerType !== 'mouse' && event.pointerType !== 'pen') || event.buttons !== 0) return;
+    const selector = 'button, a[href], summary, input, select, [role="button"], [role="tab"], [role="menuitem"], [role="option"], [data-hero-uid]';
+    const target = event.target instanceof Element ? event.target.closest(selector) : null;
+    if (!target || !root.contains(target) || target.closest('[inert], :disabled, [aria-disabled="true"]')) return;
+    if (event.relatedTarget instanceof Node && target.contains(event.relatedTarget)) return;
+    const card = target.hasAttribute('data-card-size') || target.hasAttribute('data-card-id');
+    playSound('hoverTick', card ? 1 : 1.22, card ? .46 : .27);
+  });
   root.addEventListener('click', event => {
     const button = event.target instanceof Element ? event.target.closest('button') : null;
     if (!button || button.disabled || button.closest('[inert]')) return;
