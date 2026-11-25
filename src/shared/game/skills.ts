@@ -45,8 +45,31 @@ export function isSkillPick(v: unknown): v is SkillPick {
   );
 }
 export const skillCap = (tier: number) => (tier % 3 === 0 ? 1 : 5);
+/** ENTRY COST: a path's entry circle costs this many points; every other rank costs 1. */
+export const ENTRY_SKILL_COST = 3;
+/** Points one rank of a circle on `tier` costs. */
+export const skillCost = (tier: number): number =>
+  tier === 0 ? ENTRY_SKILL_COST : 1;
 export const skillPointsLeft = (c: CharacterState) =>
-  c.level - (c.skillPicks?.length ?? 0);
+  c.level -
+  (c.skillPicks ?? []).reduce((spent, pick) => spent + skillCost(pick.tier), 0);
+
+// --- SKILL EFFECTS ---
+/** A circle that does something in combat: its name and rules text. */
+export type SkillEffect = { name: string; description: string };
+/** What each live circle does, keyed "branch-tier-slot". Others are blank for now. */
+export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
+  '0-0-0': {
+    name: 'Endurance',
+    description: 'Charge and Back Step cost 1 less energy',
+  },
+};
+/** The effect of a circle, if it has one. */
+export const skillEffectOf = (pick: SkillPick): SkillEffect | undefined =>
+  SKILL_EFFECTS[`${pick.branch}-${pick.tier}-${pick.slot}`];
+/** ENDURANCE: energy taken off Charge and Back Step (0 or 1). */
+export const movementDiscountOf = (picks: readonly SkillPick[] = []): number =>
+  picks.some((p) => p.branch === 0 && p.tier === 0 && p.slot === 0) ? 1 : 0;
 export const skillRank = (picks: SkillPick[], tier: number, slot: number) =>
   picks.filter((p) => p.tier === tier && p.slot === slot).length;
 
@@ -75,7 +98,9 @@ export function skillRequirement(
     )
   )
     return 'Requires one rank in a connected circle below';
-  return skillPointsLeft(c) > 0 ? null : 'No skill points available';
+  return skillPointsLeft(c) >= skillCost(tier)
+    ? null
+    : 'Needs ' + skillCost(tier) + ' skill points';
 }
 /** Append valid purchases in order for deterministic replay. */
 export function buySkill(c: CharacterState, pick: SkillPick): CharacterState {

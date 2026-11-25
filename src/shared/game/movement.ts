@@ -14,6 +14,7 @@
 // ===================================================================
 
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
+import { movementDiscountOf } from './skills.ts';
 import { fallBack, isDeep, rowDepth, stepForward } from './battlefield.ts';
 import { canPlayCard, canPlayCardOnSelf, combatOutcome } from './combat.ts';
 import {
@@ -115,7 +116,9 @@ const streakOf = (state: CombatState): number => {
 export const movementCost = (state: CombatState, move: MovementId): number =>
   isRushing(state)
     ? 0
-    : MOVEMENTS[move].baseCost + streakOf(state) * MOVEMENT_STREAK_COST;
+    : // ENDURANCE (skill tree) takes energy off the base cost.
+      Math.max(0, MOVEMENTS[move].baseCost - movementDiscountOf(state.player.skillPicks)) +
+      streakOf(state) * MOVEMENT_STREAK_COST;
 
 /** Spends one Rush stack (none left: nothing changes). */
 const spendRush = (player: Combatant): Combatant => ({

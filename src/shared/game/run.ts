@@ -168,6 +168,7 @@ const enterStop = (state: RunState, stop: Stop): RunState => {
   const combat = startCombat({
     traits: state.character.traits,
     ...(state.character.traitNodes && { traitNodes: state.character.traitNodes }),
+    ...(state.character.skillPicks && { skillPicks: state.character.skillPicks }),
     equipment: state.character.equipment,
     hp: state.hp,
     maxHp: state.maxHp,

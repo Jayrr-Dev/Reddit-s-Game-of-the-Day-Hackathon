@@ -9,6 +9,7 @@ import {
   skillPointsLeft,
   skillRank,
   skillPurchases,
+  skillEffectOf,
   planSkillPath,
   type SkillPick,
 } from '../../../shared/game/skills';
@@ -42,7 +43,7 @@ export function SkillTree({
 
   /** Keep the popover inside the chart and off the clicked circle. */
   function activate(pick: SkillPick, target: SVGGElement) {
-    playSound('runeClick', 1, .72);
+    playSound('runeClick', 1, 0.72);
     const bounds = chart.current!.getBoundingClientRect();
     const rect = target.getBoundingClientRect();
     const y = rect.top + rect.height / 2 - bounds.top;
@@ -249,8 +250,12 @@ export function SkillTree({
             }}
           >
             <strong>
-              {branchNames[active.branch]} · {rank}/{skillCap(active.tier)}
+              {skillEffectOf(active)?.name ?? branchNames[active.branch]} ·{' '}
+              {rank}/{skillCap(active.tier)}
             </strong>
+            {skillEffectOf(active) && (
+              <small>{skillEffectOf(active)!.description}</small>
+            )}
             {rank === 0 && (
               <small>{skillPurchases(character, active).message}</small>
             )}

@@ -8,6 +8,7 @@ import type { Equipment, TraitNodes, Traits } from './character.ts';
 import type { CardId } from './cards.ts';
 import type { HeroId } from './heroes.ts';
 import type { RngState } from './rng.ts';
+import type { SkillPick } from './skills.ts';
 
 // --- STATUSES ---
 /**
@@ -100,6 +101,8 @@ export type PassiveId = 'vigor' | 'longRange' | 'anchored';
 export type Combatant = {
   traits?: Traits;
   traitNodes?: TraitNodes;
+  /** The villain's skill tree ranks (see skills.ts SKILL_EFFECTS). */
+  skillPicks?: readonly SkillPick[];
   equipment?: Equipment;
   hp: number;
   maxHp: number;

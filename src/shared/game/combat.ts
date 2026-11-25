@@ -148,6 +148,7 @@ import { spendUse } from './uses.ts';
 export type CombatSetup = {
   traits?: import('./character.ts').Traits;
   traitNodes?: import('./character.ts').TraitNodes;
+  skillPicks?: readonly import('./skills.ts').SkillPick[];
   equipment?: import('./character.ts').Equipment;
   hp: number;
   maxHp: number;
@@ -182,7 +183,7 @@ const createHeroUnit = (
 export const startCombat = (setup: CombatSetup): CombatState => {
   const [drawPile, rng] = shuffle(setup.seed, setup.deck);
   const initial: CombatState = {
-    player: { ...createCombatant(setup.hp, setup.maxHp), equipment: setup.equipment ?? starterEquipment(), ...(setup.traits && { traits: setup.traits }), ...(setup.traitNodes && { traitNodes: setup.traitNodes }) },
+    player: { ...createCombatant(setup.hp, setup.maxHp), equipment: setup.equipment ?? starterEquipment(), ...(setup.traits && { traits: setup.traits }), ...(setup.traitNodes && { traitNodes: setup.traitNodes }), ...(setup.skillPicks && { skillPicks: setup.skillPicks }) },
     heroes: formUp(
       setup.heroIds.map((id, index) =>
         createHeroUnit(id, index + 1, setup.might)
