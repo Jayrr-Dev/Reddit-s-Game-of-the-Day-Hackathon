@@ -782,7 +782,11 @@ export type Intent = {
 };
 
 /** One intent chip for one effect of a hero's next move. */
-const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
+const describeHeroEffect = (
+  unit: HeroUnit,
+  effect: HeroEffect,
+  debuffBonus = 0
+): Intent => {
   const scaled = (amount: number) => scaleByMight(amount, unit.might);
   const toWhom = (who: 'self' | 'allies') =>
     who === 'allies' ? ' to every hero' : '';
@@ -790,7 +794,7 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
   const allTag = (who: 'self' | 'allies') => (who === 'allies' ? 'ALL ' : '');
   switch (effect.kind) {
     case 'attack': {
-      const { type, perHit } = heroAttackOf(unit, effect);
+      const { type, perHit } = heroAttackOf(unit, effect, debuffBonus);
       const text = effect.hits > 1 ? `${perHit}×${effect.hits}` : `${perHit}`;
       const hoverText = effect.hits > 1 ? String(perHit * effect.hits) : undefined;
       const detail = hoverText ? `${text}=${hoverText}` : text;
@@ -933,12 +937,16 @@ export type MoveIntent = {
 };
 
 /** The chips for one move: one per effect, in order. */
-const describeMove = (unit: HeroUnit, heroMove: HeroMove): MoveIntent => ({
+const describeMove = (
+  unit: HeroUnit,
+  heroMove: HeroMove,
+  debuffBonus = 0
+): MoveIntent => ({
   name: heroMove.name,
   isSignature: heroMove.isSignature ?? false,
   intents: foldPerHitAfflictions(heroMove.effects)
     .flatMap((effect) => [
-      describeHeroEffect(unit, effect),
+      describeHeroEffect(unit, effect, debuffBonus),
       ...perHitIntents(unit, effect),
     ])
     .map((intent) => ({
@@ -962,13 +970,15 @@ const ADVANCE_MOVE: MoveIntent = {
  */
 export const describeHeroIntent = (
   unit: HeroUnit,
-  heroes: readonly HeroUnit[]
+  heroes: readonly HeroUnit[],
+  /** The villain's DEBILITATE bonus, so chips match the real hits. */
+  debuffBonus = 0
 ): { name: string; moves: MoveIntent[]; intents: Intent[] } => {
   const planned = plannedHeroMoves(unit, heroes).map((p) => p.move);
   const moves =
     planned.length === 0
       ? [ADVANCE_MOVE]
-      : planned.map((heroMove) => describeMove(unit, heroMove));
+      : planned.map((heroMove) => describeMove(unit, heroMove, debuffBonus));
   return {
     name: moves.map((move) => move.name).join(', then '),
     moves,

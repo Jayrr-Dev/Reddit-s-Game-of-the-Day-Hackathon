@@ -23,6 +23,7 @@ import {
 } from '../../../../shared/game/combat';
 import { isAnchored, preferredRow, rowDepth } from '../../../../shared/game/battlefield';
 import { getHero } from '../../../../shared/game/heroes';
+import { debuffPowerOf } from '../../../../shared/game/skills';
 import type { Combatant, HeroUnit } from '../../../../shared/game/types';
 import { INTENT_LOOK } from '../../../content/visuals';
 import { Chip } from '../../ui/Chip';
@@ -84,9 +85,12 @@ const MoveArrow = ({ move, unit }: { move: MoveIntent; unit: HeroUnit }) => {
 export const IntentChips = ({
   unit,
   field,
+  debuffBonus = 0,
 }: {
   unit: HeroUnit;
   field: readonly HeroUnit[];
+  /** The villain's Debilitate share, so attack chips show the real hit. */
+  debuffBonus?: number;
 }) => {
   const stack = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -98,7 +102,7 @@ export const IntentChips = ({
     return () => observer.disconnect();
   });
   return <div ref={stack} className="hero-action-chips flex flex-col items-end gap-1">
-    {describeHeroIntent(unit, field).moves.map((move, index) => (
+    {describeHeroIntent(unit, field, debuffBonus).moves.map((move, index) => (
       <MoveArrow key={`${move.name}-${index}`} move={move} unit={unit} />
     ))}
   </div>;
@@ -140,7 +144,7 @@ export const HeroPlate = ({ unit, field, player }: HeroPlateProps) => {
             </span>
             <DrainBar hp={unit.hp} maxHp={unit.maxHp} size="small" />
             <div className="hero-plate-details">
-              <IntentChips unit={unit} field={field} />
+              <IntentChips unit={unit} field={field} debuffBonus={debuffPowerOf(player.skillPicks)} />
               <EnemyStatuses
                 combatant={unit}
                 source={player}
