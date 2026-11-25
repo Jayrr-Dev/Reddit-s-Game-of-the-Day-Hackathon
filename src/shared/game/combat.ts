@@ -400,10 +400,10 @@ const canSpendCard = (state: CombatState, handIndex: number): boolean => {
   return cardCost(cardId, state.killsThisTurn ?? 0, state.followUpReady) <= state.energy;
 };
 
-/** Portrait targeting skips enemy range checks; Imbue still requires a card slot. */
+/** Only curse cards can be deliberately aimed at the player portrait. */
 export const canPlayCardOnSelf = (state: CombatState, handIndex: number): boolean => {
   const cardId = state.hand[handIndex];
-  return cardId !== undefined && !imbueEffectOf(cardId) && canSpendCard(state, handIndex);
+  return cardId !== undefined && getCard(cardId).type === 'curse' && canSpendCard(state, handIndex);
 };
 
 export const canPlayCard = (state: CombatState, handIndex: number): boolean => {

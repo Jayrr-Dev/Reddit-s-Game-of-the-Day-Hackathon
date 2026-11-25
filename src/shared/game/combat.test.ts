@@ -3131,37 +3131,40 @@ void test('Disrupt lowers one random buff or affliction by N without stripping t
   assert.equal(describeCardEffect({ kind: 'disrupt', amount: 1, target: 'one' }, getCard('dispel')), 'Disrupt 1');
 });
 
-void test('an explicit portrait target redirects damage, area attacks and afflictions only to the player', () => {
+void test('only curses may target the portrait; even area curses affect just the player', () => {
   const initial = fightWith(['backhand']);
   const stored = { ...initial, heroes: initial.heroes.map(hero => ({ ...hero, row: 'back' as const })) };
   assert.equal(canPlayCard(stored, 0), false);
-  assert.equal(canPlayCardOnSelf(stored, 0), true);
-  const selfHit = playCard(stored, 0, SELF_TARGET_UID);
-  assert.equal(stored.player.hp - selfHit.player.hp, 6);
-  assert.deepEqual(selfHit.heroes, stored.heroes);
+  assert.equal(canPlayCardOnSelf(stored, 0), false);
+  assert.equal(playCard(stored, 0, SELF_TARGET_UID), stored);
   const curse = withHand(stored, ['sap']);
+  assert.equal(canPlayCardOnSelf(curse, 0), true);
   const cursed = playCard(curse, 0, SELF_TARGET_UID);
   assert.equal(cursed.player.statuses.enfeeble, 3);
   assert.equal(cursed.player.statuses.hex, 1);
   assert.deepEqual(cursed.heroes, stored.heroes);
-  const sweep = withHand(initial, ['cleave']);
-  const swept = playCard(sweep, 0, SELF_TARGET_UID);
-  assert.ok(swept.player.hp < sweep.player.hp);
-  assert.deepEqual(swept.heroes, sweep.heroes);
+  const plague = withHand(initial, ['plague']);
+  const afflicted = playCard(plague, 0, SELF_TARGET_UID);
+  assert.equal(afflicted.player.statuses.hex, 4);
+  assert.deepEqual(afflicted.heroes, plague.heroes);
+  const lowEnergy = { ...plague, energy: 1 };
+  assert.equal(playCard(lowEnergy, 0, SELF_TARGET_UID), lowEnergy);
 });
 
-void test('portrait targeting preserves Guards and native buffs, can defeat the player, and rejects mixed targets', () => {
-  const initial = fightWith(['backhand']);
-  const guard = { ...initial, player: { ...initial.player, guard: 10 } };
-  const blocked = playCard(guard, 0, SELF_TARGET_UID);
-  assert.equal(blocked.player.hp, guard.player.hp);
-  assert.equal(blocked.player.guard, 4);
-  const dead = playCard({ ...initial, player: { ...initial.player, hp: 1 } }, 0, SELF_TARGET_UID);
-  assert.equal(combatOutcome(dead), 'lost');
+void test('manual targeting rejects other card types and mixed targets without changing native buffs or healing', () => {
+  const initial = fightWith(['mourningCurse']);
+  const uid = initial.heroes[0]!.uid;
+  for (const cardId of ['cleave', 'mend', 'bulwark'] as const) {
+    const state = withHand(initial, [cardId]);
+    assert.equal(canPlayCardOnSelf(state, 0), false);
+    assert.equal(playCard(state, 0, SELF_TARGET_UID), state);
+  }
   const buffs = withHand(initial, ['bulwark']);
-  assert.equal(playCard(buffs, 0, SELF_TARGET_UID).player.statuses.protection, 1);
-  assert.equal(playCard(initial, 0, SELF_TARGET_UID, [initial.heroes[0]!.uid]), initial);
-  assert.equal(playCard(initial, 0, initial.heroes[0]!.uid, [SELF_TARGET_UID]), initial);
+  assert.equal(playCard(buffs, 0, uid).player.statuses.protection, 1);
+  const hurt = withHand({ ...initial, player: { ...initial.player, hp: 10 } }, ['mend']);
+  assert.equal(playCard(hurt, 0, uid).player.hp, 17);
+  assert.equal(playCard(initial, 0, SELF_TARGET_UID, [uid]), initial);
+  assert.equal(playCard(initial, 0, uid, [SELF_TARGET_UID]), initial);
 });
 
 void test('Mass Disrupt costs two energy and applies Disrupt 5 separately to every enemy', () => {

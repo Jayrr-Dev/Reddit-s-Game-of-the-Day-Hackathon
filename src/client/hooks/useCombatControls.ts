@@ -268,9 +268,10 @@ export const useCombatControls = (
       release();
       return imbue.drop();
     }
-    if (drop.selfPoint && canPlayCardOnSelf(combat, handIndex)) {
+    if (drop.selfPoint) {
       release();
-      return playAt(handIndex, SELF_TARGET_UID);
+      if (canPlayCardOnSelf(combat, handIndex)) playAt(handIndex, SELF_TARGET_UID);
+      return;
     }
     if (!canPlayCard(combat, handIndex)) return release();
     const legal = targetsFor(combat, cardId, handIndex).map((unit) => unit.uid);
@@ -319,7 +320,7 @@ export const useCombatControls = (
   const selfTargetLocked = !!drag?.selfPoint && drag.handIndex === heldIndex && selfTargetAvailable;
   const dropState = selfTargetLocked
     ? { isLive: true, isAimed: true, target: null }
-    : drag && dragCard !== undefined && canPlayCard(combat, drag.handIndex)
+    : drag && !drag.selfPoint && dragCard !== undefined && canPlayCard(combat, drag.handIndex)
       ? resolveDrop(dragCard, drag, legalUids)
       : { isLive: false, isAimed: false, target: null };
   const isDropLive = dropState.isLive;
