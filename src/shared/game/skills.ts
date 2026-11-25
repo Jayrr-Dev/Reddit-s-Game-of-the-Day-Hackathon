@@ -114,7 +114,8 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   },
   '2-3-0': {
     name: 'Spellpierce',
-    description: 'Magic cards ignore Guard and Armor',
+    description:
+      'Magic cards ignore Guard and Armor (Protection still applies)',
   },
   '2-3-1': {
     name: 'Volley',

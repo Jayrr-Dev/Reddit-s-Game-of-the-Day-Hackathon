@@ -741,7 +741,8 @@ const villainAttack = (
   const isFollowThrough = effect.target === 'one' && !isCleave;
   const pierceHit = Math.floor(perHit * PIERCE_DAMAGE_FACTOR);
   // SPELLPIERCE (skill tree): Magic ignores Guard and Armor like Piercing.
-  const ignoresGuard = play.isPiercing || (cardDef.type === 'magic' && magicPiercesOf(state.player.skillPicks));
+  const ignoresGuard: boolean | 'spell' =
+    play.isPiercing || (cardDef.type === 'magic' && magicPiercesOf(state.player.skillPicks) ? 'spell' : false);
   const hits = volleyHitsOf(effect.hits, cardDef.type, state.player.skillPicks);
   return Array.from({ length: hits }).reduce<CombatState>((current) => {
     // RANDOMLY: this hit's hero is rolled now, so each hit picks anew.
@@ -838,7 +839,7 @@ const elementalHit = <T extends Combatant>(
   unit: T,
   amount: number,
   cardDef: CardDef,
-  isPiercing: boolean,
+  isPiercing: boolean | 'spell',
   attacker: Combatant
 ): T => {
   const hit = takeHit(unit, amount, cardDef.type, isPiercing, attacker);
