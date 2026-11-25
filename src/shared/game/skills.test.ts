@@ -20,6 +20,7 @@ import {
   createCombatant,
   afflictionAmount,
   afflictionDamage,
+  damageFactorOf,
   incomingAfflictionDamage,
   hexAfterTurn,
   hexBurnAmount,
@@ -470,6 +471,17 @@ test('Virulence: +5% stacks per rank on non-Hex afflictions, rounded', () => {
   assert.equal(afflictionAmount(10, unit, 'bleed'), 13);
   assert.equal(afflictionAmount(4, unit, 'hex'), 4);
   assert.equal(afflictionAmount(4, createCombatant(50, 50), 'poison'), 4);
+});
+
+test('Debilitate: adds 5% per rank to Weaken and Enfeeble cuts', () => {
+  const base = createCombatant(50, 50);
+  const weak = { ...base, statuses: { ...base.statuses, weaken: 2 } };
+  assert.equal(damageFactorOf(weak), 0.75);
+  assert.equal(damageFactorOf(weak, undefined, false, undefined, 0.25), 0.5);
+  assert.equal(
+    damageFactorOf(createCombatant(50, 50), undefined, false, undefined, 0.25),
+    1
+  );
 });
 
 test('Antivenom: affliction damage taken is 5% lower per rank', () => {

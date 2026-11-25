@@ -120,6 +120,11 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     description:
       'Poison, Bleed, Burn, Frost and Shock apply 5% more stacks per rank (up to +25%)',
   },
+  '4-2-0': {
+    name: 'Debilitate',
+    description:
+      'Weaken and Enfeeble on the heroes cut 5% more damage per rank (up to +25%, added on)',
+  },
   '4-2-1': {
     name: 'Antivenom',
     description: 'Affliction damage you take is 5% lower per rank (up to -25%)',
@@ -393,6 +398,12 @@ export const virulentStacks = (
   Math.round(
     amount * (1 + ranksIn(picks, 4, 1, 1) * EDGE_DAMAGE_PER_RANK) + 1e-9
   );
+/**
+ * DEBILITATE (Hex and Curses line): added to the damage share Weaken and
+ * Enfeeble cut, +5% per rank (additive: Weaken 25% becomes up to 50%).
+ */
+export const debuffPowerOf = (picks?: readonly SkillPick[]): number =>
+  ranksIn(picks, 4, 2, 0) * EDGE_DAMAGE_PER_RANK;
 /** ANTIVENOM (other afflictions line): affliction damage taken, -5% per rank. */
 export const afflictionResistOf = (picks?: readonly SkillPick[]): number =>
   ranksIn(picks, 4, 2, 1) * EDGE_DAMAGE_PER_RANK;

@@ -212,11 +212,22 @@ export const damageFactorOf = (
   attacker: Combatant,
   type?: CardType,
   isRampage = false,
-  edge?: MeleeEdge
+  edge?: MeleeEdge,
+  debuffBonus = 0
 ): number => {
   const boost = boostFactorOf(attacker, type, isRampage, edge);
-  const weaken = attacker.statuses.weaken > 0 ? WEAKEN_DAMAGE_FACTOR : 1;
-  const enfeeble = remainingTierPercent(attacker.statuses.enfeeble) / 100;
+  // DEBILITATE: the villain's skill adds its share to each cut (additive).
+  const weaken =
+    attacker.statuses.weaken > 0
+      ? Math.max(0, WEAKEN_DAMAGE_FACTOR - debuffBonus)
+      : 1;
+  const enfeeble =
+    attacker.statuses.enfeeble > 0
+      ? Math.max(
+          0,
+          remainingTierPercent(attacker.statuses.enfeeble) / 100 - debuffBonus
+        )
+      : 1;
   return boost * weaken * enfeeble;
 };
 
@@ -274,12 +285,13 @@ export const attackDamage = (
   type?: CardType,
   isRampage = false,
   hits = 1,
-  edge?: MeleeEdge
+  edge?: MeleeEdge,
+  debuffBonus = 0
 ): number => {
   const withWrath =
     traitDamage(base, attacker, type, hits) +
     buffedAmount(attacker, attacker.statuses.wrath + typeBonus(attacker, type));
-  const factor = damageFactorOf(attacker, type, isRampage, edge);
+  const factor = damageFactorOf(attacker, type, isRampage, edge, debuffBonus);
   const scaled = withWrath * factor;
   const factored =
     attacker.statuses.enfeeble > 0 ? ceilHitDamage(scaled) : Math.floor(scaled);

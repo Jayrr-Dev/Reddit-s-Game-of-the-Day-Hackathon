@@ -16,7 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
-import { afflictsThroughBlocksOf, bonusUsesOf, empoweredStacks, handSizeBonusOf, battlemageBonusOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
+import { afflictsThroughBlocksOf, bonusUsesOf, debuffPowerOf, empoweredStacks, handSizeBonusOf, battlemageBonusOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -350,9 +350,12 @@ const villainLongRangeFactor = (unit: HeroUnit, picks?: readonly SkillPick[]): n
  */
 export const heroAttackOf = (
   unit: HeroUnit,
-  effect: Extract<HeroEffect, { kind: 'attack' }>
+  effect: Extract<HeroEffect, { kind: 'attack' }>,
+  debuffBonus = 0
 ): { type: HeroAttackType; perHit: number } => {
-  const perHit = attackDamage(scaleByMight(effect.amount, unit.might), unit);
+  const perHit = attackDamage(
+    scaleByMight(effect.amount, unit.might), unit, undefined, false, 1, undefined, debuffBonus
+  );
   if (effect.type !== 'range') return { type: effect.type, perHit };
   const isLongRange = rowDepth(unit.row) > 0;
   return { type: 'range', perHit: isLongRange ? longRangeHit(perHit) : perHit };
@@ -1873,7 +1876,7 @@ const heroShoots = (
   actor: HeroUnit,
   effect: Extract<HeroEffect, { kind: 'attack' }>
 ): CombatState => {
-  const { type, perHit } = heroAttackOf(actor, effect);
+  const { type, perHit } = heroAttackOf(actor, effect, debuffPowerOf(state.player.skillPicks));
   const mayMiss = isOutOfRangeShot(type, actor.row, hasLongRangePassive(actor));
   const bonusAccuracy = accuracyBonusOf(actor, type);
   let current = state;
