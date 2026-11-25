@@ -18,6 +18,7 @@ import {
   addStatus,
   attackDamage,
   createCombatant,
+  afflictionAmount,
   afflictionDamage,
   hexAfterTurn,
   hexBurnAmount,
@@ -461,6 +462,15 @@ test('Malediction: afflictions deal 5% more per rank', () => {
   assert.equal(afflictionDamage(20), 20);
 });
 
+test('Virulence: +5% stacks per rank on non-Hex afflictions, rounded', () => {
+  const v = { branch: 4, tier: 1, slot: 1 };
+  const unit = { ...createCombatant(50, 50), skillPicks: [v, v, v, v, v] };
+  assert.equal(afflictionAmount(4, unit, 'poison'), 5);
+  assert.equal(afflictionAmount(10, unit, 'bleed'), 13);
+  assert.equal(afflictionAmount(4, unit, 'hex'), 4);
+  assert.equal(afflictionAmount(4, createCombatant(50, 50), 'poison'), 4);
+});
+
 test('Relentless: a hit Armor blocks to 0 still poisons', () => {
   const poisoned = (
     picks: { branch: number; tier: number; slot: number }[]
@@ -487,10 +497,6 @@ test('Relentless: a hit Armor blocks to 0 still poisons', () => {
     const after = playCard(walled, 0, walled.heroes[0]!.uid);
     return after.heroes[0]!.statuses.poison;
   };
-  assert.equal(
-    poisoned([]) > 0,
-    false,
-    'a hit for 0 procs nothing'
-  );
+  assert.equal(poisoned([]) > 0, false, 'a hit for 0 procs nothing');
   assert.ok(poisoned([{ branch: 4, tier: 3, slot: 1 }]) > 0);
 });

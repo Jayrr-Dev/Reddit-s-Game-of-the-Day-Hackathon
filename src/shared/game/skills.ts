@@ -115,6 +115,11 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     name: 'Malediction',
     description: 'Afflictions deal 5% more damage per rank (up to +25%)',
   },
+  '4-1-1': {
+    name: 'Virulence',
+    description:
+      'Poison, Bleed, Burn, Frost and Shock apply 5% more stacks per rank (up to +25%)',
+  },
   '4-3-1': {
     name: 'Relentless',
     description:
@@ -372,6 +377,18 @@ export const hasHexSixOf = (picks?: readonly SkillPick[]): boolean =>
 /** MALEDICTION (Hex and Curses line): affliction damage, +5% per rank. */
 export const afflictionSkillBonusOf = (picks?: readonly SkillPick[]): number =>
   ranksIn(picks, 4, 1, 0) * EDGE_DAMAGE_PER_RANK;
+/**
+ * VIRULENCE (other afflictions line): stacks applied, +5% per rank (up to
+ * +25%), rounded to the nearest like Empower. The caller limits it to the
+ * bottom-line afflictions (everything stack-counted except Hex).
+ */
+export const virulentStacks = (
+  amount: number,
+  picks?: readonly SkillPick[]
+): number =>
+  Math.round(
+    amount * (1 + ranksIn(picks, 4, 1, 1) * EDGE_DAMAGE_PER_RANK) + 1e-9
+  );
 /** RELENTLESS (other afflictions capstone): afflictions ride blocked hits. */
 export const afflictsThroughBlocksOf = (
   picks?: readonly SkillPick[]
