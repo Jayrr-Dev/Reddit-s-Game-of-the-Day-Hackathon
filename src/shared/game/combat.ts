@@ -16,7 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
-import { bonusUsesOf, empoweredStacks, handSizeBonusOf, battlemageBonusOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
+import { afflictsThroughBlocksOf, bonusUsesOf, empoweredStacks, handSizeBonusOf, battlemageBonusOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -845,8 +845,10 @@ const elementalHit = <T extends Combatant>(
   attacker: Combatant
 ): T => {
   const hit = takeHit(unit, amount, cardDef.type, isPiercing, attacker);
-  // A hit for 0 (all Armor or Protection) carries no element.
-  const isLanded = hit.damageTaken > unit.damageTaken || hit.guard < unit.guard;
+  // A hit for 0 (all Armor or Protection) carries no element, unless
+  // RELENTLESS (skill tree) lets afflictions ride even a blocked hit.
+  const isLanded =
+    hit.damageTaken > unit.damageTaken || hit.guard < unit.guard || afflictsThroughBlocksOf(attacker.skillPicks);
   const onHit = cardDef.element ? ELEMENT_ON_HIT[cardDef.element] : null;
   return onHit && isLanded ? addStatus(hit, onHit.status, onHit.amount + scornBonus(attacker, onHit.status)) : hit;
 };
@@ -1277,6 +1279,11 @@ const cardBeats = (
     // (HP or Guard lost), its effects on heroes (Burn, Knockback ...)
     // are skipped; effects on the villain (Guard, Draw) still apply.
     let hasLanded = false;
+    // RELENTLESS (skill tree): any hit attempt carries the card's
+    // afflictions, even blocked, for 0, dodged or missed.
+    let hasConnected = false;
+    const isRelentless = afflictsThroughBlocksOf(current.player.skillPicks);
+    const ridesBlock = (effect: CardEffect) => isRelentless && hasConnected && isAfflictionEffect(effect);
     const apply = (effect: CardEffect) => {
       if (aimed === SELF_TARGET_UID && current.player.hp <= 0) return;
       current = applyCardEffect(current, effect, aimed, cardDef, plan, guardRepeats);
@@ -1285,13 +1292,17 @@ const cardBeats = (
     for (const effect of beats) {
       const before = current;
       const isOnHit = isProcPerHit && effect.kind !== 'damage';
-      if (isOnHit && !hasLanded && !isSelfEffect(effect)) continue;
+      if (isOnHit && !hasLanded && !isSelfEffect(effect) && !ridesBlock(effect)) continue;
       apply(effect);
       const isLandedHit =
         effect.kind === 'damage' && (aimed === SELF_TARGET_UID
           ? villainWasHit(before.player, current.player) : hasLandedHit(before, current));
+      // Every hit attempt counts for RELENTLESS: blocked, 0, dodged or missed.
+      const isConnectedHit = isLandedHit || effect.kind === 'damage';
       hasLanded ||= isLandedHit;
+      hasConnected ||= isConnectedHit;
       if (isLandedHit) imbuedBeats.forEach(apply);
+      else if (isConnectedHit && isRelentless) imbuedBeats.filter(isAfflictionEffect).forEach(apply);
     }
     if (!isProcPerHit && pick === 0) imbuedBeats.forEach(apply);
   });

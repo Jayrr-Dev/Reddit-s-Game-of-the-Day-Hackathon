@@ -460,3 +460,37 @@ test('Malediction: afflictions deal 5% more per rank', () => {
   assert.equal(afflictionDamage(20, hexer), 25);
   assert.equal(afflictionDamage(20), 20);
 });
+
+test('Relentless: a hit Armor blocks to 0 still poisons', () => {
+  const poisoned = (
+    picks: { branch: number; tier: number; slot: number }[]
+  ) => {
+    const state = startCombat({
+      hp: 50,
+      maxHp: 50,
+      deck: ['venomDart' as const],
+      heroIds: ['squire' as const],
+      might: 1,
+      seed: 3,
+      skillPicks: picks,
+    });
+    const walled = {
+      ...state,
+      energy: 9,
+      heroes: state.heroes.map((u) => ({
+        ...u,
+        row: 'front' as const,
+        guard: 0,
+        statuses: { ...u.statuses, armor: 999 },
+      })),
+    };
+    const after = playCard(walled, 0, walled.heroes[0]!.uid);
+    return after.heroes[0]!.statuses.poison;
+  };
+  assert.equal(
+    poisoned([]) > 0,
+    false,
+    'a hit for 0 procs nothing'
+  );
+  assert.ok(poisoned([{ branch: 4, tier: 3, slot: 1 }]) > 0);
+});
