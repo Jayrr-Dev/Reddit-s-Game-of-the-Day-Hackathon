@@ -28,7 +28,7 @@ import {
   ROUND_BUFFS,
 } from './rules.ts';
 import { characterBonuses, healingAmount } from './character.ts';
-import { buffPowerBonusOf, edgeDamageBonusOf, hasHexSixOf, stackedBuffTurnsOf, momentumSkillBonusOf, type SkillPick } from './skills.ts';
+import { afflictionSkillBonusOf, buffPowerBonusOf, edgeDamageBonusOf, hasHexSixOf, stackedBuffTurnsOf, momentumSkillBonusOf, type SkillPick } from './skills.ts';
 import { pickOne, type RngState } from './rng.ts';
 import type {
   BuffId,
@@ -206,8 +206,10 @@ export const damageFactorOf = (
  */
 /** A damaging affliction resolves once with its source's Scorn bonus. */
 export const afflictionDamage = (base: number, source?: Combatant): number => {
-  const percent = source?.traits ? combatantBonuses(source).afflictionDamagePercent : 0;
-  return Math.floor(base * (100 + percent) / 100);
+  const traitPercent = source?.traits ? combatantBonuses(source).afflictionDamagePercent : 0;
+  // MALEDICTION (skill tree) adds its percent on top of the traits'.
+  const skillPercent = Math.round(afflictionSkillBonusOf(source?.skillPicks) * 100);
+  return Math.floor(base * (100 + traitPercent + skillPercent) / 100);
 };
 
 export const reapDamage = (hex: number, multiplier: number, attacker: Combatant, type: CardType) =>

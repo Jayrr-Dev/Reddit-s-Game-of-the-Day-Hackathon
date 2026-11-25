@@ -111,6 +111,10 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     description:
       'Buffs (Wrath, Might, Surge, Hone, Reinforce) are 3% stronger per rank (up to +15%)',
   },
+  '4-1-0': {
+    name: 'Malediction',
+    description: 'Afflictions deal 5% more damage per rank (up to +25%)',
+  },
   '4-3-0': {
     name: 'Sixfold Curse',
     description:
@@ -360,6 +364,9 @@ export const buffPowerBonusOf = (picks?: readonly SkillPick[]): number =>
 /** SIXFOLD CURSE (Afflictions capstone): Hex ending in 6 is empowered too. */
 export const hasHexSixOf = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 4, 3, 0);
+/** MALEDICTION (Hex and Curses line): affliction damage, +5% per rank. */
+export const afflictionSkillBonusOf = (picks?: readonly SkillPick[]): number =>
+  ranksIn(picks, 4, 1, 0) * EDGE_DAMAGE_PER_RANK;
 /** SHOCKWAVE (Blunt capstone): Momentum turns Melee strikes into Cleaves. */
 export const hasMomentumCleave = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 1, 3, 0);

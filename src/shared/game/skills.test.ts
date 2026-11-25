@@ -18,6 +18,7 @@ import {
   addStatus,
   attackDamage,
   createCombatant,
+  afflictionDamage,
   hexAfterTurn,
   hexBurnAmount,
   takeHit,
@@ -451,4 +452,11 @@ test('Sixfold Curse: Hex ending in 6 burns triple and clears', () => {
   assert.equal(hexAfterTurn(16, hexer), 0);
   assert.equal(hexAfterTurn(6), 7);
   assert.equal(hexBurnAmount(13, hexer), 39);
+});
+
+test('Malediction: afflictions deal 5% more per rank', () => {
+  const m = { branch: 4, tier: 1, slot: 0 };
+  const hexer = { ...createCombatant(50, 50), skillPicks: [m, m, m, m, m] };
+  assert.equal(afflictionDamage(20, hexer), 25);
+  assert.equal(afflictionDamage(20), 20);
 });
