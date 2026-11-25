@@ -16,7 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
-import { rageEnergyOf, reflexDodgeOf } from './skills.ts';
+import { lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -330,8 +330,15 @@ export const plannedHeroMoves = (
  * A Range hit at its proper range. Rounded (not floored) so even small
  * hits feel the bonus: 2 -> 3, 6 -> 8.
  */
-const longRangeHit = (perHit: number): number =>
-  Math.round(perHit * LONG_RANGE_DAMAGE_FACTOR);
+const longRangeHit = (perHit: number, factor = LONG_RANGE_DAMAGE_FACTOR): number =>
+  Math.round(perHit * factor);
+
+/**
+ * The villain's long-range factor at `unit`: the base bonus, plus
+ * SKIRMISHER (skill tree) when the hero stands on Line 2 ('back').
+ */
+const villainLongRangeFactor = (unit: HeroUnit, picks?: readonly SkillPick[]): number =>
+  LONG_RANGE_DAMAGE_FACTOR + (unit.row === 'back' ? lineTwoRangeBonusOf(picks) : 0);
 
 /**
  * How one hero attack lands from where the hero stands: its type and
@@ -633,8 +640,11 @@ const shootHeroes = (
  * The damage multiplier a card gets from the hero it is aimed at (1
  * when the target adds nothing). Today only a long-range shot does.
  */
-export const targetDamageFactor = (unit: HeroUnit, cardDef: CardDef): number =>
-  isLongRangeShot(unit, cardDef) ? LONG_RANGE_DAMAGE_FACTOR : 1;
+export const targetDamageFactor = (
+  unit: HeroUnit,
+  cardDef: CardDef,
+  picks?: readonly SkillPick[]
+): number => (isLongRangeShot(unit, cardDef) ? villainLongRangeFactor(unit, picks) : 1);
 
 /**
  * Every multiplier on one play's damage at one hero, combined: the
@@ -650,7 +660,7 @@ export const playDamageFactor = (
   const factor =
     (1 + offensiveBonus(attacker, cardDef.type).percent / 100) *
     damageFactorOf(attacker, cardDef.type, isRampage) *
-    targetDamageFactor(unit, cardDef);
+    targetDamageFactor(unit, cardDef, attacker.skillPicks);
   return Math.round(factor * 100) / 100;
 };
 
@@ -658,8 +668,10 @@ export const playDamageFactor = (
 export const cardHitOn = (
   unit: HeroUnit,
   perHit: number,
-  cardDef: CardDef
-): number => (isLongRangeShot(unit, cardDef) ? longRangeHit(perHit) : perHit);
+  cardDef: CardDef,
+  picks?: readonly SkillPick[]
+): number =>
+  isLongRangeShot(unit, cardDef) ? longRangeHit(perHit, villainLongRangeFactor(unit, picks)) : perHit;
 
 /**
  * Deals `hits` hits of villain attack damage to the targets. FOLLOW
@@ -704,7 +716,7 @@ const villainAttack = (
       (unit, factor) =>
         elementalHit(
           unit,
-          cardHitOn(unit, perHit, cardDef) * factor,
+          cardHitOn(unit, perHit, cardDef, state.player.skillPicks) * factor,
           cardDef,
           play.isPiercing,
           state.player
@@ -766,7 +778,7 @@ const pierceBehind = (
     inLineUids,
     // Everyone in the column takes a Piercing hit (no Armor, no Protection).
     (unit, factor) =>
-      elementalHit(unit, cardHitOn(unit, amount, cardDef) * factor, cardDef, true, state.player),
+      elementalHit(unit, cardHitOn(unit, amount, cardDef, state.player.skillPicks) * factor, cardDef, true, state.player),
     cardDef,
     hasLongRange
   );

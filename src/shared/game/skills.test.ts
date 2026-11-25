@@ -11,6 +11,8 @@ import {
   skillPointsLeft,
   movementDiscountOf,
   reflexDodgeOf,
+  chargeGuardOf,
+  lineTwoRangeBonusOf,
   skillEffectOf,
 } from './skills.ts';
 
@@ -166,4 +168,15 @@ test('Light Feet: each rank adds 5% to the Reflex dodge', () => {
     reflexDodgeOf({ skillPicks: [rank, rank, rank, rank, rank] }),
     0.5
   );
+});
+
+test('Shield Rush and Skirmisher scale per rank', () => {
+  const rush = { branch: 0, tier: 2, slot: 0 };
+  const skirm = { branch: 0, tier: 2, slot: 1 };
+  assert.equal(chargeGuardOf([rush, rush, rush]), 3);
+  assert.ok(
+    Math.abs(lineTwoRangeBonusOf([skirm, skirm, skirm, skirm, skirm]) - 0.2) <
+      1e-9
+  );
+  assert.equal(lineTwoRangeBonusOf([]), 0);
 });

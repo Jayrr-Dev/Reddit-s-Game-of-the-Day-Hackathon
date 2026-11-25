@@ -14,7 +14,8 @@
 // ===================================================================
 
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
-import { iFramesOf, movementDiscountOf } from './skills.ts';
+import { chargeGuardOf, iFramesOf, movementDiscountOf } from './skills.ts';
+import { addGuard } from './combatant.ts';
 import { fallBack, isDeep, rowDepth, stepForward } from './battlefield.ts';
 import { canPlayCard, canPlayCardOnSelf, combatOutcome } from './combat.ts';
 import {
@@ -70,7 +71,8 @@ export const MOVEMENTS: Record<MovementId, MovementDef> = {
     fitsFormation: (heroes) =>
       heroes.every((unit) => unit.row !== 'front') &&
       changesRows(heroes, stepForward(heroes, CHARGE_ROWS)),
-    reshape: (heroes, extraRows = 0) => stepForward(heroes, CHARGE_ROWS + extraRows),
+    reshape: (heroes, extraRows = 0) =>
+      stepForward(heroes, CHARGE_ROWS + extraRows),
     grants: { status: 'momentum', amount: 1 },
   },
   /**
@@ -83,7 +85,8 @@ export const MOVEMENTS: Record<MovementId, MovementDef> = {
     fitsFormation: (heroes) =>
       heroes.some((unit) => unit.row === 'front') &&
       (heroes.some(isDeep) || hasRoomToFallBack(heroes)),
-    reshape: (heroes, extraRows = 0) => fallBack(heroes, BACK_STEP_ROWS + extraRows),
+    reshape: (heroes, extraRows = 0) =>
+      fallBack(heroes, BACK_STEP_ROWS + extraRows),
     grants: { status: 'reflex', amount: 1 },
   },
 };
@@ -117,7 +120,10 @@ export const movementCost = (state: CombatState, move: MovementId): number =>
   isRushing(state)
     ? 0
     : // ENDURANCE (skill tree) takes energy off the base cost.
-      Math.max(0, MOVEMENTS[move].baseCost - movementDiscountOf(state.player.skillPicks)) +
+      Math.max(
+        0,
+        MOVEMENTS[move].baseCost - movementDiscountOf(state.player.skillPicks)
+      ) +
       streakOf(state) * MOVEMENT_STREAK_COST;
 
 /** Spends one Rush stack (none left: nothing changes). */
@@ -175,20 +181,41 @@ export const canMove = (state: CombatState, move: MovementId): boolean =>
 // --- ACTIONS ---
 /** Measure the formation shift using the unit that travelled farthest. */
 const shiftFormation = (state: CombatState, moveId: MovementId) => {
-  const heroes = MOVEMENTS[moveId].reshape(state.heroes, state.player.statuses.move ?? 0);
-  const previous = new Map(state.heroes.map((unit) => [unit.uid, rowDepth(unit.row)]));
-  const distance = Math.max(0, ...heroes.map((unit) =>
-    Math.abs((previous.get(unit.uid) ?? rowDepth(unit.row)) - rowDepth(unit.row))
-  ));
-  const travelRows = (state.travelRows ?? 0) + (moveId === 'charge' ? distance : -distance);
-  return { heroes, travelRows, player: { ...state.player, statuses: { ...state.player.statuses, move: 0 } } };
+  const heroes = MOVEMENTS[moveId].reshape(
+    state.heroes,
+    state.player.statuses.move ?? 0
+  );
+  const previous = new Map(
+    state.heroes.map((unit) => [unit.uid, rowDepth(unit.row)])
+  );
+  const distance = Math.max(
+    0,
+    ...heroes.map((unit) =>
+      Math.abs(
+        (previous.get(unit.uid) ?? rowDepth(unit.row)) - rowDepth(unit.row)
+      )
+    )
+  );
+  const travelRows =
+    (state.travelRows ?? 0) + (moveId === 'charge' ? distance : -distance);
+  return {
+    heroes,
+    travelRows,
+    player: {
+      ...state.player,
+      statuses: { ...state.player.statuses, move: 0 },
+    },
+  };
 };
 
 /**
- * INVINCIBILITY FRAMES (skill tree): every Back Step adds Invincible
- * stacks. Any other move, or no skill, changes nothing.
+ * SKILL TREE GRANTS per move. SHIELD RUSH: every Charge adds Guard.
+ * INVINCIBILITY FRAMES: every Back Step adds Invincible stacks.
  */
 const skillGrant = (state: CombatState, moveId: MovementId): CombatState => {
+  const guard =
+    moveId === 'charge' ? chargeGuardOf(state.player.skillPicks) : 0;
+  if (guard) return { ...state, player: addGuard(state.player, guard) };
   const stacks = moveId === 'backStep' ? iFramesOf(state.player.skillPicks) : 0;
   if (!stacks) return state;
   const { statuses } = state.player;
@@ -229,7 +256,11 @@ export const move = (state: CombatState, moveId: MovementId): CombatState => {
   const paid: CombatState = {
     ...state,
     energy: state.energy - cost,
-    playHistory: appendCombatHistory(state.playHistory, { turn: state.turn, move: moveId, cost }),
+    playHistory: appendCombatHistory(state.playHistory, {
+      turn: state.turn,
+      move: moveId,
+      cost,
+    }),
     lastMovement: {
       move: moveId,
       turn: state.turn,
@@ -254,7 +285,11 @@ export const moveFromCard = (
     grant(
       {
         ...state,
-        lastMovement: { move: moveId, turn: state.turn, streak: streakOf(state) + 1 },
+        lastMovement: {
+          move: moveId,
+          turn: state.turn,
+          streak: streakOf(state) + 1,
+        },
         ...shiftFormation(state, moveId),
       },
       MOVEMENTS[moveId].grants
@@ -290,5 +325,7 @@ export const moveFree = (
  */
 export const hasPlayLeft = (state: CombatState): boolean =>
   combatOutcome(state) === 'ongoing' &&
-  (state.hand.some((_, index) => canPlayCard(state, index) || canPlayCardOnSelf(state, index)) ||
+  (state.hand.some(
+    (_, index) => canPlayCard(state, index) || canPlayCardOnSelf(state, index)
+  ) ||
     MOVEMENT_IDS.some((moveId) => canMove(state, moveId)));

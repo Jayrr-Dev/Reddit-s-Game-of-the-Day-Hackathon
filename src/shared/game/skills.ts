@@ -72,6 +72,14 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     name: 'Light Feet',
     description: '+5% Reflex dodge per rank (up to +25%)',
   },
+  '0-2-0': {
+    name: 'Shield Rush',
+    description: 'Each Charge gives +1 Guard per rank (up to +5)',
+  },
+  '0-2-1': {
+    name: 'Skirmisher',
+    description: '+4% Range damage per rank at heroes on Line 2 (up to +20%)',
+  },
   '0-3-0': { name: 'Rage', description: 'After a kill, gain 1 energy' },
   '0-3-1': {
     name: 'Invincibility Frames',
@@ -106,6 +114,22 @@ export const reflexDodgeOf = (unit: {
     (p) => p.branch === 0 && p.tier === 1 && p.slot === 1
   ).length *
     LIGHT_FEET_PER_RANK;
+/** Ranks bought in one circle (0 when not taken). */
+const ranksOf = (
+  picks: readonly SkillPick[] = [],
+  tier: number,
+  slot: number
+): number =>
+  picks.filter((p) => p.branch === 0 && p.tier === tier && p.slot === slot)
+    .length;
+/** SHIELD RUSH (Charge line, second circle): Guard gained per Charge. */
+export const chargeGuardOf = (picks?: readonly SkillPick[]): number =>
+  ranksOf(picks, 2, 0);
+/** SKIRMISHER: Range damage added per rank at a hero on Line 2. */
+export const SKIRMISHER_PER_RANK = 0.04;
+/** Extra Range damage at Line 2 from Skirmisher (Back Step line, 0 to 0.2). */
+export const lineTwoRangeBonusOf = (picks?: readonly SkillPick[]): number =>
+  ranksOf(picks, 2, 1) * SKIRMISHER_PER_RANK;
 /** RAGE (Charge capstone): energy gained when a play kills. */
 export const rageEnergyOf = (picks?: readonly SkillPick[]): number =>
   hasSkill(picks, 0, 3, 0) ? 1 : 0;

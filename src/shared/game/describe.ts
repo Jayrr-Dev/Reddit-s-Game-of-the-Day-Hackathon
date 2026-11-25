@@ -276,7 +276,7 @@ export const describeCardEffect = (
         ? damageOf(effect.amount, attacker, cardDef.type, isRampage, hitsPerPlay(cardDef))
         : effect.amount;
       const isAimed = target !== undefined && effect.target === 'one';
-      const amount = isAimed ? cardHitOn(target, perHit, cardDef) : perHit;
+      const amount = isAimed ? cardHitOn(target, perHit, cardDef, attacker?.skillPicks) : perHit;
       const times = effect.hits > 1 ? ` ×${effect.hits}` : '';
       return `Damage${areaWord(effect.target, isMelee)} ${amount}${times}${areaSuffix(effect.target, isMelee)}`;
     }
