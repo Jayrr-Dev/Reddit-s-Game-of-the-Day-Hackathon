@@ -93,6 +93,11 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     name: 'Apothecary',
     description: 'Utility and Buff cards are 30% more likely in card offers',
   },
+  '3-1-0': {
+    name: 'Empower',
+    description:
+      'Buffs (Wrath, Might, Surge, Hone, Reinforce) are 2% stronger per rank (up to +10%)',
+  },
   '4-0-0': {
     name: 'Grimoire',
     description:
@@ -311,6 +316,11 @@ export const buffStackBonusOf = (picks?: readonly SkillPick[]): number =>
 /** OVERFLOW also gives every Utility card Hold (stays in hand at end of turn). */
 export const utilityHoldsOf = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 3, 3, 1);
+/** EMPOWER: buff strength added per rank (Utility and Buffs, top line). */
+export const EMPOWER_PER_RANK = 0.02;
+/** How much stronger buffs' flat bonuses are (0 to 0.1). */
+export const buffPowerBonusOf = (picks?: readonly SkillPick[]): number =>
+  ranksIn(picks, 3, 1, 0) * EMPOWER_PER_RANK;
 /** SHOCKWAVE (Blunt capstone): Momentum turns Melee strikes into Cleaves. */
 export const hasMomentumCleave = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 1, 3, 0);
