@@ -1,7 +1,6 @@
 // --- SKILL POINTS ---
 import type { CharacterState } from './character.ts';
 import { REFLEX_DODGE } from './rules.ts';
-import type { CardType } from './types.ts';
 
 export const branchNames = [
   'Movement',
@@ -73,14 +72,6 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     name: 'Light Feet',
     description: '+5% Reflex dodge per rank (up to +25%)',
   },
-  '0-2-0': {
-    name: 'Brawler',
-    description: '+10% chance per rank to be offered Melee cards (up to +50%)',
-  },
-  '0-2-1': {
-    name: 'Marksman',
-    description: '+10% chance per rank to be offered Range cards (up to +50%)',
-  },
   '0-3-0': { name: 'Rage', description: 'After a kill, gain 1 energy' },
   '0-3-1': {
     name: 'Invincibility Frames',
@@ -115,29 +106,6 @@ export const reflexDodgeOf = (unit: {
     (p) => p.branch === 0 && p.tier === 1 && p.slot === 1
   ).length *
     LIGHT_FEET_PER_RANK;
-// --- CARD OFFER ODDS ---
-/** BRAWLER / MARKSMAN: offer weight added per rank to a card type. */
-export const CARD_CHANCE_PER_RANK = 0.1;
-/** Which second-tier circle raises which card type's offer odds. */
-const CARD_CHANCE_CIRCLES: readonly { slot: number; type: CardType }[] = [
-  { slot: 0, type: 'melee' },
-  { slot: 1, type: 'range' },
-];
-/**
- * How much more often a card of `type` is offered (0.1 = +10%): the
- * ranks of its circle on the Movement branch's second tier.
- */
-export const cardChanceBonusOf = (
-  picks: readonly SkillPick[] = [],
-  type: CardType
-): number => {
-  const circle = CARD_CHANCE_CIRCLES.find((c) => c.type === type);
-  if (!circle) return 0;
-  const ranks = picks.filter(
-    (p) => p.branch === 0 && p.tier === 2 && p.slot === circle.slot
-  ).length;
-  return ranks * CARD_CHANCE_PER_RANK;
-};
 /** RAGE (Charge capstone): energy gained when a play kills. */
 export const rageEnergyOf = (picks?: readonly SkillPick[]): number =>
   hasSkill(picks, 0, 3, 0) ? 1 : 0;

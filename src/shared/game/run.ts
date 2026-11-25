@@ -161,10 +161,7 @@ const enterStop = (state: RunState, stop: Stop): RunState => {
   if (stop.kind === 'altar') {
     const offers = rollOffers(
       stopSeed(state.dailyKey, 'altar', state.stop),
-      'altar',
-      [],
-      undefined,
-      state.character.skillPicks
+      'altar'
     );
     return { ...state, phase: { kind: 'altar', offers } };
   }
@@ -229,7 +226,7 @@ const settleCombat = (
   const victoryHeal = stop.kind === 'champion' ? CHAMPION_VICTORY_HEAL : 0;
   const offers = rollOffers(
     stopSeed(state.dailyKey, 'reward', state.stop),
-    rewardSourceOf(stop), [], state.rewardStarter, state.character.skillPicks
+    rewardSourceOf(stop), [], state.rewardStarter
   );
   return {
     ...state,
@@ -348,7 +345,7 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
         : state;
     case 'rerollReward': {
       if (phase.kind !== 'reward' || phase.rerolled) return state;
-      const offers = rollOffers(stopSeed(state.dailyKey, 'reward-reroll', state.stop), phase.source ?? 'horde', phase.offers, state.rewardStarter, state.character.skillPicks);
+      const offers = rollOffers(stopSeed(state.dailyKey, 'reward-reroll', state.stop), phase.source ?? 'horde', phase.offers, state.rewardStarter);
       return { ...state, phase: { ...phase, offers, rerolled: true } };
     }
     case 'pickCard':

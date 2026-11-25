@@ -11,7 +11,6 @@ import {
   skillPointsLeft,
   movementDiscountOf,
   reflexDodgeOf,
-  cardChanceBonusOf,
   skillEffectOf,
 } from './skills.ts';
 
@@ -167,13 +166,4 @@ test('Light Feet: each rank adds 5% to the Reflex dodge', () => {
     reflexDodgeOf({ skillPicks: [rank, rank, rank, rank, rank] }),
     0.5
   );
-});
-
-test('Brawler and Marksman: each rank adds 10% to Melee or Range offers', () => {
-  const brawler = { branch: 0, tier: 2, slot: 0 };
-  const marksman = { branch: 0, tier: 2, slot: 1 };
-  const picks = [brawler, brawler, brawler, marksman];
-  assert.ok(Math.abs(cardChanceBonusOf(picks, 'melee') - 0.3) < 1e-9);
-  assert.ok(Math.abs(cardChanceBonusOf(picks, 'range') - 0.1) < 1e-9);
-  assert.equal(cardChanceBonusOf(picks, 'magic'), 0);
 });

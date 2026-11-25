@@ -9,7 +9,6 @@ import { signatures, type StarterName } from './starters.ts';
 import type { StopKind } from './kingdom.ts';
 import { pickOne, pickWeighted, type RngResult, type RngState } from './rng.ts';
 import { OFFER_SIZE } from './rules.ts';
-import { cardChanceBonusOf, type SkillPick } from './skills.ts';
 import type { CardRarity } from './types.ts';
 
 // --- ODDS ---
@@ -47,22 +46,17 @@ const rollOneOffer = (
   state: RngState,
   source: Exclude<StopKind, 'grave'>,
   taken: readonly CardId[],
-  starter?: StarterName,
-  skillPicks: readonly SkillPick[] = []
+  starter?: StarterName
 ): RngResult<CardId> => {
   const [rarity, afterRarity] = pickWeighted(state, RARITY_ODDS[source]);
   const pool = cardsOfRarity(rarity);
   const fresh = pool.filter((id) => !taken.includes(id));
   const candidates = fresh.length ? fresh : pool;
-  const preferredType = starter ? getCard(signatures[starter]).type : undefined;
-  // Weight = starter preference (x3) times the skill tree's type bonus.
-  const weightOf = (item: CardId): number => {
-    const type = getCard(item).type;
-    return (type === preferredType ? 3 : 1) * (1 + cardChanceBonusOf(skillPicks, type));
-  };
-  const isEven = candidates.every((item) => weightOf(item) === 1);
-  if (isEven) return pickOne(afterRarity, candidates);
-  return pickWeighted(afterRarity, candidates.map((item) => ({ item, weight: weightOf(item) })));
+  if (!starter) return pickOne(afterRarity, candidates);
+  const preferredType = getCard(signatures[starter]).type;
+  return pickWeighted(afterRarity, candidates.map(item => ({
+    item, weight: getCard(item).type === preferredType ? 3 : 1,
+  })));
 };
 
 /** Rolls OFFER_SIZE distinct card offers for a stop. */
@@ -70,13 +64,12 @@ export const rollOffers = (
   seed: RngState,
   source: Exclude<StopKind, 'grave'>,
   exclude: readonly CardId[] = [],
-  starter?: StarterName,
-  skillPicks: readonly SkillPick[] = []
+  starter?: StarterName
 ): CardId[] => {
   const offers: CardId[] = [];
   let current = seed;
   for (let slot = 0; slot < OFFER_SIZE; slot += 1) {
-    const [cardId, next] = rollOneOffer(current, source, [...exclude, ...offers], starter, skillPicks);
+    const [cardId, next] = rollOneOffer(current, source, [...exclude, ...offers], starter);
     offers.push(cardId);
     current = next;
   }
