@@ -1,5 +1,6 @@
 // --- SKILL POINTS ---
 import type { CharacterState } from './character.ts';
+import { REFLEX_DODGE } from './rules.ts';
 
 export const branchNames = [
   'Movement',
@@ -67,6 +68,10 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     name: 'Bull Rush',
     description: '+5% Momentum bonus per rank (up to +25%)',
   },
+  '0-1-1': {
+    name: 'Light Feet',
+    description: '+5% Reflex dodge per rank (up to +25%)',
+  },
   '0-3-0': { name: 'Rage', description: 'After a kill, gain 1 energy' },
   '0-3-1': {
     name: 'Invincibility Frames',
@@ -90,6 +95,17 @@ export const momentumSkillBonusOf = (
 ): number =>
   picks.filter((p) => p.branch === 0 && p.tier === 1 && p.slot === 0).length *
   BULL_RUSH_PER_RANK;
+/** LIGHT FEET: Reflex dodge added per rank (Back Step line, first circle). */
+export const LIGHT_FEET_PER_RANK = 0.05;
+/** The dodge Reflex gives this unit: the base plus Light Feet's ranks. */
+export const reflexDodgeOf = (unit: {
+  skillPicks?: readonly SkillPick[];
+}): number =>
+  REFLEX_DODGE +
+  (unit.skillPicks ?? []).filter(
+    (p) => p.branch === 0 && p.tier === 1 && p.slot === 1
+  ).length *
+    LIGHT_FEET_PER_RANK;
 /** RAGE (Charge capstone): energy gained when a play kills. */
 export const rageEnergyOf = (picks?: readonly SkillPick[]): number =>
   hasSkill(picks, 0, 3, 0) ? 1 : 0;

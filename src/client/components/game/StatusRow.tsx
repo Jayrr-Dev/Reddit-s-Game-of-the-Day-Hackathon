@@ -42,7 +42,6 @@ import {
   STACKING_BUFF_TURNS,
   TIERED_MAX_TIER,
   MALAISE_TURNS,
-  REFLEX_DODGE,
 } from '../../../shared/game/rules';
 import type {
   Combatant,
@@ -71,6 +70,7 @@ import {
   type ShockCharge as Charge,
 } from '../../lib/shockStage';
 import { ShockCharge } from './ShockCharge';
+import { reflexDodgeOf } from '../../../shared/game/skills';
 
 // --- TYPES ---
 /** One status as a chip, with its tooltip text. */
@@ -286,7 +286,7 @@ const statusChipsOf = (
       ...(duration && { duration }),
       key: id,
       ...STATUS_LOOK[id],
-      text: id === 'reflex' ? `+${Math.round(REFLEX_DODGE * 100)}%`
+      text: id === 'reflex' ? `+${Math.round(reflexDodgeOf(combatant) * 100)}%`
         : group === 'hand' && (id === 'weaken' || TIERED_STATUSES.has(id))
         ? `${id === 'instinct' ? '+' : '-'}${Math.round(100 * (id === 'weaken' ? 1 - WEAKEN_DAMAGE_FACTOR : tierCut(amount)))}%`
         : chipText(id, amount),

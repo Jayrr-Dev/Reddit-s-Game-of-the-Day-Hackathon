@@ -10,6 +10,7 @@ import {
   buySkill,
   skillPointsLeft,
   movementDiscountOf,
+  reflexDodgeOf,
   skillEffectOf,
 } from './skills.ts';
 
@@ -156,4 +157,13 @@ test('Bull Rush: each rank adds 5% to the Momentum bonus', () => {
   assert.equal(attackDamage(100, maxed, 'melee'), 175);
   // Rampage doubles the whole bonus: +75% becomes +150%.
   assert.equal(attackDamage(100, maxed, 'melee', true), 250);
+});
+
+test('Light Feet: each rank adds 5% to the Reflex dodge', () => {
+  const rank = { branch: 0, tier: 1, slot: 1 };
+  assert.equal(reflexDodgeOf({}), 0.25);
+  assert.equal(
+    reflexDodgeOf({ skillPicks: [rank, rank, rank, rank, rank] }),
+    0.5
+  );
 });

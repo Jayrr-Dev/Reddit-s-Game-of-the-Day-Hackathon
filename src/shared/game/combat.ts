@@ -16,7 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
-import { rageEnergyOf } from './skills.ts';
+import { rageEnergyOf, reflexDodgeOf } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -109,7 +109,6 @@ import {
   LONG_RANGE_DAMAGE_FACTOR,
   MAX_HAND_SIZE,
   MALAISE_TURNS,
-  REFLEX_DODGE,
   TIERED_MAX_TIER,
   OUT_OF_RANGE_HIT_CHANCE,
   ALOFT_EVADING_TYPES,
@@ -1744,7 +1743,7 @@ export const dodgeChanceOf = (stacks: number): number =>
 
 /** Bonus Accuracy subtracts percentage points before bounding the probability. */
 export const dodgeChanceAgainst = (target: Combatant, bonusAccuracy = 0): number => {
-  const dodge = dodgeChanceOf(target.statuses.instinct) + (target.statuses.reflex > 0 ? REFLEX_DODGE : 0);
+  const dodge = dodgeChanceOf(target.statuses.instinct) + (target.statuses.reflex > 0 ? reflexDodgeOf(target) : 0);
   return Math.min(1, Math.max(0, dodge - Math.max(0, bonusAccuracy)));
 };
 
