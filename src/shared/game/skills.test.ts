@@ -460,12 +460,3 @@ test('Malediction: afflictions deal 5% more per rank', () => {
   assert.equal(afflictionDamage(20, hexer), 25);
   assert.equal(afflictionDamage(20), 20);
 });
-
-test('Seeping Wounds: an afflicting hit skips Guard', () => {
-  const base = createCombatant(30, 30);
-  const guarded = { ...base, guard: 10 };
-  const hit = takeHit(guarded, 6, 'range', 'guard');
-  assert.equal(hit.hp, 24);
-  assert.equal(hit.guard, 10);
-  assert.equal(takeHit(guarded, 6, 'range').hp, 30);
-});

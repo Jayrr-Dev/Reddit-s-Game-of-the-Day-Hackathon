@@ -16,7 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
-import { bonusUsesOf, guardSeepOf, empoweredStacks, handSizeBonusOf, battlemageBonusOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
+import { bonusUsesOf, empoweredStacks, handSizeBonusOf, battlemageBonusOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -711,11 +711,6 @@ export const cleaveTargetsOf = (state: CombatState, cardId: CardId): HeroUnit[] 
   return areaTargets(living, true, cardDef.type, meleeReachOf(state.player.skillPicks));
 };
 
-/** True when a card lays an affliction with its hits (or chills with Ice). */
-const cardAfflictsOnHit = (cardDef: CardDef): boolean =>
-  cardDef.element === 'ice' ||
-  cardDef.effects.some((e) => e.kind in STATUS_IS_AFFLICTION && STATUS_IS_AFFLICTION[e.kind as StatusId]);
-
 /**
  * Deals `hits` hits of villain attack damage to the targets. FOLLOW
  * THROUGH: a volley at one hero keeps landing after the hero falls,
@@ -749,10 +744,7 @@ const villainAttack = (
   const pierceHit = Math.floor(perHit * PIERCE_DAMAGE_FACTOR);
   // SPELLPIERCE (skill tree): Magic ignores Guard and Armor like Piercing.
   const isSpellpierce = isSpellpierceOn(state.player, cardDef.type);
-  const fullPierce = play.isPiercing || isSpellpierce;
-  // SEEPING WOUNDS (skill tree): a card that afflicts on hit skips Guard.
-  const ignoresGuard: boolean | 'guard' =
-    fullPierce || (cardAfflictsOnHit(cardDef) && guardSeepOf(state.player.skillPicks) ? 'guard' : false);
+  const ignoresGuard = play.isPiercing || isSpellpierce;
   const hits = volleyHitsOf(effect.hits, cardDef.type, state.player);
   return Array.from({ length: hits }).reduce<CombatState>((current) => {
     // RANDOMLY: this hit's hero is rolled now, so each hit picks anew.
@@ -849,7 +841,7 @@ const elementalHit = <T extends Combatant>(
   unit: T,
   amount: number,
   cardDef: CardDef,
-  isPiercing: boolean | 'guard',
+  isPiercing: boolean,
   attacker: Combatant
 ): T => {
   const hit = takeHit(unit, amount, cardDef.type, isPiercing, attacker);
