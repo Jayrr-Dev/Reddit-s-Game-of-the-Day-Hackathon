@@ -362,3 +362,22 @@ test('Overflow: one more stack per buff', () => {
   assert.equal(buffStackBonusOf([{ branch: 3, tier: 3, slot: 1 }]), 1);
   assert.equal(buffStackBonusOf([]), 0);
 });
+
+test('Overflow returns a played Utility card with uses left to the hand', () => {
+  const play = (picks: { branch: number; tier: number; slot: number }[]) => {
+    const state = startCombat({
+      hp: 50,
+      maxHp: 50,
+      deck: ['rushPotion' as const],
+      heroIds: ['squire' as const],
+      might: 1,
+      seed: 3,
+      skillPicks: picks,
+    });
+    const index = state.hand.indexOf('rushPotion');
+    return playCard(state, index, -1).hand.filter((id) => id === 'rushPotion')
+      .length;
+  };
+  assert.equal(play([]), 0);
+  assert.equal(play([{ branch: 3, tier: 3, slot: 1 }]), 1);
+});
