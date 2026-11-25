@@ -89,6 +89,10 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     name: 'Quiver',
     description: 'Range cards are 30% more likely in card offers',
   },
+  '4-0-0': {
+    name: 'Grimoire',
+    description: 'Curse cards are 30% more likely in card offers',
+  },
   '1-1-0': {
     name: 'Heavy Hands',
     description: 'Blunt Melee cards deal +5% damage per rank (up to +25%)',
@@ -189,12 +193,13 @@ export const fleshWoundBonusOf = (picks: readonly SkillPick[] = []): number =>
   picks.filter((p) => p.branch === 1 && p.tier === 2 && p.slot === 1).length *
   EDGE_DAMAGE_PER_RANK;
 // --- CARD OFFER ODDS ---
-/** ARMORY / QUIVER: offer weight added by a path's entry (10% per point). */
+/** ARMORY / QUIVER / GRIMOIRE: offer weight added by a path's entry (10% per point). */
 export const ENTRY_CARD_CHANCE = 0.3;
 /** Which path's entry circle raises which card type's offer odds. */
 const CARD_CHANCE_ENTRIES: Partial<Record<CardType, number>> = {
   melee: 1,
   range: 2,
+  curse: 4,
 };
 /** How much more often a card of `type` is offered (0.3 = +30%). */
 export const cardChanceBonusOf = (
