@@ -14,7 +14,7 @@ import {
   type SkillPick,
 } from '../../../shared/game/skills';
 
-const colors = ['movement', 'melee', 'magic', 'utility', 'curse'];
+const colors = ['movement', 'melee', 'range', 'utility', 'curse'];
 const overviewHeights = [-104, -144, -171, -201];
 const focusedHeights = [-18, -94, -170, -246];
 type Detail = {
