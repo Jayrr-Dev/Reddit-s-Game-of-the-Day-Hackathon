@@ -466,7 +466,7 @@
 .guide-lanes line { stroke:#fb755b; stroke-width:1; }
 @media (prefers-reduced-motion: no-preference) {
   [data-spacing-walk] button:not([data-aloft], [data-acting]) .hero-step-gait {
-    animation: field-side-step 180ms ease-in-out infinite;
+    animation: field-side-step 320ms ease-in-out infinite;
   }
   @keyframes field-side-step {
     0%, 100% { translate: 0 0; rotate: -.8deg; }

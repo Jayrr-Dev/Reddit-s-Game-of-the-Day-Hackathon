@@ -28,12 +28,21 @@ const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(ma
 type Placement = { shift: number; lift: number; labelOffset: number };
 type PlacementMotion = Placement & { at: number };
 
-/** Follow the layout target with a short eased step, not a CSS jump. */
+/**
+ * REPOSITION WALK PACE: how heroes walk to a new spot when the field
+ * re-spaces them. EASE_MS is the ease-out time constant (larger is a
+ * softer approach); WALK_SPEED caps the pace in px per ms (0.18 = 180
+ * px/s, a calm walk instead of a slide).
+ */
+const EASE_MS = 220;
+const WALK_SPEED = 0.18;
+
+/** Follow the layout target with an eased, speed-capped walk, not a CSS jump. */
 const easeStep = (value: number, target: number, elapsed: number): number => {
   const delta = target - value;
   if (Math.abs(delta) <= .55) return target;
-  const eased = delta * (1 - Math.exp(-elapsed / 70));
-  return value + clamp(eased, -.58 * elapsed, .58 * elapsed);
+  const eased = delta * (1 - Math.exp(-elapsed / EASE_MS));
+  return value + clamp(eased, -WALK_SPEED * elapsed, WALK_SPEED * elapsed);
 };
 
 const overlap = (a: Box, b: Box) =>
