@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCharacter, restoreCharacter } from './character.ts';
 import { playCard, startCombat } from './combat.ts';
-import { createCombatant, takeHit } from './combatant.ts';
+import { attackDamage, createCombatant, takeHit } from './combatant.ts';
 import { move, movementCost } from './movement.ts';
 import {
   planSkillPath,
@@ -145,4 +145,15 @@ test('Invincibility Frames: each Back Step adds Invincible 1; Rage gives energy 
     return playCard(weak, 0, weak.heroes[0]!.uid).energy;
   };
   assert.equal(fight([rage]), fight([]) + 1);
+});
+
+test('Bull Rush: each rank adds 5% to the Momentum bonus', () => {
+  const unit = createCombatant(30, 30);
+  const charged = { ...unit, statuses: { ...unit.statuses, momentum: 1 } };
+  const rank = { branch: 0, tier: 1, slot: 0 };
+  assert.equal(attackDamage(100, charged, 'melee'), 150);
+  const maxed = { ...charged, skillPicks: [rank, rank, rank, rank, rank] };
+  assert.equal(attackDamage(100, maxed, 'melee'), 175);
+  // Rampage doubles the whole bonus: +75% becomes +150%.
+  assert.equal(attackDamage(100, maxed, 'melee', true), 250);
 });

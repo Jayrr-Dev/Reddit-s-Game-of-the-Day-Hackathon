@@ -17,7 +17,7 @@ import {
   HEX_GROWTH,
   BANE_AFFLICTIONS,
   MOMENTUM_DAMAGE_FACTOR,
-  RAMPAGE_MOMENTUM_FACTOR,
+  RAMPAGE_MOMENTUM_MULTIPLIER,
   SHARPSHOOTER_DAMAGE_FACTOR,
   PHYSICAL_TYPES,
   BLEED_BITE_FACTOR,
@@ -28,6 +28,7 @@ import {
   ROUND_BUFFS,
 } from './rules.ts';
 import { characterBonuses, healingAmount } from './character.ts';
+import { momentumSkillBonusOf } from './skills.ts';
 import { pickOne, type RngState } from './rng.ts';
 import type {
   BuffId,
@@ -146,8 +147,12 @@ export const hasSharpshooterFor = (attacker: Combatant, type?: CardType) =>
   type === 'range' && attacker.statuses.sharpshooter > 0;
 
 /** Momentum's multiplier: doubled bonus on a Rampage card. */
-const momentumFactorOf = (isRampage: boolean): number =>
-  isRampage ? RAMPAGE_MOMENTUM_FACTOR : MOMENTUM_DAMAGE_FACTOR;
+const momentumFactorOf = (attacker: Combatant, isRampage: boolean): number => {
+  // The base bonus (+50%) plus Bull Rush's skill ranks (+5% each).
+  const bonus =
+    MOMENTUM_DAMAGE_FACTOR - 1 + momentumSkillBonusOf(attacker.skillPicks);
+  return 1 + bonus * (isRampage ? RAMPAGE_MOMENTUM_MULTIPLIER : 1);
+};
 
 /**
  * The attacker's own boosts for a card type: Momentum (Melee; more on a
@@ -158,7 +163,7 @@ const boostFactorOf = (
   type?: CardType,
   isRampage = false
 ): number =>
-  (hasMomentumFor(attacker, type) ? momentumFactorOf(isRampage) : 1) *
+  (hasMomentumFor(attacker, type) ? momentumFactorOf(attacker, isRampage) : 1) *
   (hasSharpshooterFor(attacker, type) ? SHARPSHOOTER_DAMAGE_FACTOR : 1);
 
 /**

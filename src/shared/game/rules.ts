@@ -37,6 +37,8 @@ export const CHARGE_COST = 1;
 export const MOMENTUM_DAMAGE_FACTOR = 1.5;
 /** A Rampage card gets double Momentum's bonus: +50% becomes +100%. */
 export const RAMPAGE_MOMENTUM_FACTOR = 1 + (MOMENTUM_DAMAGE_FACTOR - 1) * 2;
+/** How many times Momentum's bonus a Rampage card gets. */
+export const RAMPAGE_MOMENTUM_MULTIPLIER = 2;
 /** Sharpshooter multiplies every Range hit (and its shots never miss). */
 export const SHARPSHOOTER_DAMAGE_FACTOR = 1.2;
 /** Sharpshooter adds this to every shot's chance to land (capped at 1). */
