@@ -94,6 +94,14 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     description:
       'Cards that apply an affliction are 30% more likely in card offers',
   },
+  '2-1-0': {
+    name: 'Arcane Power',
+    description: 'Magic cards deal +5% damage per rank (up to +25%)',
+  },
+  '2-2-0': {
+    name: 'Arcane Focus',
+    description: 'Magic cards are +5% more accurate per rank (up to +25%)',
+  },
   '1-1-0': {
     name: 'Heavy Hands',
     description: 'Blunt Melee cards deal +5% damage per rank (up to +25%)',
@@ -131,6 +139,15 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
       'Each Back Step adds 1 Invincible (stacks): each stack blocks one hit of damage',
   },
 };
+/** Ranks bought in one circle of any path (0 when not taken). */
+const ranksIn = (
+  picks: readonly SkillPick[] = [],
+  branch: number,
+  tier: number,
+  slot: number
+): number =>
+  picks.filter((p) => p.branch === branch && p.tier === tier && p.slot === slot)
+    .length;
 /** True when the picks hold that circle (any rank). */
 const hasSkill = (
   picks: readonly SkillPick[] = [],
@@ -215,6 +232,12 @@ export const cardChanceBonusOf = (
     ? ENTRY_CARD_CHANCE
     : 0;
 };
+/** ARCANE POWER (Magic line): extra Magic damage, +5% per rank. */
+export const magicDamageBonusOf = (picks?: readonly SkillPick[]): number =>
+  ranksIn(picks, 2, 1, 0) * EDGE_DAMAGE_PER_RANK;
+/** ARCANE FOCUS (Magic line): extra Magic accuracy, +5% per rank. */
+export const magicAccuracyBonusOf = (picks?: readonly SkillPick[]): number =>
+  ranksIn(picks, 2, 2, 0) * EDGE_DAMAGE_PER_RANK;
 /** SHOCKWAVE (Blunt capstone): Momentum turns Melee strikes into Cleaves. */
 export const hasMomentumCleave = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 1, 3, 0);

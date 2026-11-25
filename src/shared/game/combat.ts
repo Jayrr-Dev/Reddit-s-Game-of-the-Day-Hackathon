@@ -16,7 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
-import { fleshWoundBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
+import { fleshWoundBonusOf, magicAccuracyBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -1343,6 +1343,8 @@ const ignoresOutOfRange = (state: CombatState, handIndex: number): boolean =>
 /** The villain's bonus to each shot's chance to land (Sharpshooter). */
 const accuracyBonusOf = (villain: Combatant, type: CardType): number =>
   (villain.statuses.sharpshooter > 0 ? SHARPSHOOTER_ACCURACY_BONUS : 0) +
+  // ARCANE FOCUS (skill tree): Magic shots land more often.
+  (type === 'magic' ? magicAccuracyBonusOf(villain.skillPicks) : 0) +
   (canCrit(type) && villain.traits ? combatantBonuses(villain).accuracyPercent / 100 : 0);
 
 /**

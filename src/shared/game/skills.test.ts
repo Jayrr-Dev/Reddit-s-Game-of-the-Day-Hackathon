@@ -12,6 +12,7 @@ import {
   skillPointsLeft,
   movementDiscountOf,
   reflexDodgeOf,
+  magicAccuracyBonusOf,
   cardChanceBonusOf,
   edgeDamageBonusOf,
   chargeGuardOf,
@@ -305,5 +306,19 @@ test('Armory and Quiver: path entries make Melee or Range offers 30% likelier', 
   assert.equal(
     cardChanceBonusOf([{ branch: 2, tier: 0, slot: 0 }], 'range'),
     0.3
+  );
+});
+
+test('Arcane Power and Arcane Focus: +5% Magic damage and accuracy per rank', () => {
+  const power = { branch: 2, tier: 1, slot: 0 };
+  const focus = { branch: 2, tier: 2, slot: 0 };
+  const mage = {
+    ...createCombatant(50, 50),
+    skillPicks: [power, power, power, power, power],
+  };
+  assert.equal(attackDamage(100, mage, 'magic'), 125);
+  assert.equal(attackDamage(100, mage, 'melee'), 100);
+  assert.ok(
+    Math.abs(magicAccuracyBonusOf([focus, focus, focus]) - 0.15) < 1e-9
   );
 });
