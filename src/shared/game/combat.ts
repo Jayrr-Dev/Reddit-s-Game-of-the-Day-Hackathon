@@ -16,7 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
-import { battlemageBonusOf, buffStackBonusOf, utilityReturnsOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
+import { battlemageBonusOf, buffStackBonusOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -1439,12 +1439,8 @@ const pileThePlayed = (
     usesSpent,
     exhausted: isExhausted ? [...state.exhausted, cardId] : state.exhausted,
   };
-  if (isRemoved) return { ...spent, removedPile: [...spent.removedPile, cardId] };
-  // OVERFLOW (skill tree): a Utility card with uses left goes back to the hand.
-  const isReturned =
-    getCard(cardId).type === 'utility' && utilityReturnsOf(state.player.skillPicks);
-  return isReturned
-    ? addToHand(spent, cardId)
+  return isRemoved
+    ? { ...spent, removedPile: [...spent.removedPile, cardId] }
     : { ...spent, discardPile: [...spent.discardPile, cardId] };
 };
 
