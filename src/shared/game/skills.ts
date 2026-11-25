@@ -96,7 +96,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   '3-1-0': {
     name: 'Empower',
     description:
-      'Buffs (Wrath, Might, Surge, Hone, Reinforce) are 2% stronger per rank (up to +10%)',
+      'Buffs from cards give 5% more stacks per rank, rounded down (up to +25%)',
   },
   '3-1-1': {
     name: 'Mender',
@@ -324,11 +324,17 @@ export const buffStackBonusOf = (picks?: readonly SkillPick[]): number =>
 /** OVERFLOW also gives every Utility card Hold (stays in hand at end of turn). */
 export const utilityHoldsOf = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 3, 3, 1);
-/** EMPOWER: buff strength added per rank (Utility and Buffs, top line). */
-export const EMPOWER_PER_RANK = 0.02;
-/** How much stronger buffs' flat bonuses are (0 to 0.1). */
-export const buffPowerBonusOf = (picks?: readonly SkillPick[]): number =>
-  ranksIn(picks, 3, 1, 0) * EMPOWER_PER_RANK;
+/**
+ * EMPOWER (Buffs line): stacks a card's buff gives, +5% per rank (up to
+ * +25%), rounded down. On/off buffs are left alone by the caller.
+ */
+export const empoweredStacks = (
+  amount: number,
+  picks?: readonly SkillPick[]
+): number =>
+  Math.floor(
+    amount * (1 + ranksIn(picks, 3, 1, 0) * EDGE_DAMAGE_PER_RANK) + 1e-9
+  );
 /** MENDER (Utility line): healing added per rank, +5% (up to +25%). */
 export const healingSkillBonusOf = (picks?: readonly SkillPick[]): number =>
   ranksIn(picks, 3, 1, 1) * EDGE_DAMAGE_PER_RANK;

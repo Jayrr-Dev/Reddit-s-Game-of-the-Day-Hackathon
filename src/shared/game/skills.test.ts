@@ -27,6 +27,7 @@ import {
   skillPointsLeft,
   movementDiscountOf,
   reflexDodgeOf,
+  empoweredStacks,
   handSizeBonusOf,
   buffStackBonusOf,
   volleyHitsOf,
@@ -400,16 +401,11 @@ test('Overflow gives Utility cards Hold', () => {
   assert.equal(potionKept([{ branch: 3, tier: 3, slot: 1 }]), true);
 });
 
-test('Empower: buffs 2% stronger per rank', () => {
+test('Empower: 5% more buff stacks per rank, rounded down', () => {
   const emp = { branch: 3, tier: 1, slot: 0 };
-  const base = createCombatant(50, 50);
-  const angry = {
-    ...base,
-    skillPicks: [emp, emp, emp, emp, emp],
-    statuses: { ...base.statuses, wrath: 10 },
-  };
-  assert.equal(attackDamage(0, angry, 'melee'), 11);
-  assert.equal(attackDamage(0, { ...angry, skillPicks: [] }, 'melee'), 10);
+  assert.equal(empoweredStacks(4, [emp, emp, emp, emp, emp]), 5);
+  assert.equal(empoweredStacks(3, [emp, emp, emp, emp, emp]), 3);
+  assert.equal(empoweredStacks(10, [emp, emp]), 11);
 });
 
 test('Mender: healing +5% per rank', () => {
