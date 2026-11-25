@@ -89,6 +89,10 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     name: 'Quiver',
     description: 'Range cards are 30% more likely in card offers',
   },
+  '3-0-0': {
+    name: 'Apothecary',
+    description: 'Utility and Buff cards are 30% more likely in card offers',
+  },
   '4-0-0': {
     name: 'Grimoire',
     description:
@@ -246,6 +250,8 @@ export const ENTRY_CARD_CHANCE = 0.3;
 const CARD_CHANCE_ENTRIES: Partial<Record<CardType, number>> = {
   melee: 1,
   range: 2,
+  utility: 3,
+  buff: 3,
 };
 /** GRIMOIRE (Afflictions entry): cards that lay an affliction, +30%. */
 export const afflictionChanceBonusOf = (
