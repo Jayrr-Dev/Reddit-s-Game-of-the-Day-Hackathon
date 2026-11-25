@@ -92,7 +92,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   '4-0-0': {
     name: 'Grimoire',
     description:
-      'Curses and cards that afflict are 30% more likely in card offers',
+      'Cards that apply an affliction are 30% more likely in card offers',
   },
   '1-1-0': {
     name: 'Heavy Hands',
@@ -200,8 +200,11 @@ export const ENTRY_CARD_CHANCE = 0.3;
 const CARD_CHANCE_ENTRIES: Partial<Record<CardType, number>> = {
   melee: 1,
   range: 2,
-  curse: 4,
 };
+/** GRIMOIRE (Afflictions entry): cards that lay an affliction, +30%. */
+export const afflictionChanceBonusOf = (
+  picks?: readonly SkillPick[]
+): number => (hasSkill(picks, 4, 0, 0) ? ENTRY_CARD_CHANCE : 0);
 /** How much more often a card of `type` is offered (0.3 = +30%). */
 export const cardChanceBonusOf = (
   picks: readonly SkillPick[] = [],
