@@ -175,7 +175,7 @@ test('Shield Rush and Skirmisher scale per rank', () => {
   const skirm = { branch: 0, tier: 2, slot: 1 };
   assert.equal(chargeGuardOf([rush, rush, rush]), 3);
   assert.ok(
-    Math.abs(lineTwoRangeBonusOf([skirm, skirm, skirm, skirm, skirm]) - 0.2) <
+    Math.abs(lineTwoRangeBonusOf([skirm, skirm, skirm, skirm, skirm]) - 0.25) <
       1e-9
   );
   assert.equal(lineTwoRangeBonusOf([]), 0);

@@ -85,7 +85,7 @@ export const BACK_STEP_COST = 1;
  * the front row, a hero shooting from past the front row) deal this
  * much damage.
  */
-export const LONG_RANGE_DAMAGE_FACTOR = 1.3;
+export const LONG_RANGE_DAMAGE_FACTOR = 1.25;
 /**
  * Each movement in a row (Charge, Back Step ... all count together)
  * costs this much more energy. A full turn without moving resets it.

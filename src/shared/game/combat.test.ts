@@ -1124,7 +1124,7 @@ void test('a Target N card can pick the same hero more than once', () => {
   const [squire, archer] = start.heroes.map((unit) => unit.uid);
   const picks = [archer ?? -1, archer ?? -1, squire ?? -1];
   const after = playCard(start, 0, picks[0] ?? -1, picks);
-  // The Squire (front) takes 3; the back-row Archer takes 130% of 3
+  // The Squire (front) takes 3; the back-row Archer takes 125% of 3
   // (rounded to 4) twice.
   assert.deepEqual(hpLost(start, after), [3, 8]);
 });
@@ -1219,7 +1219,7 @@ void test('a Range hero shoots harder from the back, and plainly (still Range) u
     seed: 3,
   });
   const archer = heroNamed(fresh, 'archer') as HeroUnit;
-  // Volley 2x3 from the back: Range at 130% (2.6 rounds to 3).
+  // Volley 2x3 from the back: Range at 125% (2.5 rounds to 3).
   const [shot] = describeHeroIntent(archer, fresh.heroes).intents;
   assert.deepEqual([shot?.kind, shot?.text, shot?.hoverText], ['range', '3×3', '9']);
   // Up close it loses the bonus but is still a Range shot.
@@ -1248,8 +1248,8 @@ void test('card text shows the damage for the aimed-at hero', () => {
     statuses: { ...start.player.statuses, wrath: 2, hone: 3 },
   };
   const archer = heroNamed(start, 'archer') as HeroUnit;
-  // (7 + 2 + 3) x 1.3 long range = 15.6, rounded to 16.
-  assert.match(describeCard('blackArrow', player, archer).join(' '), /16/);
+  // (7 + 2 + 3) x 1.25 long range = 15.
+  assert.match(describeCard('blackArrow', player, archer).join(' '), /15/);
   // Not aimed: the bonus that needs a target is left out.
   assert.match(describeCard('blackArrow', player).join(' '), /12/);
 });

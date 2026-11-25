@@ -78,7 +78,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   },
   '0-2-1': {
     name: 'Skirmisher',
-    description: '+4% Range damage per rank at heroes on Line 2 (up to +20%)',
+    description: '+5% Range damage per rank at heroes on Line 2 (up to +25%)',
   },
   '0-3-0': { name: 'Rage', description: 'After a kill, gain 1 energy' },
   '0-3-1': {
@@ -126,7 +126,7 @@ const ranksOf = (
 export const chargeGuardOf = (picks?: readonly SkillPick[]): number =>
   ranksOf(picks, 2, 0);
 /** SKIRMISHER: Range damage added per rank at a hero on Line 2. */
-export const SKIRMISHER_PER_RANK = 0.04;
+export const SKIRMISHER_PER_RANK = 0.05;
 /** Extra Range damage at Line 2 from Skirmisher (Back Step line, 0 to 0.2). */
 export const lineTwoRangeBonusOf = (picks?: readonly SkillPick[]): number =>
   ranksOf(picks, 2, 1) * SKIRMISHER_PER_RANK;

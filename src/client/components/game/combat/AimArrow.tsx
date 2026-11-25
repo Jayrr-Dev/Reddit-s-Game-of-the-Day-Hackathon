@@ -7,7 +7,7 @@
 // letting go would play the card, and stays grey when it would not.
 // When the play would kill the locked hero, a skull replaces the ring.
 // When the locked hero boosts the card's damage (a long-range shot), the
-// bonus ("×1.3") shows just right of the tip. When a shot may miss (Out
+// bonus ("×1.25") shows just right of the tip. When a shot may miss (Out
 // of Range), its hit chance ("50% hit") shows just under the tip.
 // Drawn in viewport pixels on a fixed, click-through layer.
 // ===================================================================
@@ -231,7 +231,7 @@ const LethalSkull = ({ at, color }: { at: Point; color: string }) => {
   );
 };
 
-/** The target's damage bonus beside the tip, e.g. "×1.3". */
+/** The target's damage bonus beside the tip, e.g. "×1.25". */
 const BonusLabel = ({ at, factor }: { at: Point; factor: number }) => (
   <text
     x={at.x + LOCK_RING_RADIUS + BONUS_GAP_PX}

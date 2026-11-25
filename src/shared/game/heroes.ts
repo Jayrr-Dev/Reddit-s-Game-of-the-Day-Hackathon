@@ -37,7 +37,7 @@ const homing = (effect: HeroAttack): HeroAttack => ({
 });
 /** A Melee attack: only from the front row. */
 const strike = attackOf('melee');
-/** A Range attack: +30% from the back row, plain (still Range) up close. */
+/** A Range attack: +25% from the back row, plain (still Range) up close. */
 const shoot = attackOf('range');
 /** A Magic attack: the same from either row. */
 const spell = attackOf('magic');

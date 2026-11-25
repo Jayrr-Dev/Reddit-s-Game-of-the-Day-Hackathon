@@ -136,7 +136,7 @@ void test('Reach and curses can hit the back row', () => {
   const state = fight(['squire', 'priest'], ['spiteBolt']);
   const priest = unitOf(state, 'priest');
   const after = playCard(state, 0, priest.uid);
-  // 6, +30% for a Range card at its proper range (the back row).
+  // 6, +25% for a Range card at its proper range (the back row).
   assert.equal(unitOf(after, 'priest').hp, priest.hp - 8);
   assert.equal(targetRuleOf('whisperHex'), 'any');
 });
