@@ -171,12 +171,12 @@ const OUT_OF_RANGE_CHIP: StatusChip = {
  * Odd, it burns double; odd and ending in 3, triple: the chip says x3.
  */
 const hexChipOf = (hex: number, target: Combatant, source?: Combatant): Partial<StatusChip> => {
-  const burn = incomingAfflictionDamage(target, hexBurnAmount(hex), source);
+  const burn = incomingAfflictionDamage(target, hexBurnAmount(hex, source), source);
   const isPrimed = burn > 0;
-  const isTripled = isEmpoweredHex(hex);
+  const isTripled = isEmpoweredHex(hex, source);
   if (!isPrimed)
     return {
-      description: `Even: no burn this turn, grows to ${hexAfterTurn(hex)} (and burns the turn after).`,
+      description: `Even: no burn this turn, grows to ${hexAfterTurn(hex, source)} (and burns the turn after).`,
     };
   if (isTripled)
     return {
@@ -184,12 +184,12 @@ const hexChipOf = (hex: number, target: Combatant, source?: Combatant): Partial<
       // The tripled burn is the big hit: show what it really deals (the
       // unit itself wears a throbbing sigil, see HexAura).
       text: `${hex}\u00d73`,
-      description: `Ends in 3: burns for ${burn} (triple) before its next turn, then clears.`,
+      description: `${hex % 10 === 6 ? 'Ends in 6' : 'Ends in 3'}: burns for ${burn} (triple) before its next turn, then clears.`,
     };
   return {
     fill: toneVarOf(STATUS_LOOK.hex),
     text: `${hex}\u00d72`,
-    description: `Odd: burns for ${burn} (double) before its next turn, then drops to ${hexAfterTurn(hex)}.`,
+    description: `Odd: burns for ${burn} (double) before its next turn, then drops to ${hexAfterTurn(hex, source)}.`,
   };
 };
 

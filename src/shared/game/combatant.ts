@@ -28,7 +28,7 @@ import {
   ROUND_BUFFS,
 } from './rules.ts';
 import { characterBonuses, healingAmount } from './character.ts';
-import { buffPowerBonusOf, edgeDamageBonusOf, stackedBuffTurnsOf, momentumSkillBonusOf } from './skills.ts';
+import { buffPowerBonusOf, edgeDamageBonusOf, hasHexSixOf, stackedBuffTurnsOf, momentumSkillBonusOf, type SkillPick } from './skills.ts';
 import { pickOne, type RngState } from './rng.ts';
 import type {
   BuffId,
@@ -613,9 +613,17 @@ export const expireGuard = <T extends Combatant>(target: T): T => {
   return { ...target, statuses: { ...target.statuses, brace: brace - 1 } };
 };
 
-/** Whether this Hex is the empowered kind (odd, last digit 3). */
-export const isEmpoweredHex = (hex: number): boolean =>
-  hex % 2 === 1 && hex % 10 === HEX_EMPOWERED_DIGIT;
+/** Who laid a Hex: their skill tree can widen the empowered digits. */
+type HexSource = { skillPicks?: readonly SkillPick[] };
+
+/**
+ * Whether this Hex is the empowered kind: last digit 3, or (HEX 6,
+ * skill tree, on the hexer) last digit 6 too.
+ */
+export const isEmpoweredHex = (hex: number, source?: HexSource): boolean =>
+  hex > 0 &&
+  (hex % 10 === HEX_EMPOWERED_DIGIT ||
+    (hex % 10 === 6 && hasHexSixOf(source?.skillPicks)));
 
 /**
  * What a Hex of this size burns for this turn: nothing when even,
@@ -623,11 +631,10 @@ export const isEmpoweredHex = (hex: number): boolean =>
  * HEX_EMPOWERED_MULTIPLIER times it when its last digit is
  * HEX_EMPOWERED_DIGIT (3 -> 9, 13 -> 39).
  */
-export const hexBurnAmount = (hex: number): number => {
+export const hexBurnAmount = (hex: number, source?: HexSource): number => {
+  if (isEmpoweredHex(hex, source)) return hex * HEX_EMPOWERED_MULTIPLIER;
   if (hex <= 0 || hex % 2 === 0) return 0;
-  return (
-    hex * (isEmpoweredHex(hex) ? HEX_EMPOWERED_MULTIPLIER : HEX_ODD_MULTIPLIER)
-  );
+  return hex * HEX_ODD_MULTIPLIER;
 };
 
 /**
@@ -638,10 +645,10 @@ export const hexBurnAmount = (hex: number): number => {
  *                (1 -> 0, 5 -> 3, 7 -> 4)
  *   odd, ends 3  burned triple, so it clears
  */
-export const hexAfterTurn = (hex: number): number => {
+export const hexAfterTurn = (hex: number, source?: HexSource): number => {
   if (hex <= 0) return 0;
+  if (isEmpoweredHex(hex, source)) return 0;
   if (hex % 2 === 0) return hex + HEX_GROWTH;
-  if (isEmpoweredHex(hex)) return 0;
   return hex - Math.ceil(hex * HEX_BURN_LOSS);
 };
 
@@ -653,10 +660,10 @@ export const hexAfterTurn = (hex: number): number => {
 export const hexBurn = <T extends Combatant>(target: T, source?: Combatant): T => {
   const { hex } = target.statuses;
   if (hex <= 0) return target;
-  const burned = loseHp(target, incomingAfflictionDamage(target, hexBurnAmount(hex), source));
+  const burned = loseHp(target, incomingAfflictionDamage(target, hexBurnAmount(hex, source), source));
   return {
     ...burned,
-    statuses: { ...burned.statuses, hex: hexAfterTurn(hex) },
+    statuses: { ...burned.statuses, hex: hexAfterTurn(hex, source) },
   };
 };
 

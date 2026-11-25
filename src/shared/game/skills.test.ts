@@ -18,6 +18,8 @@ import {
   addStatus,
   attackDamage,
   createCombatant,
+  hexAfterTurn,
+  hexBurnAmount,
   takeHit,
 } from './combatant.ts';
 import { move, movementCost } from './movement.ts';
@@ -440,4 +442,13 @@ test('the second capstone is still offered once the first is owned', () => {
   const first = planSkillPath(start, { branch: 3, tier: 3, slot: 0 }).character;
   const offer = skillPurchases(first, { branch: 3, tier: 3, slot: 1 });
   assert.ok(offer.steps.length > 0, offer.message);
+});
+
+test('Sixfold Curse: Hex ending in 6 burns triple and clears', () => {
+  const hexer = { skillPicks: [{ branch: 4, tier: 3, slot: 0 }] };
+  assert.equal(hexBurnAmount(6), 0);
+  assert.equal(hexBurnAmount(6, hexer), 18);
+  assert.equal(hexAfterTurn(16, hexer), 0);
+  assert.equal(hexAfterTurn(6), 7);
+  assert.equal(hexBurnAmount(13, hexer), 39);
 });
