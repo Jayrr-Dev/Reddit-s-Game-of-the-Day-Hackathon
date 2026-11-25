@@ -160,7 +160,7 @@ export function playCombatImpact(type?: CardType, element?: MagicElement, edge?:
 export function playCardSound(id: CardId) {
   const card = getCard(id);
   switch (id) {
-    case 'decimate': return playSound('blade', .93);
+    case 'decimate': return playSound('blade', 1, .62);
     case 'siegeBlast': return;
     case 'reap': return playSound('curse', 1.08);
     case 'arrowShot': case 'venomDart': return playSound('swiftArrow');
@@ -168,7 +168,7 @@ export function playCardSound(id: CardId) {
     case 'healingPotion': case 'rushPotion': case 'swiftTonic': case 'antidote': return playSound('potion');
   }
   switch (card.type) {
-    case 'melee': if (card.edge === 'sharp') playSound('blade'); return;
+    case 'melee': if (card.edge === 'sharp') playSound('blade', 1, .52); return;
     case 'range': return playSound('arrow');
     case 'magic':
       if (card.element === 'healing') return playSound('imbue', 1.16);
