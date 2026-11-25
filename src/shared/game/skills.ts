@@ -115,7 +115,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   '2-3-0': {
     name: 'Spellpierce',
     description:
-      'After a Back Step, Magic cards ignore Guard and Armor for the rest of the turn (Protection still applies)',
+      'After a Back Step, Magic cards ignore Guard, Armor and Protection for the rest of the turn',
   },
   '2-3-1': {
     name: 'Volley',

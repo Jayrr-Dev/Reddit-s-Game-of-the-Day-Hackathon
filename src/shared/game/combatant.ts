@@ -281,8 +281,7 @@ export const takeHit = <T extends Combatant>(
   target: T,
   amount: number,
   type: CardType,
-  /** true: Piercing. 'spell': SPELLPIERCE, past Guard and Armor only. */
-  isPiercing: boolean | 'spell' = false,
+  isPiercing = false,
   source?: Combatant
 ): T => {
   // INVINCIBLE: a stack turns this hit to 0, then goes (even past Piercing).
@@ -292,10 +291,7 @@ export const takeHit = <T extends Combatant>(
       statuses: { ...target.statuses, invincible: target.statuses.invincible - 1 },
     });
   // PIERCING: past Protection, Armor and Guard, straight to HP.
-  if (isPiercing === true) return countShockHit(loseHp(target, amount), source);
-  // SPELLPIERCE: Protection (an enchantment) still cuts it; Guard does not.
-  if (isPiercing === 'spell')
-    return countShockHit(loseHp(target, protectedAmount(target, amount)), source);
+  if (isPiercing) return countShockHit(loseHp(target, amount), source);
   const afterProtection = protectedAmount(target, amount);
   const reduced = armoredAmount(target, afterProtection, type);
   // ARMOR SOAK: counted so the view can show the armor icon on the hit.
