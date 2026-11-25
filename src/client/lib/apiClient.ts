@@ -57,3 +57,9 @@ export const apiClient = {
   finishRun: (payload: FinishRunRequest) =>
     postJson<FinishRunResponse>('/api/run/finish', payload),
 };
+/** Read a bundled audio asset for gapless Web Audio playback. */
+export async function readAudioAsset(url: string): Promise<ArrayBuffer> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Map audio unavailable');
+  return response.arrayBuffer();
+}

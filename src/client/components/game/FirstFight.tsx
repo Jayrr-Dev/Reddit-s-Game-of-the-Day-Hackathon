@@ -1,4 +1,5 @@
-import { useState, type MouseEvent } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
+import { playSound } from '../../lib/gameAudio';
 import {
   awardCharacterVictory,
   createCharacter,
@@ -143,6 +144,7 @@ function LessonFight({
   const step = lesson.steps[stepIndex];
   const outcome = combatOutcome(combat);
   const levelUp = index === 0 && outcome === 'won';
+  useEffect(() => { if (levelUp) playSound('levelUp'); }, [levelUp]);
   const [budgetAtLevel, setBudgetAtLevel] = useState(0);
   const spent = traitPointsAvailable(character) < budgetAtLevel;
   function allowed(action: RunAction) {

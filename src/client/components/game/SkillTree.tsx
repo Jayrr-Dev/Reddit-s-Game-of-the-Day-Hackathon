@@ -1,3 +1,4 @@
+import { playSound } from '../../lib/gameAudio';
 // --- SKILL TREE ---
 import { useRef, useState } from 'react';
 import type { CharacterState } from '../../../shared/game/character';
@@ -41,6 +42,7 @@ export function SkillTree({
 
   /** Keep the popover inside the chart and off the clicked circle. */
   function activate(pick: SkillPick, target: SVGGElement) {
+    playSound('runeClick', 1, .72);
     const bounds = chart.current!.getBoundingClientRect();
     const rect = target.getBoundingClientRect();
     const y = rect.top + rect.height / 2 - bounds.top;

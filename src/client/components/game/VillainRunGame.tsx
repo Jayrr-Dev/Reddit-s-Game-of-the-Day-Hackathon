@@ -99,14 +99,15 @@ export const StoryDefeat = ({ run, onContinue }: { run: RunState; onContinue: ()
 export const VillainRunGame = ({ run, onAction }: VillainRunGameProps) => {
   const [showCharacter, setShowCharacter] = useState(false);
   const lastPhase = useRef(run.phase.kind);
+  const leveledAtReward = run.phase.kind === 'reward' && run.phase.leveledUp;
   useEffect(() => {
     if (lastPhase.current !== run.phase.kind) {
-      if (run.phase.kind === 'reward') playSound('reward');
+      if (run.phase.kind === 'reward') playSound(leveledAtReward ? 'levelUp' : 'reward');
       if (run.phase.kind === 'altar') playSound('curse', .7, .6);
       if (run.phase.kind === 'grave') playSound('imbue', .62, .6);
     }
     lastPhase.current = run.phase.kind;
-  }, [run.phase.kind]);
+  }, [run.phase.kind, leveledAtReward]);
   if (run.phase.kind === 'combat')
     return (
       <div className="h-full w-full overflow-hidden">

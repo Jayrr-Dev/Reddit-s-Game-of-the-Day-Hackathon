@@ -12,7 +12,9 @@
 // The rules and the leaderboard open as sheets over the menu.
 // ===================================================================
 
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
+import { getVolume, subscribeVolume } from '../../lib/gameAudio';
+import { useMapAudio } from '../../lib/mapAudio';
 import { GAME_TITLE, LEADERBOARD_SIZE } from '../../../shared/constants/game';
 import { formatDailyKey } from '../../../shared/utils/dailyKey';
 import type { InitResponse, LeaderboardEntry } from '../../../shared/types/api';
@@ -155,6 +157,8 @@ export const IntroView = ({
   onPractice,
 }: IntroViewProps) => {
   const [sheet, setSheet] = useState<Sheet>('none');
+  const musicVolume = useSyncExternalStore(subscribeVolume, () => getVolume('music'));
+  useMapAudio({ mapId: 'Home', active: sheet !== 'tutorial', bossActive: false, musicVolume: musicVolume / 100, sfxVolume: 0 });
   const settings = useGameSettings();
   const closeSheet = () => setSheet('none');
   if (sheet === 'profile') return <ProfileView data={data} rings={profileRings} onClose={closeSheet} />;

@@ -1,6 +1,7 @@
 import { TRAINING_JEWELRY } from '../../../shared/game/trainingJewelry';
 // --- CHARACTER SHEET ---
-import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { playSound } from '../../lib/gameAudio';
 import {
   characterBonuses,
   IRON_RING_RESERVE,
@@ -212,6 +213,14 @@ const Equipment = ({
     requestAnimationFrame(() => detailRef.current?.scrollIntoView({ block: 'nearest' }));
   };
   const { rings, amulet } = character.equipment;
+  const previousEquipment = useRef({ rings, amulet });
+  useEffect(() => {
+    const before = previousEquipment.current;
+    previousEquipment.current = { rings, amulet };
+    if ((amulet && amulet !== before.amulet) || rings.some((id, i) => id && id !== before.rings[i])) {
+      playSound('equip', 1, .84);
+    }
+  }, [rings, amulet]);
   const nearestRingSlot = (id: string) => {
     const origin = typeof selected === 'number' ? selected : 0;
     const eligible = rings.map((_, index) => index)
@@ -341,6 +350,7 @@ const Equipment = ({
               <button
                 type="button"
                 disabled={unavailable}
+                data-own-sound
                 aria-label={unavailable ? `No unlocked slot for ${item.name}` : `Equip ${item.name} in ${slotName}`}
                 onClick={() => {
                   setSelected(destination ?? 'amulet');

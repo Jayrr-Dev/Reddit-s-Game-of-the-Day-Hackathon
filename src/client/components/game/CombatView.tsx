@@ -20,9 +20,10 @@
 // ===================================================================
 
 import './combat/dueling-table.css';
-import { playCardSound, playSound, setBossMusic } from "../../lib/gameAudio";
+import { getVolume, playCardSound, playCombatImpact, playSound, setBossMusic, subscribeVolume } from '../../lib/gameAudio';
+import { useMapAudio } from '../../lib/mapAudio';
 import { isBoss } from "../../content/heroLooks";
-import { useEffect, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useCallback, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { endTurn, movementFailsOn } from '../../../shared/game/combat';
 import type { RunAction } from '../../../shared/game/run';
@@ -252,17 +253,34 @@ export const CombatView = ({
     return () => setBossMusic(false);
   }, [hasBoss]);
   const previousCombat = useRef(combat);
-  const suppressBluntOverlay = useRef(false);
+  const impactCard = useRef<ReturnType<typeof getCard> | undefined>(undefined);
+  const musicVolume = useSyncExternalStore(subscribeVolume, () => getVolume('music'));
+  const sfxVolume = useSyncExternalStore(subscribeVolume, () => getVolume('sfx'));
+  const mapName = MAP_NAMES[terrainIndex % MAP_NAMES.length] ?? MAP_NAMES[0] ?? '';
+  useMapAudio({ mapId: mapName, active: realCombat.player.hp > 0, bossActive: hasBoss, musicVolume: musicVolume / 100, sfxVolume: sfxVolume / 100 });
   useEffect(() => {
     const before = previousCombat.current;
     previousCombat.current = combat;
     if (before === combat || viewRef.current?.closest('[inert]')) return;
-    if (combat.player.hp < before.player.hp) playSound('blunt', .80, .75);
-    else if (combat.player.guard < before.player.guard && heroTurn.isPlaying) playSound('guard', .86, .7);
+    if (combat.player.hp < before.player.hp) {
+      const hexTriggered = !heroTurn.attackType && combat.player.statuses.hex !== before.player.statuses.hex;
+      playCombatImpact(hexTriggered ? 'curse' : heroTurn.attackType ?? undefined, heroTurn.element, undefined, .75);
+    }
+    else if (combat.player.guard < before.player.guard && heroTurn.isPlaying) playSound('guard', 1.05, .76);
     else if (combat.player.hp > before.player.hp) playSound('imbue', 1.14, .6);
-    if (!suppressBluntOverlay.current && combat.heroes.some(unit => unit.hp < (before.heroes.find(old => old.uid === unit.uid)?.hp ?? unit.hp))) playSound('blunt', 1.2, .27);
+    if (combat.heroes.some(unit => {
+      const old = before.heroes.find(prior => prior.uid === unit.uid);
+      return old && (unit.hp < old.hp || unit.guard < old.guard);
+    })) {
+      const card = impactCard.current;
+      const hexTriggered = heroTurn.isPlaying && combat.heroes.some(unit => {
+        const old = before.heroes.find(prior => prior.uid === unit.uid);
+        return old && unit.hp < old.hp && unit.statuses.hex !== old.statuses.hex;
+      });
+      playCombatImpact(hexTriggered ? 'curse' : card?.type, card?.element, card?.edge, .76);
+    }
     if (combat.heroes.some(unit => !before.heroes.some(old => old.uid === unit.uid))) playSound('move', .85, .65);
-  }, [combat, heroTurn.isPlaying]);
+  }, [combat, heroTurn.attackType, heroTurn.element, heroTurn.isPlaying]);
   const bossEntrance = useBossEntrance(combat.heroes, bossIntros);
   const isAnimating = heroTurn.isPlaying || cardHits.isPlaying;
   const lethal = useMemo(() => realCombat.player.hp > 0 && endTurn(realCombat).player.hp <= 0, [realCombat]);
@@ -275,6 +293,10 @@ export const CombatView = ({
   }>();
   // Speed lines for every movement, Rampage Charges included.
   const burst = useMovementBurst(combat);
+  useEffect(() => {
+    if (!burst || burst.label || viewRef.current?.closest('[inert]')) return;
+    playSound(burst.move === 'backStep' ? 'backstep' : 'charge', 1, .82);
+  }, [burst]);
   // Recent hits, so damage numbers are sized against a typical hit.
   const [hitHistory] = useState(() => new HitHistory());
   const { pops: moveFails, show: showMoveFail } = useMoveFailPops();
@@ -285,15 +307,15 @@ export const CombatView = ({
     (action: RunAction) => {
       if (allowCombatAction && !allowCombatAction(action)) return;
       if (action.type === 'endTurn') {
-        suppressBluntOverlay.current = false;
+        impactCard.current = undefined;
         playSound('menu', .9);
         return playHeroTurn();
       }
-      if (action.type === 'move') playSound('move', action.move === 'backStep' ? .84 : 1.17);
+      if (action.type === 'move') impactCard.current = undefined;
       if (action.type === 'playCard') {
         const cardId = realCombat.hand[action.handIndex];
         const card = cardId ? getCard(cardId) : undefined;
-        suppressBluntOverlay.current = card?.type === 'melee' && card.edge === 'sharp';
+        impactCard.current = card;
         setLastCard(card);
         // A knockback the target shrugs off shows a cancel sign on it.
         const { targetUid } = action;
@@ -320,7 +342,6 @@ export const CombatView = ({
           if (cardId && card?.edge === 'sharp') playCardSound(cardId);
           setIsShooting(true);
           window.setTimeout(() => {
-            if (cardId && card?.edge !== 'sharp') playCardSound(cardId);
             setIsShooting(false);
             playCardHits(action);
           }, MELEE_SWEEP_MS);
@@ -396,7 +417,7 @@ export const CombatView = ({
     >
       <div inert={!!bossEntrance.entering} className="table-field-frame relative flex min-h-0 flex-1 flex-col">
         <TopBar
-          location={MAP_NAMES[terrainIndex % MAP_NAMES.length] ?? MAP_NAMES[0]!}
+          location={mapName}
           where={where}
           score={score}
           onOpenMenu={() => setIsPaused(true)}
