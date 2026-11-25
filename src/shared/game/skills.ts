@@ -102,6 +102,10 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     name: 'Mender',
     description: 'Healing is 5% stronger per rank (up to +25%)',
   },
+  '3-2-1': {
+    name: 'Deep Pockets',
+    description: '+1 max hand size per rank (up to +5)',
+  },
   '4-0-0': {
     name: 'Grimoire',
     description:
@@ -328,6 +332,9 @@ export const buffPowerBonusOf = (picks?: readonly SkillPick[]): number =>
 /** MENDER (Utility line): healing added per rank, +5% (up to +25%). */
 export const healingSkillBonusOf = (picks?: readonly SkillPick[]): number =>
   ranksIn(picks, 3, 1, 1) * EDGE_DAMAGE_PER_RANK;
+/** DEEP POCKETS (Utility line): extra hand slots, one per rank. */
+export const handSizeBonusOf = (picks?: readonly SkillPick[]): number =>
+  ranksIn(picks, 3, 2, 1);
 /** SHOCKWAVE (Blunt capstone): Momentum turns Melee strikes into Cleaves. */
 export const hasMomentumCleave = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 1, 3, 0);

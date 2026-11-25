@@ -16,7 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
-import { battlemageBonusOf, buffStackBonusOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
+import { handSizeBonusOf, battlemageBonusOf, buffStackBonusOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -437,7 +437,8 @@ const drawOne = (state: CombatState): CombatState => {
   const ready = state.drawPile.length === 0 ? reshuffleDiscard(state) : state;
   const [top, ...rest] = ready.drawPile;
   if (top === undefined) return ready;
-  return ready.hand.length >= MAX_HAND_SIZE
+  // DEEP POCKETS (skill tree) raises the hand limit.
+  return ready.hand.length >= MAX_HAND_SIZE + handSizeBonusOf(ready.player.skillPicks)
     ? { ...ready, drawPile: rest, discardPile: [...ready.discardPile, top] }
     : addToHand({ ...ready, drawPile: rest }, top);
 };

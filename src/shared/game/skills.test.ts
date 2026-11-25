@@ -27,6 +27,7 @@ import {
   skillPointsLeft,
   movementDiscountOf,
   reflexDodgeOf,
+  handSizeBonusOf,
   buffStackBonusOf,
   volleyHitsOf,
   magicAccuracyBonusOf,
@@ -415,4 +416,9 @@ test('Mender: healing +5% per rank', () => {
   const m = { branch: 3, tier: 1, slot: 1 };
   assert.equal(healingAmount(20, { skillPicks: [m, m, m, m, m] }), 25);
   assert.equal(healingAmount(20, {}), 20);
+});
+
+test('Deep Pockets: +1 hand size per rank', () => {
+  const dp = { branch: 3, tier: 2, slot: 1 };
+  assert.equal(handSizeBonusOf([dp, dp, dp]), 3);
 });
