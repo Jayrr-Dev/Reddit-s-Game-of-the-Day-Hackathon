@@ -204,6 +204,7 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   bane: false,
   instinct: false,
   reflex: false,
+  invincible: false,
   momentum: false,
   protection: false,
   aloft: false,

@@ -2,8 +2,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCharacter, restoreCharacter } from './character.ts';
-import { startCombat } from './combat.ts';
-import { movementCost } from './movement.ts';
+import { playCard, startCombat } from './combat.ts';
+import { createCombatant, takeHit } from './combatant.ts';
+import { move, movementCost } from './movement.ts';
 import {
   planSkillPath,
   buySkill,
@@ -94,4 +95,54 @@ test('in combat, Endurance makes Charge and Back Step start at 0 energy', () => 
   assert.equal(movementCost(plain, 'backStep'), 1);
   assert.equal(movementCost(enduring, 'backStep'), 0);
   assert.equal(movementCost(enduring, 'charge'), 0);
+});
+
+test('Invincible turns the next hit to 0, one stack per hit', () => {
+  const unit = createCombatant(30, 30);
+  const shielded = { ...unit, statuses: { ...unit.statuses, invincible: 2 } };
+  const first = takeHit(shielded, 9, 'melee');
+  assert.equal(first.hp, 30);
+  assert.equal(first.statuses.invincible, 1);
+  const second = takeHit(first, 9, 'magic', true);
+  assert.equal(second.hp, 30, 'even Piercing');
+  assert.equal(takeHit(second, 9, 'melee').hp, 21, 'then hits land');
+});
+
+test('Invincibility Frames: each Back Step adds Invincible 1; Rage gives energy on a kill', () => {
+  const setup = {
+    hp: 50,
+    maxHp: 50,
+    deck: ['backhand' as const],
+    heroIds: ['squire' as const],
+    might: 1,
+    seed: 3,
+  };
+  const iFrames = { branch: 0, tier: 3, slot: 1 };
+  const stepped = (picks: { branch: number; tier: number; slot: number }[]) => {
+    const state = startCombat({ ...setup, skillPicks: picks });
+    const front = {
+      ...state,
+      energy: 9,
+      heroes: state.heroes.map((u) => ({ ...u, row: 'front' as const })),
+    };
+    return move(front, 'backStep').player.statuses.invincible;
+  };
+  assert.equal(stepped([iFrames]), 1);
+  assert.equal(stepped([]), 0);
+  const rage = { branch: 0, tier: 3, slot: 0 };
+  const fight = (picks: { branch: number; tier: number; slot: number }[]) => {
+    const state = startCombat({ ...setup, skillPicks: picks });
+    const weak = {
+      ...state,
+      energy: 5,
+      heroes: state.heroes.map((u) => ({
+        ...u,
+        row: 'front' as const,
+        hp: 1,
+        guard: 0,
+      })),
+    };
+    return playCard(weak, 0, weak.heroes[0]!.uid).energy;
+  };
+  assert.equal(fight([rage]), fight([]) + 1);
 });

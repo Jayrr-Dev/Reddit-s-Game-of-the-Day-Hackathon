@@ -151,6 +151,7 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     hasGlow: true,
   },
   reflex: { layers: [{ shape: 'chevron', motion: 'rise', count: 2, size: 14 }], hasGlow: false },
+  invincible: { layers: [{ shape: 'chevron', motion: 'rise', count: 3, size: 14 }], hasGlow: true },
   /** Bane (stronger afflictions): the flask flashes and bubbles rise. */
   bane: {
     layers: [

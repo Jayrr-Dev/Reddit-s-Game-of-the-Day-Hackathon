@@ -60,6 +60,7 @@ export type BuffId =
   | 'berserker'
   | 'bane'
   | 'reflex'
+  | 'invincible'
   | 'instinct';
 export type StatusId =
   | 'hex'

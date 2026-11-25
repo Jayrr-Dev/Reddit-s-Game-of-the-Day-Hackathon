@@ -57,6 +57,7 @@ export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
   // Instinct is defence (it turns hits aside): Guard blue.
   instinct: { glyph: 'dodging', toneClass: 'text-guard' },
   reflex: { glyph: 'dodging', toneClass: 'text-accent' },
+  invincible: { glyph: 'aegis', toneClass: 'text-accent' },
   reinforce: { glyph: 'shield', toneClass: 'text-guard' },
   brace: { glyph: 'anchor', toneClass: 'text-guard' },
   momentum: { glyph: 'bolt', toneClass: 'text-hp' },
@@ -298,6 +299,7 @@ export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   bane: STATUS_LOOK.bane,
   instinct: STATUS_LOOK.instinct,
   reflex: STATUS_LOOK.reflex,
+  invincible: STATUS_LOOK.invincible,
   reinforce: STATUS_LOOK.reinforce,
   brace: STATUS_LOOK.brace,
   armor: STATUS_LOOK.armor,

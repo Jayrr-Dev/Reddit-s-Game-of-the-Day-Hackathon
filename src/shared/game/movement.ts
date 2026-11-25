@@ -14,7 +14,7 @@
 // ===================================================================
 
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
-import { movementDiscountOf } from './skills.ts';
+import { iFramesOf, movementDiscountOf } from './skills.ts';
 import { fallBack, isDeep, rowDepth, stepForward } from './battlefield.ts';
 import { canPlayCard, canPlayCardOnSelf, combatOutcome } from './combat.ts';
 import {
@@ -184,6 +184,23 @@ const shiftFormation = (state: CombatState, moveId: MovementId) => {
   return { heroes, travelRows, player: { ...state.player, statuses: { ...state.player.statuses, move: 0 } } };
 };
 
+/**
+ * INVINCIBILITY FRAMES (skill tree): every Back Step adds Invincible
+ * stacks. Any other move, or no skill, changes nothing.
+ */
+const skillGrant = (state: CombatState, moveId: MovementId): CombatState => {
+  const stacks = moveId === 'backStep' ? iFramesOf(state.player.skillPicks) : 0;
+  if (!stacks) return state;
+  const { statuses } = state.player;
+  return {
+    ...state,
+    player: {
+      ...state.player,
+      statuses: { ...statuses, invincible: statuses.invincible + stacks },
+    },
+  };
+};
+
 /** Refresh the on/off bonus without adding stacks. */
 const grant = (
   state: CombatState,
@@ -220,7 +237,7 @@ export const move = (state: CombatState, moveId: MovementId): CombatState => {
     },
     ...shiftFormation({ ...state, player: spendRush(state.player) }, moveId),
   };
-  return recordEffects(state, grant(paid, def.grants));
+  return recordEffects(state, skillGrant(grant(paid, def.grants), moveId));
 };
 
 /** Rampage and Momentum cards grant the same non-stacking bonus as Charge. */
@@ -233,13 +250,16 @@ export const moveFromCard = (
   moveId: MovementId
 ): CombatState => {
   if (!hasRoomFor(state, moveId)) return state;
-  return grant(
-    {
-      ...state,
-      lastMovement: { move: moveId, turn: state.turn, streak: streakOf(state) + 1 },
-      ...shiftFormation(state, moveId),
-    },
-    MOVEMENTS[moveId].grants
+  return skillGrant(
+    grant(
+      {
+        ...state,
+        lastMovement: { move: moveId, turn: state.turn, streak: streakOf(state) + 1 },
+        ...shiftFormation(state, moveId),
+      },
+      MOVEMENTS[moveId].grants
+    ),
+    moveId
   );
 };
 
@@ -259,7 +279,7 @@ export const moveFree = (
     freeMove: { move: moveId },
     ...shiftFormation(state, moveId),
   };
-  return grant(moved, def.grants);
+  return skillGrant(grant(moved, def.grants), moveId);
 };
 
 // --- TURN ---

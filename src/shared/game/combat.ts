@@ -16,6 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
+import { rageEnergyOf } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -1422,8 +1423,12 @@ export const playCard = (
     ...(imbues.length ? { imbues } : {}),
     ...(state.usesSpent[cardId] ? { usesSpent: state.usesSpent[cardId] } : {}),
   };
+  // RAGE (skill): a kill gives energy back.
+  const raged = outcome.hasKilled
+    ? { ...cleared, energy: cleared.energy + rageEnergyOf(cleared.player.skillPicks) }
+    : cleared;
   return recordEffects(state, {
-    ...moveOnTrigger(cleared, cardId, imbues, outcome),
+    ...moveOnTrigger(raged, cardId, imbues, outcome),
     playHistory: appendCombatHistory(state.playHistory, entry),
   });
 };

@@ -63,7 +63,27 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     name: 'Endurance',
     description: 'Charge and Back Step cost 1 less energy',
   },
+  '0-3-0': { name: 'Rage', description: 'After a kill, gain 1 energy' },
+  '0-3-1': {
+    name: 'Invincibility Frames',
+    description:
+      'Each Back Step gives Invincible 1: the next damage you take is 0',
+  },
 };
+/** True when the picks hold that circle (any rank). */
+const hasSkill = (
+  picks: readonly SkillPick[] = [],
+  branch: number,
+  tier: number,
+  slot: number
+): boolean =>
+  picks.some((p) => p.branch === branch && p.tier === tier && p.slot === slot);
+/** RAGE (Charge capstone): energy gained when a play kills. */
+export const rageEnergyOf = (picks?: readonly SkillPick[]): number =>
+  hasSkill(picks, 0, 3, 0) ? 1 : 0;
+/** INVINCIBILITY FRAMES (Back Step capstone): Invincible stacks per Back Step. */
+export const iFramesOf = (picks?: readonly SkillPick[]): number =>
+  hasSkill(picks, 0, 3, 1) ? 1 : 0;
 /** The effect of a circle, if it has one. */
 export const skillEffectOf = (pick: SkillPick): SkillEffect | undefined =>
   SKILL_EFFECTS[`${pick.branch}-${pick.tier}-${pick.slot}`];

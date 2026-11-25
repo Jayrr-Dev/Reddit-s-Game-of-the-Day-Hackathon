@@ -99,6 +99,7 @@ const STATUS_ORDER: readonly StatusId[] = [
   'aloft',
   'instinct',
   'reflex',
+  'invincible',
   'protection',
   'reinforce',
   'brace',

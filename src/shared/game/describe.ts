@@ -169,6 +169,11 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
     description:
       'Adds this many stacks to incoming afflictions. Loses 1 stack per turn.',
   },
+  invincible: {
+    label: 'Invincible',
+    description:
+      'The next damage it takes becomes **0**, then it loses 1 stack\nEach stack negates one more hit',
+  },
   reflex: {
     label: 'Reflex',
     description: `+${Math.round(REFLEX_DODGE * 100)}% dodge for one enemy turn. Does not stack with itself.`,

@@ -57,6 +57,7 @@ export const NO_STATUSES: Statuses = {
   bane: 0,
   instinct: 0,
   reflex: 0,
+  invincible: 0,
   momentum: 0,
   protection: 0,
   enfeeble: 0,
@@ -271,6 +272,12 @@ export const takeHit = <T extends Combatant>(
   isPiercing = false,
   source?: Combatant
 ): T => {
+  // INVINCIBLE: a stack turns this hit to 0, then goes (even past Piercing).
+  if (amount > 0 && target.statuses.invincible > 0)
+    return countShockHit({
+      ...target,
+      statuses: { ...target.statuses, invincible: target.statuses.invincible - 1 },
+    });
   // PIERCING: past Protection, Armor and Guard, straight to HP.
   if (isPiercing) return countShockHit(loseHp(target, amount), source);
   const afterProtection = protectedAmount(target, amount);
