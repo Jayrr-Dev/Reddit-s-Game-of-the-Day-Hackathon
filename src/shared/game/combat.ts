@@ -741,8 +741,12 @@ const villainAttack = (
   const isFollowThrough = effect.target === 'one' && !isCleave;
   const pierceHit = Math.floor(perHit * PIERCE_DAMAGE_FACTOR);
   // SPELLPIERCE (skill tree): Magic ignores Guard and Armor like Piercing.
-  const ignoresGuard: boolean | 'spell' =
-    play.isPiercing || (cardDef.type === 'magic' && magicPiercesOf(state.player.skillPicks) ? 'spell' : false);
+  // Only once the villain has Back Stepped this turn.
+  const hasBackSteppedThisTurn =
+    state.lastMovement?.move === 'backStep' && state.lastMovement.turn === state.turn;
+  const isSpellpierce =
+    cardDef.type === 'magic' && hasBackSteppedThisTurn && magicPiercesOf(state.player.skillPicks);
+  const ignoresGuard: boolean | 'spell' = play.isPiercing || (isSpellpierce ? 'spell' : false);
   const hits = volleyHitsOf(effect.hits, cardDef.type, state.player.skillPicks);
   return Array.from({ length: hits }).reduce<CombatState>((current) => {
     // RANDOMLY: this hit's hero is rolled now, so each hit picks anew.
