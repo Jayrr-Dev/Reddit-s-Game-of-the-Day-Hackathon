@@ -401,10 +401,11 @@ test('Overflow gives Utility cards Hold', () => {
   assert.equal(potionKept([{ branch: 3, tier: 3, slot: 1 }]), true);
 });
 
-test('Empower: 5% more buff stacks per rank, rounded down', () => {
+test('Empower: 5% more buff stacks per rank, rounded to nearest', () => {
   const emp = { branch: 3, tier: 1, slot: 0 };
   assert.equal(empoweredStacks(4, [emp, emp, emp, emp, emp]), 5);
-  assert.equal(empoweredStacks(3, [emp, emp, emp, emp, emp]), 3);
+  assert.equal(empoweredStacks(3, [emp, emp, emp, emp, emp]), 4);
+  assert.equal(empoweredStacks(1, [emp, emp, emp, emp, emp]), 1);
   assert.equal(empoweredStacks(10, [emp, emp]), 11);
 });
 

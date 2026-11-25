@@ -96,7 +96,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   '3-1-0': {
     name: 'Empower',
     description:
-      'Buffs from cards give 5% more stacks per rank, rounded down (up to +25%)',
+      'Buffs from cards give 5% more stacks per rank, rounded to nearest (up to +25%)',
   },
   '3-1-1': {
     name: 'Mender',
@@ -326,13 +326,13 @@ export const utilityHoldsOf = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 3, 3, 1);
 /**
  * EMPOWER (Buffs line): stacks a card's buff gives, +5% per rank (up to
- * +25%), rounded down. On/off buffs are left alone by the caller.
+ * +25%), rounded to the nearest (halves up). On/off buffs are left alone by the caller.
  */
 export const empoweredStacks = (
   amount: number,
   picks?: readonly SkillPick[]
 ): number =>
-  Math.floor(
+  Math.round(
     amount * (1 + ranksIn(picks, 3, 1, 0) * EDGE_DAMAGE_PER_RANK) + 1e-9
   );
 /** MENDER (Utility line): healing added per rank, +5% (up to +25%). */
