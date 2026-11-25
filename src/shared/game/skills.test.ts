@@ -58,14 +58,15 @@ test('one click buys the missing route or refunds its dependants atomically', ()
   );
 });
 
-test('each path ends at either of two gated endpoints and restores only surviving circles', () => {
+test('each path ends at two gated endpoints (both can be taken) and restores only surviving circles', () => {
   for (const slot of [0, 1]) {
     const start = { ...createCharacter(), level: 70 };
     const target = { branch: 2, tier: 3, slot };
     assert.equal(buySkill(start, target), start);
     const end = planSkillPath(start, target).character;
     assert.equal(skillPointsLeft(end), 57);
-    assert.equal(
+    // Both capstones can be taken: the other one is still buyable.
+    assert.notEqual(
       planSkillPath(end, { ...target, slot: 1 - slot }).character,
       end
     );

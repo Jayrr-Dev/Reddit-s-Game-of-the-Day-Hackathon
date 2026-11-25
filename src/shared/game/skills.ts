@@ -87,7 +87,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   '0-3-1': {
     name: 'Invincibility Frames',
     description:
-      'Each Back Step gives Invincible 1: the next damage you take is 0',
+      'Each Back Step adds 1 Invincible (stacks): each stack blocks one hit of damage',
   },
 };
 /** True when the picks hold that circle (any rank). */
@@ -161,8 +161,6 @@ export function skillRequirement(
   const { branch, tier, slot } = pick;
   const picks = (c.skillPicks ?? []).filter((p) => p.branch === branch);
   if (skillRank(picks, tier, slot) >= skillCap(tier)) return 'Fully ranked';
-  if (tier === 3 && picks.some((p) => p.tier === tier))
-    return 'Other specialization chosen';
   const required = requiredInvestment(tier);
   if (picks.length < required)
     return 'Requires ' + required + ' points in this path';
