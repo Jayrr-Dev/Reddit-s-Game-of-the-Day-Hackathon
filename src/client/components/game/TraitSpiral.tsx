@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { traitNodeName } from '../../content/traitNodeNames';
 import { createPortal } from 'react-dom';
 import { characterBonuses, TRAIT_CAP, traitNodeIds, traitRewardShare, traitNodeGains, traitNodeArms, traitPointsAvailable, type CharacterState, type TraitId } from '../../../shared/game/character';
 import { Glyph, type GlyphName } from '../ui/Glyph';
@@ -185,7 +186,7 @@ export const TraitSpiral = ({ trait, character, stats, onSetNode, previewHost }:
             className="trait-spiral-node" style={style} data-node-id={node.id} data-arm={node.arm} data-reward={gain?.key}
             data-blocked={blocked} data-milestone={Boolean(gain)} data-finale={node.tip} data-next={!filled && !blocked && steps.length === 1} data-earned={filled}
             data-current={preview === i} data-preview={preview === i && !blocked ? (filled ? "refund" : "spend") : undefined} aria-pressed={filled}
-            aria-label={['Node ' + node.id + (node.arm === 'junction' ? ', starting star' : ''), ...node.changes.map(stat => stat.label + ' +' + stat.delta + (stat.percent ? '%' : '')), action(node.id)].join('. ')}
+            aria-label={[traitNodeName(node.id, node.changes[0]?.key) + (node.arm === 'junction' ? ', starting star' : ''), ...node.changes.map(stat => stat.label + ' +' + stat.delta + (stat.percent ? '%' : '')), action(node.id)].join('. ')}
             aria-describedby={preview === i ? detailsId : undefined}
             tabIndex={selected === i ? 0 : -1}
             onFocus={() => setSelected(i)}
@@ -212,7 +213,7 @@ export const TraitSpiral = ({ trait, character, stats, onSetNode, previewHost }:
       </div>
       {active && previewHost && createPortal(<div id={detailsId} className="trait-spiral-inspect" aria-live="polite" aria-atomic="true">
         <div className="trait-spiral-preview-heading">
-          <strong>{active.arm === 'junction' ? 'Starting star' : 'Node ' + active.id}</strong>
+          <strong>{active.arm === 'junction' ? 'Starting star' : traitNodeName(active.id, active.changes[0]?.key)}</strong>
           <span className="trait-spiral-cost">{action(active.id)}</span>
         </div>
         {active.changes.map(stat => <div className="trait-spiral-stat stat-ink" data-stat={INKS[stat.key]} key={stat.key}>
