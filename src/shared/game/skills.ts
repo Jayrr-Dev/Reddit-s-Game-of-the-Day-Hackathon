@@ -80,7 +80,10 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     name: 'Skirmisher',
     description: '+5% Range damage per rank at heroes on Line 2 (up to +25%)',
   },
-  '0-3-0': { name: 'Battle Rush', description: 'After a kill, gain 1 energy' },
+  '0-3-0': {
+    name: 'Battle Rush',
+    description: 'After a kill with Momentum, gain 1 energy',
+  },
   '0-3-1': {
     name: 'Invincibility Frames',
     description:

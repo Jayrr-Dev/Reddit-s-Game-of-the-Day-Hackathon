@@ -133,10 +133,17 @@ test('Invincibility Frames: each Back Step adds Invincible 1; Battle Rush gives 
   assert.equal(stepped([iFrames]), 1);
   assert.equal(stepped([]), 0);
   const rage = { branch: 0, tier: 3, slot: 0 };
-  const fight = (picks: { branch: number; tier: number; slot: number }[]) => {
+  const fight = (
+    picks: { branch: number; tier: number; slot: number }[],
+    momentum = 1
+  ) => {
     const state = startCombat({ ...setup, skillPicks: picks });
     const weak = {
       ...state,
+      player: {
+        ...state.player,
+        statuses: { ...state.player.statuses, momentum },
+      },
       energy: 5,
       heroes: state.heroes.map((u) => ({
         ...u,
@@ -148,6 +155,7 @@ test('Invincibility Frames: each Back Step adds Invincible 1; Battle Rush gives 
     return playCard(weak, 0, weak.heroes[0]!.uid).energy;
   };
   assert.equal(fight([rage]), fight([]) + 1);
+  assert.equal(fight([rage], 0), fight([], 0), 'no Momentum: no energy');
 });
 
 test('Bull Rush: each rank adds 5% to the Momentum bonus', () => {

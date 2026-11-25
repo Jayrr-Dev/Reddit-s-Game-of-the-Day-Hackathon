@@ -1434,8 +1434,9 @@ export const playCard = (
     ...(imbues.length ? { imbues } : {}),
     ...(state.usesSpent[cardId] ? { usesSpent: state.usesSpent[cardId] } : {}),
   };
-  // RAGE (skill): a kill gives energy back.
-  const raged = outcome.hasKilled
+  // BATTLE RUSH (skill): a kill made with Momentum gives energy back.
+  const isMomentumKill = outcome.hasKilled && hasMomentumFor(state.player, cardDef.type);
+  const raged = isMomentumKill
     ? { ...cleared, energy: cleared.energy + rageEnergyOf(cleared.player.skillPicks) }
     : cleared;
   return recordEffects(state, {
