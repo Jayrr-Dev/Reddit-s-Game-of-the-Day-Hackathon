@@ -135,6 +135,13 @@
   --color-card-movement: #75472c;
   --color-parchment: #dccaa2;
   --color-on-parchment: #2b1b12;
+  /* Card frame metal: the gilt trim around the face, art window and
+     banner (light edge, body, shadowed edge), and the scorched brown
+     that darkens the parchment's edges. */
+  --color-card-trim-light: #f4d58f;
+  --color-card-trim: #c08a3e;
+  --color-card-trim-dark: #4a2c12;
+  --color-parchment-burn: #8a5a2b;
 
   /* --- TYPOGRAPHY --- */
   --font-display:

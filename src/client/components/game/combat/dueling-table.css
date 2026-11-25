@@ -158,10 +158,6 @@
   width: 20px;
   height: 20px;
 }
-.dueling-table [data-card-size] {
-  border: 2px ridge var(--brass);
-  background-image: linear-gradient(125deg, #fff2, transparent 28%, #1e0d0d70);
-}
 .dueling-table [data-card-size]:disabled {
   opacity: 0.86;
   filter: saturate(0.38) brightness(0.65);
@@ -238,8 +234,9 @@
 .dueling-table [data-card-type='range'] {
   --illustration: url('../../../assets/table/range.webp');
 }
+/* Warmer paper on the table; its texture comes from cardFace.css. */
 .dueling-table .card-rules {
-  background: radial-gradient(ellipse at center, #ffe8b5, #dfb67e);
+  --parchment-fill: radial-gradient(ellipse at center, #ffe8b5, #dfb67e);
   font-family: Georgia, serif;
 }
 .dueling-table [role='meter'] {
