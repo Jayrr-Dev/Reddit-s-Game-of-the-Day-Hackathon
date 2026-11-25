@@ -20,6 +20,7 @@ import {
   createCombatant,
   afflictionAmount,
   afflictionDamage,
+  enfeeble,
   damageFactorOf,
   incomingAfflictionDamage,
   hexAfterTurn,
@@ -482,6 +483,11 @@ test('Debilitate: adds 5% per rank to Weaken and Enfeeble cuts', () => {
     damageFactorOf(createCombatant(50, 50), undefined, false, undefined, 0.25),
     1
   );
+});
+
+test('Everlasting: Enfeeble the villain applies lasts 1 more turn', () => {
+  assert.equal(enfeeble(createCombatant(50, 50)).enfeebleTurns, 2);
+  assert.equal(enfeeble(createCombatant(50, 50), 1).enfeebleTurns, 3);
 });
 
 test('Tolerance: affliction damage taken is 5% lower per rank', () => {

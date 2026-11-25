@@ -16,7 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
-import { afflictsThroughBlocksOf, bonusUsesOf, debuffPowerOf, empoweredStacks, handSizeBonusOf, battlemageBonusOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
+import { afflictsThroughBlocksOf, bonusUsesOf, debuffPowerOf, stackedBuffTurnsOf, empoweredStacks, handSizeBonusOf, battlemageBonusOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -993,7 +993,7 @@ const applyCardEffect = (
       return updateHeroes(
         state,
         resolveTargets(state, effect.target, targetUid, cardDef.type),
-        (unit) => enfeebleTimes(unit, (effect.times ?? 1) + scornBonus(state.player, 'enfeeble'))
+        (unit) => enfeebleTimes(unit, (effect.times ?? 1) + scornBonus(state.player, 'enfeeble'), stackedBuffTurnsOf(state.player.skillPicks))
       );
     case 'reap':
       return reapHex(

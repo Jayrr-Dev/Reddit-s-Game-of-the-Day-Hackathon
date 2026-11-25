@@ -537,9 +537,13 @@ export const dropRoundBuffs = <T extends Combatant>(target: T): T => ({
 /**
  * Enfeebles a unit: add a tier and refresh the duration.
  */
-export const enfeeble = <T extends Combatant>(target: T): T => ({
+export const enfeeble = <T extends Combatant>(
+  target: T,
+  extraTurns = 0
+): T => ({
   ...target,
-  enfeebleTurns: STACKING_BUFF_TURNS,
+  // EVERLASTING (caster's skill) passes extraTurns to make it linger.
+  enfeebleTurns: STACKING_BUFF_TURNS + extraTurns,
   statuses: {
     ...target.statuses,
     enfeeble: raiseTier(target.statuses.enfeeble),
@@ -549,9 +553,13 @@ export const enfeeble = <T extends Combatant>(target: T): T => ({
 /** Enfeeble cast `times` times in a row (Sap: Enfeeble ×3). */
 export const enfeebleTimes = <T extends Combatant>(
   target: T,
-  times: number
+  times: number,
+  extraTurns = 0
 ): T =>
-  Array.from({ length: times }).reduce<T>((unit) => enfeeble(unit), target);
+  Array.from({ length: times }).reduce<T>(
+    (unit) => enfeeble(unit, extraTurns),
+    target
+  );
 
 /** True only on natural expiry, not when a status is cleansed or its target falls. */
 export const tierIVExpires = (target: Combatant): boolean =>

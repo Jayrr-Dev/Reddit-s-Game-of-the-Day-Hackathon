@@ -174,7 +174,8 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   },
   '3-3-0': {
     name: 'Everlasting',
-    description: 'Stacked Buffs (Protection, Instinct) last 1 more turn',
+    description:
+      'Stacked Buffs (Protection, Instinct) and the Stacked Debuff Enfeeble you apply last 1 more turn',
   },
   '3-3-1': {
     name: 'Overflow',
