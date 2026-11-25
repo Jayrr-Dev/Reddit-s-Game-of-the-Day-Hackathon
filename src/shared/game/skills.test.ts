@@ -4,7 +4,12 @@ import assert from 'node:assert/strict';
 import { createCharacter, restoreCharacter } from './character.ts';
 import { cardHitOn, playCard, startCombat, targetsFor } from './combat.ts';
 import { getCard } from './cards.ts';
-import { attackDamage, createCombatant, takeHit } from './combatant.ts';
+import {
+  addStatus,
+  attackDamage,
+  createCombatant,
+  takeHit,
+} from './combatant.ts';
 import { move, movementCost } from './movement.ts';
 import {
   planSkillPath,
@@ -343,4 +348,11 @@ test('Volley adds a hit to every Range card after a Back Step', () => {
   assert.equal(volleyHitsOf(3, 'range', stepped), 4);
   assert.equal(volleyHitsOf(3, 'magic', stepped), 3);
   assert.equal(volleyHitsOf(3, 'range', archer), 3, 'no Back Step yet');
+});
+
+test('Everlasting: Stacked Buffs last one more turn', () => {
+  const base = createCombatant(50, 50);
+  const buffed = { ...base, skillPicks: [{ branch: 3, tier: 3, slot: 0 }] };
+  assert.equal(addStatus(base, 'instinct', 1).instinctTurns, 2);
+  assert.equal(addStatus(buffed, 'instinct', 1).instinctTurns, 3);
 });

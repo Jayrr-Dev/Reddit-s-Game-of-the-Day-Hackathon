@@ -28,7 +28,7 @@ import {
   ROUND_BUFFS,
 } from './rules.ts';
 import { characterBonuses, healingAmount } from './character.ts';
-import { edgeDamageBonusOf, momentumSkillBonusOf } from './skills.ts';
+import { edgeDamageBonusOf, stackedBuffTurnsOf, momentumSkillBonusOf } from './skills.ts';
 import { pickOne, type RngState } from './rng.ts';
 import type {
   BuffId,
@@ -405,7 +405,9 @@ export const castProtection = <T extends Combatant>(target: T): T => ({
 
 /** Bulwark raises Protection and refreshes its duration. Traits can supply extra turns. */
 export const castCardProtection = <T extends Combatant>(target: T, extraTurns = 0): T => {
-  const duration = STACKING_BUFF_TURNS + Math.max(0, Math.trunc(extraTurns));
+  // EVERLASTING (skill tree) adds its turn on top of any trait turns.
+  const duration =
+    STACKING_BUFF_TURNS + Math.max(0, Math.trunc(extraTurns)) + stackedBuffTurnsOf(target.skillPicks);
   return { ...castProtection(target), cardProtectionTurns: duration, cardProtectionDuration: duration };
 };
 
@@ -579,7 +581,9 @@ export const addStatus = <T extends Combatant>(
   amount: number
 ): T => ({
   ...target,
-  ...(status === 'instinct' && amount > 0 ? { instinctTurns: STACKING_BUFF_TURNS } : {}),
+  ...(status === 'instinct' && amount > 0
+    ? { instinctTurns: STACKING_BUFF_TURNS + stackedBuffTurnsOf(target.skillPicks) }
+    : {}),
   statuses: {
     ...target.statuses,
     [status]: status === 'instinct'

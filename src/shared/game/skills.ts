@@ -122,6 +122,10 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     description:
       'After a Back Step, Range cards hit 1 more time for the rest of the turn',
   },
+  '3-3-0': {
+    name: 'Everlasting',
+    description: 'Stacked Buffs (Protection, Instinct) last 1 more turn',
+  },
   '1-1-0': {
     name: 'Heavy Hands',
     description: 'Blunt Melee cards deal +5% damage per rank (up to +25%)',
@@ -287,6 +291,9 @@ export const volleyHitsOf = (
   hasSkill(unit.skillPicks, 2, 3, 1)
     ? hits + 1
     : hits;
+/** EVERLASTING (Utility and Buffs capstone): extra turns for Stacked Buffs. */
+export const stackedBuffTurnsOf = (picks?: readonly SkillPick[]): number =>
+  hasSkill(picks, 3, 3, 0) ? 1 : 0;
 /** SHOCKWAVE (Blunt capstone): Momentum turns Melee strikes into Cleaves. */
 export const hasMomentumCleave = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 1, 3, 0);
