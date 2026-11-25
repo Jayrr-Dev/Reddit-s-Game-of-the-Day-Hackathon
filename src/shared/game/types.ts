@@ -190,7 +190,13 @@ export type BaseCardEffect =
   /** Strips this many distinct random buffs from each target. */
   | { kind: 'dispel'; amount: number; target: CardTarget }
   /** Removes this many stacks or tiers from one random active status. */
-  | { kind: 'disrupt'; amount: number; target: CardTarget; allAfflictions?: boolean; hitLimitTurns?: number }
+  | {
+      kind: 'disrupt';
+      amount: number;
+      target: CardTarget;
+      allAfflictions?: boolean;
+      hitLimitTurns?: number;
+    }
   /** Casts Protection on the villain (tiers up when cast turn after turn). */
   | { kind: 'protect' }
   /** Grants the villain a fight-long buff. */
@@ -279,7 +285,15 @@ export type MeleeEdge = 'sharp' | 'blunt';
  * Utility cards generally grant energy, restore HP, or draw cards. Some are consumables.
  */
 export type CardType =
-  'melee' | 'range' | 'magic' | 'defend' | 'buff' | 'imbue' | 'curse' | 'utility' | 'movement';
+  | 'melee'
+  | 'range'
+  | 'magic'
+  | 'defend'
+  | 'buff'
+  | 'imbue'
+  | 'curse'
+  | 'utility'
+  | 'movement';
 
 export type CardDef = {
   costReductionPerKill?: number;
@@ -454,6 +468,12 @@ export type HeroUnit = Combatant & {
   row: HeroRow;
   /** Leftmost battlefield column (0 to 2) this hero stands in. */
   col: number;
+  /**
+   * In one of its line's reserve spots: Knockback or Pull forced it into
+   * a full line (see RESERVE_SPOTS_PER_LINE). It is in that line for
+   * reach and targeting, but blocks no seat; it leaves on its next move.
+   */
+  inReserve?: boolean;
   /** The hero that summoned this one: it falls when that hero falls. */
   summonerUid?: number;
   /** Summoned or revived during the fight (it arrives in holy light). */
@@ -496,13 +516,16 @@ export type EnemyAttackRecord = {
   guardLost: number;
 };
 
-export type CombatHistoryRecord = CardPlayRecord | EnemyAttackRecord | {
-  turn: number;
-  event: 'death' | 'heal' | 'guard' | 'status' | 'arrival' | 'dodge';
-  subject: string;
-  detail: string;
-  status?: StatusId;
-};
+export type CombatHistoryRecord =
+  | CardPlayRecord
+  | EnemyAttackRecord
+  | {
+      turn: number;
+      event: 'death' | 'heal' | 'guard' | 'status' | 'arrival' | 'dodge';
+      subject: string;
+      detail: string;
+      status?: StatusId;
+    };
 
 export type CombatState = {
   /** Replacement wave spends its first enemy phase entering the battlefield. */

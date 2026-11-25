@@ -33,6 +33,7 @@ import { getCard, type CardId } from './cards.ts';
 import { getHero } from './heroes.ts';
 import {
   BATTLEFIELD_COLUMNS,
+  RESERVE_SPOTS_PER_LINE,
   BASE_ROW_COUNT,
   BATTLEFIELD_ROWS,
   MAX_HERO_CELLS,
@@ -143,10 +144,12 @@ export const cellsOf = (
   unit: Pick<HeroUnit, 'heroId' | 'row' | 'col'>
 ): Cell[] => [
   ...spanOf(unit.col, sizeOf(unit)).map((col) => ({ row: unit.row, col })),
-  ...backColsOf(unit).flatMap((offset) => spanOf(unit.col + offset, 1)).map((col) => ({
-    row: reachRowOf(unit),
-    col,
-  })),
+  ...backColsOf(unit)
+    .flatMap((offset) => spanOf(unit.col + offset, 1))
+    .map((col) => ({
+      row: reachRowOf(unit),
+      col,
+    })),
 ];
 
 /** The row a deep hero's reach fills: the one behind its own. */
@@ -223,6 +226,8 @@ const isSpanOpen = (
   heroes.every(
     (unit) =>
       unit.uid === ignoreUid ||
+      // A hero in a reserve spot blocks no seat.
+      unit.inReserve ||
       !cellsOf(unit).some((cell) => cell.row === row && span.includes(cell.col))
   );
 
@@ -337,9 +342,9 @@ const marchInFromAfar = (heroes: HeroUnit[]): HeroUnit[] => {
     else if (
       current &&
       rowsBehindHome(current) === 0 &&
-      canPush(field, current)
+      canPush(field, current, 1, false)
     )
-      field = pushHero(field, current.uid);
+      field = pushHero(field, current.uid, 1, false);
   }
   return field;
 };
@@ -355,7 +360,8 @@ export const formUp = (
   formation: 'march' | 'furthest' = 'march'
 ): HeroUnit[] => {
   // Replacement waves enter at maximum distance, spilling into nearer rows.
-  const entryRows = formation === 'furthest' ? activeRows().toReversed() : undefined;
+  const entryRows =
+    formation === 'furthest' ? activeRows().toReversed() : undefined;
   const bySizeDesc = [...units].sort((a, b) => cellCountOf(b) - cellCountOf(a));
   const placed = bySizeDesc.reduce<HeroUnit[]>(
     (field, unit) => [...field, placeHero(field, unit, entryRows)],
@@ -535,7 +541,9 @@ const seatInRow = (
 ): Seating | null => {
   if (isDeep(unit) || row === null || row === unit.row) return null;
   const rowHeroes = heroes
-    .filter((other) => other.row === row && !isImmovable(other))
+    .filter(
+      (other) => other.row === row && !isImmovable(other) && !other.inReserve
+    )
     .sort((a, b) => a.col - b.col);
   // Immovable heroes (bosses) never slide aside: their columns are taken.
   const blocked = heroes
@@ -568,16 +576,51 @@ const seatInRow = (
   return best && new Map(best.map(({ uid, col }) => [uid, col]));
 };
 
+/**
+ * The reserve spot a forced move into a full `row` would use: the hero
+ * keeps its columns (pulled in range of the grid), or null when the
+ * row's reserve spots are all taken.
+ */
+const reserveColumn = (
+  heroes: readonly HeroUnit[],
+  unit: HeroUnit,
+  row: HeroRow | null
+): number | null => {
+  if (isDeep(unit) || row === null || row === unit.row) return null;
+  const taken = heroes.filter(
+    (other) => other.uid !== unit.uid && other.row === row && other.inReserve
+  ).length;
+  if (taken >= RESERVE_SPOTS_PER_LINE) return null;
+  return Math.min(Math.max(unit.col, 0), BATTLEFIELD_COLUMNS - sizeOf(unit));
+};
+
+/** True when a forced move can put this hero in `row` (a seat or a reserve spot). */
+const hasRoomIn = (
+  heroes: readonly HeroUnit[],
+  unit: HeroUnit,
+  row: HeroRow | null
+): boolean =>
+  seatInRow(heroes, unit, row) !== null ||
+  reserveColumn(heroes, unit, row) !== null;
+
 /** True when a pull (one row nearer) would work on this hero right now. */
 export const canPull = (heroes: readonly HeroUnit[], unit: HeroUnit) =>
-  !isImmovable(unit) &&
-  seatInRow(heroes, unit, rowShifted(unit.row, -1)) !== null;
+  !isImmovable(unit) && hasRoomIn(heroes, unit, rowShifted(unit.row, -1));
 
 /** True when a push (one row farther) would work on this hero right now. */
-export const canPush = (heroes: readonly HeroUnit[], unit: HeroUnit, rows = 1) =>
-  !isImmovable(unit) && activeRows().some(row => {
+export const canPush = (
+  heroes: readonly HeroUnit[],
+  unit: HeroUnit,
+  rows = 1,
+  useReserve = true
+) =>
+  !isImmovable(unit) &&
+  activeRows().some((row) => {
     const distance = rowDepth(row) - rowDepth(unit.row);
-    return distance > 0 && distance <= rows && seatInRow(heroes, unit, row) !== null;
+    const hasRoom = useReserve
+      ? hasRoomIn(heroes, unit, row)
+      : seatInRow(heroes, unit, row) !== null;
+    return distance > 0 && distance <= rows && hasRoom;
   });
 
 /**
@@ -588,20 +631,32 @@ const moveRows = (
   heroes: HeroUnit[],
   uid: number,
   steps: number,
-  voluntary = false
+  voluntary = false,
+  useReserve = false
 ) => {
   const unit = heroes.find((hero) => hero.uid === uid);
   // Voluntary repositioning ignores forced-movement immunity.
   if (!unit || (isImmovable(unit) && !voluntary)) return heroes;
   const row = rowShifted(unit.row, steps);
   const seating = seatInRow(heroes, unit, row);
+  // RESERVE: a forced move into a full line takes one of its reserve spots.
+  const reserveCol =
+    useReserve && !voluntary ? reserveColumn(heroes, unit, row) : null;
+  if (!seating && reserveCol !== null && row !== null)
+    return heroes.map((hero) =>
+      hero.uid === uid
+        ? { ...hero, row, col: reserveCol, inReserve: true }
+        : hero
+    );
   if (!seating || row === null) return heroes;
   // No stepForward here: pushing the last front hero back leaves the
   // front empty until the villain Charges.
   return heroes.map((hero) => {
     const col = seating.get(hero.uid);
     if (col === undefined) return hero;
-    return hero.uid === uid ? { ...hero, row, col } : { ...hero, col };
+    return hero.uid === uid
+      ? { ...hero, row, col, inReserve: false }
+      : { ...hero, col };
   });
 };
 
@@ -618,7 +673,7 @@ const moveRowsUpTo = (
 ) => {
   let field = heroes;
   for (let step = 0; step < rows; step += 1)
-    field = moveRows(field, uid, direction);
+    field = moveRows(field, uid, direction, false, true);
   return field;
 };
 
@@ -627,11 +682,16 @@ export const pullHero = (heroes: HeroUnit[], uid: number, rows = 1) =>
   moveRowsUpTo(heroes, uid, -1, rows);
 
 /** Push straight back, sliding occupants aside. Skip a full row if there is room farther within range. */
-export const pushHero = (heroes: HeroUnit[], uid: number, rows = 1) => {
+export const pushHero = (
+  heroes: HeroUnit[],
+  uid: number,
+  rows = 1,
+  useReserve = true
+) => {
   let field = heroes;
   let remaining = Math.min(rows, lastRowDepth());
   for (let distance = 1; distance <= remaining; distance++) {
-    const moved = moveRows(field, uid, distance);
+    const moved = moveRows(field, uid, distance, false, useReserve);
     if (moved === field) continue;
     field = moved;
     remaining -= distance;
@@ -668,7 +728,8 @@ export const fallBack = (
 ): HeroUnit[] => {
   let field = [...heroes];
   if (knockbackTargets) {
-    const targets = field.filter(unit => knockbackTargets.has(unit.uid))
+    const targets = field
+      .filter((unit) => knockbackTargets.has(unit.uid))
       .sort((a, b) => rowDepth(b.row) - rowDepth(a.row));
     for (const unit of targets) field = pushHero(field, unit.uid, rows);
     return field;
@@ -680,7 +741,7 @@ export const fallBack = (
     for (const unit of farthestFirst) {
       field = isImmovable(unit)
         ? shiftWhole(field, unit.uid, 1)
-        : pushHero(field, unit.uid);
+        : pushHero(field, unit.uid, 1, false);
     }
   }
   return field;
@@ -709,9 +770,13 @@ export const targetRuleOf = (cardId: CardId): TargetRule => {
   const { effects, reach, type } = getCard(cardId);
   const kinds = effects.map((effect) => effect.kind);
   // A front-row Melee target still takes the strike when Knockback is blocked.
-  if (type === 'melee' && !reach && effects.some(isSingleTarget)) return 'front';
+  if (type === 'melee' && !reach && effects.some(isSingleTarget))
+    return 'front';
   if (kinds.includes('pull')) return 'pullable';
-  if (effects.some((effect) => effect.kind === 'push' && effect.target !== 'all')) return 'pushable';
+  if (
+    effects.some((effect) => effect.kind === 'push' && effect.target !== 'all')
+  )
+    return 'pushable';
   if (!effects.some(isSingleTarget)) return 'none';
   return 'any';
 };

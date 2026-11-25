@@ -200,7 +200,7 @@ void test('a pull slides the front row over to make room', () => {
   );
 });
 
-void test('a full front row blocks the pull', () => {
+void test('a full front row puts a pulled hero in a reserve spot', () => {
   const base = fight(
     ['squire', 'rogue', 'shieldmaiden', 'priest'],
     ['chainsOfGrief']
@@ -213,8 +213,8 @@ void test('a full front row blocks the pull', () => {
         : { ...unit, row: 'front', col: index }
     ),
   };
-  assert.equal(canPull(state.heroes, unitOf(state, 'priest')), false);
-  assert.equal(canPlayCard(state, 0), false);
+  assert.equal(canPull(state.heroes, unitOf(state, 'priest')), true);
+  assert.equal(canPlayCard(state, 0), true);
 });
 
 void test('a push sends a front-row hero back and the field re-forms', () => {

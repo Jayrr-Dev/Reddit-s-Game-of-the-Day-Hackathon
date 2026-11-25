@@ -94,6 +94,11 @@ export const MOVEMENT_STREAK_COST = 1;
 /** Columns in each row of the hero battlefield. */
 export const BATTLEFIELD_COLUMNS = 3;
 /**
+ * RESERVE SPOTS: extra places in each line, used only when Knockback or
+ * Pull forces a hero into a line that is full (walking never uses them).
+ */
+export const RESERVE_SPOTS_PER_LINE = 2;
+/**
  * The battlefield's rows, nearest to the villain first: Line 1, Line 2
  * and Line 3 (the Horizon). Every row rule (pulls, pushes, Charge, Back
  * Step, Piercing) walks this list (see activeRows in battlefield.ts),
