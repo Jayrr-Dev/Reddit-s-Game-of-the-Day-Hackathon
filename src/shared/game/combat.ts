@@ -16,7 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
-import { empoweredStacks, handSizeBonusOf, battlemageBonusOf, buffStackBonusOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
+import { bonusUsesOf, empoweredStacks, handSizeBonusOf, battlemageBonusOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -1022,7 +1022,7 @@ const applyCardEffect = (
     case 'wrath':
       return {
         ...state,
-        player: addStatus(state.player, 'wrath', empoweredStacks(effect.amount, state.player.skillPicks) + buffStackBonusOf(state.player.skillPicks)),
+        player: addStatus(state.player, 'wrath', empoweredStacks(effect.amount, state.player.skillPicks)),
       };
     case 'draw':
       return drawCards(state, effect.amount);
@@ -1149,11 +1149,11 @@ const grantBuff = (
   state: CombatState,
   effect: Extract<CardEffect, { kind: 'buff' }>
 ): CombatState => {
-  // OVERFLOW (skill tree): stacked buffs gain one more stack (on/off ones can't).
+  // EMPOWER (skill tree): stacked buffs gain more stacks (on/off ones can't).
   const picks = state.player.skillPicks;
   const amount = ON_OFF_BUFFS.has(effect.buff)
     ? effect.amount
-    : empoweredStacks(effect.amount, picks) + buffStackBonusOf(picks);
+    : empoweredStacks(effect.amount, picks);
   const player = addStatus(state.player, effect.buff, amount);
   const { duration } = effect;
   if (duration === undefined || duration === 'battle')
@@ -1432,7 +1432,9 @@ const pileThePlayed = (
   cardId: CardId,
   imbues: readonly Imbue[]
 ): CombatState => {
-  const { usesSpent, isExhausted } = spendUse(state.usesSpent, cardId);
+  const { usesSpent, isExhausted } = spendUse(
+    state.usesSpent, cardId, bonusUsesOf(getCard(cardId).type, state.player.skillPicks)
+  );
   const isRemoved =
     isExhausted ||
     cardHasKeyword(cardId, imbues, 'remove') ||

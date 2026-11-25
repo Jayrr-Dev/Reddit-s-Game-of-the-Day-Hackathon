@@ -150,8 +150,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   },
   '3-3-1': {
     name: 'Overflow',
-    description:
-      'Buffs you gain from cards get +1 stack. Utility cards have Hold',
+    description: 'Utility cards get +1 use and Hold',
   },
   '1-1-0': {
     name: 'Heavy Hands',
@@ -323,9 +322,11 @@ export const volleyHitsOf = (
 /** EVERLASTING (Utility and Buffs capstone): extra turns for Stacked Buffs. */
 export const stackedBuffTurnsOf = (picks?: readonly SkillPick[]): number =>
   hasSkill(picks, 3, 3, 0) ? 1 : 0;
-/** OVERFLOW (Utility capstone): extra stacks on each buff a card gives. */
-export const buffStackBonusOf = (picks?: readonly SkillPick[]): number =>
-  hasSkill(picks, 3, 3, 1) ? 1 : 0;
+/** OVERFLOW: extra uses for a card of `type` (Utility only). */
+export const bonusUsesOf = (
+  type: CardType,
+  picks?: readonly SkillPick[]
+): number => (type === 'utility' && hasSkill(picks, 3, 3, 1) ? 1 : 0);
 /** OVERFLOW also gives every Utility card Hold (stays in hand at end of turn). */
 export const utilityHoldsOf = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 3, 3, 1);
@@ -518,7 +519,8 @@ export function skillPurchases(c: CharacterState, pick: SkillPick) {
       steps.push({ branch: pick.branch, tier, slot });
   }
   if (pick.tier === tiers.length - 1) {
-    if (owned.some((p) => p.tier === pick.tier))
+    // Both capstones may be owned: only this one being owned stops a buy.
+    if (skillRank(owned, pick.tier, pick.slot))
       return {
         steps: [],
         message: skillRequirement(c, pick) ?? 'Fully ranked',

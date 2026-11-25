@@ -12,10 +12,11 @@ import type { UsesSpent } from './types.ts';
 
 // --- READS ---
 /** How many uses a card has, or null for a card that doesn't Exhaust. */
-export const usesOf = (cardId: CardId): number | null => {
+export const usesOf = (cardId: CardId, bonusUses = 0): number | null => {
   const cardDef = getCard(cardId);
   if (!cardDef.keywords.includes('exhaust')) return null;
-  return cardDef.uses ?? EXHAUST_USES;
+  // bonusUses: extra plays from the skill tree (Overflow on Utility).
+  return (cardDef.uses ?? EXHAUST_USES) + bonusUses;
 };
 
 /** Uses already spent on this card's current copy. */
@@ -30,9 +31,10 @@ export const usesSpentOn = (usesSpent: UsesSpent, cardId: CardId): number =>
  */
 export const spendUse = (
   usesSpent: UsesSpent,
-  cardId: CardId
+  cardId: CardId,
+  bonusUses = 0
 ): { usesSpent: UsesSpent; isExhausted: boolean } => {
-  const uses = usesOf(cardId);
+  const uses = usesOf(cardId, bonusUses);
   if (uses === null) return { usesSpent, isExhausted: false };
   const spent = usesSpentOn(usesSpent, cardId) + 1;
   if (spent < uses)

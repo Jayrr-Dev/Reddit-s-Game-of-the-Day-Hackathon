@@ -7,7 +7,7 @@
 
 import { healingAmount } from './character.ts';
 import { targetRuleOf } from './battlefield.ts';
-import { volleyHitsOf } from './skills.ts';
+import { bonusUsesOf, volleyHitsOf } from './skills.ts';
 import { getCard, hitsPerPlay, isKeywordOn, type CardId } from './cards.ts';
 import {
   afflictionAmount,
@@ -542,8 +542,8 @@ const KEYWORD_LABEL = (keyword: CardKeyword): string =>
  * An Exhaust card's count, counting up to its last use: "Use 1/3" on
  * a fresh card, "Use 3/3" on its last.
  */
-const useCountLabel = (cardId: CardId, usesSpent: number): string => {
-  const uses = usesOf(cardId) ?? EXHAUST_USES;
+const useCountLabel = (cardId: CardId, usesSpent: number, bonusUses = 0): string => {
+  const uses = usesOf(cardId, bonusUses) ?? EXHAUST_USES;
   return `${KEYWORD_INFO.exhaust.label} ${Math.min(usesSpent + 1, uses)}/${uses}`;
 };
 
@@ -714,7 +714,7 @@ export const describeCard = (
     .filter(isKeywordOn)
     .map((keyword) =>
       keyword === 'exhaust'
-        ? useCountLabel(cardId, usesSpent)
+        ? useCountLabel(cardId, usesSpent, bonusUsesOf(cardDef.type, attacker?.skillPicks))
         : KEYWORD_LABEL(keyword)
     )
     .join(', ');

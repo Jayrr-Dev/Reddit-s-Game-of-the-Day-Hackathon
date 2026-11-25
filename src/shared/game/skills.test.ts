@@ -23,13 +23,14 @@ import {
 import { move, movementCost } from './movement.ts';
 import {
   planSkillPath,
+  skillPurchases,
   buySkill,
   skillPointsLeft,
   movementDiscountOf,
   reflexDodgeOf,
+  bonusUsesOf,
   empoweredStacks,
   handSizeBonusOf,
-  buffStackBonusOf,
   volleyHitsOf,
   magicAccuracyBonusOf,
   cardChanceBonusOf,
@@ -370,9 +371,11 @@ test('Everlasting: Stacked Buffs last one more turn', () => {
   assert.equal(addStatus(buffed, 'instinct', 1).instinctTurns, 3);
 });
 
-test('Overflow: one more stack per buff', () => {
-  assert.equal(buffStackBonusOf([{ branch: 3, tier: 3, slot: 1 }]), 1);
-  assert.equal(buffStackBonusOf([]), 0);
+test('Overflow: Utility cards get +1 use', () => {
+  const of = [{ branch: 3, tier: 3, slot: 1 }];
+  assert.equal(bonusUsesOf('utility', of), 1);
+  assert.equal(bonusUsesOf('melee', of), 0);
+  assert.equal(bonusUsesOf('utility', []), 0);
 });
 
 test('Overflow gives Utility cards Hold', () => {
@@ -430,4 +433,11 @@ test('Potency: buffs 3% stronger per rank', () => {
   };
   assert.equal(attackDamage(0, angry, 'melee'), 23);
   assert.equal(attackDamage(0, { ...angry, skillPicks: [] }, 'melee'), 20);
+});
+
+test('the second capstone is still offered once the first is owned', () => {
+  const start = { ...createCharacter(), level: 70 };
+  const first = planSkillPath(start, { branch: 3, tier: 3, slot: 0 }).character;
+  const offer = skillPurchases(first, { branch: 3, tier: 3, slot: 1 });
+  assert.ok(offer.steps.length > 0, offer.message);
 });
