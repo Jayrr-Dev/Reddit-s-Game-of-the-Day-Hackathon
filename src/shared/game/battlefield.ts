@@ -826,7 +826,8 @@ export const legalTargets = (
   heroes: readonly HeroUnit[],
   rule: TargetRule,
   type: CardType,
-  pushRows = 1
+  pushRows = 1,
+  meleeDepth = 0
 ): HeroUnit[] => {
   const reachable = heroes.filter((unit) => canReach(unit, type));
   switch (rule) {
@@ -834,7 +835,8 @@ export const legalTargets = (
     case 'any':
       return reachable;
     case 'front':
-      return reachable.filter((unit) => unit.row === 'front');
+      // LUNGE (skill tree) lets Melee reach meleeDepth rows past the front.
+      return reachable.filter((unit) => rowDepth(unit.row) <= meleeDepth);
     case 'pullable':
       return reachable.filter(
         (unit) =>
@@ -857,10 +859,12 @@ export const legalTargets = (
 export const areaTargets = (
   heroes: readonly HeroUnit[],
   isMelee: boolean,
-  type: CardType
+  type: CardType,
+  meleeDepth = 0
 ): HeroUnit[] =>
   heroes.filter(
-    (unit) => canReach(unit, type) && (!isMelee || unit.row === 'front')
+    (unit) =>
+      canReach(unit, type) && (!isMelee || rowDepth(unit.row) <= meleeDepth)
   );
 
 /**
@@ -870,7 +874,8 @@ export const areaTargets = (
  */
 export const cardAreaTargets = (
   heroes: readonly HeroUnit[],
-  cardId: CardId
+  cardId: CardId,
+  meleeDepth = 0
 ): HeroUnit[] => {
   const { effects, reach, type } = getCard(cardId);
   const areaEffects = effects.filter(
@@ -880,5 +885,5 @@ export const cardAreaTargets = (
     (effect) => (effect.kind !== 'damage' && effect.kind !== 'push') || reach
   );
   if (areaEffects.length === 0) return [];
-  return areaTargets(heroes, !hitsEveryone, type);
+  return areaTargets(heroes, !hitsEveryone, type, meleeDepth);
 };

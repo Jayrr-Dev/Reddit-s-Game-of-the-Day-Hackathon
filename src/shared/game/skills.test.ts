@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createCharacter, restoreCharacter } from './character.ts';
-import { playCard, startCombat } from './combat.ts';
+import { playCard, startCombat, targetsFor } from './combat.ts';
 import { attackDamage, createCombatant, takeHit } from './combatant.ts';
 import { move, movementCost } from './movement.ts';
 import {
@@ -188,4 +188,45 @@ test('Shield Rush and Skirmisher scale per rank', () => {
       1e-9
   );
   assert.equal(lineTwoRangeBonusOf([]), 0);
+});
+
+test('Lunge reaches Line 2; Shockwave Cleaves with Momentum', () => {
+  const setup = {
+    hp: 50,
+    maxHp: 50,
+    deck: ['backhand' as const],
+    heroIds: ['squire' as const, 'squire' as const],
+    might: 1,
+    seed: 3,
+  };
+  const field = (picks: { branch: number; tier: number; slot: number }[]) => {
+    const state = startCombat({ ...setup, skillPicks: picks });
+    return {
+      ...state,
+      energy: 5,
+      player: {
+        ...state.player,
+        statuses: { ...state.player.statuses, momentum: 1 },
+      },
+      heroes: state.heroes.map((u, i) => ({
+        ...u,
+        row: i === 0 ? ('front' as const) : ('back' as const),
+        hp: 100,
+        guard: 0,
+      })),
+    };
+  };
+  const lunge = { branch: 1, tier: 3, slot: 1 };
+  assert.equal(targetsFor(field([]), 'backhand').length, 1);
+  assert.equal(targetsFor(field([lunge]), 'backhand').length, 2);
+  const shock = { branch: 1, tier: 3, slot: 0 };
+  const hurt = (picks: (typeof shock)[]) => {
+    const state = field(picks);
+    return playCard(state, 0, state.heroes[0]!.uid).heroes.filter(
+      (u) => u.hp < 100
+    ).length;
+  };
+  assert.equal(hurt([]), 1);
+  assert.equal(hurt([shock]), 1, 'Line 2 is out of reach');
+  assert.equal(hurt([shock, lunge]), 2, 'Cleave + Lunge hits both lines');
 });

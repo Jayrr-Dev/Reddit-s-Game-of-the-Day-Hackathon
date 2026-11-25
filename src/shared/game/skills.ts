@@ -80,6 +80,15 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     name: 'Skirmisher',
     description: '+5% Range damage per rank at heroes on Line 2 (up to +25%)',
   },
+  '1-3-0': {
+    name: 'Shockwave',
+    description:
+      'While you have Momentum, Melee strikes Cleave: they hit every hero in reach',
+  },
+  '1-3-1': {
+    name: 'Lunge',
+    description: 'Melee cards can target one line further (Line 2)',
+  },
   '0-3-0': {
     name: 'Battle Rush',
     description: 'After a kill with Momentum, gain 1 energy',
@@ -133,6 +142,12 @@ export const SKIRMISHER_PER_RANK = 0.05;
 /** Extra Range damage at Line 2 from Skirmisher (Back Step line, 0 to 0.2). */
 export const lineTwoRangeBonusOf = (picks?: readonly SkillPick[]): number =>
   ranksOf(picks, 2, 1) * SKIRMISHER_PER_RANK;
+/** SHOCKWAVE (Blunt capstone): Momentum turns Melee strikes into Cleaves. */
+export const hasMomentumCleave = (picks?: readonly SkillPick[]): boolean =>
+  hasSkill(picks, 1, 3, 0);
+/** LUNGE (Sharp capstone): extra rows Melee reaches past Line 1. */
+export const meleeReachOf = (picks?: readonly SkillPick[]): number =>
+  hasSkill(picks, 1, 3, 1) ? 1 : 0;
 /** BATTLE RUSH (Charge capstone): energy gained when a play kills. */
 export const rageEnergyOf = (picks?: readonly SkillPick[]): number =>
   hasSkill(picks, 0, 3, 0) ? 1 : 0;

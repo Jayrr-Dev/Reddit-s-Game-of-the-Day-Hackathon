@@ -16,7 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
-import { lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
+import { hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -360,7 +360,8 @@ export const heroAttackOf = (
 /** Heroes this card may be aimed at now (every hero for untargeted cards). */
 const targetsInPosition = (state: CombatState, cardId: CardId): HeroUnit[] =>
   legalTargets(state.heroes, targetRuleOf(cardId), getCard(cardId).type,
-    getCard(cardId).effects.find(effect => effect.kind === 'push')?.rows);
+    getCard(cardId).effects.find(effect => effect.kind === 'push')?.rows ?? 1,
+    meleeReachOf(state.player.skillPicks));
 
 /** Model the same free advance for aim previews and card resolution. */
 export const positionForCard = (
@@ -382,7 +383,7 @@ const isAreaCardWasted = (state: CombatState, cardId: CardId): boolean =>
   getCard(cardId).effects.some(
     (effect) => 'target' in effect && effect.target === 'all'
   ) &&
-  cardAreaTargets(state.heroes, cardId).length === 0;
+  cardAreaTargets(state.heroes, cardId, meleeReachOf(state.player.skillPicks)).length === 0;
 
 /**
  * True when the card in that hand slot can be played right now: it is
@@ -522,7 +523,8 @@ const resolveTargets = (
 ): number[] => {
   const living = state.heroes.filter((unit) => !isDefeated(unit));
   if (target === 'all')
-    return areaTargets(living, isMelee, type).map((unit) => unit.uid);
+    return areaTargets(living, isMelee, type, meleeReachOf(state.player.skillPicks))
+      .map((unit) => unit.uid);
   const pool = isFollowThrough ? state.heroes : living;
   // A hero Aloft is out of reach of a Melee card (see canReach).
   const aimed = pool.find((unit) => unit.uid === targetUid);
@@ -695,14 +697,20 @@ const villainAttack = (
     play.isRampage,
     hitsPerPlay(cardDef)
   );
-  const isFollowThrough = effect.target === 'one';
+  // SHOCKWAVE (skill tree): with Momentum, a Melee strike Cleaves.
+  const isCleave =
+    isMelee &&
+    effect.target === 'one' &&
+    hasMomentumFor(state.player, cardDef.type) &&
+    hasMomentumCleave(state.player.skillPicks);
+  const isFollowThrough = effect.target === 'one' && !isCleave;
   const pierceHit = Math.floor(perHit * PIERCE_DAMAGE_FACTOR);
   return Array.from({ length: effect.hits }).reduce<CombatState>((current) => {
     // RANDOMLY: this hit's hero is rolled now, so each hit picks anew.
     const [aim, rolled] =
       effect.target === 'random'
         ? randomAim(current, isMelee, cardDef.type)
-        : [{ target: effect.target, uid: targetUid }, current];
+        : [{ target: isCleave ? 'all' as const : effect.target, uid: targetUid }, current];
     const struck = shootHeroes(
       rolled,
       resolveTargets(
@@ -747,7 +755,7 @@ const randomAim = (
   type: CardType
 ): [{ target: CardTarget; uid: number }, CombatState] => {
   const living = state.heroes.filter((unit) => !isDefeated(unit));
-  const pool = areaTargets(living, isMelee, type);
+  const pool = areaTargets(living, isMelee, type, meleeReachOf(state.player.skillPicks));
   if (pool.length === 0) return [{ target: 'one', uid: -1 }, state];
   const [picked, rng] = pickOne(state.rng, pool);
   return [
