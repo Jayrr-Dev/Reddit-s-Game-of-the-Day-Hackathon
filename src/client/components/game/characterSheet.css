@@ -35,7 +35,6 @@
   outline: 2px solid var(--color-accent-hover);
   outline-offset: 1px;
 }
-.cs-head,
 .cs-section-title,
 .cs-item,
 .cs-trait-summary {
@@ -44,7 +43,7 @@
   justify-content: space-between;
   gap: 0.5rem;
 }
-.cs-head h2,
+.cs-topline h2,
 .cs-section-title h3,
 .cs-trait-summary h3,
 .cs-level strong {
@@ -52,7 +51,7 @@
   font-weight: 700;
   color: var(--color-accent-hover);
 }
-.cs-head h2 {
+.cs-topline h2 {
   font-size: 1.4rem;
 }
 .cs-section-title h3 {
@@ -132,8 +131,9 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 2px;
-  scrollbar-color: var(--color-accent) var(--color-surface);
+  scrollbar-width: none;
 }
+.cs-body::-webkit-scrollbar { display: none; }
 .cs-trait-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(7.25rem, 1fr));
@@ -426,8 +426,8 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
-.cs-trait-summary { flex-wrap: wrap; padding: 0.2rem 0; }
-.cs-trait-summary > span { margin-left: auto; }
+.cs-trait-summary { grid-area: traits; justify-content: flex-end; flex-wrap: wrap; }
+.cs-trait-summary h3, .cs-trait-summary > span, .cs-trait-summary button { white-space: nowrap; }
 
 /* --- LOCKED RING SLOTS --- */
 .cs-slot[data-locked='true'] {
@@ -448,6 +448,8 @@
 }
 
 .cs-player-stats {
+  container: player-stats / inline-size;
+  min-width: 0;
   padding: .38rem .48rem;
   border: 1px solid #9f814b;
   border-radius: .3rem;
@@ -459,26 +461,47 @@
   font: 700 .87rem/1.2 var(--font-display);
   margin: 0 0 .18rem;
 }
+/* Keep the node preview in the parchment card without shifting the stat rows. */
+.cs-trait-preview-slot {
+  height: 4.25rem;
+  margin: .2rem 0 .35rem;
+  overflow: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid #c7ae7a;
+}
+.cs-trait-preview-slot::-webkit-scrollbar,
+.cs-player-stats-list::-webkit-scrollbar { display: none; }
+.cs-player-stats-list {
+  max-height: clamp(5.25rem, 27cqh, 10rem);
+  overflow: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+}
+.cs-player-stats-list:focus-visible { outline: 1px dashed #a3824d; outline-offset: -1px; }
 .cs-player-stats dl {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 .6rem;
+  gap: 0 .55rem;
   margin: 0;
 }
 .cs-player-stats dl > div {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0 .25em;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .25em;
   padding: .16rem 0;
   border-top: 1px solid #c7ae7a;
-  font-size: .72rem;
-  line-height: 1.16;
+  font-size: .73rem;
+  line-height: 1.18;
+  white-space: nowrap;
 }
-.cs-player-stats dt { display: flex; align-items: center; gap: .2rem; }
-.cs-player-stats dt svg { width: .72rem; height: .72rem; }
+.cs-player-stats dt { display: flex; min-width: 0; align-items: center; gap: .2rem; }
+.cs-player-stats dt svg { flex: none; width: .72rem; height: .72rem; }
+.cs-player-stats dt span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .cs-player-stats dd { margin: 0; font-weight: 800; font-variant-numeric: tabular-nums; }
+@container player-stats (max-width: 16rem) {
+  .cs-player-stats dl { grid-template-columns: minmax(0, 1fr); }
+}
 .cs-level-hint { text-align: center; margin: .15rem 0 0; font-size: .76rem; color: var(--color-ink-muted); }
 
 /* Place the trait controls beside the diagram when the game frame has room. */
@@ -486,17 +509,22 @@
   .cs-body[data-page='traits'] {
     display: grid;
     grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr);
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: auto 1fr;
     gap: .5rem .8rem;
     align-items: start;
   }
-  .cs-body[data-page='traits'] > :is(.cs-trait-grid,.cs-trait-summary,.cs-player-stats) { grid-column: 1; margin: 0; }
-  .cs-body[data-page='traits'] > .cs-rank-panel { grid-column: 2; grid-row: 1 / 4; align-self: start; min-width: 0; }
-  .cs-body[data-page='traits'] > .cs-player-stats { grid-row: 3; }
+  .cs-body[data-page='traits'] > :is(.cs-trait-grid,.cs-player-stats) { grid-column: 1; margin: 0; }
+  .cs-body[data-page='traits'] > .cs-rank-panel { grid-column: 2; grid-row: 1 / 3; align-self: start; min-width: 0; }
+  .cs-body[data-page='traits'] > .cs-player-stats { grid-row: 2; }
   .cs-body[data-page='traits'] .trait-spiral-chart { width: min(100%,340px,calc(100cqh - 10rem)); }
 }
 @container character-frame (max-width: 37.99rem) {
-  .cs-body[data-page='traits'] > .cs-rank-panel { margin-block: .4rem; min-width: 0; }
+  .cs-body[data-page='traits'] { display: flex; flex-direction: column; }
+  .cs-body[data-page='traits'] > :is(.cs-trait-grid,.cs-player-stats,.cs-rank-panel) { flex: none; }
+  .cs-body[data-page='traits'] > .cs-player-stats { order: 1; }
+  .cs-body[data-page='traits'] > .cs-rank-panel { order: 2; margin-block: .25rem; min-width: 0; }
+  .cs-body[data-page='traits'] .trait-spiral-chart { width: min(100%,clamp(10rem,calc(100cqh - 19rem),17.5rem)); }
+  .cs-player-stats-list { max-height: clamp(5rem,21cqh,8rem); }
 }
 @container character-frame (max-width: 23rem) {
   .cs-body[data-page='traits'] .cs-trait-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: .2rem; margin-bottom: .35rem; }
@@ -510,15 +538,24 @@
   align-items: center;
   gap: clamp(.35rem, 1.6cqw, .85rem);
 }
-.cs-topline .cs-head { display: contents; }
+.cs-topline:has(.cs-trait-summary) {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "title level traits close";
+}
+@container character-frame (max-width: 36rem) {
+  .cs-topline:has(.cs-trait-summary) {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "title level level" "traits traits close";
+  }
+}
 .cs-topline h2 { grid-area: title; }
 .cs-topline .cs-close { grid-area: close; }
 .cs-topline .cs-level { grid-area: level; }
 @container character-frame (max-width: 23rem) {
   .cs-topline h2 { font-size: 1.12rem; }
   .cs-topline .cs-level, .cs-topline .cs-level span { font-size: .64rem; }
-  .cs-body[data-page='traits'] .cs-trait-summary { gap: .2rem; }
-  .cs-body[data-page='traits'] .cs-trait-summary .cs-action { padding: .2rem .3rem; font-size: .72rem; }
+  .cs-topline .cs-trait-summary { gap: .2rem; }
+  .cs-topline .cs-trait-summary .cs-action { padding: .2rem .3rem; font-size: .72rem; }
   .cs-body[data-page='traits'] .cs-empty { margin-top: .15rem; }
 }
 

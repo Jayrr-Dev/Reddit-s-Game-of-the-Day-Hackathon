@@ -177,6 +177,8 @@ const card = (
 export const CARDS = {
   // STARTER DECK
   arcaneBolt: card('Arcane Bolt', 'magic', 1, 'basic', [hit(6)]),
+  dispel: card('Dispel', 'magic', 1, 'uncommon', [{ kind: 'dispel', amount: 1, target: 'one' }]),
+  massDisrupt: card('Mass Disrupt', 'magic', 2, 'rare', [{ kind: 'disrupt', amount: 5, target: 'all', allAfflictions: true, hitLimitTurns: 1 }]),
   arrowShot: card('Arrow Shot', 'range', 1, 'basic', [hit(6)]),
   backhand: card('Backhand', 'melee', 1, 'basic', [hit(6)], BLUNT),
   darkCloak: card('Dark Cloak', 'defend', 1, 'basic', [guard(5)]),

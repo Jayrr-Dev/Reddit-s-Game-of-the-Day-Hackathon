@@ -13,6 +13,7 @@ import type { CardDef, CardEffect } from './types.ts';
 // --- TYPES ---
 export type SandboxDeckId =
   | 'all'
+  | 'stackedBuffs'
   | 'lightning'
   | 'hex'
   | 'fire'
@@ -30,6 +31,7 @@ export type SandboxDeck = {
   id: SandboxDeckId;
   name: string;
   blurb: string;
+  copies?: number;
   fits: (card: CardDef) => boolean;
 };
 
@@ -90,6 +92,13 @@ export const SANDBOX_DECKS: readonly SandboxDeck[] = [
     name: 'Every card',
     blurb: 'One of each card in the game.',
     fits: () => true,
+  },
+  {
+    id: 'stackedBuffs',
+    name: 'Stacked Buffs',
+    blurb: 'Bulwark, Instinct, Sap Strength and Sap. Practice Tier IV and Malaise.',
+    copies: 4,
+    fits: anyOf(hasEffect('protect', 'enfeeble'), buffsAny('instinct')),
   },
   {
     id: 'lightning',
@@ -193,7 +202,7 @@ const deckOf = (id: SandboxDeckId): SandboxDeck =>
 /** The cards of a test deck: every fitting card in play, DECK_COPIES each. */
 export const sandboxDeckCards = (id: SandboxDeckId): CardId[] => {
   const deck = deckOf(id);
-  const copies = deck.id === 'all' ? 1 : DECK_COPIES;
+  const copies = deck.copies ?? (deck.id === 'all' ? 1 : DECK_COPIES);
   return ALL_CARD_IDS.filter(isCardInPlay)
     .filter((cardId) => deck.fits(getCard(cardId)))
     .flatMap((cardId) => Array.from({ length: copies }, () => cardId));

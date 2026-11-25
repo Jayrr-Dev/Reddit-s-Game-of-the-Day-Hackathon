@@ -197,6 +197,13 @@ void test('Back Step is offered but locked while a boss reaches back', () => {
   assert.equal(canMove(state, 'backStep'), false);
 });
 
+void test('Grand Griffon Rio is the only unit in his training scenario', () => {
+  const scenario = SANDBOX_SCENARIOS.find(({ id }) => id === 'grandGriffon')!;
+  const { heroes } = createSandboxWith(5, scenario.heroIds, scenario.startsInPlace);
+  assert.deepEqual(heroes.map(({ heroId }) => heroId), ['grandGriffon']);
+  assert.deepEqual(cellNamesOf(heroes[0]!), ['front:1', 'front:1.5', 'back:1', 'back:1.5']);
+});
+
 void test('Grand Griffon Rio holds the centre column, front and back', () => {
   const { heroes } = createSandboxWith(5, ['grandGriffon', 'squire']);
   const griffon = heroes.find((unit) => unit.heroId === 'grandGriffon');
@@ -212,6 +219,19 @@ void test('every test deck holds at least 4 cards, all in play', () => {
     assert.ok(new Set(cards).size >= 4, deck.id);
     assert.ok(cards.every(isCardInPlay), deck.id);
   }
+});
+
+void test('Stacked Buffs training deck has four copies of each family card', () => {
+  const cards = sandboxDeckCards('stackedBuffs');
+  assert.equal(cards.length, 16);
+  for (const card of ['bulwark', 'instinct', 'sapStrength', 'sap'] as const) {
+    assert.equal(cards.filter(id => id === card).length, 4);
+  }
+  const restored = restoreTrainingDecks({ deckId: 'stackedBuffs' });
+  assert.deepEqual(activeTrainingCards(restored), cards);
+  const fight = createSandbox(7, 'stackedBuffs');
+  assert.equal(fight.hand.length + fight.drawPile.length, 16);
+  assert.ok([...fight.hand, ...fight.drawPile].every(id => cards.includes(id)));
 });
 
 void test('a test deck leans on its theme: Lightning has Serrated Slash', () => {

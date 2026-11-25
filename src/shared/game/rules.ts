@@ -54,21 +54,13 @@ export const BANE_AFFLICTIONS: ReadonlySet<StatusId> = new Set([
   'shock',
 ]);
 /**
- * INSTINCT: the chance to dodge, by stacks (index = stacks, the last
- * entry for that many or more). 5+ is Ultra Instinct.
- */
-export const INSTINCT_DODGE_CHANCES: readonly number[] = [
-  0, 0.25, 0.5, 0.5, 0.75, 0.99,
-];
-/** Stacks at which Instinct becomes Ultra Instinct. */
-export const ULTRA_INSTINCT_STACKS = INSTINCT_DODGE_CHANCES.length - 1;
-/**
  * BLEED: a Melee or Range attack landed on a bleeding unit bites for this share of
  * its Bleed, rounded up (so even Bleed 1 bites for 1), then Bleed -1.
  */
 export const BLEED_BITE_FACTOR = 1 / 3;
 /** Buffs that are on or off: their stacks are never printed or shown. */
 export const ON_OFF_BUFFS: ReadonlySet<BuffId> = new Set([
+  'reflex',
   'sharpshooter',
   'berserker',
 ]);
@@ -142,8 +134,8 @@ export const ALOFT_EVASION = 0.85;
 
 // --- ROUND BUFFS ---
 /**
- * Buffs that last one round: cast on your turn, they hold through the
- * heroes' turn and are spent when your next turn starts.
+ * Buffs normally spent when the next turn starts, unless the card set
+ * an explicit Stacked Buff duration.
  */
 export const ROUND_BUFFS: readonly StatusId[] = ['protection', 'instinct'];
 
@@ -194,6 +186,8 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   vex: true,
   weaken: true,
   enfeeble: true,
+  malaise: true,
+  hitLimit: true,
   brace: false,
   wrath: false,
   might: false,
@@ -204,6 +198,7 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   berserker: false,
   bane: false,
   instinct: false,
+  reflex: false,
   momentum: false,
   protection: false,
   aloft: false,
@@ -215,9 +210,7 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
 /**
  * TIERED STATUSES (Protection, Enfeeble): the share of damage each tier
  * (I, II, III) cuts. Protection cuts hits taken; Enfeeble cuts the
- * damage its bearer deals. Renewed on back-to-back turns a tiered status
- * climbs a tier, up to TIERED_MAX_TIER; a turn without renewal and it
- * lapses.
+ * damage its bearer deals. Reapplying raises the tier while active.
  */
 /** Hit types Armor blunts: physical blows, not Magic or Curses. */
 export const PHYSICAL_TYPES: ReadonlySet<CardType> = new Set([
@@ -225,8 +218,15 @@ export const PHYSICAL_TYPES: ReadonlySet<CardType> = new Set([
   'range',
 ]);
 
-export const TIERED_CUT_BY_TIER = [0, 0.25, 0.5, 0.75] as const;
-export const TIERED_MAX_TIER = 3;
+/** Stacked Buff family: damage reduction or dodge chance by tier. */
+export const TIERED_CUT_BY_TIER = [0, 0.25, 0.5, 0.75, 0.95] as const;
+export const TIERED_MAX_TIER = TIERED_CUT_BY_TIER.length - 1;
+/** Complete enemy turns covered by a member of the Stacked Buff family. */
+export const STACKING_BUFF_TURNS = 2;
+/** Flat dodge bonus from a successful Back Step; does not stack with itself. */
+export const REFLEX_DODGE = 0.25;
+/** Malaise duration from natural Tier IV expiry, not the explicit Malaise N keyword. */
+export const MALAISE_TURNS = 1;
 /**
  * PIERCING: the share of each hit that also lands on the hero directly
  * behind the target (1 = full damage; lower it for a falloff).

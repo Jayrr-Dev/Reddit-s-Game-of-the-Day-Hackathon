@@ -37,8 +37,7 @@ import type { RngState } from './rng.ts';
  * - hone:   adds this much to every Range hit
  * - reinforce: adds this much to every Guard a card gives
  * - instinct:  a chance to dodge each hero hit or affliction (Hex never;
- *              lasts through the heroes' turn, like Protection;
- *              see INSTINCT_DODGE_CHANCES)
+ *              lasts through two enemy turns; Stacked Buff tiers I–IV)
  * - bane:      adds this much to every affliction your cards lay (Hex,
  *              Poison, Burn, Frost, Bleed, Shock; see BANE_AFFLICTIONS)
  * - sharpshooter: on or off; +50% hit chance on every shot, and Range
@@ -59,6 +58,7 @@ export type BuffId =
   | 'sharpshooter'
   | 'berserker'
   | 'bane'
+  | 'reflex'
   | 'instinct';
 export type StatusId =
   | 'hex'
@@ -75,6 +75,10 @@ export type StatusId =
   | 'protection'
   /** Cuts the damage its bearer deals by tier; lapses unless reapplied. */
   | 'enfeeble'
+  /** Remaining player turns on which Buff cards are locked. */
+  | 'malaise'
+  /** Turns during which an attack can hit only once. */
+  | 'hitLimit'
   /** Keeps Guard from expiring, one turn per stack. */
   | 'brace'
   | 'aloft'
@@ -129,8 +133,14 @@ export type Combatant = {
   shockDamageTaken?: number;
   /** True when Protection was cast this turn (else it lapses at turn end). */
   protectionCast?: boolean;
-  /** True when Enfeeble was laid on this unit this villain turn. */
-  enfeebleApplied?: boolean;
+  /** Enemy turns remaining for Protection cast by a player card. */
+  cardProtectionTurns?: number;
+  /** Full duration this Protection was applied with, including any trait extension. */
+  cardProtectionDuration?: number;
+  /** Enemy turns remaining for Instinct. */
+  instinctTurns?: number;
+  /** Enemy turns remaining for Enfeeble. */
+  enfeebleTurns?: number;
 };
 
 // --- CARDS ---
@@ -164,8 +174,10 @@ export type BaseCardEffect =
   | { kind: 'shock'; amount: number; target: CardTarget }
   | { kind: 'bleed'; amount: number; target: CardTarget }
   | { kind: 'weaken'; amount: number; target: CardTarget }
+  /** Locks the target's buffs for this many turns. */
+  | { kind: 'malaise'; amount: number; target: CardTarget }
   /** Enfeebles the target: one tier up when reapplied turn after turn. */
-  /** Enfeeble ×N: cast `times` times (default 1), a tier each, to III. */
+  /** Enfeeble ×N: cast `times` times (default 1), a tier each, to IV. */
   | { kind: 'enfeeble'; target: CardTarget; times?: number }
   /** Deals damage equal to the target's hex times `multiplier`. */
   | { kind: 'reap'; multiplier: number }
@@ -175,6 +187,10 @@ export type BaseCardEffect =
   | { kind: 'wrath'; amount: number }
   /** Removes 1 random affliction from the villain (see STATUS_IS_AFFLICTION). */
   | { kind: 'cleanse' }
+  /** Strips this many distinct random buffs from each target. */
+  | { kind: 'dispel'; amount: number; target: CardTarget }
+  /** Removes this many stacks or tiers from one random active status. */
+  | { kind: 'disrupt'; amount: number; target: CardTarget; allAfflictions?: boolean; hitLimitTurns?: number }
   /** Casts Protection on the villain (tiers up when cast turn after turn). */
   | { kind: 'protect' }
   /** Grants the villain a fight-long buff. */
@@ -337,11 +353,15 @@ export type HeroEffect =
   | { kind: 'shock'; amount: number }
   | { kind: 'bleed'; amount: number }
   | { kind: 'weaken'; amount: number }
+  /** Locks the villain's Buff cards for this many turns. */
+  | { kind: 'malaise'; amount: number }
   | { kind: 'guard'; amount: number; who: 'self' | 'allies' }
   | { kind: 'wrath'; amount: number; who: 'self' | 'allies' }
   | { kind: 'heal'; amount: number; who: 'self' | 'allies' }
   /** Casts Protection (a tier up) on itself or every hero; spent when their next turn starts. */
   | { kind: 'protect'; who: 'self' | 'allies' }
+  | { kind: 'dispel'; amount: number }
+  | { kind: 'disrupt'; amount: number }
   /** Removes 1 random affliction from itself, or from each ally. */
   | { kind: 'cleanse'; who: 'self' | 'allies' }
   /**
@@ -478,7 +498,7 @@ export type EnemyAttackRecord = {
 
 export type CombatHistoryRecord = CardPlayRecord | EnemyAttackRecord | {
   turn: number;
-  event: 'death' | 'heal' | 'guard' | 'status' | 'arrival';
+  event: 'death' | 'heal' | 'guard' | 'status' | 'arrival' | 'dodge';
   subject: string;
   detail: string;
   status?: StatusId;

@@ -104,7 +104,7 @@ export const VillainRunGame = ({ run, onAction }: VillainRunGameProps) => {
     if (lastPhase.current !== run.phase.kind) {
       if (run.phase.kind === 'reward') playSound(leveledAtReward ? 'levelUp' : 'reward');
       if (run.phase.kind === 'altar') playSound('curse', .7, .6);
-      if (run.phase.kind === 'grave') playSound('imbue', .62, .6);
+      if (run.phase.kind === 'grave') playSound('grave', .62, .6);
     }
     lastPhase.current = run.phase.kind;
   }, [run.phase.kind, leveledAtReward]);

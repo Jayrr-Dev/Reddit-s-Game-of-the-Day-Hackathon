@@ -1,12 +1,22 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { getCard } from '../../../shared/game/cards';
 import { createCombatant } from '../../../shared/game/combatant';
 import type { PlayerBuild } from '../../../shared/game/playerBuild';
 import { starterNames, starterDeck, signatures, type StarterName } from '../../../shared/game/starters';
 import { apiClient } from '../../lib/apiClient';
+import { getVolume, subscribeVolume } from '../../lib/gameAudio';
+import { useMapAudio } from '../../lib/mapAudio';
 import { localBuild } from '../../lib/playerBuild';
 import { Button } from '../ui/Button';
+import type { MAP_NAMES } from './combat/Backdrop';
 import { PileDialog } from './combat/PileDialog';
+
+const STARTER_THEMES = {
+  Warrior: 'Castle Gates',
+  Mage: 'Volcanic Pass',
+  Hexer: 'Deep Forest',
+  Archer: "King’s Road",
+} satisfies Record<StarterName, (typeof MAP_NAMES)[number]>;
 
 export function StarterPicker({ accountId, starting, onBack, onConfirm }: {
   accountId?: string | undefined; starting: boolean; onBack:()=>void; onConfirm:(build:PlayerBuild)=>void;
@@ -17,6 +27,8 @@ export function StarterPicker({ accountId, starting, onBack, onConfirm }: {
   const [error,setError]=useState(false);
   const [retry,setRetry]=useState(0);
   const [attacker]=useState(()=>createCombatant(66, 66));
+  const musicVolume = useSyncExternalStore(subscribeVolume, () => getVolume('music'));
+  useMapAudio({ mapId: STARTER_THEMES[build.selected], active: !loading && !error, bossActive: false, musicVolume: musicVolume / 100, sfxVolume: 0 });
   useEffect(()=>{
     if(!accountId)return;
     let live=true;setLoading(true);setError(false);

@@ -23,6 +23,7 @@ import {
   BLEED_BITE_FACTOR,
   TIERED_CUT_BY_TIER,
   TIERED_MAX_TIER,
+  STACKING_BUFF_TURNS,
   STATUS_IS_AFFLICTION,
   ROUND_BUFFS,
 } from './rules.ts';
@@ -55,9 +56,12 @@ export const NO_STATUSES: Statuses = {
   berserker: 0,
   bane: 0,
   instinct: 0,
+  reflex: 0,
   momentum: 0,
   protection: 0,
   enfeeble: 0,
+  malaise: 0,
+  hitLimit: 0,
   brace: 0,
   aloft: 0,
   move: 0,
@@ -167,7 +171,7 @@ export const damageFactorOf = (
 ): number => {
   const boost = boostFactorOf(attacker, type, isRampage);
   const weaken = attacker.statuses.weaken > 0 ? WEAKEN_DAMAGE_FACTOR : 1;
-  const enfeeble = 1 - tierCut(attacker.statuses.enfeeble);
+  const enfeeble = remainingTierPercent(attacker.statuses.enfeeble) / 100;
   return boost * weaken * enfeeble;
 };
 
@@ -212,7 +216,8 @@ export const attackDamage = (
 ): number => {
   const withWrath = traitDamage(base, attacker, type, hits) + attacker.statuses.wrath + typeBonus(attacker, type);
   const factor = damageFactorOf(attacker, type, isRampage);
-  const factored = Math.floor(withWrath * factor);
+  const scaled = withWrath * factor;
+  const factored = attacker.statuses.enfeeble > 0 ? ceilHitDamage(scaled) : Math.floor(scaled);
   const frost = attacker.statuses.frost * FROST_DAMAGE_PER_STACK;
   return Math.max(0, factored - frost);
 };
@@ -300,7 +305,7 @@ export const bleedOnAttack = <T extends Combatant>(
 ): T => {
   const { bleed } = target.statuses;
   if (priorBleed <= 0 || bleed <= 0) return target;
-  const bite = afflictionDamage(bleedBiteOf(priorBleed), source);
+  const bite = incomingAfflictionDamage(target, bleedBiteOf(priorBleed), source);
   const bled = loseHp(target, bite);
   return {
     ...bled,
@@ -325,7 +330,7 @@ const countShockHit = <T extends Combatant>(hit: T, source?: Combatant): T => {
 export const burstShock = <T extends Combatant>(target: T, source?: Combatant): T => {
   const { shock } = target.statuses;
   if (shock <= 0) return target;
-  const damage = afflictionDamage(shock * SHOCK_BURST_FACTOR, source);
+  const damage = incomingAfflictionDamage(target, shock * SHOCK_BURST_FACTOR, source);
   const cleared = {
     ...target,
     shockHits: 0,
@@ -338,7 +343,13 @@ export const burstShock = <T extends Combatant>(target: T, source?: Combatant): 
 
 // --- TIERED STATUSES (Protection, Enfeeble; see TIERED_CUT_BY_TIER) ---
 /** The share of damage a tier cuts (0 for no tier). */
-export const tierCut = (tier: number): number => TIERED_CUT_BY_TIER[tier] ?? 0;
+export const tierCut = (tier: number): number => TIERED_CUT_BY_TIER[Math.min(tier, TIERED_MAX_TIER)] ?? 0;
+
+const remainingTierPercent = (tier: number): number => 100 - Math.round(tierCut(tier) * 100);
+
+/** Ignore floating-point noise near integers, e.g. Tier IV leaving 1 of 20. */
+const ceilHitDamage = (amount: number): number =>
+  Math.max(0, Math.ceil(amount - Math.max(1, Math.abs(amount)) * Number.EPSILON * 4));
 
 /** One tier up, capped at TIERED_MAX_TIER. */
 const raiseTier = (tier: number): number => Math.min(TIERED_MAX_TIER, tier + 1);
@@ -348,16 +359,21 @@ const renewedTier = (tier: number, isRenewed: boolean): number =>
   isRenewed ? tier : 0;
 
 /**
- * A hit after Protection: its tier's share is stopped, rounded to the
- * nearest whole. Ticks (loseHp) ignore it.
+ * Damage after Protection: its tier's share is stopped. Remaining hit
+ * or affliction damage rounds up to the next whole.
  */
 export const protectedAmount = (target: Combatant, amount: number): number =>
-  Math.round(amount * (1 - tierCut(target.statuses.protection)));
+  target.statuses.protection > 0
+    ? ceilHitDamage(amount * remainingTierPercent(target.statuses.protection) / 100)
+    : Math.round(amount);
+
+/** Afflictions benefit from source Scorn and target Protection but still bypass Armor and Guard. */
+export const incomingAfflictionDamage = (target: Combatant, amount: number, source?: Combatant): number =>
+  protectedAmount(target, afflictionDamage(amount, source));
 
 /**
- * Casts Protection: tier I, or one tier up for each cast this turn (to
- * III). Marked cast this turn, so the end of the turn keeps it for the
- * heroes' turn; it clears when your next turn starts (dropRoundBuffs).
+ * Casts Protection from a hero move: one tier higher (up to IV),
+ * expiring when that hero's next turn starts.
  */
 export const castProtection = <T extends Combatant>(target: T): T => ({
   ...target,
@@ -368,25 +384,35 @@ export const castProtection = <T extends Combatant>(target: T): T => ({
   },
 });
 
+/** Bulwark raises Protection and refreshes its duration. Traits can supply extra turns. */
+export const castCardProtection = <T extends Combatant>(target: T, extraTurns = 0): T => {
+  const duration = STACKING_BUFF_TURNS + Math.max(0, Math.trunc(extraTurns));
+  return { ...castProtection(target), cardProtectionTurns: duration, cardProtectionDuration: duration };
+};
+
 /**
- * Your turn starts: last round's buffs (ROUND_BUFFS: Protection,
- * Instinct) are spent.
+ * Your turn starts: last round's buffs are spent, except for
+ * Stacked Buffs from cards that still have time left.
  */
 export const dropRoundBuffs = <T extends Combatant>(target: T): T => ({
   ...target,
   statuses: {
     ...target.statuses,
-    ...Object.fromEntries(ROUND_BUFFS.map((id) => [id, 0])),
+    ...Object.fromEntries(ROUND_BUFFS
+      .filter((id) =>
+        (id !== 'protection' || !target.cardProtectionTurns) &&
+        (id !== 'instinct' || !target.instinctTurns)
+      )
+      .map((id) => [id, 0])),
   },
 });
 
 /**
- * Enfeebles a unit: tier I, or one tier up when it is still enfeebled
- * from the turn before. Marked applied, so this turn's check keeps it.
+ * Enfeebles a unit: add a tier and refresh the duration.
  */
 export const enfeeble = <T extends Combatant>(target: T): T => ({
   ...target,
-  enfeebleApplied: true,
+  enfeebleTurns: STACKING_BUFF_TURNS,
   statuses: {
     ...target.statuses,
     enfeeble: raiseTier(target.statuses.enfeeble),
@@ -400,21 +426,29 @@ export const enfeebleTimes = <T extends Combatant>(
 ): T =>
   Array.from({ length: times }).reduce<T>((unit) => enfeeble(unit), target);
 
-/**
- * The end of the villain's turn for an enfeebled unit: Enfeeble laid on
- * this turn holds through the heroes' turn ahead; otherwise it lapses.
- */
-export const enfeebleCheck = <T extends Combatant>(target: T): T => ({
-  ...target,
-  enfeebleApplied: false,
-  statuses: {
-    ...target.statuses,
-    enfeeble: renewedTier(
-      target.statuses.enfeeble,
-      target.enfeebleApplied === true
-    ),
-  },
-});
+/** True only on natural expiry, not when a status is cleansed or its target falls. */
+export const tierIVExpires = (target: Combatant): boolean =>
+  (target.cardProtectionTurns === 1 && target.statuses.protection === TIERED_MAX_TIER) ||
+  (target.instinctTurns === 1 && target.statuses.instinct === TIERED_MAX_TIER) ||
+  (target.enfeebleTurns === 1 && target.statuses.enfeeble === TIERED_MAX_TIER);
+
+/** Spend a turn only after the enemies had a turn (not on wave arrival). */
+export const tickStackingBuffs = <T extends Combatant>(target: T): T => {
+  const { cardProtectionTurns, enfeebleTurns, instinctTurns } = target;
+  if (!cardProtectionTurns && !enfeebleTurns && !instinctTurns) return target;
+  return {
+    ...target,
+    ...(cardProtectionTurns ? { cardProtectionTurns: cardProtectionTurns - 1 } : {}),
+    ...(enfeebleTurns ? { enfeebleTurns: enfeebleTurns - 1 } : {}),
+    ...(instinctTurns ? { instinctTurns: instinctTurns - 1 } : {}),
+    statuses: {
+      ...target.statuses,
+      ...(cardProtectionTurns === 1 ? { protection: 0 } : {}),
+      ...(enfeebleTurns === 1 ? { enfeeble: 0 } : {}),
+      ...(instinctTurns === 1 ? { instinct: 0 } : {}),
+    },
+  };
+};
 
 /**
  * Cleanse: removes one affliction (STATUS_IS_AFFLICTION) the target
@@ -437,6 +471,57 @@ export const cleanseOne = <T extends Combatant>(
     ...(removed === 'shock' ? { shockHits: 0 } : {}),
   };
   return [cleansed, next];
+};
+
+/** Keep duration or progress counters only while their associated status still exists. */
+const clearSpentStatus = <T extends Combatant>(unit: T, id: StatusId, value: number): T => ({
+  ...unit,
+  statuses: { ...unit.statuses, [id]: value },
+  ...(!value && id === 'protection' ? { cardProtectionTurns: 0, cardProtectionDuration: 0, protectionCast: false } : {}),
+  ...(!value && id === 'instinct' ? { instinctTurns: 0 } : {}),
+  ...(!value && id === 'enfeeble' ? { enfeebleTurns: 0 } : {}),
+  ...(!value && id === 'shock' ? { shockHits: 0 } : {}),
+});
+
+/** Disrupt lowers one random buff OR affliction, without touching Guard, innate armor or Aloft. */
+export const disruptStatus = <T extends Combatant>(
+  target: T, amount: number, rng: RngState, innateArmor = 0, buffsOnly = false
+): readonly [T, RngState, StatusId | undefined] => {
+  if (amount < 1) return [target, rng, undefined];
+  const statuses = (Object.keys(STATUS_IS_AFFLICTION) as StatusId[]).filter(id =>
+    id !== 'aloft' && (!buffsOnly || !STATUS_IS_AFFLICTION[id]) && target.statuses[id] > (id === 'armor' ? innateArmor : 0));
+  if (!statuses.length) return [target, rng, undefined];
+  const [id, next] = pickOne(rng, statuses);
+  const value = Math.max(id === 'armor' ? innateArmor : 0, target.statuses[id] - Math.floor(amount));
+  return [clearSpentStatus(target, id, value), next, id];
+};
+
+/** Lowers all currently active afflictions without spending RNG. */
+export const lowerAfflictions = <T extends Combatant>(target: T, amount: number): T =>
+  (Object.keys(STATUS_IS_AFFLICTION) as StatusId[]).reduce((unit, id) =>
+    STATUS_IS_AFFLICTION[id] && unit.statuses[id] > 0
+      ? clearSpentStatus(unit, id, Math.max(0, unit.statuses[id] - amount))
+      : unit, target);
+
+/** Only active boons are removed: not Guard, afflictions, innate Armor or flight. */
+export const dispelBuffs = <T extends Combatant>(
+  target: T, count: number, rng: RngState, innateArmor = 0
+): readonly [T, RngState, readonly StatusId[]] => {
+  const buffIds = (Object.keys(STATUS_IS_AFFLICTION) as StatusId[]).filter(id =>
+    id !== 'aloft' && !STATUS_IS_AFFLICTION[id] &&
+    target.statuses[id] > (id === 'armor' ? innateArmor : 0)
+  );
+  const removed: StatusId[] = [];
+  let unit = target;
+  let next = rng;
+  while (removed.length < count && buffIds.length) {
+    const [id, after] = pickOne(next, buffIds);
+    next = after;
+    buffIds.splice(buffIds.indexOf(id), 1);
+    removed.push(id);
+    unit = clearSpentStatus(unit, id, id === 'armor' ? innateArmor : 0);
+  }
+  return [unit, next, removed];
 };
 
 /** Loses HP directly, ignoring guard (hex, poison and burn). */
@@ -475,7 +560,16 @@ export const addStatus = <T extends Combatant>(
   amount: number
 ): T => ({
   ...target,
-  statuses: { ...target.statuses, [status]: (target.statuses[status] ?? 0) + amount },
+  ...(status === 'instinct' && amount > 0 ? { instinctTurns: STACKING_BUFF_TURNS } : {}),
+  statuses: {
+    ...target.statuses,
+    [status]: status === 'instinct'
+      ? Math.min(TIERED_MAX_TIER, target.statuses.instinct + amount)
+      : status === 'reflex' && amount > 0 ? 1
+      : status === 'malaise' || status === 'hitLimit'
+        ? Math.max(target.statuses[status] ?? 0, amount)
+        : (target.statuses[status] ?? 0) + amount,
+  },
 });
 
 /**
@@ -529,7 +623,7 @@ export const hexAfterTurn = (hex: number): number => {
 export const hexBurn = <T extends Combatant>(target: T, source?: Combatant): T => {
   const { hex } = target.statuses;
   if (hex <= 0) return target;
-  const burned = loseHp(target, afflictionDamage(hexBurnAmount(hex), source));
+  const burned = loseHp(target, incomingAfflictionDamage(target, hexBurnAmount(hex), source));
   return {
     ...burned,
     statuses: { ...burned.statuses, hex: hexAfterTurn(hex) },
@@ -548,7 +642,7 @@ const afterActionLeft = (stacks: number): number =>
 export const burnTick = <T extends Combatant>(target: T, source?: Combatant): T => {
   const { burn } = target.statuses;
   if (burn <= 0) return target;
-  const burned = loseHp(target, afflictionDamage(burn, source));
+  const burned = loseHp(target, incomingAfflictionDamage(target, burn, source));
   const left = afterActionLeft(burn);
   return { ...burned, statuses: { ...burned.statuses, burn: left } };
 };
@@ -585,7 +679,7 @@ export const afterAction = <T extends Combatant>(target: T, source?: Combatant):
 export const poisonTick = <T extends Combatant>(target: T, source?: Combatant): T => {
   const { poison } = target.statuses;
   if (poison <= 0) return target;
-  const poisoned = loseHp(target, afflictionDamage(poison, source));
+  const poisoned = loseHp(target, incomingAfflictionDamage(target, poison, source));
   return {
     ...poisoned,
     statuses: { ...poisoned.statuses, poison: poison - 1 },
@@ -606,12 +700,14 @@ export const endOfTurnUpkeep = <T extends Combatant>(target: T): T => {
       ...target.statuses,
       weaken: Math.max(0, weaken - 1),
       vex: Math.max(0, vex - 1),
+      malaise: Math.max(0, (target.statuses.malaise ?? 0) - 1),
+      hitLimit: Math.max(0, (target.statuses.hitLimit ?? 0) - 1),
       momentum: 0,
       rush: 0,
-      // Protection cast this turn covers the turn ahead; else it lapses.
+      // Card Protection has a separate countdown through the enemy turns.
       protection: renewedTier(
         target.statuses.protection,
-        target.protectionCast === true
+        target.protectionCast === true || (target.cardProtectionTurns ?? 0) > 0
       ),
     },
     protectionCast: false,

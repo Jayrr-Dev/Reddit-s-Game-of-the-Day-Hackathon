@@ -61,6 +61,7 @@ export type CardViewProps = {
    */
   target?: HeroUnit | undefined;
   isDisabled?: boolean;
+  disabledReason?: string | undefined;
   /** Lifted and outlined while the player is choosing its target. */
   isSelected?: boolean;
   /** Gifts this card carries from Imbue cards (shown as badges). */
@@ -92,7 +93,7 @@ type SizeLook = {
   ribbon: string;
   /** The element icon on the ribbon. */
   ribbonIcon: string;
-  /** The rarity gem under the name banner. */
+  /** The rarity gem above the name banner, on the artwork. */
   gem: string;
 };
 
@@ -282,11 +283,9 @@ const TypeRibbon = ({
 };
 
 /**
- * The rarity gem: a small downward triangle (a "V") in its rarity's
- * colour with a black outline, hanging just under the name banner,
- * centred. Drawn as two clipped triangles: black behind, the colour
- * inset inside it (a ring can't follow a clip-path), plus a faint
- * highlight near the top so it reads as a cut gem.
+ * The rarity gem points upward from the name banner into the artwork,
+ * leaving the rules clear. Two clipped triangles draw its black border
+ * and inset colour, then rotate together as one gem.
  */
 const RarityGem = ({
   gemClass,
@@ -297,7 +296,8 @@ const RarityGem = ({
 }) => (
   <span
     aria-hidden
-    className={`absolute left-1/2 top-full z-10 mt-px ${sizeClass} -translate-x-1/2 bg-black [clip-path:polygon(0_0,100%_0,50%_100%)]`}
+    data-card-rarity-gem
+    className={`pointer-events-none absolute bottom-full left-1/2 z-10 ${sizeClass} -translate-x-1/2 rotate-180 bg-black [clip-path:polygon(0_0,100%_0,50%_100%)]`}
   >
     <span
       className={`absolute inset-0 ${gemClass} [clip-path:polygon(17%_14%,83%_14%,50%_80%)]`}
@@ -307,7 +307,7 @@ const RarityGem = ({
   </span>
 );
 
-/** The name banner, with the rarity gem hanging just under it. */
+/** The name banner anchors the rarity gem on the art side. */
 const NameBanner = ({
   name,
   frameClass,
@@ -340,7 +340,7 @@ export const MovementCard = ({ move, cost, disabled, blockReason, onPlay }: {
   const frame = CARD_LOOK.movement;
   const action = MOVEMENT_LOOK[move];
   const baseCost = MOVEMENTS[move].baseCost;
-  const rules = blockReason ?? (move === 'backStep' ? 'Move back 1 line' : 'Move closer 1 line. Gain Momentum.');
+  const rules = blockReason ?? (move === 'backStep' ? 'Move back 1 line. Gain Reflex.' : 'Move closer 1 line. Gain Momentum.');
   const costTone = cost > baseCost ? 'text-red-900' : cost < baseCost ? 'text-green-900' : 'text-on-accent';
   return (
     <button type="button" data-card-type="movement" data-card-size="fan" data-move={move}
@@ -367,6 +367,7 @@ export const CardView = ({
   attacker,
   target,
   isDisabled = false,
+  disabledReason,
   isSelected = false,
   imbues = [],
   usesSpent = 0,
@@ -392,6 +393,7 @@ export const CardView = ({
         aria-pressed={selected}
       data-card-size={size}
       disabled={isDisabled}
+      title={disabledReason}
       className={`relative flex ${look.box} shrink-0 flex-col rounded-lg ${typeLook.frameClass} p-[3px] pb-[14px] text-center ring-1 ring-black/60 transition-transform enabled:hover:-translate-y-1 disabled:opacity-40 disabled:saturate-50 animate-rise ${isFaded ? 'opacity-40 saturate-50' : ''}`}
       style={{ boxShadow: `${glow}, 0 6px 10px rgb(0 0 0 / 0.5)` }}
     >

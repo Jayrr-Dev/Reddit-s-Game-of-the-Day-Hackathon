@@ -699,7 +699,9 @@ const isSingleTarget = (effect: CardDef['effects'][number]): boolean =>
     effect.kind === 'burn' ||
     effect.kind === 'frost' ||
     effect.kind === 'shock' ||
-    effect.kind === 'weaken') &&
+    effect.kind === 'weaken' ||
+    effect.kind === 'dispel' ||
+    effect.kind === 'disrupt') &&
     effect.target === 'one');
 
 /** Works out which heroes a card may be aimed at (see TargetRule). */

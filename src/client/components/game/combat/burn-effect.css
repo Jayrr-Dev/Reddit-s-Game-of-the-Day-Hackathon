@@ -1,0 +1,57 @@
+.burn-effect {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: burn-flare 1.32s ease-out both;
+}
+.burn-heat { position: absolute; inset: 0; }
+.burn-effect[data-burn-surface='body'] .burn-heat {
+  background: radial-gradient(ellipse 58% 46% at 50% 73%, #ff962766, #f84b1220 55%, transparent 82%);
+}
+.burn-effect[data-burn-surface='screen'] .burn-heat {
+  background: radial-gradient(ellipse at center, #ff70191c 22%, #ff731b43 62%, #ff4a1878 100%);
+}
+.burn-bed { position: absolute; inset: 24% 4% 0; }
+.burn-effect[data-burn-surface='screen'] .burn-bed { inset: auto -2% -2%; height: min(27%, 136px); }
+.burn-sheet {
+  position: absolute;
+  bottom: 0;
+  width: 60%;
+  height: 100%;
+  background: url('../../../assets/burn-fire-strip.webp') 0 0 / 1600% 100% no-repeat;
+  transform-origin: center bottom;
+  animation: burn-fire-sheet .74s steps(15, end) infinite;
+}
+.burn-sheet-left { left: -1%; height: 82%; opacity: .9; transform: skewX(-7deg); }
+.burn-sheet-middle { left: 20%; opacity: .64; animation-delay: -.31s; }
+.burn-sheet-right { right: -1%; height: 89%; transform: scaleX(-1) skewX(-9deg); animation-delay: -.17s; }
+.burn-effect[data-burn-surface='screen'] .burn-sheet { width: 43%; }
+.burn-effect[data-burn-surface='screen'] .burn-sheet-middle { left: 29%; height: 76%; opacity: .49; }
+.burn-ember {
+  position: absolute;
+  bottom: 8%;
+  width: clamp(1px, .34vw, 3px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #ffdf9c;
+  box-shadow: 0 0 5px #ff7f32;
+  animation: burn-ember 1.06s ease-out both;
+}
+@keyframes burn-flare {
+  0% { opacity: .14; }
+  14% { opacity: .89; }
+  39% { opacity: .7; }
+  100% { opacity: 0; }
+}
+@keyframes burn-fire-sheet { to { background-position-x: 100%; } }
+@keyframes burn-ember {
+  0% { opacity: 0; transform: translate(0, 0) scale(.7); }
+  30% { opacity: .81; }
+  100% { opacity: 0; transform: translate(var(--burn-drift), -58px) scale(.25); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .burn-sheet { animation: none; background-position-x: 46.6667%; }
+  .burn-ember { display: none; }
+  .burn-effect { animation-name: burn-soft-fade; }
+}
+@keyframes burn-soft-fade { from { opacity: .6; } to { opacity: 0; } }

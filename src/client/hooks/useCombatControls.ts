@@ -1,8 +1,8 @@
 // ===================================================================
 // USE COMBAT CONTROLS
 // Controls for a fight. Two ways to play a card, both safe in the feed:
-//   TAP   Tap a card. Cards with no target play at once; others are
-//         held. Tap a glowing hero to play the held card at it.
+//   TAP   Tap a card. Self-only cards play at once; offensive cards are
+//         held. Tap a glowing hero or your portrait to play the held card.
 //         Tap the held card again to let the game aim it: it plays at
 //         the toughest hero it would kill, else the weakest (for a
 //         Target N card, the best N; see autoTargets). So a double tap
@@ -46,6 +46,8 @@ import { getCard, type CardId } from '../../shared/game/cards';
 import {
   autoTargets,
   canPlayCard,
+  canPlayCardOnSelf,
+  SELF_TARGET_UID,
   aimHitChance,
   aimCritChance,
   playDamageFactor,
@@ -157,7 +159,7 @@ export const useCombatControls = (
   const isHolding =
     heldCard !== undefined &&
     heldIndex !== null &&
-    canPlayCard(combat, heldIndex);
+    (canPlayCard(combat, heldIndex) || canPlayCardOnSelf(combat, heldIndex));
   const legalUids = isHolding
     ? targetsFor(combat, heldCard, heldIndex ?? undefined).map((unit) => unit.uid)
     : [];
@@ -260,13 +262,17 @@ export const useCombatControls = (
       return;
     }
     const cardId = combat.hand[handIndex];
-    if (cardId === undefined || !canPlayCard(combat, handIndex))
-      return release();
+    if (cardId === undefined) return release();
     // A dragged Imbue card imbues the glowing card it is let go over.
     if (imbueEffectOf(cardId)) {
       release();
       return imbue.drop();
     }
+    if (drop.selfPoint && canPlayCardOnSelf(combat, handIndex)) {
+      release();
+      return playAt(handIndex, SELF_TARGET_UID);
+    }
+    if (!canPlayCard(combat, handIndex)) return release();
     const legal = targetsFor(combat, cardId, handIndex).map((unit) => unit.uid);
     const { isLive, target } = resolveDrop(cardId, drop, legal);
     if (!isLive) return release();
@@ -283,7 +289,7 @@ export const useCombatControls = (
     if (isFiring) return;
     if (handIndex === MOVEMENT_SLOT) return release();
     if (picks && picks.handIndex !== handIndex) setPicks(null);
-    setHeldIndex(canPlayCard(combat, handIndex) ? handIndex : null);
+    setHeldIndex(canPlayCard(combat, handIndex) || canPlayCardOnSelf(combat, handIndex) ? handIndex : null);
   };
 
   const drags = useCardDrag(startDrag, dropCard);
@@ -307,8 +313,13 @@ export const useCombatControls = (
       : null;
   const { followDrag } = imbue;
   useEffect(() => followDrag(imbueDragIndex), [followDrag, imbueDragIndex]);
-  const dropState =
-    drag && dragCard !== undefined
+  const selfTargetAvailable =
+    !isFiring && !imbue.isImbuing && heldIndex !== null && isHolding &&
+    canPlayCardOnSelf(combat, heldIndex);
+  const selfTargetLocked = !!drag?.selfPoint && drag.handIndex === heldIndex && selfTargetAvailable;
+  const dropState = selfTargetLocked
+    ? { isLive: true, isAimed: true, target: null }
+    : drag && dragCard !== undefined && canPlayCard(combat, drag.handIndex)
       ? resolveDrop(dragCard, drag, legalUids)
       : { isLive: false, isAimed: false, target: null };
   const isDropLive = dropState.isLive;
@@ -352,7 +363,7 @@ export const useCombatControls = (
    * their own marks.
    */
   const autoAimUids =
-    isHolding && heldIndex !== null && !drag && !isFiring
+    isHolding && heldIndex !== null && targetRuleOf(heldCard) !== 'none' && !drag && !isFiring
       ? [...new Set(autoTargets(combat, heldIndex, pickedUids))].filter(
           (uid) => !pickedUids.includes(uid)
         )
@@ -361,7 +372,7 @@ export const useCombatControls = (
   const isAutoAimLethal = (uid: number): boolean =>
     heldIndex !== null && wouldFell(combat, heldIndex, [uid], uid);
   /** How far the arrow has shrunk back toward the card (0..1). */
-  const arrowRetract = drag?.pullBack ?? 0;
+  const arrowRetract = selfTargetLocked ? 0 : drag?.pullBack ?? 0;
   /** How brightly the dragged card glows (self cards only). */
   const selfGlow = drag?.handIndex === MOVEMENT_SLOT ? Math.min(1, drag.lift / PULL_TO_PLAY_PX) : drag && dragStyle ? glowOf(dragStyle, drag.lift) : 0;
   /**
@@ -370,7 +381,7 @@ export const useCombatControls = (
    * the arrow stays hidden until it has somewhere to fly to.
    */
   const aimPoint: Point | null = dropState.isAimed
-    ? (dropState.target?.point ?? drag?.tip ?? null)
+    ? (selfTargetLocked ? drag?.selfPoint ?? null : dropState.target?.point ?? drag?.tip ?? null)
     : null;
 
   // PIERCING: a Piercing card locked on a hero also hits the hero in
@@ -399,7 +410,7 @@ export const useCombatControls = (
   const aimOf = (uid: number): AimState => {
     // Self-only cards (guard, draw ...) leave every hero alone.
     const isAimingHeroes = isHolding && affectsHeroes(heldCard);
-    if (!isAimingHeroes) return 'idle';
+    if (!isAimingHeroes || selfTargetLocked) return 'idle';
     if (isArea) {
       if (!blastUids.includes(uid)) return 'illegal';
       return isDropLive ? 'struck' : 'marked';
@@ -430,18 +441,30 @@ export const useCombatControls = (
       return imbue.pick(handIndex);
     }
     const cardId = combat.hand[handIndex];
-    if (cardId === undefined || !canPlayCard(combat, handIndex)) return;
+    if (cardId === undefined) return;
+    const canPlayNormally = canPlayCard(combat, handIndex);
+    if (!canPlayNormally && !canPlayCardOnSelf(combat, handIndex)) return;
     if (imbueEffectOf(cardId)) {
       release();
       return imbue.begin(handIndex);
     }
-    if (targetRuleOf(cardId) === 'none') {
+    if (targetRuleOf(cardId) === 'none' && (!affectsHeroes(cardId) || heldIndex === handIndex) && canPlayNormally) {
       release();
       return playAt(handIndex, focusUid);
     }
-    if (heldIndex === handIndex) return autoPlay(handIndex, cardId);
+    if (heldIndex === handIndex) {
+      if (canPlayNormally) return autoPlay(handIndex, cardId);
+      return release();
+    }
     release();
     setHeldIndex(handIndex);
+  };
+
+  /** Portrait tap while a card is raised: aim at yourself rather than an enemy. */
+  const tapSelf = () => {
+    if (!selfTargetAvailable || heldIndex === null) return;
+    release();
+    playAt(heldIndex, SELF_TARGET_UID);
   };
 
   /** Hero tap: focus it, and pick it for the held card if it may hit it. */
@@ -502,6 +525,9 @@ export const useCombatControls = (
     pressCard,
     tapCard,
     tapHero,
+    tapSelf,
+    selfTargetAvailable,
+    selfTargetLocked,
     endTurn,
   } as const;
 };

@@ -40,6 +40,8 @@ export type CardDrag = {
   nearHeroes: HeroAnchor[];
   /** True when the tip is over the battlefield. */
   isOverField: boolean;
+  /** Portrait center only while the actual pointer is over it. */
+  selfPoint: Point | null;
   /** How far (px) the finger has moved up from where it pressed. */
   lift: number;
   /**
@@ -55,7 +57,7 @@ export type HeroAnchor = { uid: number; point: Point };
 /** Where a drag ended. */
 export type CardDrop = Pick<
   CardDrag,
-  'handIndex' | 'nearHeroes' | 'isOverField' | 'lift' | 'pullBack'
+  'handIndex' | 'nearHeroes' | 'isOverField' | 'selfPoint' | 'lift' | 'pullBack'
 >;
 
 /** A press that has not moved far enough to count as a drag yet. */
@@ -270,7 +272,14 @@ const dragAt = (
           isOverField: lastAim?.isOverField ?? false,
         }
       : probe(tip, field);
-  return { handIndex: press.handIndex, card, tip, lift, pullBack, ...aim };
+  const portrait = press.element.closest('.dueling-table')
+    ?.querySelector(`[${VILLAIN_ANCHOR_ATTR}]`)?.getBoundingClientRect();
+  // Use the pointer, not the accelerated and clamped aim tip. A normal
+  // upward flick toward an enemy should never lock onto your portrait.
+  const selfPoint = portrait && isInside(pointer, portrait)
+    ? { x: portrait.left + portrait.width / 2, y: portrait.top + portrait.height / 2 }
+    : null;
+  return { handIndex: press.handIndex, card, tip, lift, pullBack, selfPoint, ...aim };
 };
 
 // --- HOOK ---
@@ -364,11 +373,12 @@ export const useCardDrag = (
         pointer = { x: event.clientX, y: event.clientY };
         pull = trackPull(pull, pointer.y);
         current = dragAt(press, pointer, pullBackOf(pull, pointer.y), current);
-        const { handIndex, nearHeroes, isOverField, lift, pullBack } = current;
+        const { handIndex, nearHeroes, isOverField, selfPoint, lift, pullBack } = current;
         callbacksRef.current.onDrop({
           handIndex,
           nearHeroes,
           isOverField,
+          selfPoint,
           lift,
           pullBack,
         });

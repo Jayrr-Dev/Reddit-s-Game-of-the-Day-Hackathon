@@ -8,7 +8,7 @@ import { createCharacter, IRON_RING_RESERVE, type Traits } from './character.ts'
 import assert from 'node:assert/strict';
 import { advanceHeroes, targetRuleOf } from './battlefield.ts';
 import { ALL_CARD_IDS, getCard, type CardId } from './cards.ts';
-import { canMove, hasPlayLeft, move, movementCost } from './movement.ts';
+import { canMove, hasPlayLeft, move, moveFree, movementCost } from './movement.ts';
 import {
   attackDamage,
   endOfTurnUpkeep,
@@ -21,16 +21,23 @@ import {
   hexBurn,
   hexBurnAmount,
   cleanseOne,
+  dispelBuffs,
+  disruptStatus,
   takeDamage,
   takeHit,
   addStatus,
   createCombatant,
   castProtection,
+  castCardProtection,
+  tickStackingBuffs,
+  protectedAmount,
   expireGuard,
   NO_STATUSES,
 } from './combatant.ts';
 import {
   canPlayCard,
+  canPlayCardOnSelf,
+  SELF_TARGET_UID,
   combatOutcome,
   endTurn,
   endTurnSteps,
@@ -45,12 +52,15 @@ import {
   autoTargets,
   playDamageFactor,
   plannedHeroMoves,
+  plannedHeroMove,
+  dodgeChanceAgainst,
   aimHitChance,
   aimCritChance,
   shotHitChance,
 } from './combat.ts';
 import {
   describeCard,
+  describeCardEffect,
   describeHeroIntent,
   describeImbueGift,
   KEYWORD_INFO,
@@ -849,46 +859,133 @@ void test('Reinforce adds to every Guard a card gives', () => {
   assert.equal(playCard(guarded, 0, -1).player.guard, 7);
 });
 
-void test('Protection cuts each hit by its tier: I 25%, II 50%, III 75%', () => {
+void test('Protection cuts each hit by its tier: I 25%, II 50%, III 75%, IV 95%', () => {
   const shielded = (tier: number) => ({
     ...createCombatant(100, 100),
     statuses: { ...NO_STATUSES, protection: tier },
   });
   const lost = (tier: number) => 100 - takeHit(shielded(tier), 20, 'melee').hp;
-  assert.deepEqual([0, 1, 2, 3].map(lost), [20, 15, 10, 5]);
+  assert.deepEqual([0, 1, 2, 3, 4].map(lost), [20, 15, 10, 5, 1]);
 });
 
-void test('Protection tiers up with each cast in one turn, to III at most', () => {
-  const bulwarks = withHand(fightWith(['backhand']), [
-    'bulwark',
-    'bulwark',
-    'bulwark',
-    'bulwark',
-  ]);
-  const tiers: number[] = [];
-  let state = { ...bulwarks, energy: 9 };
-  for (let cast = 0; cast < 4; cast += 1) {
-    state = playCard(state, 0, -1);
-    tiers.push(state.player.statuses.protection);
+void test('Protection and Enfeeble round up hits, while Guard and Armor can still stop them', () => {
+  const base = createCombatant(60, 60);
+  const tier = (id: 'protection' | 'enfeeble', n: number) => ({
+    ...base, statuses: { ...base.statuses, [id]: n },
+  });
+  const amounts = [0, 1, 8, 20, 21];
+  assert.deepEqual(amounts.map(n => protectedAmount(tier('protection', 4), n)), [0, 1, 1, 1, 2]);
+  assert.deepEqual(amounts.map(n => attackDamage(n, tier('enfeeble', 4))), [0, 1, 1, 1, 2]);
+  assert.equal(protectedAmount(tier('protection', 2), 5), 3);
+  assert.equal(attackDamage(5, tier('enfeeble', 2)), 3);
+  const protectedUnit = tier('protection', 4);
+  assert.equal(takeHit({ ...protectedUnit, guard: 1 }, 8, 'melee').hp, 60);
+  assert.equal(takeHit({ ...protectedUnit, statuses: { ...protectedUnit.statuses, armor: 1 } }, 8, 'melee').hp, 60);
+  const enfeebled = tier('enfeeble', 4);
+  assert.equal(attackDamage(8, { ...enfeebled, statuses: { ...enfeebled.statuses, frost: 1 } }), 0);
+});
+
+void test('Protection and Instinct cap at IV on repeated casts in a turn', () => {
+  for (const [card, key] of [['bulwark', 'protection'], ['instinct', 'instinct']] as const) {
+    const hand = Array.from({ length: 5 }, () => card);
+    const tiers: number[] = [];
+    let state = { ...withHand(fightWith(['backhand']), hand), energy: 9 };
+    for (let cast = 0; cast < hand.length; cast += 1) {
+      state = playCard(state, 0, -1);
+      tiers.push(state.player.statuses[key]);
+    }
+    assert.deepEqual(tiers, [1, 2, 3, 4, 4]);
   }
-  assert.deepEqual(tiers, [1, 2, 3, 3]);
+  assert.ok(describeCard('instinct').includes('Instinct I'));
 });
 
-void test("Protection covers the heroes' turn, then clears for a fresh start", () => {
+void test("Bulwark protects through two full enemy turns, then expires", () => {
   const start = withHand(fightWith(['backhand']), ['bulwark', 'bulwark']);
   const twice = playCard(playCard(start, 0, -1), 0, -1);
   assert.equal(twice.player.statuses.protection, 2);
-  const steps = endTurnSteps(twice);
-  const heroTurn = steps.slice(0, -1).map((step) => step.state);
-  assert.ok(
-    heroTurn.every((state) => state.player.statuses.protection === 2),
-    "up through the heroes' turn"
-  );
-  const next = steps.at(-1)?.state;
-  assert.equal(next?.player.statuses.protection, 0, 'gone on your next turn');
-  // A new cast starts over at I.
-  const recast = playCard(withHand(next ?? twice, ['bulwark']), 0, -1);
+  const first = endTurnSteps(twice);
+  assert.ok(first.every(step => step.state.player.statuses.protection === 2));
+  const next = first.at(-1)!.state;
+  const second = endTurnSteps(next);
+  assert.ok(second.slice(0, -1).every(step => step.state.player.statuses.protection === 2));
+  const expired = second.at(-1)!.state;
+  assert.equal(expired.player.statuses.protection, 0);
+  const recast = playCard(withHand(expired, ['bulwark']), 0, -1);
   assert.equal(recast.player.statuses.protection, 1);
+  const renewed = playCard(withHand(next, ['bulwark']), 0, -1);
+  assert.equal(renewed.player.statuses.protection, 3, 'recast while active stacks');
+  assert.equal(endTurn(renewed).player.statuses.protection, 3, 'recast refreshes the duration');
+});
+
+void test('a wave arrival without enemy actions does not spend a Stacking Buff turn', () => {
+  const start = withHand(fightWith(['backhand']), ['bulwark', 'sapStrength']);
+  const uid = start.heroes[0]!.uid;
+  const active = playCard(playCard({ ...start, waveArrival: true }, 0, -1), 0, uid);
+  const waiting = endTurn(active);
+  assert.equal(waiting.player.cardProtectionTurns, 2);
+  assert.equal(waiting.heroes.find(unit => unit.uid === uid)?.enfeebleTurns, 2);
+});
+
+void test('Natural expiry of max Protection or Instinct locks Buff cards for one player turn', () => {
+  for (const card of ['bulwark', 'instinct'] as const) {
+    let state = withHand(fightWith(['darkCloak']), [card, card, card, card]);
+    state = { ...state, energy: 12 };
+    for (let i = 0; i < 4; i++) state = playCard(state, 0, -1);
+    state = endTurn(state);
+    assert.equal(state.player.statuses.malaise, 0, 'not before Tier IV expires');
+    state = endTurn(state);
+    assert.equal(state.player.statuses.malaise, 1);
+    const hand = withHand(state, [card, 'darkCloak', 'sapStrength']);
+    assert.equal(canPlayCard(hand, 0), false);
+    assert.equal(playCard(hand, 0, -1), hand, 'no charge or loss of the blocked card');
+    assert.equal(canPlayCard(hand, 1), true, 'Defend is still allowed');
+    assert.equal(canPlayCard(hand, 2), true, 'Curse is still allowed');
+    state = endTurn(state);
+    assert.equal(state.player.statuses.malaise, 0);
+    assert.equal(canPlayCard(withHand(state, [card]), 0), true);
+  }
+});
+
+void test('Malaise affects the unit whose Tier IV expires and skips its buff-only moves', () => {
+  const state = fightWith(['darkCloak']);
+  const bard = { ...state.heroes[0]!, heroId: 'bard' as const, row: 'back' as const };
+  const buffIndex = getHero('bard').moves.findIndex(move => move.effects.some(effect => effect.kind === 'wrath'));
+  assert.ok(buffIndex >= 0);
+  const enfeebled = {
+    ...bard, moveIndex: buffIndex, enfeebleTurns: 1,
+    statuses: { ...bard.statuses, enfeeble: 4 },
+  };
+  const expired = endTurn({ ...state, heroes: [enfeebled] });
+  assert.equal(expired.player.statuses.malaise, 0);
+  const enemy = { ...expired.heroes[0]!, moveIndex: buffIndex };
+  assert.equal(enemy.statuses.malaise, 1);
+  assert.equal(plannedHeroMove(enemy, [enemy])?.move.effects.some(effect => effect.kind === 'wrath') ?? false, false);
+  const afterFirst = endTurn({ ...expired, heroes: [enemy] });
+  assert.equal(afterFirst.heroes[0]!.statuses.malaise, 0);
+  const ready = { ...afterFirst.heroes[0]!, moveIndex: buffIndex };
+  assert.equal(plannedHeroMove(ready, [ready])?.move.effects.some(effect => effect.kind === 'wrath'), true);
+  assert.equal(cleanseOne(enemy, 7)[0].statuses.malaise, 0, 'Malaise is a normal cleanseable debuff');
+});
+
+void test('Malaise N prints and grants N turns without stacking the duration', () => {
+  const unit = createCombatant(60, 60);
+  const effect = { kind: 'malaise', amount: 2, target: 'one' } as const;
+  assert.equal(describeCardEffect(effect, getCard('sap')), 'Malaise 2');
+  const first = addStatus(unit, 'malaise', 2);
+  assert.equal(first.statuses.malaise, 2);
+  const longer = addStatus(first, 'malaise', 3);
+  assert.equal(longer.statuses.malaise, 3);
+  assert.equal(addStatus(longer, 'malaise', 2).statuses.malaise, 3);
+  assert.equal(endOfTurnUpkeep(longer).statuses.malaise, 2);
+});
+
+void test('Malaise does not trigger when a lower tier expires or Tier IV has been cleansed', () => {
+  const state = fightWith(['darkCloak']);
+  const lower = { ...state, player: { ...state.player, instinctTurns: 1, statuses: { ...state.player.statuses, instinct: 3 } } };
+  assert.equal(endTurn(lower).player.statuses.malaise, 0);
+  const enemy = state.heroes[0]!;
+  const [cleaned] = cleanseOne({ ...enemy, enfeebleTurns: 1, statuses: { ...enemy.statuses, enfeeble: 4 } }, 7);
+  assert.equal(endTurn({ ...state, heroes: [cleaned] }).heroes[0]!.statuses.malaise, 0);
 });
 
 void test('afflictions are the harmful statuses, flagged in one table', () => {
@@ -902,6 +999,8 @@ void test('afflictions are the harmful statuses, flagged in one table', () => {
     'enfeeble',
     'frost',
     'hex',
+    'hitLimit',
+    'malaise',
     'poison',
     'shock',
     'vex',
@@ -1122,11 +1221,11 @@ void test('a Range hero shoots harder from the back, and plainly (still Range) u
   const archer = heroNamed(fresh, 'archer') as HeroUnit;
   // Volley 2x3 from the back: Range at 130% (2.6 rounds to 3).
   const [shot] = describeHeroIntent(archer, fresh.heroes).intents;
-  assert.deepEqual([shot?.kind, shot?.text], ['range', '3×3=9']);
+  assert.deepEqual([shot?.kind, shot?.text, shot?.hoverText], ['range', '3×3', '9']);
   // Up close it loses the bonus but is still a Range shot.
   const upClose = { ...archer, row: 'front' as const };
   const [strike] = describeHeroIntent(upClose, fresh.heroes).intents;
-  assert.deepEqual([strike?.kind, strike?.text], ['range', '2×3=6']);
+  assert.deepEqual([strike?.kind, strike?.text, strike?.hoverText], ['range', '2×3', '6']);
 });
 
 void test('Back Step pushes a full front row back for 1 energy', () => {
@@ -1247,7 +1346,7 @@ const dragonFight = (): CombatState =>
     seed: 4,
   });
 
-void test('the dragon makes two moves a turn: Unc summons, then breathes', () => {
+void test('the dragon makes two moves a turn: Sol summons, then breathes', () => {
   const start = dragonFight();
   const [dragon] = start.heroes;
   assert.ok(dragon);
@@ -1866,23 +1965,23 @@ void test('healing spells are Magic, reusable, and heal you', () => {
 // --- ENFEEBLE ---
 void test('Enfeeble cuts the damage a unit deals by its tier, like Protection', () => {
   const unit = createCombatant(50, 50);
-  const tiers = [1, 2, 3].map((tier) => ({
+  const tiers = [1, 2, 3, 4].map((tier) => ({
     ...unit,
     statuses: { ...unit.statuses, enfeeble: tier },
   }));
   assert.deepEqual(
     tiers.map((enfeebled) => attackDamage(20, enfeebled)),
-    [15, 10, 5]
+    [15, 10, 5, 1]
   );
 });
 
-void test('Enfeeble climbs a tier when reapplied the next turn, up to III', () => {
+void test('Enfeeble climbs a tier when reapplied the next turn, up to IV', () => {
   const deck: CardId[] = Array.from({ length: 12 }, () => 'sapStrength');
   let state = fightWith(deck);
   const uid = state.heroes[0]?.uid ?? -1;
   const tierOf = (current: CombatState) =>
     current.heroes.find((unit) => unit.uid === uid)?.statuses.enfeeble;
-  for (const expected of [1, 2, 3, 3]) {
+  for (const expected of [1, 2, 3, 4, 4]) {
     state = endTurn(playCard(withHand(state, ['sapStrength']), 0, uid));
     assert.equal(tierOf(state), expected);
   }
@@ -1900,15 +1999,17 @@ void test('Sap casts Enfeeble x3: tier III at once', () => {
   assert.ok(describeCard('sap').includes('Enfeeble III'));
 });
 
-void test('Enfeeble lasts one turn: it lapses unless reapplied', () => {
+void test('Enfeeble lasts two enemy turns without reapplication', () => {
   const deck: CardId[] = Array.from({ length: 12 }, () => 'darkCloak');
   const state = withHand(fightWith(deck), ['sapStrength']);
   const uid = state.heroes[0]?.uid ?? -1;
   const once = endTurn(playCard(state, 0, uid));
   const tierOf = (current: CombatState) =>
     current.heroes.find((unit) => unit.uid === uid)?.statuses.enfeeble;
-  assert.equal(tierOf(once), 1, 'on for the heroes turn after it lands');
-  assert.equal(tierOf(endTurn(once)), 0, 'gone when not reapplied');
+  assert.equal(tierOf(once), 1, 'still active after the first enemy turn');
+  const second = endTurnSteps(once);
+  assert.ok(second.slice(0, -1).every(step => tierOf(step.state) === 1));
+  assert.equal(tierOf(second.at(-1)!.state), 0, 'gone after the second enemy turn');
 });
 
 void test('Enfeeble is an affliction Cleanse can remove', () => {
@@ -2749,9 +2850,9 @@ void test('Scorn increases direct and elemental afflictions per application and 
   assert.equal(ice.heroes[0]!.statuses.frost, 22);
   assert.ok(describeCard('frostBolt', fight.player).includes('Frost 11 per hit'));
   const cursed = playCard(withHand(fight, ['sapStrength']), 0, target.uid);
-  assert.equal(cursed.heroes[0]!.statuses.enfeeble, 3);
+  assert.equal(cursed.heroes[0]!.statuses.enfeeble, 4);
   assert.equal(cursed.heroes[0]!.statuses.hex, 11);
-  assert.ok(describeCard('sapStrength', fight.player, target).includes('Enfeeble III'));
+  assert.ok(describeCard('sapStrength', fight.player, target).includes('Enfeeble IV'));
 });
 
 void test('Vigor and Endurance use the same Guard in hand and on resolution', () => {
@@ -2874,4 +2975,248 @@ void test('combat history retains the latest ten events and records actual heali
   assert.deepEqual(history.map(entry => 'event' in entry && entry.event), ['heal', 'status', 'death']);
   const ten = appendCombatHistory(undefined, ...Array.from({length: 14}, (_, turn) => ({turn, cardId: 'backhand' as const, cost: 1})));
   assert.deepEqual(ten.map(entry => entry.turn), [4,5,6,7,8,9,10,11,12,13]);
+});
+
+void test('Protection reduces all damaging afflictions after source scaling without spending Guard or Armor', () => {
+  const unit = createCombatant(100, 100);
+  const base = {
+    ...unit,
+    guard: 9,
+    statuses: { ...unit.statuses, protection: 2, armor: 5, hex: 5, poison: 7, burn: 9, bleed: 8, shock: 5 },
+  };
+  const effects = [hexBurn(base), poisonTick(base), burnTick(base), bleedOnAttack(base, 8), burstShock(base)];
+  assert.deepEqual(effects.map(x => 100 - x.hp), [5, 4, 5, 2, 5]);
+  assert.ok(effects.every(x => x.guard === 9 && x.statuses.armor === 5));
+  assert.equal(effects[3]!.bleedTaken, 2);
+  assert.equal(effects[4]!.shockDamageTaken, 5);
+  assert.deepEqual(effects.map((x, i) => x.statuses[(['hex','poison','burn','bleed','shock'] as const)[i]!]), [3, 6, 4, 7, 0]);
+  const source = { ...unit, traits: { ...createCharacter().traits, scorn: 64 } };
+  assert.equal(100 - poisonTick(base, source).hp, 6);
+  assert.equal(100 - poisonTick({ ...base, statuses: { ...base.statuses, protection: 4 } }).hp, 1);
+  assert.equal(hexBurn({ ...base, statuses: { ...base.statuses, hex: 4 } }).hp, 100);
+});
+
+void test('a future Protection trait can add a turn without changing Bulwark’s base duration', () => {
+  const unit = createCombatant(100, 100);
+  assert.equal(castCardProtection(unit).cardProtectionTurns, 2);
+  const extended = castCardProtection(unit, 1);
+  assert.equal(extended.cardProtectionTurns, 3);
+  assert.equal(extended.cardProtectionDuration, 3);
+  const once = tickStackingBuffs(extended);
+  const twice = tickStackingBuffs(once);
+  assert.equal(once.cardProtectionTurns, 2);
+  assert.equal(twice.cardProtectionTurns, 1);
+  assert.equal(twice.cardProtectionDuration, 3);
+  assert.equal(twice.statuses.protection, 1);
+  assert.equal(tickStackingBuffs(twice).statuses.protection, 0);
+});
+
+void test('Dispel is a targeted Magic card that removes one random buff, not Guard or afflictions', () => {
+  const state = fightWith(['dispel']);
+  const target = { ...state.heroes[0]!, guard: 8, statuses: { ...state.heroes[0]!.statuses, wrath: 4, poison: 3 } };
+  const fight = { ...state, heroes: [target] };
+  assert.equal(getCard('dispel').type, 'magic');
+  assert.equal(targetRuleOf('dispel'), 'any');
+  assert.ok(describeCard('dispel', state.player, target).includes('Dispel 1'));
+  const result = playCard(fight, 0, target.uid);
+  const hero = result.heroes[0]!;
+  assert.equal(hero.statuses.wrath, 0);
+  assert.equal(hero.statuses.poison, 3);
+  assert.equal(hero.guard, 8);
+  assert.equal(hero.hp, target.hp);
+  assert.deepEqual(playCard(fight, 0, target.uid), result);
+});
+
+void test('Dispel N picks distinct buff slots and removes timers without triggering natural-expiry effects', () => {
+  const base = createCombatant(100, 100);
+  const unit = { ...base, guard: 5, cardProtectionTurns: 1, instinctTurns: 1,
+    statuses: { ...base.statuses, protection: 4, instinct: 4, armor: 3, aloft: 1, enfeeble: 2 } };
+  const [result, rng, removed] = dispelBuffs(unit, 2, 7, 3);
+  assert.deepEqual(new Set(removed), new Set(['protection', 'instinct']));
+  assert.equal(result.statuses.protection, 0);
+  assert.equal(result.statuses.instinct, 0);
+  assert.equal(result.cardProtectionTurns, 0);
+  assert.equal(result.instinctTurns, 0);
+  assert.equal(result.statuses.malaise, 0);
+  assert.equal(result.statuses.armor, 3);
+  assert.equal(result.statuses.aloft, 1);
+  assert.equal(result.statuses.enfeeble, 2);
+  assert.equal(result.guard, 5);
+  assert.deepEqual(dispelBuffs(result, 2, rng, 3), [result, rng, []]);
+});
+
+void test('Archmage and High Priestess Maren can each dispel one player buff on their cast', () => {
+  for (const heroId of ['archmage', 'maren'] as const) {
+    const state = fightWith(['darkCloak']);
+    const moveIndex = getHero(heroId).moves.findIndex(move => move.effects.some(effect => effect.kind === 'dispel'));
+    assert.ok(moveIndex >= 0, heroId);
+    const hero = { ...state.heroes[0]!, heroId, row: 'back' as const, moveIndex };
+    assert.equal(describeHeroIntent(hero, [hero]).intents.find(intent => intent.kind === 'dispel')?.text, '1');
+    const player = castCardProtection(state.player);
+    const next = endTurn({ ...state, waveArrival: false, heroes: [hero], player });
+    assert.equal(next.player.statuses.protection, 0, heroId);
+    assert.equal(next.player.statuses.malaise, 0);
+  }
+});
+
+void test('Back Step grants flat Reflex without touching Instinct, then Reflex expires after an enemy turn', () => {
+  const base = fightWith(['retreat']);
+  const fight = { ...base, waveArrival: false, player: { ...base.player, instinctTurns: 1,
+    statuses: { ...base.player.statuses, instinct: 2 } } };
+  for (const moved of [move(fight, 'backStep'), playCard(fight, 0, -1), moveFree(fight, 'backStep')]) {
+    assert.equal(moved.player.statuses.reflex, 1);
+    assert.equal(moved.player.statuses.instinct, 2);
+    assert.equal(moved.player.instinctTurns, 1);
+    assert.equal(moved.heroes[0]!.row, 'back');
+    assert.equal(moveFree(moved, 'backStep'), moved, 'a failed Back Step grants nothing');
+    assert.equal(endTurn(moved).player.statuses.reflex, 0);
+  }
+  const unit = base.player;
+  const reflex = addStatus(addStatus(unit, 'reflex', 1), 'reflex', 1);
+  assert.equal(reflex.statuses.reflex, 1);
+  assert.equal(dodgeChanceAgainst(reflex), .25);
+  assert.equal(dodgeChanceAgainst(addStatus(reflex, 'instinct', 3)), 1);
+  assert.equal(dodgeChanceAgainst(addStatus(unit, 'instinct', 4)), .95);
+});
+
+void test('bonus Accuracy directly subtracts dodge without a global 95 percent cap', () => {
+  const target = addStatus(createCombatant(100, 100), 'reflex', 1);
+  assert.equal(dodgeChanceAgainst(target, .10), .15);
+  assert.equal(dodgeChanceAgainst(target, .25), 0);
+  assert.equal(dodgeChanceAgainst(target, .50), 0);
+  const combined = addStatus(target, 'instinct', 4);
+  assert.equal(dodgeChanceAgainst(combined, 0), 1);
+  assert.ok(Math.abs(dodgeChanceAgainst(combined, .30) - .90) < 1e-9);
+  const state = fightWith(['arcaneBolt']);
+  const foe = { ...state.heroes[0]!, statuses: { ...state.heroes[0]!.statuses, reflex: 1 } };
+  assert.equal(aimHitChance(state, 0, foe), .75);
+  assert.equal(aimHitChance({ ...state, player: addStatus(state.player, 'sharpshooter', 1) }, 0, foe), 1);
+});
+
+void test('attack-reducing auto-target prioritizes announced multi-hit damage, not HP or single-hit size', () => {
+  const base = startCombat({ hp: 60, maxHp: 60, deck: ['sap'],
+    heroIds: ['holt', 'lysa', 'bard'], might: 1, seed: 7 });
+  const holt = { ...base.heroes.find(unit => unit.heroId === 'holt')!, row: 'front' as const, moveIndex: 1, hp: 6 };
+  const lysa = { ...base.heroes.find(unit => unit.heroId === 'lysa')!, row: 'back' as const, moveIndex: 0, hp: 30 };
+  const bard = { ...base.heroes.find(unit => unit.heroId === 'bard')!, hp: 1 };
+  const state = { ...base, heroes: [holt, lysa, bard] };
+  for (const card of ['sap', 'sapStrength', 'sneer', 'frostBolt'] as const) {
+    const hand = withHand(state, [card]);
+    assert.deepEqual(autoTargets(hand, 0), [lysa.uid], card);
+    assert.deepEqual(autoTargets(hand, 0, [holt.uid]), [holt.uid], 'an explicit target stays selected');
+  }
+  const debuffedLysa = { ...lysa, statuses: { ...lysa.statuses, enfeeble: 4 } };
+  assert.deepEqual(autoTargets(withHand({ ...state, heroes: [holt, debuffedLysa, bard] }, ['sap']), 0), [holt.uid]);
+  assert.deepEqual(autoTargets(withHand(state, ['backhand']), 0), [holt.uid], 'ordinary attacks keep their original ranking');
+});
+
+void test('Disrupt lowers one random buff or affliction by N without stripping the whole effect', () => {
+  const base = createCombatant(40, 40);
+  const buff = { ...base, cardProtectionTurns: 1, statuses: { ...base.statuses, protection: 4 } };
+  const [weakened, , which] = disruptStatus(buff, 1, 7);
+  assert.equal(which, 'protection');
+  assert.equal(weakened.statuses.protection, 3);
+  assert.equal(weakened.cardProtectionTurns, 1);
+  assert.equal(weakened.statuses.malaise, 0);
+  const shocked = { ...base, guard: 6, shockHits: 2, statuses: { ...base.statuses, shock: 3, armor: 4, aloft: 1 } };
+  const [lowered, rng] = disruptStatus(shocked, 1, 7, 4);
+  assert.equal(lowered.statuses.shock, 2);
+  assert.equal(lowered.shockHits, 2);
+  const [cleared] = disruptStatus(lowered, 2, rng, 4);
+  assert.equal(cleared.statuses.shock, 0);
+  assert.equal(cleared.shockHits, 0);
+  assert.equal(cleared.guard, 6);
+  assert.equal(cleared.statuses.armor, 4);
+  assert.equal(cleared.statuses.aloft, 1);
+  assert.equal(describeCardEffect({ kind: 'disrupt', amount: 1, target: 'one' }, getCard('dispel')), 'Disrupt 1');
+});
+
+void test('an explicit portrait target redirects damage, area attacks and afflictions only to the player', () => {
+  const initial = fightWith(['backhand']);
+  const stored = { ...initial, heroes: initial.heroes.map(hero => ({ ...hero, row: 'back' as const })) };
+  assert.equal(canPlayCard(stored, 0), false);
+  assert.equal(canPlayCardOnSelf(stored, 0), true);
+  const selfHit = playCard(stored, 0, SELF_TARGET_UID);
+  assert.equal(stored.player.hp - selfHit.player.hp, 6);
+  assert.deepEqual(selfHit.heroes, stored.heroes);
+  const curse = withHand(stored, ['sap']);
+  const cursed = playCard(curse, 0, SELF_TARGET_UID);
+  assert.equal(cursed.player.statuses.enfeeble, 3);
+  assert.equal(cursed.player.statuses.hex, 1);
+  assert.deepEqual(cursed.heroes, stored.heroes);
+  const sweep = withHand(initial, ['cleave']);
+  const swept = playCard(sweep, 0, SELF_TARGET_UID);
+  assert.ok(swept.player.hp < sweep.player.hp);
+  assert.deepEqual(swept.heroes, sweep.heroes);
+});
+
+void test('portrait targeting preserves Guards and native buffs, can defeat the player, and rejects mixed targets', () => {
+  const initial = fightWith(['backhand']);
+  const guard = { ...initial, player: { ...initial.player, guard: 10 } };
+  const blocked = playCard(guard, 0, SELF_TARGET_UID);
+  assert.equal(blocked.player.hp, guard.player.hp);
+  assert.equal(blocked.player.guard, 4);
+  const dead = playCard({ ...initial, player: { ...initial.player, hp: 1 } }, 0, SELF_TARGET_UID);
+  assert.equal(combatOutcome(dead), 'lost');
+  const buffs = withHand(initial, ['bulwark']);
+  assert.equal(playCard(buffs, 0, SELF_TARGET_UID).player.statuses.protection, 1);
+  assert.equal(playCard(initial, 0, SELF_TARGET_UID, [initial.heroes[0]!.uid]), initial);
+  assert.equal(playCard(initial, 0, initial.heroes[0]!.uid, [SELF_TARGET_UID]), initial);
+});
+
+void test('Mass Disrupt costs two energy and applies Disrupt 5 separately to every enemy', () => {
+  const initial = startCombat({ hp: 60, maxHp: 60, deck: ['massDisrupt'],
+    heroIds: ['squire', 'archer'], might: 1, seed: 7 });
+  const first = initial.heroes[0]!, second = initial.heroes[1]!;
+  const state = { ...initial, heroes: [
+    { ...first, statuses: { ...first.statuses, wrath: 8 } },
+    { ...second, statuses: { ...second.statuses, poison: 6 } },
+  ] };
+  assert.equal(getCard('massDisrupt').type, 'magic');
+  assert.equal(targetRuleOf('massDisrupt'), 'none');
+  assert.ok(describeCard('massDisrupt').some(line => line.includes('Disrupt 5')));
+  const played = playCard(state, 0, first.uid);
+  assert.equal(played.energy, state.energy - 2);
+  assert.equal(played.heroes[0]!.statuses.wrath, 3);
+  assert.equal(played.heroes[1]!.statuses.poison, 1);
+  assert.equal(played.heroes[0]!.hp, first.hp);
+  assert.equal(played.heroes[1]!.hp, second.hp);
+});
+
+void test('Mass Disrupt lowers every debuff, then caps the enemy’s next attacks at one hit', () => {
+  const base = startCombat({ hp: 60, maxHp: 60, deck: ['massDisrupt'],
+    heroIds: ['archer'], might: 1, seed: 7 });
+  const enemy = { ...base.heroes[0]!, row: 'back' as const, moveIndex: 0,
+    statuses: { ...base.heroes[0]!.statuses, hex: 5, bleed: 4, poison: 6, wrath: 2 } };
+  const state = { ...base, waveArrival: false, heroes: [enemy] };
+  const normal = plannedHeroMove(enemy, [enemy])?.move.effects.find(effect => effect.kind === 'attack');
+  assert.ok(normal && normal.hits > 1);
+  const played = playCard(state, 0, enemy.uid);
+  const affected = played.heroes[0]!;
+  assert.equal(affected.statuses.hex, 0);
+  assert.equal(affected.statuses.bleed, 0);
+  assert.equal(affected.statuses.poison, 1);
+  assert.equal(affected.statuses.wrath, 0);
+  assert.equal(affected.statuses.hitLimit, 1);
+  const limited = plannedHeroMove(affected, [affected])?.move.effects.find(effect => effect.kind === 'attack');
+  assert.deepEqual(limited, { ...normal, hits: 1 });
+  const round = endTurn(played);
+  assert.equal(round.heroes[0]?.statuses.hitLimit, 0);
+  assert.equal(round.player.hp, played.player.hp - Math.round(normal.amount * 1.3));
+  assert.ok(describeCard('massDisrupt').includes('Max 1 hit for 1 turn'));
+});
+
+void test('combat history records each unit’s dodge count delta, including a unit fallen on a later hit', () => {
+  const state = fightWith(['backhand']);
+  const old = { ...state, player: { ...state.player, dodgedHits: 1, missedShots: 1 } };
+  const enemy = old.heroes[0]!;
+  const next = { ...old, player: { ...old.player, dodgedHits: 3, missedShots: 4 },
+    heroes: [], fallen: [{ ...enemy, hp: 0, dodgedHits: 1 }] };
+  const history = recordEffects(old, next).playHistory!;
+  assert.deepEqual(history, [
+    { event: 'dodge', turn: old.turn, subject: 'Villain', detail: 'Dodged ×2' },
+    { event: 'dodge', turn: old.turn, subject: 'Squire', detail: 'Dodged' },
+    { event: 'death', turn: old.turn, subject: 'Squire', detail: 'Defeated' },
+  ]);
+  assert.equal(recordEffects(next, next).playHistory, next.playHistory);
 });

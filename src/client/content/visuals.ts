@@ -40,6 +40,8 @@ export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
   weaken: { glyph: 'eye', toneClass: 'text-weaken' },
   vex: { glyph: 'crackedShield', toneClass: 'text-vex' },
   enfeeble: { glyph: 'shatter', toneClass: 'text-enfeeble' },
+  hitLimit: { glyph: 'padlock', toneClass: 'text-hex' },
+  malaise: { glyph: 'padlock', toneClass: 'text-hex' },
   // Each buff wears the colour of what it boosts: Melee red, Range
   // silver, Magic sky blue, Guard and defence blue. Wrath boosts every
   // hit, so it keeps the Buff card type's orange.
@@ -54,6 +56,7 @@ export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
   bane: { glyph: 'flask', toneClass: 'text-hex' },
   // Instinct is defence (it turns hits aside): Guard blue.
   instinct: { glyph: 'dodging', toneClass: 'text-guard' },
+  reflex: { glyph: 'dodging', toneClass: 'text-accent' },
   reinforce: { glyph: 'shield', toneClass: 'text-guard' },
   brace: { glyph: 'anchor', toneClass: 'text-guard' },
   momentum: { glyph: 'bolt', toneClass: 'text-hp' },
@@ -110,9 +113,12 @@ export const INTENT_LOOK: Record<IntentKind, Look> = {
   shock: STATUS_LOOK.shock,
   bleed: STATUS_LOOK.bleed,
   weaken: STATUS_LOOK.weaken,
+  malaise: STATUS_LOOK.malaise,
   guard: { glyph: 'shield', toneClass: 'text-guard' },
   buff: STATUS_LOOK.wrath,
   heal: { glyph: 'heart', toneClass: 'text-heal' },
+  dispel: { glyph: 'swirl', toneClass: 'text-magic' },
+  disrupt: { glyph: 'swirl', toneClass: 'text-hex' },
   cleanse: { glyph: 'drop', toneClass: 'text-heal' },
   protect: STATUS_LOOK.protection,
   summon: { glyph: 'eye', toneClass: 'text-accent' },
@@ -291,6 +297,7 @@ export const POP_LOOK: Record<Exclude<PopKind, 'hit'>, Look> = {
   berserker: STATUS_LOOK.berserker,
   bane: STATUS_LOOK.bane,
   instinct: STATUS_LOOK.instinct,
+  reflex: STATUS_LOOK.reflex,
   reinforce: STATUS_LOOK.reinforce,
   brace: STATUS_LOOK.brace,
   armor: STATUS_LOOK.armor,

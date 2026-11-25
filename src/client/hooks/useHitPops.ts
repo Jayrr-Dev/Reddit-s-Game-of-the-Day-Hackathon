@@ -1,3 +1,4 @@
+import type { BossImpactCue } from './useHeroTurn';
 // ===================================================================
 // USE HIT POPS
 // Watches HP and guard and, whenever someone is hit, adds a "pop" that
@@ -77,6 +78,8 @@ export type Hit = {
   edge?: MeleeEdge | undefined;
   /** For a hit no attack dealt: the status that ticked (its own effect). */
   tick?: TickKind | undefined;
+  /** Use the unique boss attack impact instead of a standard hit. */
+  bossImpact?: BossImpactCue;
   /** True when only the effect over the character shows (no number). */
   isQuiet?: boolean;
   /** True when this hit took the target from alive to 0 HP. */
@@ -591,10 +594,18 @@ export const usePlayerHits = (
   source: CardType | null,
   history: HitHistory,
   strikes = 1,
-  element?: MagicElement
+  element?: MagicElement,
+  edge?: MeleeEdge,
+  impactDelay = 0,
+  bossImpact?: BossImpactCue
 ): PlayerHitPop[] => {
   const [pops, add] = usePopQueue<Hit>(history);
   const lastRef = useRef({ player, turn });
+  const impactTimers = useRef(new Set<number>());
+  useEffect(() => {
+    const timers = impactTimers.current;
+    return () => { timers.forEach(id => window.clearTimeout(id)); timers.clear(); };
+  }, []);
 
   // VILLAIN CHANGES -> NEW POPS (a multi-hit pops once per blow)
   useEffect(() => {
@@ -615,28 +626,34 @@ export const usePlayerHits = (
         ? tickCauseOf(last.player.statuses, player.statuses)
         : undefined;
     const [firstBlow, ...laterBlows] = found
-      ? splitIntoBlows({ ...found, source: source ?? undefined, element, tick }, strikes, last.player.hp)
+      ? splitIntoBlows({ ...found, source: source ?? undefined, element, edge, tick }, strikes, last.player.hp)
       : [];
     const gains = villainGainsBetween(last.player, player);
     const misses = missesBetween(last.player, player);
     const dodges = dodgesBetween(last.player, player);
     lastRef.current = { player, turn };
     const fresh = [
-      ...(firstBlow ? [firstBlow] : []),
+      ...(firstBlow ? [bossImpact ? { ...firstBlow, bossImpact } : firstBlow] : []),
       ...misses,
       ...dodges,
       ...gains,
       ...debuffs,
     ];
-    if (fresh.length > 0) add(fresh);
-    // LATER BLOWS LAND IN TURN (no cleanup: a blow already struck), and
-    // split pops (a Shock burst, Bleed's bite) land with the last of them
+    // Keep incoming projectile hit visuals and their cues on the same beat.
+    // Each queued impact survives subsequent turns but not teardown.
+    const queue = (hits: Hit[], delay: number) => {
+      if (!hits.length) return;
+      if (!delay) { add(hits); return; }
+      const timers = impactTimers.current;
+      const id = window.setTimeout(() => { timers.delete(id); add(hits); }, delay);
+      timers.add(id);
+    };
+    queue(fresh, impactDelay);
     laterBlows.forEach((blow, index) =>
-      window.setTimeout(() => add([blow]), (index + 1) * BLOW_STAGGER_MS)
+      queue([blow], impactDelay + (index + 1) * BLOW_STAGGER_MS)
     );
-    if (splits.length > 0)
-      window.setTimeout(() => add(splits), laterBlows.length * BLOW_STAGGER_MS);
-  }, [player, turn, source, strikes, element, add]);
+    queue(splits, impactDelay + laterBlows.length * BLOW_STAGGER_MS);
+  }, [player, turn, source, strikes, element, edge, impactDelay, bossImpact, add]);
 
   return pops;
 };

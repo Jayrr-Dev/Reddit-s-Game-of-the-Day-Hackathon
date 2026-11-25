@@ -2613,9 +2613,13 @@ textarea,
   }
 }
 
-/* Landing: the whole field shakes. */
+/* Land with a single down-and-back weight pulse, not a sideways camera shake. */
 .boss-entrance-shake {
-  animation: field-shake 900ms linear calc((var(--landing-ms, 1300) - 150) * 1ms);
+  animation: boss-landing-settle 320ms ease-out calc(var(--landing-ms, 1300) * 1ms);
+}
+@keyframes boss-landing-settle {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(3px); }
 }
 
 /* A tap skips: everything jumps to how it ends. */
@@ -2663,10 +2667,18 @@ textarea,
 @keyframes boss-scene {0%{background-color:#100d0a}18%,94%{opacity:1;background-color:transparent}100%{opacity:0}}
 @keyframes boss-speech {0%,7%,50%,100%{opacity:0}14%,43%{opacity:1}}
 @keyframes boss-reveal {0%,48%{opacity:0}56%,100%{opacity:1}}
+.boss-entrance[data-voiced] .boss-dialogue {animation-name:boss-voiced-speech;}
+.boss-dialogue.boss-dialogue-static {display:none;}
+.boss-entrance[data-voiced] .boss-entrance-card {animation-name:boss-voiced-reveal;}
+@keyframes boss-voiced-speech {0%,100%{opacity:0}5%,95%{opacity:1}}
+@keyframes boss-voiced-reveal {from{opacity:0}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){
   .boss-entrance {animation-name:none;}
   .boss-dialogue {display:none;}
   .boss-entrance .boss-entrance-card {animation-name:none;}
+  .boss-entrance[data-voiced] .boss-dialogue {display:block;bottom:26%;animation-name:none;}
+  .boss-entrance[data-voiced] .boss-dialogue-timed {display:none;}
+  .boss-entrance[data-voiced] .boss-entrance-card {animation-name:none;}
 }
 @keyframes fx-fade-in {
   from {

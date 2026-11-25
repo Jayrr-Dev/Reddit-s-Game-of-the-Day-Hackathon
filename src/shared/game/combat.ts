@@ -53,12 +53,18 @@ import {
   scornBonus,
   offensiveBonus,
   castProtection,
+  tierCut,
+  castCardProtection,
   bleedOnAttack,
   dropRoundBuffs,
   burstShock,
   enfeebleTimes,
-  enfeebleCheck,
+  tickStackingBuffs,
+  tierIVExpires,
   cleanseOne,
+  dispelBuffs,
+  disruptStatus,
+  lowerAfflictions,
   attackDamage,
   damageFactorOf,
   expireGuard,
@@ -101,12 +107,13 @@ import {
   ELEMENT_ON_HIT,
   LONG_RANGE_DAMAGE_FACTOR,
   MAX_HAND_SIZE,
-  INSTINCT_DODGE_CHANCES,
+  MALAISE_TURNS,
+  REFLEX_DODGE,
+  TIERED_MAX_TIER,
   OUT_OF_RANGE_HIT_CHANCE,
   ALOFT_EVADING_TYPES,
   ALOFT_EVASION,
   SHARPSHOOTER_ACCURACY_BONUS,
-  ULTRA_INSTINCT_STACKS,
   OUT_OF_RANGE_ROW,
   OUT_OF_RANGE_TYPES,
   PHYSICAL_TYPES,
@@ -261,7 +268,13 @@ export const plannedHeroMove = (
     moves
       .map((_, step) => {
         const index = unit.moveIndex + step;
-        return { move: moves[index % moves.length], index };
+        const original = moves[index % moves.length];
+        if (!original || !(unit.statuses.malaise > 0 || unit.statuses.hitLimit > 0)) return { move: original, index };
+        const effects = original.effects
+          .filter(effect => !(unit.statuses.malaise > 0 && (effect.kind === 'wrath' || effect.kind === 'protect')))
+          .map(effect => unit.statuses.hitLimit > 0 && effect.kind === 'attack' && effect.hits > 1
+            ? { ...effect, hits: 1 } : effect);
+        return { move: effects.length ? { ...original, effects } : undefined, index };
       })
       .find(
         (planned): planned is PlannedMove =>
@@ -370,25 +383,35 @@ const isAreaCardWasted = (state: CombatState, cardId: CardId): boolean =>
  * nor a Melee strike with the front row empty); an area card needs
  * someone in its reach.
  */
-export const canPlayCard = (state: CombatState, handIndex: number): boolean => {
+export const buffLockedByMalaise = (state: CombatState, cardId: CardId): boolean =>
+  state.player.statuses.malaise > 0 && getCard(cardId).type === 'buff';
+
+/** Explicit player portrait target. Enemy UIDs are nonnegative. */
+export const SELF_TARGET_UID = -2;
+
+const canSpendCard = (state: CombatState, handIndex: number): boolean => {
   const cardId = state.hand[handIndex];
-  if (cardId === undefined || combatOutcome(state) !== 'ongoing') return false;
+  if (cardId === undefined || combatOutcome(state) !== 'ongoing' || buffLockedByMalaise(state, cardId)) return false;
   const card = getCard(cardId);
   if ((state.mostKillsInOneHit ?? 0) < (card.requiredKillsInOneHit ?? 0)) return false;
-  const movement = card.effects.find(
-    (effect) => effect.kind === 'charge' || effect.kind === 'backStep'
-  );
-  if (
-    movement &&
-    (movement.kind === 'charge' || movement.kind === 'backStep') &&
-    !hasRoomFor(state, movement.kind)
-  ) return false;
-  const hasTarget = imbueEffectOf(cardId)
-    ? imbueSlotsFor(state, handIndex).length > 0
+  const movement = card.effects.find(effect => effect.kind === 'charge' || effect.kind === 'backStep');
+  if (movement && (movement.kind === 'charge' || movement.kind === 'backStep') && !hasRoomFor(state, movement.kind)) return false;
+  return cardCost(cardId, state.killsThisTurn ?? 0, state.followUpReady) <= state.energy;
+};
+
+/** Portrait targeting skips enemy range checks; Imbue still requires a card slot. */
+export const canPlayCardOnSelf = (state: CombatState, handIndex: number): boolean => {
+  const cardId = state.hand[handIndex];
+  return cardId !== undefined && !imbueEffectOf(cardId) && canSpendCard(state, handIndex);
+};
+
+export const canPlayCard = (state: CombatState, handIndex: number): boolean => {
+  const cardId = state.hand[handIndex];
+  if (cardId === undefined || !canSpendCard(state, handIndex)) return false;
+  return imbueEffectOf(cardId) ? imbueSlotsFor(state, handIndex).length > 0
     : targetRuleOf(cardId) === 'none'
       ? !isAreaCardWasted(positionForCard(state, cardId, handIndex), cardId)
       : targetsFor(state, cardId, handIndex).length > 0;
-  return cardCost(cardId, state.killsThisTurn ?? 0, state.followUpReady) <= state.energy && hasTarget;
 };
 
 // --- DRAWING ---
@@ -543,7 +566,7 @@ const shotAccuracy = (
 };
 
 export const shotHitChance = (type: CardType, unit: HeroUnit, longRange: boolean, bonus = 0) =>
-  Math.min(1, shotAccuracy(type, unit, longRange, bonus));
+  Math.min(1, shotAccuracy(type, unit, longRange, bonus)) * (1 - dodgeChanceAgainst(unit, bonus));
 
 const canCrit = (type: CardType) => type === 'range' || type === 'magic';
 const critChance = (type: CardType, accuracy: number) =>
@@ -578,17 +601,22 @@ const shootHeroes = (
   for (const uid of uids) {
     const unit = current.heroes.find((hero) => hero.uid === uid);
     if (!unit) continue;
-    const chance = shotAccuracy(
-      cardDef.type,
-      unit,
-      hasLongRange,
-      accuracyBonusOf(current.player, cardDef.type)
-    );
+    const bonusAccuracy = accuracyBonusOf(current.player, cardDef.type);
+    const chance = shotAccuracy(cardDef.type, unit, hasLongRange, bonusAccuracy);
     if (chance < 1) {
       const [lands, rolled] = rollShot(current, chance);
       current = rolled;
       if (!lands) {
         current = updateHeroes(current, [uid], missShot);
+        continue;
+      }
+    }
+    const dodgeChance = dodgeChanceAgainst(unit, bonusAccuracy);
+    if (dodgeChance > 0) {
+      const [dodged, rolled] = rollShot(current, dodgeChance);
+      current = rolled;
+      if (dodged) {
+        current = updateHeroes(current, [uid], dodge);
         continue;
       }
     }
@@ -747,13 +775,13 @@ const pierceBehind = (
  * One card hit on a hero, plus whatever the card's element lays on
  * every hit (ELEMENT_ON_HIT: Ice adds Frost).
  */
-const elementalHit = (
-  unit: HeroUnit,
+const elementalHit = <T extends Combatant>(
+  unit: T,
   amount: number,
   cardDef: CardDef,
   isPiercing: boolean,
   attacker: Combatant
-): HeroUnit => {
+): T => {
   const hit = takeHit(unit, amount, cardDef.type, isPiercing, attacker);
   // A hit for 0 (all Armor or Protection) carries no element.
   const isLanded = hit.damageTaken > unit.damageTaken || hit.guard < unit.guard;
@@ -795,6 +823,65 @@ type PlayContext = {
   hasCharge: boolean;
 };
 
+const applyDisruptCard = <T extends Combatant>(
+  target: T, effect: Extract<CardEffect, { kind: 'disrupt' }>, rng: RngState, innateArmor = 0
+): readonly [T, RngState, StatusId | undefined] => {
+  const [reduced, next, changed] = disruptStatus(target, effect.amount, rng, innateArmor, effect.allAfflictions === true);
+  const cleansed = effect.allAfflictions ? lowerAfflictions(reduced, effect.amount) : reduced;
+  return [effect.hitLimitTurns ? addStatus(cleansed, 'hitLimit', effect.hitLimitTurns) : cleansed, next, changed];
+};
+
+const applyOnPortrait = (
+  state: CombatState, effect: CardEffect, cardDef: CardDef, play: PlayContext
+): CombatState => {
+  const { player } = state;
+  switch (effect.kind) {
+    case 'damage':
+    case 'reap': {
+      const amount = effect.kind === 'reap'
+        ? reapDamage(player.statuses.hex, effect.multiplier, player, cardDef.type)
+        : attackDamage(effect.amount, player, cardDef.type, play.isRampage, hitsPerPlay(cardDef));
+      const criticalChance = critChance(cardDef.type, 1 + accuracyBonusOf(player, cardDef.type));
+      const [critical, current] = criticalChance > 0 && criticalChance < 1 ? rollShot(state, criticalChance)
+        : [criticalChance >= 1, state];
+      const damage = amount * (critical ? 2 : 1);
+      const hit = effect.kind === 'damage'
+        ? elementalHit(player, damage, cardDef, play.isPiercing, player)
+        : takeHit(player, damage, cardDef.type, false, player);
+      return { ...current, player: hit };
+    }
+    case 'hex':
+    case 'poison':
+    case 'burn':
+    case 'frost':
+    case 'bleed':
+    case 'shock':
+    case 'vex':
+    case 'weaken':
+      return { ...state, player: addStatus(player, effect.kind, afflictionAmount(effect.amount, player, effect.kind, player)) };
+    case 'malaise':
+      return { ...state, player: addStatus(player, 'malaise', effect.amount) };
+    case 'enfeeble':
+      return { ...state, player: enfeebleTimes(player, (effect.times ?? 1) + scornBonus(player, 'enfeeble')) };
+    case 'dispel': {
+      const [target, rng, removed] = dispelBuffs(player, effect.amount, state.rng);
+      return { ...state, player: target, rng, timedBuffs: state.timedBuffs.filter(buff => !removed.includes(buff.buff)) };
+    }
+    case 'disrupt': {
+      const [target, rng, changed] = applyDisruptCard(player, effect, state.rng);
+      return { ...state, player: target, rng, timedBuffs: state.timedBuffs.filter(buff => buff.buff !== changed || target.statuses[buff.buff] > 0) };
+    }
+    case 'pull':
+    case 'push':
+      return forcePlayerMovement(state, effect.kind === 'pull', effect.rows);
+    case 'amplify':
+      return { ...state, player: { ...player, statuses: { ...player.statuses, [effect.status]: player.statuses[effect.status] * effect.factor } } };
+    // Native self and utility effects are handled by applyCardEffect.
+    default:
+      return state;
+  }
+};
+
 /**
  * Resolves one effect of the card `cardDef` (its type picks the buff).
  * `play.slot` is the hand slot an Imbue effect goes on.
@@ -807,6 +894,7 @@ const applyCardEffect = (
   play: PlayContext,
   guardRepeats: number
 ): CombatState => {
+  if (targetUid === SELF_TARGET_UID && !isSelfEffect(effect)) return applyOnPortrait(state, effect, cardDef, play);
   switch (effect.kind) {
     case 'damage':
       return villainAttack(state, effect, targetUid, cardDef, play);
@@ -828,6 +916,12 @@ const applyCardEffect = (
             afflictionAmount(effect.amount, state.player, effect.kind, unit)
           )
       );
+    case 'malaise':
+      return updateHeroes(
+        state,
+        resolveTargets(state, effect.target, targetUid, cardDef.type),
+        (unit) => addStatus(unit, 'malaise', effect.amount)
+      );
     case 'enfeeble':
       return updateHeroes(
         state,
@@ -847,7 +941,7 @@ const applyCardEffect = (
       return { ...state, player: addGuard(state.player, amount) };
     }
     case 'protect':
-      return { ...state, player: castProtection(state.player) };
+      return { ...state, player: castCardProtection(state.player) };
     case 'charge':
     case 'backStep':
       return moveFromCard(state, effect.kind);
@@ -877,6 +971,21 @@ const applyCardEffect = (
     case 'cleanse': {
       const [player, rng] = cleanseOne(state.player, state.rng);
       return { ...state, player, rng };
+    }
+    case 'dispel':
+    case 'disrupt': {
+      const targets = new Set(resolveTargets(state, effect.target, targetUid, cardDef.type));
+      let rng = state.rng;
+      const heroes = state.heroes.map(unit => {
+        if (!targets.has(unit.uid)) return unit;
+        const innateArmor = getHero(unit.heroId).armor ?? 0;
+        const [reduced, next] = effect.kind === 'dispel'
+          ? dispelBuffs(unit, effect.amount, rng, innateArmor)
+          : applyDisruptCard(unit, effect, rng, innateArmor);
+        rng = next;
+        return reduced;
+      });
+      return { ...state, heroes, rng };
     }
     case 'pull':
       return {
@@ -1085,12 +1194,10 @@ const cardBeats = (
   // Bleed 6). A card with no damage lays them once.
   const isOnHitOwn = (effect: CardEffect) =>
     isProcPerHit && isAfflictionEffect(effect);
-  const beats = own
-    .filter((effect) => !isOnHitOwn(effect))
-    .flatMap(oneHitAtATime);
-  const imbuedBeats = [...own.filter(isOnHitOwn), ...extra].flatMap(
-    oneHitAtATime
-  );
+  const splitHits = (effect: CardEffect) =>
+    paid.player.statuses.hitLimit > 0 && effect.kind === 'damage' ? [{ ...effect, hits: 1 }] : oneHitAtATime(effect);
+  const beats = own.filter((effect) => !isOnHitOwn(effect)).flatMap(splitHits);
+  const imbuedBeats = [...own.filter(isOnHitOwn), ...extra].flatMap(splitHits);
   const states: CombatState[] = [];
   let current = plan.hasCharge ? moveFree(paid, 'charge') : paid;
   if (current !== paid) states.push(current);
@@ -1098,12 +1205,13 @@ const cardBeats = (
   // (a hero felled by pick 1 can't be hit by pick 2; the aim moves on),
   // and each imbue proc waits to see whether the hit before it landed.
   plan.picks.forEach((requested, pick) => {
-    const aimed = aimCard(current, cardId, requested);
+    const aimed = requested === SELF_TARGET_UID ? requested : aimCard(current, cardId, requested);
     // A HIT FOR 0 PROCS NOTHING: until one of this pick's hits lands
     // (HP or Guard lost), its effects on heroes (Burn, Knockback ...)
     // are skipped; effects on the villain (Guard, Draw) still apply.
     let hasLanded = false;
     const apply = (effect: CardEffect) => {
+      if (aimed === SELF_TARGET_UID && current.player.hp <= 0) return;
       current = applyCardEffect(current, effect, aimed, cardDef, plan, guardRepeats);
       states.push(current);
     };
@@ -1113,7 +1221,8 @@ const cardBeats = (
       if (isOnHit && !hasLanded && !isSelfEffect(effect)) continue;
       apply(effect);
       const isLandedHit =
-        effect.kind === 'damage' && hasLandedHit(before, current);
+        effect.kind === 'damage' && (aimed === SELF_TARGET_UID
+          ? villainWasHit(before.player, current.player) : hasLandedHit(before, current));
       hasLanded ||= isLandedHit;
       if (isLandedHit) imbuedBeats.forEach(apply);
     }
@@ -1121,7 +1230,10 @@ const cardBeats = (
   });
   // BLEED: one bite per hero struck (a whole card, not its hits), as a
   // last beat of its own when it changes anything.
-  const counted = biteBleedOnAttack(paid, current, cardDef);
+  const counted = plan.picks.includes(SELF_TARGET_UID) && isProcPerHit && PHYSICAL_TYPES.has(cardDef.type) &&
+      current.player.hp > 0 && villainWasHit(paid.player, current.player)
+    ? { ...current, player: bleedOnAttack(current.player, paid.player.statuses.bleed, paid.player) }
+    : biteBleedOnAttack(paid, current, cardDef);
   if (counted !== current) states.push(counted);
   return states;
 };
@@ -1198,7 +1310,7 @@ export const aimHitChance = (
   unit: HeroUnit
 ): number => {
   const cardId = state.hand[handIndex];
-  if (cardId === undefined) return 1;
+  if (cardId === undefined || getCard(cardId).effects.every(effect => effect.kind === 'dispel' || effect.kind === 'disrupt')) return 1;
   return shotHitChance(
     getCard(cardId).type,
     unit,
@@ -1219,14 +1331,16 @@ const planPlay = (
   imbueIndex: number | undefined
 ): PlayPlan | null => {
   const cardId = state.hand[handIndex];
-  if (cardId === undefined || !canPlayCard(state, handIndex)) return null;
+  const self = targetUid === SELF_TARGET_UID;
+  if (cardId === undefined || (self ? !canPlayCardOnSelf(state, handIndex) : !canPlayCard(state, handIndex))) return null;
+  if (targetUids?.some(uid => (uid === SELF_TARGET_UID) !== self)) return null;
   const isImbue = imbueEffectOf(cardId) !== undefined;
   if (isImbue && !imbueSlotsFor(state, handIndex).includes(imbueIndex ?? -1))
     return null;
   // The played card leaves the hand first, so later slots shift down.
   const asked = imbueIndex ?? -1;
   return {
-    picks: requestedPicks(getCard(cardId), targetUid, targetUids),
+    picks: self ? [SELF_TARGET_UID] : requestedPicks(getCard(cardId), targetUid, targetUids),
     imbued: imbuedEffects(imbuesAt(state, handIndex)),
     slot: asked > handIndex ? asked - 1 : asked,
     isPiercing: isPlayWith(state, handIndex, 'piercing'),
@@ -1296,7 +1410,9 @@ export const playCard = (
   const cleared = removeFallen(pileThePlayed(kept, cardId, imbues));
   const outcome: PlayOutcome = {
     hasKilled: cleared.slain > state.slain,
-    hasHit: hasLandedHit(state, cleared),
+    hasHit: plan.picks.includes(SELF_TARGET_UID)
+      ? cleared.player.hp > 0 && villainWasHit(state.player, cleared.player)
+      : hasLandedHit(state, cleared),
   };
   const entry = {
     turn: state.turn,
@@ -1390,11 +1506,18 @@ export const wouldFell = (
   return target !== undefined && target.hp <= 0;
 };
 
+/** The sum of this unit's announced attack hits, using the same numbers as its intent chips. */
+const announcedAttackDamage = (unit: HeroUnit, field: readonly HeroUnit[]): number =>
+  plannedHeroMoves(unit, field).reduce((total, { move }) =>
+    total + move.effects.reduce((damage, effect) =>
+      effect.kind === 'attack' ? damage + heroAttackOf(unit, effect).perHit * effect.hits : damage, 0), 0);
+
 /**
  * Every hero a card would be played at when the player lets the game
  * choose (tapping a held card again), one per pick. Heroes the card
- * would kill come first, toughest first, so a kill is worth the most;
- * then the rest, weakest first. Ties keep board order. Picks the
+ * would kill come first, toughest first; then the rest, weakest first.
+ * Attack-reducing cards instead prioritize the largest announced attack total,
+ * using the same lethal/HP rules for ties. Picks the
  * player already made (`chosen`) stay first; the rest are filled with
  * heroes not yet picked, wrapping round if there are too few. Empty
  * when nothing can be hit.
@@ -1408,16 +1531,23 @@ export const autoTargets = (
   if (cardId === undefined) return [];
   const legal = targetsFor(state, cardId, handIndex);
   if (legal.length === 0) return [];
-  const isLethal = (unit: HeroUnit) =>
-    wouldFell(state, handIndex, [unit.uid], unit.uid);
-  // RANKING: sort is stable, so equal HP keeps board order.
-  const ranked = [
-    ...legal.filter(isLethal).sort((a, b) => b.hp - a.hp),
-    ...legal.filter((unit) => !isLethal(unit)).sort((a, b) => a.hp - b.hp),
-  ];
+  const card = getCard(cardId);
+  const weaknesses = [...card.effects, ...imbuedEffects(imbuesAt(state, handIndex))]
+    .some(effect => effect.kind === 'enfeeble' || effect.kind === 'weaken' || effect.kind === 'frost');
+  const frostOnHit = card.element && ELEMENT_ON_HIT[card.element]?.status === 'frost';
+  const prioritizesThreat = weaknesses || frostOnHit;
+  const positioned = prioritizesThreat ? positionForCard(state, cardId, handIndex) : state;
+  const ranked = legal.map(unit => ({
+    unit,
+    lethal: wouldFell(state, handIndex, [unit.uid], unit.uid),
+    threat: prioritizesThreat ? announcedAttackDamage(unit, positioned.heroes) : 0,
+  })).sort((a, b) =>
+    b.threat - a.threat || Number(b.lethal) - Number(a.lethal) ||
+    (a.lethal ? b.unit.hp - a.unit.hp : a.unit.hp - b.unit.hp)
+  ).map(({ unit }) => unit);
   const fresh = ranked.filter((unit) => !chosen.includes(unit.uid));
   const pool = fresh.length > 0 ? fresh : ranked;
-  const missing = Math.max(0, getCard(cardId).targets - chosen.length);
+  const missing = Math.max(0, card.targets - chosen.length);
   const fill = Array.from(
     { length: missing },
     (_, pick) => pool[pick % pool.length]?.uid ?? -1
@@ -1532,9 +1662,11 @@ const applyHeroEffect = (
     case 'frost':
     case 'bleed':
     case 'shock':
-      return afflictVillain(state, effect.kind, scaled(effect.amount));
+      return afflictVillain(state, effect.kind, scaled(effect.amount), accuracyBonusOf(actor, 'magic'));
     case 'weaken':
-      return afflictVillain(state, 'weaken', effect.amount);
+      return afflictVillain(state, 'weaken', effect.amount, accuracyBonusOf(actor, 'magic'));
+    case 'malaise':
+      return afflictVillain(state, 'malaise', effect.amount, accuracyBonusOf(actor, 'magic'));
     case 'guard':
       return updateHeroes(
         state,
@@ -1561,6 +1693,19 @@ const applyHeroEffect = (
       );
     case 'cleanse':
       return cleanseHeroes(state, heroTargets(state, actor.uid, effect.who));
+    case 'dispel': {
+      const [player, rng, removed] = dispelBuffs(state.player, effect.amount, state.rng);
+      return {
+        ...state, player, rng,
+        timedBuffs: state.timedBuffs.filter(buff => !removed.includes(buff.buff)),
+      };
+    }
+    case 'disrupt': {
+      const [player, rng, changed] = disruptStatus(state.player, effect.amount, state.rng);
+      const timedBuffs = changed === undefined ? state.timedBuffs :
+        state.timedBuffs.filter(buff => buff.buff !== changed || player.statuses[changed] > 0);
+      return { ...state, player, rng, timedBuffs };
+    }
     case 'summon':
       return summonHeroes(state, actor, effect);
     case 'revive':
@@ -1568,47 +1713,54 @@ const applyHeroEffect = (
     case 'soar':
       return updateHeroes(state, [actor.uid], (unit) => withAloft(unit, 1));
     case 'knockBack':
-    case 'pullPlayer': {
-      const pulling = effect.kind === 'pullPlayer';
-      const heroes = pulling ? stepForward(state.heroes, effect.lines) : fallBack(state.heroes, effect.lines);
-      const distance = Math.max(0, ...heroes.map((unit, i) => Math.abs(rowDepth(unit.row) - rowDepth(state.heroes[i]!.row))));
-      return {
-        ...state, heroes,
-        travelRows: (state.travelRows ?? 0) + (pulling ? distance : -distance),
-        forcedMovement: { count: (state.forcedMovement?.count ?? 0) + 1, move: pulling ? 'charge' : 'backStep', distance },
-      };
-    }
+    case 'pullPlayer':
+      return forcePlayerMovement(state, effect.kind === 'pullPlayer', effect.lines);
     case 'detonate':
       return { ...state, player: burstShock(state.player) };
   }
 };
 
-// --- INSTINCT (DODGE) ---
+/** Forced movement changes the shared relative formation and grants no movement buffs. */
+const forcePlayerMovement = (state: CombatState, pulling: boolean, lines: number): CombatState => {
+  const heroes = pulling ? stepForward(state.heroes, lines) : fallBack(state.heroes, lines);
+  const distance = Math.max(0, ...heroes.map((unit, i) => Math.abs(rowDepth(unit.row) - rowDepth(state.heroes[i]!.row))));
+  return {
+    ...state, heroes,
+    travelRows: (state.travelRows ?? 0) + (pulling ? distance : -distance),
+    forcedMovement: { count: (state.forcedMovement?.count ?? 0) + 1, move: pulling ? 'charge' : 'backStep', distance },
+  };
+};
+
+// --- DODGE ---
 /** The chance (0..1) to dodge at `stacks` of Instinct. */
 export const dodgeChanceOf = (stacks: number): number =>
-  INSTINCT_DODGE_CHANCES[Math.min(stacks, ULTRA_INSTINCT_STACKS)] ?? 0;
+  tierCut(stacks);
 
-/**
- * Rolls the villain's Instinct on the fight's seeded rng: true when it
- * dodges. No Instinct, no roll (the rng stays put).
- */
-const rollDodge = (state: CombatState): [boolean, CombatState] => {
-  const chance = dodgeChanceOf(state.player.statuses.instinct);
+/** Bonus Accuracy subtracts percentage points before bounding the probability. */
+export const dodgeChanceAgainst = (target: Combatant, bonusAccuracy = 0): number => {
+  const dodge = dodgeChanceOf(target.statuses.instinct) + (target.statuses.reflex > 0 ? REFLEX_DODGE : 0);
+  return Math.min(1, Math.max(0, dodge - Math.max(0, bonusAccuracy)));
+};
+
+/** No chance to dodge means no RNG roll. */
+const rollDodge = (state: CombatState, bonusAccuracy = 0): [boolean, CombatState] => {
+  const chance = dodgeChanceAgainst(state.player, bonusAccuracy);
   if (chance <= 0) return [false, state];
   const [roll, rng] = nextFloat(state.rng);
   return [roll < chance, { ...state, rng }];
 };
 
 /**
- * Lays a hero's affliction on the villain unless Instinct dodges it
+ * Lays a hero's affliction on the villain unless it is dodged
  * (counted for the "Dodge" pop). Hex can't be dodged.
  */
 const afflictVillain = (
   state: CombatState,
   status: StatusId,
-  amount: number
+  amount: number,
+  bonusAccuracy = 0
 ): CombatState => {
-  const [dodged, rolled] = status === 'hex' ? [false, state] : rollDodge(state);
+  const [dodged, rolled] = status === 'hex' ? [false, state] : rollDodge(state, bonusAccuracy);
   return {
     ...rolled,
     player: dodged
@@ -1634,15 +1786,16 @@ const heroShoots = (
 ): CombatState => {
   const { type, perHit } = heroAttackOf(actor, effect);
   const mayMiss = isOutOfRangeShot(type, actor.row, hasLongRangePassive(actor));
+  const bonusAccuracy = accuracyBonusOf(actor, type);
   let current = state;
   let hasLandedAny = false;
   for (let hit = 0; hit < effect.hits; hit += 1) {
     const [lands, rolled] = mayMiss
       ? rollShot(current, OUT_OF_RANGE_HIT_CHANCE)
       : [true, current];
-    // A hit that would land may still be dodged (Instinct), unless Homing.
+    // A hit that would land may still be dodged, unless Homing.
     const mayDodge = lands && !effect.isHoming;
-    const [dodged, ready] = mayDodge ? rollDodge(rolled) : [false, rolled];
+    const [dodged, ready] = mayDodge ? rollDodge(rolled, bonusAccuracy) : [false, rolled];
     const isStruck = lands && !dodged;
     const struck = {
       ...ready,
@@ -1659,7 +1812,7 @@ const heroShoots = (
     current = hasLanded
       ? (effect.perHit ?? []).reduce(
           (laid, proc) =>
-            afflictVillain(laid, proc.status, procAmount(proc, actor)),
+            afflictVillain(laid, proc.status, procAmount(proc, actor), bonusAccuracy),
           struck
         )
       : struck;
@@ -1740,6 +1893,7 @@ const VILLAIN_EFFECT_KINDS: ReadonlySet<HeroEffect['kind']> = new Set([
   'bleed',
   'shock',
   'weaken',
+  'malaise',
   'knockBack',
   'detonate',
 ]);
@@ -1851,6 +2005,14 @@ const poisonStep = (state: CombatState, uid: number): TurnStep | null => {
   return { actorUid: null, attackType: null, move: null, state: next };
 };
 
+const applyMalaise = <T extends Combatant>(unit: T): T =>
+  addStatus(unit, 'malaise', MALAISE_TURNS);
+
+const expireStackedBuffs = <T extends Combatant>(unit: T): T => {
+  const next = tickStackingBuffs(unit);
+  return tierIVExpires(unit) ? applyMalaise(next) : next;
+};
+
 /**
  * Ends the villain's turn, beat by beat, so the view can play the
  * heroes' attacks one at a time. The last step is the final state.
@@ -1862,11 +2024,14 @@ const resolveTurnSteps = (state: CombatState): TurnStep[] => {
   // 1. DISCARD THE HAND (HOLD CARDS STAY), THE VILLAIN'S UPKEEP, AND THE HEROES' GUARD FROM LAST ROUND FADES
   const discarded: CombatState = {
     ...finishPlayerTurn(state),
-    // Enfeeble laid on this turn holds; any older lapses.
-    // Their round buffs (Protection) are spent as their turn starts.
-    heroes: state.heroes.map((unit) =>
-      enfeebleCheck(dropRoundBuffs(expireGuard(unit)))
-    ),
+    // Hero-cast Protection still expires when its owner's next turn starts.
+    heroes: state.heroes.map((unit) => {
+      const guarded = expireGuard(unit);
+      if (state.waveArrival) return guarded;
+      const active = dropRoundBuffs(guarded);
+      return unit.statuses.protection === TIERED_MAX_TIER && !active.statuses.protection
+        ? applyMalaise(active) : active;
+    }),
   };
   const steps: TurnStep[] = [
     { actorUid: null, attackType: null, move: null, state: discarded },
@@ -1940,11 +2105,16 @@ const resolveTurnSteps = (state: CombatState): TurnStep[] => {
   const advanced = hadForcedMovement
     ? current
     : { ...current, heroes: advanceHeroes(current.heroes) };
+
   steps.push({
     actorUid: null,
     attackType: null,
     move: null,
-    state: startPlayerTurn(advanced),
+    state: startPlayerTurn({
+      ...advanced,
+      player: expireStackedBuffs({ ...advanced.player, statuses: { ...advanced.player.statuses, reflex: 0 } }),
+      heroes: advanced.heroes.map(expireStackedBuffs),
+    }),
   });
   return steps;
 };

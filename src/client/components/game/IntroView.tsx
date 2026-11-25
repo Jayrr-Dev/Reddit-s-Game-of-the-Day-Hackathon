@@ -28,6 +28,7 @@ import { Glyph, type GlyphName } from '../ui/Glyph';
 import { Tooltip } from '../ui/Tooltip';
 import { KeyArt } from './menu/KeyArt';
 import { useGameSettings } from '../../hooks/useGameSettings';
+import { SettingsDialog } from './menu/SettingsDialog';
 import { MenuPanel } from './menu/MenuPanel';
 import { ProfileView } from './ProfileView';
 import type { RingProgress } from '../../../shared/game/character';
@@ -50,7 +51,7 @@ export type IntroViewProps = {
 const SHOW_PRACTICE = true;
 
 /** Which sheet (if any) covers the menu. */
-type Sheet = 'profile' | 'none' | 'tutorial' | 'rules' | 'board' | 'settings';
+type Sheet = 'profile' | 'none' | 'tutorial' | 'rules' | 'board';
 
 // --- HELPERS ---
 /** Explains whether the next run counts for the leaderboard. */
@@ -166,11 +167,14 @@ export const IntroView = ({
 
   return (
     <main className="relative flex h-full flex-col overflow-hidden bg-surface">
-      <Hero data={data} />
+      <div className="relative mt-2 flex min-h-0 flex-1">
+        <Hero data={data} />
+        <SettingsDialog className="absolute bottom-2 right-3 z-10">{settings.controls}</SettingsDialog>
+      </div>
       <div className="relative flex shrink-0 justify-center px-3 pb-3">
         {/* MENU */}
         <nav className="flex w-full max-w-60 flex-col items-center gap-2">
-          <Button variant="menuPrimary" onClick={onStart} disabled={isStarting}>
+          <Button variant="menuPrimary" onClick={onStart} disabled={isStarting} data-own-sound={!canResume ? true : undefined}>
             {canResume ? 'Resume the march' : 'Begin the conquest'}
           </Button>
           <Button variant="menu" onClick={() => setSheet('profile')}>Profile</Button>
@@ -185,13 +189,11 @@ export const IntroView = ({
               Illusion Training
             </Button>
           )}
-          <Button variant="menu" onClick={() => setSheet('settings')}>Settings</Button>
           <p className="text-center text-[10px] leading-tight text-ink-muted">
             {rankedNote(data, canResume)}
           </p>
         </nav>
       </div>
-      {sheet === 'settings' && <MenuPanel title="Settings" onClose={closeSheet}><div className="grid gap-2">{settings.controls}</div></MenuPanel>}
       {sheet === 'rules' && (
         <MenuPanel title="How to play" onClose={closeSheet}>
           <RulesSheet />

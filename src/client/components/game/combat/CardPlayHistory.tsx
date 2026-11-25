@@ -61,14 +61,14 @@ export const CardPlayHistory = ({ entries }: { entries: readonly CombatHistoryRe
                 data-event={event?.event} data-enemy-attack={enemy ? true : undefined} data-card-type={enemy || event ? undefined : type} data-card-id={'cardId' in played ? played.cardId : undefined} data-move={move}
                 aria-label={`${name}, turn ${played.turn}`}
                 aria-expanded={selected?.index === index}
-                style={{ borderColor: enemy ? undefined : look.glowVar }}
+                style={{ borderColor: enemy || event?.event === 'dodge' ? undefined : look.glowVar }}
                 onPointerEnter={event => { if (event.pointerType === 'mouse') inspect(index, event.currentTarget); }}
                 onFocus={event => inspect(index, event.currentTarget)}
                 onClick={event => {
                   if (pinned === index) close();
                   else { inspect(index, event.currentTarget); setPinned(index); }
                 }}>
-                <Glyph name={event ? event.status ? STATUS_LOOK[event.status].glyph : event.event === 'death' ? 'skull' : event.event === 'heal' ? 'heart' : event.event === 'guard' ? 'shield' : 'march' : look.glyph} className="size-4" />
+                <Glyph name={event ? event.status ? STATUS_LOOK[event.status].glyph : event.event === 'dodge' ? 'dodging' : event.event === 'death' ? 'skull' : event.event === 'heal' ? 'heart' : event.event === 'guard' ? 'shield' : 'march' : look.glyph} className="size-4" />
               </button>
             </li>
           );

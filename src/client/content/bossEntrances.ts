@@ -20,6 +20,12 @@ export type BossEntrance = {
   arrival: BossArrival;
   durationMs?: number;
   landingMs?: number;
+  voice?: {
+    cue: 'bossUncVoice' | 'bossRioVoice';
+    /** End of the spoken line, not including any non-verbal reaction. */
+    durationMs: number;
+    captions?: readonly { text: string; startMs: number; endMs: number }[];
+  };
 };
 
 // --- TIMING ---
@@ -36,8 +42,23 @@ const DEFAULT_ENTRANCE: BossEntrance = {
 };
 
 const BOSS_ENTRANCES: Partial<Record<HeroId, BossEntrance>> = {
-  holyDragon: { epithet: 'Wyrm of the Last Light', line: 'I kept this flame when your kingdom was ash.', arrival: 'descend', durationMs: 8400, landingMs: 2200 },
-  grandGriffon: { epithet: 'Talon of the High Sky', line: 'Look up. You have crossed my shadow.', arrival: 'descend' },
+  holyDragon: { epithet: 'Wyrm of the Last Light', line: 'I kept this flame when your kingdom was ash.', arrival: 'descend', durationMs: 9200, landingMs: 2200, voice: { cue: 'bossUncVoice', durationMs: 4330 } },
+  grandGriffon: {
+    epithet: 'Talon of the High Sky',
+    line: 'Demon, we meet again. You came for vengeance. So did I. For my master!',
+    arrival: 'descend',
+    durationMs: 12800,
+    voice: {
+      cue: 'bossRioVoice',
+      durationMs: 7850,
+      captions: [
+        { text: 'Demon, we meet again.', startMs: 0, endMs: 2400 },
+        { text: 'You came for vengeance.', startMs: 3000, endMs: 4600 },
+        { text: 'So did I.', startMs: 5050, endMs: 6100 },
+        { text: 'FOR MY MASTER!', startMs: 6500, endMs: 7800 },
+      ],
+    },
+  },
 };
 
 // --- HELPERS ---

@@ -52,7 +52,7 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
         where="Illusion Training"
         score={0}
         onAction={act}
-        renderTrainingMenu={(resume, guides) => (
+        renderTrainingMenu={(resume, settings) => (
           <section
             role="dialog"
             aria-modal="true"
@@ -60,18 +60,20 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
             className="training-menu"
           >
             <header
-              className="training-header"
+              className="training-header flex items-center justify-between gap-2"
               style={{
                 backgroundImage: `linear-gradient(90deg, #21150e 8%, #21150e70), url("${MAP_IMAGES[terrainIndex]}")`,
               }}
             >
-              <h2>Illusion Training</h2>
-              <span>{MAP_NAMES[terrainIndex]}</span>
+              <div>
+                <h2>Illusion Training</h2>
+                <span>{MAP_NAMES[terrainIndex]}</span>
+              </div>
+              {settings}
             </header>
             <ScenarioPicker
               renderTools={openDeck => (
                 <div className="training-tools">
-                  <div className="training-preferences">{guides}</div>
                   <div className="training-actions">
                     <Button variant="menu" onClick={openDeck}>Custom deck</Button>
                     <Button variant="menu" onClick={reshuffle}>New opponents</Button>

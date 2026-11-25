@@ -10,6 +10,8 @@
 
 import {
   CLEANSE_INFO,
+  DISPEL_INFO,
+  DISRUPT_INFO,
   PULL_INFO,
   KNOCKBACK_INFO,
   HOMING_INFO,
@@ -45,6 +47,8 @@ const GLOSSARY_LOOK: ReadonlyMap<string, Look> = new Map([
   ...byLabel(PASSIVE_INFO, PASSIVE_LOOK),
   [IMBUE_INFO.label, { glyph: 'cards', toneClass: 'text-imbue' }],
   [CLEANSE_INFO.label, INTENT_LOOK.cleanse],
+  [DISPEL_INFO.label, INTENT_LOOK.dispel],
+  [DISRUPT_INFO.label, INTENT_LOOK.disrupt],
   [PULL_INFO.label, { glyph: 'march', toneClass: 'text-hex' }],
   [KNOCKBACK_INFO.label, { glyph: 'march', toneClass: 'text-guard' }],
   [HOMING_INFO.label, { glyph: 'targeting', toneClass: 'text-magic' }],

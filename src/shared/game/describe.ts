@@ -31,6 +31,9 @@ import {
   SHOCK_BURST_FACTOR,
   SHOCK_HITS,
   STATUS_IS_AFFLICTION,
+  TIERED_MAX_TIER,
+  MALAISE_TURNS,
+  REFLEX_DODGE,
 } from './rules.ts';
 import { usesOf } from './uses.ts';
 import {
@@ -80,25 +83,28 @@ const ordinal = (count: number): string => {
 /** Sharpshooter's Range boost as a percentage ("+20%"). */
 export const SHARPSHOOTER_BONUS_TEXT = `+${Math.round((SHARPSHOOTER_DAMAGE_FACTOR - 1) * 100)}%`;
 
+const STACK_TIER_SUMMARY = 'I 25%, II 50%, III 75%, IV 95%.';
+const STACK_TIMING = `Recast to rank up and reset to 2 turns. Tier IV expires into **Malaise ${MALAISE_TURNS}**.`;
+
 export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   guard: {
     label: 'Guard',
-    description: 'Blocks damage\nGone at the start of your next turn',
+    description: 'Blocks damage until your next turn.',
   },
   hex: {
     label: 'Hex',
     description:
-      'Before its turn, if **odd**: deals **double** this, then loses a third\nIf it ends in **3**: deals **triple**, then clears\nIf **even**: +1',
+      'Before its turn: **even** adds 1; **odd** deals double, then loses a third. Ending in **3** deals triple and clears.',
   },
   burn: {
     label: 'Burn',
     description:
-      'Loses this much HP after each action\nThen halves (rounds down)',
+      'Deals damage after each action, then halves (round down).',
   },
   frost: {
     label: 'Frost',
     description:
-      'Each hit it deals is this much weaker\nHalves after each action',
+      'Reduces damage dealt by this much per hit. Halves after each action.',
   },
   bleed: {
     label: 'Bleed',
@@ -106,16 +112,16 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   },
   shock: {
     label: 'Shock',
-    description: `The **${ordinal(SHOCK_HITS)}** hit taken in one turn sets it off: **${SHOCK_BURST_FACTOR}×** this much damage, then it clears\nAny hit counts: Melee, Range or Magic\nGoes down by **1** after each action`,
+    description: `The **${ordinal(SHOCK_HITS)}** hit taken in one turn sets it off: **${SHOCK_BURST_FACTOR}×** its stacks as damage, then clears. Loses 1 stack after each action.`,
   },
   poison: {
     label: 'Poison',
     description:
-      'Loses this much HP right before each action\nThen goes down by **1**',
+      'Deals damage before each action, then loses 1 stack.',
   },
   weaken: {
     label: 'Weaken',
-    description: 'Deals **25%** less damage\nGoes down by **1** each turn',
+    description: 'Deals **25%** less damage. Loses 1 stack per turn.',
   },
   wrath: { label: 'Wrath', description: 'Every hit deals this much more' },
   might: {
@@ -137,17 +143,22 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   protection: {
     label: 'Protection',
     description:
-      "Cuts each hit you take: I **25%**, II **50%**, III **75%**\nEach cast this turn raises it a tier\nLasts through the heroes' turn",
+      `Reduces hit and affliction damage. Round up. ${STACK_TIER_SUMMARY}\n${STACK_TIMING}`,
   },
   enfeeble: {
     label: 'Enfeeble',
     description:
-      'Cuts the damage it deals: I **25%**, II **50%**, III **75%**\nLasts a turn; reapply to deepen it',
+      `The target deals less attack damage. Round up. ${STACK_TIER_SUMMARY}\n${STACK_TIMING}`,
+  },
+  hitLimit: { label: 'Hit Limit', description: 'Each attack hits at most once.' },
+  malaise: {
+    label: 'Malaise',
+    description: 'Blocks buffs for **N** turns. Cleanse can remove it.',
   },
   brace: {
     label: 'Brace',
     description:
-      "Your **Guard** doesn't expire at the start of your turn\nGoes down by **1** each turn it holds",
+      "Keeps Guard for an extra turn per stack.",
   },
   reinforce: {
     label: 'Reinforce',
@@ -156,26 +167,30 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   vex: {
     label: 'Vex',
     description:
-      'Every **affliction** laid on it gets this many more stacks\nGoes down by **1** each turn',
+      'Adds this many stacks to incoming afflictions. Loses 1 stack per turn.',
+  },
+  reflex: {
+    label: 'Reflex',
+    description: `+${Math.round(REFLEX_DODGE * 100)}% dodge for one enemy turn. Does not stack with itself.`,
   },
   instinct: {
     label: 'Instinct',
     description:
-      "Chance to dodge each hero hit or affliction: 1 **25%**, 2 **50%**, 4 **75%**\n5+ is **Ultra Instinct**: **99%**\n**Hex** can't be dodged\nLasts through the heroes' turn",
+      `Dodges hits and afflictions except Hex. ${STACK_TIER_SUMMARY}\n${STACK_TIMING} Tier IV is **Ultra Instinct**.`,
   },
   bane: {
     label: 'Bane',
     description:
-      'Every **affliction** your cards lay gets this many more stacks\n**Hex**, **Poison**, **Burn**, **Frost**, **Bleed** and **Shock**',
+      'Your cards add this many extra stacks of damaging afflictions and Frost.',
   },
   sharpshooter: {
     label: 'Sharpshooter',
-    description: `**+${Math.round(SHARPSHOOTER_ACCURACY_BONUS * 100)}%** hit accuracy\nRange and Magic accuracy above 100% gives critical chance for double damage.\nEvery **Range** hit deals **${SHARPSHOOTER_BONUS_TEXT}**`,
+    description: `**+${Math.round(SHARPSHOOTER_ACCURACY_BONUS * 100)}%** hit accuracy\nBonus Accuracy subtracts from dodge. Above 100% shot accuracy can crit.\nRange hits deal **${SHARPSHOOTER_BONUS_TEXT}** damage.`,
   },
   berserker: {
     label: 'Berserker',
     description:
-      'Imbues every **Melee** card with **Rampage**\n(Gain **Momentum** on kill and **Charge** if possible, double **Momentum** bonus)',
+      'Every Melee card gains **Rampage**.',
   },
   aloft: {
     label: 'Aloft',
@@ -184,13 +199,13 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   armor: {
     label: 'Armor',
     description:
-      'Each **Melee** or **Range** hit taken is this much lower\nLasts the whole fight',
+      'Reduces each Melee or Range hit taken. Lasts the fight.',
   },
   move: { label: 'Move', description: 'Your next Charge or Back Step travels up to this many extra rows.' },
   rush: {
     label: 'Rush',
     description:
-      'Your next this many **Charges** or **Back Steps** this turn cost **0**\nEach one uses **1**',
+      'Each stack makes one Charge or Back Step free this turn.',
   },
 };
 
@@ -198,7 +213,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
 export const PASSIVE_INFO: Record<PassiveId, StatusInfo> = {
   vigor: {
     label: 'Vigor',
-    description: 'Boss passive\nTakes **two** moves every turn',
+    description: 'Takes **two** moves per turn.',
   },
   longRange: {
     label: 'Longrange',
@@ -207,7 +222,7 @@ export const PASSIVE_INFO: Record<PassiveId, StatusInfo> = {
   anchored: {
     label: 'Anchored',
     description:
-      "Stays where deployed\n**Pull** and **Knockback** can't move it",
+      "Immune to Pull and Knockback.",
   },
 };
 
@@ -269,6 +284,8 @@ export const describeCardEffect = (
     case 'vex':
     case 'weaken':
       return describeStatusLine(effect, attacker, target);
+    case 'malaise':
+      return `Malaise ${effect.amount}${areaWord(effect.target)}`;
     case 'enfeeble':
       return `Enfeeble ${tierNumeral((target?.statuses.enfeeble ?? 0) + (effect.times ?? 1) + (attacker ? scornBonus(attacker, 'enfeeble') : 0))}${areaWord(effect.target)}`;
     case 'reap': {
@@ -292,17 +309,21 @@ export const describeCardEffect = (
     case 'charge':
       return 'Charge';
     case 'backStep':
-      return 'Back Step';
+      return 'Back Step. Gain Reflex.';
     case 'momentum':
       return STATUS_INFO.momentum.label;
     case 'cleanse':
       return CLEANSE_INFO.label;
+    case 'dispel':
+      return `Dispel ${effect.amount}${areaWord(effect.target)}`;
+    case 'disrupt':
+      return `Disrupt ${effect.amount}${areaWord(effect.target)}`;
     case 'protect':
       return `Protection ${tierNumeral((attacker?.statuses.protection ?? 0) + 1)}`;
     case 'buff':
       return (
         buffImbueText(effect.buff) ??
-        `${STATUS_INFO[effect.buff].label}${buffAmountText(effect)}${durationSuffix(effect.duration)}`
+        `${STATUS_INFO[effect.buff].label}${buffAmountText(effect, attacker?.statuses.instinct)}${durationSuffix(effect.duration)}`
       );
     case 'draw':
       return `Draw ${effect.amount}`;
@@ -325,8 +346,8 @@ export const describeCardEffect = (
 const amplifyLabel = (factor: number, label: string): string =>
   factor === 2 ? `Double ${label}` : `${label} ×${factor}`;
 
-const TIER_NUMERALS = ['', 'I', 'II', 'III'] as const;
-export const tierNumeral = (tier: number): string => TIER_NUMERALS[Math.min(tier, 3)] ?? '';
+const TIER_NUMERALS = ['', 'I', 'II', 'III', 'IV'] as const;
+export const tierNumeral = (tier: number): string => TIER_NUMERALS[Math.min(tier, TIERED_MAX_TIER)] ?? '';
 
 // --- IMBUE TEXT ---
 /** Each keyword's name and what it does (its badge's tooltip). */
@@ -358,7 +379,7 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
   },
   distance: {
     label: 'Distance',
-    description: "On hit: a free **Back Step**\nOnly if there's room",
+    description: 'On hit: free **Back Step** if there is room.',
   },
   longRange: {
     label: 'Longrange',
@@ -396,8 +417,11 @@ const buffImbueText = (buff: BuffId): string | null => {
 
 /** A buff's stacks as card text (" 3"), or nothing for an on/off buff. */
 const buffAmountText = (
-  effect: Extract<CardEffect, { kind: 'buff' }>
-): string => (ON_OFF_BUFFS.has(effect.buff) ? '' : ` ${effect.amount}`);
+  effect: Extract<CardEffect, { kind: 'buff' }>,
+  instinct = 0
+): string => ON_OFF_BUFFS.has(effect.buff) ? '' : effect.buff === 'instinct'
+  ? ` ${tierNumeral(instinct + effect.amount)}`
+  : ` ${effect.amount}`;
 
 /** " this turn" after a timed gift; nothing for a lasting one. */
 const durationSuffix = (duration: Duration | undefined): string =>
@@ -428,7 +452,17 @@ export const HOMING_INFO: StatusInfo = {
   label: 'Homing',
   description: "Its hits can't be dodged",
 };
-/** What Cleanse means, wherever it shows. */
+/** What Dispel N means, wherever it shows. */
+export const DISPEL_INFO: StatusInfo = {
+  label: 'Dispel',
+  description: 'Dispel N removes **N** distinct random buffs from the target. Guard, passives and afflictions stay.',
+};
+
+export const DISRUPT_INFO: StatusInfo = {
+  label: 'Disrupt',
+  description: 'Disrupt N lowers one random buff or affliction by N stacks or tiers.',
+};
+
 export const CLEANSE_INFO: StatusInfo = {
   label: 'Cleanse',
   description: 'Removes **1** random affliction from you',
@@ -478,10 +512,12 @@ export const GLOSSARY: Readonly<Record<string, StatusInfo>> =
       ...Object.values(STATUS_INFO),
       ...Object.values(KEYWORD_INFO),
         { label: 'Charge', description: 'Move forward when Line 1 is empty and gain **Momentum**' },
-        { label: 'Back Step', description: 'Move back when there is room behind you' },
+        { label: 'Back Step', description: 'Move back if there is room. Gain **Reflex**.' },
       { label: 'Energy', description: 'Gain this much energy immediately to spend on cards or movement.' },
       IMBUE_INFO,
       CLEANSE_INFO,
+      DISPEL_INFO,
+      DISRUPT_INFO,
       PULL_INFO,
       KNOCKBACK_INFO,
       HOMING_INFO,
@@ -541,6 +577,8 @@ export const imbueTag = (gift: ImbueGift): string => {
       return `${STATUS_INFO[effect.kind].label} ${effect.amount}`;
     case 'buff':
       return `${STATUS_INFO[effect.buff].label}${buffAmountText(effect)}`;
+    case 'malaise':
+      return `Malaise ${effect.amount}`;
     case 'enfeeble':
       return `Enfeeble ${tierNumeral(effect.times ?? 1)}`;
     case 'move':
@@ -552,6 +590,10 @@ export const imbueTag = (gift: ImbueGift): string => {
       return 'Reap';
     case 'cleanse':
       return 'Cleanse';
+    case 'dispel':
+      return `Dispel ${effect.amount}`;
+    case 'disrupt':
+      return `Disrupt ${effect.amount}`;
     case 'protect':
       return 'Protection I';
     case 'draw':
@@ -622,22 +664,24 @@ export const describeCardRules = (
   const { own } = foldImbuedDamage(cardDef.effects, gifts);
   const guardRepeats = guardApplications(cardDef, gifts);
   // An attack's afflictions land on every hit: a multi-hit card says so.
-  const isMultiHit = cardDef.effects.some(
+  const isMultiHit = !(attacker && attacker.statuses.hitLimit > 0) && cardDef.effects.some(
     (effect) => effect.kind === 'damage' && effect.hits > 1
   );
   const isRampage = cardHasKeyword(cardId, imbues, 'rampage');
-  const lines = own.map((effect) => {
+  const lines = own.flatMap((effect) => {
     const line = describeCardEffect(
-      effect,
+      attacker && attacker.statuses.hitLimit > 0 && effect.kind === 'damage' ? { ...effect, hits: 1 } : effect,
       cardDef,
       attacker,
       target,
       isRampage,
       guardRepeats
     );
-    return isMultiHit && isAfflictionKind(effect.kind)
-      ? `${line} per hit`
-      : line;
+    if (effect.kind === 'disrupt') return [line,
+      ...(effect.allAfflictions ? [`Debuffs −${effect.amount}`] : []),
+      ...(effect.hitLimitTurns ? [`Max 1 hit for ${effect.hitLimitTurns} ${effect.hitLimitTurns === 1 ? 'turn' : 'turns'}`] : []),
+    ];
+    return [isMultiHit && isAfflictionKind(effect.kind) ? `${line} per hit` : line];
   });
   if (cardDef.requiredKillsInOneHit) lines.unshift(`Kill ${cardDef.requiredKillsInOneHit} in one blow this fight`);
   if (cardId === 'followUp') lines.push('Free once after Knockback this turn');
@@ -690,11 +734,14 @@ export type IntentKind =
   | 'shock'
   | 'bleed'
   | 'weaken'
+  | 'malaise'
   | 'guard'
   | 'buff'
   | 'protect'
   | 'heal'
   | 'cleanse'
+  | 'dispel'
+  | 'disrupt'
   | 'summon'
   | 'revive'
   | 'soar'
@@ -724,6 +771,7 @@ export type Intent = {
   text: string;
   label: string;
   isSignature?: boolean;
+  hoverText?: string;
 };
 
 /** One intent chip for one effect of a hero's next move. */
@@ -736,11 +784,14 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
   switch (effect.kind) {
     case 'attack': {
       const { type, perHit } = heroAttackOf(unit, effect);
-      const text = effect.hits > 1 ? `${perHit}×${effect.hits}=${perHit * effect.hits}` : `${perHit}`;
+      const text = effect.hits > 1 ? `${perHit}×${effect.hits}` : `${perHit}`;
+      const hoverText = effect.hits > 1 ? String(perHit * effect.hits) : undefined;
+      const detail = hoverText ? `${text}=${hoverText}` : text;
       return {
         kind: ATTACK_INTENT[type],
         text,
-        label: `${ATTACK_NAME[type]} attack for ${text}${effect.isHoming ? `\n${HOMING_INFO.label}: ${HOMING_INFO.description}` : ''}`,
+        ...(hoverText && { hoverText }),
+        label: `${ATTACK_NAME[type]} attack for ${detail}${effect.isHoming ? `\n${HOMING_INFO.label}: ${HOMING_INFO.description}` : ''}`,
       };
     }
     case 'hex': {
@@ -766,6 +817,8 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
         text: `${effect.amount}`,
         label: `Weaken ${effect.amount}`,
       };
+    case 'malaise':
+      return { kind: 'malaise', text: String(effect.amount), label: `Malaise ${effect.amount}\n${STATUS_INFO.malaise.description}` };
     case 'guard': {
       const amount = scaled(effect.amount);
       return {
@@ -792,7 +845,7 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
       return {
         kind: 'protect',
         text: effect.who === 'allies' ? 'ALL' : '',
-        label: `Protection${toWhom(effect.who)}\n${STATUS_INFO.protection.description}`,
+        label: `Protection${toWhom(effect.who)}\n${STATUS_INFO.protection.description.split('\n')[0]}\nLasts until the heroes' next turn`,
       };
     case 'cleanse':
       return {
@@ -800,6 +853,10 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
         text: effect.who === 'allies' ? 'ALL' : '',
         label: `Cleanses 1 affliction from ${effect.who === 'allies' ? 'every hero' : 'itself'}`,
       };
+    case 'dispel':
+      return { kind: 'dispel', text: String(effect.amount), label: `Dispel ${effect.amount}: removes ${effect.amount === 1 ? 'one random buff' : effect.amount + ' distinct random buffs'} from you.` };
+    case 'disrupt':
+      return { kind: 'disrupt', text: String(effect.amount), label: `Disrupt ${effect.amount}: lowers one random buff or affliction by ${effect.amount}.` };
     case 'revive':
       return { kind: 'revive', text: '', label: 'Revives every fallen ally' };
     case 'soar':

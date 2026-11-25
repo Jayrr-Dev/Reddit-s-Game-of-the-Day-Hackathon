@@ -63,9 +63,11 @@ const STATS: ReadonlyArray<{ key: Stat; label: string; percent?: boolean }> = [
   { key: 'maxEnergy', label: 'Max energy' },
 ];
 
-function PlayerStats({ character, vitals }: Pick<SheetProps, 'character' | 'vitals'>) {
+function PlayerStats({ character, vitals, previewRef }: Pick<SheetProps, 'character' | 'vitals'> & {
+  previewRef: (element: HTMLDivElement | null) => void;
+}) {
   const stats = characterBonuses(character.traits, character.equipment, character.traitNodes);
-  const flatAndPercent = (flat: number, percent: number) => '+' + flat + ' flat, +' + percent + '%';
+  const flatAndPercent = (flat: number, percent: number) => '+' + flat + ' / +' + percent + '%';
   const rows: { label: string; ink: string; icon: GlyphName; value: string }[] = [
     { label: vitals ? 'HP' : 'Max HP', icon: 'heart', ink: 'hp', value: vitals ? vitals.hp + ' / ' + vitals.maxHp : String(stats.maxHp) },
     { label: 'Healing bonus', icon: 'heartbeat', ink: 'heal', value: '+' + stats.healingPercent + '%' },
@@ -85,11 +87,14 @@ function PlayerStats({ character, vitals }: Pick<SheetProps, 'character' | 'vita
   return (
     <section className="cs-player-stats" aria-label="Player stats">
       <h3>Player stats</h3>
-      <dl>{rows.map(({ label, ink, icon, value }) => (
-        <div className="stat-ink" data-stat={ink} key={label}>
-          <dt><Glyph name={icon} />{label}</dt><dd>{value}</dd>
-        </div>
-      ))}</dl>
+      <div className="cs-trait-preview-slot" ref={previewRef} />
+      <div className="cs-player-stats-list" role="region" aria-label="Stat values" tabIndex={0}>
+        <dl>{rows.map(({ label, ink, icon, value }) => (
+          <div className="stat-ink" data-stat={ink} key={label}>
+            <dt><Glyph name={icon} /><span title={label}>{label}</span></dt><dd title={value.replace(' / +', ' flat, +')}>{value}</dd>
+          </div>
+        ))}</dl>
+      </div>
     </section>
   );
 }
@@ -99,11 +104,13 @@ const Traits = ({
   character,
   vitals,
   onSetTraitNode,
-  onRespec,
-}: Pick<SheetProps, 'character' | 'vitals' | 'onSetTraitNode' | 'onRespec'>) => {
-  const [trait, setTrait] = useState<TraitId>('vigor');
-  const points = traitPointsAvailable(character);
-  const rank = character.traits[trait];
+  trait,
+  onSelectTrait,
+}: Pick<SheetProps, 'character' | 'vitals' | 'onSetTraitNode'> & {
+  trait: TraitId;
+  onSelectTrait: (trait: TraitId) => void;
+}) => {
+  const [previewHost, setPreviewHost] = useState<HTMLDivElement | null>(null);
   return (
     <>
       <div className="cs-trait-grid" aria-label="Choose a trait">
@@ -113,7 +120,7 @@ const Traits = ({
             type="button"
             aria-pressed={trait === id}
             aria-label={`${id}, ${character.traits[id]} of ${TRAIT_CAP} nodes`}
-            onClick={() => setTrait(id)}
+            onClick={() => onSelectTrait(id)}
           >
             <Glyph name={TRAIT_ICONS[id]} />
             <span className="cs-name">{id}</span>
@@ -121,17 +128,11 @@ const Traits = ({
           </button>
         ))}
       </div>
-      <div className="cs-trait-summary">
-        <h3><span className="cs-name">{trait}</span> {rank}/{TRAIT_CAP}</h3>
-        <span role="status">{points} {points === 1 ? 'point' : 'points'} available</span>
-        {onRespec && <button type="button" className="cs-action" onClick={onRespec}
-          disabled={!TRAITS.some(id => character.traits[id] > 0)}>Respec all</button>}
-      </div>
       <div className="cs-rank-panel">
-        <TraitSpiral key={trait} character={character} trait={trait} stats={STATS}
+        <TraitSpiral key={trait} character={character} trait={trait} stats={STATS} previewHost={previewHost}
           onSetNode={(node, owned) => onSetTraitNode(trait, node, owned)} />
       </div>
-      <PlayerStats character={character} vitals={vitals} />
+      <PlayerStats character={character} vitals={vitals} previewRef={setPreviewHost} />
     </>
   );
 };
@@ -219,6 +220,8 @@ const Equipment = ({
     previousEquipment.current = { rings, amulet };
     if ((amulet && amulet !== before.amulet) || rings.some((id, i) => id && id !== before.rings[i])) {
       playSound('equip', 1, .84);
+    } else if ((before.amulet && !amulet) || before.rings.some((id, i) => id && !rings[i])) {
+      playSound('unequip', 1, .88);
     }
   }, [rings, amulet]);
   const nearestRingSlot = (id: string) => {
@@ -317,7 +320,8 @@ const Equipment = ({
             {selectedItem && (
               <button
                 type="button"
-                aria-label={`Unequip ${selectedItem.name}`}
+                data-own-sound
+                aria-label={'Unequip ' + selectedItem.name}
                 onClick={() => onEquip(slot, null, ringIndex)}
               >
                 Unequip
@@ -388,6 +392,8 @@ export const CharacterSheet = ({
 }: SheetProps) => {
   const dialog = useRef<HTMLDialogElement>(null);
   const [page, setPage] = useState<'traits' | 'equipment' | 'skills'>('traits');
+  const [trait, setTrait] = useState<TraitId>('vigor');
+  const points = traitPointsAvailable(character);
   const needed = xpToNextLevel(character.level);
   useLayoutEffect(() => {
     const node = dialog.current;
@@ -405,6 +411,7 @@ export const CharacterSheet = ({
     };
     fitFrame();
     node.showModal();
+    node.querySelector<HTMLButtonElement>('.cs-close')?.focus();
     const observer = new ResizeObserver(fitFrame);
     observer.observe(frame);
     window.addEventListener('resize', fitFrame);
@@ -428,17 +435,7 @@ export const CharacterSheet = ({
     >
       <div className="character-sheet">
       <header className="cs-topline">
-      <div className="cs-head">
-        <h2>Character</h2>
-        <button
-          type="button"
-          className="cs-close"
-          onClick={onClose}
-          aria-label="Close character sheet"
-        >
-          Close
-        </button>
-      </div>
+      <h2>Character</h2>
       <div className="cs-level">
         <strong>Level {character.level}</strong>
         {needed > 0 ? (
@@ -456,12 +453,28 @@ export const CharacterSheet = ({
           <span>Max level</span>
         )}
       </div>
+      {page === 'traits' && (
+        <div className="cs-trait-summary">
+          <h3><span className="cs-name">{trait}</span> {character.traits[trait]}/{TRAIT_CAP}</h3>
+          <span role="status">{points} {points === 1 ? 'point' : 'points'} available</span>
+          {onRespec && <button type="button" className="cs-action" data-own-sound onClick={() => { playSound('respec', 1, .72); onRespec(); }}
+            disabled={!TRAITS.some(id => character.traits[id] > 0)}>Respec all</button>}
+        </div>
+      )}
+        <button
+          type="button"
+          className="cs-close"
+          onClick={onClose}
+          aria-label="Close character sheet"
+        >
+          Close
+        </button>
       </header>
       <div className="cs-pages" aria-label="Character views">
         <button
           type="button"
           aria-pressed={page === 'traits'}
-          onClick={() => setPage('traits')}
+          onClick={() => { if (page !== 'traits') setTrait('vigor'); setPage('traits'); }}
         >
           Traits
         </button>
@@ -485,7 +498,8 @@ export const CharacterSheet = ({
           <Traits
             character={character}
             vitals={vitals}
-            onRespec={onRespec}
+            trait={trait}
+            onSelectTrait={setTrait}
             onSetTraitNode={onSetTraitNode}
           />
         ) : page === 'skills' ? (

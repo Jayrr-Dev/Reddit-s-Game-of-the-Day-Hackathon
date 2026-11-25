@@ -20,7 +20,7 @@ import {
 } from '../../../hooks/useCardFlights';
 import { useDrawOrder } from '../../../hooks/useDrawOrder';
 import { prefersReducedMotion } from '../../../lib/motion';
-import { canPlayCard, positionForCard } from '../../../../shared/game/combat';
+import { buffLockedByMalaise, canPlayCard, canPlayCardOnSelf, positionForCard } from '../../../../shared/game/combat';
 import { cardImbuesAt } from '../../../../shared/game/imbue';
 import { canMove, movementBlockReason, movementCost, offeredMovement } from '../../../../shared/game/movement';
 import type { CombatState } from '../../../../shared/game/types';
@@ -257,6 +257,7 @@ export const FanHand = ({
       </aside>
       {combat.hand.map((cardId, index) => {
         const isLifted = index === draggedIndex;
+        const malaiseLocked = imbueSlots.length === 0 && buffLockedByMalaise(combat, cardId);
         return (
           <HandSlot
             key={keys[index]}
@@ -286,8 +287,9 @@ export const FanHand = ({
               }
               // While imbuing, every card can be tapped (to pick or let go).
               isDisabled={
-                imbueSlots.length === 0 && !canPlayCard(combat, index)
+                imbueSlots.length === 0 && !canPlayCard(combat, index) && !canPlayCardOnSelf(combat, index)
               }
+              disabledReason={malaiseLocked ? 'Malaise: Buff cards are locked' : undefined}
               onClick={() => onTapCard(index)}
             />
           </HandSlot>

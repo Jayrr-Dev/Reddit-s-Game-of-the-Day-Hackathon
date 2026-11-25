@@ -18,7 +18,7 @@ import { progressionFromWins, healingAmount, type RingProgress, allocateTrait, a
 // ===================================================================
 
 import { STARTER_DECK, type CardId } from './cards.ts';
-import { combatOutcome, endTurn, playCard, startCombat } from './combat.ts';
+import { combatOutcome, endTurn, playCard, startCombat, SELF_TARGET_UID } from './combat.ts';
 import { mightAt, routeOptions, stopSeed, type Stop } from './kingdom.ts';
 import { isMovementId, move } from './movement.ts';
 import { rollOffers } from './rewards.ts';
@@ -418,8 +418,11 @@ export const isRunAction = (value: unknown): value is RunAction => {
         'handIndex' in value &&
         'targetUid' in value &&
         isIndex(value.handIndex) &&
-        isIndex(value.targetUid) &&
-        isPickList('targetUids' in value ? value.targetUids : undefined) &&
+        (value.targetUid === SELF_TARGET_UID || isIndex(value.targetUid)) &&
+        (value.targetUid === SELF_TARGET_UID
+          ? (!('targetUids' in value) || value.targetUids === undefined ||
+            (Array.isArray(value.targetUids) && value.targetUids.length === 1 && value.targetUids[0] === SELF_TARGET_UID))
+          : isPickList('targetUids' in value ? value.targetUids : undefined)) &&
         (!('imbueIndex' in value) ||
           value.imbueIndex === undefined ||
           isIndex(value.imbueIndex))

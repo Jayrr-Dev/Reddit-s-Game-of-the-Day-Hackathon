@@ -678,10 +678,10 @@ const withInstinct = (state: CombatState, instinct: number): CombatState => ({
   },
 });
 
-void test('Instinct dodge chance by stacks: 25%, 50%, 50%, 75%, then 99%', () => {
+void test('Instinct follows the four tiers: 25%, 50%, 75%, then 95%', () => {
   assert.deepEqual(
     [0, 1, 2, 3, 4, 5, 9].map(dodgeChanceOf),
-    [0, 0.25, 0.5, 0.5, 0.75, 0.99, 0.99]
+    [0, 0.25, 0.5, 0.75, 0.95, 0.95, 0.95]
   );
 });
 
@@ -689,7 +689,7 @@ void test('Ultra Instinct dodges nearly every hit, and each dodge is counted', (
   const results = Array.from({ length: 40 }, (_, index) => {
     const state = withInstinct(
       fightAt([['squire', 'front', 0]], [], index + 1),
-      5
+      4
     );
     const after = endTurn(state);
     return {
@@ -701,14 +701,21 @@ void test('Ultra Instinct dodges nearly every hit, and each dodge is counted', (
   assert.ok(results.every((r) => r.dodged > 0 || r.hp > 0));
 });
 
-void test("Instinct lasts through the heroes' turn, like Protection", () => {
-  const state = withInstinct(fightAt([['squire', 'front', 0]]), 2);
-  const steps = endTurnSteps(state);
-  // Still up while the heroes act...
-  const heroStep = steps.find((step) => step.actorUid !== null)!;
-  assert.equal(heroStep.state.player.statuses.instinct, 2);
-  // ...and gone when the villain's next turn starts.
-  assert.equal(steps.at(-1)!.state.player.statuses.instinct, 0);
+void test('Instinct lasts two enemy turns and reapplying upgrades and refreshes it', () => {
+  const initial = fightAt([['squire', 'front', 0]], ['instinct']);
+  const cast = playCard(initial, 0, -1);
+  assert.equal(cast.player.instinctTurns, 2);
+  const first = endTurnSteps(cast);
+  assert.equal(first.find(step => step.actorUid !== null)!.state.player.statuses.instinct, 1);
+  const next = first.at(-1)!.state;
+  assert.equal(next.player.instinctTurns, 1);
+  const second = endTurnSteps(next);
+  assert.equal(second.find(step => step.actorUid !== null)!.state.player.statuses.instinct, 1);
+  assert.equal(second.at(-1)!.state.player.statuses.instinct, 0);
+  const recast = playCard({ ...next, hand: ['instinct'] }, 0, -1);
+  assert.equal(recast.player.statuses.instinct, 2);
+  assert.equal(recast.player.instinctTurns, 2);
+  assert.equal(endTurn({ ...recast, waveArrival: true }).player.instinctTurns, 2);
 });
 
 void test('Hex can not be dodged', () => {

@@ -1,0 +1,47 @@
+.poison-effect {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: poison-fade 1.25s ease-out both;
+}
+.poison-vignette, .poison-fumes, .poison-fumes span { position: absolute; }
+.poison-vignette { inset: 0; background: radial-gradient(ellipse at 50% 68%, #b2e53652, #668e1724 41%, transparent 70%); }
+.poison-effect[data-poison-surface='screen'] .poison-vignette {
+  background: radial-gradient(ellipse at center, #719e1004 25%, #6ba51a36 66%, #4165149e 100%);
+}
+.poison-fumes { inset: 23% 9% 7%; }
+.poison-effect[data-poison-surface='screen'] .poison-fumes { inset: 52% -4% -8%; opacity: .65; }
+.poison-fumes span {
+  width: 61%;
+  height: 71%;
+  bottom: 6%;
+  left: 0;
+  background:
+    radial-gradient(ellipse at 35% 58%, #cbe9528c, transparent 46%),
+    radial-gradient(ellipse at 63% 43%, #7da92386, transparent 63%),
+    radial-gradient(ellipse at 48% 75%, #4867158a, transparent 66%);
+  filter: blur(3px);
+  animation: poison-rise 1.18s ease-out both;
+}
+.poison-fumes span:nth-child(2) { left: 23%; bottom: 17%; animation-delay: 70ms; opacity: .78; }
+.poison-fumes span:nth-child(3) { left: 43%; bottom: 2%; animation-delay: 125ms; opacity: .75; }
+.poison-drop {
+  position: absolute;
+  bottom: 25%;
+  width: var(--drop-size);
+  aspect-ratio: .8;
+  border-radius: 64% 36% 67% 33% / 66% 47% 53% 34%;
+  background: radial-gradient(ellipse at 32% 26%, #e8f993, #a7db36 27%, #4c7818 70%, #24390a);
+  box-shadow: 0 0 5px #79a62e88;
+  animation: poison-drop .94s ease-out both;
+}
+.poison-effect[data-poison-surface='screen'] .poison-drop { bottom: 7%; }
+@keyframes poison-fade { 0% { opacity: .14; } 16% { opacity: .9; } 42% { opacity: .73; } 100% { opacity: 0; } }
+@keyframes poison-rise { from { transform: translate(0, 9%) scale(.76); opacity: .3; } to { transform: translate(7%, -30%) scale(1.22); opacity: 0; } }
+@keyframes poison-drop { 0% { opacity: 0; transform: translate(0, 0) rotate(0deg) scale(.65); } 24% { opacity: .86; } 100% { opacity: 0; transform: translate(var(--poison-drift), -36px) rotate(40deg) scale(.35); } }
+@media (prefers-reduced-motion: reduce) {
+  .poison-fumes span, .poison-drop { animation: none; }
+  .poison-drop { display: none; }
+  .poison-effect { animation-name: poison-soft-fade; }
+}
+@keyframes poison-soft-fade { from { opacity: .66; } to { opacity: 0; } }

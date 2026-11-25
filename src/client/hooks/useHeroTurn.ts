@@ -29,6 +29,8 @@ type Playback = { steps: Beat[]; index: number };
 const HERO_STAGGER_MS = 200;
 /** How long one attack animation runs (matches --animate-hero-lunge). */
 export const HERO_ATTACK_MS = 560;
+export const HERO_SHOT_RELEASE_MS = Math.round(HERO_ATTACK_MS * 0.57);
+export const HERO_SHOT_FLIGHT_MS = 220;
 /**
  * A signature move first charges up for this long (nothing lands yet),
  * then fires like any other move. Matches the halo charge in index.css.
@@ -116,6 +118,27 @@ const strikesOf = (heroMove: HeroMove | null): number =>
     0
   );
 
+const BLADE_PROPS = new Set(['sword', 'greatsword', 'daggers', 'halberd', 'rapier']);
+
+function isBladeAttack(step: Beat | undefined): boolean {
+  if (!step || step.isCharge || step.attackType !== 'melee' || step.actorUid === null) return false;
+  const move = step.move?.name ?? '';
+  if (/\b(slice|slash|claw|claws|talon|talons|cleave)\b/i.test(move)) return true;
+  if (/\b(bash|punch|kick|slam|blow)\b/i.test(move)) return false;
+  const unit = step.state.heroes.find((hero) => hero.uid === step.actorUid);
+  return !!unit && BLADE_PROPS.has(humanoidLookOf(unit.heroId)?.prop ?? '');
+}
+
+export type BossImpactCue = 'uncUltimate' | 'griffonDive';
+/** Matches the drop transition in index.css (FLIGHT). */
+export const GRIFFON_DIVE_LAND_MS = 260;
+const bossImpactOf = (step: Beat | undefined): BossImpactCue | undefined => {
+  if (!step || step.isCharge || !step.move?.isSignature || step.actorUid === null) return;
+  const actor = step.state.heroes.find(unit => unit.uid === step.actorUid);
+  if (actor?.heroId === 'holyDragon' && step.move.name === 'Halo of Judgment') return 'uncUltimate';
+  if (actor?.heroId === 'grandGriffon' && step.move.name === 'Heavenly Dive') return 'griffonDive';
+};
+
 /** Nobody acting (shared so the empty case keeps one identity). */
 const NOBODY_ACTING: ReadonlyMap<number, HeroAction> = new Map();
 
@@ -164,6 +187,9 @@ export const useHeroTurn = (
     acting: playback ? actingAt(playback.steps, playback.index) : NOBODY_ACTING,
     /** How the attack on screen right now lands (it colours your hits). */
     attackType: step?.attackType ?? null,
+    bossImpact: bossImpactOf(step),
+    bladeStep: isBladeAttack(step) ? step : undefined,
+    arrowStep: step && !step.isCharge && step.attackType && step.actorUid !== null && actionOf(step, step.actorUid).style === 'range' ? step : undefined,
     element: step?.attackType === 'magic' ? step.move?.element : undefined,
     /** How many blows the attack on screen right now strikes (0: none). */
     strikes: strikesOf(step?.move ?? null),

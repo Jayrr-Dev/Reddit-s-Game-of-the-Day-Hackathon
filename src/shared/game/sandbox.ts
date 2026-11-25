@@ -10,7 +10,7 @@
 import { advanceHeroes, cellCountOf } from './battlefield.ts';
 import { characterBonuses, syncCharacterCombat, type CharacterState, type Equipment, type TraitNodes, type Traits } from './character.ts';
 import { drawCards, combatOutcome, endTurn, finishPlayerTurn, playCard, startCombat, startPlayerTurn } from './combat.ts';
-import { CHAMPION_IDS, ELITE_IDS, GRUNT_IDS, type HeroId } from './heroes.ts';
+import { CHAMPION_IDS, ELITE_IDS, getHero, GRUNT_IDS, type HeroId } from './heroes.ts';
 import { move } from './movement.ts';
 import { nextInt, pickWeighted, type RngState } from './rng.ts';
 import { BATTLEFIELD_ROWS, PLAYER_MAX_HP } from './rules.ts';
@@ -66,15 +66,15 @@ export type SandboxScenario = {
 export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
   {
     id: 'holyDragon',
-    name: 'Holy Dragon Unc',
+    name: getHero('holyDragon').name,
     blurb: 'A boss in a T that calls Biblical Angels to its flanks.',
     heroIds: ['holyDragon'],
   },
   {
     id: 'grandGriffon',
     name: 'Grand Griffon Rio',
-    blurb: 'A boss down the centre that soars out of reach, then dives.',
-    heroIds: ['grandGriffon', 'squire', 'archer'],
+    blurb: 'A solo boss in the centre that soars out of reach, then dives.',
+    heroIds: ['grandGriffon'],
   },
   {
     id: 'mixedRows',

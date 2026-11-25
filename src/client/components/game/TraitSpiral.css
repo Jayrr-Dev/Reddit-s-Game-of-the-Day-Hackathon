@@ -59,44 +59,47 @@
 .trait-spiral-node:focus-visible .trait-spiral-disc {
   outline: 2px solid #4c2726; outline-offset: 2px;
 }
+/* Keep details in normal document flow so they never sit over a node. */
 .trait-spiral-inspect {
   display: grid;
-  pointer-events: none;
-  z-index: 3;
-  position: absolute;
-  --tooltip-width: min(208px, 95%);
-  transform: translateY(17px);
-  gap: 2px;
-  width: var(--tooltip-width);
-  box-sizing: border-box;
-  box-shadow: 0 3px 9px #42271375;
-  padding: 5px 8px;
+  margin: 0;
+  gap: 3px;
+  padding: 4px 6px;
   border: 1px solid #a98349;
   border-radius: 4px;
   color: #432c17;
   background-color: #f6e5b9;
   font-size: 12px;
 }
+.trait-spiral-preview-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+  white-space: nowrap;
+}
 .trait-spiral-inspect strong { font: bold 14px Georgia, serif; }
 .trait-spiral-stat {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px 8px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
   padding-top: 3px;
   border-top: 1px solid #c9ae7b;
   line-height: 1.15;
 }
 .trait-spiral-stat-name {
-  grid-column: 1 / -1;
   display: flex;
-  gap: 4px;
   align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
 }
 .trait-spiral-stat b { font-variant-numeric: tabular-nums; }
 .trait-spiral-inspect svg { width: 12px; height: 12px; flex-shrink: 0; }
-.trait-spiral-inspect[data-above=true] { transform: translateY(calc(-100% - 17px)); }
-.trait-spiral-node[aria-disabled=true] { cursor: default; }
-.trait-spiral-node[aria-disabled=true] .trait-spiral-disc { border-style: dashed; }
+.trait-spiral-node[data-blocked=true] { cursor: default; }
+.trait-spiral-node[data-blocked=true] .trait-spiral-disc { border-style: dashed; }
 .trait-spiral-node[data-preview=spend] .trait-spiral-disc { background: #ffe5a4; }
 .trait-spiral-node[data-preview=refund] .trait-spiral-disc { background: #f6cbb8; border-color: #853e35; }
 .trait-spiral-cost { padding: 2px 0; font-weight: bold; }
@@ -121,7 +124,7 @@
   outline-offset: 1px;
   box-shadow: 0 0 0 4px #f7da88;
 }
-.trait-spiral-node[data-earned=false][aria-disabled=true] .trait-spiral-disc { opacity: .79; }
+.trait-spiral-node[data-earned=false][data-blocked=true] .trait-spiral-disc { opacity: .79; }
 .trait-arm-key { display: flex; justify-content: center; gap: .25em .8em; flex-wrap: wrap; font: bold .76rem/1.2 var(--font-display); }
 .trait-arm-hint { margin: .2rem auto; text-align: center; font: .68rem/1.2 var(--font-body); }
 .trait-spiral-node[data-arm=junction] .trait-spiral-disc {

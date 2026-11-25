@@ -251,7 +251,7 @@ function LessonFight({
               ? spent
                 ? 'Point spent. Close the sheet to finish.'
                 : sheetOpen
-                  ? 'Tap the starting star on the Traits page to spend a point.'
+                  ? 'Tap the starting star on the Traits page to preview. Tap it again to spend the point.'
                   : 'You reached level ' +
                     character.level +
                     '. Tap your highlighted portrait to spend a trait point, or finish here.'

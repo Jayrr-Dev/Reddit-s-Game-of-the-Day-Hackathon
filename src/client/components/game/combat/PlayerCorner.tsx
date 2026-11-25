@@ -26,12 +26,16 @@ export const PlayerCorner = ({
   lethal,
   hits,
   onOpenCharacter,
+  onTargetSelf,
+  selfTargetLocked,
 }: {
   player: Combatant;
   level: number;
   lethal: boolean;
   hits: readonly PlayerHitPop[];
   onOpenCharacter: () => void;
+  onTargetSelf?: (() => void) | undefined;
+  selfTargetLocked?: boolean;
 }) => {
   const username = useContext(PlayerName);
   const degrees = Math.max(0, (player.hp / player.maxHp) * 360);
@@ -83,10 +87,11 @@ export const PlayerCorner = ({
         <ImpactOverlay pops={hits.filter((hit) => hit.kind !== 'hit')} />
         <button
           type="button"
-          className="absolute inset-0 rounded-full"
-          onClick={onOpenCharacter}
-          title="Character sheet"
-          aria-label={`Open character sheet, health ${player.hp} of ${player.maxHp}, level ${level}${warning ? ', ' + warning : ''}`}
+          className={`absolute inset-0 rounded-full ${onTargetSelf ? 'cursor-crosshair ring-2 ring-accent' : ''} ${selfTargetLocked ? 'shadow-[0_0_18px_var(--color-accent)]' : ''}`}
+          onClick={onTargetSelf ?? onOpenCharacter}
+          data-self-target={onTargetSelf ? (selfTargetLocked ? 'locked' : 'available') : undefined}
+          title={onTargetSelf ? 'Play card on yourself' : 'Character sheet'}
+          aria-label={onTargetSelf ? 'Play card on yourself' : `Open character sheet, health ${player.hp} of ${player.maxHp}, level ${level}${warning ? ', ' + warning : ''}`}
         />
         {/* GAINS PILE UP AT THE PORTRAIT'S TOP RIGHT, EACH FLOATING OFF
             LEFT, UP OR RIGHT AT RANDOM (hits pop on the screen, see

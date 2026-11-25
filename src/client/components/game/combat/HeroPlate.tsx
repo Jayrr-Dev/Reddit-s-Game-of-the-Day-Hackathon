@@ -3,8 +3,8 @@
 // The health plate that floats above every hero on the battlefield:
 //   name                      (top left)
 //   ====[ HP ]====            drain bar, the number in a centre shield
-//   intent chips   statuses   (under the bar: next move right on white
-//                              pills, statuses left on dark tiles)
+//   intent chips   statuses   (under the bar: next move left on white
+//                              pills, statuses right on dark tiles)
 // Each hero gets its own plate, so the whole horde reads at a glance.
 // Plates follow the figure in screen space while their type and bars stay the same size.
 // ===================================================================
@@ -62,9 +62,11 @@ const MoveArrow = ({ move, unit }: { move: MoveIntent; unit: HeroUnit }) => {
       {...INTENT_LOOK[lead.kind]}
       fill={intentFill(lead.kind, move.isSignature)}
       text={lead.text}
+      hoverText={lead.hoverText}
       extras={rest.map((intent) => ({
         glyph: INTENT_LOOK[intent.kind].glyph,
         text: intent.text,
+        hoverText: intent.hoverText,
         fill: intentFill(intent.kind, false),
       }))}
       info={{
@@ -95,7 +97,7 @@ export const IntentChips = ({
     chips.forEach(chip => observer.observe(chip));
     return () => observer.disconnect();
   });
-  return <div ref={stack} className="hero-action-chips flex flex-col items-start gap-1">
+  return <div ref={stack} className="hero-action-chips flex flex-col items-end gap-1">
     {describeHeroIntent(unit, field).moves.map((move, index) => (
       <MoveArrow key={`${move.name}-${index}`} move={move} unit={unit} />
     ))}

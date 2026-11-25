@@ -25,8 +25,15 @@ export const DeathScreen = ({
   useEffect(() => {
     const node = dialog.current;
     node?.showModal();
-    playSound('remove', .61, .85);
-    return () => node?.close();
+    let stopCue: (() => void) | undefined;
+    const frame = requestAnimationFrame(() => {
+      if (node?.open) stopCue = playSound('deathScreen', 1, .94);
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      stopCue?.();
+      node?.close();
+    };
   }, []);
   return (
     <dialog

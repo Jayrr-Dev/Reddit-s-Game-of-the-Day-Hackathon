@@ -1,50 +1,80 @@
+import griffonDiveWhooshUrl from '../assets/audio/griffon-dive-whoosh-user.ogg';
+import playerDeathUrl from '../assets/audio/player-death-user.ogg';
+import deathScreenUrl from '../assets/audio/death-screen-user.ogg';
+import bossUncVoiceUrl from '../assets/audio/boss-unc-voice.ogg';
+import bossRioVoiceUrl from '../assets/audio/boss-rio-voice.ogg';
+import griffonDiveUrl from '../assets/audio/griffon-dive-user.ogg';
+import griffonTakeoffUrl from '../assets/audio/griffon-takeoff-user.ogg';
+import uncUltimateUrl from '../assets/audio/unc-ultimate-user.ogg';
+import bossDescentUrl from '../assets/audio/boss-descent-whoosh.ogg';
+import bossTouchdownUrl from '../assets/audio/boss-touchdown-user.ogg';
+import death6Url from '../assets/audio/unit-death-6.ogg';
+import death5Url from '../assets/audio/unit-death-5.ogg';
+import death4Url from '../assets/audio/unit-death-4.ogg';
+import death3Url from '../assets/audio/unit-death-3.ogg';
+import death2Url from '../assets/audio/unit-death-2.ogg';
+import death1Url from '../assets/audio/unit-death-1.ogg';
 import drawUrl from '../assets/audio/card-draw.ogg';
+import discardUrl from '../assets/audio/paper-discard-slide.ogg';
 
-import menuUrl from '../assets/audio/menu.ogg';
-import levelUpUrl from '../assets/audio/level-up.ogg';
-import runeClickUrl from '../assets/audio/rune-click.ogg';
+import menuUrl from '../assets/audio/paper-menu-tap.ogg';
+import levelUpUrl from '../assets/audio/level-up-dark.ogg';
+import runeClickUrl from '../assets/audio/paper-page-tick.ogg';
 import equipUrl from '../assets/audio/equip.ogg';
-import bluntUrl from '../assets/audio/blunt.ogg';
+import unequipUrl from '../assets/audio/unequip.ogg';
+import bluntUrl from '../assets/audio/hit-dry-contact.ogg';
 import bladeUrl from '../assets/audio/blade.ogg';
-import arrowUrl from '../assets/audio/arrow.ogg';
-import swiftArrowUrl from '../assets/audio/arrow-swift.ogg';
-import cardClickUrl from '../assets/audio/card-click.ogg';
-import hoverTickUrl from '../assets/audio/hover-tick.ogg';
-import arcaneUrl from '../assets/audio/arcane.ogg';
-import curseUrl from '../assets/audio/curse.ogg';
-import hexTriggerUrl from '../assets/audio/hex-trigger.ogg';
-import guardUrl from '../assets/audio/guard.ogg';
+import arrowUrl from '../assets/audio/ballista-release.ogg';
+import siegeArrowUrl from '../assets/audio/siege-ballista-shot.ogg';
+import respecUrl from '../assets/audio/respec-paper.ogg';
+import swiftArrowUrl from '../assets/audio/ballista-release.ogg';
+import cardClickUrl from '../assets/audio/card-select-soft.ogg';
+import hoverTickUrl from '../assets/audio/paper-hover.ogg';
+import cardHoverUrl from '../assets/audio/paper-card-hover.ogg';
+import arcaneUrl from '../assets/audio/magic-blast-user.ogg';
+import curseUrl from '../assets/audio/hex-cast-user.ogg';
+import hexTriggerUrl from '../assets/audio/hex-damage-user.ogg';
+import blockThudUrl from '../assets/audio/block-thud-user.ogg';
+import guardUrl from '../assets/audio/shield-block.ogg';
 import moveUrl from '../assets/audio/move.ogg';
-import potionUrl from '../assets/audio/potion.ogg';
-import imbueUrl from '../assets/audio/imbue.ogg';
-import shuffleUrl from '../assets/audio/shuffle.ogg';
+import potionUrl from '../assets/audio/potion-gulp.ogg';
+import graveUrl from '../assets/audio/imbue.ogg';
+import enemyKnockbackUrl from '../assets/audio/enemy-knockback-user.ogg';
+import knockbackUrl from '../assets/audio/knockback-scuff.ogg';
+import shuffleUrl from '../assets/audio/deck-paper-riffle.ogg';
 import removeUrl from '../assets/audio/remove.ogg';
-import rewardUrl from '../assets/audio/reward.ogg';
-import bossUrl from '../assets/audio/boss-march.ogg';
+import rewardUrl from '../assets/audio/reward-card-stack.ogg';
 import bladeHitUrl from '../assets/audio/blade-hit.ogg';
-import arrowHitUrl from '../assets/audio/arrow-hit.ogg';
-import magicFireUrl from '../assets/audio/magic-fire.ogg';
-import magicFireHitUrl from '../assets/audio/magic-fire-hit.ogg';
-import magicIceUrl from '../assets/audio/magic-ice.ogg';
-import magicIceHitUrl from '../assets/audio/magic-ice-hit.ogg';
-import magicLightningUrl from '../assets/audio/magic-lightning.ogg';
-import magicLightningHitUrl from '../assets/audio/magic-lightning-hit.ogg';
-import magicArcaneHitUrl from '../assets/audio/magic-arcane-hit.ogg';
-import chargeUrl from '../assets/audio/charge.ogg';
+import shotMissUrl from '../assets/audio/shot-miss-user.ogg';
+import poisonUrl from '../assets/audio/poison-user.ogg';
+import conquestOpenUrl from '../assets/audio/conquest-open-user.ogg';
+import conquestStartUrl from '../assets/audio/conquest-start-user.ogg';
+import arrowHitUrl from '../assets/audio/arrow-impact-leather.ogg';
+import bleedBiteUrl from '../assets/audio/bleed-mix-user.ogg';
+import magicFireUrl from '../assets/audio/spell-fire-whoosh.ogg';
+import magicFireHitUrl from '../assets/audio/spell-fire-burst.ogg';
+import magicIceUrl from '../assets/audio/spell-ice-flight.ogg';
+import magicIceHitUrl from '../assets/audio/spell-ice-burst.ogg';
+import magicLightningUrl from '../assets/audio/spell-thunder-crack.ogg';
+import shockUrl from '../assets/audio/shock-cast-chain-user.ogg';
+import shockBurstUrl from '../assets/audio/shock-burst-large-user.ogg';
+import magicLightningHitUrl from '../assets/audio/lightning-strike-user.ogg';
+import magicArcaneHitUrl from '../assets/audio/spell-arcane-burst.ogg';
+import rushUrl from '../assets/audio/rush-user.ogg';
+import chargeUrl from '../assets/audio/charge-user.ogg';
 import backstepUrl from '../assets/audio/backstep.ogg';
 import type { CardType, MagicElement, MeleeEdge } from '../../shared/game/types';
-import woodHoverUrl from '../assets/audio/wood-hover.ogg';
 import turnEndUrl from '../assets/audio/turn-end.ogg';
-import bluntSwingUrl from '../assets/audio/blunt-swing.ogg';
-import hammerHitUrl from '../assets/audio/hammer-hit.ogg';
-import guardSetUrl from '../assets/audio/guard-set.ogg';
-import healUrl from '../assets/audio/heal.ogg';
-import buffUrl from '../assets/audio/buff.ogg';
+import bluntImpactUrl from '../assets/audio/blunt-impact-user.ogg';
+import armorUpUrl from '../assets/audio/armor-up.ogg';
+import healUrl from '../assets/audio/heal-user.ogg';
+import buffMinorUrl from '../assets/audio/buff-minor-user.ogg';
+import buffMajorUrl from '../assets/audio/buff-major-user.ogg';
 import utilityCueUrl from '../assets/audio/utility-cue.ogg';
 import { getCard, type CardId } from '../../shared/game/cards';
 
 export type AudioChannel = 'music' | 'sfx';
-const defaults = { music: 0, sfx: 50 };
+const defaults = { music: 25, sfx: 50 };
 const volumes = { ...defaults };
 const storageKey = (channel: AudioChannel) => 'villain-run.volume.' + channel;
 for (const channel of ['music', 'sfx'] as const) {
@@ -54,13 +84,18 @@ for (const channel of ['music', 'sfx'] as const) {
       volumes[channel] = Math.max(0, Math.min(100, Number(saved)));
   } catch { /* Session values work without storage. */ }
 }
-const sounds = { draw: drawUrl, menu: menuUrl, levelUp: levelUpUrl, runeClick: runeClickUrl, equip: equipUrl, blunt: bluntUrl, blade: bladeUrl, arrow: arrowUrl, swiftArrow: swiftArrowUrl, cardClick: cardClickUrl, hoverTick: hoverTickUrl, woodHover: woodHoverUrl, turnEnd: turnEndUrl, bluntSwing: bluntSwingUrl, hammerHit: hammerHitUrl, guardSet: guardSetUrl, heal: healUrl, buff: buffUrl, utilityCue: utilityCueUrl, arcane: arcaneUrl, curse: curseUrl, hexTrigger: hexTriggerUrl, guard: guardUrl, move: moveUrl, potion: potionUrl, imbue: imbueUrl, shuffle: shuffleUrl, remove: removeUrl, reward: rewardUrl, bladeHit: bladeHitUrl, arrowHit: arrowHitUrl, magicFire: magicFireUrl, magicFireHit: magicFireHitUrl, magicIce: magicIceUrl, magicIceHit: magicIceHitUrl, magicLightning: magicLightningUrl, magicLightningHit: magicLightningHitUrl, magicArcaneHit: magicArcaneHitUrl, charge: chargeUrl, backstep: backstepUrl };
+const sounds = { draw: drawUrl, discard: discardUrl, menu: menuUrl, conquestOpen: conquestOpenUrl, conquestStart: conquestStartUrl, levelUp: levelUpUrl, runeClick: runeClickUrl, equip: equipUrl, unequip: unequipUrl, blunt: bluntUrl, blade: bladeUrl, arrow: arrowUrl, siegeArrow: siegeArrowUrl, respec: respecUrl, swiftArrow: swiftArrowUrl, cardClick: cardClickUrl, hoverTick: hoverTickUrl, cardHover: cardHoverUrl, turnEnd: turnEndUrl, bluntImpact: bluntImpactUrl, guardSet: guardUrl, armorUp: armorUpUrl, heal: healUrl, buffMinor: buffMinorUrl, buffMajor: buffMajorUrl, utilityCue: utilityCueUrl, arcane: arcaneUrl, curse: curseUrl, hexTrigger: hexTriggerUrl, guard: blockThudUrl, move: moveUrl, potion: potionUrl, imbue: buffMinorUrl, grave: graveUrl, knockback: knockbackUrl, enemyKnockback: enemyKnockbackUrl, shuffle: shuffleUrl, remove: removeUrl, reward: rewardUrl, bladeHit: bladeHitUrl, arrowHit: arrowHitUrl, shotMiss: shotMissUrl, poison: poisonUrl, bleedBite: bleedBiteUrl, magicFire: magicFireUrl, magicFireHit: magicFireHitUrl, magicIce: magicIceUrl, magicIceHit: magicIceHitUrl, magicLightning: magicLightningUrl, magicLightningHit: magicLightningHitUrl, shock: shockUrl, shockBurst: shockBurstUrl, magicArcaneHit: magicArcaneHitUrl, charge: chargeUrl, rush: rushUrl, backstep: backstepUrl, enemyStep: backstepUrl, bossDescent: bossDescentUrl, bossTouchdown: bossTouchdownUrl, bossUncVoice: bossUncVoiceUrl, bossRioVoice: bossRioVoiceUrl, deathScreen: deathScreenUrl, playerDeath: playerDeathUrl, uncUltimate: uncUltimateUrl, griffonTakeoff: griffonTakeoffUrl, griffonDive: griffonDiveUrl, griffonDiveWhoosh: griffonDiveWhooshUrl, death1: death1Url, death2: death2Url, death3: death3Url, death4: death4Url, death5: death5Url, death6: death6Url };
 type Sound = keyof typeof sounds;
+const deathCues = ['death1', 'death2', 'death3', 'death4', 'death5', 'death6'] as const;
+let nextDeath = 0;
+export const playUnitDeath = () => {
+  const cue = deathCues[nextDeath % deathCues.length]!;
+  nextDeath++;
+  playSound(cue, 1, .79);
+};
 const voices = new Map<HTMLAudioElement, number>();
 const preloaded = new Map<Sound, HTMLAudioElement>();
 const lastCue = new Map<Sound, number>();
-let bossTrack: HTMLAudioElement | undefined;
-let bossActive = false;
 let unlocked = false;
 const subscribers = new Set<() => void>();
 
@@ -70,28 +105,16 @@ export const subscribeVolume = (listener: () => void) => {
   return () => { subscribers.delete(listener); };
 };
 
-/** Start the boss score only after a gesture and stop it in hidden tabs. */
-function syncMusic() {
-  if (!bossActive || !volumes.music || !unlocked || document.hidden) {
-    bossTrack?.pause();
-    return;
-  }
-  bossTrack ??= new Audio(bossUrl);
-  bossTrack.loop = true;
-  bossTrack.volume = (volumes.music / 100) ** 2;
-  if (bossTrack.paused) void bossTrack.play().catch(() => {});
-}
-
 /** Bind once at app startup, outside React's replayable render lifecycle. */
 export function installGameAudio(root: HTMLElement) {
-  for (const name of ['blade', 'bladeHit', 'arrow', 'swiftArrow', 'arcane', 'magicFire', 'magicIce', 'magicLightning', 'cardClick', 'shuffle', 'blunt', 'guard', 'charge', 'backstep', 'curse', 'hexTrigger', 'arrowHit', 'magicFireHit', 'magicIceHit', 'magicLightningHit', 'runeClick', 'levelUp', 'equip', 'imbue', 'hoverTick', 'woodHover', 'turnEnd', 'bluntSwing', 'hammerHit', 'guardSet', 'heal', 'buff', 'utilityCue'] as const) {
+  for (const name of ['blade', 'bladeHit', 'arrow', 'swiftArrow', 'siegeArrow', 'respec', 'arcane', 'magicFire', 'magicIce', 'magicLightning', 'cardClick', 'discard', 'shuffle', 'blunt', 'guard', 'charge', 'rush', 'backstep', 'enemyStep', 'bossDescent', 'bossTouchdown', 'bossUncVoice', 'bossRioVoice', 'deathScreen', 'playerDeath', 'uncUltimate', 'griffonTakeoff', 'griffonDive', 'griffonDiveWhoosh', 'curse', 'hexTrigger', 'arrowHit', 'shotMiss', 'poison', 'bleedBite', 'magicFireHit', 'magicIceHit', 'magicLightningHit', 'shock', 'shockBurst', 'runeClick', 'levelUp', 'equip', 'unequip', 'imbue', 'knockback', 'enemyKnockback', 'potion', 'hoverTick', 'cardHover', 'turnEnd', 'conquestOpen', 'conquestStart', 'bluntImpact', 'guardSet', 'armorUp', 'heal', 'buffMinor', 'buffMajor', 'utilityCue', ...deathCues] as const) {
     if (preloaded.has(name)) continue;
     const cue = new Audio();
     cue.preload = 'auto';
     cue.src = sounds[name];
     preloaded.set(name, cue);
   }
-  const unlock = () => { unlocked = true; if (volumes.music) syncMusic(); };
+  const unlock = () => { unlocked = true; };
   root.addEventListener('pointerup', unlock);
   root.addEventListener('keydown', unlock);
   root.addEventListener('pointerover', event => {
@@ -101,13 +124,13 @@ export function installGameAudio(root: HTMLElement) {
     if (!target || !root.contains(target) || target.closest('[inert], :disabled, [aria-disabled="true"]')) return;
     if (event.relatedTarget instanceof Node && target.contains(event.relatedTarget)) return;
     const card = target.hasAttribute('data-card-size') || target.hasAttribute('data-card-id');
-    playSound(card ? 'hoverTick' : 'woodHover', 1, card ? .38 : .30);
+    playSound(card ? 'cardHover' : 'hoverTick', .96, card ? .29 : .34);
   });
   root.addEventListener('click', event => {
-    const button = event.target instanceof Element ? event.target.closest('button') : null;
-    if (!button || button.disabled || button.closest('[inert]')) return;
+    const button = event.target instanceof Element ? event.target.closest('button, a[href], summary, [role="button"], [role="tab"], [role="menuitem"], [role="option"], input[type="checkbox"], input[type="radio"], select') : null;
+    if (!button || !root.contains(button) || button.closest('[inert], :disabled, [aria-disabled="true"]')) return;
     if (button.hasAttribute('data-card-size')) {
-      playSound('cardClick', 1, 0.56);
+      playSound('cardClick', 1, 0.48);
       return;
     }
     if (button.matches('[data-move], [data-hero-uid], .table-end, [data-own-sound]')) return;
@@ -119,24 +142,14 @@ export function installGameAudio(root: HTMLElement) {
   }, true);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { for (const sound of voices.keys()) sound.pause(); voices.clear(); }
-    if (unlocked) syncMusic();
   });
 }
 
 export function setVolume(channel: AudioChannel, value: number) {
   volumes[channel] = Math.max(0, Math.min(100, value));
   try { localStorage.setItem(storageKey(channel), String(volumes[channel])); } catch { /* Session only. */ }
-  if (channel === 'music') { unlocked = true; syncMusic(); }
   if (channel === 'sfx') for (const [voice, gain] of voices) voice.volume = (volumes.sfx / 100) ** 2 * gain;
   subscribers.forEach(notify => notify());
-}
-
-/** Change score only at the start or end of a boss encounter. */
-export function setBossMusic(active: boolean) {
-  if (bossActive === active) return;
-  bossActive = active;
-  if (!active && bossTrack) { bossTrack.pause(); bossTrack.currentTime = 0; }
-  if (unlocked) syncMusic();
 }
 
 /** Limit overlapping voices and group repeated hits from a single animation frame. */
@@ -158,49 +171,83 @@ export function playSound(name: Sound, rate = 1, gain = 1) {
   voice.preservesPitch = false;
   voice.onended = () => { voices.delete(voice); };
   void voice.play().catch(() => { voices.delete(voice); });
+  return () => {
+    voice.pause();
+    voices.delete(voice);
+  };
 }
 
 export const playDraw = () => playSound('draw');
 
 /** Play a short contact cue when the animation registers damage. */
-export function playCombatImpact(type?: CardType, element?: MagicElement, edge?: MeleeEdge, gain = .76, heavy = false) {
+export function playCombatImpact(type?: CardType, element?: MagicElement, edge?: MeleeEdge, gain = .76, heavy = false, light = false) {
   if (type === 'melee' && edge === 'sharp') return playSound('bladeHit', heavy ? .92 : 1, gain);
-  if (type === 'melee' && heavy) return playSound('hammerHit', 1, gain);
+  if (type === 'melee') return playSound('bluntImpact', heavy ? .84 : light ? 1.31 : 1.03, gain);
   if (type === 'range') return playSound('arrowHit', 1, gain);
   if (type === 'magic') {
     const hit = element === 'fire' ? 'magicFireHit' : element === 'ice' ? 'magicIceHit' : element === 'lightning' ? 'magicLightningHit' : 'magicArcaneHit';
-    return playSound(hit, 1, gain);
+    return playSound(hit, 1, hit === "magicArcaneHit" ? gain * .72 : gain);
   }
   if (type === 'curse') return playSound('hexTrigger', 1, gain);
   return playSound('blunt', 1, gain);
 }
 
+type BurstEvent = { kind: string; tick?: 'hex' | 'poison' | 'burn' | undefined };
+
+export function playAfflictionBurst({ kind, tick }: BurstEvent) {
+  if (kind === 'shockBurst') return playSound('shockBurst', 1, .8);
+  if (kind === 'bleedBite') return playSound('bleedBite', 1, .58);
+  if (tick === 'hex') return playSound('hexTrigger', 1, .69);
+  if (tick === 'burn') return playSound('magicFireHit', .98, .49);
+  if (kind === 'miss') return playSound('shotMiss', 1, .8);
+  if (tick === 'poison') return playSound('poison', 1, .55);
+  if (kind === 'poison') return playSound('poison', 1, .73);
+}
+
+/** Shock cards share a single action cue, regardless of how they deliver it. */
+export function usesShockCue(card: ReturnType<typeof getCard>) {
+  return card.effects.some(effect =>
+    effect.kind === 'shock' || (effect.kind === 'amplify' && effect.status === 'shock')
+  );
+}
+
 /** Use the card's material and element, with individual accents for signature effects. */
 export function playCardSound(id: CardId) {
   const card = getCard(id);
+  if (usesShockCue(card)) return playSound('shock', 1, .74);
+  // Armor plays on the actual status gain in CombatView, not on card selection.
+  if (card.effects.some(effect => effect.kind === 'armor')) return;
   switch (id) {
-    case 'decimate': return playSound('blade', 1, .62);
-    case 'siegeBlast': return playSound('bluntSwing', .88, .85);
-    case 'reap': return playSound('curse', .96);
-    case 'arrowShot': case 'venomDart': return playSound('swiftArrow');
+    case 'reap': return; // Hex damage gets its cue at contact.
+    case 'arrowShot': case 'venomDart': return playSound('swiftArrow', 1.12, .85);
     case 'killingSpree': return playSound('utilityCue', .91, .9);
     case 'healingPotion': case 'rushPotion': case 'swiftTonic': case 'antidote': return playSound('potion');
   }
   switch (card.type) {
     case 'melee': return card.edge === 'sharp'
-      ? playSound('blade', 1, .52)
-      : playSound('bluntSwing', id === 'quickJab' ? 1.18 : 1, .66);
+      ? playSound('blade', card.effects.some(effect => effect.kind === 'damage' && effect.amount >= 12)
+          ? .93 : card.cost <= 1 ? 1.16 : 1.06, .7)
+      : undefined; // Blunt plays the supplied recording once, on contact.
     case 'range': return playSound('arrow');
     case 'magic':
-      if (card.element === 'healing') return playSound('heal', 1, .8);
+      if (card.element === 'healing') return; // Sound follows restored HP.
       return playSound(card.element === 'fire' ? 'magicFire' : card.element === 'ice' ? 'magicIce' : card.element === 'lightning' ? 'magicLightning' : 'arcane');
-    case 'curse': return playSound('curse');
-    case 'defend': return playSound('guardSet', 1, .8);
+    case 'curse': return playSound('curse', 1, .83);
+    case 'defend':
+      // The Guard gain itself is sounded in CombatView.
+      if (card.effects.some(effect => effect.kind === 'guard')) return;
+      return playSound('guardSet', 1, .8);
     case 'imbue': return playSound('imbue');
-    case 'movement': return playSound('move');
-    case 'buff': return playSound('buff');
+    case 'movement':
+      if (card.effects.every(effect => effect.kind === 'rush')) return;
+      return playSound('move');
+    case 'buff': {
+      const statGains = card.effects.filter(effect => effect.kind === 'buff' || effect.kind === 'wrath');
+      const major = card.cost >= 2 || card.rarity === 'rare' || card.rarity === 'legendary' || statGains.length > 1;
+      return playSound(major ? 'buffMajor' : 'buffMinor', 1, major ? .85 : .74);
+    }
     case 'utility':
-      if (card.effects.some(effect => effect.kind === 'heal')) return playSound('heal', 1, .8);
+      if (card.effects.some(effect => effect.kind === 'heal')) return;
       if (card.effects.some(effect => effect.kind === 'draw')) return playSound('draw', 1.1, .75);
       return playSound('utilityCue');
   }

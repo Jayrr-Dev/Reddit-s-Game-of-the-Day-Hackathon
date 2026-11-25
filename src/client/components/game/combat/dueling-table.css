@@ -464,6 +464,15 @@
   inset: var(--horizon) .5rem var(--hand-zone);
 }
 .guide-lanes line { stroke:#fb755b; stroke-width:1; }
+@media (prefers-reduced-motion: no-preference) {
+  [data-spacing-walk] button:not([data-aloft], [data-acting]) .hero-step-gait {
+    animation: field-side-step 180ms ease-in-out infinite;
+  }
+  @keyframes field-side-step {
+    0%, 100% { translate: 0 0; rotate: -.8deg; }
+    50% { translate: 0 -2px; rotate: .8deg; }
+  }
+}
 .hero-plate {
   width: clamp(6rem, 17cqw, 9rem);
 }
@@ -477,8 +486,13 @@
   filter: drop-shadow(0 1px 1px rgb(0 0 0 / 70%));
 }
 /* Extend the action's tap area vertically without moving the HP bar or covering adjacent chips. */
-.hero-plate-details { display:flex; justify-content:space-between; align-items:flex-start; gap:4px; width:max-content; min-width:125%; align-self:center; transform:scale(.8); transform-origin:top center; }
-.hero-action-chips { zoom: 1.5; white-space: nowrap; }
+.hero-plate-details { display:grid; grid-template-columns:repeat(2, minmax(max-content, 1fr)); align-items:start; gap:8px; width:max-content; min-width:125%; align-self:center; transform:scale(.8); transform-origin:top center; }
+.hero-action-chips { grid-column:1; justify-self:end; zoom:1.5; white-space:nowrap; }
+.hero-plate-details > .enemy-status-grid { grid-column:2; justify-self:start; }
+@container duel (max-width: 470px) {
+  .hero-plate-layer[data-crowded] .hero-plate { gap: .2rem; }
+  .hero-plate-layer[data-crowded] .hero-action-chips { zoom: 1.25; }
+}
 .hero-action-chips > [aria-label] {
   position: relative;
   cursor: pointer;
@@ -521,10 +535,10 @@
   max-height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: var(--brass) transparent;
+  scrollbar-width: none;
   pointer-events: auto;
 }
+.history-thumbnails::-webkit-scrollbar { display: none; }
 .history-thumbnails li + li { margin-top: 3px; }
 .history-thumbnail {
   position: relative;
@@ -560,6 +574,7 @@
 }
 .history-preview small { display: block; font-size: 10px; }
 
+.history-thumbnail[data-event='dodge'] { border-color: #78a9d6; color: #a1d5ff; }
 .history-thumbnail[data-enemy-attack] {
   background: #431a23;
   border-color: #c45b60;
@@ -615,8 +630,7 @@
   padding: 8px 2px;
 }
 .training-picker { display: flex; flex-direction: column; min-height: 0; }
-.training-tools, .training-preferences { display: flex; flex-wrap: wrap; }
-.training-preferences { gap: 4px 12px; }
+.training-tools { flex-wrap: wrap; }
 .training-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; flex: 1 0 min(100%, 250px); max-width: 300px; margin-left: auto; }
 .training-actions button { padding-inline: 12px; }
 .training-tabs { border: 1px solid #805b31; }

@@ -44,6 +44,7 @@ const spell = attackOf('magic');
 const hex = (amount: number): HeroEffect => ({ kind: 'hex', amount });
 const poison = (amount: number): HeroEffect => ({ kind: 'poison', amount });
 const burn = (amount: number): HeroEffect => ({ kind: 'burn', amount });
+const dispel = (amount = 1): HeroEffect => ({ kind: 'dispel', amount });
 const weaken = (amount: number): HeroEffect => ({ kind: 'weaken', amount });
 const bleed = (amount: number): HeroEffect => ({ kind: 'bleed', amount });
 const shock = (amount: number): HeroEffect => ({ kind: 'shock', amount });
@@ -194,7 +195,7 @@ export const HEROES = {
   /**
    * A Biblical Angel: an eye ringed by feathered wings. It looses arrows
    * of light, and every third move bathes every ally in Healing Light
-   * (its summoner, Holy Dragon Unc, most of all needs it).
+   * (its summoner, Holy Dragon Sol, most of all needs it).
    */
   angelArcher: hero('Biblical Angel', 'grunt', 14, 50, 7, BACK, [
     move('Light Arrow', shoot(1, 6)),
@@ -212,7 +213,7 @@ export const HEROES = {
   ]),
   archmage: hero('Archmage', 'elite', 32, 260, 6, WIDE_BACK, [
     move('Arcane Bolts', homing(spell(4, 3))),
-    move('Curse of Light', hex(4), weaken(1)),
+    move('Curse of Light', hex(4), weaken(1), dispel()),
     move('Mana Shield', guard(12)),
   ]),
 
@@ -249,7 +250,7 @@ export const HEROES = {
   ]),
   maren: hero('High Priestess Maren', 'champion', 55, 55, 4, WIDE_BACK, [
     move('Sanctuary', guard(6, 'allies'), heal(6, 'self')),
-    move('Holy Fire', burn(5)),
+    move('Holy Fire', burn(5), dispel()),
     move('Smite the Wicked', spell(11)),
   ]),
   // The knight: Armor 3 blunts every Melee and Range blow.
@@ -284,7 +285,7 @@ export const HEROES = {
    * ally) and roars itself into a Wrath.
    */
   holyDragon: hero(
-    'Holy Dragon Unc',
+    'Holy Dragon Sol',
     'boss',
     500,
     280,

@@ -97,19 +97,20 @@ const WING_INNER: readonly Point[] = [
   [520, 600],
   [480, 520],
 ];
-/** The lion's haunch and hind paw, crouched. */
+/** Folded lion thighs, with a distinct ankle and grounded paw on each side. */
 const HAUNCH: readonly Point[] = [
-  [650, 665],
-  [540, 680],
-  [478, 790],
-  [470, 870],
-  [640, 900],
+  [650, 665], [551, 677], [503, 721], [475, 793],
+  [470, 851], [494, 884], [548, 883], [588, 829], [640, 900],
+];
+const HIND_SHANK: readonly Point[] = [
+  [482, 824], [533, 832], [550, 872], [538, 908], [487, 911], [474, 869],
 ];
 const HIND_PAW: readonly Point[] = [
-  [470, 868],
-  [560, 868],
-  [578, 935],
-  [462, 935],
+  [484, 891], [528, 888], [554, 909], [553, 934], [542, 945],
+  [472, 945], [457, 933], [461, 910],
+];
+const PAW_TOE_LINES: readonly (readonly Point[])[] = [
+  [[478, 928], [483, 943]], [[496, 926], [501, 944]], [[515, 926], [521, 944]],
 ];
 /** The lion belly between the legs, in the body's own tan (no dark gap). */
 const BELLY: readonly Point[] = [
@@ -490,8 +491,14 @@ export const GrandGriffon = ({ mood }: { mood: HeroMood }) => (
     <HaloShards halo={GRIFFON_HALO} />
     <HaloRing halo={GRIFFON_HALO} />
     <Pair left={HAUNCH} lit={LION.lit} shade={LION.shade} />
-    <Pair left={HIND_PAW} lit={LION.lit} shade={LION.shade} />
     <Pair left={BELLY} lit={LION.shade} shade={LION.shade} />
+    <g>
+      <Pair left={HIND_SHANK} lit="#d19b54" shade="#a97038" />
+      <Pair left={HIND_PAW} lit="#e7b472" shade="#cc9350" />
+      {[...PAW_TOE_LINES, ...PAW_TOE_LINES.map(mirrored)].map((line, i) => (
+        <polyline key={i} points={pts(line)} stroke="#795027" strokeWidth=".55" fill="none" opacity=".8" />
+      ))}
+    </g>
     <Pair left={BREAST_SHAPE} lit={BREAST.lit} shade={BREAST.shade} />
     <Talons />
     <Pair left={PLUMAGE_SHAPE} lit={PLUMAGE.lit} shade={PLUMAGE.shade} />

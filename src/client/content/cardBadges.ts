@@ -13,6 +13,8 @@
 import { getCard, type CardId } from '../../shared/game/cards';
 import {
   CLEANSE_INFO,
+  DISPEL_INFO,
+  DISRUPT_INFO,
   IMBUE_INFO,
   KEYWORD_INFO,
   STATUS_INFO,
@@ -68,6 +70,7 @@ const effectBadgeOf = (effect: ImbuableEffect): BadgeLook => {
     case 'shock':
     case 'vex':
     case 'weaken':
+    case 'malaise':
     case 'guard':
     case 'wrath':
     case 'brace':
@@ -96,6 +99,13 @@ const effectBadgeOf = (effect: ImbuableEffect): BadgeLook => {
           "Deals damage equal to the target's Hex times this."
         ),
       };
+    case 'disrupt':
+      return { ...INTENT_LOOK.disrupt, info: effect.allAfflictions ? {
+        ...DISRUPT_INFO,
+        description: 'Lowers one random buff and every existing debuff by ' + effect.amount + ' on each enemy.',
+      } : DISRUPT_INFO };
+    case 'dispel':
+      return { ...INTENT_LOOK.dispel, info: DISPEL_INFO };
     case 'cleanse':
       return { ...INTENT_LOOK.cleanse, info: CLEANSE_INFO };
     case 'protect':

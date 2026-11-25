@@ -20,12 +20,13 @@
 // ===================================================================
 
 import './combat/dueling-table.css';
-import { getVolume, playCardSound, playCombatImpact, playSound, setBossMusic, subscribeVolume } from '../../lib/gameAudio';
+import { getVolume, playAfflictionBurst, playCardSound, playCombatImpact, playUnitDeath, playSound, subscribeVolume, usesShockCue } from '../../lib/gameAudio';
 import { useMapAudio } from '../../lib/mapAudio';
-import { isBoss } from "../../content/heroLooks";
+import { isBoss, isCreature } from "../../content/heroLooks";
 import { useEffect, useCallback, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
-import { endTurn, movementFailsOn } from '../../../shared/game/combat';
+import { rowDepth } from '../../../shared/game/battlefield';
+import { endTurn, movementFailsOn, SELF_TARGET_UID } from '../../../shared/game/combat';
 import type { RunAction } from '../../../shared/game/run';
 import type { CharacterState } from '../../../shared/game/character';
 import { RunCharacterSheet } from './RunCharacterSheet';
@@ -42,7 +43,7 @@ import { useAutoEndTurn } from '../../hooks/useAutoEndTurn';
 import { useCombatControls } from '../../hooks/useCombatControls';
 import { useCardFlights } from '../../hooks/useCardFlights';
 import { useCardHits } from '../../hooks/useCardHits';
-import { useHeroTurn } from '../../hooks/useHeroTurn';
+import { GRIFFON_DIVE_LAND_MS, HERO_SHOT_FLIGHT_MS, HERO_SHOT_RELEASE_MS, useHeroTurn } from '../../hooks/useHeroTurn';
 import { useMoveFailPops } from '../../hooks/useMoveFailPops';
 import { useMovementBurst } from '../../hooks/useMovementBurst';
 import {
@@ -87,6 +88,7 @@ import { SpeedLines } from './combat/SpeedLines';
 import { MAP_NAMES } from './combat/Backdrop';
 import { TopBar } from './combat/TopBar';
 import { TurnCorner } from './combat/TurnCorner';
+import { SettingsDialog } from './menu/SettingsDialog';
 import { MenuPanel } from './menu/MenuPanel';
 import { StatusRow } from './StatusRow';
 
@@ -156,6 +158,8 @@ const PlayerBar = ({
   onEndTurn,
   onOpenPile,
   onOpenCharacter,
+  onTargetSelf,
+  selfTargetLocked,
 }: {
   combat: CombatState;
   level: number;
@@ -164,11 +168,13 @@ const PlayerBar = ({
   onEndTurn: () => void;
   onOpenPile: (pile: PileId) => void;
   onOpenCharacter: () => void;
+  onTargetSelf?: (() => void) | undefined;
+  selfTargetLocked?: boolean;
 }) => {
   return (
     <div className="table-controls grid grid-cols-[minmax(max-content,1fr)_minmax(0,max-content)_minmax(max-content,1fr)] items-end gap-1 px-2">
       <div className="table-player flex items-end gap-2.5 justify-self-start">
-        <PlayerCorner player={combat.player} level={level} lethal={lethal} hits={hits} onOpenCharacter={onOpenCharacter} />
+        <PlayerCorner player={combat.player} level={level} lethal={lethal} hits={hits} onOpenCharacter={onOpenCharacter} onTargetSelf={onTargetSelf} selfTargetLocked={!!selfTargetLocked} />
         <PileStack
           count={combat.discardPile.length}
           label="Cards in the discard pile"
@@ -242,47 +248,104 @@ export const CombatView = ({
   // Likewise a multi-hit card shows each hit before it is committed.
   const heroTurn = useHeroTurn(realCombat, onAction);
   const cardHits = useCardHits(realCombat, onAction);
+  const incomingImpactDelay = heroTurn.arrowStep ? HERO_SHOT_RELEASE_MS + HERO_SHOT_FLIGHT_MS
+    : heroTurn.bossImpact === 'griffonDive' ? GRIFFON_DIVE_LAND_MS : 0;
   const { endTurn: playHeroTurn } = heroTurn;
   const { playCard: playCardHits } = cardHits;
   const combat = cardHits.isPlaying ? cardHits.shown : heroTurn.shown;
-  const { autoEnd, bossIntros, controls: settingInputs } = useGameSettings();
+  const { autoEnd, bossIntros, battleMusic, controls: settingInputs } = useGameSettings();
   const hasBoss = combat.heroes.some(unit => unit.hp > 0 && isBoss(unit));
-  useEffect(() => {
-    if (!hasBoss || viewRef.current?.closest('[inert]')) return;
-    setBossMusic(true);
-    return () => setBossMusic(false);
-  }, [hasBoss]);
   const previousCombat = useRef(combat);
+  const burstSoundSeen = useRef({ player: -1, heroes: -1 });
+  const incomingAttackTimers = useRef(new Set<number>());
+  const blockSound = useRef({ index: 0, nextAt: 0, lastHitAt: -Infinity });
   const impactCard = useRef<CardId | undefined>(undefined);
   const musicVolume = useSyncExternalStore(subscribeVolume, () => getVolume('music'));
   const sfxVolume = useSyncExternalStore(subscribeVolume, () => getVolume('sfx'));
   const mapName = MAP_NAMES[terrainIndex % MAP_NAMES.length] ?? MAP_NAMES[0] ?? '';
-  useMapAudio({ mapId: mapName, active: realCombat.player.hp > 0, bossActive: hasBoss, musicVolume: musicVolume / 100, sfxVolume: sfxVolume / 100 });
+  useMapAudio({ mapId: mapName, active: realCombat.player.hp > 0, bossActive: hasBoss, alternateBattle: battleMusic === 'orchestral', musicVolume: musicVolume / 100, sfxVolume: sfxVolume / 100 });
+  useEffect(() => {
+    const pending = incomingAttackTimers.current;
+    return () => { pending.forEach(window.clearTimeout); pending.clear(); };
+  }, []);
   useEffect(() => {
     const before = previousCombat.current;
     previousCombat.current = combat;
     if (before === combat || viewRef.current?.closest('[inert]')) return;
-    if (combat.player.hp < before.player.hp) {
-      const hexTriggered = !heroTurn.attackType && combat.player.statuses.hex !== before.player.statuses.hex;
-      playCombatImpact(hexTriggered ? 'curse' : heroTurn.attackType ?? undefined, heroTurn.element, undefined, .75);
+    const after = (delay: number, cue: () => void) => {
+      const pending = incomingAttackTimers.current;
+      const timer = window.setTimeout(() => { pending.delete(timer); cue(); }, delay);
+      pending.add(timer);
+    };
+    // Ignore spawns/new waves. Only a living human combatant becoming fallen
+    // triggers the sound, even if the playback state is later committed.
+    const deaths = before.heroes.filter(old => old.hp > 0 && !isCreature(old.heroId) &&
+      (combat.heroes.find(unit => unit.uid === old.uid)?.hp ?? 0) <= 0).length;
+    for (let i = 0; i < deaths; i++) {
+      if (i === 0) playUnitDeath();
+      else after(i * 105, playUnitDeath);
     }
-    else if (combat.player.guard < before.player.guard && heroTurn.isPlaying) playSound('guard', 1.05, .76);
-    else if (combat.player.hp > before.player.hp) playSound('heal', 1, .68);
-    if (combat.heroes.some(unit => {
+    if (before.player.hp > 0 && combat.player.hp <= 0) {
+      const playPlayerDeath = () => playSound('playerDeath', 1, .96);
+      // Follow the lethal projectile or dive to its on-screen contact.
+      if (incomingImpactDelay) after(incomingImpactDelay, playPlayerDeath);
+      else playPlayerDeath();
+    }
+    if (heroTurn.isPlaying && combat.heroes.some(unit => unit.heroId === 'grandGriffon' &&
+      unit.statuses.aloft > 0 && before.heroes.some(old => old.uid === unit.uid && old.statuses.aloft <= 0))) {
+      playSound('griffonTakeoff', 1, .95);
+    }
+    if (heroTurn.bossImpact === 'griffonDive') playSound('griffonDiveWhoosh', 1, .9);
+    if (heroTurn.bladeStep) playSound('blade', 1.12, .82);
+    if (heroTurn.arrowStep) {
+      const shooter = combat.heroes.find(unit => unit.uid === heroTurn.arrowStep?.actorUid);
+      after(HERO_SHOT_RELEASE_MS, () =>
+        playSound(shooter?.heroId === 'ballista' ? 'siegeArrow' : 'arrow', .99, .84));
+    }
+    if (combat.player.statuses.rush > before.player.statuses.rush) playSound('rush', 1, .82);
+    if (combat.player.guard > before.player.guard) playSound('guardSet', 1, .8);
+    if (combat.player.statuses.armor > before.player.statuses.armor) playSound('armorUp', 1, .85);
+    if (combat.player.hp > before.player.hp) playSound('heal', 1, .82);
+    else if (combat.heroes.some(unit => before.heroes.some(old => old.uid === unit.uid && unit.hp > old.hp)))
+      playSound('heal', 1, .65);
+    const id = impactCard.current;
+    const card = id ? getCard(id) : undefined;
+    const pushedPlayer = combat.forcedMovement;
+    const playerKnockedBack = pushedPlayer?.move === 'backStep' && pushedPlayer.distance > 0 &&
+      pushedPlayer.count > (before.forcedMovement?.count ?? 0);
+    const targetKnockedBack = !heroTurn.isPlaying && card?.effects.some(effect => effect.kind === 'push') &&
+      combat.heroes.some(unit => before.heroes.some(old =>
+        old.uid === unit.uid && (rowDepth(unit.row) > rowDepth(old.row) || unit.col !== old.col)));
+    if (playerKnockedBack) {
+      const cue = () => playSound('enemyKnockback', 1, .85);
+      if (heroTurn.arrowStep) after(HERO_SHOT_RELEASE_MS + HERO_SHOT_FLIGHT_MS + 45, cue);
+      else cue();
+    }
+    if (targetKnockedBack) playSound('knockback', 1, .82);
+    // The row/column changes at the start of the visual slide. Compare
+    // against the previous beat to keep attack lunges and the final commit quiet.
+    if (heroTurn.isPlaying) {
+      const moved = combat.heroes.filter(unit => unit.hp > 0 && before.heroes.some(old =>
+        old.uid === unit.uid && (old.row !== unit.row || old.col !== unit.col)));
+      if (moved.length) {
+        const rate = [.88, .92, .95][moved[0]!.uid % 3] ?? .92;
+        playSound('enemyStep', rate, .68);
+      }
+    }
+    if ((!card || !usesShockCue(card)) && combat.heroes.some(unit => {
       const old = before.heroes.find(prior => prior.uid === unit.uid);
-      return old && (unit.hp < old.hp || unit.guard < old.guard);
+      if (!old || unit.hp >= old.hp) return false;
+      // Poison and Hex ticks get their own cue from the status pop.
+      return !(heroTurn.isPlaying && unit.statuses.burn >= old.statuses.burn &&
+        (unit.statuses.poison < old.statuses.poison || unit.statuses.hex !== old.statuses.hex));
     })) {
-      const id = impactCard.current;
-      const card = id ? getCard(id) : undefined;
       const heavy = id === 'siegeBlast' || id === 'hurlAside' || !!card?.effects.some(effect => effect.kind === 'damage' && effect.amount >= 12);
-      const hexTriggered = heroTurn.isPlaying && combat.heroes.some(unit => {
-        const old = before.heroes.find(prior => prior.uid === unit.uid);
-        return old && unit.hp < old.hp && unit.statuses.hex !== old.statuses.hex;
-      });
-      playCombatImpact(hexTriggered ? 'curse' : card?.type, card?.element, card?.edge, .76, heavy);
+      const light = !!card?.effects.some(effect => effect.kind === 'damage' && effect.amount <= 4);
+
+      playCombatImpact(id === 'reap' ? 'curse' : card?.type, card?.element, card?.edge, card?.type === 'melee' && card.edge !== 'sharp' ? .92 : .76, heavy, light);
     }
     if (combat.heroes.some(unit => !before.heroes.some(old => old.uid === unit.uid))) playSound('move', .85, .65);
-  }, [combat, heroTurn.attackType, heroTurn.element, heroTurn.isPlaying]);
+  }, [combat, heroTurn.arrowStep, heroTurn.bladeStep, heroTurn.bossImpact, heroTurn.isPlaying, incomingImpactDelay]);
   const bossEntrance = useBossEntrance(combat.heroes, bossIntros);
   const isAnimating = heroTurn.isPlaying || cardHits.isPlaying;
   const lethal = useMemo(() => realCombat.player.hp > 0 && endTurn(realCombat).player.hp <= 0, [realCombat]);
@@ -321,6 +384,10 @@ export const CombatView = ({
         setLastCard(card);
         // A knockback the target shrugs off shows a cancel sign on it.
         const { targetUid } = action;
+        if (targetUid === SELF_TARGET_UID) {
+          if (cardId) playCardSound(cardId);
+          return playCardHits(action);
+        }
         if (
           cardId &&
           targetUid !== undefined &&
@@ -366,7 +433,7 @@ export const CombatView = ({
   );
   const controls = useCombatControls(combat, routeAction);
   const cardFlights = useCardFlights(combat);
-  const settings = <div className="flex flex-wrap items-center gap-x-4">{settingInputs}</div>;
+  const settings = <SettingsDialog className="self-center">{settingInputs}</SettingsDialog>;
   const [isPaused, setIsPaused] = useState(false);
   const [showCharacter, setShowCharacter] = useState(false);
   // Out of plays: the turn ends itself after a beat (see useAutoEndTurn).
@@ -395,11 +462,60 @@ export const CombatView = ({
   const playerHits = usePlayerHits(
     combat.player,
     combat.turn,
-    heroTurn.attackType,
+    heroTurn.arrowStep ? 'range' : heroTurn.attackType,
     hitHistory,
     heroTurn.strikes,
-    heroTurn.element
+    heroTurn.element,
+    heroTurn.bladeStep ? 'sharp' : undefined,
+    incomingImpactDelay,
+    heroTurn.bossImpact
   );
+  useEffect(() => {
+    if (viewRef.current?.closest('[inert]')) return;
+    const seen = burstSoundSeen.current;
+    const playBlock = (partial: boolean) => {
+      const block = blockSound.current;
+      const variants = [
+        { rate: 1, delay: 0 },
+        { rate: .94, delay: 19 },
+        { rate: 1.07, delay: 8 },
+        { rate: .98, delay: 28 },
+      ] as const;
+      const variant = variants[block.index++ % variants.length]!;
+      const now = performance.now();
+      const when = Math.max(block.nextAt, now + (now - block.lastHitAt < 400 ? variant.delay : 0));
+      block.lastHitAt = now;
+      block.nextAt = when + 100; // Separate simultaneous blocks and clear the same-cue cooldown.
+      const cue = () => playSound('guard', variant.rate, partial ? .53 : .88);
+      if (when <= now) cue();
+      else {
+        const pending = incomingAttackTimers.current;
+        const timer = window.setTimeout(() => { pending.delete(timer); cue(); }, when - now);
+        pending.add(timer);
+      }
+    };
+    const hasBlock = (pop: (typeof playerHits)[number]) =>
+      pop.kind === 'hit' && !pop.tick && (pop.blocked > 0 || (pop.armored ?? 0) > 0);
+    for (const pop of pops) {
+      if (pop.id <= seen.heroes) continue;
+      seen.heroes = pop.id;
+      if (hasBlock(pop)) playBlock(pop.amount > 0);
+      playAfflictionBurst(pop);
+    }
+    for (const pop of playerHits) {
+      if (pop.id <= seen.player) continue;
+      seen.player = pop.id;
+      if (pop.kind === 'hit' && !pop.tick) {
+        if (hasBlock(pop)) playBlock(pop.amount > 0);
+        if (pop.bossImpact) playSound(pop.bossImpact, 1, .95);
+        else if (pop.amount > 0) {
+          playCombatImpact(pop.source, pop.element, pop.edge, .98, pop.edge !== 'sharp' && pop.amount >= 12, pop.amount <= 4);
+        }
+      } else {
+        playAfflictionBurst(pop);
+      }
+    }
+  }, [pops, playerHits]);
   // The whole view shakes when a hit lands on you (see PovImpact).
   const viewRef = useRef<HTMLDivElement>(null);
   const { drag } = controls;
@@ -463,6 +579,8 @@ export const CombatView = ({
           hits={playerHits}
           onEndTurn={controls.endTurn}
           onOpenPile={setOpenPile}
+          onTargetSelf={controls.selfTargetAvailable ? controls.tapSelf : undefined}
+          selfTargetLocked={controls.selfTargetLocked}
           onOpenCharacter={() => { setShowCharacter(true); onCharacterOpened?.(); }}
         />
         <FanHand
@@ -545,7 +663,7 @@ export const CombatView = ({
       <PovImpact hits={playerHits} shakeRef={viewRef} />
       {(isAnimating || isShooting) && <div className="absolute inset-0 z-50" />}
       {tutorialCue && !isAnimating && !isShooting && !isPaused && !showCharacter && !openPile && !drag && (
-        <TutorialSpotlight {...(controls.heldIndex !== null
+        <TutorialSpotlight {...(controls.heldIndex !== null && controls.autoAimUids.length > 0
           ? { selector: '[data-hero-uid="' + controls.autoAimUids[0] + '"] .hero-flight', label: 'Choose a target' }
           : tutorialCue)} />
       )}

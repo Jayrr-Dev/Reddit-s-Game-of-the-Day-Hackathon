@@ -15,7 +15,7 @@
 
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import { fallBack, isDeep, rowDepth, stepForward } from './battlefield.ts';
-import { canPlayCard, combatOutcome } from './combat.ts';
+import { canPlayCard, canPlayCardOnSelf, combatOutcome } from './combat.ts';
 import {
   BACK_STEP_COST,
   BACK_STEP_ROWS,
@@ -41,8 +41,7 @@ export type MovementDef = {
   /** How the heroes' places change when the villain moves. */
   reshape: (heroes: HeroUnit[], extraRows?: number) => HeroUnit[];
   /**
-   * A status the villain gains, raised to at least `amount` (moving
-   * twice doesn't stack it).
+   * The bonus for a successful move. Momentum and Reflex do not stack.
    */
   grants?: { status: StatusId; amount: number };
 };
@@ -84,6 +83,7 @@ export const MOVEMENTS: Record<MovementId, MovementDef> = {
       heroes.some((unit) => unit.row === 'front') &&
       (heroes.some(isDeep) || hasRoomToFallBack(heroes)),
     reshape: (heroes, extraRows = 0) => fallBack(heroes, BACK_STEP_ROWS + extraRows),
+    grants: { status: 'reflex', amount: 1 },
   },
 };
 
@@ -181,7 +181,7 @@ const shiftFormation = (state: CombatState, moveId: MovementId) => {
   return { heroes, travelRows, player: { ...state.player, statuses: { ...state.player.statuses, move: 0 } } };
 };
 
-/** Raises one villain status to at least `amount`. */
+/** Refresh the on/off bonus without adding stacks. */
 const grant = (
   state: CombatState,
   grants: MovementDef['grants']
@@ -267,5 +267,5 @@ export const moveFree = (
  */
 export const hasPlayLeft = (state: CombatState): boolean =>
   combatOutcome(state) === 'ongoing' &&
-  (state.hand.some((_, index) => canPlayCard(state, index)) ||
+  (state.hand.some((_, index) => canPlayCard(state, index) || canPlayCardOnSelf(state, index)) ||
     MOVEMENT_IDS.some((moveId) => canMove(state, moveId)));

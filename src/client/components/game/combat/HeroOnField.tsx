@@ -427,6 +427,7 @@ export const HeroOnField = ({
       className={`pointer-events-auto absolute transition-[left,bottom,width,height,scale,opacity,filter] duration-500 ease-in-out motion-reduce:transition-none ${AIM_CLASS[aim]}`}
       style={boxStyle(unit)}
       data-aloft={isAloft(unit) ? '' : undefined}
+      data-acting={action ? '' : undefined}
     >
       {/* ENTERS ONCE, WHEN THE HERO FIRST APPEARS: A WAVE MARCHES IN, A
           BOSS DESCENDS OR RISES (its entrance, see BossEntrance) */}
@@ -448,30 +449,32 @@ export const HeroOnField = ({
           style={bodyStyle}
         >
           <div className="hero-flight relative h-full w-full" {...{ [HERO_ANCHOR_ATTR]: true }}>
-            {/* IDLE SWAY: figure and pick mark rock together */}
-            <div
-              className="relative h-full w-full origin-bottom animate-hero-sway"
-              style={swayStyle(unit)}
-            >
+            <div className="hero-step-gait h-full w-full">
+              {/* IDLE SWAY: figure and pick mark rock together */}
               <div
-                className={`h-full w-full ${isDeep(unit) ? '' : ROW_TINT_CLASS[unit.row]} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
+                className="relative h-full w-full origin-bottom animate-hero-sway"
+                style={swayStyle(unit)}
               >
-                {/* FLINCH: re-keyed by each new hit, so it plays once per hit */}
                 <div
-                  key={lastHitId ?? 'steady'}
-                  className={`h-full w-full origin-bottom ${lastHitId === null ? '' : 'animate-flinch'}`}
+                  className={`h-full w-full ${isDeep(unit) ? '' : ROW_TINT_CLASS[unit.row]} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
                 >
-                  <HeroFigure
-                    heroId={unit.heroId}
-                    size={size}
-                    action={action}
-                    mood={mood}
-                  />
+                  {/* FLINCH: re-keyed by each new hit, so it plays once per hit */}
+                  <div
+                    key={lastHitId ?? 'steady'}
+                    className={`h-full w-full origin-bottom ${lastHitId === null ? '' : 'animate-flinch'}`}
+                  >
+                    <HeroFigure
+                      heroId={unit.heroId}
+                      size={size}
+                      action={action}
+                      mood={mood}
+                    />
+                  </div>
                 </div>
+                <HexAura hex={unit.statuses.hex} />
+                {pickMarker && <PickMark marker={pickMarker} />}
+                {unit.joinedMidFight && <ArrivalLight />}
               </div>
-              <HexAura hex={unit.statuses.hex} />
-              {pickMarker && <PickMark marker={pickMarker} />}
-              {unit.joinedMidFight && <ArrivalLight />}
             </div>
             {/* PLATE: outside the sway, so its text never tilts (a tilted,
                 scaled-down plate rasterizes blurry) and its chips hold

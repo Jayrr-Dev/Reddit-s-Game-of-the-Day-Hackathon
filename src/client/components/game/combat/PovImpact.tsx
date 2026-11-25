@@ -25,6 +25,8 @@ import { useEffect, type CSSProperties, type RefObject } from 'react';
 import type { PlayerHitPop } from '../../../hooks/useHitPops';
 import { popScale } from '../../../lib/popSize';
 import { seeded, spread } from '../../../lib/seeded';
+import { BurnEffect } from './BurnEffect';
+import { PoisonEffect } from './PoisonEffect';
 import { CurseSigil } from './CurseSigil';
 import { StatusFx } from './StatusFx';
 import { HitLine } from './HitNumbers';
@@ -257,8 +259,7 @@ const PovHit = ({ pop }: { pop: PlayerHitPop }) =>
     </>
   ) : (
     <>
-      <Vignette pop={pop} />
-      <Mark pop={pop} />
+      {pop.tick !== 'burn' && pop.tick !== 'poison' && <><Vignette pop={pop} /><Mark pop={pop} /></>}
       <HitNumber pop={pop} />
     </>
   );
@@ -277,6 +278,8 @@ export const PovImpact = ({
 }) => {
   const landed = hits.filter((pop) => pop.kind === 'hit');
   const newest = landed.at(-1);
+  const burnFlare = hits.findLast(pop => pop.tick === 'burn' && pop.amount > 0);
+  const poisonFlare = hits.findLast(pop => pop.tick === 'poison' && pop.amount > 0);
 
   // EACH NEW HIT SHAKES THE VIEW (imperative: an animation to start)
   useEffect(() => {
@@ -292,6 +295,8 @@ export const PovImpact = ({
       className="pointer-events-none absolute inset-0 z-40 overflow-hidden"
       aria-hidden="true"
     >
+      {burnFlare && <BurnEffect key={burnFlare.id} screen />}
+      {poisonFlare && <PoisonEffect key={poisonFlare.id} screen />}
       {landed.map((pop) => (
         <PovHit key={pop.id} pop={pop} />
       ))}

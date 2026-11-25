@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { characterBonuses, TRAIT_CAP, traitNodeIds, traitRewardShare, traitNodeGains, traitNodeArms, traitPointsAvailable, type CharacterState, type TraitId } from '../../../shared/game/character';
 import { Glyph, type GlyphName } from '../ui/Glyph';
 import '../../semanticStats.css';
@@ -9,6 +10,7 @@ type Props = {
   trait: TraitId;
   character: CharacterState;
   stats: readonly Stat[];
+  previewHost: HTMLDivElement | null;
   onSetNode: (node: number, owned: boolean) => void;
 };
 const INKS: Record<Stat['key'], string> = {
@@ -91,15 +93,14 @@ function arrangeRewards(rewards: Reward[], trait: TraitId, diameters: number[]) 
   return { positioned, curves };
 }
 
-export const TraitSpiral = ({ trait, character, stats, onSetNode }: Props) => {
+export const TraitSpiral = ({ trait, character, stats, onSetNode, previewHost }: Props) => {
   const owned = new Set(traitNodeIds(character.traits, character.traitNodes, trait));
 
   const totals = characterBonuses(character.traits, character.equipment, character.traitNodes);
   const [selected, setSelected] = useState(0);
-  const [hovered, setHovered] = useState<number | null>(null);
-  const [open, setOpen] = useState(false);
+  const [preview, setPreview] = useState<number | null>(null);
   const [receipt, setReceipt] = useState('');
-  const chart = useRef<HTMLDivElement>(null);
+  const spiral = useRef<HTMLElement>(null);
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const detailsId = useId();
   const { nodes, curves } = useMemo(() => {
@@ -130,10 +131,7 @@ export const TraitSpiral = ({ trait, character, stats, onSetNode }: Props) => {
     });
     return { nodes: nodes.map(node => ({ ...node, diameter: diameters[node.id - 1]! * scale / 3.6 + 'cqw' })), curves };
   }, [trait, stats]);
-  const inspect = hovered ?? selected;
-  const active = nodes[inspect]!;
-  const anchor = active.point;
-  const visible = open || hovered !== null;
+  const active = preview === null ? undefined : nodes[preview];
   const arms = traitNodeArms(trait);
   const planFor = (id: number) => {
     const arm = Object.values(arms).find(path => path.includes(id)) ?? [];
@@ -148,30 +146,31 @@ export const TraitSpiral = ({ trait, character, stats, onSetNode }: Props) => {
   const action = (id: number) => {
     const count = planFor(id).length;
     const points = count + (count === 1 ? ' point' : ' points');
-    return owned.has(id) ? 'Refund ' + points : count > available ? 'Requires ' + points + ' (' + available + ' available)' : 'Spend ' + points;
+    return owned.has(id) ? 'Refund ' + points : count > available ? 'Need ' + count + ' (' + available + ' free)' : 'Spend ' + points;
   };
   useEffect(() => {
-    if (!open) return;
+    if (preview === null) return;
     const outside = (event: PointerEvent) => {
-      if (!chart.current?.contains(event.target as Node)) setOpen(false);
+      if (!spiral.current?.contains(event.target as Node) && !previewHost?.contains(event.target as Node)) setPreview(null);
     };
     document.addEventListener('pointerdown', outside);
     return () => document.removeEventListener('pointerdown', outside);
-  }, [open]);
+  }, [preview, previewHost]);
   function browse(event: KeyboardEvent<HTMLButtonElement>, i: number) {
-    if (event.key === 'Escape' && visible) {
-      event.preventDefault(); event.stopPropagation(); setOpen(false); setHovered(null);
+    if (event.key === 'Escape' && preview !== null) {
+      event.preventDefault(); event.stopPropagation(); setPreview(null);
       return;
     }
     const direction = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
     const target = event.key === 'Home' ? 0 : event.key === 'End' ? TRAIT_CAP - 1 : direction ? i + direction : null;
     if (target === null) return;
     event.preventDefault();
+    setPreview(null);
     refs.current[Math.max(0, Math.min(TRAIT_CAP - 1, target))]?.focus();
   }
   return (
-    <section className="trait-spiral" aria-label={trait + ' rewards'}>
-      <div ref={chart} className="trait-spiral-chart" onPointerLeave={() => setHovered(null)}>
+    <section ref={spiral} className="trait-spiral" aria-label={trait + ' rewards'}>
+      <div className="trait-spiral-chart">
         <svg aria-hidden="true" viewBox="0 0 360 360">
           {curves.map(({ arm, path }) => <polyline key={arm} data-arm={arm} points={path} />)}
         </svg>
@@ -184,21 +183,22 @@ export const TraitSpiral = ({ trait, character, stats, onSetNode }: Props) => {
           const style: CSSProperties = { left: point.x / 3.6 + '%', top: point.y / 3.6 + '%', width: node.hitSize, height: node.hitSize };
           return <button key={node.id} type="button" ref={button => { refs.current[i] = button; }}
             className="trait-spiral-node" style={style} data-node-id={node.id} data-arm={node.arm} data-reward={gain?.key}
-            data-milestone={Boolean(gain)} data-finale={node.tip} data-next={!filled && !blocked && steps.length === 1} data-earned={filled}
-            data-current={inspect === i} aria-pressed={filled} aria-disabled={blocked}
+            data-blocked={blocked} data-milestone={Boolean(gain)} data-finale={node.tip} data-next={!filled && !blocked && steps.length === 1} data-earned={filled}
+            data-current={preview === i} data-preview={preview === i && !blocked ? (filled ? "refund" : "spend") : undefined} aria-pressed={filled}
             aria-label={['Node ' + node.id + (node.arm === 'junction' ? ', starting star' : ''), ...node.changes.map(stat => stat.label + ' +' + stat.delta + (stat.percent ? '%' : '')), action(node.id)].join('. ')}
-            aria-describedby={visible && inspect === i ? detailsId : undefined}
+            aria-describedby={preview === i ? detailsId : undefined}
             tabIndex={selected === i ? 0 : -1}
-            onPointerEnter={event => { if (event.pointerType === 'mouse') { setHovered(i); setReceipt(''); } }}
-            onPointerLeave={() => setHovered(null)}
-            onFocus={() => { setSelected(i); setHovered(null); setReceipt(''); setOpen(true); }}
-            onBlur={() => setOpen(false)}
+            onFocus={() => setSelected(i)}
             onClick={() => {
-              setSelected(i); setHovered(null); setOpen(true); setReceipt('');
-              if (!blocked) {
-                for (const id of steps) onSetNode(id, !filled);
-                setReceipt((filled ? 'Refunded ' : 'Spent ') + steps.length + (steps.length === 1 ? ' point' : ' points'));
+              setSelected(i);
+              setReceipt('');
+              if (preview !== i || blocked) {
+                setPreview(i);
+                return;
               }
+              for (const id of steps) onSetNode(id, !filled);
+              setPreview(null);
+              setReceipt((filled ? 'Refunded ' : 'Spent ') + steps.length + (steps.length === 1 ? ' point' : ' points'));
             }}
             onKeyDown={event => browse(event, i)}>
             <span className={'trait-spiral-disc' + (gain ? ' stat-ink' : '')}
@@ -209,19 +209,21 @@ export const TraitSpiral = ({ trait, character, stats, onSetNode }: Props) => {
             </span>
           </button>;
         })}
-        {visible && <div id={detailsId} role="tooltip" className="trait-spiral-inspect" data-above={anchor.y > CENTER}
-          style={{ left: `clamp(0px, calc(${anchor.x / 3.6}% - var(--tooltip-width) / 2), calc(100% - var(--tooltip-width)))`, top: anchor.y / 3.6 + '%' }}>
-          <strong>{active.arm === 'junction' ? 'Starting star' : 'Node ' + active.id}</strong>
-          <span className="trait-spiral-cost">{receipt || action(active.id)}</span>
-          {active.changes.map(stat => <div className="trait-spiral-stat stat-ink" data-stat={INKS[stat.key]} key={stat.key}>
-            <span className="trait-spiral-stat-name"><StatIcon stat={stat.key} />{stat.label}</span>
-            <span><b>+{stat.delta}{stat.percent ? '%' : ''}</b> gain</span>
-            <span><b>{totals[stat.key]}{stat.percent ? '%' : ''}</b> current</span>
-          </div>)}
-          {!active.changes.length && <span>No stat increase.</span>}
-        </div>}
       </div>
-      <p className="trait-arm-hint">Click to level or refund.</p>
+      {active && previewHost && createPortal(<div id={detailsId} className="trait-spiral-inspect" aria-live="polite" aria-atomic="true">
+        <div className="trait-spiral-preview-heading">
+          <strong>{active.arm === 'junction' ? 'Starting star' : 'Node ' + active.id}</strong>
+          <span className="trait-spiral-cost">{action(active.id)}</span>
+        </div>
+        {active.changes.map(stat => <div className="trait-spiral-stat stat-ink" data-stat={INKS[stat.key]} key={stat.key}>
+          <span className="trait-spiral-stat-name"><StatIcon stat={stat.key} />{stat.label}</span>
+          <span><b>+{stat.delta}{stat.percent ? '%' : ''}</b> gain</span>
+          <span><b>{totals[stat.key]}{stat.percent ? '%' : ''}</b> current</span>
+        </div>)}
+        {!active.changes.length && <span>No stat increase.</span>}
+        {(owned.has(active.id) || planFor(active.id).length <= available) && <span>Click the same node again to {owned.has(active.id) ? "refund" : "confirm"}.</span>}
+      </div>, previewHost)}
+      <p className="trait-arm-hint" aria-live="polite">{receipt || "Click a node to preview. Click it again to confirm."}</p>
     </section>
   );
 };

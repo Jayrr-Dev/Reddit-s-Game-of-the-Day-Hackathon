@@ -12,5 +12,5 @@ export const rowPerspective = (row: HeroRow) => {
   const count = activeRows().length;
   const nearEdge = count - rowDepth(row);
   const feet = project((nearEdge - 0.08) / count);
-  return { boundary: project(nearEdge / count), feet };
+  return { farBoundary: project((nearEdge - 1) / count), boundary: project(nearEdge / count), feet };
 };

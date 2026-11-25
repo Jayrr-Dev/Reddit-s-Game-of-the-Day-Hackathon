@@ -21,7 +21,7 @@ import { Backdrop } from './Backdrop';
 import type { AimState, PickMarker } from '../../../hooks/useCombatControls';
 import type { useBossEntrance } from '../../../hooks/useBossEntrance';
 import { useFallenHeroes } from '../../../hooks/useFallenHeroes';
-import { usePlateSpacing } from '../../../hooks/usePlateSpacing';
+import { HERO_LAYOUT_ATTR, usePlateSpacing } from '../../../hooks/usePlateSpacing';
 
 import { HeroOnField } from './HeroOnField';
 
@@ -75,7 +75,7 @@ const RowLayer = ({
     className="table-hero-row parallax-layer pointer-events-none absolute -inset-x-8 inset-y-0"
     style={{ ...depthStyle(ROW_DEPTH[row]), zIndex: 4 - rowDepth(row) * 2 }}
   >
-    <div className="absolute inset-y-0 left-10 right-10">{children}</div>
+    <div className="absolute inset-y-0 left-10 right-10" {...{ [HERO_LAYOUT_ATTR]: true }}>{children}</div>
   </div>
 );
 
@@ -95,8 +95,8 @@ export const BattlefieldView = ({
   onTapHero,
 }: BattlefieldViewProps) => {
   const fieldRef = useRef<HTMLDivElement>(null);
-  usePlateSpacing(fieldRef, heroes);
-  const ghosts = useFallenHeroes(heroes);
+  usePlateSpacing(fieldRef, heroes, !!bossEntrance.entering);
+  const ghosts = useFallenHeroes(heroes).filter(ghost => !heroes.some(unit => unit.uid === ghost.uid));
 
   // A boss's death shakes the whole field and flashes it white.
   const isBossFalling = ghosts.some(isBoss);
@@ -134,18 +134,15 @@ export const BattlefieldView = ({
             background: `linear-gradient(transparent, rgb(20 14 24 / 0.18))`,
           }}
         />
-        {heroes.map(unit => (
+        {[...heroes.map(unit => ({ unit, isDying: false })), ...ghosts.map(unit => ({ unit, isDying: true }))].map(({ unit, isDying }) => (
           <RowLayer key={unit.uid} row={unit.row}>
-            <HeroOnField unit={unit} player={player} isFocused={unit.uid === focusUid}
-              aim={aimOf(unit.uid)} pickMarker={pickMarkerOf(unit.uid)}
-              action={acting.get(unit.uid) ?? null} lastHitId={lastHitIds.get(unit.uid) ?? null}
+            <HeroOnField unit={unit} player={player} isDying={isDying}
+              isFocused={!isDying && unit.uid === focusUid}
+              aim={isDying ? 'idle' : aimOf(unit.uid)}
+              pickMarker={isDying ? null : pickMarkerOf(unit.uid)}
+              action={isDying ? null : acting.get(unit.uid) ?? null}
+              lastHitId={isDying ? null : lastHitIds.get(unit.uid) ?? null}
               field={heroes} onTap={onTapHero} />
-          </RowLayer>
-        ))}
-        {ghosts.map(unit => (
-          <RowLayer key={`fallen-${unit.uid}`} row={unit.row}>
-            <HeroOnField unit={unit} player={player} isFocused={false} aim="idle" pickMarker={null}
-              action={null} lastHitId={null} isDying field={heroes} onTap={onTapHero} />
           </RowLayer>
         ))}
       </div>

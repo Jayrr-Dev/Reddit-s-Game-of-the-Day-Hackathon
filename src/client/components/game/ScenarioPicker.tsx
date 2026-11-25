@@ -39,6 +39,7 @@ const TAB_LABELS: Record<PickerTab, string> = {
 
 // --- SUBCOMPONENTS ---
 const DECK_EXAMPLES = {
+  stackedBuffs: ['sap', 'bulwark', 'instinct'],
   all: ['twinDaggers', 'frostBolt', 'boneWard'],
   lightning: ['forkedBolt', 'staticCharge', 'overcharge'],
   hex: ['whisperHex', 'mourningCurse', 'chainsOfGrief'],
@@ -55,7 +56,6 @@ const DECK_EXAMPLES = {
 
 const FEATURED_HEROES: Record<string, readonly HeroId[]> = {
   holyDragon: ['holyDragon'],
-  grandGriffon: ['grandGriffon', 'squire', 'archer'],
   mixedRows: ['shieldmaiden', 'squire', 'bard'],
   archers: ['archer', 'archer', 'archer'],
   tankWall: ['shieldmaiden', 'priest', 'shieldmaiden'],

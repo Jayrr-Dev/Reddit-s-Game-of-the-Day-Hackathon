@@ -162,8 +162,11 @@ const EFFECT_STACKS: Record<ImbuableEffect['kind'], boolean> = {
   rush: true,
   armor: true,
   enfeeble: false,
+  malaise: false,
   protect: false,
   cleanse: false,
+  dispel: false,
+  disrupt: false,
 };
 
 /** What makes two effects "the same" for stacking: kind, and buff. */

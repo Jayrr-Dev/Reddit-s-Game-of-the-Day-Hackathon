@@ -25,9 +25,8 @@ import {
   SHARPSHOOTER_BONUS_TEXT,
   STATUS_INFO,
 } from '../../../shared/game/describe';
-import { dodgeChanceOf } from '../../../shared/game/combat';
 import {
-  afflictionDamage,
+  incomingAfflictionDamage,
   bleedBiteOf,
   hexAfterTurn,
   hexBurnAmount,
@@ -40,6 +39,10 @@ import {
   SHOCK_BURST_FACTOR,
   SHOCK_HITS,
   OUT_OF_RANGE_HIT_CHANCE,
+  STACKING_BUFF_TURNS,
+  TIERED_MAX_TIER,
+  MALAISE_TURNS,
+  REFLEX_DODGE,
 } from '../../../shared/game/rules';
 import type {
   Combatant,
@@ -59,7 +62,7 @@ import {
 } from '../../lib/floatingPlacement';
 import { useFitCount } from '../../hooks/useFitCount';
 import { useShockSplash } from '../../hooks/useShockSplash';
-import { Chip, type ChipProps } from '../ui/Chip';
+import { Chip, TurnDrain, type ChipProps } from '../ui/Chip';
 import { Glyph } from '../ui/Glyph';
 import { Tooltip } from '../ui/Tooltip';
 import {
@@ -72,7 +75,7 @@ import { ShockCharge } from './ShockCharge';
 // --- TYPES ---
 /** One status as a chip, with its tooltip text. */
 type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
-  Pick<ChipProps, 'fill'> & {
+  Pick<ChipProps, 'fill' | 'duration'> & {
     /** Shock's drop stage, drawn in place of its glyph. */
     shockCharge?: Charge;
     key: StatusId | PassiveId | 'guard' | 'outOfRange';
@@ -85,6 +88,7 @@ type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
 const TIERED_STATUSES: ReadonlySet<StatusId> = new Set([
   'protection',
   'enfeeble',
+  'instinct',
 ]);
 /**
  * Left to right, grouped by what they do (Guard itself is drawn first):
@@ -94,6 +98,7 @@ const STATUS_ORDER: readonly StatusId[] = [
   // DEFENCE
   'aloft',
   'instinct',
+  'reflex',
   'protection',
   'reinforce',
   'brace',
@@ -120,6 +125,8 @@ const STATUS_ORDER: readonly StatusId[] = [
   'weaken',
   'vex',
   'enfeeble',
+  'malaise',
+  'hitLimit',
 ];
 
 /** The popover's width (px), and the room it needs to open upward. */
@@ -134,7 +141,6 @@ const POPOVER_MIN_ROOM_ABOVE = 200;
 const chipText = (id: StatusId, value: number): string => {
   if (id === 'momentum') return '+50%';
   if (id === 'sharpshooter') return SHARPSHOOTER_BONUS_TEXT;
-  if (id === 'instinct') return `${Math.round(dodgeChanceOf(value) * 100)}%`;
   if (TIERED_STATUSES.has(id)) return tierNumeral(value);
   return id === 'aloft' ? '' : String(value);
 };
@@ -165,8 +171,8 @@ const OUT_OF_RANGE_CHIP: StatusChip = {
  * Adding a stack flips it, which is the choice: burst now or hold.
  * Odd, it burns double; odd and ending in 3, triple: the chip says x3.
  */
-const hexChipOf = (hex: number, source?: Combatant): Partial<StatusChip> => {
-  const burn = afflictionDamage(hexBurnAmount(hex), source);
+const hexChipOf = (hex: number, target: Combatant, source?: Combatant): Partial<StatusChip> => {
+  const burn = incomingAfflictionDamage(target, hexBurnAmount(hex), source);
   const isPrimed = burn > 0;
   const isTripled = isEmpoweredHex(hex);
   if (!isPrimed)
@@ -200,7 +206,7 @@ const shockChipOf = (combatant: Combatant, source?: Combatant): Partial<StatusCh
     shockCharge: shockChargeOf(hits),
     ...(isPrimed
       ? {
-          description: `Primed: the next hit bursts it for ${afflictionDamage(combatant.statuses.shock * SHOCK_BURST_FACTOR, source)}.`,
+          description: `Primed: the next hit bursts it for ${incomingAfflictionDamage(combatant, combatant.statuses.shock * SHOCK_BURST_FACTOR, source)}.`,
         }
       : {}),
   };
@@ -258,25 +264,48 @@ const statusChipsOf = (
     if (!total) return [];
     if (group === 'afflictions' && !STATUS_IS_AFFLICTION[id]) return [];
     if (group === 'buffs' && STATUS_IS_AFFLICTION[id]) return [];
-    const percentDamage = id === 'momentum' || id === 'sharpshooter' ||
-      id === 'weaken' || id === 'enfeeble' || id === 'protection';
-    if (percentDamage && (group === 'buffs' || group === 'afflictions')) return [];
+    const handModifier = id === 'momentum' || id === 'sharpshooter' ||
+      id === 'weaken' || id === 'reflex' || TIERED_STATUSES.has(id);
+    if (handModifier && (group === 'buffs' || group === 'afflictions')) return [];
     const once = oneUseAmount(id, total, timedBuffs);
-    const amount = group === 'hand' ? (percentDamage ? total : once) : group === 'buffs' ? total - once : total;
+    const amount = group === 'hand' ? (handModifier ? total : once) : group === 'buffs' ? total - once : total;
     if (amount <= 0) return [];
+    const timedTurns = id === 'protection' ? combatant.cardProtectionTurns ?? 0
+      : id === 'enfeeble' ? combatant.enfeebleTurns ?? 0
+      : id === 'instinct' ? combatant.instinctTurns ?? 0 : 0;
+    const duration = timedTurns > 0
+      ? { left: timedTurns, total: id === 'protection'
+        ? combatant.cardProtectionDuration ?? STACKING_BUFF_TURNS
+        : STACKING_BUFF_TURNS }
+      : id === 'protection' || id === 'reflex' ? { left: 1, total: 1 } : undefined;
+    const durationText = timedTurns > 0
+      ? timedTurns + (timedTurns === 1 ? ' enemy turn left.' : ' enemy turns left.')
+      : id === 'protection' ? 'Expires when this unit next starts its turn.' : '';
     return [{
+      ...(duration && { duration }),
       key: id,
       ...STATUS_LOOK[id],
-      text: group === 'hand' && (id === 'weaken' || id === 'enfeeble' || id === 'protection')
-        ? `-${Math.round(100 * (id === 'weaken' ? 1 - WEAKEN_DAMAGE_FACTOR : tierCut(amount)))}%`
+      text: id === 'reflex' ? `+${Math.round(REFLEX_DODGE * 100)}%`
+        : group === 'hand' && (id === 'weaken' || TIERED_STATUSES.has(id))
+        ? `${id === 'instinct' ? '+' : '-'}${Math.round(100 * (id === 'weaken' ? 1 - WEAKEN_DAMAGE_FACTOR : tierCut(amount)))}%`
         : chipText(id, amount),
-      title: STATUS_INFO[id].label,
-      description: STATUS_INFO[id].description + (group === 'hand' && !percentDamage ? ' Expires after your next card.' : ''),
-      ...(id === 'hex' ? hexChipOf(total, source) : {}),
+      title: id === 'instinct' && amount === TIERED_MAX_TIER ? 'Ultra Instinct' : STATUS_INFO[id].label,
+      description: TIERED_STATUSES.has(id)
+        ? [
+            `Tier ${tierNumeral(amount)}: **${Math.round(100 * tierCut(amount))}%** ${id === 'protection'
+              ? 'less hit and affliction damage.' : id === 'enfeeble'
+                ? 'less attack damage dealt.' : 'dodge chance. Hex cannot be dodged.'}`,
+            ...(durationText ? [durationText] : []),
+            ...(amount === TIERED_MAX_TIER ? [`On expiry: **Malaise ${MALAISE_TURNS}**.`] : []),
+          ].join('\n')
+        : id === 'malaise'
+          ? `Cannot use Buff cards or buff moves for ${total} more ${total === 1 ? 'turn' : 'turns'}.`
+          : STATUS_INFO[id].description + (group === 'hand' && !handModifier ? ' Expires after your next card.' : ''),
+      ...(id === 'hex' ? hexChipOf(total, combatant, source) : {}),
       ...(id === 'shock' ? shockChipOf(combatant, source) : {}),
-      ...(source && id === 'poison' ? {description: `Deals ${afflictionDamage(total, source)} damage before each action, then loses 1 stack.`} : {}),
-      ...(source && id === 'burn' ? {description: `Deals ${afflictionDamage(total, source)} damage after each action, then halves (rounded down).`} : {}),
-      ...(source && id === 'bleed' ? {description: `A successful Melee or Range attack deals ${afflictionDamage(bleedBiteOf(total), source)} bonus damage, then Bleed loses 1 stack.`} : {}),
+      ...(id === 'poison' ? {description: `Deals ${incomingAfflictionDamage(combatant, total, source)} damage before each action, then loses 1 stack.`} : {}),
+      ...(id === 'burn' ? {description: `Deals ${incomingAfflictionDamage(combatant, total, source)} damage after each action, then halves (rounded down).`} : {}),
+      ...(id === 'bleed' ? {description: `A successful Melee or Range attack deals ${incomingAfflictionDamage(combatant, bleedBiteOf(total), source)} bonus damage, then Bleed loses 1 stack.`} : {}),
     }];
   });
   const splash =
@@ -293,6 +322,7 @@ const StatusChipView = ({ chip }: { chip: StatusChip }) => (
     text={chip.text}
     toneClass={chip.toneClass}
     fill={chip.fill}
+    duration={chip.duration}
     icon={chipIconOf(chip)}
     shape="square"
     info={{ title: chip.title, description: chip.description }}
@@ -323,6 +353,7 @@ const StatusPopover = ({
             text={chip.text}
             toneClass={chip.toneClass}
             fill={chip.fill}
+            duration={chip.duration}
             icon={chipIconOf(chip)}
             shape="square"
           />
@@ -431,13 +462,14 @@ export const EnemyStatuses = ({
     >
       {shown.map(chip => (
         <Tooltip key={chip.key} opensOn="click" content={{title: chip.title, description: chip.description}}>
-          <button type="button" aria-label={`${chip.title} ${chip.text}`.trim()}
+          <button type="button" aria-label={([chip.title, chip.text].join(' ').trim()) + (chip.duration ? ', ' + chip.duration.left + (chip.duration.left === 1 ? ' turn left' : ' turns left') : '')}
             className={`relative grid size-6 cursor-pointer place-items-center rounded-[3px] bg-surface-sunken ring-1 ring-edge focus-visible:outline-2 focus-visible:outline-accent ${chip.fill ? 'text-black' : chip.toneClass}`}
             style={{backgroundColor: chip.fill}}>
-            <span className={chip.text ? '-translate-x-0.5 -translate-y-0.5' : ''}>
+            <span className={chip.duration ? 'translate-x-0.5 -translate-y-0.5' : chip.text ? '-translate-x-0.5 -translate-y-0.5' : ''}>
               {chipIconOf(chip) ?? <Glyph name={chip.glyph} className="size-4" />}
             </span>
             {chip.text && <span className="absolute right-0 bottom-0 rounded-tl-sm bg-black/90 px-px text-[10px] leading-none font-bold tabular-nums text-white">{chip.text}</span>}
+            {chip.duration && <TurnDrain {...chip.duration} compact />}
           </button>
         </Tooltip>
       ))}
@@ -494,6 +526,7 @@ export const StatusRow = ({
             text={chip.text}
             toneClass={chip.toneClass}
             fill={chip.fill}
+            duration={chip.duration}
             icon={chipIconOf(chip)}
             shape="square"
           />

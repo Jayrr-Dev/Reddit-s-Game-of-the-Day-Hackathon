@@ -20,6 +20,8 @@
 import type { CSSProperties } from 'react';
 import { popScale } from '../../../lib/popSize';
 import { seeded, spread } from '../../../lib/seeded';
+import { BurnEffect } from './BurnEffect';
+import { PoisonEffect } from './PoisonEffect';
 import { BleedBurst } from './BleedBurst';
 import { MagicBurst } from './MagicBurst';
 import { Puncture } from './Puncture';
@@ -138,6 +140,9 @@ const HitMark = ({ pop }: { pop: PlayerHitPop }) => {
 
 /** The effect for one pop: a hit's mark, or the status's own effect. */
 const Impact = ({ pop }: { pop: PlayerHitPop }) => {
+  if (pop.tick === 'burn' && pop.amount > 0) return <BurnEffect />;
+  if (pop.kind === 'burn') return null;
+  if (pop.kind === 'poison' || (pop.tick === 'poison' && pop.amount > 0)) return <PoisonEffect />;
   if (pop.kind === 'hit') return <HitMark pop={pop} />;
   if (pop.kind === 'bleedBite') return <BleedBurst />;
   return <StatusFx kind={pop.kind} id={pop.id} />;

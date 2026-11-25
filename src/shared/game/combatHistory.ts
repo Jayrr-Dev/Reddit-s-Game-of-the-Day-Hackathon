@@ -9,6 +9,10 @@ export function recordEffects(before: CombatState, after: CombatState): CombatSt
   const entries: CombatHistoryRecord[] = [];
   const compare = (subject: string, old: Combatant, now?: Combatant) => {
     const turn = before.turn;
+    const dodges = (now?.dodgedHits ?? 0) - (old.dodgedHits ?? 0);
+    if (dodges > 0) entries.push({
+      event: 'dodge', turn, subject, detail: dodges === 1 ? 'Dodged' : 'Dodged ×' + dodges,
+    });
     if (!now || now.hp <= 0) {
       if (old.hp > 0) entries.push({ event: 'death', turn, subject, detail: 'Defeated' });
       return;
@@ -21,7 +25,8 @@ export function recordEffects(before: CombatState, after: CombatState): CombatSt
     }
   };
   compare('Villain', before.player, after.player);
-  for (const unit of before.heroes) compare(getHero(unit.heroId).name, unit, after.heroes.find(hero => hero.uid === unit.uid));
+  for (const unit of before.heroes) compare(getHero(unit.heroId).name, unit,
+    after.heroes.find(hero => hero.uid === unit.uid) ?? after.fallen.find(hero => hero.uid === unit.uid));
   for (const unit of after.heroes) if (!before.heroes.some(hero => hero.uid === unit.uid))
     entries.push({ event: 'arrival', turn: before.turn, subject: getHero(unit.heroId).name, detail: 'Joined the battle' });
   return entries.length ? { ...after, playHistory: appendCombatHistory(after.playHistory, ...entries) } : after;

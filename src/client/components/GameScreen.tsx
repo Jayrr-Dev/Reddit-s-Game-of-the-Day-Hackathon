@@ -15,6 +15,7 @@ import { useLeaderboard } from '../hooks/useLeaderboard';
 import { useRun } from '../hooks/useRun';
 import { useRunJourney } from '../hooks/useRunJourney';
 import { useRunSubmission } from '../hooks/useRunSubmission';
+import { playSound } from '../lib/gameAudio';
 import { apiClient } from '../lib/apiClient';
 import { PlayerName } from '../lib/playerName';
 import { journeys } from '../lib/journeys';
@@ -72,13 +73,18 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
 
   /** Claims the run with the server (ranked or practice), then plays. */
   const handleStart = async (build?:PlayerBuild) => {
-    if(!canResume && !build){setChoosing(true);return;}
+    if (!canResume && !build) {
+      playSound('conquestOpen', 1, .8);
+      setChoosing(true);
+      return;
+    }
     setIsStarting(true);
     setViewedDefeat(false);
     try {
       if (!canResume) {
         const started = await startRun();
         restart(started.profile, build ?? started.build);
+        playSound('conquestStart', 1, .7);
         reset();
       }
       setChoosing(false);

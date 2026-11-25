@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { HeroAction } from '../../../content/heroLooks';
 import { HERO_UID_ATTR, type Point } from '../../../hooks/useCardDrag';
 import { spread } from '../../../lib/seeded';
-import { HERO_ATTACK_MS } from '../../../hooks/useHeroTurn';
+import { HERO_SHOT_RELEASE_MS as SHOT_RELEASE_MS, HERO_SHOT_FLIGHT_MS as SHOT_FLIGHT_MS } from '../../../hooks/useHeroTurn';
 import { POV_ANCHOR_ATTR } from './PovImpact';
 import { Projectile, type ProjectileFlight } from './Projectile';
 
@@ -27,12 +27,6 @@ const asFlight = (shot: Shot): ProjectileFlight => ({
   kind: 'arrow',
   delayMs: SHOT_RELEASE_MS,
 });
-
-// --- CONSTANTS ---
-/** When in the draw the string is loosed (matches arrow-loose, 57%). */
-const SHOT_RELEASE_MS = Math.round(HERO_ATTACK_MS * 0.57);
-/** How long the arrow is in the air (matches --animate-hero-shot). */
-const SHOT_FLIGHT_MS = 220;
 
 // --- HELPERS ---
 /** The middle of an element's box on screen, or null if it is gone. */

@@ -150,9 +150,9 @@ export const useCardFlights = (combat: CombatState): CardFlight[] => {
     countsRef.current = after;
     if (!before) return;
     if (after.discard < before.discard) playSound('shuffle');
-    else if (after.draw < before.draw || after.hand > before.hand) playDraw();
     else if (after.removed > before.removed) playSound('remove', 1, .7);
-    else if (after.discard > before.discard) playSound('draw', .77, .5);
+    else if (after.discard > before.discard) playSound('discard', 1, .46);
+    else if (after.draw < before.draw || after.hand > before.hand) playDraw();
     const planned = flightsFor(before, after);
     if (planned.riffleAtMs !== null) riffleDrawPile(planned.riffleAtMs);
     if (planned.flights.length === 0) return;
