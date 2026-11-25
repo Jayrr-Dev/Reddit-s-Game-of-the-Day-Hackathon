@@ -8,9 +8,9 @@ import { cardsOfRarity, getCard, type CardId } from './cards.ts';
 import { signatures, type StarterName } from './starters.ts';
 import type { StopKind } from './kingdom.ts';
 import { pickOne, pickWeighted, type RngResult, type RngState } from './rng.ts';
-import { OFFER_SIZE } from './rules.ts';
+import { OFFER_SIZE, STATUS_IS_AFFLICTION } from './rules.ts';
 import { cardChanceBonusOf, type SkillPick } from './skills.ts';
-import type { CardRarity } from './types.ts';
+import type { CardRarity, StatusId } from './types.ts';
 
 // --- ODDS ---
 type RarityWeights = { item: Exclude<CardRarity, 'basic'>; weight: number }[];
@@ -40,6 +40,23 @@ const RARITY_ODDS: Record<Exclude<StopKind, 'grave'>, RarityWeights> = {
   ],
 };
 
+// --- SKILL TREE ODDS ---
+/** True when a card lays an affliction on someone (Poison, Bleed, Hex ...). */
+const appliesAffliction = (cardId: CardId): boolean =>
+  getCard(cardId).effects.some(
+    (effect) => effect.kind in STATUS_IS_AFFLICTION && STATUS_IS_AFFLICTION[effect.kind as StatusId]
+  );
+
+/**
+ * How much likelier the skill tree makes a card (0.3 = +30%): by its
+ * type, and GRIMOIRE counts any card with an affliction as a Curse.
+ */
+const offerBonusOf = (cardId: CardId, picks: readonly SkillPick[]): number => {
+  const type = getCard(cardId).type;
+  const asCurse = type === 'curse' || appliesAffliction(cardId);
+  return Math.max(cardChanceBonusOf(picks, type), asCurse ? cardChanceBonusOf(picks, 'curse') : 0);
+};
+
 // --- ROLLS ---
 
 /** Rolls one card not already offered (falls back to any card of the rarity). */
@@ -58,7 +75,7 @@ const rollOneOffer = (
   // Weight = starter preference (x3) times the skill tree's type bonus.
   const weightOf = (item: CardId): number => {
     const type = getCard(item).type;
-    return (type === preferredType ? 3 : 1) * (1 + cardChanceBonusOf(skillPicks, type));
+    return (type === preferredType ? 3 : 1) * (1 + offerBonusOf(item, skillPicks));
   };
   const isEven = candidates.every((item) => weightOf(item) === 1);
   if (isEven) return pickOne(afterRarity, candidates);

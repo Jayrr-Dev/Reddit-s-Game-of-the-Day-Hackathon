@@ -91,7 +91,8 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   },
   '4-0-0': {
     name: 'Grimoire',
-    description: 'Curse cards are 30% more likely in card offers',
+    description:
+      'Curses and cards that afflict are 30% more likely in card offers',
   },
   '1-1-0': {
     name: 'Heavy Hands',
