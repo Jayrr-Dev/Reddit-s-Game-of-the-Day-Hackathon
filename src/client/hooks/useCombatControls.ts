@@ -51,6 +51,7 @@ import {
   aimHitChance,
   aimCritChance,
   playDamageFactor,
+  cleaveTargetsOf,
   positionForCard,
   targetsFor,
   wouldFell,
@@ -406,6 +407,11 @@ export const useCombatControls = (
       ? cardAreaTargets(combat.heroes, heldCard).map((unit) => unit.uid)
       : [];
   const isArea = blastUids.length > 0;
+  // SHOCKWAVE CLEAVE: every hero the held strike will hit.
+  const cleaveUids = isHolding
+    ? (cleaveTargetsOf(combat, heldCard) ?? []).map((unit) => unit.uid)
+    : [];
+  const isCleaveAimed = isDropLive && cleaveUids.some((uid) => uid === dropState.target?.uid);
 
   /** How a hero should look given the held card and the drag. */
   const aimOf = (uid: number): AimState => {
@@ -417,6 +423,8 @@ export const useCombatControls = (
       return isDropLive ? 'struck' : 'marked';
     }
     if (pierceUids.includes(uid)) return 'locked';
+    if (isCleaveAimed && cleaveUids.includes(uid))
+      return 'locked'; // SHOCKWAVE: the whole Cleave lights up together
     if (!legalUids.includes(uid)) return 'illegal';
     return uid === hoverUid ? 'locked' : 'legal';
   };

@@ -14,6 +14,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { cardAreaTargets } from '../../shared/game/battlefield';
 import { getCard, type CardId } from '../../shared/game/cards';
+import { cleaveTargetsOf } from '../../shared/game/combat';
 import type { PlayCardAction } from '../../shared/game/run';
 import type { CombatState, MagicElement } from '../../shared/game/types';
 import { sweepStyleFor, type SweepStyleId } from '../content/meleeSweeps';
@@ -102,10 +103,13 @@ export const sweepPlanOf = (
   const { type, effects } = getCard(cardId);
   const damage = effects.find((effect) => effect.kind === 'damage');
   if (!damage || type !== 'melee') return null;
+  const cleave = cleaveTargetsOf(combat, cardId);
   const targetUids =
     damage.target === 'all'
       ? cardAreaTargets(combat.heroes, cardId).map((unit) => unit.uid)
-      : (action.targetUids ?? [action.targetUid ?? -1]);
+      : cleave
+        ? cleave.map((unit) => unit.uid)
+        : (action.targetUids ?? [action.targetUid ?? -1]);
   return { cardId, targetUids, hits: damage.hits };
 };
 

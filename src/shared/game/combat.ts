@@ -676,6 +676,20 @@ export const cardHitOn = (
   isLongRangeShot(unit, cardDef) ? longRangeHit(perHit, villainLongRangeFactor(unit, picks)) : perHit;
 
 /**
+ * SHOCKWAVE preview: every hero a card's one-target Melee strike would
+ * Cleave into right now, or null when the card would not Cleave.
+ */
+export const cleaveTargetsOf = (state: CombatState, cardId: CardId): HeroUnit[] | null => {
+  const cardDef = getCard(cardId);
+  const isStrike = cardDef.effects.some((e) => e.kind === 'damage' && e.target === 'one');
+  const isCleave = !cardDef.reach && isStrike &&
+    hasMomentumFor(state.player, cardDef.type) && hasMomentumCleave(state.player.skillPicks);
+  if (!isCleave) return null;
+  const living = state.heroes.filter((unit) => !isDefeated(unit));
+  return areaTargets(living, true, cardDef.type, meleeReachOf(state.player.skillPicks));
+};
+
+/**
  * Deals `hits` hits of villain attack damage to the targets. FOLLOW
  * THROUGH: a volley at one hero keeps landing after the hero falls,
  * until the card is done. HP stays at 0, so this changes no outcome;
