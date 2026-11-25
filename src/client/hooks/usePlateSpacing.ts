@@ -10,6 +10,19 @@ export const PLATE_UID_ATTR = 'data-plate-uid';
 export const FLOATING_UID_ATTR = 'data-floating-uid';
 export const HERO_LAYOUT_ATTR = 'data-hero-layout';
 const GAP = 3;
+/**
+ * LAYOUT TOLERANCE (px): how far a measure must move before the spacing
+ * is solved again. The side-step gait bobs and tilts the sprites while
+ * they walk, which nudges their boxes by a pixel or two every frame;
+ * re-solving on that noise flipped the chosen spots back and forth, and
+ * the heroes shook instead of settling.
+ */
+const RELAYOUT_TOLERANCE = 3;
+
+/** True when any measure moved past RELAYOUT_TOLERANCE (or the set changed). */
+const hasMoved = (previous: readonly number[], next: readonly number[]): boolean =>
+  previous.length !== next.length ||
+  next.some((value, i) => Math.abs(value - previous[i]!) > RELAYOUT_TOLERANCE);
 const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 
 type Placement = { shift: number; lift: number; labelOffset: number };
@@ -80,7 +93,7 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
         ? [{ anchor, plate, figure, layout, hitbox, unit }] : [];
     });
     let entries = findPlates();
-    let previous = '';
+    let previous: number[] = [];
     let targets: (Placement | undefined)[] = [];
     const position = (time = performance.now()) => {
       const bounds = layer.getBoundingClientRect();
@@ -140,8 +153,8 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
       });
       const key = [frame.width, frame.height, top, ...measures.flatMap(({width, natural, silhouette, relief, ground}) =>
         [width, natural.width, natural.height, natural.left, natural.top, silhouette.top, silhouette.width, silhouette.height,
-          relief.feet.x, relief.feet.y, relief.body.width, relief.body.height, ground.width, ground.height].map(n => n.toFixed(2)))].join(',');
-      if (key !== previous) {
+          relief.feet.x, relief.feet.y, relief.body.width, relief.body.height, ground.width, ground.height])];
+      if (hasMoved(previous, key)) {
         previous = key;
         const groundBottom = Math.max(...measures.map(({ground}) => ground.top + ground.height));
         const layoutFrame = { ...frame, height: groundBottom - frame.top };
@@ -191,7 +204,7 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
       });
     };
     // React inserts portal children in a second commit; the field can already have its final size.
-    const mounted = new MutationObserver(() => { entries = findPlates(); previous = ''; position(); });
+    const mounted = new MutationObserver(() => { entries = findPlates(); previous = []; position(); });
     mounted.observe(layer, { childList: true });
     position();
     let frameId = 0;
