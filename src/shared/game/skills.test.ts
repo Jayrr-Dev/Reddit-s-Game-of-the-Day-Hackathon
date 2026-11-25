@@ -260,3 +260,22 @@ test('Guard Break: Blunt hits a guarded hero +5% per rank', () => {
   assert.equal(cardHitOn({ ...hero, guard: 5 }, 100, blunt, picks), 125);
   assert.equal(cardHitOn({ ...hero, guard: 0 }, 100, blunt, picks), 100);
 });
+
+test('Guard Break also hits armored heroes harder', () => {
+  const brk = { branch: 1, tier: 2, slot: 0 };
+  const state = startCombat({
+    hp: 50,
+    maxHp: 50,
+    deck: ['backhand' as const],
+    heroIds: ['squire' as const],
+    might: 1,
+    seed: 3,
+  });
+  const hero = state.heroes[0]!;
+  const armored = {
+    ...hero,
+    guard: 0,
+    statuses: { ...hero.statuses, armor: 2 },
+  };
+  assert.equal(cardHitOn(armored, 100, getCard('backhand'), [brk, brk]), 110);
+});

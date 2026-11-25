@@ -650,9 +650,9 @@ export const targetDamageFactor = (
   (isLongRangeShot(unit, cardDef) ? villainLongRangeFactor(unit, picks) : 1) *
   guardBreakFactor(unit, cardDef, picks);
 
-/** GUARD BREAK (skill tree): a Blunt Melee card hits a guarded hero harder. */
+/** GUARD BREAK (skill tree): a Blunt Melee card hits a hero with Guard or Armor harder. */
 const guardBreakFactor = (unit: HeroUnit, cardDef: CardDef, picks?: readonly SkillPick[]): number =>
-  cardDef.type === 'melee' && cardDef.edge === 'blunt' && unit.guard > 0
+  cardDef.type === 'melee' && cardDef.edge === 'blunt' && (unit.guard > 0 || unit.statuses.armor > 0)
     ? 1 + guardBreakBonusOf(picks)
     : 1;
 
