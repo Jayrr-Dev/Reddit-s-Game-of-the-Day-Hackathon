@@ -1832,6 +1832,267 @@ textarea,
   animation: wing-crumple-right 1800ms ease-in forwards;
 }
 
+/* --- TEMPEST WYRM ---
+   Wing pivots are set inline in view-box units. One set of keyframes
+   serves both sides: --tempest-side turns a rotation the other way for
+   the right wings (1 left, -1 right).
+     idle         the wings ride the wind, the chest heaves, the near
+                  claw sways, the cloud drifts and flashes, lightning
+                  crawls on the spear and the storm heart pulses
+     every move   all four wings beat once
+     magic        the spear blazes and a bolt drops down it
+     signature    Sky Breaker: the same, longer and brighter
+     death        the wings crumple and the lightning goes out */
+@keyframes tempest-ride {
+  0%,
+  100% {
+    transform: rotate(calc(var(--tempest-side) * -1.2deg));
+  }
+  50% {
+    transform: rotate(calc(var(--tempest-side) * var(--tempest-lift)));
+  }
+}
+
+@keyframes tempest-beat {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(calc(var(--tempest-side) * 20deg));
+  }
+  70% {
+    transform: rotate(calc(var(--tempest-side) * -10deg));
+  }
+}
+
+@keyframes tempest-heave {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.9px);
+  }
+}
+
+@keyframes tempest-sway {
+  0%,
+  100% {
+    transform: rotate(-1.4deg);
+  }
+  50% {
+    transform: rotate(1.8deg);
+  }
+}
+
+@keyframes tempest-drift {
+  0%,
+  100% {
+    transform: translateX(calc(var(--tempest-drift) * -1));
+  }
+  50% {
+    transform: translateX(var(--tempest-drift));
+  }
+}
+
+/* Lightning shows in two short bursts a cycle, dark in between. */
+@keyframes tempest-crackle {
+  0%,
+  9% {
+    opacity: 1;
+  }
+  11%,
+  46% {
+    opacity: 0;
+  }
+  48%,
+  53% {
+    opacity: 0.8;
+  }
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes tempest-cloud-flash {
+  0%,
+  88%,
+  93%,
+  100% {
+    opacity: 0;
+  }
+  90%,
+  95% {
+    opacity: 1;
+  }
+}
+
+@keyframes tempest-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes tempest-blaze {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  30%,
+  60% {
+    opacity: 1;
+    transform: scale(1.9);
+  }
+}
+
+@keyframes tempest-skybolt {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  12%,
+  30%,
+  46%,
+  70% {
+    opacity: 1;
+  }
+  38% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes tempest-fade {
+  to {
+    opacity: 0;
+  }
+}
+
+.tempest-wing-left {
+  --tempest-side: 1;
+}
+
+.tempest-wing-right {
+  --tempest-side: -1;
+}
+
+.tempest-wing-upper {
+  --tempest-lift: 3deg;
+  transform-box: view-box;
+  animation: tempest-ride 4600ms ease-in-out infinite;
+}
+
+/* The lower pair trails the upper one, so the four never move as one. */
+.tempest-wing-lower {
+  --tempest-lift: 2deg;
+  transform-box: view-box;
+  animation: tempest-ride 4600ms ease-in-out -900ms infinite;
+}
+
+.tempest-body {
+  animation: tempest-heave 4600ms ease-in-out infinite;
+}
+
+.tempest-near-arm {
+  transform-box: view-box;
+  animation: tempest-sway 4600ms ease-in-out -600ms infinite;
+}
+
+.tempest-cloud-back {
+  --tempest-drift: 2.4px;
+  animation: tempest-drift 11s ease-in-out infinite;
+}
+
+.tempest-cloud-mid {
+  --tempest-drift: -3.2px;
+  animation: tempest-drift 8s ease-in-out infinite;
+}
+
+.tempest-cloud-front {
+  --tempest-drift: 4px;
+  animation: tempest-drift 6.5s ease-in-out infinite;
+}
+
+.tempest-arc {
+  animation: tempest-crackle 1700ms linear infinite;
+}
+
+.tempest-cloud-flash {
+  opacity: 0;
+  animation: tempest-cloud-flash 5200ms linear infinite;
+}
+
+.tempest-glow,
+.tempest-heart {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tempest-pulse 2300ms ease-in-out infinite;
+}
+
+.tempest-skybolt {
+  opacity: 0;
+}
+
+[data-action] .tempest-wing-upper,
+[data-action] .tempest-wing-lower {
+  animation: tempest-beat 560ms ease-in-out;
+}
+
+[data-action='magic'] .tempest-glow {
+  animation: tempest-blaze 560ms ease-out;
+}
+
+[data-action='magic'] .tempest-skybolt {
+  animation: tempest-skybolt 560ms linear;
+}
+
+[data-signature] .tempest-glow {
+  animation: tempest-blaze 1100ms ease-out;
+}
+
+[data-signature] .tempest-skybolt {
+  animation: tempest-skybolt 1100ms linear;
+}
+
+[data-dying] .tempest-wing-left {
+  animation: wing-crumple-left 1800ms ease-in forwards;
+}
+
+[data-dying] .tempest-wing-right {
+  animation: wing-crumple-right 1800ms ease-in forwards;
+}
+
+[data-dying] .tempest-arc,
+[data-dying] .tempest-glow,
+[data-dying] .tempest-heart,
+[data-dying] .tempest-eyes {
+  animation: tempest-fade 900ms ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tempest-wing-upper,
+  .tempest-wing-lower,
+  .tempest-body,
+  .tempest-near-arm,
+  .tempest-cloud-back,
+  .tempest-cloud-mid,
+  .tempest-cloud-front,
+  .tempest-arc,
+  .tempest-cloud-flash,
+  .tempest-glow,
+  .tempest-heart {
+    animation: none;
+  }
+}
+
 /* --- FLIGHT (ALOFT) ---
    A hero Aloft (data-aloft on its field box) rises out of reach: its
    drawing lifts and shrinks into the sky while its shadow stays on the

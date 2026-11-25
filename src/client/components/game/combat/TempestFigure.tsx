@@ -1,357 +1,477 @@
 // ===================================================================
 // TEMPEST WYRM FIGURE
-// Tempest Wyrm Vael: a towering, slate-dark giant with a horned dragon
-// head, rising out of storm cloud on huge tawny feathered wings, one
-// claw hanging low and the other raising a crackling lightning spear.
-// Flat and faceted like the other creatures (each part a lit tone with
-// its shadow tone on the right, no outlines). Drawn larger than the
-// viewBox on purpose (overflow is visible): the wings and spear spill
-// past the field slot so it looms over everything.
-// It moves through the shared data-action hooks (index.css, reusing the
-// "GRAND GRIFFON" wing beats): every move beats the wings once.
+// Tempest Wyrm Vael: a storm giant with a horned dragon's head, risen
+// waist-deep out of a thunderhead on four tawny feathered wings. One
+// claw hangs low toward the villain, the other holds a spear of
+// lightning to the sky. Drawn in art units (1536 x 1024, see
+// lib/creatureArt), flat and faceted like the other creatures: every
+// part a lit plane on the left and its shadow on the right.
+//
+// It is built to feel huge: a small head on a wide chest, wings that
+// run off both sides of the field, a near hand bigger than the head,
+// and no feet (the storm hides where it ends). The spear and the upper
+// wing tips rise past the top of the viewBox on purpose.
+//
+// It moves through the data hooks in index.css ("TEMPEST WYRM"):
+//   idle         wings ride the wind, the chest heaves, the cloud
+//                drifts and flashes, lightning crawls on the spear
+//   every move   all four wings beat once
+//   magic        the spear blazes and a bolt drops down it
+//   signature    Sky Breaker: the same, held longer and brighter
+//   death        the wings crumple and the lightning goes out
+// The face takes the heroes' moods through its eyes and jaw.
 // ===================================================================
 
 import { useId } from 'react';
 import type { HeroMood } from '../../../content/heroLooks';
-import { BODY_HEIGHT } from '../../../lib/heroFigure';
-
-// --- TYPES ---
-type Pt = readonly [number, number];
-type Tone = { lit: string; shade: string };
-
-// --- CONSTANTS: PALETTE ---
-const HIDE: Tone = { lit: '#474b5a', shade: '#31343f' };
-const LIMB: Tone = { lit: '#3d4150', shade: '#2a2d37' };
-const HORN: Tone = { lit: '#8d8a84', shade: '#64615c' };
-const FEATHER_OUTER: Tone = { lit: '#c08441', shade: '#9a6430' };
-const FEATHER_INNER: Tone = { lit: '#7d5129', shade: '#5f3c1f' };
-const CLOUD: Tone = { lit: '#7b7e88', shade: '#5c5f6a' };
-const BOLT = '#eef6ff';
-const BOLT_GLOW = '#f2e27a';
-const EYE = '#f4e36a';
-
-/** Drawing space (1500 x 1000, feet on the bottom) to viewBox units. */
-const SCALE = BODY_HEIGHT / 1000;
-/** The centre line the body is drawn on. */
-const MID = 750;
-
-// --- CONSTANTS: SHAPES (LEFT SIDE, MIRRORED FOR THE RIGHT) ---
-/** Where a wing meets the shoulders: the pivot it beats around. */
-const WING_ROOT: Pt = [640, 360];
-/** The wing's arm: shoulder, up to the wrist, out to the tip. */
-const WING_ARM: readonly Pt[] = [WING_ROOT, [430, 120], [250, 40], [40, 230]];
-/**
- * Feathers hanging off the arm: [share along the arm 0..1, angle deg
- * (90 = straight down), length]. Long primaries out at the tip, short
- * coverts near the shoulder, so the wing reads as one great sail.
- */
-const FEATHERS: readonly (readonly [number, number, number])[] = [
-  [0.12, 98, 330],
-  [0.24, 102, 430],
-  [0.36, 106, 520],
-  [0.48, 110, 600],
-  [0.58, 116, 660],
-  [0.68, 122, 690],
-  [0.78, 130, 660],
-  [0.88, 140, 600],
-  [0.97, 152, 520],
-];
-const TORSO: readonly Pt[] = [
-  [632, 330],
-  [868, 330],
-  [842, 640],
-  [790, 830],
-  [710, 830],
-  [658, 640],
-];
-const HEAD: readonly Pt[] = [
-  [706, 118],
-  [794, 118],
-  [812, 206],
-  [772, 304],
-  [728, 304],
-  [688, 206],
-];
-const HORN_LEFT: readonly Pt[] = [
-  [704, 136],
-  [640, 30],
-  [690, 60],
-  [724, 122],
-];
-const CREST: readonly Pt[] = [
-  [730, 120],
-  [750, 50],
-  [770, 120],
-];
-const ARM_LOW: readonly Pt[] = [
-  [636, 350],
-  [598, 366],
-  [520, 626],
-  [476, 772],
-  [528, 780],
-  [566, 640],
-  [652, 430],
-];
-const CLAWS: readonly Pt[] = [
-  [470, 770],
-  [452, 830],
-  [488, 790],
-  [500, 842],
-  [514, 792],
-  [540, 836],
-  [532, 778],
-];
-const ARM_RAISED: readonly Pt[] = [
-  [860, 342],
-  [906, 352],
-  [966, 184],
-  [996, 46],
-  [960, 36],
-  [926, 172],
-];
-/** The spear: a jagged bolt of light from the sky through the claw. */
-const SPEAR: readonly Pt[] = [
-  [1030, -170],
-  [1046, -164],
-  [1000, 40],
-  [1020, 46],
-  [940, 400],
-  [960, 404],
-  [898, 660],
-  [924, 396],
-  [902, 392],
-  [984, 40],
-  [962, 34],
-];
-/** Loose arcs of lightning crackling off the spear. */
-const SPARKS: readonly (readonly Pt[])[] = [
-  [
-    [1010, 60],
-    [1070, 110],
-    [1050, 140],
-    [1110, 190],
-  ],
-  [
-    [950, 300],
-    [890, 340],
-    [910, 370],
-    [850, 420],
-  ],
-  [
-    [1036, -120],
-    [1100, -90],
-    [1080, -60],
-    [1140, -40],
-  ],
-];
-/** Storm cloud rolling over the legs: [x, y, radius]. */
-const CLOUDS: readonly (readonly [number, number, number])[] = [
-  [560, 900, 150],
-  [760, 880, 170],
-  [950, 905, 150],
-  [420, 950, 110],
-  [1090, 950, 110],
-  [660, 980, 140],
-  [860, 985, 140],
-];
+import {
+  art,
+  ART_SCALE,
+  mirrored,
+  originAt,
+  pts,
+  type Point,
+} from '../../../lib/creatureArt';
+import { boneStrip, featherRow } from '../../../lib/featherWing';
+import {
+  type Tone,
+  type Side,
+  type WingSpec,
+  type Bank,
+  type LightIds,
+  type CloudSpec,
+  HIDE,
+  PLATE,
+  SCUTE,
+  HORN,
+  STEEL,
+  BOLT,
+  BOLT_EDGE,
+  MAW,
+  GLOOM,
+  HEART_TONE,
+  HEART_CRACK_WIDTH,
+  ARC_WIDTH,
+  CLOUD_FLASH_WIDTH,
+  MID,
+  GROUND,
+  UPPER_WING,
+  LOWER_WING,
+  BONE_THICK,
+  BONE_THIN,
+  TORSO,
+  PECTORAL,
+  SCUTES,
+  SCUTE_HEIGHT,
+  SCUTE_DROP,
+  SHOULDER_SPIKES,
+  NECK,
+  STORM_HEART,
+  HEART_CRACKS,
+  HEAD_SCALE,
+  HEAD_PIVOT,
+  SKULL,
+  MUZZLE,
+  BROW,
+  NOSTRIL,
+  JAW,
+  JAW_DROP,
+  EYES,
+  HORN_HIGH,
+  HORN_LOW,
+  CHEEK_SPINE,
+  CREST,
+  NEAR_UPPER_ARM,
+  ELBOW_SPUR,
+  NEAR_FOREARM,
+  NEAR_HAND,
+  CLAWS,
+  THUMB,
+  FAR_UPPER_ARM,
+  FAR_FOREARM,
+  FIST,
+  NEAR_ARM_SPLIT,
+  FAR_ARM_SPLIT,
+  SPEAR_BUTT,
+  SPEAR_NECK,
+  SHAFT_WIDTH,
+  BLADE,
+  BLADE_CORE,
+  BARBS,
+  GLOW_CENTRE,
+  GLOW_RADIUS,
+  ARCS,
+  SKY_BOLT,
+  GLOOM_CENTRE,
+  GLOOM_REACH,
+  CLOUDS,
+  BANK_OUTLINE,
+  BANK_TOP_POINTS,
+  BANK_FOLD,
+  CLOUD_FADE,
+  CLOUD_FLASHES,
+} from './tempestShapes';
 
 // --- HELPERS ---
-const toPoints = (points: readonly Pt[]): string =>
-  points.map(([x, y]) => `${x},${y}`).join(' ');
+/** A bank's outline points placed in the art. */
+const placeOn =
+  ([x, y, half, thick]: Bank) =>
+  ([along, across]: Point): Point => [x + along * half, y + across * thick];
 
-const mirror = (points: readonly Pt[]): Pt[] =>
-  points.map(([x, y]) => [2 * MID - x, y] as const);
+/** A whole bank (drawn in its shadow tone). */
+const bankOutline = (bank: Bank): Point[] => BANK_OUTLINE.map(placeOn(bank));
 
-/** A point `length` from `from`, at `deg`. */
-const toward = ([x, y]: Pt, deg: number, length: number): Pt => {
-  const rad = (deg * Math.PI) / 180;
-  return [x + length * Math.cos(rad), y + length * Math.sin(rad)];
-};
+/** The lit plane across a bank's top. */
+const bankTop = (bank: Bank): Point[] =>
+  [...BANK_OUTLINE.slice(0, BANK_TOP_POINTS), ...BANK_FOLD].map(placeOn(bank));
 
-/** The point `share` (0..1) of the way along a polyline, by length. */
-const along = (line: readonly Pt[], share: number): Pt => {
-  const lengths = line
-    .slice(1)
-    .map(([x, y], i) => Math.hypot(x - line[i]![0], y - line[i]![1]));
-  let left = share * lengths.reduce((a, b) => a + b, 0);
-  for (const [i, length] of lengths.entries()) {
-    if (left <= length) {
-      const [ax, ay] = line[i]!;
-      const [bx, by] = line[i + 1]!;
-      return [
-        ax + ((bx - ax) * left) / length,
-        ay + ((by - ay) * left) / length,
-      ];
-    }
-    left -= length;
-  }
-  return line[line.length - 1]!;
-};
+/** A belly scute: a chevron plate, as its left half. */
+const scuteHalf = ([top, half]: readonly [number, number]): Point[] => [
+  [MID, top + SCUTE_DROP],
+  [MID - half, top],
+  [MID - half + 10, top + SCUTE_HEIGHT - SCUTE_DROP],
+  [MID, top + SCUTE_HEIGHT],
+];
 
-/** One feather: a long blade from the root, widest two thirds out. */
-const featherShape = (root: Pt, deg: number, length: number): Pt[] => {
-  const tip = toward(root, deg, length);
-  const sideA = toward(toward(root, deg, length * 0.62), deg + 90, 60);
-  const sideB = toward(toward(root, deg, length * 0.62), deg - 90, 60);
+/** Mirrors a shape for the right side, leaves it for the left. */
+const onSide = (side: Side, points: readonly Point[]): readonly Point[] =>
+  side === 'left' ? points : mirrored(points);
+
+/** A straight strip between two points, `width` across. */
+const strip = ([ax, ay]: Point, [bx, by]: Point, width: number): Point[] => {
+  const length = Math.hypot(bx - ax, by - ay);
+  const nx = ((by - ay) / length) * (width / 2);
+  const ny = (-(bx - ax) / length) * (width / 2);
   return [
-    toward(root, deg + 90, 14),
-    sideA,
-    tip,
-    sideB,
-    toward(root, deg - 90, 14),
+    [ax + nx, ay + ny],
+    [bx + nx, by + ny],
+    [bx - nx, by - ny],
+    [ax - nx, ay - ny],
   ];
 };
 
-// --- SUBCOMPONENTS ---
-/** A part in its shadow tone, with the lit tone clipped left of `split`. */
-const Facet = ({
-  tone,
+// --- SUBCOMPONENTS: SHARED ---
+/** A symmetric part: the left half lit, its mirror in shadow. */
+const Halves = ({ points, tone }: { points: readonly Point[]; tone: Tone }) => (
+  <>
+    <polygon points={pts(points)} fill={tone.lit} />
+    <polygon points={pts(mirrored(points))} fill={tone.shade} />
+  </>
+);
+
+/** One part cut by a vertical line: lit left of it, shadow right. */
+const Split = ({
   points,
-  split,
+  tone,
+  at,
 }: {
+  points: readonly Point[];
   tone: Tone;
-  points: readonly Pt[];
-  split: number;
+  at: number;
 }) => {
   const id = useId();
+  const [edge] = art([at, 0]);
   return (
-    <g>
+    <>
       <clipPath id={id}>
-        <rect x={-2000} y={-2000} width={split + 2000} height={4000} />
+        <rect x={-400} y={-400} width={edge + 400} height={900} />
       </clipPath>
-      <polygon points={toPoints(points)} fill={tone.shade} />
-      <polygon
-        points={toPoints(points)}
-        fill={tone.lit}
-        clipPath={`url(#${id})`}
-      />
-    </g>
+      <polygon points={pts(points)} fill={tone.shade} />
+      <polygon points={pts(points)} fill={tone.lit} clipPath={`url(#${id})`} />
+    </>
   );
 };
 
-/** One wing: inner feathers under outer ones, hung from its arm. */
-const Wing = ({ side }: { side: 'left' | 'right' }) => {
-  const flip = (points: Pt[]) => (side === 'left' ? points : mirror(points));
-  const root = side === 'left' ? WING_ROOT : mirror([WING_ROOT])[0]!;
-  const lit = side === 'left';
-  const arm = [
-    ...WING_ARM,
-    ...WING_ARM.slice(1)
-      .reverse()
-      .map(([x, y]) => [x + 10, y + 34] as const),
-  ];
+// --- SUBCOMPONENTS: WINGS ---
+/** One wing. The far (right) wing sits a step deeper in shadow. */
+const Wing = ({ spec, side }: { spec: WingSpec; side: Side }) => {
+  const isNear = side === 'left';
+  const root = onSide(side, [spec.bone[0]!])[0]!;
   return (
-    <g
-      className={`griffon-wing-${side}`}
-      // The origin is in viewBox units (outside the drawing's scale).
-      style={{ transformOrigin: `${root[0] * SCALE}px ${root[1] * SCALE}px` }}
-    >
-      {FEATHERS.map(([share, deg, length]) => (
-        <polygon
-          key={`inner-${share}`}
-          points={toPoints(
-            flip(featherShape(along(WING_ARM, share), deg - 12, length * 0.75))
-          )}
-          fill={lit ? FEATHER_INNER.lit : FEATHER_INNER.shade}
-        />
-      ))}
-      {FEATHERS.map(([share, deg, length]) => (
-        <polygon
-          key={`outer-${share}`}
-          points={toPoints(
-            flip(featherShape(along(WING_ARM, share), deg, length))
-          )}
-          fill={lit ? FEATHER_OUTER.lit : FEATHER_OUTER.shade}
-        />
-      ))}
+    <g className={`${spec.name} tempest-wing-${side}`} style={originAt(root)}>
+      {spec.rows.map(({ row, tone }, band) =>
+        featherRow(spec.bone, row).map((feather, i) => (
+          <g key={`${band}-${i}`}>
+            <polygon
+              points={pts(onSide(side, feather.leading))}
+              fill={isNear ? tone.lit : tone.shade}
+            />
+            <polygon
+              points={pts(onSide(side, feather.trailing))}
+              fill={isNear ? tone.shade : tone.deep}
+            />
+          </g>
+        ))
+      )}
       <polygon
-        points={toPoints(flip(arm))}
-        fill={lit ? LIMB.lit : LIMB.shade}
+        points={pts(onSide(side, boneStrip(spec.bone, BONE_THICK, BONE_THIN)))}
+        fill={isNear ? spec.arm.shade : spec.arm.deep}
       />
     </g>
   );
 };
 
-/** The dragon head: horns, crest, a long snout and two burning eyes. */
-const Head = () => (
-  <g>
-    <Facet tone={HORN} points={HORN_LEFT} split={2000} />
-    <Facet tone={HORN} points={mirror(HORN_LEFT)} split={0} />
-    <Facet tone={HORN} points={CREST} split={MID} />
-    <Facet tone={HIDE} points={HEAD} split={MID} />
-    <polygon
-      points={toPoints([
-        [712, 196],
-        [742, 206],
-        [716, 214],
-      ])}
-      fill={EYE}
-    />
-    <polygon
-      points={toPoints(
-        mirror([
-          [712, 196],
-          [742, 206],
-          [716, 214],
-        ])
-      )}
-      fill={EYE}
-    />
+/** A pair of wings, the far one first so the near one overlaps it. */
+const WingPair = ({ spec }: { spec: WingSpec }) => (
+  <>
+    <Wing spec={spec} side="right" />
+    <Wing spec={spec} side="left" />
+  </>
+);
+
+// --- SUBCOMPONENTS: BODY ---
+/** The chest: hide, breast plates, belly scutes and the storm scar. */
+const Torso = () => (
+  <g className="tempest-chest">
+    {SHOULDER_SPIKES.map((spike, i) => (
+      <Halves key={i} points={spike} tone={PLATE} />
+    ))}
+    <Halves points={TORSO} tone={HIDE} />
+    <Halves points={PECTORAL} tone={PLATE} />
+    {SCUTES.map((scute) => (
+      <Halves key={scute[0]} points={scuteHalf(scute)} tone={SCUTE} />
+    ))}
+    <g className="tempest-heart">
+      {[...HEART_CRACKS, ...HEART_CRACKS.map(mirrored)].map((crack, i) => (
+        <polyline
+          key={i}
+          points={pts(crack)}
+          fill="none"
+          stroke={BOLT_EDGE}
+          strokeWidth={HEART_CRACK_WIDTH}
+          strokeLinejoin="bevel"
+        />
+      ))}
+      <Halves points={STORM_HEART} tone={HEART_TONE} />
+    </g>
   </g>
 );
 
-/** The lightning spear and the sparks crackling off it. */
-const Spear = () => (
-  <g>
-    <polygon
-      points={toPoints(SPEAR)}
-      fill={BOLT_GLOW}
-      opacity={0.45}
-      transform="translate(-6 0) scale(1.01 1)"
-    />
-    <polygon points={toPoints(SPEAR)} fill={BOLT} />
-    {SPARKS.map((spark, i) => (
+/** The dragon's head: four horns, a crest, a long muzzle and its eyes. */
+const Head = ({ mood }: { mood: HeroMood }) => {
+  const [, jawDrop] = art([0, JAW_DROP[mood]]);
+  const [pivotX, pivotY] = art(HEAD_PIVOT);
+  return (
+    <g
+      className="tempest-head"
+      transform={`translate(${pivotX} ${pivotY}) scale(${HEAD_SCALE}) translate(${-pivotX} ${-pivotY})`}
+    >
+      <Halves
+        points={NECK}
+        tone={{ ...HIDE, lit: HIDE.shade, shade: HIDE.deep }}
+      />
+      <Halves points={HORN_LOW} tone={HORN} />
+      <Halves points={HORN_HIGH} tone={HORN} />
+      <Halves points={CHEEK_SPINE} tone={PLATE} />
+      {/* The open mouth sits behind the jaw, so it shows when it drops. */}
+      <polygon points={pts([...JAW, ...mirrored(JAW).reverse()])} fill={MAW} />
+      <g transform={`translate(0 ${jawDrop})`}>
+        <Halves points={JAW} tone={HIDE} />
+      </g>
+      <Halves points={SKULL} tone={PLATE} />
+      <Halves points={CREST} tone={HORN} />
+      <Halves points={MUZZLE} tone={SCUTE} />
+      <Halves
+        points={BROW}
+        tone={{ ...HIDE, lit: HIDE.deep, shade: HIDE.deep }}
+      />
+      <Halves points={NOSTRIL} tone={{ ...HIDE, lit: MAW, shade: MAW }} />
+      <g className="tempest-eyes">
+        <Halves
+          points={EYES[mood]}
+          tone={{ lit: BOLT, shade: BOLT, deep: BOLT }}
+        />
+      </g>
+    </g>
+  );
+};
+
+/** The near arm and its hanging claw. */
+const NearArm = () => (
+  <g className="tempest-near-arm" style={originAt(NEAR_UPPER_ARM[1]!)}>
+    <polygon points={pts(ELBOW_SPUR)} fill={HORN.shade} />
+    <Split points={NEAR_UPPER_ARM} tone={HIDE} at={NEAR_ARM_SPLIT + 30} />
+    <Split points={NEAR_FOREARM} tone={PLATE} at={NEAR_ARM_SPLIT - 50} />
+    <polygon points={pts(THUMB)} fill={HIDE.deep} />
+    {CLAWS.map((claw, i) => (
+      <Split key={i} points={claw} tone={HORN} at={claw[0]![0] + 12} />
+    ))}
+    <Split points={NEAR_HAND} tone={HIDE} at={NEAR_ARM_SPLIT - 115} />
+  </g>
+);
+
+/** The far arm, raised (the fist is drawn over the spear's shaft). */
+const FarArm = () => (
+  <>
+    <Split points={FAR_UPPER_ARM} tone={HIDE} at={FAR_ARM_SPLIT - 60} />
+    <Split points={FAR_FOREARM} tone={PLATE} at={FAR_ARM_SPLIT} />
+  </>
+);
+
+// --- SUBCOMPONENTS: SPEAR ---
+/** The spear: steel shaft, barbs, and a blade of lightning that glows. */
+const Spear = ({ glowId }: { glowId: string }) => {
+  const [glowX, glowY] = art(GLOW_CENTRE);
+  return (
+    <g className="tempest-spear">
+      <circle
+        className="tempest-glow"
+        cx={glowX}
+        cy={glowY}
+        r={GLOW_RADIUS * ART_SCALE}
+        fill={`url(#${glowId})`}
+      />
+      <polygon
+        points={pts(strip(SPEAR_BUTT, SPEAR_NECK, SHAFT_WIDTH))}
+        fill={STEEL.deep}
+      />
+      <polygon
+        points={pts(strip(SPEAR_BUTT, SPEAR_NECK, SHAFT_WIDTH / 3))}
+        fill={STEEL.lit}
+      />
+      {BARBS.map((barb, i) => (
+        <polygon
+          key={i}
+          points={pts(barb)}
+          fill={i ? STEEL.shade : STEEL.lit}
+        />
+      ))}
+      <polygon points={pts(BLADE)} fill={BOLT_EDGE} />
+      <polygon points={pts(BLADE_CORE)} fill={BOLT} />
+      <polygon className="tempest-skybolt" points={pts(SKY_BOLT)} fill={BOLT} />
+    </g>
+  );
+};
+
+/** Lightning crawling off the spear, each arc flickering in its turn. */
+const Arcs = () => (
+  <g className="tempest-arcs">
+    {ARCS.map((arc, i) => (
       <polyline
         key={i}
-        points={toPoints(spark)}
+        className="tempest-arc"
+        points={pts(arc)}
         fill="none"
-        stroke={BOLT}
-        strokeWidth={7}
+        stroke={i % 2 ? BOLT_EDGE : BOLT}
+        strokeWidth={ARC_WIDTH}
         strokeLinejoin="bevel"
+        style={{ animationDelay: `${i * -430}ms` }}
       />
     ))}
   </g>
 );
 
-/** Storm cloud rolling over the giant's legs. */
-const Cloudbank = () => (
-  <g>
-    {CLOUDS.map(([x, y, r]) => (
-      <g key={`${x}-${y}`}>
-        <circle cx={x} cy={y} r={r} fill={CLOUD.shade} />
-        <circle
-          cx={x - r * 0.18}
-          cy={y - r * 0.14}
-          r={r * 0.78}
-          fill={CLOUD.lit}
-        />
+// --- SUBCOMPONENTS: STORM ---
+/** One row of the thunderhead: each bank in shadow, its top lit. */
+const CloudLayer = ({ spec }: { spec: CloudSpec }) => (
+  <g className={spec.name}>
+    {spec.banks.map((bank) => (
+      <g key={bank[0]}>
+        <polygon points={pts(bankOutline(bank))} fill={spec.tone.shade} />
+        <polygon points={pts(bankTop(bank))} fill={spec.tone.lit} />
       </g>
     ))}
   </g>
 );
 
-// --- COMPONENT ---
-/** Draws Tempest Wyrm Vael (it takes no moods yet). */
-export const TempestWyrm = (_props: { mood: HeroMood }) => (
-  <g transform={`scale(${SCALE})`}>
-    <Wing side="left" />
-    <Wing side="right" />
-    <Facet tone={LIMB} points={ARM_LOW} split={600} />
-    <Facet tone={LIMB} points={CLAWS} split={500} />
-    <Facet tone={HIDE} points={TORSO} split={MID} />
-    <Facet tone={LIMB} points={ARM_RAISED} split={930} />
-    <Head />
-    <Spear />
-    <Cloudbank />
-  </g>
+/** Lightning buried in the cloud. */
+const CloudFlashes = () => (
+  <>
+    {CLOUD_FLASHES.map((flash, i) => (
+      <polyline
+        key={i}
+        className="tempest-cloud-flash"
+        points={pts(flash)}
+        fill="none"
+        stroke={BOLT}
+        strokeWidth={CLOUD_FLASH_WIDTH}
+        strokeLinejoin="bevel"
+        style={{ animationDelay: `${i * -2600}ms` }}
+      />
+    ))}
+  </>
 );
+
+/** Soft light (the storm's gloom, the blade's glow) and the cloud's fade. */
+const Lights = ({ gloomId, glowId, fadeId }: LightIds) => (
+  <defs>
+    {/* White keeps the cloud, black hides it: it thins toward the ground. */}
+    <linearGradient id={`${fadeId}-ramp`} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor="white" />
+      <stop offset="100%" stopColor="black" />
+    </linearGradient>
+    <mask
+      id={fadeId}
+      maskUnits="userSpaceOnUse"
+      x={-50}
+      y={-50}
+      width={300}
+      height={200}
+    >
+      <rect
+        x={-50}
+        y={-50}
+        width={300}
+        height={50 + (GROUND - CLOUD_FADE) * ART_SCALE}
+        fill="white"
+      />
+      <rect
+        x={-50}
+        y={(GROUND - CLOUD_FADE) * ART_SCALE}
+        width={300}
+        height={CLOUD_FADE * ART_SCALE}
+        fill={`url(#${fadeId}-ramp)`}
+      />
+    </mask>
+    <radialGradient id={gloomId}>
+      <stop offset="0%" stopColor={GLOOM} stopOpacity={0.9} />
+      <stop offset="55%" stopColor={GLOOM} stopOpacity={0.7} />
+      <stop offset="100%" stopColor={GLOOM} stopOpacity={0} />
+    </radialGradient>
+    <radialGradient id={glowId}>
+      <stop offset="0%" stopColor={BOLT} stopOpacity={0.85} />
+      <stop offset="30%" stopColor={BOLT_EDGE} stopOpacity={0.4} />
+      <stop offset="100%" stopColor={BOLT_EDGE} stopOpacity={0} />
+    </radialGradient>
+  </defs>
+);
+
+// --- COMPONENT ---
+/** Draws Tempest Wyrm Vael, back to front. */
+export const TempestWyrm = ({ mood }: { mood: HeroMood }) => {
+  const gloomId = useId();
+  const glowId = useId();
+  const [gloomX, gloomY] = art(GLOOM_CENTRE);
+  const [gloomAcross, gloomUp] = art(GLOOM_REACH);
+  const fadeId = useId();
+  const [back, mid, front] = CLOUDS;
+  return (
+    <g className="tempest-wyrm">
+      <Lights gloomId={gloomId} glowId={glowId} fadeId={fadeId} />
+      <ellipse
+        cx={gloomX}
+        cy={gloomY}
+        rx={gloomAcross}
+        ry={gloomUp}
+        fill={`url(#${gloomId})`}
+      />
+      <WingPair spec={LOWER_WING} />
+      <WingPair spec={UPPER_WING} />
+      <g className="tempest-body">
+        <FarArm />
+        <Spear glowId={glowId} />
+        <Split points={FIST} tone={HIDE} at={FAR_ARM_SPLIT} />
+        <Torso />
+        <Head mood={mood} />
+      </g>
+      <g mask={`url(#${fadeId})`}>
+        <CloudLayer spec={back!} />
+        <CloudFlashes />
+        <CloudLayer spec={mid!} />
+        <CloudLayer spec={front!} />
+      </g>
+      <NearArm />
+      <Arcs />
+    </g>
+  );
+};
