@@ -1,7 +1,11 @@
 // --- SKILL PROGRESSION ---
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createCharacter, restoreCharacter } from './character.ts';
+import {
+  createCharacter,
+  healingAmount,
+  restoreCharacter,
+} from './character.ts';
 import {
   cardHitOn,
   endTurn,
@@ -405,4 +409,10 @@ test('Empower: buffs 2% stronger per rank', () => {
   };
   assert.equal(attackDamage(0, angry, 'melee'), 11);
   assert.equal(attackDamage(0, { ...angry, skillPicks: [] }, 'melee'), 10);
+});
+
+test('Mender: healing +5% per rank', () => {
+  const m = { branch: 3, tier: 1, slot: 1 };
+  assert.equal(healingAmount(20, { skillPicks: [m, m, m, m, m] }), 25);
+  assert.equal(healingAmount(20, {}), 20);
 });

@@ -98,6 +98,10 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     description:
       'Buffs (Wrath, Might, Surge, Hone, Reinforce) are 2% stronger per rank (up to +10%)',
   },
+  '3-1-1': {
+    name: 'Mender',
+    description: 'Healing is 5% stronger per rank (up to +25%)',
+  },
   '4-0-0': {
     name: 'Grimoire',
     description:
@@ -321,6 +325,9 @@ export const EMPOWER_PER_RANK = 0.02;
 /** How much stronger buffs' flat bonuses are (0 to 0.1). */
 export const buffPowerBonusOf = (picks?: readonly SkillPick[]): number =>
   ranksIn(picks, 3, 1, 0) * EMPOWER_PER_RANK;
+/** MENDER (Utility line): healing added per rank, +5% (up to +25%). */
+export const healingSkillBonusOf = (picks?: readonly SkillPick[]): number =>
+  ranksIn(picks, 3, 1, 1) * EDGE_DAMAGE_PER_RANK;
 /** SHOCKWAVE (Blunt capstone): Momentum turns Melee strikes into Cleaves. */
 export const hasMomentumCleave = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 1, 3, 0);

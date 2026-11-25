@@ -1,4 +1,4 @@
-import { buySkill, isSkillPick, type SkillPick } from './skills.ts';
+import { buySkill, healingSkillBonusOf, isSkillPick, type SkillPick } from './skills.ts';
 import type { CombatState } from './types.ts';
 import { PLAYER_MAX_HP, PLAYER_HP_CAP, CARDS_PER_TURN, RESERVE_ENERGY_SLOTS } from './rules.ts';
 
@@ -497,10 +497,16 @@ export function migratePathNodes(trait: TraitId, allocation: PathRanks): number[
   return [...selected].sort((a, b) => a - b);
 }
 
-export function healingAmount(base: number, owner?: { traits?: Traits; traitNodes?: TraitNodes }) {
-  if (!owner?.traits) return base;
-  const { healingPercent } = characterBonuses(owner.traits, undefined, owner.traitNodes);
-  return Math.floor(base * (100 + healingPercent) / 100);
+export function healingAmount(
+  base: number,
+  owner?: { traits?: Traits; traitNodes?: TraitNodes; skillPicks?: readonly SkillPick[] }
+) {
+  // MENDER (skill tree) adds its percent on top of the traits' healing.
+  const skillPercent = Math.round(healingSkillBonusOf(owner?.skillPicks) * 100);
+  const traitPercent = owner?.traits
+    ? characterBonuses(owner.traits, undefined, owner.traitNodes).healingPercent
+    : 0;
+  return Math.floor(base * (100 + traitPercent + skillPercent) / 100);
 }
 
 export function characterBonuses(traits: Partial<Traits> = {}, equipment?: Equipment, nodes?: TraitNodes) {
