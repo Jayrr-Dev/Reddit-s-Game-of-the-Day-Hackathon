@@ -7,7 +7,7 @@
 // card at it when that is a legal target).
 // ===================================================================
 
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import {
   isAloft,
   isDeep,
@@ -19,6 +19,7 @@ import { HORIZON_SLOT_SPAN, rowPerspective } from './rowPerspective';
 import { getHero } from '../../../../shared/game/heroes';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
 import type {
+  Combatant,
   HeroRow,
   HeroSize,
   HeroUnit,
@@ -48,6 +49,7 @@ import { PickMark } from './PickMark';
 // --- TYPES ---
 export type HeroOnFieldProps = {
   unit: HeroUnit;
+  player: Combatant;
   isFocused: boolean;
   aim: AimState;
   /** Set while a held Target card has picked this hero. */
@@ -153,14 +155,15 @@ const boxStyle = (unit: HeroUnit): CSSProperties => {
   const depthScale = feet / rowPerspective('front').feet;
   const columnCenter = (unit.col + sizeOf(unit) / 2) / BATTLEFIELD_COLUMNS;
   const horizontalSpan = unit.row === 'horizon' ? HORIZON_SLOT_SPAN : feet;
-  const center = 0.5 + (columnCenter - 0.5) * horizontalSpan;
+  const span = unit.heroId === 'angelArcher' ? Math.max(horizontalSpan, 0.96) : horizontalSpan;
+  const center = 0.5 + (columnCenter - 0.5) * span;
   const columns = boss ? BOSS_DRAW_COLUMNS : sizeOf(unit);
   const width = (columns / BATTLEFIELD_COLUMNS) * depthScale;
   const heightAtFeet = isDeep(unit) ? 0.82 : boss ? 0.76 : 0.58;
   return {
     left: `${100 * (center - width / 2)}%`,
     width: `${100 * width}%`,
-    bottom: `${100 * (1 - feet)}%`,
+    bottom: `max(0%, calc(${100 * (1 - feet)}% - min(3%, 8px)))`,
     height: `${100 * feet * heightAtFeet}%`,
   };
 };
@@ -390,6 +393,7 @@ const bodyStyleOf = (unit: HeroUnit, size: HeroSize): CSSProperties => {
  */
 export const HeroOnField = ({
   unit,
+  player,
   isFocused,
   aim,
   pickMarker,
@@ -399,6 +403,7 @@ export const HeroOnField = ({
   field,
   onTap,
 }: HeroOnFieldProps) => {
+  const [arrivalDelay] = useState(() => marchDelayMs(unit));
   if (isDying)
     return isBoss(unit) ? <BossDeath unit={unit} /> : <DyingHero unit={unit} />;
   const hero = getHero(unit.heroId);
@@ -419,7 +424,7 @@ export const HeroOnField = ({
       onClick={() => onTap(unit.uid)}
       {...{ [HERO_UID_ATTR]: unit.uid, [HERO_ROW_ATTR]: unit.row }}
       aria-label={`${hero.name}, ${unit.hp} of ${unit.maxHp} HP, ${rowLabel(unit.row)}`}
-      className={`pointer-events-auto absolute transition-[left,bottom,width,height,scale,opacity,filter] duration-700 ${AIM_CLASS[aim]}`}
+      className={`pointer-events-auto absolute transition-[left,bottom,width,height,scale,opacity,filter] duration-500 ease-in-out motion-reduce:transition-none ${AIM_CLASS[aim]}`}
       style={boxStyle(unit)}
       data-aloft={isAloft(unit) ? '' : undefined}
     >
@@ -430,7 +435,7 @@ export const HeroOnField = ({
         style={
           isBoss(unit)
             ? undefined
-            : { animationDelay: `${marchDelayMs(unit)}ms` }
+            : { animationDelay: `${arrivalDelay}ms` }
         }
         data-arrival={
           isBoss(unit) ? bossEntranceOf(unit.heroId).arrival : undefined
@@ -473,9 +478,9 @@ export const HeroOnField = ({
                 still under the finger. */}
             <div
               className="absolute inset-x-0 flex justify-center"
-              style={plateStyle(size)}
+              style={unit.heroId === 'angelArcher' ? { bottom: '82%' } : plateStyle(size)}
             >
-              <HeroPlate unit={unit} field={field} />
+              <HeroPlate unit={unit} field={field} player={player} />
             </div>
           </div>
         </div>

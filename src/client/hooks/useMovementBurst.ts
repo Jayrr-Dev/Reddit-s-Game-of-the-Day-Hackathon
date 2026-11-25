@@ -11,7 +11,7 @@ import type { CombatState, MovementId } from '../../shared/game/types';
 
 // --- TYPES ---
 /** The last movement, with a running count so each one replays. */
-export type MovementBurst = { move: MovementId; count: number };
+export type MovementBurst = { move: MovementId; count: number; label?: string };
 
 // --- HOOK ---
 /** The speed-lines burst to draw now, if any. */
@@ -19,7 +19,9 @@ export const useMovementBurst = (shown: CombatState) => {
   // A paid move (lastMovement) or a free keyword one (freeMove): each
   // is a fresh object, so a new one means a new move.
   const { lastMovement, freeMove } = shown;
-  const [seen, setSeen] = useState({ lastMovement, freeMove });
+  const forced = shown.forcedMovement;
+  const forcedCount = forced?.count ?? 0;
+  const [seen, setSeen] = useState({ lastMovement, freeMove, forcedCount });
   const [burst, setBurst] = useState<MovementBurst>();
 
   // A NEW MOVEMENT ON THE FIELD: burst once, the way that move goes.
@@ -27,10 +29,14 @@ export const useMovementBurst = (shown: CombatState) => {
   // changed input), so no effect re-renders twice.
   const isNewPaid = lastMovement !== seen.lastMovement;
   const isNewFree = freeMove !== seen.freeMove;
-  if (isNewPaid || isNewFree) {
-    setSeen({ lastMovement, freeMove });
+  if (isNewPaid || isNewFree || forcedCount !== seen.forcedCount) {
+    setSeen({ lastMovement, freeMove, forcedCount });
     const made = (isNewFree ? freeMove : null) ?? lastMovement;
-    if (made) {
+    if (forced && forcedCount > seen.forcedCount) {
+      const pull = forced.move === 'charge';
+      const label = forced.distance ? (pull ? 'Pulled forward' : 'Knocked back') : (pull ? 'Pull blocked' : 'Knockback blocked');
+      setBurst(last => ({ move: forced.move, count: (last?.count ?? 0) + 1, label }));
+    } else if (made && (isNewPaid || isNewFree)) {
       const { move } = made;
       setBurst((last) => ({ move, count: (last?.count ?? 0) + 1 }));
     }

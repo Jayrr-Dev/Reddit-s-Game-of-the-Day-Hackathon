@@ -2,19 +2,21 @@
 // SANDBOX (TARGET DUMMIES)
 // A practice fight for testing cards, not part of the daily run: a
 // random horde (random heroes, so random sizes, spots and attacks),
-// every card in the deck, energy that refills after each play and HP
-// that can't run out. Clearing the field brings in a fresh horde.
+// every card in the deck and standard combat energy costs.
+// The practice character supplies HP. Clearing the field rolls a new horde.
 // Pure functions like the rest of the engine; never scored or logged.
 // ===================================================================
 
 import { advanceHeroes, cellCountOf } from './battlefield.ts';
-import { combatOutcome, endTurn, finishPlayerTurn, playCard, startCombat, startPlayerTurn } from './combat.ts';
+import { characterBonuses, syncCharacterCombat, type CharacterState, type Equipment, type TraitNodes, type Traits } from './character.ts';
+import { drawCards, combatOutcome, endTurn, finishPlayerTurn, playCard, startCombat, startPlayerTurn } from './combat.ts';
 import { CHAMPION_IDS, ELITE_IDS, GRUNT_IDS, type HeroId } from './heroes.ts';
 import { move } from './movement.ts';
 import { nextInt, pickWeighted, type RngState } from './rng.ts';
-import { BATTLEFIELD_ROWS, ENERGY_PER_TURN } from './rules.ts';
+import { BATTLEFIELD_ROWS, PLAYER_MAX_HP } from './rules.ts';
 import type { MoveAction, PlayCardAction } from './run.ts';
-import { sandboxDeckCards, type SandboxDeckId } from './sandboxDecks.ts';
+import type { CardId } from './cards.ts';
+import { isCustomDeckList, sandboxDeckCards, type SandboxDeckId } from './sandboxDecks.ts';
 import type { CombatState, HeroUnit } from './types.ts';
 
 // --- TYPES ---
@@ -22,8 +24,8 @@ import type { CombatState, HeroUnit } from './types.ts';
 export type SandboxAction = PlayCardAction | { type: 'endTurn' } | MoveAction;
 
 // --- CONSTANTS ---
-/** So much HP the heroes can't win; you test, you don't lose. */
-export const SANDBOX_HP = 999;
+/** Practice uses the same base health and Vigor bonuses as a ranked run. */
+export const SANDBOX_HP = PLAYER_MAX_HP;
 /**
  * Most battlefield cells a horde may fill (MAX_HERO_CELLS is 6). Keeping
  * one free guarantees every mix fits, e.g. a champion (3) + an elite
@@ -147,21 +149,25 @@ export const rollDummies = (seed: RngState): [HeroId[], RngState] => {
 const sandboxSetup = (
   heroIds: readonly HeroId[],
   seed: RngState,
-  deckId: SandboxDeckId = 'all'
-) => ({
-  hp: SANDBOX_HP,
-  maxHp: SANDBOX_HP,
-  deck: sandboxDeckCards(deckId),
-  heroIds,
-  might: 1,
-  seed,
-});
-
-/** Fills energy back up so every card stays playable. */
-const refillEnergy = (state: CombatState): CombatState => ({
-  ...state,
-  energy: Math.max(state.energy, ENERGY_PER_TURN),
-});
+  deckId: SandboxDeckId | readonly CardId[] = 'all',
+  traits?: Traits,
+  equipment?: Equipment,
+  traitNodes?: TraitNodes
+) => {
+  if (typeof deckId !== 'string' && !isCustomDeckList(deckId)) throw new RangeError('Invalid custom training deck');
+  const maxHp = characterBonuses(traits, equipment, traitNodes).maxHp;
+  return {
+    hp: maxHp,
+    maxHp,
+    ...(traits && { traits }),
+    ...(equipment && { equipment }),
+    ...(traitNodes && { traitNodes }),
+    deck: typeof deckId === 'string' ? sandboxDeckCards(deckId) : [...deckId],
+    heroIds,
+    might: 1,
+    seed,
+  };
+};
 
 /**
  * Swaps in a fresh horde, keeping your cards. New heroes get uids
@@ -181,6 +187,7 @@ const nextHorde = (state: CombatState, firstUid: number): CombatState => {
     heroes,
     rng,
     nextUid: fresh.nextUid + firstUid,
+    waveArrival: true,
     fallen: [],
   };
 };
@@ -207,10 +214,13 @@ const applyAction = (state: CombatState, action: SandboxAction) => {
 /** A new sandbox fight from `seed`, with a test deck (default: every card). */
 export const createSandbox = (
   seed: RngState,
-  deckId: SandboxDeckId = 'all'
+  deckId: SandboxDeckId | readonly CardId[] = 'all',
+  traits?: Traits,
+  equipment?: Equipment,
+  traitNodes?: TraitNodes
 ): CombatState => {
   const [heroIds, rng] = rollDummies(seed);
-  return refillEnergy(startCombat(sandboxSetup(heroIds, rng, deckId)));
+  return startCombat(sandboxSetup(heroIds, rng, deckId, traits, equipment, traitNodes));
 };
 
 /**
@@ -222,13 +232,16 @@ export const createSandboxWith = (
   seed: RngState,
   heroIds: readonly HeroId[],
   startsInPlace = false,
-  deckId: SandboxDeckId = 'all'
+  deckId: SandboxDeckId | readonly CardId[] = 'all',
+  traits?: Traits,
+  equipment?: Equipment,
+  traitNodes?: TraitNodes
 ): CombatState => {
-  const fresh = startCombat(sandboxSetup(heroIds, seed, deckId));
+  const fresh = startCombat(sandboxSetup(heroIds, seed, deckId, traits, equipment, traitNodes));
   const placed = startsInPlace
     ? { ...fresh, heroes: walkHome(fresh.heroes) }
     : fresh;
-  return refillEnergy(placed);
+  return placed;
 };
 
 /**
@@ -238,17 +251,36 @@ export const createSandboxWith = (
 const walkHome = (heroes: HeroUnit[]): HeroUnit[] =>
   BATTLEFIELD_ROWS.reduce((field) => advanceHeroes(field), heroes);
 
-/** Applies one input; refills energy and brings a new horde when cleared. */
-export const sandboxReducer = (
+/** Applies one input; brings a new horde when cleared. */
+export const stepSandbox = (
   state: CombatState,
   action: SandboxAction
-): CombatState => {
+): { combat: CombatState; victory: boolean } => {
   const acted = applyAction(state, action);
-  if (acted === state) return state;
+  if (acted === state) return { combat: state, victory: false };
   const isCleared = combatOutcome(acted) === 'won';
   // Every uid so far (summons included) is below nextUid.
-  if (!isCleared) return refillEnergy(acted);
+  if (!isCleared) return { combat: acted, victory: false };
   // A status kill during the heroes' turn has already closed the player's turn.
   const finished = action.type === 'endTurn' ? acted : finishPlayerTurn(acted);
-  return refillEnergy(startPlayerTurn(nextHorde(finished, finished.nextUid - 1)));
+  return { combat: startPlayerTurn(nextHorde(finished, finished.nextUid - 1)), victory: true };
 };
+
+/** Replay the selected encounter and exact deck with the current training build. */
+export const retryTrainingFight = (opening: CombatState, character: CharacterState): CombatState => {
+  let combat = syncCharacterCombat(opening, character);
+  const { startingEnergy, cardsPerTurn } = characterBonuses(character.traits, character.equipment, character.traitNodes);
+  if (combat.hand.length > cardsPerTurn) {
+    // Opening cards have no imbues yet. Put excess cards back in their original order.
+    combat = { ...combat, hand: combat.hand.slice(0, cardsPerTurn), handImbues: combat.handImbues.slice(0, cardsPerTurn),
+      drawPile: [...combat.hand.slice(cardsPerTurn), ...combat.drawPile] };
+  } else if (combat.hand.length < cardsPerTurn && combat.drawPile.length) {
+    combat = drawCards(combat, Math.min(cardsPerTurn - combat.hand.length, combat.drawPile.length));
+  }
+  combat = { ...combat, energy: startingEnergy };
+  return { ...combat, player: { ...combat.player, hp: combat.player.maxHp } };
+};
+
+/** Applies an input for callers that only need the resulting fight. */
+export const sandboxReducer = (state: CombatState, action: SandboxAction): CombatState =>
+  stepSandbox(state, action).combat;

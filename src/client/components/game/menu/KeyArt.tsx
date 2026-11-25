@@ -8,6 +8,8 @@
 // works in a tall phone box and a wide desktop box alike.
 // ===================================================================
 
+import { useLayoutEffect, useRef } from 'react';
+
 // --- CONSTANTS ---
 /** Gradient ids (unique to this SVG). */
 const SKY_ID = 'key-art-sky';
@@ -47,10 +49,31 @@ const CASTLE_FOOTING = 40;
  * conical roofs and crenellated curtain walls. Drawn about its base
  * centre (y = 0 is the hill line); a few lit windows give it life.
  */
-const Castle = () => (
-  <g
-    transform={`translate(${CASTLE_AT.x} ${CASTLE_AT.y}) scale(${CASTLE_AT.scale})`}
-  >
+const Castle = () => {
+  const castle = useRef<SVGGElement>(null);
+  useLayoutEffect(() => {
+    const group = castle.current;
+    const svg = group?.ownerSVGElement;
+    if (!group || !svg) return;
+    const fit = () => {
+      const { width, height } = svg.getBoundingClientRect();
+      if (!width || !height) return;
+      // Match xMidYMax slice so the castle fits the visible part of the sky.
+      const zoom = Math.max(width / 360, height / 240);
+      const left = (360 - width / zoom) / 2;
+      const top = 240 - height / zoom;
+      const gap = 12 / zoom;
+      const scale = Math.min(CASTLE_AT.scale, Math.max(0, (CASTLE_AT.y - top - gap) / 84));
+      const x = Math.max(CASTLE_AT.x, left + gap + 40 * scale);
+      group.setAttribute('transform', `translate(${x} ${CASTLE_AT.y}) scale(${scale})`);
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(svg);
+    return () => observer.disconnect();
+  }, []);
+  return (
+  <g ref={castle} transform={`translate(${CASTLE_AT.x} ${CASTLE_AT.y}) scale(${CASTLE_AT.scale})`}>
     {/* CURTAIN WALLS, WITH BATTLEMENTS */}
     <path
       d={`M-30 ${CASTLE_FOOTING} V-26 h3 v-4 h3 v4 h3 v-4 h3 v4 h3 v-4 h3 v4
@@ -72,7 +95,8 @@ const Castle = () => (
       <rect x="28.5" y="-22" width="3" height="5" rx="1.5" />
     </g>
   </g>
-);
+  );
+};
 
 /** The villain: a tall hooded cloak flaring in the wind. */
 const Villain = () => (

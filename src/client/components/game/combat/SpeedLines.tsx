@@ -52,8 +52,10 @@ const LINES_ANIMATION: Record<SpeedLinesDirection, string> = {
 /** Plays the burst once; re-key it to play again. */
 export const SpeedLines = ({
   direction = 'in',
+  label,
 }: {
   direction?: SpeedLinesDirection;
+  label?: string | undefined;
 }) => (
   // Clipped to the battlefield, so the burst never covers the bars.
   <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden">
@@ -73,5 +75,6 @@ export const SpeedLines = ({
         ))}
       </g>
     </svg>
+    {label && <div className="absolute inset-x-0 top-1/2 flex justify-center"><span role="status" className="animate-fail-pop rounded border border-accent/70 bg-surface px-3 py-1 font-display text-sm font-bold text-accent">{label}</span></div>}
   </div>
 );

@@ -6,8 +6,14 @@
 // a deck deals a fresh fight from it against the same dummies.
 // ===================================================================
 
-import { MAP_NAMES } from './combat/Backdrop';
-import { useState } from 'react';
+import { CustomDeckEditor } from './CustomDeckEditor';
+import { MAP_IMAGES, MAP_NAMES } from './combat/Backdrop';
+import { useState, type ReactNode } from 'react';
+import { getCard, type CardId } from '../../../shared/game/cards';
+import { getHero, type HeroId } from '../../../shared/game/heroes';
+import { CARD_LOOK, EDGE_ART, ELEMENT_LOOK } from '../../content/visuals';
+import { HeroFigure } from './combat/HeroFigure';
+import { Glyph } from '../ui/Glyph';
 import {
   SANDBOX_SCENARIOS,
   type SandboxScenario,
@@ -15,6 +21,7 @@ import {
 import {
   SANDBOX_DECKS,
   type SandboxDeckId,
+  type CustomTrainingDeck,
 } from '../../../shared/game/sandboxDecks';
 
 // --- TYPES ---
@@ -31,13 +38,85 @@ const TAB_LABELS: Record<PickerTab, string> = {
 };
 
 // --- SUBCOMPONENTS ---
+const DECK_EXAMPLES = {
+  all: ['twinDaggers', 'frostBolt', 'boneWard'],
+  lightning: ['forkedBolt', 'staticCharge', 'overcharge'],
+  hex: ['whisperHex', 'mourningCurse', 'chainsOfGrief'],
+  fire: ['sear', 'emberRune', 'hexfire'],
+  poison: ['venomDart', 'venomCoat', 'rainOfThorns'],
+  bleed: ['hemorrhage', 'reapingCuts', 'barbedVolley'],
+  afflictions: ['frostBolt', 'sapStrength', 'vexingWord'],
+  sharp: ['twinDaggers', 'flurry', 'serratedSlash'],
+  blunt: ['decimate', 'hurlAside', 'backhand'],
+  range: ['blackArrow', 'retreatingShot', 'wildVolley'],
+  movement: ['evasiveStep', 'forcePush', 'beckon'],
+  defense: ['boneWard', 'spikedGuard', 'plateArmor'],
+} satisfies Record<SandboxDeckId, readonly CardId[]>;
+
+const FEATURED_HEROES: Record<string, readonly HeroId[]> = {
+  holyDragon: ['holyDragon'],
+  grandGriffon: ['grandGriffon', 'squire', 'archer'],
+  mixedRows: ['shieldmaiden', 'squire', 'bard'],
+  archers: ['archer', 'archer', 'archer'],
+  tankWall: ['shieldmaiden', 'priest', 'shieldmaiden'],
+  elites: ['paladin', 'squire', 'archmage'],
+  champion: ['valen', 'priest', 'bard'],
+  ballista: ['ballista', 'archer', 'shieldmaiden'],
+};
+
+const ScenarioPreview = ({
+  scenario,
+  terrain,
+}: {
+  scenario: SandboxScenario;
+  terrain: string | undefined;
+}) => (
+  <span className="training-art training-lineup" aria-hidden="true">
+    <img alt="" src={terrain} />
+    {(FEATURED_HEROES[scenario.id] ?? scenario.heroIds.slice(0, 3)).map(
+      (heroId, i) => (
+        <span className="training-figure" key={i}>
+          <HeroFigure heroId={heroId} size={getHero(heroId).size} />
+        </span>
+      )
+    )}
+  </span>
+);
+
+const DeckPreview = ({ cards }: { cards: readonly CardId[] }) => (
+  <span className="training-art training-deck-art" aria-hidden="true">
+    {cards.map((cardId, index) => {
+      const card = getCard(cardId);
+      const look = CARD_LOOK[card.type];
+      const glyph = card.element
+        ? ELEMENT_LOOK[card.element].glyph
+        : ((card.edge && EDGE_ART[card.edge]) ?? look.glyph);
+      return (
+        <span
+          className={`training-card ${look.frameClass}`}
+          key={index}
+          data-card-id={cardId}
+          data-card-type={card.type}
+        >
+          <span className="training-card-art">
+            <Glyph name={glyph} />
+          </span>
+          <span className="training-card-name">{card.name}</span>
+        </span>
+      );
+    })}
+  </span>
+);
+
 /** One entry: its name and a line on what it tests; lit when active. */
 const EntryButton = ({
   entry,
+  preview,
   isActive,
   onPick,
 }: {
   entry: PickerEntry;
+  preview: ReactNode;
   isActive: boolean;
   onPick: () => void;
 }) => (
@@ -45,12 +124,19 @@ const EntryButton = ({
     type="button"
     onClick={onPick}
     aria-pressed={isActive}
-    className={`flex flex-col gap-0.5 rounded-lg bg-surface-raised px-2.5 py-2 text-left ring-inset transition hover:ring-accent active:scale-[0.98] ${isActive ? 'ring-2 ring-accent' : 'ring-1 ring-accent/40'}`}
+    className="training-entry"
   >
-    <span className="font-display text-sm font-black text-ink">
-      {entry.name}
+    {preview}
+    <span className="training-entry-copy">
+      <span className="font-display text-sm font-black text-ink">
+        {entry.name}
+      </span>
+      {entry.blurb && (
+        <span className="text-[11px] leading-tight text-ink/70">
+          {entry.blurb}
+        </span>
+      )}
     </span>
-    {entry.blurb && <span className="text-[11px] leading-tight text-ink/70">{entry.blurb}</span>}
   </button>
 );
 
@@ -62,7 +148,7 @@ const TabBar = ({
   tab: PickerTab;
   onTab: (tab: PickerTab) => void;
 }) => (
-  <div className="flex justify-center gap-1" role="tablist">
+  <div className="training-tabs grid grid-cols-3 gap-1" role="tablist">
     {(Object.keys(TAB_LABELS) as PickerTab[]).map((id) => (
       <button
         key={id}
@@ -81,43 +167,119 @@ const TabBar = ({
 // --- COMPONENT ---
 /** Renders the tabs and the active tab's entries in a two-column grid. */
 export const ScenarioPicker = ({
+  renderTools,
   terrainIndex,
   onPickMap,
   deckId,
+  customDecks,
+  activeCustomId,
+  onPickCustom,
+  onSaveCustom,
   onPickScenario,
   onPickDeck,
 }: {
+  renderTools: (openDeck: () => void) => ReactNode;
   terrainIndex: number;
   onPickMap: (index: number) => void;
   deckId: SandboxDeckId;
+  customDecks: readonly CustomTrainingDeck[];
+  activeCustomId: string | null;
+  onPickCustom: (id: string) => void;
+  onSaveCustom: (name: string, cards: CardId[], id?: string) => void;
   onPickScenario: (scenario: SandboxScenario) => void;
   onPickDeck: (deckId: SandboxDeckId) => void;
 }) => {
   const [tab, setTab] = useState<PickerTab>('scenarios');
+  const [editing, setEditing] = useState<string | null>(null);
+  const draft = customDecks.find((deck) => deck.id === editing);
   return (
-    <section className="flex w-full max-w-80 flex-col gap-1.5">
+    <>
+    {renderTools(() => { setTab('decks'); setEditing(''); })}
+    <section className="training-picker">
       <TabBar tab={tab} onTab={setTab} />
-      <div className="grid grid-cols-2 gap-1.5">
-        {tab === 'scenarios'
-          ? SANDBOX_SCENARIOS.map((scenario) => (
-              <EntryButton
-                key={scenario.id}
-                entry={scenario}
-                isActive={false}
-                onPick={() => onPickScenario(scenario)}
-              />
-            ))
-          : tab === 'map' ? MAP_NAMES.map((name, index) => (
-              <EntryButton key={name} entry={{ id: name, name }} isActive={index === terrainIndex} onPick={() => onPickMap(index)} />
-            )) : SANDBOX_DECKS.map((deck) => (
+      {editing !== null && (
+        <CustomDeckEditor
+          initial={draft}
+          onClose={() => setEditing(null)}
+          onSave={(name, cards) => {
+            onSaveCustom(name, cards, draft?.id);
+            setEditing(null);
+          }}
+        />
+      )}
+      <div
+        key={tab}
+        className="training-entries"
+        role="tabpanel"
+        aria-label={TAB_LABELS[tab]}
+      >
+        {tab === 'scenarios' ? (
+          SANDBOX_SCENARIOS.map((scenario) => (
+            <EntryButton
+              key={scenario.id}
+              entry={scenario}
+              preview={
+                <ScenarioPreview
+                  scenario={scenario}
+                  terrain={MAP_IMAGES[terrainIndex]}
+                />
+              }
+              isActive={false}
+              onPick={() => onPickScenario(scenario)}
+            />
+          ))
+        ) : tab === 'map' ? (
+          MAP_NAMES.map((name, index) => (
+            <button
+              key={name}
+              type="button"
+              className="training-map"
+              aria-pressed={index === terrainIndex}
+              onClick={() => onPickMap(index)}
+            >
+              <img alt="" loading="lazy" src={MAP_IMAGES[index]} />
+              <span>{name}</span>
+            </button>
+          ))
+        ) : (
+          <>
+            {customDecks.map((deck) => (
+              <div className="training-custom-tile" key={deck.id}>
+                <EntryButton
+                  entry={{
+                    id: deck.id,
+                    name: deck.name,
+                    blurb: deck.cards.length + ' cards',
+                  }}
+                  preview={
+                    <DeckPreview cards={[...new Set(deck.cards)].slice(0, 3)} />
+                  }
+                  isActive={activeCustomId === deck.id}
+                  onPick={() => onPickCustom(deck.id)}
+                />
+                <button
+                  type="button"
+                  className="training-deck-edit"
+                  aria-label={'Edit ' + deck.name}
+                  onClick={() => setEditing(deck.id)}
+                >
+                  Edit
+                </button>
+              </div>
+            ))}
+            {SANDBOX_DECKS.map((deck) => (
               <EntryButton
                 key={deck.id}
                 entry={deck}
-                isActive={deck.id === deckId}
+                preview={<DeckPreview cards={DECK_EXAMPLES[deck.id]} />}
+                isActive={!activeCustomId && deck.id === deckId}
                 onPick={() => onPickDeck(deck.id)}
               />
             ))}
+          </>
+        )}
       </div>
     </section>
+    </>
   );
 };

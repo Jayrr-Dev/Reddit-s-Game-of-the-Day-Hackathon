@@ -1,98 +1,70 @@
-// ===================================================================
-// USE RUN
-// Holds the run in progress. The run state itself is derived by the
-// shared pure reducer; this hook only keeps the action log next to it
-// (the server needs the log) and saves the log locally so closing the
-// post mid-run doesn't lose the ranked attempt.
-// ===================================================================
-
 import { useCallback, useEffect, useReducer } from 'react';
+import { localBuild } from '../lib/playerBuild';
+import { starterDeck } from '../../shared/game/starters';
+import type { PlayerBuild } from '../../shared/game/playerBuild';
+import { createRun, runReducer, type RunAction } from '../../shared/game/run';
 import {
-  createRun,
-  isRunAction,
-  replayRun,
-  runReducer,
-  type RunAction,
-  type RunState,
-} from '../../shared/game/run';
+  restartLoggedRun,
+  restoreLoggedRun,
+  saveLoggedRun,
+  type LoggedRun,
+} from '../../shared/game/runSave';
 
-// --- TYPES ---
-type LoggedRun = { run: RunState; actions: RunAction[] };
+const browserStore = (accountId?: string) => {
+  try {
+    const store = window.localStorage;
+    if (!accountId) return store;
+    const prefix = accountId + '/';
+    return { get length() { return store.length; }, key(i: number) {
+      const key = store.key(i);
+      return key?.startsWith(prefix) ? key.slice(prefix.length) : null;
+    }, getItem: (k: string) => store.getItem(prefix + k), setItem: (k: string, v: string) => store.setItem(prefix + k, v) };
+  } catch {
+    return undefined;
+  }
+};
 
-type LoggedRunEvent =
-  { type: 'act'; action: RunAction } | { type: 'restart'; dailyKey: string };
-
-// --- REDUCER ---
-/** Applies an action and logs it, skipping actions the engine ignores. */
-const loggedRunReducer = (
-  state: LoggedRun,
-  event: LoggedRunEvent
-): LoggedRun => {
-  if (event.type === 'restart')
-    return { run: createRun(event.dailyKey), actions: [] };
+type RunEvent =
+  { type: 'act'; action: RunAction } | { type: 'restart'; state: LoggedRun };
+const loggedRunReducer = (state: LoggedRun, event: RunEvent): LoggedRun => {
+  if (event.type === 'restart') return event.state;
   const run = runReducer(state.run, event.action);
-  // An ignored action returns the same object; keep it out of the log.
   return run === state.run
     ? state
-    : { run, actions: [...state.actions, event.action] };
+    : { ...state, run, actions: [...state.actions, event.action] };
 };
 
-// --- LOCAL SAVE ---
-const saveKey = (dailyKey: string) => `villain-arc:run:${dailyKey}`;
-
-/** Reads a saved action log; any storage problem just means "no save". */
-const loadSavedActions = (dailyKey: string): RunAction[] => {
-  try {
-    const parsed: unknown = JSON.parse(
-      localStorage.getItem(saveKey(dailyKey)) ?? '[]'
-    );
-    return Array.isArray(parsed) ? parsed.filter(isRunAction) : [];
-  } catch {
-    return [];
-  }
-};
-
-/** Writes the action log; storage can be unavailable in some webviews. */
-const saveActions = (dailyKey: string, actions: RunAction[]): void => {
-  try {
-    localStorage.setItem(saveKey(dailyKey), JSON.stringify(actions));
-  } catch {
-    // Saving is a convenience; the run continues without it.
-  }
-};
-
-/** Rebuilds a run from the local save, if any. */
-const restoreRun = (dailyKey: string): LoggedRun => {
-  const actions = loadSavedActions(dailyKey);
-  return { run: replayRun(dailyKey, actions), actions };
-};
-
-// --- HOOK ---
-/** Returns the current run, its action log, and functions to act or restart. */
-export const useRun = (dailyKey: string) => {
-  const [state, send] = useReducer(loggedRunReducer, dailyKey, restoreRun);
-
-  // KEEP THE LOCAL SAVE IN STEP WITH THE LOG
-  useEffect(
-    () => saveActions(dailyKey, state.actions),
-    [dailyKey, state.actions]
+export const useRun = (dailyKey: string, accountId?: string) => {
+  const [state, send] = useReducer(loggedRunReducer, dailyKey, (day) =>
+    restoreLoggedRun(day, browserStore(accountId))
   );
-
-  /** Sends one player action to the engine. */
+  useEffect(() => saveLoggedRun(state, browserStore(accountId)), [state, accountId]);
   const act = useCallback(
     (action: RunAction) => send({ type: 'act', action }),
     []
   );
-
-  /** Throws away the current run and starts the day over. */
-  const restart = useCallback(
-    () => send({ type: 'restart', dailyKey }),
-    [dailyKey]
-  );
-
+  const restart = useCallback((profile?: LoggedRun["profile"], build?: PlayerBuild) => {
+    const next = restartLoggedRun(state, browserStore(accountId));
+    if (!next.actions.length && profile) {
+      next.profile = profile;
+      next.run = createRun(dailyKey, next.initialRings, next.attempt, profile.wins);
+    }
+    if (!next.actions.length) {
+      const chosen = build ?? localBuild(accountId);
+      const actions:RunAction[] = [...chosen.character];
+      actions.unshift({type:'starterDeck',favorStarter:true,name:chosen.selected,cards:chosen.decks[chosen.selected] ?? starterDeck(chosen.selected)});
+      for(const action of actions) {
+        const updated=runReducer(next.run,action);
+        if(updated!==next.run){ next.run=updated; next.actions = [...next.actions,action]; }
+      }
+    }
+    saveLoggedRun(next, browserStore(accountId));
+    send({ type: 'restart', state: next });
+  }, [state, accountId, dailyKey]);
   return {
     run: state.run,
     actions: state.actions,
+    profile: state.profile,
     hasProgress: state.actions.length > 0,
     act,
     restart,

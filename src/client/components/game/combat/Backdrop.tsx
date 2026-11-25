@@ -23,6 +23,9 @@ import fallenCity from '../../../assets/terrain/fallen-city.webp';
 import ancientRuins from '../../../assets/terrain/ancient-ruins.webp';
 import duneSea from '../../../assets/terrain/dune-sea.webp';
 import waysideRoad from '../../../assets/terrain/wayside-road.webp';
+import mines from '../../../assets/terrain/mines.webp';
+import cave from '../../../assets/terrain/cave.webp';
+import dungeon from '../../../assets/terrain/dungeon.webp';
 import riverBridge from '../../../assets/terrain/river-bridge.webp';
 
 // Each artwork's distant road, gate or clearing, in image percentages.
@@ -34,8 +37,10 @@ const scenes = [
   [elvenForest, 51, 37, "Elven Forest"], [citySquare, 50, 34, "City Square"], [fallenCity, 50, 37, "Fallen City"],
   [ancientRuins, 50, 28, "Ancient Ruins"], [duneSea, 52, 22, "Dune Sea"], [waysideRoad, 51, 20, "Wayside Road"],
   [riverBridge, 52, 26, "River Bridge"],
+  [mines, 52, 32, "Mines"], [cave, 48, 40, "Cave"], [dungeon, 50, 39, "Dungeon"],
 ] as const;
 
+export const MAP_IMAGES = scenes.map(([image]) => image);
 export const MAP_NAMES = scenes.map(([, , , name]) => name);
 
 /** Start practice in the elven forest so the new maps can be tested together. */

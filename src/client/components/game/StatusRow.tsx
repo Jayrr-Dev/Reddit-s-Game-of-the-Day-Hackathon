@@ -19,6 +19,7 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import {
+  tierNumeral,
   OUT_OF_RANGE_INFO,
   PASSIVE_INFO,
   SHARPSHOOTER_BONUS_TEXT,
@@ -26,12 +27,16 @@ import {
 } from '../../../shared/game/describe';
 import { dodgeChanceOf } from '../../../shared/game/combat';
 import {
+  afflictionDamage,
+  bleedBiteOf,
   hexAfterTurn,
   hexBurnAmount,
   isEmpoweredHex,
+  tierCut,
 } from '../../../shared/game/combatant';
 import {
   STATUS_IS_AFFLICTION,
+  WEAKEN_DAMAGE_FACTOR,
   SHOCK_BURST_FACTOR,
   SHOCK_HITS,
   OUT_OF_RANGE_HIT_CHANCE,
@@ -55,6 +60,8 @@ import {
 import { useFitCount } from '../../hooks/useFitCount';
 import { useShockSplash } from '../../hooks/useShockSplash';
 import { Chip, type ChipProps } from '../ui/Chip';
+import { Glyph } from '../ui/Glyph';
+import { Tooltip } from '../ui/Tooltip';
 import {
   SHOCK_SPLASH,
   shockChargeOf,
@@ -74,8 +81,6 @@ type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
   };
 
 // --- CONSTANTS ---
-/** A tiered status's tier as its chip shows it (index = tier). */
-const TIER_NUMERALS = ['', 'I', 'II', 'III'] as const;
 /** Statuses whose value is a tier (see TIERED_CUT_BY_TIER). */
 const TIERED_STATUSES: ReadonlySet<StatusId> = new Set([
   'protection',
@@ -130,7 +135,7 @@ const chipText = (id: StatusId, value: number): string => {
   if (id === 'momentum') return '+50%';
   if (id === 'sharpshooter') return SHARPSHOOTER_BONUS_TEXT;
   if (id === 'instinct') return `${Math.round(dodgeChanceOf(value) * 100)}%`;
-  if (TIERED_STATUSES.has(id)) return TIER_NUMERALS[value] ?? '';
+  if (TIERED_STATUSES.has(id)) return tierNumeral(value);
   return id === 'aloft' ? '' : String(value);
 };
 
@@ -160,8 +165,8 @@ const OUT_OF_RANGE_CHIP: StatusChip = {
  * Adding a stack flips it, which is the choice: burst now or hold.
  * Odd, it burns double; odd and ending in 3, triple: the chip says x3.
  */
-const hexChipOf = (hex: number): Partial<StatusChip> => {
-  const burn = hexBurnAmount(hex);
+const hexChipOf = (hex: number, source?: Combatant): Partial<StatusChip> => {
+  const burn = afflictionDamage(hexBurnAmount(hex), source);
   const isPrimed = burn > 0;
   const isTripled = isEmpoweredHex(hex);
   if (!isPrimed)
@@ -178,6 +183,7 @@ const hexChipOf = (hex: number): Partial<StatusChip> => {
     };
   return {
     fill: toneVarOf(STATUS_LOOK.hex),
+    text: `${hex}\u00d72`,
     description: `Odd: burns for ${burn} (double) before its next turn, then drops to ${hexAfterTurn(hex)}.`,
   };
 };
@@ -187,14 +193,14 @@ const hexChipOf = (hex: number): Partial<StatusChip> => {
  * add up (see ShockCharge). One hit from bursting it is PRIMED: full and
  * pulsing.
  */
-const shockChipOf = (combatant: Combatant): Partial<StatusChip> => {
+const shockChipOf = (combatant: Combatant, source?: Combatant): Partial<StatusChip> => {
   const hits = combatant.shockHits ?? 0;
   const isPrimed = hits >= SHOCK_HITS - 1;
   return {
     shockCharge: shockChargeOf(hits),
     ...(isPrimed
       ? {
-          description: `Primed: the next hit bursts it for ${combatant.statuses.shock * SHOCK_BURST_FACTOR}.`,
+          description: `Primed: the next hit bursts it for ${afflictionDamage(combatant.statuses.shock * SHOCK_BURST_FACTOR, source)}.`,
         }
       : {}),
   };
@@ -208,7 +214,7 @@ const oneUseAmount = (id: StatusId, total: number, buffs: readonly TimedBuff[]) 
     buff.buff === id && buff.duration === 'action' ? sum + buff.amount : sum, 0));
 };
 
-type StatusGroup = 'buffs' | 'afflictions' | 'oneUse';
+type StatusGroup = 'buffs' | 'afflictions' | 'hand';
 
 /** The chip a burst Shock leaves for a moment: its drop splashing. */
 const splashChipOf = (value: number): StatusChip => ({
@@ -232,10 +238,11 @@ const statusChipsOf = (
   combatant: Combatant,
   splashed: number | null,
   group?: StatusGroup,
-  timedBuffs: readonly TimedBuff[] = []
+  timedBuffs: readonly TimedBuff[] = [],
+  source?: Combatant
 ): StatusChip[] => {
   const guard: StatusChip[] =
-    (group === undefined || group === 'buffs') && combatant.guard > 0
+    group === undefined && combatant.guard > 0
       ? [
           {
             key: 'guard',
@@ -251,17 +258,25 @@ const statusChipsOf = (
     if (!total) return [];
     if (group === 'afflictions' && !STATUS_IS_AFFLICTION[id]) return [];
     if (group === 'buffs' && STATUS_IS_AFFLICTION[id]) return [];
+    const percentDamage = id === 'momentum' || id === 'sharpshooter' ||
+      id === 'weaken' || id === 'enfeeble' || id === 'protection';
+    if (percentDamage && (group === 'buffs' || group === 'afflictions')) return [];
     const once = oneUseAmount(id, total, timedBuffs);
-    const amount = group === 'oneUse' ? once : group === 'buffs' ? total - once : total;
+    const amount = group === 'hand' ? (percentDamage ? total : once) : group === 'buffs' ? total - once : total;
     if (amount <= 0) return [];
     return [{
       key: id,
       ...STATUS_LOOK[id],
-      text: chipText(id, amount),
+      text: group === 'hand' && (id === 'weaken' || id === 'enfeeble' || id === 'protection')
+        ? `-${Math.round(100 * (id === 'weaken' ? 1 - WEAKEN_DAMAGE_FACTOR : tierCut(amount)))}%`
+        : chipText(id, amount),
       title: STATUS_INFO[id].label,
-      description: STATUS_INFO[id].description + (group === 'oneUse' && id !== 'momentum' ? ' Expires after your next card.' : ''),
-      ...(id === 'hex' ? hexChipOf(combatant.statuses[id]) : {}),
-      ...(id === 'shock' ? shockChipOf(combatant) : {}),
+      description: STATUS_INFO[id].description + (group === 'hand' && !percentDamage ? ' Expires after your next card.' : ''),
+      ...(id === 'hex' ? hexChipOf(total, source) : {}),
+      ...(id === 'shock' ? shockChipOf(combatant, source) : {}),
+      ...(source && id === 'poison' ? {description: `Deals ${afflictionDamage(total, source)} damage before each action, then loses 1 stack.`} : {}),
+      ...(source && id === 'burn' ? {description: `Deals ${afflictionDamage(total, source)} damage after each action, then halves (rounded down).`} : {}),
+      ...(source && id === 'bleed' ? {description: `A successful Melee or Range attack deals ${afflictionDamage(bleedBiteOf(total), source)} bonus damage, then Bleed loses 1 stack.`} : {}),
     }];
   });
   const splash =
@@ -384,6 +399,53 @@ const OverflowChip = ({
 };
 
 // --- COMPONENT ---
+/** Enemy plates use equal-size tiles so the counts line up across rows. */
+const ENEMY_COLUMNS = 4;
+const ENEMY_VISIBLE_TILES = ENEMY_COLUMNS * 3;
+
+export const EnemyStatuses = ({
+  combatant, passives, isOutOfRange, source,
+}: {
+  combatant: Combatant;
+  source: Combatant;
+  passives: readonly PassiveId[];
+  isOutOfRange: boolean;
+}) => {
+  const splashed = useShockSplash(combatant);
+  const chips = [
+    ...(isOutOfRange ? [OUT_OF_RANGE_CHIP] : []),
+    ...passiveChipsOf(passives),
+    ...statusChipsOf(combatant, splashed, undefined, [], source),
+  ];
+  if (!chips.length) return null;
+  const shown = chips.length > ENEMY_VISIBLE_TILES
+    ? chips.slice(0, ENEMY_VISIBLE_TILES - 1)
+    : chips;
+  return (
+    <div
+      role="group"
+      aria-label="Enemy effects"
+        dir="rtl"
+      className="enemy-status-grid grid shrink-0 justify-items-stretch gap-[2px]"
+      style={{ gridTemplateColumns: `repeat(${Math.min(chips.length, ENEMY_COLUMNS)}, 1.5rem)` }}
+    >
+      {shown.map(chip => (
+        <Tooltip key={chip.key} opensOn="click" content={{title: chip.title, description: chip.description}}>
+          <button type="button" aria-label={`${chip.title} ${chip.text}`.trim()}
+            className={`relative grid size-6 cursor-pointer place-items-center rounded-[3px] bg-surface-sunken ring-1 ring-edge focus-visible:outline-2 focus-visible:outline-accent ${chip.fill ? 'text-black' : chip.toneClass}`}
+            style={{backgroundColor: chip.fill}}>
+            <span className={chip.text ? '-translate-x-0.5 -translate-y-0.5' : ''}>
+              {chipIconOf(chip) ?? <Glyph name={chip.glyph} className="size-4" />}
+            </span>
+            {chip.text && <span className="absolute right-0 bottom-0 rounded-tl-sm bg-black/90 px-px text-[10px] leading-none font-bold tabular-nums text-white">{chip.text}</span>}
+          </button>
+        </Tooltip>
+      ))}
+      {shown.length < chips.length && <OverflowChip all={chips} hidden={chips.slice(shown.length)} />}
+    </div>
+  );
+};
+
 /** How the chips sit in their space. */
 const ALIGN_CLASS = { start: 'justify-start', center: 'justify-center', end: 'justify-end' } as const;
 
@@ -397,28 +459,18 @@ export const StatusRow = ({
   combatant,
   group,
   timedBuffs,
-  passives = [],
-  isOutOfRange = false,
   align = 'center',
   rows = 1,
 }: {
   combatant: Combatant;
   group?: StatusGroup;
   timedBuffs?: readonly TimedBuff[];
-  /** True for a hero in Out of Range (its first chip says so). */
-  isOutOfRange?: boolean;
-  /** A boss's passives, drawn first as gold chips. */
-  passives?: readonly PassiveId[];
   align?: keyof typeof ALIGN_CLASS;
   /** Lines the chips may wrap onto before folding into +N. */
   rows?: number;
 }) => {
   const splashed = useShockSplash(combatant);
-  const chips = [
-    ...(isOutOfRange ? [OUT_OF_RANGE_CHIP] : []),
-    ...passiveChipsOf(passives),
-    ...statusChipsOf(combatant, splashed, group, timedBuffs),
-  ];
+  const chips = statusChipsOf(combatant, splashed, group, timedBuffs);
   const { spaceRef, measureRef, overflowRef, fitCount } = useFitCount(
     chips.length,
     rows
@@ -454,7 +506,7 @@ export const StatusRow = ({
       >
         <Chip glyph="eye" text="+9" toneClass="text-ink" shape="square" />
       </span>
-      <div className={`flex min-h-5 flex-wrap gap-1 ${ALIGN_CLASS[align]} ${group === 'oneUse' && chips.length ? 'one-use-bonus-pulse' : ''}`}>
+      <div className={`flex min-h-5 flex-wrap gap-1 ${ALIGN_CLASS[align]} ${group === 'hand' && chips.length ? 'hand-damage-modifiers' : ''}`}>
         {shown.map((chip) => (
           <StatusChipView key={chip.key} chip={chip} />
         ))}

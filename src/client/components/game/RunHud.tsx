@@ -10,7 +10,7 @@ import { computeScore, type RunState } from '../../../shared/game/run';
 import { Glyph } from '../ui/Glyph';
 
 /** Shows region, progress through it, HP, deck and score. */
-export const RunHud = ({ run }: { run: RunState }) => {
+export const RunHud = ({ run, onOpenCharacter }: { run: RunState; onOpenCharacter: () => void }) => {
   const stepInRegion = ((run.stop - 1) % STOPS_PER_REGION) + 1;
   const hp = run.phase.kind === 'combat' ? run.phase.combat.player.hp : run.hp;
   return (
@@ -24,6 +24,9 @@ export const RunHud = ({ run }: { run: RunState }) => {
         </span>
       </div>
       <div className="flex items-center gap-3">
+        <button type="button" aria-label="Character sheet" title="Character sheet" className="text-accent" onClick={onOpenCharacter}>
+          <Glyph name="breastplate" className="size-5" />
+        </button>
         <span className="flex items-center gap-1 text-hp">
           <Glyph name="heart" className="size-3.5" />
           {hp}/{run.maxHp}

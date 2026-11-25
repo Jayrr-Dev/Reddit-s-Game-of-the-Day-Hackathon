@@ -6,59 +6,82 @@
 // showing.
 // ===================================================================
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { showToast } from '@devvit/web/client';
 import type { RunAction } from '../../shared/game/run';
-import type { FinishRunResponse, InitResponse } from '../../shared/types/api';
+import type { FinishRunResponse, InitResponse, StartRunResponse } from '../../shared/types/api';
 import { useDailyGame } from '../hooks/useDailyGame';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { useRun } from '../hooks/useRun';
 import { useRunJourney } from '../hooks/useRunJourney';
 import { useRunSubmission } from '../hooks/useRunSubmission';
+import { apiClient } from '../lib/apiClient';
+import { PlayerName } from '../lib/playerName';
 import { journeys } from '../lib/journeys';
+import { StarterPicker } from './game/StarterPicker';
+import type { PlayerBuild } from '../../shared/game/playerBuild';
 import { IntroView } from './game/IntroView';
 import { ResultsView } from './game/ResultsView';
 import { SandboxView } from './game/SandboxView';
-import { VillainRunGame } from './game/VillainRunGame';
+import { StoryDefeat, VillainRunGame } from './game/VillainRunGame';
 import { Screen } from './ui/Screen';
 
 // --- TYPES ---
 type SessionProps = {
   data: InitResponse;
-  startRun: () => Promise<boolean>;
-  finishRun: (actions: RunAction[]) => Promise<FinishRunResponse>;
+  startRun: () => Promise<StartRunResponse>;
+  finishRun: (actions: RunAction[], runId?: string) => Promise<FinishRunResponse>;
 };
 
 // --- SESSION ---
 /** One visit to the post: title screen, any number of runs, results. */
 const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
-  const { run, actions, hasProgress, act, restart } = useRun(data.dailyKey);
+  const { run, actions, hasProgress, act, restart, profile } = useRun(data.dailyKey, data.accountId);
   const { entries, refresh } = useLeaderboard();
   const [isPlaying, setIsPlaying] = useState(false);
+  const [choosing, setChoosing] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [isPracticing, setIsPracticing] = useState(false);
+  const [viewedDefeat, setViewedDefeat] = useState(false);
   const isFallen = run.phase.kind === 'fallen';
   const canResume = hasProgress && !isFallen;
 
+  const latest = useRef(actions);
+  useEffect(() => { latest.current = actions; }, [actions]);
+  const id = profile?.id;
+  useEffect(() => {
+    if (!id || !run.stats.wavesCleared) return;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const save = () => apiClient.progress({ runId: id, actions: latest.current }).catch(() => {
+      if (active) timer = setTimeout(save, 5000);
+    });
+    void save();
+    return () => { active = false; clearTimeout(timer); };
+  }, [id, run.stats.wavesCleared]);
+  const submit = useCallback((log: RunAction[]) => finishRun(log, id), [finishRun, id]);
   const onSaved = useCallback(() => void refresh(), [refresh]);
   const { submission, reset } = useRunSubmission({
     run,
     actions,
     isActive: isPlaying,
-    finishRun,
+    finishRun: submit,
     onSaved,
   });
   useRunJourney(run, isPlaying);
 
   /** Claims the run with the server (ranked or practice), then plays. */
-  const handleStart = async () => {
+  const handleStart = async (build?:PlayerBuild) => {
+    if(!canResume && !build){setChoosing(true);return;}
     setIsStarting(true);
+    setViewedDefeat(false);
     try {
       if (!canResume) {
-        restart();
+        const started = await startRun();
+        restart(started.profile, build ?? started.build);
         reset();
-        await startRun();
       }
+      setChoosing(false);
       journeys.start();
       setIsPlaying(true);
     } catch (error) {
@@ -70,11 +93,13 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
     }
   };
 
+  if (choosing) return <StarterPicker accountId={data.accountId} starting={isStarting} onBack={()=>setChoosing(false)} onConfirm={build=>void handleStart(build)} />;
   if (isPracticing)
     return <SandboxView onExit={() => setIsPracticing(false)} />;
   if (!isPlaying) {
     return (
       <IntroView
+        profileRings={run.character.ringProgress}
         data={data}
         entries={entries}
         canResume={canResume}
@@ -84,10 +109,13 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
       />
     );
   }
+  if (run.phase.kind === 'fallen' && run.phase.battlefield && !viewedDefeat)
+    return <StoryDefeat run={run} onContinue={() => setViewedDefeat(true)} />;
   if (isFallen) {
     return (
       <ResultsView
         stats={run.stats}
+        ringDrops={run.ringDrops}
         submission={submission}
         entries={entries}
         onPlayAgain={() => void handleStart()}
@@ -113,6 +141,6 @@ export const GameScreen = () => {
   if (state.status === 'error')
     return <Screen>Something went wrong: {state.message}</Screen>;
   return (
-    <GameSession data={state.data} startRun={startRun} finishRun={finishRun} />
+    <PlayerName.Provider value={state.data.username}><GameSession key={state.data.accountId} data={state.data} startRun={startRun} finishRun={finishRun} /></PlayerName.Provider>
   );
 };

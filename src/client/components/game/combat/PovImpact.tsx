@@ -27,9 +27,9 @@ import { popScale } from '../../../lib/popSize';
 import { seeded, spread } from '../../../lib/seeded';
 import { CurseSigil } from './CurseSigil';
 import { StatusFx } from './StatusFx';
-import { driftOf } from '../../../lib/popDrift';
 import { HitLine } from './HitNumbers';
 import { specialToneOf } from '../../../lib/popTone';
+import { ELEMENT_LOOK } from '../../../content/visuals';
 import { MagicBurst } from './MagicBurst';
 import { Puncture } from './Puncture';
 import { Slice } from './Slice';
@@ -143,7 +143,7 @@ const Mark = ({ pop }: { pop: PlayerHitPop }) => {
         className="absolute aspect-square w-[85%] -translate-1/2"
         style={{ ...style, rotate: `${seeded(seed, 3) * 360}deg` }}
       >
-        <MagicBurst id={seed} />
+        <MagicBurst id={seed} element={pop.element} />
       </span>
     );
   // MELEE: A LONG SLASH ACROSS THE VIEW
@@ -169,7 +169,9 @@ const Mark = ({ pop }: { pop: PlayerHitPop }) => {
 const toneStopsOf = (pop: PlayerHitPop): string => {
   if (isBlockedOnly(pop)) return `${BLOCKED_TONE} 100%`;
   if (isHexTick(pop)) return `${CURSE_TONE} 100%`;
-  const typeTone = TYPE_TONE[pop.source ?? ''];
+  const typeTone = pop.element
+    ? `color-mix(in srgb, ${ELEMENT_LOOK[pop.element].energy} 30%, transparent)`
+    : TYPE_TONE[pop.source ?? ''];
   return typeTone ? `${typeTone} 78%, ${HURT_TONE} 100%` : `${HURT_TONE} 100%`;
 };
 
@@ -223,13 +225,12 @@ const Vignette = ({ pop }: { pop: PlayerHitPop }) => {
 };
 
 /**
- * The damage number, popping on top of the blow's mark and floating off
- * left, up or right at random (see driftOf).
+ * The damage number stays on the blow's mark.
  */
 const HitNumber = ({ pop }: { pop: PlayerHitPop }) => (
   <span
     className="absolute -translate-1/2 whitespace-nowrap"
-    style={{ ...markPlace(seedOf(pop)), ...driftOf(pop.id) }}
+    style={markPlace(seedOf(pop))}
   >
     <HitLine
       amount={pop.amount}

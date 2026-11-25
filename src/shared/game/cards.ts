@@ -115,7 +115,6 @@ const knockback = (rows: number): CardEffect => ({ kind: 'push', rows });
  */
 type CardTraits = {
   requiredKillsInOneHit?: number;
-  reach?: boolean;
   costReductionPerKill?: number;
   keywords?: readonly CardKeyword[];
   targets?: number;
@@ -157,7 +156,7 @@ const card = (
   cost: number,
   rarity: CardRarity,
   effects: CardEffect[],
-  { keywords = [], targets = 1, element, edge, uses, costReductionPerKill, reach, requiredKillsInOneHit }: CardTraits = {}
+  { keywords = [], targets = 1, element, edge, uses, costReductionPerKill, requiredKillsInOneHit }: CardTraits = {}
 ): CardDef => ({
   name,
   type,
@@ -170,13 +169,15 @@ const card = (
   ...(requiredKillsInOneHit ? { requiredKillsInOneHit } : {}),
   ...(costReductionPerKill ? { costReductionPerKill } : {}),
   ...(uses ? { uses } : {}),
-  reach: reach ?? REACHING_TYPES.has(type),
+  reach: REACHING_TYPES.has(type),
   targets,
 });
 
 // --- CATALOG ---
 export const CARDS = {
   // STARTER DECK
+  arcaneBolt: card('Arcane Bolt', 'magic', 1, 'basic', [hit(6)]),
+  arrowShot: card('Arrow Shot', 'range', 1, 'basic', [hit(6)]),
   backhand: card('Backhand', 'melee', 1, 'basic', [hit(6)], BLUNT),
   darkCloak: card('Dark Cloak', 'defend', 1, 'basic', [guard(5)]),
   healingPotion: card(
@@ -185,6 +186,14 @@ export const CARDS = {
     0,
     'basic',
     [heal(10)],
+    { ...EXHAUSTS, uses: 1 }
+  ),
+  rushPotion: card(
+    'Rush Potion',
+    'utility',
+    0,
+    'common',
+    [{ kind: 'rush', amount: 2 }],
     EXHAUSTS
   ),
   // Utility generally grants energy, restores HP, or draws cards. These tonics also Exhaust.
@@ -219,7 +228,7 @@ export const CARDS = {
     1,
     'common',
     [hit(9), bleed(3)],
-    SHARP
+    { ...SHARP, keywords: ['charge'] }
   ),
   twinDaggers: card('Twin Daggers', 'melee', 1, 'common', [hit(4, 2)], SHARP),
   boneWard: card('Bone Ward', 'defend', 1, 'common', [guard(8)]),
@@ -329,20 +338,20 @@ export const CARDS = {
     LIGHTNING
   ),
   // IMBUE: grant another card in hand a keyword or an effect
-  holdFast: card('Hold Fast', 'buff', 0, 'common', [imbue(giftHold)]),
-  barbedTip: card('Barbed Tip', 'buff', 0, 'common', [
+  holdFast: card('Hold Fast', 'imbue', 0, 'common', [imbue(giftHold)]),
+  barbedTip: card('Barbed Tip', 'imbue', 0, 'common', [
     imbue({ kind: 'keyword', keyword: 'piercing' }),
   ]),
-  emberRune: card('Ember Rune', 'buff', 0, 'common', [
+  emberRune: card('Ember Rune', 'imbue', 0, 'common', [
     imbue(giftOf({ kind: 'burn', amount: 4, target: 'one' })),
   ]),
-  keenEdge: card('Keen Edge', 'buff', 0, 'common', [
+  keenEdge: card('Keen Edge', 'imbue', 0, 'common', [
     imbue(giftOf({ kind: 'damage', amount: 5, hits: 1, target: 'one' })),
   ]),
   // BLEED with no blow: opens wounds that every later hit tears at.
   hemorrhage: card('Hemorrhage', 'curse', 1, 'uncommon', [bleed(5), hex(1)]),
   // Ids venomCoat/venomDart stay for old saves; both lay Poison (Venom is its own status).
-  venomCoat: card('Poison Coat', 'buff', 1, 'common', [
+  venomCoat: card('Poison Coat', 'imbue', 1, 'common', [
     imbue(giftOf({ kind: 'poison', amount: 3, target: 'one' })),
   ]),
   // AFFLICTIONS: one card each for Poison, Frost, Shock and Enfeeble
@@ -468,7 +477,7 @@ export const CARDS = {
     guard(5),
     { kind: 'brace', amount: 1 },
   ]),
-  ironRune: card('Iron Rune', 'buff', 0, 'common', [
+  ironRune: card('Iron Rune', 'imbue', 0, 'common', [
     imbue(giftOf({ kind: 'brace', amount: 1 })),
   ]),
   purge: card('Purge', 'buff', 0, 'common', [cleanse]),
@@ -482,23 +491,23 @@ export const CARDS = {
   ),
 
   // UNCOMMON
-  wardRune: card('Ward Rune', 'buff', 1, 'uncommon', [
+  wardRune: card('Ward Rune', 'imbue', 1, 'uncommon', [
     imbue(giftOf({ kind: 'guard', amount: 4 })),
   ]),
-  purifyingRune: card('Purifying Rune', 'buff', 1, 'uncommon', [
+  purifyingRune: card('Purifying Rune', 'imbue', 1, 'uncommon', [
     imbue(giftOf({ kind: 'cleanse' })),
   ]),
-  lastRites: card('Last Rites', 'buff', 0, 'uncommon', [
+  lastRites: card('Last Rites', 'imbue', 0, 'uncommon', [
     imbue({ kind: 'keyword', keyword: 'remove' }),
     draw(1),
   ]),
-  redMist: card('Red Mist', 'buff', 0, 'uncommon', [
+  redMist: card('Red Mist', 'imbue', 0, 'uncommon', [
     imbue({ kind: 'keyword', keyword: 'rampage' }),
   ]),
-  vanish: card('Vanish', 'buff', 0, 'uncommon', [
+  vanish: card('Vanish', 'imbue', 0, 'uncommon', [
     imbue({ kind: 'keyword', keyword: 'distance' }),
   ]),
-  eagleEye: card('Eagle Eye', 'buff', 0, 'uncommon', [
+  eagleEye: card('Eagle Eye', 'imbue', 0, 'uncommon', [
     imbue({ kind: 'keyword', keyword: 'longRange' }),
   ]),
   reap: card('Reap', 'magic', 1, 'uncommon', [reap(2)]),
@@ -561,7 +570,7 @@ export const CARDS = {
     requiredKillsInOneHit: 3,
   }),
   siegeBlast: card('Siege Blast', 'melee', 2, 'rare', [hitAll(12), { kind: 'push', rows: 2, target: 'all' }], {
-    reach: true,
+
     ...BLUNT,
     ...RAMPAGES,
   }),
@@ -619,13 +628,21 @@ export function isCardId(value: unknown): value is CardId {
 }
 
 /** Looks up a card definition. */
+/** How many hits a card lands in one play: each damage hit, per pick. */
+export const hitsPerPlay = (cardDef: CardDef): number =>
+  cardDef.targets *
+  cardDef.effects.reduce(
+    (hits, effect) => hits + (effect.kind === 'damage' ? effect.hits : 0),
+    0
+  );
+
 export const getCard = (id: CardId): CardDef => CARDS[id];
 
-/** Energy required before resolving the card, using kills in this combat. */
-export const cardCost = (id: CardId, slain: number, followUpReady = false): number => {
+/** Energy required before resolving the card, using kills this turn. */
+export const cardCost = (id: CardId, killsThisTurn: number, followUpReady = false): number => {
   if (id === 'followUp' && followUpReady) return 0;
   const card = getCard(id);
-  return Math.max(0, card.cost - slain * (card.costReductionPerKill ?? 0));
+  return Math.max(0, card.cost - killsThisTurn * (card.costReductionPerKill ?? 0));
 };
 
 /**

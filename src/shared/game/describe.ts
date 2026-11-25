@@ -5,17 +5,19 @@
 // the UI can never disagree with the rules.
 // ===================================================================
 
+import { healingAmount } from './character.ts';
 import { targetRuleOf } from './battlefield.ts';
-import { getCard, isKeywordOn, type CardId } from './cards.ts';
+import { getCard, hitsPerPlay, isKeywordOn, type CardId } from './cards.ts';
 import {
   afflictionAmount,
+  scornBonus,
   attackDamage,
   buffedAttackDamage,
   guardAmount,
-  typeBonus,
+  reapDamage,
 } from './combatant.ts';
 import { foldPerHitAfflictions, getHero } from './heroes.ts';
-import { cardHasKeyword, foldImbuedDamage, imbuedEffects } from './imbue.ts';
+import { cardHasKeyword, foldImbuedDamage, guardApplications, imbuedEffects } from './imbue.ts';
 import {
   ELEMENT_ON_HIT,
   BUFF_KEYWORDS,
@@ -168,12 +170,12 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   },
   sharpshooter: {
     label: 'Sharpshooter',
-    description: `**+${Math.round(SHARPSHOOTER_ACCURACY_BONUS * 100)}%** hit accuracy\nEvery **Range** hit deals **${SHARPSHOOTER_BONUS_TEXT}**`,
+    description: `**+${Math.round(SHARPSHOOTER_ACCURACY_BONUS * 100)}%** hit accuracy\nRange and Magic accuracy above 100% gives critical chance for double damage.\nEvery **Range** hit deals **${SHARPSHOOTER_BONUS_TEXT}**`,
   },
   berserker: {
     label: 'Berserker',
     description:
-      'Imbues every **Melee** card with **Rampage**\n(**Charge** on kill, double **Momentum** bonus)',
+      'Imbues every **Melee** card with **Rampage**\n(Gain **Momentum** on kill and **Charge** if possible, double **Momentum** bonus)',
   },
   aloft: {
     label: 'Aloft',
@@ -205,7 +207,7 @@ export const PASSIVE_INFO: Record<PassiveId, StatusInfo> = {
   anchored: {
     label: 'Anchored',
     description:
-      "Prefers the farthest row\n**Pull** and **Knockback** can't move it",
+      "Stays where deployed\n**Pull** and **Knockback** can't move it",
   },
 };
 
@@ -241,7 +243,8 @@ export const describeCardEffect = (
   cardDef: CardDef,
   attacker?: Combatant,
   target?: HeroUnit,
-  isRampage = false
+  isRampage = false,
+  guardRepeats = guardApplications(cardDef, [])
 ): string => {
   const isMelee = !cardDef.reach;
   switch (effect.kind) {
@@ -250,7 +253,7 @@ export const describeCardEffect = (
       // and the target's own modifiers join once the card is aimed.
       const damageOf = target ? attackDamage : buffedAttackDamage;
       const perHit = attacker
-        ? damageOf(effect.amount, attacker, cardDef.type, isRampage)
+        ? damageOf(effect.amount, attacker, cardDef.type, isRampage, hitsPerPlay(cardDef))
         : effect.amount;
       const isAimed = target !== undefined && effect.target === 'one';
       const amount = isAimed ? cardHitOn(target, perHit, cardDef) : perHit;
@@ -265,17 +268,17 @@ export const describeCardEffect = (
     case 'shock':
     case 'vex':
     case 'weaken':
-      return describeStatusLine(effect, attacker);
+      return describeStatusLine(effect, attacker, target);
     case 'enfeeble':
-      return `Enfeeble${timesSuffix(effect.times)}${areaWord(effect.target)}`;
+      return `Enfeeble ${tierNumeral((target?.statuses.enfeeble ?? 0) + (effect.times ?? 1) + (attacker ? scornBonus(attacker, 'enfeeble') : 0))}${areaWord(effect.target)}`;
     case 'reap': {
       if (!target) return `Damage ${effect.multiplier}× Hex`;
-      const bonus = attacker ? typeBonus(attacker, cardDef.type) : 0;
-      return `Damage ${target.statuses.hex * effect.multiplier + bonus}`;
+      const amount = attacker ? reapDamage(target.statuses.hex, effect.multiplier, attacker, cardDef.type) : target.statuses.hex * effect.multiplier;
+      return `Damage ${amount}`;
     }
     case 'guard': {
       const amount = attacker
-        ? guardAmount(effect.amount, attacker)
+        ? guardAmount(effect.amount, attacker, guardRepeats)
         : effect.amount;
       return `Guard ${amount}`;
     }
@@ -295,7 +298,7 @@ export const describeCardEffect = (
     case 'cleanse':
       return CLEANSE_INFO.label;
     case 'protect':
-      return STATUS_INFO.protection.label;
+      return `Protection ${tierNumeral((attacker?.statuses.protection ?? 0) + 1)}`;
     case 'buff':
       return (
         buffImbueText(effect.buff) ??
@@ -306,15 +309,15 @@ export const describeCardEffect = (
     case 'energy':
       return `Energy ${effect.amount}`;
     case 'heal':
-      return `Heal ${effect.amount}`;
+      return `Heal ${healingAmount(effect.amount, attacker)}`;
     case 'pull':
       return `${PULL_INFO.label} ${effect.rows}`;
     case 'push':
-      return `${KNOCKBACK_INFO.label}${effect.target === 'all' ? ' ALL' : ''} ${effect.rows}`;
+      return `${KNOCKBACK_INFO.label}${areaWord(effect.target ?? 'one', isMelee)} ${effect.rows}`;
     case 'amplify':
       return amplifyLabel(effect.factor, STATUS_INFO[effect.status].label);
     case 'imbue':
-      return describeImbueEffect(effect);
+      return imbueTag(effect.gift);
   }
 };
 
@@ -322,8 +325,8 @@ export const describeCardEffect = (
 const amplifyLabel = (factor: number, label: string): string =>
   factor === 2 ? `Double ${label}` : `${label} ×${factor}`;
 
-/** " ×N" for an effect cast more than once, else nothing. */
-const timesSuffix = (times = 1): string => (times > 1 ? ` ×${times}` : '');
+const TIER_NUMERALS = ['', 'I', 'II', 'III'] as const;
+export const tierNumeral = (tier: number): string => TIER_NUMERALS[Math.min(tier, 3)] ?? '';
 
 // --- IMBUE TEXT ---
 /** Each keyword's name and what it does (its badge's tooltip). */
@@ -344,6 +347,10 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
   exhaust: {
     label: 'Use',
     description: `Play it ${EXHAUST_USES} times in the run\nThen it **Exhausts**: gone for good`,
+  },
+  charge: {
+    label: 'Charge',
+    description: 'If there’s room, move forward before attacking. Gain **Momentum** for this attack.',
   },
   rampage: {
     label: 'Rampage',
@@ -494,16 +501,8 @@ const KEYWORD_LABEL = (keyword: CardKeyword): string =>
  */
 const useCountLabel = (cardId: CardId, usesSpent: number): string => {
   const uses = usesOf(cardId) ?? EXHAUST_USES;
-  return `${KEYWORD_INFO.exhaust.label} ${usesSpent + 1}/${uses}`;
+  return `${KEYWORD_INFO.exhaust.label} ${Math.min(usesSpent + 1, uses)}/${uses}`;
 };
-
-/** How many hits a card lands in one play: each damage hit, per pick. */
-const hitsPerPlay = (cardDef: CardDef): number =>
-  cardDef.targets *
-  cardDef.effects.reduce(
-    (hits, effect) => hits + (effect.kind === 'damage' ? effect.hits : 0),
-    0
-  );
 
 /**
  * What an imbue grants, as card text: "Hold" or "Poison 3". An effect
@@ -543,7 +542,7 @@ export const imbueTag = (gift: ImbueGift): string => {
     case 'buff':
       return `${STATUS_INFO[effect.buff].label}${buffAmountText(effect)}`;
     case 'enfeeble':
-      return 'Enfeeble';
+      return `Enfeeble ${tierNumeral(effect.times ?? 1)}`;
     case 'move':
     case 'brace':
     case 'rush':
@@ -554,7 +553,7 @@ export const imbueTag = (gift: ImbueGift): string => {
     case 'cleanse':
       return 'Cleanse';
     case 'protect':
-      return 'Protection';
+      return 'Protection I';
     case 'draw':
       return `Draw ${effect.amount}`;
     case 'energy':
@@ -564,9 +563,6 @@ export const imbueTag = (gift: ImbueGift): string => {
   }
 };
 
-/** An Imbue card's own line: what it grants ("Imbue Hold"). */
-const describeImbueEffect = ({ gift }: Imbue): string =>
-  `Imbue ${imbueTag(gift)}`;
 
 // --- STATUS LINES ---
 /** Card effects that lay a status on heroes. */
@@ -588,10 +584,11 @@ type AppliedStatus = Extract<
 /** A status laid on heroes, as its name and number: "Hex 2", "Hex ALL 4". */
 const describeStatusLine = (
   effect: AppliedStatus,
-  attacker?: Combatant
+  attacker?: Combatant,
+  target?: HeroUnit
 ): string => {
   const amount = attacker
-    ? afflictionAmount(effect.amount, attacker, effect.kind)
+    ? afflictionAmount(effect.amount, attacker, effect.kind, target)
     : effect.amount;
   return `${STATUS_INFO[effect.kind].label}${areaWord(effect.target)} ${amount}`;
 };
@@ -601,11 +598,11 @@ const isAfflictionKind = (kind: CardEffect['kind']): boolean =>
   kind in STATUS_IS_AFFLICTION && STATUS_IS_AFFLICTION[kind as StatusId];
 
 /** The line for what a card's element lays on each hit, if anything. */
-const elementLines = (cardDef: CardDef): string[] => {
+const elementLines = (cardDef: CardDef, attacker?: Combatant): string[] => {
   const onHit = cardDef.element ? ELEMENT_ON_HIT[cardDef.element] : null;
   if (!onHit) return [];
   const { label } = STATUS_INFO[onHit.status];
-  return [`${label} ${onHit.amount} per hit`];
+  return [`${label} ${onHit.amount + (attacker ? scornBonus(attacker, onHit.status) : 0)} per hit`];
 };
 
 /**
@@ -621,7 +618,9 @@ export const describeCardRules = (
 ): string[] => {
   const cardDef = getCard(cardId);
   // Imbued damage reads inside the card's own Damage number (8 -> 13).
-  const { own } = foldImbuedDamage(cardDef.effects, imbuedEffects(imbues));
+  const gifts = imbuedEffects(imbues);
+  const { own } = foldImbuedDamage(cardDef.effects, gifts);
+  const guardRepeats = guardApplications(cardDef, gifts);
   // An attack's afflictions land on every hit: a multi-hit card says so.
   const isMultiHit = cardDef.effects.some(
     (effect) => effect.kind === 'damage' && effect.hits > 1
@@ -633,7 +632,8 @@ export const describeCardRules = (
       cardDef,
       attacker,
       target,
-      isRampage
+      isRampage,
+      guardRepeats
     );
     return isMultiHit && isAfflictionKind(effect.kind)
       ? `${line} per hit`
@@ -641,9 +641,9 @@ export const describeCardRules = (
   });
   if (cardDef.requiredKillsInOneHit) lines.unshift(`Kill ${cardDef.requiredKillsInOneHit} in one blow this fight`);
   if (cardId === 'followUp') lines.push('Free once after Knockback this turn');
-  if (cardDef.costReductionPerKill) lines.push(`Costs ${cardDef.costReductionPerKill} less per kill`);
+  if (cardDef.costReductionPerKill) lines.push(`-${cardDef.costReductionPerKill} cost per kill this turn`);
   const targetLine = cardDef.targets > 1 ? [`Target ${cardDef.targets}`] : [];
-  return [...targetLine, ...lines, ...elementLines(cardDef)];
+  return [...targetLine, ...lines, ...elementLines(cardDef, attacker)];
 };
 
 /**
@@ -698,6 +698,7 @@ export type IntentKind =
   | 'summon'
   | 'revive'
   | 'soar'
+  | 'pullPlayer'
   | 'knockBack'
   | 'advance';
 
@@ -735,7 +736,7 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
   switch (effect.kind) {
     case 'attack': {
       const { type, perHit } = heroAttackOf(unit, effect);
-      const text = effect.hits > 1 ? `${perHit}×${effect.hits}` : `${perHit}`;
+      const text = effect.hits > 1 ? `${perHit}×${effect.hits}=${perHit * effect.hits}` : `${perHit}`;
       return {
         kind: ATTACK_INTENT[type],
         text,
@@ -807,6 +808,8 @@ const describeHeroEffect = (unit: HeroUnit, effect: HeroEffect): Intent => {
         text: '',
         label: 'Flies up out of reach, then dives next turn',
       };
+    case 'pullPlayer':
+      return { kind: 'pullPlayer', text: String(effect.lines), label: `Pulls you closer by ${effect.lines} line${effect.lines === 1 ? '' : 's'}` };
     case 'knockBack':
       return {
         kind: 'knockBack',

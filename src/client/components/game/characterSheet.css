@@ -1,0 +1,653 @@
+/* --- CHARACTER SHEET --- */
+.character-boundary {
+  position: fixed;
+  inset: auto;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-surface-sunken) 80%, transparent);
+  container: character-frame / size;
+}
+.character-boundary[open] { display: grid; place-items: center; }
+.character-boundary::backdrop { background: transparent; }
+.character-sheet {
+  width: min(48rem, calc(100% - .85rem));
+  height: min(32rem, calc(100% - .85rem));
+  overflow: hidden;
+  padding: clamp(.5rem, 1.4cqw, .8rem);
+  border: clamp(6px, 1.25cqw, 12px) solid #77502a;
+  border-image: url('../../assets/table/character-oak-frame.jpg') 34 round;
+  background: #23160f url('../../assets/table/character-oak-grain.jpg') center / cover;
+  color: var(--color-ink);
+  font: 0.8rem/1.3 var(--font-body);
+  box-shadow: 0 0.5rem 2rem var(--color-surface-sunken);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.character-sheet button {
+  cursor: pointer;
+}
+.character-sheet button:focus-visible {
+  outline: 2px solid var(--color-accent-hover);
+  outline-offset: 1px;
+}
+.cs-head,
+.cs-section-title,
+.cs-item,
+.cs-trait-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.cs-head h2,
+.cs-section-title h3,
+.cs-trait-summary h3,
+.cs-level strong {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-accent-hover);
+}
+.cs-head h2 {
+  font-size: 1.4rem;
+}
+.cs-section-title h3 {
+  font-size: 1rem;
+}
+.cs-close,
+.cs-action,
+.cs-pages button,
+.cs-trait-grid button {
+  border: 1px solid var(--color-edge);
+  border-radius: 0.35rem;
+  background: var(--color-surface-raised);
+}
+.cs-close,
+.cs-action {
+  min-height: 2rem;
+  padding: 0.25rem 0.65rem;
+}
+.cs-level {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.25rem;
+  align-items: baseline;
+}
+.cs-level span,
+.cs-section-title > span,
+.cs-empty,
+.cs-trait-summary > span {
+  color: var(--color-ink-muted);
+  font-size: 0.75rem;
+}
+.cs-level progress {
+  grid-column: 1/-1;
+  width: 100%;
+  height: 0.35rem;
+  border: 0;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: var(--color-edge);
+}
+.cs-level progress::-webkit-progress-bar {
+  background: var(--color-edge);
+}
+.cs-level progress::-webkit-progress-value {
+  background: var(--color-accent);
+}
+.cs-level progress::-moz-progress-bar {
+  background: var(--color-accent);
+}
+.cs-pages {
+  display: flex;
+  gap: 0.4rem;
+}
+.cs-pages button {
+  flex: 1;
+  min-height: 2rem;
+  color: var(--color-ink-muted);
+  font-weight: 700;
+}
+.cs-pages button[aria-pressed='true'] {
+  background: linear-gradient(#e4b661, #c58e40);
+  border-color: #edc984;
+  color: var(--color-on-accent);
+}
+.cs-close,
+.cs-pages button:not([aria-pressed='true']),
+.cs-trait-grid button,
+.cs-trait-summary .cs-action {
+  background: linear-gradient(#60401f55, #160d08aa), url('../../assets/table/character-oak-grain.jpg') center / cover;
+  border-color: #795732;
+  color: #eee0c4;
+  box-shadow: inset 0 1px #d7aa6d33;
+}
+.cs-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px;
+  scrollbar-color: var(--color-accent) var(--color-surface);
+}
+.cs-trait-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.25rem, 1fr));
+  gap: 0.35rem;
+  margin-bottom: 0.65rem;
+}
+.cs-trait-grid button {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 2.1rem;
+  padding: 0.25rem 0.4rem;
+}
+.cs-trait-grid svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: none;
+  color: var(--color-accent);
+}
+.cs-trait-grid strong {
+  margin-left: auto;
+}
+.cs-trait-grid button[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: linear-gradient(#ae793850, #84522255), url('../../assets/table/character-oak-grain.jpg') center / cover;
+}
+.cs-name {
+  text-transform: capitalize;
+}
+.cs-item {
+  border-top: 1px solid var(--color-edge);
+  padding-top: 0.45rem;
+  margin-top: 0.4rem;
+}
+.cs-action {
+  color: var(--color-accent-hover);
+  font-weight: 700;
+}
+.cs-action:disabled {
+  color: var(--color-ink-muted);
+  opacity: 0.65;
+  cursor: default;
+}
+.cs-equipment {
+  display: grid;
+  gap: 0.5rem;
+}
+.cs-item span {
+  overflow-wrap: anywhere;
+}
+.cs-empty {
+  margin: 0.45rem 0 0;
+}
+
+/* --- SKILL TREE --- */
+.cs-skill-tree {
+  padding: 0.5rem;
+  color: var(--color-on-parchment);
+  font-family: var(--font-display);
+}
+.cs-branch-picker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.28rem;
+}
+.cs-branch-picker button {
+  min-height: 2.1rem;
+  padding: 0.18rem 0.22rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 0.12rem;
+  font-size: 0.8rem;
+  line-height: 1.12;
+  font-weight: 700;
+}
+.cs-branch-picker button[aria-pressed='true'] {
+  background: var(--paper-shadow);
+  box-shadow: inset 0 0 0 1px currentColor;
+}
+.cs-branch-picker button:focus-visible {
+  outline: 2px dashed var(--color-on-parchment);
+  outline-offset: -4px;
+}
+.cs-path-swatch {
+  display: inline-block;
+  width: 0.48rem;
+  height: 0.48rem;
+  margin-right: 0.23rem;
+  border: 1px solid var(--line);
+  transform: rotate(45deg);
+}
+.cs-skill-tree svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(44vh, 15rem);
+  margin-top: 0.5rem;
+  padding: 0.32rem;
+  border: 1px solid var(--line);
+  fill: none;
+  stroke-width: 2;
+}
+.cs-skill-tree svg.cs-focused-path {
+  height: min(44vh, 15rem);
+}
+@media (max-width: 23rem) {
+  .cs-branch-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.cs-skill-tree path {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1.25px;
+}
+.cs-skill-tree circle {
+  fill: var(--paper);
+  stroke-width: 2;
+}
+
+/* --- EQUIPMENT LEDGER --- */
+.cs-equipment,
+.cs-skill-tree {
+  --paper: color-mix(in srgb, var(--color-parchment) 76%, var(--color-ink));
+  --paper-shadow: color-mix(
+    in srgb,
+    var(--color-accent) 26%,
+    var(--color-parchment)
+  );
+  --line: color-mix(
+    in srgb,
+    var(--color-on-parchment) 67%,
+    var(--color-parchment)
+  );
+  --faded-ink: color-mix(
+    in srgb,
+    var(--color-on-parchment) 78%,
+    var(--color-parchment)
+  );
+}
+.cs-equipment {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  color: var(--color-on-parchment);
+  font-family: var(--font-display);
+}
+.cs-paper {
+  min-width: 0;
+  border: 3px double var(--line);
+  background: linear-gradient(
+    110deg,
+    var(--paper-shadow),
+    var(--paper) 18%,
+    var(--paper) 84%,
+    var(--paper-shadow)
+  );
+  box-shadow: inset 0 0 0 2px var(--paper);
+}
+.cs-paper h3 {
+  margin: 0 0.55rem;
+  border-bottom: 2px solid var(--line);
+  padding: 0.42rem 0.1rem 0.25rem;
+  font-size: 1.04rem;
+  font-variant: small-caps;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.cs-compartment {
+  padding: 0.45rem 0.55rem 0.55rem;
+}
+.cs-caption,
+.cs-selected,
+.cs-bag-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+}
+.cs-caption {
+  margin-bottom: 0.22rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.cs-rings {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.22rem;
+}
+.cs-slot {
+  position: relative;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--paper-shadow) 42%, transparent);
+}
+.cs-rings .cs-slot {
+  height: 2.4rem;
+  display: grid;
+  place-items: center;
+}
+.cs-rings .cs-slot span {
+  position: absolute;
+  right: 0.12rem;
+  bottom: 0;
+  line-height: 1;
+  font: 700 0.62rem/1 var(--font-display);
+  background: var(--paper);
+}
+.cs-slot[aria-pressed='true'] {
+  outline: 2px solid var(--color-on-parchment);
+  outline-offset: -2px;
+  background: var(--paper-shadow);
+}
+.cs-jewelry {
+  display: block;
+  width: 1.85rem;
+  height: 1.85rem;
+  flex: none;
+}
+.cs-slot[data-occupied='false'] .cs-jewelry {
+  opacity: 0.44;
+}
+.cs-slot[data-occupied='true'] .cs-jewelry {
+  color: var(--color-card-melee);
+  fill: color-mix(in srgb, var(--color-accent) 48%, transparent);
+}
+.cs-amulet {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 0.4rem;
+  text-align: left;
+  padding: 0.12rem 0.35rem;
+  margin-top: 0.35rem;
+}
+.cs-amulet span {
+  font-weight: 700;
+}
+.cs-amulet small {
+  margin-left: auto;
+  text-align: right;
+}
+.cs-selected {
+  min-height: 2.3rem;
+  border-top: 1px solid var(--line);
+  margin-top: 0.4rem;
+  padding-top: 0.32rem;
+}
+.cs-selected b,
+.cs-selected small,
+.cs-bag-item b,
+.cs-bag-item small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.cs-equipment small,
+.cs-bag-hint,
+.cs-bag-empty {
+  color: var(--faded-ink);
+  font-size: 0.72rem;
+}
+.cs-selected button,
+.cs-bag-item button {
+  padding: 0.25rem 0.45rem;
+  min-height: 1.85rem;
+  border: 1px solid var(--line);
+  border-radius: 0.12rem;
+  font-weight: 700;
+}
+.cs-bag-item button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.cs-bag-item + .cs-bag-item {
+  border-top: 1px solid var(--line);
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+}
+.cs-bag-item > span {
+  flex: 1;
+}
+.cs-bag-hint {
+  margin-top: 0.5rem;
+}
+.cs-equipment button:focus-visible {
+  outline: 2px dashed var(--color-card-melee);
+  outline-offset: 0;
+}
+@container character-frame (max-width: 37rem) {
+  .cs-equipment {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.cs-trait-summary { flex-wrap: wrap; padding: 0.2rem 0; }
+.cs-trait-summary > span { margin-left: auto; }
+
+/* --- LOCKED RING SLOTS --- */
+.cs-slot[data-locked='true'] {
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 4px,
+    color-mix(in srgb, var(--line) 12%, transparent) 4px 5px
+  );
+  border-style: dashed;
+}
+.cs-slot[data-locked='true'][aria-pressed='true'] {
+  background-color: var(--paper-shadow);
+}
+.cs-lock {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--faded-ink);
+}
+
+.cs-player-stats {
+  padding: .38rem .48rem;
+  border: 1px solid #9f814b;
+  border-radius: .3rem;
+  color: #452e1b;
+  background: #eed9a9;
+  margin: .25rem 0 .45rem;
+}
+.cs-player-stats h3 {
+  font: 700 .87rem/1.2 var(--font-display);
+  margin: 0 0 .18rem;
+}
+.cs-player-stats dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 .6rem;
+  margin: 0;
+}
+.cs-player-stats dl > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 .25em;
+  padding: .16rem 0;
+  border-top: 1px solid #c7ae7a;
+  font-size: .72rem;
+  line-height: 1.16;
+}
+.cs-player-stats dt { display: flex; align-items: center; gap: .2rem; }
+.cs-player-stats dt svg { width: .72rem; height: .72rem; }
+.cs-player-stats dd { margin: 0; font-weight: 800; font-variant-numeric: tabular-nums; }
+.cs-level-hint { text-align: center; margin: .15rem 0 0; font-size: .76rem; color: var(--color-ink-muted); }
+
+/* Place the trait controls beside the diagram when the game frame has room. */
+@container character-frame (min-width: 38rem) {
+  .cs-body[data-page='traits'] {
+    display: grid;
+    grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr);
+    grid-template-rows: auto auto 1fr;
+    gap: .5rem .8rem;
+    align-items: start;
+  }
+  .cs-body[data-page='traits'] > :is(.cs-trait-grid,.cs-trait-summary,.cs-player-stats) { grid-column: 1; margin: 0; }
+  .cs-body[data-page='traits'] > .cs-rank-panel { grid-column: 2; grid-row: 1 / 4; align-self: start; min-width: 0; }
+  .cs-body[data-page='traits'] > .cs-player-stats { grid-row: 3; }
+  .cs-body[data-page='traits'] .trait-spiral-chart { width: min(100%,340px,calc(100cqh - 10rem)); }
+}
+@container character-frame (max-width: 37.99rem) {
+  .cs-body[data-page='traits'] > .cs-rank-panel { margin-block: .4rem; min-width: 0; }
+}
+@container character-frame (max-width: 23rem) {
+  .cs-body[data-page='traits'] .cs-trait-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: .2rem; margin-bottom: .35rem; }
+  .cs-body[data-page='traits'] .cs-trait-grid button { min-height: 1.85rem; gap: .12rem; padding: .2rem; font-size: .69rem; }
+  .cs-body[data-page='traits'] .cs-trait-grid svg { display: none; }
+}
+.cs-topline {
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto;
+  grid-template-areas: "title level close";
+  align-items: center;
+  gap: clamp(.35rem, 1.6cqw, .85rem);
+}
+.cs-topline .cs-head { display: contents; }
+.cs-topline h2 { grid-area: title; }
+.cs-topline .cs-close { grid-area: close; }
+.cs-topline .cs-level { grid-area: level; }
+@container character-frame (max-width: 23rem) {
+  .cs-topline h2 { font-size: 1.12rem; }
+  .cs-topline .cs-level, .cs-topline .cs-level span { font-size: .64rem; }
+  .cs-body[data-page='traits'] .cs-trait-summary { gap: .2rem; }
+  .cs-body[data-page='traits'] .cs-trait-summary .cs-action { padding: .2rem .3rem; font-size: .72rem; }
+  .cs-body[data-page='traits'] .cs-empty { margin-top: .15rem; }
+}
+
+/* --- EQUIPMENT INSPECTION --- */
+.cs-equipment .cs-inspect-bag {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  text-align: left;
+  border: 1px solid transparent;
+  padding: .15rem .2rem;
+}
+.cs-inspect-bag[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--paper-shadow) 65%, transparent);
+}
+.cs-inspect-bag b, .cs-equipment .cs-inspect-name {
+  text-decoration: underline;
+  text-underline-offset: .15em;
+  text-decoration-color: var(--line);
+}
+.cs-equipment .cs-inspect-name {
+  border: 0;
+  min-height: 1.5rem;
+  padding: 0;
+  text-align: left;
+}
+.cs-item-inspection { grid-column: 1 / -1; }
+.cs-item-lore { font-style: italic; color: var(--faded-ink); margin: .05rem 0 .6rem; }
+.cs-real-effect { display: flex; align-items: center; gap: .4rem; border-top: 1px solid var(--line); padding-top: .45rem; }
+.cs-real-effect svg { flex: none; }
+.cs-slot[data-reserved='true'] { border-style: double; border-width: 3px; }
+
+/* Keep the inventory heading and selected item's details outside the scrolling list. */
+.cs-inventory h3 {
+  display: flex;
+  justify-content: space-between;
+  gap: .5rem;
+  align-items: baseline;
+}
+.cs-inventory-count {
+  color: var(--faded-ink);
+  font: 600 .72rem var(--font-display);
+  letter-spacing: 0;
+  font-variant: normal;
+}
+.cs-inventory-list {
+  max-height: clamp(4.75rem, 31cqh, 11rem);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-color: var(--line) var(--paper-shadow);
+  padding: 2px;
+}
+.cs-inventory-list:focus-visible {
+  outline: 2px dashed var(--color-card-melee);
+  outline-offset: -2px;
+}
+@container character-frame (max-width: 37rem) {
+  .cs-inventory-list { max-height: clamp(8rem, 36cqh, 14rem); }
+}
+
+.cs-equipment .cs-inline-bonus { color: var(--stat-ink, var(--faded-ink)); font-weight: 700; }
+.cs-inline-bonus svg { display: inline-block; width: .85em; height: .85em; margin-right: .2em; vertical-align: -.05em; }
+.cs-equipment .stat-ink[data-stat="draw"] { --stat-ink: #00615f; }
+.cs-equipment .stat-ink[data-stat="energy"] { --stat-ink: #804400; }
+@container character-frame (min-width: 37.01rem) {
+  .cs-inventory, .cs-inventory > .cs-compartment { display: flex; flex-direction: column; }
+  .cs-inventory > .cs-compartment { flex: 1; }
+  .cs-inventory-list { flex: 1; contain: size; min-height: 5rem; max-height: none; }
+}
+.cs-skill-controls {display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;padding:.45rem;}
+.cs-skill-controls select {font:inherit;background:var(--color-parchment);color:var(--color-on-parchment);}
+.cs-skill-controls span {flex-basis:100%;}
+
+/* --- DIRECT SKILL PATH CONTROLS --- */
+.cs-skill-chart {position:relative;}
+.cs-skill-chart path {opacity:.45;}
+.cs-skill-chart path[data-lit='true'] {opacity:1;stroke-width:3px;}
+.cs-click-node {cursor:pointer;}
+.cs-click-node[aria-disabled=true] {opacity:.5;cursor:default;}
+.cs-click-node:focus { outline: none; }
+.cs-click-node:focus-visible circle:first-of-type {
+  stroke: var(--color-on-parchment) !important;
+  stroke-width: 1.2;
+  stroke-dasharray: 2 1;
+}
+.cs-node-detail {
+  --tip-width: min(10rem, 100%);
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  gap: .32rem;
+  box-sizing: border-box;
+  width: var(--tip-width);
+  padding: .5rem;
+  border: 1px solid var(--line);
+  border-radius: .45rem;
+  background: var(--paper);
+  color: var(--color-on-parchment);
+  box-shadow: 0 3px 10px #26180c38;
+}
+.cs-node-detail strong { padding-right: 1.35rem; }
+.cs-node-detail button {
+  border: 1px solid var(--line);
+  border-radius: .3rem;
+  min-height: 1.75rem;
+  font: inherit;
+  font-weight: 700;
+}
+.cs-node-detail .cs-rank-up {
+  background: linear-gradient(#655034, #44311e);
+  color: #fff3da;
+}
+.cs-node-detail .cs-refund {
+  background: color-mix(in srgb, var(--paper) 83%, white);
+  color: var(--color-on-parchment);
+}
+.cs-node-detail button:enabled:hover { box-shadow: inset 0 0 0 1px currentColor; }
+.cs-node-detail button:enabled:active { transform: translateY(1px); }
+.cs-node-detail button:disabled { opacity: .5; cursor: default; }
+.cs-node-detail .cs-tip-close {
+  position: absolute;
+  top: .2rem;
+  right: .2rem;
+  width: 1.45rem;
+  min-height: 1.45rem;
+  line-height: 1;
+  background: transparent;
+  border-color: transparent;
+}
+

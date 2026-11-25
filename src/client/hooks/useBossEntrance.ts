@@ -8,12 +8,12 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { HeroUnit } from '../../shared/game/types';
-import { BOSS_ENTRANCE_MS } from '../content/bossEntrances';
+import { BOSS_ENTRANCE_MS, bossEntranceOf } from '../content/bossEntrances';
 import { isBoss } from '../content/heroLooks';
 
 // --- HOOK ---
 /** The boss making its entrance now (or null), whether it was skipped, and skip(). */
-export const useBossEntrance = (heroes: readonly HeroUnit[]) => {
+export const useBossEntrance = (heroes: readonly HeroUnit[], enabled: boolean) => {
   const seenRef = useRef(new Set<number>());
   const [entering, setEntering] = useState<HeroUnit | null>(null);
   const [isSkipped, setIsSkipped] = useState(false);
@@ -24,15 +24,16 @@ export const useBossEntrance = (heroes: readonly HeroUnit[]) => {
       (unit) => isBoss(unit) && !seenRef.current.has(unit.uid)
     );
     heroes.forEach((unit) => seenRef.current.add(unit.uid));
+    if (!enabled) { setEntering(null); return; }
     if (!newcomer) return;
     setEntering(newcomer);
     setIsSkipped(false);
-  }, [heroes]);
+  }, [heroes, enabled]);
 
   // THE ENTRANCE ENDS ON ITS OWN AFTER BOSS_ENTRANCE_MS
   useEffect(() => {
     if (!entering) return;
-    const timer = window.setTimeout(() => setEntering(null), BOSS_ENTRANCE_MS);
+    const timer = window.setTimeout(() => setEntering(null), bossEntranceOf(entering.heroId).durationMs ?? BOSS_ENTRANCE_MS);
     return () => window.clearTimeout(timer);
   }, [entering]);
 
@@ -42,5 +43,5 @@ export const useBossEntrance = (heroes: readonly HeroUnit[]) => {
     setIsSkipped(true);
   }, []);
 
-  return { entering, isSkipped, skip } as const;
+  return { entering: enabled ? entering : null, isSkipped: !enabled || isSkipped, skip } as const;
 };

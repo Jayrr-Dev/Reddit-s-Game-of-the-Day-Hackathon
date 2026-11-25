@@ -47,8 +47,8 @@ export const useDailyGame = () => {
   }, []);
 
   /** Claims a run with the server; returns true when it is the ranked run. */
-  const startRun = useCallback(async (): Promise<boolean> => {
-    const { isRanked } = await apiClient.startRun();
+  const startRun = useCallback(async () => {
+    const response = await apiClient.startRun();
     setState((previous) =>
       previous.status === 'ready'
         ? {
@@ -57,13 +57,13 @@ export const useDailyGame = () => {
           }
         : previous
     );
-    return isRanked;
+    return response;
   }, []);
 
   /** Sends the finished run's log and merges the server's answer. */
   const finishRun = useCallback(
-    async (actions: RunAction[]): Promise<FinishRunResponse> => {
-      const result = await apiClient.finishRun({ actions });
+    async (actions: RunAction[], runId?: string): Promise<FinishRunResponse> => {
+      const result = await apiClient.finishRun({ actions, ...(runId && {runId}) });
       setState((previous) =>
         previous.status === 'ready'
           ? { status: 'ready', data: mergeFinish(previous.data, result) }

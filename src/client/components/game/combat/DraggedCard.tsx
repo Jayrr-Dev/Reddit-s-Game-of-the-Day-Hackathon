@@ -18,7 +18,8 @@ export type DraggedCardProps = {
   cardId?: CardId | undefined;
   children?: ReactNode;
   attacker: Combatant;
-  slain: number;
+  killsThisTurn: number;
+  usesSpent: number;
   followUpReady?: boolean | undefined;
   /** The hero the drag is locked onto, so the numbers fit that hero. */
   target?: HeroUnit | undefined;
@@ -50,7 +51,8 @@ export const DraggedCard = ({
   cardId,
   children,
   attacker,
-  slain,
+  killsThisTurn,
+  usesSpent,
   followUpReady,
   target,
   box,
@@ -68,7 +70,8 @@ export const DraggedCard = ({
   >
     {children ?? (cardId && <CardView
       cardId={cardId}
-      attacker={attacker} slain={slain} followUpReady={followUpReady}
+      usesSpent={usesSpent}
+      attacker={attacker} killsThisTurn={killsThisTurn} followUpReady={followUpReady}
       target={target}
       size="fan"
       onClick={() => {}}

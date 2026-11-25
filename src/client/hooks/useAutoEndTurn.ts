@@ -33,7 +33,7 @@ export const useAutoEndTurn = (
   }, [endTurn]);
   // A won or lost fight has no turn to end.
   const isSpent =
-    !isBusy && combatOutcome(combat) === 'ongoing' && !hasPlayLeft(combat);
+    !isBusy && !combat.waveArrival && combatOutcome(combat) === 'ongoing' && !hasPlayLeft(combat);
 
   // SPENT AND IDLE -> END THE TURN AFTER A BEAT (timing: an effect)
   useEffect(() => {

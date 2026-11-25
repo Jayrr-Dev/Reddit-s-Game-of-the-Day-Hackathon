@@ -2,7 +2,9 @@
 // COMBAT ENGINE TESTS
 // ===================================================================
 
+import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import { test } from 'node:test';
+import { createCharacter, IRON_RING_RESERVE, type Traits } from './character.ts';
 import assert from 'node:assert/strict';
 import { advanceHeroes, targetRuleOf } from './battlefield.ts';
 import { ALL_CARD_IDS, getCard, type CardId } from './cards.ts';
@@ -32,9 +34,11 @@ import {
   combatOutcome,
   endTurn,
   endTurnSteps,
+  finishPlayerTurn,
   heroTurnOrder,
   playCard,
   playCardSteps,
+  startPlayerTurn,
   startCombat,
   targetsFor,
   wouldFell,
@@ -42,6 +46,7 @@ import {
   playDamageFactor,
   plannedHeroMoves,
   aimHitChance,
+  aimCritChance,
   shotHitChance,
 } from './combat.ts';
 import {
@@ -57,7 +62,6 @@ import {
   BLEED_BITE_FACTOR,
   RAMPAGE_MOMENTUM_FACTOR,
   EXHAUST_USES,
-  RESERVE_ENERGY_SLOTS,
 } from './rules.ts';
 import { foldPerHitAfflictions, getHero } from './heroes.ts';
 import {
@@ -97,21 +101,23 @@ const withHand = (state: CombatState, hand: CardId[]): CombatState => ({
   hand,
 });
 
-void test('Decimate spends one less energy per kill in this fight, down to zero', () => {
+void test('Decimate spends one less energy per kill this turn, down to zero', () => {
   const battle = fightWith(['decimate']);
   const card = getCard('decimate');
   assert.equal(card.edge, 'blunt');
   assert.equal(card.rarity, 'legendary');
   assert.ok(card.keywords.includes('rampage'));
-  assert.deepEqual(describeCard('decimate'), ['Damage 50', 'Costs 1 less per kill', 'Rampage']);
+  assert.deepEqual(describeCard('decimate'), ['Damage 50', '-1 cost per kill this turn', 'Rampage']);
   for (const slain of [0, 1, 2, 3, 4]) {
     const cost = Math.max(0, 3 - slain);
-    const state = { ...battle, slain, energy: cost };
+    const state = { ...battle, slain: slain + 5, killsThisTurn: slain, energy: cost };
     if (cost > 0) assert.equal(canPlayCard({ ...state, energy: cost - 1 }, 0), false);
     assert.equal(canPlayCard(state, 0), true);
     const after = playCard(state, 0, state.heroes[0]!.uid);
     assert.equal(after.energy, 0);
-    assert.equal(after.slain, slain + 1);
+    assert.equal(after.slain, state.slain + 1);
+    assert.equal(after.killsThisTurn, slain + 1);
+    assert.equal(startPlayerTurn(after).killsThisTurn, 0);
   }
 });
 
@@ -1116,11 +1122,11 @@ void test('a Range hero shoots harder from the back, and plainly (still Range) u
   const archer = heroNamed(fresh, 'archer') as HeroUnit;
   // Volley 2x3 from the back: Range at 130% (2.6 rounds to 3).
   const [shot] = describeHeroIntent(archer, fresh.heroes).intents;
-  assert.deepEqual([shot?.kind, shot?.text], ['range', '3×3']);
+  assert.deepEqual([shot?.kind, shot?.text], ['range', '3×3=9']);
   // Up close it loses the bonus but is still a Range shot.
   const upClose = { ...archer, row: 'front' as const };
   const [strike] = describeHeroIntent(upClose, fresh.heroes).intents;
-  assert.deepEqual([strike?.kind, strike?.text], ['range', '2×3']);
+  assert.deepEqual([strike?.kind, strike?.text], ['range', '2×3=6']);
 });
 
 void test('Back Step pushes a full front row back for 1 energy', () => {
@@ -1791,8 +1797,9 @@ void test('an Imbue card needs another card in hand to imbue', () => {
 });
 
 void test('Imbue cards say what they grant', () => {
-  assert.deepEqual(describeCard('holdFast'), ['Imbue Hold']);
-  assert.deepEqual(describeCard('venomCoat'), ['Imbue Poison 3']);
+  assert.equal(getCard('venomCoat').type, 'imbue');
+  assert.deepEqual(describeCard('holdFast'), ['Hold']);
+  assert.deepEqual(describeCard('venomCoat'), ['Poison 3']);
 });
 
 void test('an imbued effect on a multi-hit card reads per hit', () => {
@@ -1808,37 +1815,37 @@ void test('an imbued effect on a multi-hit card reads per hit', () => {
 });
 
 // --- UTILITY AND EXHAUST ---
-void test('a Healing Potion heals you and is kept until its last use', () => {
+void test('a Healing Potion heals you and exhausts on its only use', () => {
   const state = cloakFight(['healingPotion']);
   const hurt = { ...state, player: { ...state.player, hp: 30 } };
   const after = playCard(hurt, 0, -1);
   assert.ok(after.player.hp > 30);
-  assert.deepEqual(after.discardPile, ['healingPotion']);
-  assert.equal(after.usesSpent.healingPotion, 1);
-  assert.deepEqual(after.exhausted, []);
+  assert.deepEqual(after.exhausted, ['healingPotion']);
+  assert.ok(describeCard('healingPotion').includes('Use 1/1'));
 });
 
 void test('the last use Exhausts the card out of the fight', () => {
-  const state = cloakFight(['healingPotion']);
-  const worn = { ...state, usesSpent: { healingPotion: EXHAUST_USES - 1 } };
+  const state = cloakFight(['rushPotion']);
+  const worn = { ...state, usesSpent: { rushPotion: EXHAUST_USES - 1 } };
   const after = playCard(worn, 0, -1);
-  assert.deepEqual(after.removedPile, ['healingPotion']);
-  assert.deepEqual(after.exhausted, ['healingPotion']);
+  assert.equal(after.player.statuses.rush, 2);
+  assert.deepEqual(after.removedPile, ['rushPotion']);
+  assert.deepEqual(after.exhausted, ['rushPotion']);
   // The next copy starts fresh.
-  assert.equal(after.usesSpent.healingPotion, undefined);
+  assert.equal(after.usesSpent.rushPotion, undefined);
 });
 
 void test('an Exhaust card reads Use N/3, counting up', () => {
-  assert.ok(describeCard('healingPotion').includes(`Use 1/${EXHAUST_USES}`));
+  assert.ok(describeCard('rushPotion').includes(`Use 1/${EXHAUST_USES}`));
   assert.ok(
-    describeCard('healingPotion', undefined, undefined, 1).includes(
+    describeCard('rushPotion', undefined, undefined, 1).includes(
       `Use 2/${EXHAUST_USES}`
     )
   );
 });
 
 void test('consumable potions and tonics Exhaust', () => {
-  for (const id of ['healingPotion', 'antidote', 'swiftTonic'] as const)
+  for (const id of ['healingPotion', 'antidote', 'swiftTonic', 'rushPotion'] as const)
     assert.ok(getCard(id).keywords.includes('exhaust'), id);
 });
 
@@ -1890,7 +1897,7 @@ void test('Sap casts Enfeeble x3: tier III at once', () => {
     after.heroes.find((unit) => unit.uid === uid)?.statuses.enfeeble,
     3
   );
-  assert.ok(describeCard('sap').includes('Enfeeble ×3'));
+  assert.ok(describeCard('sap').includes('Enfeeble III'));
 });
 
 void test('Enfeeble lasts one turn: it lapses unless reapplied', () => {
@@ -2115,7 +2122,7 @@ void test('every imbue lasts the battle, coming back with its card', () => {
   const slot = later.hand.indexOf('backhand');
   assert.ok(slot >= 0);
   assert.equal(later.handImbues[slot]?.length, 1);
-  assert.deepEqual(describeCard('emberRune'), ['Imbue Burn 4']);
+  assert.deepEqual(describeCard('emberRune'), ['Burn 4']);
 });
 
 void test('an imbue outlasts other plays and the end of the turn', () => {
@@ -2234,13 +2241,16 @@ void test('a Rampage kill that empties the front row Charges for free', () => {
   assert.equal(brokeAfter.freeMove?.move, 'charge');
 });
 
-void test('Rampage does nothing without a kill, or without room to Charge', () => {
+void test('Rampage grants Momentum on kill even when Charge is blocked', () => {
   // No kill: the Squire stands.
   const tough = squireAndArcher(['cleave']);
   assert.equal(playCard(tough, 0, tough.heroes[0]?.uid ?? -1).freeMove, null);
   // A kill in the back row leaves the Squire up front: no room to Charge.
   const back = distanceRampage(['blackArrow']);
-  assert.equal(playCard(back, 0, archerUid(back)).freeMove, null);
+  const blocked = playCard(back, 0, archerUid(back));
+  assert.equal(blocked.freeMove, null);
+  assert.equal(blocked.player.statuses.momentum, 1);
+  assert.equal(playCard(tough, 0, tough.heroes[0]!.uid).player.statuses.momentum, 0);
   // A plain card kills without charging.
   const plain = rampageFight(['backhand']);
   assert.equal(playCard(plain, 0, plain.heroes[0]?.uid ?? -1).freeMove, null);
@@ -2569,13 +2579,13 @@ void test('unspent energy carries over into the reserve, up to its slots', () =>
     seed: 1,
   });
   assert.equal(start.reserve, 0);
-  // Ending with all 3 left keeps only RESERVE_ENERGY_SLOTS of them.
+  // The starter Iron Ring retains one of the three unspent energy.
   const steps = endTurnSteps(start);
   const heroesTurn = steps[0]!.state;
-  assert.equal(heroesTurn.reserve, RESERVE_ENERGY_SLOTS);
+  assert.equal(heroesTurn.reserve, IRON_RING_RESERVE);
   assert.equal(heroesTurn.energy, 0);
   const next = steps.at(-1)!.state;
-  assert.equal(next.energy, ENERGY_PER_TURN + RESERVE_ENERGY_SLOTS);
+  assert.equal(next.energy, ENERGY_PER_TURN + IRON_RING_RESERVE);
   assert.equal(next.reserve, 0);
   // Ending with nothing left keeps nothing.
   const spent = endTurn({ ...next, energy: 0 });
@@ -2624,7 +2634,7 @@ void test('a Randomly card needs no aim and each hit picks a hero anew', () => {
 
 // --- MELEE KNOCKBACK REACH ---
 void test('a Melee Knockback card only targets the front row, even if blocked', () => {
-  const state = startCombat({
+  const fresh = startCombat({
     hp: 99,
     maxHp: 99,
     deck: ['backhand'],
@@ -2632,6 +2642,7 @@ void test('a Melee Knockback card only targets the front row, even if blocked', 
     might: 1,
     seed: 3,
   });
+  const state = { ...fresh, heroes: fresh.heroes.map(unit => ({ ...unit, row: unit.heroId === 'holt' ? 'front' as const : 'back' as const })) };
   for (const card of ['hurlAside', 'ruin'] as const) {
     assert.deepEqual(
       targetsFor(state, card).map((unit) => unit.heroId),
@@ -2639,4 +2650,228 @@ void test('a Melee Knockback card only targets the front row, even if blocked', 
       `${card}: Holt in front, not the Paladin behind`
     );
   }
+});
+
+void test('play history records paid cards and hand moves once, in order', () => {
+  const battle = { ...fightWith(['darkCloak', 'darkCloak']), energy: 10 };
+  const failed = playCard(battle, 99, 0);
+  assert.equal(failed.playHistory, undefined);
+  const first = playCard(battle, 0, 0);
+  const second = playCard(first, 0, 0);
+  const cost = movementCost(second, 'backStep');
+  const moved = move(second, 'backStep');
+  assert.equal(second.playHistory?.length, 4);
+  assert.deepEqual(moved.playHistory?.filter(entry => 'move' in entry), [
+    { turn: battle.turn, move: 'backStep', cost },
+  ]);
+  assert.equal(move({ ...moved, energy: 0 }, 'charge').playHistory, moved.playHistory);
+  assert.equal(battle.playHistory, undefined);
+});
+
+void test('resolved enemy attacks join played cards in the history on their own beat', () => {
+  const played = playCard(fightWith(['darkCloak']), 0, 0);
+  const steps = endTurnSteps(played);
+  const attack = steps.find(step => step.attackType);
+  assert.ok(attack);
+  const record = attack.state.playHistory?.at(-1);
+  assert.ok(record && 'heroId' in record);
+  assert.equal(record.heroId, 'squire');
+  assert.equal(record.attackName, attack.move?.name);
+  assert.equal(record.turn, played.turn);
+  assert.equal(record.hpLost, played.player.hp - attack.state.player.hp);
+  assert.deepEqual(attack.state.playHistory?.slice(0, -1), played.playHistory);
+  assert.equal(steps.at(-1)?.state.playHistory?.length, 3);
+});
+void test('Charge aims after a free advance and spends its Momentum on the same melee attack', () => {
+  const battle = fightWith(['cruelSlash']);
+  const distant = { ...battle, heroes: battle.heroes.map(hero => ({ ...hero, row: 'back' as const, hp: 50, maxHp: 50 })) };
+  const uid = distant.heroes[0]!.uid;
+  const beats = playCardSteps(distant, 0, uid);
+  assert.ok(canPlayCard(distant, 0));
+  assert.deepEqual(autoTargets(distant, 0), [uid]);
+  assert.equal(beats[0]?.heroes[0]?.row, 'front');
+  assert.equal(beats[0]?.heroes[0]?.hp, 50);
+  assert.equal(beats[0]?.player.statuses.momentum, 1);
+  const advanced = playCard(distant, 0, uid);
+  const adjacent = { ...distant, heroes: distant.heroes.map(hero => ({ ...hero, row: 'front' as const })) };
+  const ordinary = playCard(adjacent, 0, uid);
+  assert.equal(ordinary.heroes[0]!.hp, 41);
+  assert.ok(advanced.heroes[0]!.hp < ordinary.heroes[0]!.hp);
+  assert.equal(advanced.player.statuses.momentum, 0);
+  assert.equal(advanced.energy, distant.energy - 1);
+  assert.equal(advanced.lastMovement, distant.lastMovement);
+  assert.deepEqual(beats.at(-1), advanced);
+  const beyondReach = { ...distant, heroes: distant.heroes.map(hero => ({ ...hero, row: 'horizon' as const })) };
+  assert.equal(canPlayCard(beyondReach, 0), false);
+  assert.equal(playCard(beyondReach, 0, uid), beyondReach);
+});
+
+/** Give the target enough HP to check every strike of a card. */
+const traitFight = (cardId: CardId, traits: Partial<Traits>): CombatState => {
+  const fight = fightWith([cardId]);
+  return { ...fight, player: { ...fight.player, traits: { ...createCharacter().traits, ...traits } },
+    heroes: fight.heroes.map(hero => ({ ...hero, maxHp: 500, hp: 500 })) };
+};
+
+void test('offensive traits scale printed damage before dividing flat bonuses across all hits and picks', () => {
+  for (const [id, traits, perHit, hits] of [
+    ['stormOfBlades', { strength: 64 }, 13, 4],
+    ['spiteBolt', { dexterity: 64 }, 42, 1],
+    ['shadowBarrage', { intelligence: 64 }, 13, 4],
+    ['forkedBolt', { intelligence: 64 }, 23, 2],
+    ['stormOfBlades', { intelligence: 64 }, 3, 4],
+  ] as const) {
+    const fight = traitFight(id, traits);
+    const target = fight.heroes[0]!;
+    const preview = describeCard(id, fight.player, target);
+    assert.ok(preview.some(line => line.startsWith('Damage ' + perHit)), id);
+    const result = playCard(fight, 0, target.uid);
+    const dealt = target.hp - result.heroes[0]!.hp;
+    if (id === 'spiteBolt') assert.ok(dealt === perHit || dealt === 2 * perHit);
+    else assert.equal(dealt, perHit * hits, id);
+  }
+});
+
+void test('Dexterity offsets distance penalties for both Range and Magic', () => {
+  const state = traitFight('spiteBolt', { dexterity: 64 });
+  const enemy = { ...state.heroes[0]!, row: 'horizon' as const };
+  const fight = { ...state, heroes: [enemy] };
+  assert.equal(aimHitChance(fight, 0, enemy), 1);
+  assert.ok(playCard(fight, 0, enemy.uid).heroes[0]!.hp < enemy.hp);
+  const magic = withHand(fight, ['forkedBolt']);
+  assert.equal(aimHitChance(magic, 0, enemy), 1);
+});
+
+void test('Scorn increases direct and elemental afflictions per application and respects the Enfeeble cap', () => {
+  const fight = traitFight('frostBolt', { scorn: 64 });
+  const target = fight.heroes[0]!;
+  const ice = playCard(fight, 0, target.uid);
+  assert.equal(ice.heroes[0]!.statuses.frost, 22);
+  assert.ok(describeCard('frostBolt', fight.player).includes('Frost 11 per hit'));
+  const cursed = playCard(withHand(fight, ['sapStrength']), 0, target.uid);
+  assert.equal(cursed.heroes[0]!.statuses.enfeeble, 3);
+  assert.equal(cursed.heroes[0]!.statuses.hex, 11);
+  assert.ok(describeCard('sapStrength', fight.player, target).includes('Enfeeble III'));
+});
+
+void test('Vigor and Endurance use the same Guard in hand and on resolution', () => {
+  const base = fightWith(['darkCloak']);
+  const traits = { ...createCharacter().traits, vigor: 64, endurance: 64 };
+  const player = { ...base.player, traits };
+  const battle = { ...base, player };
+  assert.ok(describeCard('darkCloak', player).includes('Guard 40'));
+  assert.equal(playCard(battle, 0, -1).player.guard, 40);
+
+  const imbued: CombatState = {
+    ...withHand(battle, ['flurry']),
+    heroes: battle.heroes.map(unit => ({ ...unit, hp: 100, maxHp: 100 })),
+    handImbues: [[{ gift: { kind: 'effect', effect: { kind: 'guard', amount: 4 } } }]],
+  };
+  // Three landed hits each grant 4 × 2 + floor(30 / 3).
+  assert.equal(playCard(imbued, 0, imbued.heroes[0]!.uid).player.guard, 54);
+});
+
+void test('Endurance sets turn energy, retention and the cap on energy gains', () => {
+  const traits = { ...createCharacter().traits, endurance: 64 };
+  const battle = startCombat({ hp: 60, maxHp: 60, deck: ['bloodPact'], heroIds: ['squire'], might: 1, seed: 1, traits });
+  assert.equal(battle.energy, 6);
+  const capped = playCard({ ...battle, energy: 19 }, 0, -1);
+  assert.equal(capped.energy, 20);
+  const finished = finishPlayerTurn(capped);
+  assert.equal(finished.reserve, 12);
+  assert.equal(startPlayerTurn(finished).energy, 18);
+  assert.equal(playCard({ ...fightWith(['bloodPact']), energy: 9 }, 0, -1).energy, 10);
+});
+void test('Reap previews and deals Intelligence-scaled magic damage based on target Hex', () => {
+  const fight = traitFight('reap', { intelligence: 64 });
+  const target = addStatus(fight.heroes[0]!, 'hex', 4);
+  assert.ok(describeCard('reap', fight.player, target).includes('Damage 46'));
+  assert.equal(playCard({ ...fight, heroes: [target] }, 0, target.uid).heroes[0]!.hp, 454);
+});
+void test('Scorn scales enemy Poison, Burn and odd Hex ticks independently without changing their decay or Frost', () => {
+  const trigger = (scorn: number, hex: number) => {
+    const battle = traitFight('mend', { scorn });
+    const hero = battle.heroes[0]!;
+    const afflicted = { ...hero, statuses: { ...hero.statuses, hex, poison: 7, burn: 9, frost: 2 } };
+    return endTurn({ ...battle, heroes: [afflicted] });
+  };
+  const ordinary = trigger(0, 5);
+  const scaled = trigger(64, 5);
+  const enemy = scaled.heroes[0]!;
+  const expected = [hexBurnAmount(5), 7, 9].reduce((sum, n) => sum + Math.floor(n * 1.6), 0);
+  assert.equal(500 - enemy.hp, expected);
+  assert.deepEqual(enemy.statuses, ordinary.heroes[0]!.statuses);
+  assert.equal(scaled.player.hp, ordinary.player.hp);
+  assert.equal(500 - trigger(64, 4).heroes[0]!.hp, 11 + 14);
+});
+
+void test('Scorn scales the Bleed bite and Shock burst separately from the melee hit, including overkill counters', () => {
+  const battle = traitFight('backhand', { scorn: 64 });
+  const target = battle.heroes[0]!;
+  const enemy = { ...target, hp: 1, shockHits: SHOCK_HITS - 1, statuses: { ...target.statuses, shock: 5, bleed: 10 } };
+  const steps = playCardSteps({ ...battle, heroes: [enemy] }, 0, enemy.uid);
+  const burst = steps.find(step => (step.heroes[0]?.shockDamageTaken ?? 0) > 0)?.heroes[0];
+  assert.ok(burst);
+  assert.equal(burst.shockDamageTaken, 16);
+  assert.equal(burst.damageTaken, 6 + 16);
+  // A living target also bleeds once per card, independently of the triggering hit.
+  const live = playCard({ ...battle, heroes: [{ ...enemy, hp: 500 }] }, 0, enemy.uid).heroes[0]!;
+  assert.equal(live.bleedTaken, 6);
+  assert.equal(live.shockDamageTaken, 16);
+  assert.equal(500 - live.hp, 6 + 16 + 6);
+  assert.equal(live.statuses.bleed, 9);
+});
+
+void test('Scorn scales only the Hex-derived part of Reap before mitigation, and never incoming status damage', () => {
+  const battle = traitFight('reap', { scorn: 64, intelligence: 64 });
+  const enemy = addStatus(battle.heroes[0]!, 'hex', 5);
+  const target = { ...enemy, guard: 4, statuses: { ...enemy.statuses, protection: 1 } };
+  const boosted = 16 * 2 + 30;
+  assert.ok(describeCard('reap', battle.player, target).includes('Damage ' + boosted));
+  const struck = playCard({ ...battle, heroes: [target] }, 0, target.uid).heroes[0]!;
+  assert.equal(struck.hp, takeHit(target, boosted, 'magic').hp);
+  const statuses = { ...battle.player.statuses, poison: 5, burn: 7, hex: 3, shock: 4, bleed: 8 };
+  const archer = { ...battle.heroes[0]!, uid: battle.nextUid, heroId: 'archer' as const, col: 1, row: 'back' as const };
+  const suffer = (scorn: number) => endTurn({ ...battle, heroes: [...battle.heroes, archer], player: {
+    ...battle.player, hp: 500, maxHp: 500, statuses,
+    traits: { ...createCharacter().traits, scorn },
+  } }).player;
+  const low = suffer(0), high = suffer(64);
+  assert.equal(high.hp, low.hp);
+  assert.equal(high.shockDamageTaken, low.shockDamageTaken);
+  assert.equal(high.bleedTaken, low.bleedTaken);
+  assert.ok(high.shockDamageTaken && high.bleedTaken);
+});
+
+void test('Endurance scales the displayed and actual healing and respects missing HP', () => {
+  const fight = traitFight('mend', { endurance: 64 });
+  const wounded = { ...fight.player, hp: 1 };
+  assert.ok(describeCard('mend', wounded).includes('Heal 10'));
+  assert.equal(playCard({ ...fight, player: wounded }, 0, -1).player.hp, 11);
+  const nearlyFull = { ...wounded, hp: wounded.maxHp - 1 };
+  assert.equal(playCard({ ...fight, player: nearlyFull }, 0, -1).player.hp, nearlyFull.maxHp);
+});
+
+void test('excess accuracy gives Range and Magic double-damage crits but excludes Melee', () => {
+  for (const id of ['spiteBolt', 'forkedBolt', 'backhand'] as const) {
+    const fight = traitFight(id, { dexterity: 64 });
+    const target = fight.heroes[0]!;
+    const focussed = { ...fight, player: addStatus(fight.player, 'sharpshooter', 1) };
+    const ranged = id !== 'backhand';
+    assert.equal(aimCritChance(fight, 0, target), ranged ? 0.5 : 0);
+    assert.equal(aimCritChance(focussed, 0, target), ranged ? 1 : 0);
+    const base = describeCard(id, focussed.player, target).find(line => line.startsWith('Damage '))!;
+    const perHit = Number(base.match(/\d+/)![0]);
+    const result = playCard(focussed, 0, target.uid);
+    assert.equal(target.hp - result.heroes[0]!.hp, perHit * (ranged ? 2 : 1) * (id === 'forkedBolt' ? 2 : 1));
+  }
+});
+void test('combat history retains the latest ten events and records actual healing, buffs and deaths', () => {
+  const battle = fightWith(['backhand']);
+  const old = { ...battle, player: { ...battle.player, hp: 5 } };
+  const next = { ...old, heroes: [], player: { ...old.player, hp: 8, statuses: { ...old.player.statuses, wrath: 2 } } };
+  const history = recordEffects(old, next).playHistory!;
+  assert.deepEqual(history.map(entry => 'event' in entry && entry.event), ['heal', 'status', 'death']);
+  const ten = appendCombatHistory(undefined, ...Array.from({length: 14}, (_, turn) => ({turn, cardId: 'backhand' as const, cost: 1})));
+  assert.deepEqual(ten.map(entry => entry.turn), [4,5,6,7,8,9,10,11,12,13]);
 });

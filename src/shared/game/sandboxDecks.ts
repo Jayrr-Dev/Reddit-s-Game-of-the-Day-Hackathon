@@ -7,7 +7,7 @@
 // Add a deck by adding an entry to SANDBOX_DECKS.
 // ===================================================================
 
-import { ALL_CARD_IDS, getCard, isCardInPlay, type CardId } from './cards.ts';
+import { ALL_CARD_IDS, getCard, isCardId, isCardInPlay, type CardId } from './cards.ts';
 import type { CardDef, CardEffect } from './types.ts';
 
 // --- TYPES ---
@@ -197,4 +197,50 @@ export const sandboxDeckCards = (id: SandboxDeckId): CardId[] => {
   return ALL_CARD_IDS.filter(isCardInPlay)
     .filter((cardId) => deck.fits(getCard(cardId)))
     .flatMap((cardId) => Array.from({ length: copies }, () => cardId));
+};
+
+export const CUSTOM_DECK_LIMIT = 100;
+export type CustomTrainingDeck = { id: string; name: string; cards: CardId[] };
+export type TrainingDeckSelection = {
+  deckId: SandboxDeckId;
+  activeCustomId: string | null;
+  customDecks: CustomTrainingDeck[];
+};
+
+export const isCustomDeckList = (cards: unknown): cards is CardId[] =>
+  Array.isArray(cards) && cards.length > 0 && cards.length <= CUSTOM_DECK_LIMIT &&
+  Array.from(cards).every(isCardId);
+
+export const activeTrainingCards = (selection: TrainingDeckSelection): CardId[] =>
+  selection.customDecks.find(deck => deck.id === selection.activeCustomId)?.cards ??
+  sandboxDeckCards(selection.deckId);
+
+export const restoreTrainingDecks = (saved: unknown): TrainingDeckSelection => {
+  const initial: TrainingDeckSelection = { deckId: 'all', activeCustomId: null, customDecks: [] };
+  if (!saved || typeof saved !== 'object') return initial;
+  if ('deckId' in saved) initial.deckId = SANDBOX_DECKS.find(deck => deck.id === saved.deckId)?.id ?? 'all';
+  if ('customDecks' in saved && Array.isArray(saved.customDecks)) {
+    for (const value of saved.customDecks) {
+      if (!value || typeof value.id !== 'string' || !value.id.trim() ||
+          initial.customDecks.some(deck => deck.id === value.id) || typeof value.name !== 'string' ||
+          !value.name.trim() || !isCustomDeckList(value.cards)) continue;
+      initial.customDecks.push({ id: value.id, name: value.name.trim(), cards: [...value.cards] });
+    }
+  }
+  if ('activeCustomId' in saved)
+    initial.activeCustomId = initial.customDecks.find(deck => deck.id === saved.activeCustomId)?.id ?? null;
+  return initial;
+};
+
+/** Apply a new deck or replace its existing record, preserving copy counts and order. */
+export const saveTrainingDeck = (
+  selection: TrainingDeckSelection, id: string, name: string, cards: readonly CardId[], editing: boolean
+): TrainingDeckSelection => {
+  if (!id.trim() || !name.trim() || !isCustomDeckList(cards)) return selection;
+  const exists = selection.customDecks.some(deck => deck.id === id);
+  if (exists !== editing) return selection;
+  const deck = { id, name: name.trim(), cards: [...cards] };
+  return { ...selection, activeCustomId: id, customDecks: exists
+    ? selection.customDecks.map(current => current.id === id ? deck : current)
+    : [...selection.customDecks, deck] };
 };

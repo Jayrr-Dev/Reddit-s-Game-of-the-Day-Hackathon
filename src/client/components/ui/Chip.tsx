@@ -38,7 +38,7 @@ export type ChipProps = {
 };
 
 /** One icon + value inside a badge. */
-export type ChipPart = { glyph: GlyphName; text: string };
+export type ChipPart = { glyph: GlyphName; text: string; fill?: string | undefined };
 
 export type ChipShape = 'arrow' | 'square';
 
@@ -62,7 +62,7 @@ const BadgeContent = ({
   icon?: ReactNode;
 }) => (
   <>
-    <span className={`inline-flex ${iconClass}`}>
+    <span className={`chip-icon inline-flex ${iconClass}`}>
       {icon ?? <Glyph name={glyph} className="size-3" />}
     </span>
     {text}
@@ -110,6 +110,7 @@ const Badge = ({
         {extras.map((part, index) => (
           <span
             key={`${part.glyph}-${index}`}
+            style={part.fill ? { backgroundColor: part.fill } : undefined}
             className="ml-0.5 inline-flex items-center gap-0.5 border-l border-black/40 pl-1"
           >
             <BadgeContent glyph={part.glyph} text={part.text} iconClass="" />

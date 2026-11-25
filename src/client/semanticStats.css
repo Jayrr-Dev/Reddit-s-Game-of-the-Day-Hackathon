@@ -1,0 +1,12 @@
+/* Semantic ink pairs with the game's light parchment surfaces. */
+.stat-ink[data-stat="hp"] { --stat-ink: #851c2d; }
+.stat-ink[data-stat="guard"] { --stat-ink: #174577; }
+.stat-ink[data-stat="damage"], .stat-ink[data-stat="melee"] { --stat-ink: #7c301b; }
+.stat-ink[data-stat="range"] { --stat-ink: #335319; }
+.stat-ink[data-stat="heal"] { --stat-ink: #16553b; }
+.stat-ink[data-stat="magic"] { --stat-ink: #56307a; }
+.stat-ink[data-stat="status"] { --stat-ink: #682954; }
+.stat-ink[data-stat="energy"], .stat-ink[data-stat="gold"] { --stat-ink: #664205; }
+.stat-ink[data-stat="draw"] { --stat-ink: #195454; }
+.stat-ink[data-stat="crit"] { --stat-ink: #773512; }
+.stat-ink[data-stat] { color: var(--stat-ink); }

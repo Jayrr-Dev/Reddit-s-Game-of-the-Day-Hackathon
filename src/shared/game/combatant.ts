@@ -26,6 +26,7 @@ import {
   STATUS_IS_AFFLICTION,
   ROUND_BUFFS,
 } from './rules.ts';
+import { characterBonuses, healingAmount } from './character.ts';
 import { pickOne, type RngState } from './rng.ts';
 import type {
   BuffId,
@@ -103,8 +104,32 @@ export const afflictionAmount = (
   status: StatusId,
   target?: Combatant
 ): number => {
-  if (!BANE_AFFLICTIONS.has(status)) return base;
-  return base + attacker.statuses.bane + (target?.statuses.vex ?? 0);
+  const amount = base + scornBonus(attacker, status);
+  if (!BANE_AFFLICTIONS.has(status)) return amount;
+  return amount + attacker.statuses.bane + (target?.statuses.vex ?? 0);
+};
+
+/** Resolve live equipment and trait paths together for combat and previews. */
+export const combatantBonuses = (unit: Combatant) =>
+  characterBonuses(unit.traits, unit.equipment, unit.traitNodes);
+
+export const scornBonus = (attacker: Combatant, status: StatusId): number =>
+  attacker.traits && STATUS_IS_AFFLICTION[status] ? combatantBonuses(attacker).afflictionFlat : 0;
+
+export const offensiveBonus = (attacker: Combatant, type?: CardType) => {
+  if (!attacker.traits) return { percent: 0, flat: 0 };
+  const stats = combatantBonuses(attacker);
+  switch (type) {
+    case 'melee': return { percent: stats.meleePercent, flat: stats.meleeFlat };
+    case 'range': return { percent: stats.rangePercent, flat: stats.rangeFlat };
+    case 'magic': return { percent: stats.magicPercent, flat: stats.magicFlat };
+    default: return { percent: 0, flat: 0 };
+  }
+};
+
+const traitDamage = (base: number, attacker: Combatant, type: CardType | undefined, hits: number) => {
+  const { percent, flat } = offensiveBonus(attacker, type);
+  return base * (100 + percent) / 100 + Math.floor(flat / Math.max(1, hits));
 };
 
 /** True when a card of `type` is boosted by the attacker's Momentum. */
@@ -157,13 +182,23 @@ export const damageFactorOf = (
  * the attacker (Weaken) and anything about the target apply only once
  * it is aimed (attackDamage, then cardHitOn).
  */
+/** A damaging affliction resolves once with its source's Scorn bonus. */
+export const afflictionDamage = (base: number, source?: Combatant): number => {
+  const percent = source?.traits ? combatantBonuses(source).afflictionDamagePercent : 0;
+  return Math.floor(base * (100 + percent) / 100);
+};
+
+export const reapDamage = (hex: number, multiplier: number, attacker: Combatant, type: CardType) =>
+  Math.floor(traitDamage(afflictionDamage(hex * multiplier, attacker), attacker, type, 1)) + typeBonus(attacker, type);
+
 export const buffedAttackDamage = (
   base: number,
   attacker: Combatant,
   type?: CardType,
-  isRampage = false
+  isRampage = false,
+  hits = 1
 ): number => {
-  const withBuffs = base + attacker.statuses.wrath + typeBonus(attacker, type);
+  const withBuffs = traitDamage(base, attacker, type, hits) + attacker.statuses.wrath + typeBonus(attacker, type);
   const boost = boostFactorOf(attacker, type, isRampage);
   return Math.max(0, Math.floor(withBuffs * boost));
 };
@@ -172,9 +207,10 @@ export const attackDamage = (
   base: number,
   attacker: Combatant,
   type?: CardType,
-  isRampage = false
+  isRampage = false,
+  hits = 1
 ): number => {
-  const withWrath = base + attacker.statuses.wrath + typeBonus(attacker, type);
+  const withWrath = traitDamage(base, attacker, type, hits) + attacker.statuses.wrath + typeBonus(attacker, type);
   const factor = damageFactorOf(attacker, type, isRampage);
   const factored = Math.floor(withWrath * factor);
   const frost = attacker.statuses.frost * FROST_DAMAGE_PER_STACK;
@@ -227,10 +263,11 @@ export const takeHit = <T extends Combatant>(
   target: T,
   amount: number,
   type: CardType,
-  isPiercing = false
+  isPiercing = false,
+  source?: Combatant
 ): T => {
   // PIERCING: past Protection, Armor and Guard, straight to HP.
-  if (isPiercing) return countShockHit(loseHp(target, amount));
+  if (isPiercing) return countShockHit(loseHp(target, amount), source);
   const afterProtection = protectedAmount(target, amount);
   const reduced = armoredAmount(target, afterProtection, type);
   // ARMOR SOAK: counted so the view can show the armor icon on the hit.
@@ -241,7 +278,7 @@ export const takeHit = <T extends Combatant>(
       : target,
     reduced
   );
-  return countShockHit(hit);
+  return countShockHit(hit, source);
 };
 
 /** What a Bleed bites for: BLEED_BITE_FACTOR of it, rounded up. */
@@ -258,11 +295,12 @@ export const bleedBiteOf = (bleed: number): number =>
  */
 export const bleedOnAttack = <T extends Combatant>(
   target: T,
-  priorBleed: number
+  priorBleed: number,
+  source?: Combatant
 ): T => {
   const { bleed } = target.statuses;
   if (priorBleed <= 0 || bleed <= 0) return target;
-  const bite = bleedBiteOf(priorBleed);
+  const bite = afflictionDamage(bleedBiteOf(priorBleed), source);
   const bled = loseHp(target, bite);
   return {
     ...bled,
@@ -272,11 +310,11 @@ export const bleedOnAttack = <T extends Combatant>(
 };
 
 /** Counts a hit toward Shock; the SHOCK_HITS-th sets it off. */
-const countShockHit = <T extends Combatant>(hit: T): T => {
+const countShockHit = <T extends Combatant>(hit: T, source?: Combatant): T => {
   if (hit.statuses.shock <= 0) return hit;
   const inARow = (hit.shockHits ?? 0) + 1;
   if (inARow < SHOCK_HITS) return { ...hit, shockHits: inARow };
-  return burstShock(hit);
+  return burstShock(hit, source);
 };
 
 /**
@@ -284,16 +322,18 @@ const countShockHit = <T extends Combatant>(hit: T): T => {
  * then it clears. The SHOCK_HITS-th hit does this, and so does a
  * Smite (a hero's `detonate`) at once. No Shock, nothing happens.
  */
-export const burstShock = <T extends Combatant>(target: T): T => {
+export const burstShock = <T extends Combatant>(target: T, source?: Combatant): T => {
   const { shock } = target.statuses;
   if (shock <= 0) return target;
+  const damage = afflictionDamage(shock * SHOCK_BURST_FACTOR, source);
   const cleared = {
     ...target,
     shockHits: 0,
     shockBursts: (target.shockBursts ?? 0) + 1,
+    shockDamageTaken: (target.shockDamageTaken ?? 0) + damage,
     statuses: { ...target.statuses, shock: 0 },
   };
-  return loseHp(cleared, shock * SHOCK_BURST_FACTOR);
+  return loseHp(cleared, damage);
 };
 
 // --- TIERED STATUSES (Protection, Enfeeble; see TIERED_CUT_BY_TIER) ---
@@ -409,12 +449,15 @@ export const loseHp = <T extends Combatant>(target: T, amount: number): T => ({
 /** Restores HP up to max. */
 export const heal = <T extends Combatant>(target: T, amount: number): T => ({
   ...target,
-  hp: Math.min(target.maxHp, target.hp + amount),
+  hp: Math.min(target.maxHp, target.hp + healingAmount(amount, target)),
 });
 
-/** Guard a card gives, plus the villain's Reinforce. */
-export const guardAmount = (base: number, owner: Combatant): number =>
-  base + owner.statuses.reinforce;
+/** Vigor scales printed Guard. Endurance is shared by this card's Guard applications. */
+export const guardAmount = (base: number, owner: Combatant, applications = 1): number => {
+  const { shieldPercent, shieldFlat } = combatantBonuses(owner);
+  return Math.floor(base * (100 + shieldPercent) / 100)
+    + Math.floor(shieldFlat / applications) + owner.statuses.reinforce;
+};
 
 /** Adds guard. */
 export const addGuard = <T extends Combatant>(
@@ -483,10 +526,10 @@ export const hexAfterTurn = (hex: number): number => {
  * then moves on (see hexAfterTurn). So Hex 7 deals 14, 0, 10, 9 and is
  * gone (7 -> 4 -> 5 -> 3 -> cleared).
  */
-export const hexBurn = <T extends Combatant>(target: T): T => {
+export const hexBurn = <T extends Combatant>(target: T, source?: Combatant): T => {
   const { hex } = target.statuses;
   if (hex <= 0) return target;
-  const burned = loseHp(target, hexBurnAmount(hex));
+  const burned = loseHp(target, afflictionDamage(hexBurnAmount(hex), source));
   return {
     ...burned,
     statuses: { ...burned.statuses, hex: hexAfterTurn(hex) },
@@ -502,10 +545,10 @@ const afterActionLeft = (stacks: number): number =>
   Math.ceil(stacks / AFTER_ACTION_DIVISOR - 0.5);
 
 /** Burn, right after an action: it deals its value, then halves. */
-export const burnTick = <T extends Combatant>(target: T): T => {
+export const burnTick = <T extends Combatant>(target: T, source?: Combatant): T => {
   const { burn } = target.statuses;
   if (burn <= 0) return target;
-  const burned = loseHp(target, burn);
+  const burned = loseHp(target, afflictionDamage(burn, source));
   const left = afterActionLeft(burn);
   return { ...burned, statuses: { ...burned.statuses, burn: left } };
 };
@@ -532,17 +575,17 @@ const shockFade = <T extends Combatant>(target: T): T =>
  * villain's whole turn): Burn, Frost thaws, Shock fades by 1. (Bleed
  * goes off on attacks landed instead: see bleedOnAttack.)
  */
-export const afterAction = <T extends Combatant>(target: T): T =>
-  shockFade(frostThaw(burnTick(target)));
+export const afterAction = <T extends Combatant>(target: T, source?: Combatant): T =>
+  shockFade(frostThaw(burnTick(target, source)));
 
 /**
  * Poison right before an action (a hero's move; the villain's turn
  * start): loses this much HP, then Poison drops by 1.
  */
-export const poisonTick = <T extends Combatant>(target: T): T => {
+export const poisonTick = <T extends Combatant>(target: T, source?: Combatant): T => {
   const { poison } = target.statuses;
   if (poison <= 0) return target;
-  const poisoned = loseHp(target, poison);
+  const poisoned = loseHp(target, afflictionDamage(poison, source));
   return {
     ...poisoned,
     statuses: { ...poisoned.statuses, poison: poison - 1 },

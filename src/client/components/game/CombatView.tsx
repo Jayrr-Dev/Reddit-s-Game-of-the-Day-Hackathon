@@ -20,11 +20,14 @@
 // ===================================================================
 
 import './combat/dueling-table.css';
-import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { playCardSound, playSound, setBossMusic } from "../../lib/gameAudio";
+import { isBoss } from "../../content/heroLooks";
+import { useEffect, useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
-import { activeRows } from '../../../shared/game/battlefield';
-import { movementFailsOn } from '../../../shared/game/combat';
+import { endTurn, movementFailsOn } from '../../../shared/game/combat';
 import type { RunAction } from '../../../shared/game/run';
+import type { CharacterState } from '../../../shared/game/character';
+import { RunCharacterSheet } from './RunCharacterSheet';
 import type {
   CardType,
   MagicElement,
@@ -32,6 +35,8 @@ import type {
   CombatState,
 } from '../../../shared/game/types';
 import type { CardBox, Point } from '../../hooks/useCardDrag';
+import { BossEntrance } from './combat/BossEntrance';
+import { useBossEntrance } from '../../hooks/useBossEntrance';
 import { useAutoEndTurn } from '../../hooks/useAutoEndTurn';
 import { useCombatControls } from '../../hooks/useCombatControls';
 import { useCardFlights } from '../../hooks/useCardFlights';
@@ -66,25 +71,39 @@ import { movementCost, offeredMovement } from '../../../shared/game/movement';
 import { MovementCard } from './CardView';
 import { DraggedCard } from './combat/DraggedCard';
 import { EnergyTray } from './combat/EnergyTray';
+import { positionForCard } from '../../../shared/game/combat';
+import { CardPlayHistory } from './combat/CardPlayHistory';
 import { FanHand } from './combat/FanHand';
 import { HitNumbers } from './combat/HitNumbers';
-import { PileDialog, type PileId } from './combat/PileDialog';
+import { PileDialog, type CardBrowserView, type PileId } from './combat/PileDialog';
 import { PileStack } from './combat/PileStack';
 import { PlayerCorner } from './combat/PlayerCorner';
+import { TutorialSpotlight } from './combat/TutorialSpotlight';
 import { PovImpact } from './combat/PovImpact';
 import { PlayerShots } from './combat/PlayerShots';
 import { GuardGainPops } from './combat/GuardGainPops';
 import { SpeedLines } from './combat/SpeedLines';
-import { BATTLEFIELD_COLUMNS } from '../../../shared/game/rules';
-import { HORIZON_SLOT_SPAN, rowPerspective } from './combat/rowPerspective';
+import { MAP_NAMES } from './combat/Backdrop';
 import { TopBar } from './combat/TopBar';
 import { TurnCorner } from './combat/TurnCorner';
 import { MenuPanel } from './menu/MenuPanel';
 import { StatusRow } from './StatusRow';
 
+import { useGameSettings } from '../../hooks/useGameSettings';
+
 // --- TYPES ---
 export type CombatViewProps = {
+  tutorialCue?: { selector: string; label: string };
+  allowCombatAction?: (action: RunAction) => boolean;
+  onPileClosed?: (pile: CardBrowserView) => void;
+  levelGuide?: "spend" | "close" | undefined;
+  onCharacterOpened?: () => void;
+  onCharacterClosed?: () => void;
+  manualTurns?: boolean;
+  character: CharacterState;
+  onRespec?: (() => void) | undefined;
   combat: CombatState;
+  deck: readonly CardId[];
   /** Terrain for this region or practice round. */
   terrainIndex: number;
   where: string;
@@ -92,6 +111,7 @@ export type CombatViewProps = {
   onAction: (action: RunAction) => void;
   /** Extra buttons for the pause menu (e.g. the sandbox's reshuffle). */
   pauseActions?: ReactNode;
+  renderTrainingMenu?: (resume: () => void, guides: ReactNode) => ReactNode;
 };
 
 // --- HELPERS ---
@@ -129,19 +149,25 @@ const pileCards = (combat: CombatState, pile: PileId): readonly CardId[] =>
  */
 const PlayerBar = ({
   combat,
+  level,
+  lethal,
   hits,
   onEndTurn,
   onOpenPile,
+  onOpenCharacter,
 }: {
   combat: CombatState;
+  level: number;
+  lethal: boolean;
   hits: readonly PlayerHitPop[];
   onEndTurn: () => void;
   onOpenPile: (pile: PileId) => void;
+  onOpenCharacter: () => void;
 }) => {
   return (
     <div className="table-controls grid grid-cols-[minmax(max-content,1fr)_minmax(0,max-content)_minmax(max-content,1fr)] items-end gap-1 px-2">
       <div className="table-player flex items-end gap-2.5 justify-self-start">
-        <PlayerCorner player={combat.player} hits={hits} />
+        <PlayerCorner player={combat.player} level={level} lethal={lethal} hits={hits} onOpenCharacter={onOpenCharacter} />
         <PileStack
           count={combat.discardPile.length}
           label="Cards in the discard pile"
@@ -198,11 +224,17 @@ const PauseSheet = ({
 /** Renders one fight. */
 export const CombatView = ({
   combat: realCombat,
+  character,
+  onRespec,
+  deck,
   terrainIndex,
   where,
   score,
   onAction,
   pauseActions,
+  renderTrainingMenu,
+  manualTurns,
+  tutorialCue, levelGuide, onPileClosed, onCharacterOpened, onCharacterClosed, allowCombatAction,
 }: CombatViewProps) => {
   // While the heroes' turn plays out, draw its beats instead of the
   // real state, and route End Turn to the playback.
@@ -212,7 +244,27 @@ export const CombatView = ({
   const { endTurn: playHeroTurn } = heroTurn;
   const { playCard: playCardHits } = cardHits;
   const combat = cardHits.isPlaying ? cardHits.shown : heroTurn.shown;
+  const { autoEnd, bossIntros, controls: settingInputs } = useGameSettings();
+  const hasBoss = combat.heroes.some(unit => unit.hp > 0 && isBoss(unit));
+  useEffect(() => {
+    if (!hasBoss || viewRef.current?.closest('[inert]')) return;
+    setBossMusic(true);
+    return () => setBossMusic(false);
+  }, [hasBoss]);
+  const previousCombat = useRef(combat);
+  useEffect(() => {
+    const before = previousCombat.current;
+    previousCombat.current = combat;
+    if (before === combat || viewRef.current?.closest('[inert]')) return;
+    if (combat.player.hp < before.player.hp) playSound('blunt', .80, .75);
+    else if (combat.player.guard < before.player.guard && heroTurn.isPlaying) playSound('guard', .86, .7);
+    else if (combat.player.hp > before.player.hp) playSound('imbue', 1.14, .6);
+    if (combat.heroes.some(unit => unit.hp < (before.heroes.find(old => old.uid === unit.uid)?.hp ?? unit.hp))) playSound('blunt', 1.2, .35);
+    if (combat.heroes.some(unit => !before.heroes.some(old => old.uid === unit.uid))) playSound('move', .85, .65);
+  }, [combat, heroTurn.isPlaying]);
+  const bossEntrance = useBossEntrance(combat.heroes, bossIntros);
   const isAnimating = heroTurn.isPlaying || cardHits.isPlaying;
+  const lethal = useMemo(() => realCombat.player.hp > 0 && endTurn(realCombat).player.hp <= 0, [realCombat]);
   // The card played last: its type colours its damage numbers, and a
   // Magic card's element shapes its bursts.
   const [lastCard, setLastCard] = useState<{
@@ -230,9 +282,12 @@ export const CombatView = ({
   const [isShooting, setIsShooting] = useState(false);
   const routeAction = useCallback(
     (action: RunAction) => {
-      if (action.type === 'endTurn') return playHeroTurn();
+      if (allowCombatAction && !allowCombatAction(action)) return;
+      if (action.type === 'endTurn') { playSound('menu', .74); return playHeroTurn(); }
+      if (action.type === 'move') playSound('move', action.move === 'backStep' ? .84 : 1.17);
       if (action.type === 'playCard') {
         const cardId = realCombat.hand[action.handIndex];
+        if (cardId) playCardSound(cardId);
         setLastCard(cardId ? getCard(cardId) : undefined);
         // A knockback the target shrugs off shows a cancel sign on it.
         const { targetUid } = action;
@@ -267,7 +322,7 @@ export const CombatView = ({
       onAction(action);
     },
     [
-      playHeroTurn,
+      allowCombatAction, playHeroTurn,
       playCardHits,
       onAction,
       realCombat,
@@ -278,17 +333,21 @@ export const CombatView = ({
   );
   const controls = useCombatControls(combat, routeAction);
   const cardFlights = useCardFlights(combat);
-  const [showGuides, setShowGuides] = useState(false);
+  const settings = <div className="flex flex-wrap items-center gap-x-4">{settingInputs}</div>;
   const [isPaused, setIsPaused] = useState(false);
+  const [showCharacter, setShowCharacter] = useState(false);
   // Out of plays: the turn ends itself after a beat (see useAutoEndTurn).
   useAutoEndTurn(
     realCombat,
-    isAnimating || isShooting || isPaused,
+    !!manualTurns || !autoEnd || !!bossEntrance.entering || isAnimating || isShooting || isPaused || showCharacter,
     controls.endTurn
   );
   // The pile whose cards are open in the dialog, if any.
-  const [openPile, setOpenPile] = useState<PileId | null>(null);
-  const closePile = useCallback(() => setOpenPile(null), []);
+  const [openPile, setOpenPile] = useState<CardBrowserView | null>(null);
+  const closePile = useCallback(() => {
+    if (openPile) onPileClosed?.(openPile);
+    setOpenPile(null);
+  }, [openPile, onPileClosed]);
   const pops = useHitPops(
     combat.heroes,
     combat.turn,
@@ -298,14 +357,15 @@ export const CombatView = ({
     lastCard?.edge,
     hitHistory,
     cardHits.strikeIndex,
-    heroTurn.fallenFromTick
+    combat.fallen
   );
   const playerHits = usePlayerHits(
     combat.player,
     combat.turn,
     heroTurn.attackType,
     hitHistory,
-    heroTurn.strikes
+    heroTurn.strikes,
+    heroTurn.element
   );
   // The whole view shakes when a hit lands on you (see PovImpact).
   const viewRef = useRef<HTMLDivElement>(null);
@@ -324,17 +384,21 @@ export const CombatView = ({
       ref={viewRef}
       className="dueling-table relative flex h-full w-full flex-col overflow-hidden"
     >
-      <div className="table-field-frame relative flex min-h-0 flex-1 flex-col">
+      <div inert={!!bossEntrance.entering} className="table-field-frame relative flex min-h-0 flex-1 flex-col">
         <TopBar
+          location={MAP_NAMES[terrainIndex % MAP_NAMES.length] ?? MAP_NAMES[0]!}
           where={where}
           score={score}
           onOpenMenu={() => setIsPaused(true)}
-          onOpenDraw={() => setOpenPile('draw')}
+          onOpenDeck={() => setOpenPile('deck')}
+          onOpenCharacter={() => { setShowCharacter(true); onCharacterOpened?.(); }}
         />
         {/* BATTLEFIELD (fills the space between the plate and the band) */}
         <div className="relative flex min-h-0 flex-1 flex-col">
           <BattlefieldView
+            bossEntrance={bossEntrance}
             heroes={combat.heroes}
+            player={combat.player}
             travelRows={combat.travelRows ?? 0}
             terrainIndex={terrainIndex}
             focusUid={controls.focusUid}
@@ -350,6 +414,7 @@ export const CombatView = ({
             <SpeedLines
               key={burst.count}
               direction={MOVEMENT_LOOK[burst.move].speedLines}
+              label={burst.label}
             />
           )}
           <HitNumbers pops={pops} />
@@ -357,12 +422,15 @@ export const CombatView = ({
         </div>
       </div>
       {/* BOTTOM BAND: rises over the field's foreground */}
-      <div className="table-console relative z-30 flex shrink-0 flex-col">
+      <div inert={!!bossEntrance.entering} className="table-console relative z-30 flex shrink-0 flex-col">
         <PlayerBar
+          level={character.level}
+          lethal={lethal && !isAnimating}
           combat={combat}
           hits={playerHits}
           onEndTurn={controls.endTurn}
           onOpenPile={setOpenPile}
+          onOpenCharacter={() => { setShowCharacter(true); onCharacterOpened?.(); }}
         />
         <FanHand
           combat={combat}
@@ -378,37 +446,15 @@ export const CombatView = ({
           <div className="table-buffs" role="group" aria-label="Player buffs">
             <StatusRow combatant={combat.player} group="buffs" timedBuffs={combat.timedBuffs} align="end" />
           </div>
-          <EnergyTray energy={combat.energy} reserve={combat.reserve} />
+          <EnergyTray inspectable={tutorialCue?.selector === '.table-pips'} energy={combat.energy} reserve={combat.reserve} traits={combat.player.traits} traitNodes={combat.player.traitNodes} equipment={combat.player.equipment} />
           <div className="table-afflictions" role="group" aria-label="Player afflictions">
             <StatusRow combatant={combat.player} group="afflictions" align="start" />
           </div>
         </div>
       </div>
       <div className="hero-plate-layer pointer-events-none absolute inset-0 z-[32]" />
-      {showGuides && (
-        <div className="layout-guides" aria-hidden="true">
-          <div className="guide-lanes">
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%">
-              {activeRows().includes('horizon') && Array.from({ length: BATTLEFIELD_COLUMNS }, (_, col) => (
-                <rect key={col} x={50 * (1 - HORIZON_SLOT_SPAN) + col * 100 * HORIZON_SLOT_SPAN / BATTLEFIELD_COLUMNS}
-                  y="0" width={100 * HORIZON_SLOT_SPAN / BATTLEFIELD_COLUMNS}
-                  height={100 * rowPerspective('horizon').boundary}
-                  fill="none" stroke="#fb755b" vectorEffect="non-scaling-stroke" />
-              ))}
-              {Array.from({ length: BATTLEFIELD_COLUMNS + 1 }, (_, col) => (
-                <line key={col} x1="50" y1="0" x2={100 * col / BATTLEFIELD_COLUMNS} y2="100" vectorEffect="non-scaling-stroke" />
-              ))}
-            </svg>
-            <i className="guide-vanishing-point" />
-          </div>
-          <div className="guide-line guide-horizon"><span>Horizon · 20%</span></div>
-          {activeRows().slice(1).map((row) => (
-            <div key={row} className="guide-line" style={{ top: `calc(var(--horizon) + (100% - var(--horizon) - var(--hand-zone)) * ${rowPerspective(row).boundary})` }} />
-          ))}
-          <div className="guide-center"><span>Center</span></div>
-          <div className="guide-line guide-hand"><span>Hand · 73⅓%</span></div>
-        </div>
-      )}
+      {bossEntrance.entering && <BossEntrance boss={bossEntrance.entering} onSkip={bossEntrance.skip} />}
+      <CardPlayHistory entries={(heroTurn.isPlaying ? heroTurn.shown : realCombat).playHistory ?? []} />
       <AutoAimPreview
         uids={controls.autoAimUids}
         isLethalOn={controls.isAutoAimLethal}
@@ -417,8 +463,9 @@ export const CombatView = ({
         <>
           <DraggedCard
             cardId={draggedCardId}
-            slain={combat.slain} followUpReady={combat.followUpReady}
-            attacker={combat.player}
+            usesSpent={(draggedCardId && combat.usesSpent[draggedCardId]) ?? 0}
+            killsThisTurn={combat.killsThisTurn ?? 0} followUpReady={combat.followUpReady}
+            attacker={draggedCardId ? positionForCard(combat, draggedCardId, drag.handIndex).player : combat.player}
             target={combat.heroes.find(
               (unit) => unit.uid === controls.hoverUid
             )}
@@ -434,7 +481,7 @@ export const CombatView = ({
               isLive={controls.isDropLive}
               isLethal={controls.isLethal}
               damageFactor={controls.aimFactor}
-              hitChance={controls.aimChance}
+              hitChance={controls.aimChance} critChance={controls.critChance}
               retract={controls.arrowRetract}
             />
           )}
@@ -464,20 +511,29 @@ export const CombatView = ({
       {/* HITS ON YOU LAND ON THE WHOLE SCREEN */}
       <PovImpact hits={playerHits} shakeRef={viewRef} />
       {(isAnimating || isShooting) && <div className="absolute inset-0 z-50" />}
+      {tutorialCue && !isAnimating && !isShooting && !isPaused && !showCharacter && !openPile && !drag && (
+        <TutorialSpotlight {...(controls.heldIndex !== null
+          ? { selector: '[data-hero-uid="' + controls.autoAimUids[0] + '"] .hero-flight', label: 'Choose a target' }
+          : tutorialCue)} />
+      )}
+      {showCharacter && (
+        <RunCharacterSheet levelGuide={levelGuide} vitals={{ hp: combat.player.hp, maxHp: combat.player.maxHp, guard: combat.player.guard, energy: combat.energy }} onRespec={onRespec} character={character} onAction={onAction} onClose={() => { setShowCharacter(false); onCharacterClosed?.(); }} />
+      )}
       {openPile && (
         <PileDialog
           pile={openPile}
-          cards={pileCards(combat, openPile)}
-          slain={combat.slain} followUpReady={combat.followUpReady}
+          cards={openPile === 'deck' ? deck : pileCards(combat, openPile)}
+          usesSpent={combat.usesSpent}
+          killsThisTurn={combat.killsThisTurn ?? 0} followUpReady={combat.followUpReady}
           attacker={combat.player}
           onClose={closePile}
         />
       )}
-      {isPaused && (
+      {isPaused && (renderTrainingMenu ? renderTrainingMenu(() => setIsPaused(false), settings) :
         <PauseSheet
           where={where}
           score={score}
-          actions={<><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showGuides} onChange={(event) => setShowGuides(event.target.checked)} />Layout guides</label>{pauseActions}</>}
+          actions={<>{settings}{pauseActions}</>}
           onClose={() => setIsPaused(false)}
         />
       )}

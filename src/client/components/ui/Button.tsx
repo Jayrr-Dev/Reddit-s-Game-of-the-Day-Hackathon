@@ -18,14 +18,14 @@ const BASE_CLASSES =
 
 /** Round pill buttons (primary, ghost) and wide title-menu slabs (menu*). */
 const MENU_SLAB =
-  'h-9 w-full rounded-md font-display text-sm font-bold uppercase tracking-[0.2em] ring-1 shadow-[inset_0_1px_0_rgb(255_255_255/0.08),0_2px_6px_rgb(0_0_0/0.6)]';
+  'oak-menu-button h-9 w-full rounded font-display text-sm font-bold tracking-wide';
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
     'rounded-full px-5 h-10 font-semibold bg-accent text-on-accent hover:bg-accent-hover',
   ghost: 'rounded-full px-5 h-10 font-semibold text-ink-muted hover:text-ink',
-  menu: `${MENU_SLAB} bg-surface-raised text-ink ring-accent/40 hover:ring-accent`,
-  menuPrimary: `${MENU_SLAB} bg-gradient-to-b from-blood to-card-melee text-ink ring-accent hover:brightness-110`,
+  menu: MENU_SLAB,
+  menuPrimary: `${MENU_SLAB} oak-menu-primary`,
 };
 
 // --- COMPONENT ---

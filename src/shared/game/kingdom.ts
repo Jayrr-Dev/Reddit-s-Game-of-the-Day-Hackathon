@@ -33,6 +33,7 @@ import {
 export type StopKind = 'horde' | 'elite' | 'grave' | 'altar' | 'champion';
 
 export type Stop = {
+  optionIndex?: number;
   kind: StopKind;
   /** Heroes in this fight, in acting order (empty for grave and altar). */
   heroIds: HeroId[];

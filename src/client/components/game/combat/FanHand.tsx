@@ -8,6 +8,8 @@
 // ===================================================================
 
 import { StatusRow } from '../StatusRow';
+import { Tooltip } from '../../ui/Tooltip';
+import { STATUS_INFO } from '../../../../shared/game/describe';
 import { useLayoutEffect, useRef } from 'react';
 import type { PointerEvent, ReactNode } from 'react';
 import {
@@ -18,7 +20,7 @@ import {
 } from '../../../hooks/useCardFlights';
 import { useDrawOrder } from '../../../hooks/useDrawOrder';
 import { prefersReducedMotion } from '../../../lib/motion';
-import { canPlayCard } from '../../../../shared/game/combat';
+import { canPlayCard, positionForCard } from '../../../../shared/game/combat';
 import { cardImbuesAt } from '../../../../shared/game/imbue';
 import { canMove, movementBlockReason, movementCost, offeredMovement } from '../../../../shared/game/movement';
 import type { CombatState } from '../../../../shared/game/types';
@@ -243,8 +245,15 @@ export const FanHand = ({
       style={{ ['--slot' as string]: slotWidth }}
       {...{ [HAND_ATTR]: true }}
     >
-      <aside aria-label="One-use attack bonuses" className="pointer-events-none absolute inset-x-0 bottom-[calc(var(--table-card-height)+8px)] flex justify-center">
-        <StatusRow combatant={combat.player} group="oneUse" timedBuffs={combat.timedBuffs} />
+      <aside aria-label="Guard and hand bonuses" className="pointer-events-none absolute inset-x-0 bottom-[calc(var(--table-card-height)+8px)] flex flex-col items-center">
+        <StatusRow combatant={combat.player} group="hand" timedBuffs={combat.timedBuffs} />
+        {combat.player.guard > 0 && (
+          <Tooltip opensOn="click" content={{ title: STATUS_INFO.guard.label, description: STATUS_INFO.guard.description }}>
+            <button type="button" className="hand-guard" aria-label={`Guard: ${combat.player.guard}`}>
+              <span>{combat.player.guard}</span>
+            </button>
+          </Tooltip>
+        )}
       </aside>
       {combat.hand.map((cardId, index) => {
         const isLifted = index === draggedIndex;
@@ -261,8 +270,8 @@ export const FanHand = ({
           >
             <CardView
               cardId={cardId}
-              slain={combat.slain} followUpReady={combat.followUpReady}
-              attacker={combat.player}
+              killsThisTurn={combat.killsThisTurn ?? 0} followUpReady={combat.followUpReady}
+              attacker={positionForCard(combat, cardId, index).player}
               size="fan"
               isSelected={index === heldIndex}
               imbues={cardImbuesAt(combat, index)}

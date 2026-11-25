@@ -19,7 +19,12 @@ import {
   describeImbueGift,
   type StatusInfo,
 } from '../../shared/game/describe';
-import type { Imbue, ImbuableEffect } from '../../shared/game/types';
+import { healingAmount } from '../../shared/game/character';
+import { afflictionAmount, guardAmount } from '../../shared/game/combatant';
+import { STATUS_IS_AFFLICTION } from '../../shared/game/rules';
+import type { StatusId } from '../../shared/game/types';
+import { guardApplications, imbuedEffects } from '../../shared/game/imbue';
+import type { Combatant, Imbue, ImbuableEffect } from '../../shared/game/types';
 import { INTENT_LOOK, KEYWORD_LOOK, STATUS_LOOK, type Look } from './visuals';
 
 // --- TYPES ---
@@ -158,8 +163,24 @@ const mergeStacked = (badges: readonly CardBadge[]): CardBadge[] =>
  */
 export const cardBadgesOf = (
   cardId: CardId,
-  imbues: readonly Imbue[] = []
-): CardBadge[] =>
-  mergeStacked(
-    imbues.map((imbue, index) => imbueBadgeOf(imbue, index, cardId))
-  );
+  imbues: readonly Imbue[] = [],
+  attacker?: Combatant
+): CardBadge[] => {
+  const repeats = guardApplications(getCard(cardId), imbuedEffects(imbues));
+  return mergeStacked(imbues.map(({ gift }, index) => {
+    if (attacker && gift.kind === 'effect' && gift.effect.kind === 'heal') {
+      const amount = healingAmount(gift.effect.amount, attacker);
+      return imbueBadgeOf({ gift: { ...gift, effect: { ...gift.effect, amount } } }, index, cardId);
+    }
+    if (attacker && gift.kind === 'effect' && gift.effect.kind === 'guard') {
+      const amount = guardAmount(gift.effect.amount, attacker, repeats);
+      return imbueBadgeOf({ gift: { ...gift, effect: { ...gift.effect, amount } } }, index, cardId);
+    }
+    if (attacker && gift.kind === 'effect' && 'amount' in gift.effect &&
+        STATUS_IS_AFFLICTION[gift.effect.kind as StatusId]) {
+      const amount = afflictionAmount(gift.effect.amount, attacker, gift.effect.kind as StatusId);
+      return imbueBadgeOf({ gift: { ...gift, effect: { ...gift.effect, amount } } }, index, cardId);
+    }
+    return imbueBadgeOf({ gift }, index, cardId);
+  }));
+};

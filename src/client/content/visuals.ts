@@ -72,6 +72,7 @@ export const KEYWORD_LOOK: Record<CardKeyword, Look> = {
   piercing: { glyph: 'arrowhead', toneClass: 'text-accent' },
   remove: { glyph: 'cardBurn', toneClass: 'text-ink-muted' },
   exhaust: { glyph: 'ghost', toneClass: 'text-ink-muted' },
+  charge: { glyph: 'sword', toneClass: 'text-movement' },
   rampage: { glyph: 'battleAxe', toneClass: 'text-hp' },
   distance: { glyph: 'sprint', toneClass: 'text-range' },
   longRange: { glyph: 'eye', toneClass: 'text-range' },
@@ -117,6 +118,7 @@ export const INTENT_LOOK: Record<IntentKind, Look> = {
   summon: { glyph: 'eye', toneClass: 'text-accent' },
   revive: { glyph: 'altar', toneClass: 'text-accent' },
   soar: STATUS_LOOK.aloft,
+  pullPlayer: { glyph: 'march', toneClass: 'text-accent' },
   knockBack: { glyph: 'march', toneClass: 'text-guard' },
 };
 
@@ -153,6 +155,12 @@ export const CARD_LOOK: Record<
     typeName: 'Defend',
     frameClass: 'bg-card-defend',
     glowVar: 'var(--color-defend)',
+  },
+  imbue: {
+    glyph: 'cards',
+    typeName: 'Imbue',
+    frameClass: 'bg-card-imbue',
+    glowVar: 'var(--color-card-imbue)',
   },
   buff: {
     glyph: 'flame',
@@ -225,7 +233,7 @@ export const ELEMENT_LOOK: Record<MagicElement, ElementLook> = {
   ice: {
     glyph: 'snowflake',
     toneClass: 'text-frost',
-    energy: 'var(--color-frost)',
+    energy: 'white',
     core: 'white',
     burst: 'ring',
   },

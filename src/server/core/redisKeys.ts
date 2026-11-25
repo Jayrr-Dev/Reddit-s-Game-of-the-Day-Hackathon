@@ -6,6 +6,8 @@
 // ===================================================================
 
 export const redisKeys = {
+  victories: (userId: string) => `progress:v1:${userId}:wins`,
+  runBaseline: (userId: string, day: string, id: string) => `progress:v1:${userId}:${day}:${id}`,
   /** Sorted set: username -> best score for one day. */
   dailyLeaderboard: (dailyKey: string) => `leaderboard:${dailyKey}`,
   /** Hash: one player's streak record (current, best, lastPlayedKey). */

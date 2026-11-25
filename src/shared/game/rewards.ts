@@ -4,7 +4,8 @@
 // stops shift the odds toward rarer cards.
 // ===================================================================
 
-import { cardsOfRarity, type CardId } from './cards.ts';
+import { cardsOfRarity, getCard, type CardId } from './cards.ts';
+import { signatures, type StarterName } from './starters.ts';
 import type { StopKind } from './kingdom.ts';
 import { pickOne, pickWeighted, type RngResult, type RngState } from './rng.ts';
 import { OFFER_SIZE } from './rules.ts';
@@ -44,23 +45,31 @@ const RARITY_ODDS: Record<Exclude<StopKind, 'grave'>, RarityWeights> = {
 const rollOneOffer = (
   state: RngState,
   source: Exclude<StopKind, 'grave'>,
-  taken: readonly CardId[]
+  taken: readonly CardId[],
+  starter?: StarterName
 ): RngResult<CardId> => {
   const [rarity, afterRarity] = pickWeighted(state, RARITY_ODDS[source]);
   const pool = cardsOfRarity(rarity);
   const fresh = pool.filter((id) => !taken.includes(id));
-  return pickOne(afterRarity, fresh.length > 0 ? fresh : pool);
+  const candidates = fresh.length ? fresh : pool;
+  if (!starter) return pickOne(afterRarity, candidates);
+  const preferredType = getCard(signatures[starter]).type;
+  return pickWeighted(afterRarity, candidates.map(item => ({
+    item, weight: getCard(item).type === preferredType ? 3 : 1,
+  })));
 };
 
 /** Rolls OFFER_SIZE distinct card offers for a stop. */
 export const rollOffers = (
   seed: RngState,
-  source: Exclude<StopKind, 'grave'>
+  source: Exclude<StopKind, 'grave'>,
+  exclude: readonly CardId[] = [],
+  starter?: StarterName
 ): CardId[] => {
   const offers: CardId[] = [];
   let current = seed;
   for (let slot = 0; slot < OFFER_SIZE; slot += 1) {
-    const [cardId, next] = rollOneOffer(current, source, offers);
+    const [cardId, next] = rollOneOffer(current, source, [...exclude, ...offers], starter);
     offers.push(cardId);
     current = next;
   }

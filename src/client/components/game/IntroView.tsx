@@ -17,10 +17,7 @@ import { GAME_TITLE, LEADERBOARD_SIZE } from '../../../shared/constants/game';
 import { formatDailyKey } from '../../../shared/utils/dailyKey';
 import type { InitResponse, LeaderboardEntry } from '../../../shared/types/api';
 import {
-  HOW_TO_PLAY,
   LOGO_SUBTITLE,
-  STORY_LINES,
-  TAGLINE,
 } from '../../content/lore';
 import { ICON_AUTHORS } from '../../content/gameIcons';
 import { LeaderboardList } from '../LeaderboardList';
@@ -28,10 +25,15 @@ import { Button } from '../ui/Button';
 import { Glyph, type GlyphName } from '../ui/Glyph';
 import { Tooltip } from '../ui/Tooltip';
 import { KeyArt } from './menu/KeyArt';
+import { useGameSettings } from '../../hooks/useGameSettings';
 import { MenuPanel } from './menu/MenuPanel';
+import { ProfileView } from './ProfileView';
+import type { RingProgress } from '../../../shared/game/character';
+import { FirstFight } from './FirstFight';
 
 // --- TYPES ---
 export type IntroViewProps = {
+  profileRings?: RingProgress | undefined;
   data: InitResponse;
   entries: LeaderboardEntry[];
   canResume: boolean;
@@ -42,11 +44,11 @@ export type IntroViewProps = {
 };
 
 // --- CONSTANTS ---
-/** Shows the Target dummies practice button (a testing aid; turn off for launch if wanted). */
+/** Shows the Illusion Training practice button (a testing aid; turn off for launch if wanted). */
 const SHOW_PRACTICE = true;
 
 /** Which sheet (if any) covers the menu. */
-type Sheet = 'none' | 'rules' | 'board';
+type Sheet = 'profile' | 'none' | 'tutorial' | 'rules' | 'board' | 'settings';
 
 // --- HELPERS ---
 /** Explains whether the next run counts for the leaderboard. */
@@ -55,7 +57,7 @@ const rankedNote = (data: InitResponse, canResume: boolean): string => {
   if (canResume)
     return 'Your march was interrupted. Pick up where you left off.';
   return data.hasStartedRankedRun
-    ? "Today's ranked run is spent. Further marches are practice."
+    ? "Only your first conquest of the day counts toward the leaderboard."
     : 'Your first run today is ranked. Make it count.';
 };
 
@@ -131,29 +133,20 @@ const Hero = ({ data }: { data: InitResponse }) => (
   </div>
 );
 
-/** The rules sheet: the story in two lines, then how to play. */
 const RulesSheet = () => (
-  <>
-    <p className="text-center text-xs text-ink-muted">{TAGLINE}</p>
-    <div className="flex flex-col gap-1 text-center font-display text-sm italic text-ink">
-      {STORY_LINES.slice(0, 2).map((line) => (
-        <p key={line}>{line}</p>
-      ))}
-    </div>
-    <ul className="flex flex-col gap-1.5 rounded-xl bg-surface-raised p-3 text-left text-xs text-ink-muted ring-1 ring-edge">
-      {HOW_TO_PLAY.map((rule) => (
-        <li key={rule}>• {rule}</li>
-      ))}
-    </ul>
-    <p className="mt-auto text-center text-[9px] leading-tight text-ink-muted">
-      Icons by {ICON_AUTHORS.join(', ')} from game-icons.net, CC BY 3.0.
-    </p>
-  </>
+  <div className="rules-reference">
+    <dl>
+      <dt>Play a card</dt><dd>The gold number is its energy cost. Tap an attack, then a glowing enemy.</dd>
+      <dt>Check your reach</dt><dd>Melee hits the front row. Bows and spells can target enemies farther back.</dd>
+      <dt>Prepare for their turn</dt><dd>Read the enemy’s intent. Play Guard to block damage, then press End Turn to draw again.</dd>
+    </dl>
+    <details><summary>Icon credits</summary><p>Icons by {ICON_AUTHORS.join(', ')} from game-icons.net, CC BY 3.0.</p></details>
+  </div>
 );
-
 // --- COMPONENT ---
 /** Renders the title screen and its two sheets. */
 export const IntroView = ({
+  profileRings,
   data,
   entries,
   canResume,
@@ -162,7 +155,10 @@ export const IntroView = ({
   onPractice,
 }: IntroViewProps) => {
   const [sheet, setSheet] = useState<Sheet>('none');
+  const settings = useGameSettings();
   const closeSheet = () => setSheet('none');
+  if (sheet === 'profile') return <ProfileView data={data} rings={profileRings} onClose={closeSheet} />;
+  if (sheet === 'tutorial') return <FirstFight accountId={data.accountId} onExit={closeSheet} onRules={() => setSheet('rules')} />;
 
   return (
     <main className="relative flex h-full flex-col overflow-hidden bg-surface">
@@ -173,22 +169,25 @@ export const IntroView = ({
           <Button variant="menuPrimary" onClick={onStart} disabled={isStarting}>
             {canResume ? 'Resume the march' : 'Begin the conquest'}
           </Button>
+          <Button variant="menu" onClick={() => setSheet('profile')}>Profile</Button>
           <Button variant="menu" onClick={() => setSheet('board')}>
             Today's tyrants
           </Button>
-          <Button variant="menu" onClick={() => setSheet('rules')}>
+          <Button variant="menu" onClick={() => setSheet('tutorial')}>
             How to play
           </Button>
           {SHOW_PRACTICE && (
             <Button variant="menu" onClick={onPractice}>
-              Target dummies
+              Illusion Training
             </Button>
           )}
+          <Button variant="menu" onClick={() => setSheet('settings')}>Settings</Button>
           <p className="text-center text-[10px] leading-tight text-ink-muted">
             {rankedNote(data, canResume)}
           </p>
         </nav>
       </div>
+      {sheet === 'settings' && <MenuPanel title="Settings" onClose={closeSheet}><div className="grid gap-2">{settings.controls}</div></MenuPanel>}
       {sheet === 'rules' && (
         <MenuPanel title="How to play" onClose={closeSheet}>
           <RulesSheet />

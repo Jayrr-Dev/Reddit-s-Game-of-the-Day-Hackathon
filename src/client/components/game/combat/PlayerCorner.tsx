@@ -8,23 +8,35 @@
 // eyes blink now and then.
 // ===================================================================
 
+import { useContext } from 'react';
+import { PlayerName } from '../../../lib/playerName';
 import type { Combatant } from '../../../../shared/game/types';
 import type { PlayerHitPop } from '../../../hooks/useHitPops';
 import { VILLAIN_ANCHOR_ATTR } from '../../../hooks/useCardDrag';
 import { HitStack } from './HitNumbers';
 import { HexAura } from './HexAura';
 import { ImpactOverlay } from './ImpactOverlay';
+import { Glyph } from '../../ui/Glyph';
 
 // --- COMPONENT ---
 /** Renders the portrait and HP shield. */
 export const PlayerCorner = ({
   player,
+  level,
+  lethal,
   hits,
+  onOpenCharacter,
 }: {
   player: Combatant;
+  level: number;
+  lethal: boolean;
   hits: readonly PlayerHitPop[];
+  onOpenCharacter: () => void;
 }) => {
+  const username = useContext(PlayerName);
   const degrees = Math.max(0, (player.hp / player.maxHp) * 360);
+  const low = player.hp <= player.maxHp / 4;
+  const warning = lethal ? 'Ending the turn now is lethal' : low ? 'Low health' : '';
   // Keyed on the newest hit, so the portrait shakes once per hit.
   const latestHitId = hits.findLast((hit) => hit.kind === 'hit')?.id ?? -1;
   return (
@@ -35,7 +47,6 @@ export const PlayerCorner = ({
       <div
         className="relative size-14 shrink-0"
         {...{ [VILLAIN_ANCHOR_ATTR]: true }}
-        aria-label={`Your health ${player.hp} of ${player.maxHp}`}
       >
         <div
           key={latestHitId}
@@ -64,10 +75,19 @@ export const PlayerCorner = ({
             </g>
           </svg>
         </div>
+        {username && <span className="player-reddit-name" title={username}>u/{username}</span>}
+        <span className="portrait-level">Lv {level}</span>
         {/* THE HEX SIGIL TURNS OVER YOU WHILE YOU ARE HEXED */}
         <HexAura hex={player.statuses.hex} />
         {/* HIT MARKS, ARROWS AND GLOWS OVER THE PORTRAIT */}
         <ImpactOverlay pops={hits.filter((hit) => hit.kind !== 'hit')} />
+        <button
+          type="button"
+          className="absolute inset-0 rounded-full"
+          onClick={onOpenCharacter}
+          title="Character sheet"
+          aria-label={`Open character sheet, health ${player.hp} of ${player.maxHp}, level ${level}${warning ? ', ' + warning : ''}`}
+        />
         {/* GAINS PILE UP AT THE PORTRAIT'S TOP RIGHT, EACH FLOATING OFF
             LEFT, UP OR RIGHT AT RANDOM (hits pop on the screen, see
             PovImpact) */}
@@ -79,7 +99,12 @@ export const PlayerCorner = ({
           />
         </div>
       </div>
-      <span className="relative -mb-1 -ml-5 flex h-7 min-w-8 items-center justify-center px-1.5 bg-surface-raised pb-1 font-display text-sm font-black text-ink ring-1 ring-accent/70 [clip-path:polygon(0_0,100%_0,100%_60%,50%_100%,0_60%)]">
+      <span data-health={lethal ? 'lethal' : low ? 'low' : 'normal'} className="player-health-badge pointer-events-none relative -mb-1 -ml-5">
+        {lethal ? <Glyph name="skull" className="size-4" /> :
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+            <path d="M12 21S2 15 2 8.5C2 3 8.7 1 12 6c3.3-5 10-3 10 2.5C22 15 12 21 12 21Z" />
+            {low && <path d="m13 5-3 6 4 1-3 6" fill="none" stroke="#4a121d" strokeWidth="2.6" />}
+          </svg>}
         <span className="num-center">{player.hp}</span>
       </span>
     </div>

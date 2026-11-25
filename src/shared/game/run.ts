@@ -1,3 +1,6 @@
+import { isStarterName, validStarter, type StarterName } from './starters.ts';
+import { planSkillPath, buySkill, isSkillPick, type SkillPick } from './skills.ts';
+import { progressionFromWins, healingAmount, type RingProgress, allocateTrait, awardCharacterVictory, characterBonuses, createCharacter, equipItem, isRingIndex, isTrait, isTraitRank, isTraitNode, isTraitPath, traitPathCap, type TraitPath, setTraitNode, setTraitPathRank, setTraitRank, traitHealth, syncCharacterCombat, type CharacterState, type TraitId, type EquipmentSlot } from './character.ts';
 // ===================================================================
 // RUN (THE CONQUEST)
 // A whole day's run as one pure reducer: runReducer(state, action).
@@ -24,6 +27,7 @@ import {
   GRAVE_HEAL_FRACTION,
   GRAVE_VOW_MAX_HP,
   PLAYER_MAX_HP,
+  PLAYER_HP_CAP,
   SCORE_PER_HERO_SLAIN,
   SCORE_PER_REGION,
   SCORE_PER_WAVE,
@@ -42,12 +46,18 @@ export type RunStats = {
 export type RunPhase =
   | { kind: 'route'; options: Stop[] }
   | { kind: 'combat'; stop: Stop; combat: CombatState }
-  | { kind: 'reward'; offers: CardId[] }
+  | { kind: 'reward'; offers: CardId[]; source?: 'horde' | 'elite' | 'champion'; rerolled?: boolean; leveledUp?: boolean }
   | { kind: 'grave' }
   | { kind: 'altar'; offers: CardId[] }
-  | { kind: 'fallen' };
+  | { kind: 'fallen'; battlefield?: { stop: Stop; combat: CombatState } };
 
 export type RunState = {
+  attempt: number;
+  rewardStarter?: StarterName;
+  ringDrops?: number[];
+  baseMaxHp?: number;
+  storyRingUnlocked?: number | undefined;
+  character: CharacterState;
   dailyKey: string;
   /** The 1-based stop the villain is choosing or playing. */
   stop: number;
@@ -88,6 +98,14 @@ const moveIdOf = (action: MoveAction | LegacyMoveAction): MovementId =>
 
 /** Every input a player can give. Logged and replayed by the server. */
 export type RunAction =
+  | { type: 'starterDeck'; name: StarterName; cards: CardId[]; favorStarter?: true }
+  | { type: 'setTraitRank'; trait: TraitId; rank: number }
+  | { type: 'setTraitNode'; trait: TraitId; node: number; owned: boolean }
+  | { type: 'setTraitPathRank'; trait: TraitId; path: TraitPath; rank: number }
+  | { type: 'skillPath'; pick: SkillPick }
+  | { type: 'buySkill'; pick: SkillPick }
+  | { type: 'allocateTrait'; trait: TraitId }
+  | { type: 'equipItem'; slot: EquipmentSlot; itemId: string | null; ringIndex?: number }
   | { type: 'chooseStop'; option: number }
   | PlayCardAction
   | { type: 'endTurn' }
@@ -95,6 +113,7 @@ export type RunAction =
   | MoveAction
   | LegacyMoveAction
   | { type: 'pickCard'; offerIndex: number | null }
+  | { type: 'rerollReward' }
   | { type: 'graveChoice'; choice: GraveChoice }
   /** Gives up the march; the score so far stands. */
   | { type: 'abandon' };
@@ -110,9 +129,11 @@ const EMPTY_STATS: RunStats = {
 // --- CREATION ---
 
 /** The start of the day's run: full HP, starter deck, first crossroads. */
-export const createRun = (dailyKey: string): RunState => ({
+export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt = 0, wins = 0): RunState => ({
+  attempt,
   dailyKey,
   stop: 1,
+  character: { ...createCharacter(ringProgress), ...progressionFromWins(wins) },
   hp: PLAYER_MAX_HP,
   maxHp: PLAYER_MAX_HP,
   deck: [...STARTER_DECK],
@@ -129,6 +150,7 @@ const advanceToNextStop = (state: RunState): RunState => {
   return {
     ...state,
     stop,
+    storyRingUnlocked: undefined,
     phase: { kind: 'route', options: routeOptions(state.dailyKey, stop) },
   };
 };
@@ -144,6 +166,9 @@ const enterStop = (state: RunState, stop: Stop): RunState => {
     return { ...state, phase: { kind: 'altar', offers } };
   }
   const combat = startCombat({
+    traits: state.character.traits,
+    ...(state.character.traitNodes && { traitNodes: state.character.traitNodes }),
+    equipment: state.character.equipment,
     hp: state.hp,
     maxHp: state.maxHp,
     deck: state.deck,
@@ -177,6 +202,10 @@ const tallyFight = (
  * Checks a fight after each action. While it is ongoing the new combat
  * state is stored; once it ends the run moves to rewards or to defeat.
  */
+const finishRun = (state: RunState, battlefield?: { stop: Stop; combat: CombatState }): RunState => {
+  return { ...state, ringDrops: [], phase: { kind: 'fallen', ...(battlefield && { battlefield }) } };
+};
+
 const settleCombat = (
   state: RunState,
   stop: Stop,
@@ -188,20 +217,25 @@ const settleCombat = (
 
   const won = outcome === 'won';
   const stats = tallyFight(state.stats, combat, won, stop);
-  if (!won) return { ...state, hp: 0, stats, phase: { kind: 'fallen' } };
+  if (!won) return finishRun({ ...state, hp: 0, stats }, { stop, combat });
 
+  const character = awardCharacterVictory(state.character);
+  const isChampion = stop.kind === 'champion';
+  const bossWins = character.ringProgress.bossWins + (isChampion ? 1 : 0);
   const victoryHeal = stop.kind === 'champion' ? CHAMPION_VICTORY_HEAL : 0;
   const offers = rollOffers(
     stopSeed(state.dailyKey, 'reward', state.stop),
-    rewardSourceOf(stop)
+    rewardSourceOf(stop), [], state.rewardStarter
   );
   return {
     ...state,
-    hp: Math.min(state.maxHp, combat.player.hp + victoryHeal),
+    hp: Math.min(state.maxHp, combat.player.hp + healingAmount(victoryHeal, character)),
+    character: { ...character, ringProgress: { ...character.ringProgress, bossWins } },
+    storyRingUnlocked: isChampion && bossWins <= 5 ? bossWins : undefined,
     deck: deckWithout(state.deck, combat.exhausted),
     usesSpent: combat.usesSpent,
     stats,
-    phase: { kind: 'reward', offers },
+    phase: { kind: 'reward', offers, source: rewardSourceOf(stop), leveledUp: character.level > state.character.level },
   };
 };
 
@@ -219,7 +253,7 @@ const takeOffer = (
 /** Applies the grave choice: heal now, or grow stronger for later. */
 const visitGrave = (state: RunState, choice: GraveChoice): RunState => {
   if (choice === 'mourn') {
-    const healed = Math.round(state.maxHp * GRAVE_HEAL_FRACTION);
+    const healed = healingAmount(Math.round(state.maxHp * GRAVE_HEAL_FRACTION), state.character);
     return advanceToNextStop({
       ...state,
       hp: Math.min(state.maxHp, state.hp + healed),
@@ -227,21 +261,62 @@ const visitGrave = (state: RunState, choice: GraveChoice): RunState => {
   }
   return advanceToNextStop({
     ...state,
-    maxHp: state.maxHp + GRAVE_VOW_MAX_HP,
-    hp: state.hp + GRAVE_VOW_MAX_HP,
+    baseMaxHp: (state.baseMaxHp ?? state.maxHp - characterBonuses(state.character.traits, state.character.equipment, state.character.traitNodes).maxHp + PLAYER_MAX_HP)
+      + Math.min(PLAYER_HP_CAP - state.maxHp, GRAVE_VOW_MAX_HP),
+    maxHp: Math.min(PLAYER_HP_CAP, state.maxHp + GRAVE_VOW_MAX_HP),
+    hp: state.hp + Math.min(PLAYER_HP_CAP - state.maxHp, GRAVE_VOW_MAX_HP),
   });
 };
 
 // --- REDUCER ---
 
+/** Apply the same character edits in a story run and in Illusion Training. */
+export const applyCharacterAction = (
+  character: CharacterState,
+  action: Extract<RunAction, { type: 'setTraitNode' | 'setTraitPathRank' | 'setTraitRank' | 'allocateTrait' | 'buySkill' | 'skillPath' | 'equipItem' }>
+): CharacterState => {
+  switch (action.type) {
+    case 'setTraitNode': return setTraitNode(character, action.trait, action.node, action.owned);
+    case 'setTraitPathRank': return setTraitPathRank(character, action.trait, action.path, action.rank);
+    case 'setTraitRank': return setTraitRank(character, action.trait, action.rank);
+    case 'skillPath': return planSkillPath(character, action.pick).character;
+    case 'buySkill': return buySkill(character, action.pick);
+    case 'allocateTrait': return allocateTrait(character, action.trait);
+    case 'equipItem': return equipItem(character, action.slot, action.itemId, action.ringIndex);
+  }
+};
+
 /** Applies one action. Actions that don't fit the current phase are ignored. */
 export const runReducer = (state: RunState, action: RunAction): RunState => {
   const { phase } = state;
   switch (action.type) {
+    case 'starterDeck':
+      return state.stop === 1 && phase.kind === 'route' && validStarter(action.name, action.cards)
+        ? { ...state, ...(action.favorStarter && {rewardStarter: action.name}), deck: [...action.cards] } : state;
+    case 'skillPath':
+    case 'buySkill': {
+      if (phase.kind === 'fallen') return state;
+      const character = applyCharacterAction(state.character, action);
+      return character === state.character ? state : { ...state, character };
+    }
+    case 'setTraitNode':
+    case 'setTraitPathRank':
+    case 'setTraitRank':
+    case 'allocateTrait':
+    case 'equipItem': {
+      if (phase.kind === 'fallen') return state;
+      const character = applyCharacterAction(state.character, action);
+      if (character === state.character) return state;
+      const credited = state.character.highestVigor ?? state.character.traits.vigor;
+      const baseHp = state.baseMaxHp ?? state.maxHp - characterBonuses(state.character.traits, state.character.equipment, state.character.traitNodes).maxHp + PLAYER_MAX_HP;
+      const health = traitHealth(state.hp, state.maxHp, state.character.traits, character, credited, baseHp, state.character.traitNodes, state.character.highestVigorHp);
+      return { ...state, character, baseMaxHp: baseHp, ...health,
+        phase: phase.kind === 'combat' ? { ...phase, combat: syncCharacterCombat(phase.combat, character, credited, baseHp, state.character.highestVigorHp) } : phase };
+    }
     case 'chooseStop': {
       const chosen =
         phase.kind === 'route' ? phase.options[action.option] : undefined;
-      return chosen ? enterStop(state, chosen) : state;
+      return chosen ? enterStop(state, { ...chosen, optionIndex: action.option }) : state;
     }
     case 'playCard':
       return phase.kind === 'combat'
@@ -267,6 +342,11 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
       return phase.kind === 'combat'
         ? settleCombat(state, phase.stop, move(phase.combat, moveIdOf(action)))
         : state;
+    case 'rerollReward': {
+      if (phase.kind !== 'reward' || phase.rerolled) return state;
+      const offers = rollOffers(stopSeed(state.dailyKey, 'reward-reroll', state.stop), phase.source ?? 'horde', phase.offers, state.rewardStarter);
+      return { ...state, phase: { ...phase, offers, rerolled: true } };
+    }
     case 'pickCard':
       return phase.kind === 'reward' || phase.kind === 'altar'
         ? takeOffer(state, phase.offers, action.offerIndex)
@@ -276,7 +356,7 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
     case 'abandon':
       return phase.kind === 'fallen'
         ? state
-        : { ...state, phase: { kind: 'fallen' } };
+        : finishRun(state);
   }
 };
 
@@ -285,8 +365,10 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
 /** Rebuilds a run from its action log (how the server verifies scores). */
 export const replayRun = (
   dailyKey: string,
-  actions: readonly RunAction[]
-): RunState => actions.reduce(runReducer, createRun(dailyKey));
+  actions: readonly RunAction[],
+  ringProgress?: RingProgress,
+  attempt = 0, wins = 0
+): RunState => actions.reduce(runReducer, createRun(dailyKey, ringProgress, attempt, wins));
 
 /** True once the heroes have stopped the villain. */
 export const isRunOver = (state: RunState): boolean =>
@@ -319,6 +401,16 @@ export const isRunAction = (value: unknown): value is RunAction => {
   if (typeof value !== 'object' || value === null || !('type' in value))
     return false;
   switch (value.type) {
+    case 'starterDeck': return (!('favorStarter' in value) || value.favorStarter === true) && 'name' in value && isStarterName(value.name) && 'cards' in value && validStarter(value.name,value.cards);
+    case 'setTraitNode':
+      return 'trait' in value && isTrait(value.trait) && 'node' in value &&
+        isTraitNode(value.node) && 'owned' in value && typeof value.owned === 'boolean';
+    case 'setTraitPathRank': return 'trait' in value && isTrait(value.trait) && 'path' in value && isTraitPath(value.path) && 'rank' in value && isTraitRank(value.rank) && value.rank <= traitPathCap(value.trait, value.path);
+    case 'setTraitRank': return 'trait' in value && isTrait(value.trait) && 'rank' in value && isTraitRank(value.rank);
+    case 'skillPath':
+    case 'buySkill': return 'pick' in value && isSkillPick(value.pick);
+    case 'allocateTrait': return 'trait' in value && isTrait(value.trait);
+    case 'equipItem': return 'slot' in value && (value.slot === 'ring' || value.slot === 'amulet') && (!('ringIndex' in value) || (value.slot === 'ring' && isRingIndex(value.ringIndex))) && 'itemId' in value && (typeof value.itemId === 'string' || value.itemId === null);
     case 'chooseStop':
       return 'option' in value && isIndex(value.option);
     case 'playCard':
@@ -337,6 +429,7 @@ export const isRunAction = (value: unknown): value is RunAction => {
     case 'endTurn':
     case 'charge':
     case 'backStep':
+    case 'rerollReward':
     case 'abandon':
       return true;
     case 'pickCard':
@@ -353,3 +446,4 @@ export const isRunAction = (value: unknown): value is RunAction => {
       return false;
   }
 };
+

@@ -23,7 +23,7 @@
 // ===================================================================
 
 import { isSelfEffect, targetRuleOf } from './battlefield.ts';
-import { getCard, hasKeyword, type CardId } from './cards.ts';
+import { getCard, hasKeyword, hitsPerPlay, type CardId } from './cards.ts';
 import {
   BUFF_KEYWORDS,
   MAX_IMBUES_PER_CARD,
@@ -31,6 +31,7 @@ import {
 } from './rules.ts';
 import type {
   CardEffect,
+  CardDef,
   CardKeyword,
   CombatState,
   Imbue,
@@ -43,6 +44,13 @@ import type {
 export type ImbueEffect = Extract<CardEffect, { kind: 'imbue' }>;
 
 // --- READING ---
+/** Printed Guard repeats per target, imbued Guard per landed hit (or once on a skill). */
+export const guardApplications = (card: CardDef, imbued: readonly ImbuableEffect[]): number => {
+  const printed = card.effects.filter(effect => effect.kind === 'guard').length * card.targets;
+  const gifts = imbued.filter(effect => effect.kind === 'guard').length;
+  return Math.max(1, printed + gifts * Math.max(1, hitsPerPlay(card)));
+};
+
 /** The imbues on the card in hand slot `index` (none for a bad slot). */
 export const imbuesAt = (state: CombatState, index: number): Imbue[] =>
   state.handImbues[index] ?? [];
@@ -200,6 +208,7 @@ const KEYWORD_FITS: Record<CardKeyword, (cardId: CardId) => boolean> = {
   remove: () => true,
   // Exhaust is only printed (on consumables): no imbue grants it.
   exhaust: () => false,
+  charge: (cardId) => getCard(cardId).type === 'melee' && dealsDamage(cardId),
   rampage: dealsDamage,
   distance: dealsDamage,
   longRange: firesShots,
@@ -218,8 +227,8 @@ export const canImbueOnto = (
   cardId: CardId,
   imbues: readonly Imbue[] = []
 ): boolean => {
-  const isBuffCard = getCard(cardId).type === 'buff';
-  if (isBuffCard || imbues.length >= MAX_IMBUES_PER_CARD) return false;
+  const { type } = getCard(cardId);
+  if (type === 'buff' || type === 'imbue' || imbues.length >= MAX_IMBUES_PER_CARD) return false;
   if (gift.kind === 'keyword')
     return (
       !cardHasKeyword(cardId, imbues, gift.keyword) &&

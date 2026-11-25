@@ -1,77 +1,141 @@
-// ===================================================================
-// USE PLATE SPACING
-// Keeps the heroes' HP plates from overlapping. A farther hero often
-// stands right behind a nearer one, so its plate lands on top of the
-// nearer plate. After each layout this hook measures the plates and,
-// row by row from the Backline out to the Horizon, lifts each plate
-// just clear of any nearer-row plate it actually overlaps sideways.
-// Front plates never move, so they stay tied to their hero. Measured overlap (not columns) decides, so a wide boss's plate
-// doesn't lift the plates of heroes standing clear of it.
-// ===================================================================
-
 import { useLayoutEffect, type RefObject } from 'react';
-import { activeRows, rowDepth } from '../../shared/game/battlefield';
+import { rowDepth } from '../../shared/game/battlefield';
 import type { HeroUnit } from '../../shared/game/types';
 
-// --- CONSTANTS ---
-/** Marks a plate in the DOM with its hero's uid. */
 export const PLATE_UID_ATTR = 'data-plate-uid';
-/** Space (px) kept between a lifted plate and the plate below it. */
-const PLATE_GAP_PX = 3;
+export const FLOATING_UID_ATTR = 'data-floating-uid';
+const GAP = 3;
+const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
 
-// --- HELPERS ---
-/** True when two plates overlap sideways (by more than the gap). */
-const overlapsSideways = (a: DOMRect, b: DOMRect): boolean =>
-  a.left + PLATE_GAP_PX < b.right && b.left + PLATE_GAP_PX < a.right;
-
-/** How far (px) a far plate must rise to clear the nearer plates. */
-const liftFor = (far: DOMRect, nearer: readonly DOMRect[]): number =>
-  Math.max(0, ...nearer.map((near) => far.bottom - near.top + PLATE_GAP_PX));
-
-/**
- * Lifts each far-row plate clear of the nearer rows' plates, nearest
- * far row first (so a Horizon plate clears an already lifted Backline
- * plate). Imperative on purpose: it needs the real, laid-out sizes.
- */
-const spacePlates = (field: HTMLElement, heroes: readonly HeroUnit[]) => {
-  const plateOf = (unit: HeroUnit) =>
-    field.querySelector<HTMLElement>(`[${PLATE_UID_ATTR}="${unit.uid}"]`);
-  const farHeroes = heroes.filter((unit) => rowDepth(unit.row) > 0);
-  // Measure from the plates' natural spots, so lifts never pile up.
-  farHeroes.forEach((unit) => plateOf(unit)?.style.removeProperty('translate'));
-  for (const row of activeRows().slice(1)) {
-    const nearer = heroes.filter((unit) => rowDepth(unit.row) < rowDepth(row));
-    for (const unit of heroes.filter((hero) => hero.row === row)) {
-      const plate = plateOf(unit);
-      if (!plate) continue;
-      const rect = plate.getBoundingClientRect();
-      const nearerRects = nearer
-        .map(plateOf)
-        .flatMap((near) => (near ? [near.getBoundingClientRect()] : []))
-        .filter((near) => overlapsSideways(rect, near));
-      const lift = liftFor(rect, nearerRects);
-      if (lift > 0) plate.style.translate = `0 -${lift}px`;
-    }
+type Box = { left: number; top: number; width: number; height: number };
+/** Spread crowded neighbors horizontally before trying a different vertical line. */
+function spreadRow(boxes: Box[], frame: Box) {
+  if (boxes.length < 2 || boxes.reduce((sum, box) => sum + box.width, 0) + GAP * (boxes.length - 1) > frame.width) return;
+  const naturalSum = boxes.reduce((sum, box) => sum + box.left, 0);
+  let start = frame.left;
+  for (const box of boxes) {
+    box.left = Math.max(start, box.left);
+    start = box.left + box.width + GAP;
   }
-};
+  let end = frame.left + frame.width;
+  for (let i = boxes.length - 1; i >= 0; i--) {
+    const box = boxes[i]!;
+    box.left = Math.min(end - box.width, box.left);
+    end = box.left - GAP;
+  }
+  const shift = (naturalSum - boxes.reduce((sum, box) => sum + box.left, 0)) / boxes.length;
+  const last = boxes[boxes.length - 1]!;
+  const correction = clamp(shift, frame.left - boxes[0]!.left, frame.left + frame.width - (last.left + last.width));
+  for (const box of boxes) box.left += correction;
+}
 
-// --- HOOK ---
-/** Re-spaces the plates whenever the heroes or the field size change. */
-export const usePlateSpacing = (
-  fieldRef: RefObject<HTMLElement | null>,
-  heroes: readonly HeroUnit[]
-) => {
+const overlap = (a: Box, b: Box) =>
+  Math.max(0, Math.min(a.left + a.width + GAP, b.left + b.width + GAP) - Math.max(a.left, b.left)) *
+  Math.max(0, Math.min(a.top + a.height + GAP, b.top + b.height + GAP) - Math.max(a.top, b.top));
+
+/** Keep the plate over its hero when possible. Neighbors can use either side or another line. */
+function fitPlate(natural: Box, placed: readonly Box[], figures: readonly Box[], frame: Box, head: number) {
+  const xMax = frame.left + frame.width - natural.width;
+  const yMax = Math.min(frame.top + frame.height, head - GAP) - natural.height;
+  const obstacles = [...placed, ...figures];
+  const xs = [natural.left, frame.left, xMax, ...obstacles.flatMap(box => [box.left - natural.width - GAP, box.left + box.width + GAP])];
+  const ys = [natural.top, frame.top, yMax, ...obstacles.flatMap(box => [box.top - natural.height - GAP, box.top + box.height + GAP])];
+  let best = natural;
+  let bestFigureOverlap = Infinity;
+  let bestOverlap = Infinity;
+  let bestDistance = Infinity;
+  for (const x of xs) for (const y of ys) {
+    const left = clamp(x, frame.left, xMax);
+    const top = clamp(y, frame.top, Math.max(frame.top, yMax));
+    const box = { ...natural, left, top };
+    const occupied = placed.reduce((sum, other) => sum + overlap(box, other), 0);
+    const covered = figures.reduce((sum, figure) => sum + overlap(box, figure), 0);
+    const distance = 2 * (left - natural.left) ** 2 + (top - natural.top) ** 2;
+    if (occupied < bestOverlap || (occupied === bestOverlap &&
+      (covered < bestFigureOverlap || (covered === bestFigureOverlap && distance < bestDistance)))) {
+      best = box;
+      bestFigureOverlap = covered;
+      bestOverlap = occupied;
+      bestDistance = distance;
+    }
+    if (!covered && !occupied && x === natural.left && y === natural.top) return box;
+  }
+  return best;
+}
+
+/** Position portaled bars from their actual figure anchors in a single read/write pass. */
+export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes: readonly HeroUnit[]) => {
   useLayoutEffect(() => {
     const field = fieldRef.current;
-    if (!field) return;
-    spacePlates(field, heroes);
-    const observer = new ResizeObserver(() => spacePlates(field, heroes));
-    observer.observe(field);
-    const settle = () => spacePlates(field, heroes);
-    field.addEventListener('transitionend', settle);
-    return () => {
-      observer.disconnect();
-      field.removeEventListener('transitionend', settle);
+    const table = field?.closest('.dueling-table');
+    const layer = table?.querySelector<HTMLElement>('.hero-plate-layer');
+    const header = table?.querySelector<HTMLElement>('.table-header');
+    if (!field || !layer) return;
+    // Rear units have the least room above their heads. Place those rows first.
+    const ordered = [...heroes].sort((a, b) => rowDepth(b.row) - rowDepth(a.row) || a.col - b.col || a.uid - b.uid);
+    layer.toggleAttribute('data-crowded', ordered.some(unit => ordered.filter(other => other.row === unit.row).length >= 3));
+    const findPlates = () => ordered.flatMap(unit => {
+      const anchor = field.querySelector<HTMLElement>(`[${PLATE_UID_ATTR}="${unit.uid}"]`);
+      const plate = layer.querySelector<HTMLElement>(`[${FLOATING_UID_ATTR}="${unit.uid}"]`);
+      const figure = anchor?.closest('.hero-flight');
+      return anchor && plate && figure ? [{ anchor, plate, figure, row: unit.row }] : [];
+    });
+    let entries = findPlates();
+    let previous = '';
+    const position = () => {
+      const bounds = layer.getBoundingClientRect();
+      if (!bounds.width || !bounds.height || !entries.length) return;
+      const sx = layer.clientWidth / bounds.width;
+      const sy = layer.clientHeight / bounds.height;
+      const top = Math.max(0, ((header?.getBoundingClientRect().bottom ?? bounds.top) - bounds.top) * sy) + GAP;
+      const floor = Math.min(bounds.bottom, field.getBoundingClientRect().bottom,
+        table?.querySelector('.table-console')?.getBoundingClientRect().top ?? bounds.bottom);
+      const frame = { left: GAP, top, width: layer.clientWidth - GAP * 2, height: (floor - bounds.top) * sy - top - GAP };
+      const measures = entries.map(({anchor, plate, figure}) => {
+        const rect = anchor.getBoundingClientRect();
+        const body = figure.getBoundingClientRect();
+        const silhouette = {
+          left: (body.left + body.width * .18 - bounds.left) * sx,
+          top: (rect.bottom - bounds.top) * sy,
+          width: body.width * .64 * sx,
+          height: Math.max(0, body.bottom - rect.bottom) * sy,
+        };
+        const width = plate.offsetWidth;
+        const height = plate.offsetHeight;
+        // The centered name and chip strip span 128% of the HP bar.
+        const footprint = Math.min(frame.width, Math.max(width * 1.28, (plate.querySelector<HTMLElement>('.hero-plate-details')?.offsetWidth ?? 0) * .8));
+        return { width, silhouette, center: (rect.left + rect.width / 2 - bounds.left) * sx, natural: { width: footprint, height,
+          left: (rect.left + rect.width / 2 - bounds.left) * sx - footprint / 2,
+          top: (rect.bottom - bounds.top) * sy - height } };
+      });
+      // No layout writes while figures, viewport and card content are stationary.
+      const key = [frame.width, frame.height, top, ...measures.flatMap(({width, natural, silhouette}) =>
+        [width, natural.height, natural.left.toFixed(2), natural.top.toFixed(2), silhouette.width.toFixed(2), silhouette.height.toFixed(2)])].join(',');
+      if (key === previous) return;
+      previous = key;
+      for (const row of new Set(entries.map(entry => entry.row))) {
+        spreadRow(measures.flatMap((measure, i) => entries[i]!.row === row ? [measure.natural] : []), frame);
+      }
+      const placed: Box[] = [];
+      const figures = measures.map(measure => measure.silhouette);
+      measures.forEach(({ width, natural }, i) => {
+        if (!width || !natural.height) return;
+        // Search sideways when a rear unit occupies the space above this head.
+        const box = fitPlate(natural, placed, figures, frame, figures[i]!.top);
+        placed.push(box);
+        const plate = entries[i]!.plate;
+        plate.style.left = box.left + (box.width - width) / 2 + 'px';
+        plate.style.top = box.top + 'px';
+        plate.style.visibility = 'visible';
+      });
     };
+    // React inserts portal children in a second commit; the field can already have its final size.
+    const mounted = new MutationObserver(() => { entries = findPlates(); previous = ''; position(); });
+    mounted.observe(layer, { childList: true });
+    position();
+    let frameId = 0;
+    const follow = () => { position(); frameId = requestAnimationFrame(follow); };
+    frameId = requestAnimationFrame(follow);
+    return () => { mounted.disconnect(); cancelAnimationFrame(frameId); };
   }, [fieldRef, heroes]);
 };

@@ -16,9 +16,11 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
+import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
   fallBack,
+  stepForward,
   canPull,
   canPush,
   affectsSelf,
@@ -41,11 +43,15 @@ import {
   rowDepth,
   summonSeats,
 } from './battlefield.ts';
-import { cardCost, getCard, type CardId } from './cards.ts';
+import { starterEquipment } from './character.ts';
+import { cardCost, hitsPerPlay, getCard, type CardId } from './cards.ts';
 import {
   addGuard,
   addStatus,
   afflictionAmount,
+  combatantBonuses,
+  scornBonus,
+  offensiveBonus,
   castProtection,
   bleedOnAttack,
   dropRoundBuffs,
@@ -68,18 +74,19 @@ import {
   dodge,
   missShot,
   takeHit,
-  typeBonus,
+  reapDamage,
 } from './combatant.ts';
 import { isLongRangeOn } from './features.ts';
 import { foldPerHitAfflictions, getHero, type HeroId } from './heroes.ts';
 // A cycle (movement.ts reads combatOutcome) is safe: both sides only
 // call each other inside functions, never while loading.
-import { hasRoomFor, moveFree, moveFromCard } from './movement.ts';
+import { grantMomentum, hasRoomFor, moveFree, moveFromCard } from './movement.ts';
 import {
   addToHand,
   cardHasKeyword,
   discardHand,
   foldImbuedDamage,
+  guardApplications,
   imbueEffectOf,
   imbuedEffects,
   imbueSlot,
@@ -91,11 +98,8 @@ import {
 } from './imbue.ts';
 import { nextFloat, pickOne, shuffle, type RngState } from './rng.ts';
 import {
-  CARDS_PER_TURN,
   ELEMENT_ON_HIT,
   LONG_RANGE_DAMAGE_FACTOR,
-  ENERGY_PER_TURN,
-  RESERVE_ENERGY_SLOTS,
   MAX_HAND_SIZE,
   INSTINCT_DODGE_CHANCES,
   OUT_OF_RANGE_HIT_CHANCE,
@@ -135,6 +139,9 @@ import { spendUse } from './uses.ts';
 
 // --- SETUP ---
 export type CombatSetup = {
+  traits?: import('./character.ts').Traits;
+  traitNodes?: import('./character.ts').TraitNodes;
+  equipment?: import('./character.ts').Equipment;
   hp: number;
   maxHp: number;
   deck: readonly CardId[];
@@ -168,7 +175,7 @@ const createHeroUnit = (
 export const startCombat = (setup: CombatSetup): CombatState => {
   const [drawPile, rng] = shuffle(setup.seed, setup.deck);
   const initial: CombatState = {
-    player: createCombatant(setup.hp, setup.maxHp),
+    player: { ...createCombatant(setup.hp, setup.maxHp), equipment: setup.equipment ?? starterEquipment(), ...(setup.traits && { traits: setup.traits }), ...(setup.traitNodes && { traitNodes: setup.traitNodes }) },
     heroes: formUp(
       setup.heroIds.map((id, index) =>
         createHeroUnit(id, index + 1, setup.might)
@@ -330,9 +337,19 @@ export const heroAttackOf = (
 };
 
 /** Heroes this card may be aimed at now (every hero for untargeted cards). */
-export const targetsFor = (state: CombatState, cardId: CardId): HeroUnit[] =>
+const targetsInPosition = (state: CombatState, cardId: CardId): HeroUnit[] =>
   legalTargets(state.heroes, targetRuleOf(cardId), getCard(cardId).type,
     getCard(cardId).effects.find(effect => effect.kind === 'push')?.rows);
+
+/** Model the same free advance for aim previews and card resolution. */
+export const positionForCard = (
+  state: CombatState, cardId: CardId, handIndex?: number
+): CombatState =>
+  cardHasKeyword(cardId, handIndex === undefined ? [] : cardImbuesAt(state, handIndex), 'charge')
+    ? moveFree(state, 'charge') : state;
+
+export const targetsFor = (state: CombatState, cardId: CardId, handIndex?: number): HeroUnit[] =>
+  targetsInPosition(positionForCard(state, cardId, handIndex), cardId);
 
 /**
  * True when an untargeted card would be wasted: it only acts on heroes,
@@ -369,9 +386,9 @@ export const canPlayCard = (state: CombatState, handIndex: number): boolean => {
   const hasTarget = imbueEffectOf(cardId)
     ? imbueSlotsFor(state, handIndex).length > 0
     : targetRuleOf(cardId) === 'none'
-      ? !isAreaCardWasted(state, cardId)
-      : targetsFor(state, cardId).length > 0;
-  return cardCost(cardId, state.slain, state.followUpReady) <= state.energy && hasTarget;
+      ? !isAreaCardWasted(positionForCard(state, cardId, handIndex), cardId)
+      : targetsFor(state, cardId, handIndex).length > 0;
+  return cardCost(cardId, state.killsThisTurn ?? 0, state.followUpReady) <= state.energy && hasTarget;
 };
 
 // --- DRAWING ---
@@ -452,6 +469,7 @@ const removeFallen = (state: CombatState): CombatState => {
         ...state,
         heroes: standing,
         slain: state.slain + fallen.length,
+        killsThisTurn: (state.killsThisTurn ?? 0) + fallen.length,
         fallen: [...state.fallen, ...fallen],
       };
 };
@@ -510,7 +528,7 @@ export const isOutOfRangeShot = (
  * Longrange is about distance, so it does not help against flight),
  * plus the attacker's `accuracyBonus` (Sharpshooter), capped at 1.
  */
-export const shotHitChance = (
+const shotAccuracy = (
   type: CardType,
   unit: HeroUnit,
   hasLongRange: boolean,
@@ -521,9 +539,15 @@ export const shotHitChance = (
     : 1;
   const isEvaded = isAloft(unit) && ALOFT_EVADING_TYPES.has(type);
   const chance = rangeChance * (isEvaded ? 1 - ALOFT_EVASION : 1);
-  return Math.min(1, chance + accuracyBonus);
+  return chance + accuracyBonus;
 };
 
+export const shotHitChance = (type: CardType, unit: HeroUnit, longRange: boolean, bonus = 0) =>
+  Math.min(1, shotAccuracy(type, unit, longRange, bonus));
+
+const canCrit = (type: CardType) => type === 'range' || type === 'magic';
+const critChance = (type: CardType, accuracy: number) =>
+  canCrit(type) ? Math.min(1, Math.max(0, accuracy - 1)) : 0;
 /**
  * Rolls one shot on the fight's seeded rng (so the server's replay
  * rolls the same): true when it lands.
@@ -546,7 +570,7 @@ const rollShot = (
 const shootHeroes = (
   state: CombatState,
   uids: readonly number[],
-  land: (unit: HeroUnit) => HeroUnit,
+  land: (unit: HeroUnit, multiplier: number) => HeroUnit,
   cardDef: CardDef,
   hasLongRange: boolean
 ): CombatState => {
@@ -554,18 +578,24 @@ const shootHeroes = (
   for (const uid of uids) {
     const unit = current.heroes.find((hero) => hero.uid === uid);
     if (!unit) continue;
-    const chance = shotHitChance(
+    const chance = shotAccuracy(
       cardDef.type,
       unit,
       hasLongRange,
-      accuracyBonusOf(current.player)
+      accuracyBonusOf(current.player, cardDef.type)
     );
-    if (chance >= 1) {
-      current = updateHeroes(current, [uid], land);
-      continue;
+    if (chance < 1) {
+      const [lands, rolled] = rollShot(current, chance);
+      current = rolled;
+      if (!lands) {
+        current = updateHeroes(current, [uid], missShot);
+        continue;
+      }
     }
-    const [lands, rolled] = rollShot(current, chance);
-    current = updateHeroes(rolled, [uid], lands ? land : missShot);
+    const crit = critChance(cardDef.type, chance);
+    let critical = crit >= 1;
+    if (crit > 0 && crit < 1) [critical, current] = rollShot(current, crit);
+    current = updateHeroes(current, [uid], target => land(target, critical ? 2 : 1));
   }
   return current;
 };
@@ -589,6 +619,7 @@ export const playDamageFactor = (
   isRampage = cardDef.keywords.includes('rampage')
 ): number => {
   const factor =
+    (1 + offensiveBonus(attacker, cardDef.type).percent / 100) *
     damageFactorOf(attacker, cardDef.type, isRampage) *
     targetDamageFactor(unit, cardDef);
   return Math.round(factor * 100) / 100;
@@ -620,7 +651,8 @@ const villainAttack = (
     effect.amount,
     state.player,
     cardDef.type,
-    play.isRampage
+    play.isRampage,
+    hitsPerPlay(cardDef)
   );
   const isFollowThrough = effect.target === 'one';
   const pierceHit = Math.floor(perHit * PIERCE_DAMAGE_FACTOR);
@@ -640,12 +672,13 @@ const villainAttack = (
         isMelee,
         isFollowThrough
       ),
-      (unit) =>
+      (unit, factor) =>
         elementalHit(
           unit,
-          cardHitOn(unit, perHit, cardDef),
+          cardHitOn(unit, perHit, cardDef) * factor,
           cardDef,
-          play.isPiercing
+          play.isPiercing,
+          state.player
         ),
       cardDef,
       play.isLongRange
@@ -703,8 +736,8 @@ const pierceBehind = (
     state,
     inLineUids,
     // Everyone in the column takes a Piercing hit (no Armor, no Protection).
-    (unit) =>
-      elementalHit(unit, cardHitOn(unit, amount, cardDef), cardDef, true),
+    (unit, factor) =>
+      elementalHit(unit, cardHitOn(unit, amount, cardDef) * factor, cardDef, true, state.player),
     cardDef,
     hasLongRange
   );
@@ -718,13 +751,14 @@ const elementalHit = (
   unit: HeroUnit,
   amount: number,
   cardDef: CardDef,
-  isPiercing: boolean
+  isPiercing: boolean,
+  attacker: Combatant
 ): HeroUnit => {
-  const hit = takeHit(unit, amount, cardDef.type, isPiercing);
+  const hit = takeHit(unit, amount, cardDef.type, isPiercing, attacker);
   // A hit for 0 (all Armor or Protection) carries no element.
   const isLanded = hit.damageTaken > unit.damageTaken || hit.guard < unit.guard;
   const onHit = cardDef.element ? ELEMENT_ON_HIT[cardDef.element] : null;
-  return onHit && isLanded ? addStatus(hit, onHit.status, onHit.amount) : hit;
+  return onHit && isLanded ? addStatus(hit, onHit.status, onHit.amount + scornBonus(attacker, onHit.status)) : hit;
 };
 
 /**
@@ -738,12 +772,11 @@ const reapHex = (
   cardDef: CardDef,
   hasLongRange: boolean
 ): CombatState => {
-  const bonus = typeBonus(state.player, cardDef.type);
   return shootHeroes(
     state,
     resolveTargets(state, 'one', targetUid, cardDef.type),
-    (unit) =>
-      takeHit(unit, unit.statuses.hex * multiplier + bonus, cardDef.type),
+    (unit, factor) =>
+      takeHit(unit, reapDamage(unit.statuses.hex, multiplier, state.player, cardDef.type) * factor, cardDef.type, false, state.player),
     cardDef,
     hasLongRange
   );
@@ -759,6 +792,7 @@ type PlayContext = {
   isLongRange: boolean;
   /** Rampage (printed or imbued): Momentum's bonus doubles. */
   isRampage: boolean;
+  hasCharge: boolean;
 };
 
 /**
@@ -770,7 +804,8 @@ const applyCardEffect = (
   effect: CardEffect,
   targetUid: number,
   cardDef: CardDef,
-  play: PlayContext
+  play: PlayContext,
+  guardRepeats: number
 ): CombatState => {
   switch (effect.kind) {
     case 'damage':
@@ -797,7 +832,7 @@ const applyCardEffect = (
       return updateHeroes(
         state,
         resolveTargets(state, effect.target, targetUid, cardDef.type),
-        (unit) => enfeebleTimes(unit, effect.times ?? 1)
+        (unit) => enfeebleTimes(unit, (effect.times ?? 1) + scornBonus(state.player, 'enfeeble'))
       );
     case 'reap':
       return reapHex(
@@ -808,7 +843,7 @@ const applyCardEffect = (
         play.isLongRange
       );
     case 'guard': {
-      const amount = guardAmount(effect.amount, state.player);
+      const amount = guardAmount(effect.amount, state.player, guardRepeats);
       return { ...state, player: addGuard(state.player, amount) };
     }
     case 'protect':
@@ -817,16 +852,7 @@ const applyCardEffect = (
     case 'backStep':
       return moveFromCard(state, effect.kind);
     case 'momentum':
-      return {
-        ...state,
-        player: {
-          ...state.player,
-          statuses: {
-            ...state.player.statuses,
-            momentum: Math.max(1, state.player.statuses.momentum),
-          },
-        },
-      };
+      return grantMomentum(state);
     case 'brace':
     case 'move':
     case 'rush':
@@ -845,7 +871,7 @@ const applyCardEffect = (
     case 'draw':
       return drawCards(state, effect.amount);
     case 'energy':
-      return { ...state, energy: state.energy + effect.amount };
+      return { ...state, energy: Math.min(combatantBonuses(state.player).maxEnergy, state.energy + effect.amount) };
     case 'heal':
       return { ...state, player: heal(state.player, effect.amount) };
     case 'cleanse': {
@@ -917,7 +943,7 @@ const aimCard = (
   targetUid: number
 ): number => {
   // Mid-card (between picks) a felled hero still stands at 0 HP.
-  const legal = targetsFor(state, cardId).filter((unit) => !isDefeated(unit));
+  const legal = targetsInPosition(state, cardId).filter((unit) => !isDefeated(unit));
   return legal.some((unit) => unit.uid === targetUid)
     ? targetUid
     : (legal[0]?.uid ?? -1);
@@ -942,7 +968,7 @@ const spendMomentum = (state: CombatState, cardDef: CardDef): CombatState =>
  */
 const payForCard = (state: CombatState, handIndex: number): CombatState => {
   const cardId = state.hand[handIndex];
-  const cost = cardId === undefined ? 0 : cardCost(cardId, state.slain, state.followUpReady);
+  const cost = cardId === undefined ? 0 : cardCost(cardId, state.killsThisTurn ?? 0, state.followUpReady);
   return removeFromHand({ ...state, energy: state.energy - cost, ...(cardId === 'followUp' && { followUpReady: false }) }, handIndex);
 };
 
@@ -1050,6 +1076,7 @@ const cardBeats = (
   const cardDef = getCard(cardId);
   // Imbued damage joins the card's own Damage; the rest proc per hit.
   const { own, extra } = foldImbuedDamage(cardDef.effects, plan.imbued);
+  const guardRepeats = guardApplications(cardDef, plan.imbued);
   const isProcPerHit = cardDef.effects.some(
     (effect) => effect.kind === 'damage'
   );
@@ -1065,7 +1092,8 @@ const cardBeats = (
     oneHitAtATime
   );
   const states: CombatState[] = [];
-  let current = paid;
+  let current = plan.hasCharge ? moveFree(paid, 'charge') : paid;
+  if (current !== paid) states.push(current);
   // Imperative on purpose: each pick aims at the field the last one left
   // (a hero felled by pick 1 can't be hit by pick 2; the aim moves on),
   // and each imbue proc waits to see whether the hit before it landed.
@@ -1076,7 +1104,7 @@ const cardBeats = (
     // are skipped; effects on the villain (Guard, Draw) still apply.
     let hasLanded = false;
     const apply = (effect: CardEffect) => {
-      current = applyCardEffect(current, effect, aimed, cardDef, plan);
+      current = applyCardEffect(current, effect, aimed, cardDef, plan, guardRepeats);
       states.push(current);
     };
     for (const effect of beats) {
@@ -1122,7 +1150,7 @@ const biteBleedOnAttack = (
     updateHeroes(
       after,
       struck.map((unit) => unit.uid),
-      (unit) => bleedOnAttack(unit, priorBleedOf(unit.uid))
+      (unit) => bleedOnAttack(unit, priorBleedOf(unit.uid), before.player)
     )
   );
 };
@@ -1148,14 +1176,22 @@ const ignoresOutOfRange = (state: CombatState, handIndex: number): boolean =>
   isPlayWith(state, handIndex, 'longRange');
 
 /** The villain's bonus to each shot's chance to land (Sharpshooter). */
-const accuracyBonusOf = (villain: Combatant): number =>
-  villain.statuses.sharpshooter > 0 ? SHARPSHOOTER_ACCURACY_BONUS : 0;
+const accuracyBonusOf = (villain: Combatant, type: CardType): number =>
+  (villain.statuses.sharpshooter > 0 ? SHARPSHOOTER_ACCURACY_BONUS : 0) +
+  (canCrit(type) && villain.traits ? combatantBonuses(villain).accuracyPercent / 100 : 0);
 
 /**
  * The chance (0..1) that each shot of the card in `handIndex` lands on
  * `unit` (see shotHitChance: Out of Range and Aloft). Shown on the aim
  * arrow.
  */
+export const aimCritChance = (state: CombatState, index: number, unit: HeroUnit): number => {
+  const id = state.hand[index];
+  if (id === undefined) return 0;
+  const card = getCard(id);
+  if (!canCrit(card.type) || ![...card.effects, ...imbuedEffects(imbuesAt(state, index))].some(e => e.kind === 'damage' || e.kind === 'reap')) return 0;
+  return critChance(card.type, shotAccuracy(card.type, unit, ignoresOutOfRange(state, index), accuracyBonusOf(state.player, card.type)));
+};
 export const aimHitChance = (
   state: CombatState,
   handIndex: number,
@@ -1167,7 +1203,7 @@ export const aimHitChance = (
     getCard(cardId).type,
     unit,
     ignoresOutOfRange(state, handIndex),
-    accuracyBonusOf(state.player)
+    accuracyBonusOf(state.player, getCard(cardId).type)
   );
 };
 
@@ -1196,6 +1232,7 @@ const planPlay = (
     isPiercing: isPlayWith(state, handIndex, 'piercing'),
     isLongRange: ignoresOutOfRange(state, handIndex),
     isRampage: isPlayWith(state, handIndex, 'rampage'),
+    hasCharge: isPlayWith(state, handIndex, 'charge'),
   };
 };
 
@@ -1261,7 +1298,17 @@ export const playCard = (
     hasKilled: cleared.slain > state.slain,
     hasHit: hasLandedHit(state, cleared),
   };
-  return moveOnTrigger(cleared, cardId, imbues, outcome);
+  const entry = {
+    turn: state.turn,
+    cardId,
+    cost: state.energy - paid.energy,
+    ...(imbues.length ? { imbues } : {}),
+    ...(state.usesSpent[cardId] ? { usesSpent: state.usesSpent[cardId] } : {}),
+  };
+  return recordEffects(state, {
+    ...moveOnTrigger(cleared, cardId, imbues, outcome),
+    playHistory: appendCombatHistory(state.playHistory, entry),
+  });
 };
 
 // --- FREE MOVES (RAMPAGE ON KILL, DISTANCE ON HIT) ---
@@ -1309,7 +1356,10 @@ const moveOnTrigger = (
   FREE_MOVES.filter(
     ({ keyword, trigger }) =>
       outcome[trigger] && cardHasKeyword(cardId, imbues, keyword)
-  ).reduce((moved, free) => moveFree(moved, free.move), state);
+  ).reduce((current, free) => {
+    const moved = moveFree(current, free.move);
+    return free.keyword === 'rampage' && moved === current ? grantMomentum(current) : moved;
+  }, state);
 
 /**
  * True when playing the card in `handIndex` with exactly these picks
@@ -1333,6 +1383,7 @@ export const wouldFell = (
     isPiercing: isPlayWith(state, handIndex, 'piercing'),
     isLongRange: ignoresOutOfRange(state, handIndex),
     isRampage: isPlayWith(state, handIndex, 'rampage'),
+    hasCharge: isPlayWith(state, handIndex, 'charge'),
   };
   const beats = cardBeats(payForCard(state, handIndex), cardId, plan);
   const target = beats.at(-1)?.heroes.find((unit) => unit.uid === uid);
@@ -1355,7 +1406,7 @@ export const autoTargets = (
 ): number[] => {
   const cardId = state.hand[handIndex];
   if (cardId === undefined) return [];
-  const legal = targetsFor(state, cardId);
+  const legal = targetsFor(state, cardId, handIndex);
   if (legal.length === 0) return [];
   const isLethal = (unit: HeroUnit) =>
     wouldFell(state, handIndex, [unit.uid], unit.uid);
@@ -1517,7 +1568,16 @@ const applyHeroEffect = (
     case 'soar':
       return updateHeroes(state, [actor.uid], (unit) => withAloft(unit, 1));
     case 'knockBack':
-      return { ...state, heroes: fallBack(state.heroes, effect.lines) };
+    case 'pullPlayer': {
+      const pulling = effect.kind === 'pullPlayer';
+      const heroes = pulling ? stepForward(state.heroes, effect.lines) : fallBack(state.heroes, effect.lines);
+      const distance = Math.max(0, ...heroes.map((unit, i) => Math.abs(rowDepth(unit.row) - rowDepth(state.heroes[i]!.row))));
+      return {
+        ...state, heroes,
+        travelRows: (state.travelRows ?? 0) + (pulling ? distance : -distance),
+        forcedMovement: { count: (state.forcedMovement?.count ?? 0) + 1, move: pulling ? 'charge' : 'backStep', distance },
+      };
+    }
     case 'detonate':
       return { ...state, player: burstShock(state.player) };
   }
@@ -1662,7 +1722,7 @@ const heroActs = (
   const isDiving = planned !== null && isAloft(actor);
   const settled = updateHeroes(acted, [uid], (unit) => {
     // BURN AND FROST RUN AFTER EVERY ACTION, UPKEEP AFTER THE LAST ONE
-    const landed = afterAction(isDiving ? withAloft(unit, 0) : unit);
+    const landed = afterAction(isDiving ? withAloft(unit, 0) : unit, state.player);
     return {
       ...(isLast ? endOfTurnUpkeep(landed) : landed),
       moveIndex: planned ? planned.index + 1 : unit.moveIndex,
@@ -1708,19 +1768,22 @@ export const heroTurnOrder = (heroes: readonly HeroUnit[]): HeroUnit[] =>
  * Begins a villain turn: guard and last round's buffs fade, Hex burns,
  * energy refills (plus whatever the reserve kept), new hand.
  */
-export const startPlayerTurn = (state: CombatState): CombatState =>
-  drawCards(
+export const startPlayerTurn = (state: CombatState): CombatState => {
+  const { startingEnergy, maxEnergy, cardsPerTurn } = combatantBonuses(state.player);
+  return drawCards(
     {
       ...state,
       // Hex and Poison run before the villain's action (its turn).
       player: poisonTick(hexBurn(dropRoundBuffs(expireGuard(state.player)))),
-      energy: ENERGY_PER_TURN + state.reserve,
+      energy: Math.min(maxEnergy, startingEnergy + state.reserve),
       reserve: 0,
       turn: state.turn + 1,
+      killsThisTurn: 0,
       followUpReady: false,
     },
-    CARDS_PER_TURN
+    cardsPerTurn
   );
+};
 
 /** Closes the player turn, including discards, reserve and status upkeep. */
 export const finishPlayerTurn = (state: CombatState): CombatState => {
@@ -1734,7 +1797,7 @@ export const finishPlayerTurn = (state: CombatState): CombatState => {
     ...discardHand(lapsed),
     // RESERVE ENERGY: unspent energy fills the reserve slots; the rest is lost.
     energy: 0,
-    reserve: Math.min(lapsed.energy, RESERVE_ENERGY_SLOTS),
+    reserve: Math.min(lapsed.energy, combatantBonuses(lapsed.player).retainEnergy),
     // The villain's turn was its action: Burn and Frost, then upkeep.
     player: endOfTurnUpkeep(afterAction(lapsed.player)),
   };
@@ -1746,8 +1809,6 @@ export const finishPlayerTurn = (state: CombatState): CombatState => {
  * turn), and how that move's attacks landed (null if it had none).
  */
 export type TurnStep = {
-  /** Final damage counters for a unit removed by this status tick. */
-  fallenFromTick?: HeroUnit;
   actorUid: number | null;
   attackType: HeroAttackType | null;
   /** The move just made (null when `actorUid` is). */
@@ -1773,11 +1834,9 @@ const plannedAttackType = (
 const hexBurnStep = (state: CombatState, uid: number): TurnStep | null => {
   const unit = state.heroes.find((hero) => hero.uid === uid);
   if (!unit || unit.statuses.hex <= 0) return null;
-  const ticked = updateHeroes(state, [uid], hexBurn);
-  const fallen = ticked.heroes.find((hero) => hero.uid === uid && hero.hp === 0);
+  const ticked = updateHeroes(state, [uid], hero => hexBurn(hero, state.player));
   return {
     actorUid: null, attackType: null, move: null, state: removeFallen(ticked),
-    ...(fallen && { fallenFromTick: fallen }),
   };
 };
 
@@ -1788,7 +1847,7 @@ const hexBurnStep = (state: CombatState, uid: number): TurnStep | null => {
 const poisonStep = (state: CombatState, uid: number): TurnStep | null => {
   const unit = state.heroes.find((hero) => hero.uid === uid);
   if (!unit || unit.statuses.poison <= 0) return null;
-  const next = removeFallen(updateHeroes(state, [uid], poisonTick));
+  const next = removeFallen(updateHeroes(state, [uid], hero => poisonTick(hero, state.player)));
   return { actorUid: null, attackType: null, move: null, state: next };
 };
 
@@ -1797,7 +1856,7 @@ const poisonStep = (state: CombatState, uid: number): TurnStep | null => {
  * heroes' attacks one at a time. The last step is the final state.
  * Empty when the fight is already over.
  */
-export const endTurnSteps = (state: CombatState): TurnStep[] => {
+const resolveTurnSteps = (state: CombatState): TurnStep[] => {
   if (combatOutcome(state) !== 'ongoing') return [];
 
   // 1. DISCARD THE HAND (HOLD CARDS STAY), THE VILLAIN'S UPKEEP, AND THE HEROES' GUARD FROM LAST ROUND FADES
@@ -1813,6 +1872,12 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
     { actorUid: null, attackType: null, move: null, state: discarded },
   ];
   if (combatOutcome(discarded) === 'lost') return steps;
+  if (state.waveArrival) {
+    steps.push({ actorUid: null, attackType: null, move: null,
+      state: startPlayerTurn({ ...discarded, waveArrival: false, heroes: advanceHeroes(discarded.heroes) }),
+    });
+    return steps;
+  }
 
   // 2. THE HORDE ACTS, FASTEST FIRST, EACH HERO ALL ITS ACTIONS IN A
   //    ROW (imperative: each step builds on the last, and fallen heroes
@@ -1843,8 +1908,16 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
       // (upkeep runs now).
       const isLast = action === actions || !hasMove || isSoaring(planned.move);
       const attackType = plannedAttackType(actor, current.heroes);
-      const next = heroActs(current, uid, isLast);
-      if (next !== current) {
+      const acted = heroActs(current, uid, isLast);
+      if (acted !== current) {
+        const next = planned && attackType ? {
+          ...acted,
+          playHistory: appendCombatHistory(acted.playHistory, {
+            heroId, turn: current.turn, attackName: planned.move.name, attackType,
+            hpLost: Math.max(0, current.player.hp - acted.player.hp),
+            guardLost: Math.max(0, current.player.guard - acted.player.guard),
+          }),
+        } : acted;
         steps.push({
           actorUid: hasMove ? uid : null,
           attackType,
@@ -1860,11 +1933,11 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
 
   // 3. HEROES BEHIND THEIR HOME ROW STEP ONE ROW TOWARD IT (MELEE CLOSE
   //    IN, ARCHERS COME IN OFF THE HORIZON), THEN THE NEXT VILLAIN TURN
-  // A knock back this turn keeps its distance: nobody walks in after it.
-  const wasKnockedBack = steps.some((step) =>
-    step.move?.effects.some((effect) => effect.kind === 'knockBack')
+  // Keep the distance set by enemy displacement through the end of the turn.
+  const hadForcedMovement = steps.some((step) =>
+    step.move?.effects.some((effect) => effect.kind === 'knockBack' || effect.kind === 'pullPlayer')
   );
-  const advanced = wasKnockedBack
+  const advanced = hadForcedMovement
     ? current
     : { ...current, heroes: advanceHeroes(current.heroes) };
   steps.push({
@@ -1875,6 +1948,18 @@ export const endTurnSteps = (state: CombatState): TurnStep[] => {
   });
   return steps;
 };
+
+export function endTurnSteps(state: CombatState): TurnStep[] {
+  let previous = state;
+  let raw = state.playHistory;
+  return resolveTurnSteps(state).map(step => {
+    const record = step.state.playHistory !== raw ? step.state.playHistory?.at(-1) : undefined;
+    raw = step.state.playHistory;
+    const history = record ? appendCombatHistory(previous.playHistory, record) : previous.playHistory;
+    previous = recordEffects(previous, { ...step.state, ...(history && { playHistory: history }) });
+    return { ...step, state: previous };
+  });
+}
 
 /** Ends the villain's turn and plays out the heroes' turn. */
 export const endTurn = (state: CombatState): CombatState =>

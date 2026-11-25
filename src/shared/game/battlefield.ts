@@ -66,9 +66,9 @@ export type TargetRule = 'none' | 'front' | 'any' | 'pullable' | 'pushable';
 
 // --- GEOMETRY ---
 
-/** Columns a hero fills, e.g. col 1 size 2 -> [1, 2]. */
+/** Left edges of the half-column cells occupied by a footprint. */
 const spanOf = (col: number, size: number): number[] =>
-  Array.from({ length: size }, (_, offset) => col + offset);
+  Array.from({ length: size * 2 }, (_, offset) => col + offset / 2);
 
 /**
  * The rows in play, nearest first: all of BATTLEFIELD_ROWS with the
@@ -143,9 +143,9 @@ export const cellsOf = (
   unit: Pick<HeroUnit, 'heroId' | 'row' | 'col'>
 ): Cell[] => [
   ...spanOf(unit.col, sizeOf(unit)).map((col) => ({ row: unit.row, col })),
-  ...backColsOf(unit).map((offset) => ({
+  ...backColsOf(unit).flatMap((offset) => spanOf(unit.col + offset, 1)).map((col) => ({
     row: reachRowOf(unit),
-    col: unit.col + offset,
+    col,
   })),
 ];
 
@@ -158,7 +158,7 @@ const reachRowOf = (unit: Pick<HeroUnit, 'row'>): HeroRow =>
  * two-wide hero, its first), so a pierce is always one column.
  */
 const pierceLaneOf = (unit: HeroUnit): number =>
-  unit.col + Math.floor((sizeOf(unit) - 1) / 2);
+  unit.col + Math.floor(sizeOf(unit) - 0.5) / 2;
 
 /**
  * The heroes a Piercing hit on `unit` passes on to: everyone else in
@@ -239,9 +239,9 @@ const PREFERRED_COLUMNS: Record<
   HeroRow,
   Record<HeroSize, readonly number[]>
 > = {
-  front: { 1: [1, 0, 2], 2: [0, 1], 3: [0] },
-  back: { 1: [0, 2, 1], 2: [1, 0], 3: [0] },
-  horizon: { 1: [1, 0, 2], 2: [0, 1], 3: [0] },
+  front: { 1: [1, 0, 2, 0.5, 1.5], 1.5: [0, 1.5, 0.5, 1], 2: [0, 1], 3: [0] },
+  back: { 1: [0, 2, 1, 0.5, 1.5], 1.5: [1.5, 0, 1, 0.5], 2: [1, 0], 3: [0] },
+  horizon: { 1: [1, 0, 2, 0.5, 1.5], 1.5: [0, 1.5, 0.5, 1], 2: [0, 1], 3: [0] },
 };
 
 /**
@@ -261,7 +261,7 @@ const firstOpenColumn = (
       isSpanOpen(
         heroes,
         'back',
-        backCols.map((offset) => col + offset)
+        backCols.flatMap((offset) => spanOf(col + offset, 1))
       )
   ) ?? null;
 
@@ -473,7 +473,7 @@ type Seating = Map<number, number>;
 
 /** Every leftmost column a hero of `size` can take. */
 const startColumns = (size: HeroSize): number[] =>
-  Array.from({ length: BATTLEFIELD_COLUMNS - size + 1 }, (_, col) => col);
+  Array.from({ length: (BATTLEFIELD_COLUMNS - size) * 2 + 1 }, (_, i) => i / 2);
 
 /**
  * True when no two seated heroes share a column, and none stands in a
@@ -644,6 +644,7 @@ export const pushHero = (heroes: HeroUnit[], uid: number, rows = 1) => {
 export const advanceHeroes = (heroes: HeroUnit[]): HeroUnit[] => {
   let field = heroes;
   for (const unit of heroes) {
+    if (isAnchored(unit)) continue;
     const direction = -Math.sign(rowsBehindHome(unit));
     if (!direction) continue;
     field = isDeep(unit)
@@ -809,7 +810,7 @@ export const cardAreaTargets = (
     (effect) => 'target' in effect && effect.target === 'all'
   );
   const hitsEveryone = areaEffects.some(
-    (effect) => effect.kind !== 'damage' || reach
+    (effect) => (effect.kind !== 'damage' && effect.kind !== 'push') || reach
   );
   if (areaEffects.length === 0) return [];
   return areaTargets(heroes, !hitsEveryone, type);

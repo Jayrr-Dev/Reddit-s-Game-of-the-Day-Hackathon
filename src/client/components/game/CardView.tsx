@@ -22,6 +22,7 @@ import { cardCost, getCard, type CardId } from '../../../shared/game/cards';
 import { MOVEMENTS } from '../../../shared/game/movement';
 import {
   describeCard,
+  IMBUE_INFO,
   DURATION_INFO,
   GLOSSARY,
 } from '../../../shared/game/describe';
@@ -48,7 +49,8 @@ import { CardBadges } from './CardBadges';
 
 // --- TYPES ---
 export type CardViewProps = {
-  slain?: number;
+  paidCost?: number | undefined;
+  killsThisTurn?: number;
   followUpReady?: boolean | undefined;
   cardId: CardId;
   /** When given, damage numbers include this attacker's wrath and weaken. */
@@ -74,6 +76,7 @@ export type CardViewProps = {
   /** "fan" cards sit in the fanned hand; "offer" cards are full size. */
   size?: CardSize;
   onClick?: () => void;
+  selected?: boolean;
 };
 
 export type CardSize = 'fan' | 'offer';
@@ -103,7 +106,7 @@ const SIZE_LOOK: Record<CardSize, SizeLook> = {
     glyph: 'size-5',
     name: 'text-[7.5px] py-0.5',
     rules: 'text-[8px] leading-[1.15] px-0.5',
-    ribbon: 'text-[6px] px-1.5 gap-0.5',
+    ribbon: 'text-[7px] px-2 gap-0.5',
     ribbonIcon: 'size-2',
     gem: 'h-[8px] w-[11px]',
   },
@@ -263,7 +266,7 @@ const TypeRibbon = ({
   return (
     <span
       title={typeName === 'Utility' ? 'Utility cards generally grant energy, restore HP, or draw cards.' : undefined}
-      className={`absolute bottom-0.5 left-1/2 flex -translate-x-1/2 items-center rounded-sm bg-surface-sunken py-px font-bold uppercase tracking-wider text-ink ring-1 ring-accent/50 ${look.ribbon}`}
+      className={`card-type-plaque absolute bottom-px left-1/2 flex -translate-x-1/2 items-center justify-center whitespace-nowrap font-bold uppercase leading-none ${look.ribbon}`}
     >
       {iconLook && (
         <Glyph
@@ -271,7 +274,9 @@ const TypeRibbon = ({
           className={`${look.ribbonIcon} ${iconLook.toneClass}`}
         />
       )}
-      {typeName}
+      {typeName === IMBUE_INFO.label ? (
+        <Tooltip content={{ title: typeName, description: IMBUE_INFO.description }} isInline>{typeName}</Tooltip>
+      ) : typeName}
     </span>
   );
 };
@@ -340,7 +345,7 @@ export const MovementCard = ({ move, cost, disabled, blockReason, onPlay }: {
   return (
     <button type="button" data-card-type="movement" data-card-size="fan" data-move={move}
       disabled={disabled} onClick={onPlay}
-      className={`relative flex ${look.box} shrink-0 flex-col rounded-lg ${frame.frameClass} p-[3px] pb-3 text-center ring-1 ring-black/60 transition-transform enabled:hover:-translate-y-1`}>
+      className={`relative flex ${look.box} shrink-0 flex-col rounded-lg ${frame.frameClass} p-[3px] pb-[14px] text-center ring-1 ring-black/60 transition-transform enabled:hover:-translate-y-1`}>
       <span aria-label={`${cost} energy, ${cost > baseCost ? 'increased' : cost < baseCost ? 'discounted' : 'base'} cost`}
         className={`absolute z-10 flex ${look.orb} items-center justify-center rounded-full bg-energy ${costTone} font-display font-black ring-2 ring-surface-sunken`}>{cost}</span>
       <ArtWindow glyph={action.glyph} glowVar={frame.glowVar} look={look} />
@@ -356,7 +361,8 @@ export const MovementCard = ({ move, cost, disabled, blockReason, onPlay }: {
 /** Renders a tappable card. */
 export const CardView = ({
   cardId,
-  slain = 0,
+  killsThisTurn = 0,
+  paidCost,
   followUpReady,
   attacker,
   target,
@@ -369,6 +375,7 @@ export const CardView = ({
   isFaded = false,
   size = 'offer',
   onClick,
+  selected,
 }: CardViewProps) => {
   const cardDef = getCard(cardId);
   const typeLook = CARD_LOOK[cardDef.type];
@@ -382,15 +389,16 @@ export const CardView = ({
       onClick={onClick}
       data-card-type={cardDef.type}
       data-card-id={cardId}
+        aria-pressed={selected}
       data-card-size={size}
       disabled={isDisabled}
-      className={`relative flex ${look.box} shrink-0 flex-col rounded-lg ${typeLook.frameClass} p-[3px] pb-3 text-center ring-1 ring-black/60 transition-transform enabled:hover:-translate-y-1 disabled:opacity-40 disabled:saturate-50 animate-rise ${isFaded ? 'opacity-40 saturate-50' : ''}`}
+      className={`relative flex ${look.box} shrink-0 flex-col rounded-lg ${typeLook.frameClass} p-[3px] pb-[14px] text-center ring-1 ring-black/60 transition-transform enabled:hover:-translate-y-1 disabled:opacity-40 disabled:saturate-50 animate-rise ${isFaded ? 'opacity-40 saturate-50' : ''}`}
       style={{ boxShadow: `${glow}, 0 6px 10px rgb(0 0 0 / 0.5)` }}
     >
       <span
         className={`absolute z-10 flex ${look.orb} items-center justify-center rounded-full bg-energy font-display font-black text-on-accent ring-2 ring-surface-sunken shadow-[inset_0_-2px_3px_rgb(0_0_0/0.35)]`}
       >
-        <span className="num-center">{cardCost(cardId, slain, followUpReady)}</span>
+        <span className="num-center">{paidCost ?? cardCost(cardId, killsThisTurn, followUpReady)}</span>
       </span>
       <ArtWindow
         glyph={(cardDef.edge && EDGE_ART[cardDef.edge]) ?? typeLook.glyph}
@@ -403,7 +411,7 @@ export const CardView = ({
           className="imbue-aim-pulse pointer-events-none absolute inset-0 rounded-lg"
         />
       )}
-      <CardBadges badges={cardBadgesOf(cardId, imbues)} size={size} />
+      <CardBadges badges={cardBadgesOf(cardId, imbues, attacker)} size={size} />
       <NameBanner
         name={cardDef.name}
         frameClass={typeLook.frameClass}

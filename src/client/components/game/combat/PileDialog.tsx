@@ -8,29 +8,35 @@
 // backdrop, the Close button or Esc.
 // ===================================================================
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getCard, type CardId } from '../../../../shared/game/cards';
-import type { Combatant } from '../../../../shared/game/types';
+import { usesOf, usesSpentOn } from '../../../../shared/game/uses';
+import type { Combatant, UsesSpent } from '../../../../shared/game/types';
 import { CardView } from '../CardView';
 import { SCROLL_FADE_STYLE } from '../../../lib/scrollFade';
 
 // --- TYPES ---
 export type PileId = 'draw' | 'discard' | 'removed';
 
+export type CardBrowserView = PileId | 'deck';
+
 export type PileDialogProps = {
-  pile: PileId;
+  titleOverride?: string;
+  pile: CardBrowserView;
   /** The pile's cards, top of the pile last (engine order). */
   cards: readonly CardId[];
   /** You, so card numbers show your current buffs. */
   attacker: Combatant;
-  slain: number;
+  killsThisTurn: number;
+  usesSpent: UsesSpent;
   followUpReady?: boolean | undefined;
   onClose: () => void;
 };
 
 // --- CONSTANTS ---
 /** Each pile's title and the note under it. */
-const PILE_TEXT: Record<PileId, { title: string; note: string }> = {
+const PILE_TEXT: Record<CardBrowserView, { title: string; note: string }> = {
+  deck: { title: 'Deck', note: 'Sorted by name.' },
   draw: { title: 'Draw pile', note: 'Sorted by name: the order is a secret.' },
   discard: { title: 'Discard pile', note: 'Most recent first.' },
   removed: {
@@ -41,8 +47,8 @@ const PILE_TEXT: Record<PileId, { title: string; note: string }> = {
 
 // --- HELPERS ---
 /** The order a pile is shown in: draw by name, the others newest first. */
-const shownOrder = (pile: PileId, cards: readonly CardId[]): CardId[] =>
-  pile === 'draw'
+const shownOrder = (pile: CardBrowserView, cards: readonly CardId[]): CardId[] =>
+  pile === 'deck' || pile === 'draw'
     ? [...cards].sort((a, b) => getCard(a).name.localeCompare(getCard(b).name))
     : [...cards].reverse();
 
@@ -52,21 +58,36 @@ export const PileDialog = ({
   pile,
   cards,
   attacker,
-  slain,
+  titleOverride,
+  killsThisTurn,
+  usesSpent,
   followUpReady,
   onClose,
 }: PileDialogProps) => {
-  const { title, note } = PILE_TEXT[pile];
+  const entries = shownOrder(pile, cards);
+  const { note } = PILE_TEXT[pile];
+  const title = titleOverride ?? PILE_TEXT[pile].title;
   const scrollStart = useRef<{ y: number; top: number } | null>(null);
+
+  const [inspected, setInspected] = useState<CardId | null>(null);
+  const opener = useRef<HTMLElement | null>(null);
+  const backButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (inspected) backButton.current?.focus();
+    else opener.current?.focus({ preventScroll: true });
+  }, [inspected]);
+  const spentFor = (id: CardId) => pile === 'removed' ? (usesOf(id) ?? 1) - 1 : usesSpentOn(usesSpent, id);
 
   // ESC CLOSES
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') {
+        if (inspected) setInspected(null); else onClose();
+      }
     };
     window.addEventListener('keydown', closeOnEscape);
     return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [onClose]);
+  }, [onClose, inspected]);
 
   return (
     <div
@@ -75,6 +96,7 @@ export const PileDialog = ({
     >
       <section
         role="dialog"
+        inert={inspected !== null}
         aria-modal="true"
         aria-label={title}
         className="flex max-h-full w-full max-w-md flex-col gap-2 rounded-lg bg-surface p-3 ring-1 ring-edge shadow-[0_10px_30px_rgb(0_0_0/0.6)]"
@@ -82,7 +104,7 @@ export const PileDialog = ({
       >
         <header className="flex flex-col gap-0.5">
           <h2 className="whitespace-nowrap font-display text-lg font-black uppercase tracking-widest text-accent">
-            {title} · {cards.length}
+            {title} · {entries.length}
           </h2>
           <span className="text-[11px] text-ink-muted">{note}</span>
         </header>
@@ -110,12 +132,14 @@ export const PileDialog = ({
               No cards here.
             </p>
           ) : (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(var(--table-card-width),1fr))] justify-items-center gap-x-2 gap-y-3 px-1">
-              {shownOrder(pile, cards).map((cardId, index) => (
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(var(--table-card-width,72px),1fr))] justify-items-center gap-x-2 gap-y-3 px-1">
+              {entries.map((cardId, index) => (
                 <CardView
                   key={`${cardId}-${index}`}
                   cardId={cardId}
-                  attacker={attacker} slain={slain} followUpReady={followUpReady}
+                  usesSpent={spentFor(cardId)}
+                  onClick={() => { opener.current = document.activeElement as HTMLElement; setInspected(cardId); }}
+                  {...{ attacker, killsThisTurn, followUpReady }}
                   size="fan"
                 />
               ))}
@@ -130,6 +154,19 @@ export const PileDialog = ({
           Close
         </button>
       </section>
+      {inspected && (
+        <div role="dialog" aria-modal="true" aria-label={getCard(inspected).name}
+          className="pile-inspector absolute inset-0 flex flex-col items-center justify-center gap-4 overflow-auto bg-black/90 p-4"
+          onClick={event => { event.stopPropagation(); setInspected(null); }}>
+          <div className="pile-inspector-card" onClick={event => event.stopPropagation()}>
+            <CardView cardId={inspected} size="offer" usesSpent={spentFor(inspected)}
+              attacker={attacker} killsThisTurn={killsThisTurn} followUpReady={followUpReady} />
+          </div>
+          <button ref={backButton} type="button" className="rounded-full bg-surface-raised px-5 py-2 text-sm font-bold text-ink ring-1 ring-edge">
+            Back to {title.toLowerCase()}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

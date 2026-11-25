@@ -48,9 +48,12 @@ const postJson = <TResponse>(path: string, payload?: unknown) =>
 
 // --- ROUTES ---
 export const apiClient = {
+  profile: () => request<{ build: import('../../shared/game/playerBuild').PlayerBuild; wins:number }>('/api/profile'),
+  saveProfile: (build: import('../../shared/game/playerBuild').PlayerBuild) => postJson<{saved:boolean}>('/api/profile',build),
   init: () => request<InitResponse>('/api/init'),
   leaderboard: () => request<LeaderboardResponse>('/api/leaderboard'),
   startRun: () => postJson<StartRunResponse>('/api/run/start'),
+  progress: (payload: FinishRunRequest) => postJson<{saved: boolean}>('/api/run/progress', payload),
   finishRun: (payload: FinishRunRequest) =>
     postJson<FinishRunResponse>('/api/run/finish', payload),
 };

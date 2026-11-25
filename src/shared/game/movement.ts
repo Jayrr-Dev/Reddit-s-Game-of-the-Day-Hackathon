@@ -13,6 +13,7 @@
 // turn 4 (3). Nothing on turn 5. Turn 6: back to 1.
 // ===================================================================
 
+import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import { fallBack, isDeep, rowDepth, stepForward } from './battlefield.ts';
 import { canPlayCard, combatOutcome } from './combat.ts';
 import {
@@ -204,9 +205,11 @@ const grant = (
 export const move = (state: CombatState, moveId: MovementId): CombatState => {
   if (!canMove(state, moveId)) return state;
   const def = MOVEMENTS[moveId];
+  const cost = movementCost(state, moveId);
   const paid: CombatState = {
     ...state,
-    energy: state.energy - movementCost(state, moveId),
+    energy: state.energy - cost,
+    playHistory: appendCombatHistory(state.playHistory, { turn: state.turn, move: moveId, cost }),
     lastMovement: {
       move: moveId,
       turn: state.turn,
@@ -214,8 +217,12 @@ export const move = (state: CombatState, moveId: MovementId): CombatState => {
     },
     ...shiftFormation({ ...state, player: spendRush(state.player) }, moveId),
   };
-  return grant(paid, def.grants);
+  return recordEffects(state, grant(paid, def.grants));
 };
+
+/** Rampage and Momentum cards grant the same non-stacking bonus as Charge. */
+export const grantMomentum = (state: CombatState): CombatState =>
+  grant(state, MOVEMENTS.charge.grants);
 
 /** Makes a card's movement at its card cost and records the movement streak. */
 export const moveFromCard = (

@@ -22,7 +22,6 @@ import type {
   MeleeEdge,
   StatusId,
 } from '../../shared/game/types';
-import { SHOCK_BURST_FACTOR } from '../../shared/game/rules';
 import type { HitHistory } from '../lib/popSize';
 import { HERO_ANCHOR_ATTR, HERO_UID_ATTR, type Point } from './useCardDrag';
 
@@ -115,7 +114,7 @@ type HeroLook = {
   weaken: number;
   vex: number;
   enfeeble: number;
-  shockBursts: number;
+  shockDamageTaken: number;
   bleedTaken: number;
   point: Point | null;
 };
@@ -123,26 +122,6 @@ type HeroLook = {
 // --- CONSTANTS ---
 /** How long a damage number stays on screen (matches --animate-hit-pop). */
 const HIT_POP_MS = 1400;
-/** How a hero that left the field looks: it lost whatever HP it had. */
-const goneAfter = (old: HeroLook): Omit<HeroLook, 'point'> => ({
-  hp: 0,
-  guard: 0,
-  damageTaken: old.damageTaken + old.hp,
-  missedShots: old.missedShots,
-  armorSoaked: old.armorSoaked,
-  wrath: 0,
-  hex: 0,
-  poison: 0,
-  burn: 0,
-  frost: 0,
-  shock: 0,
-  bleed: 0,
-  weaken: 0,
-  vex: 0,
-  enfeeble: 0,
-  shockBursts: old.shockBursts,
-  bleedTaken: old.bleedTaken,
-});
 /**
  * Time between the blows of a multi-hit attack on the villain: each
  * blow pops its own number (and draws its own mark, see PovImpact).
@@ -256,13 +235,14 @@ const tickCauseOf = (
  * a move's blows in one step, so only their sum is seen; every blow of
  * an attack deals the same, so the sum splits evenly (any remainder on
  * the last), and Guard soaks the first blows until it runs out, as it
- * did in the engine. Only the last blow can be the kill.
+ * did in the engine. The blow that crosses zero carries the skull.
  */
-export const splitIntoBlows = (hit: Hit, strikes: number): Hit[] => {
+export const splitIntoBlows = (hit: Hit, strikes: number, startingHp = hit.amount): Hit[] => {
   if (strikes <= 1) return [hit];
   const total = hit.amount + hit.blocked;
   const perBlow = Math.floor(total / strikes);
   let guardLeft = hit.blocked;
+  let hp = startingHp;
   // Armor soaks the same off every blow (any remainder on the last).
   const armored = hit.armored ?? 0;
   const armorPerBlow = Math.floor(armored / strikes);
@@ -271,12 +251,14 @@ export const splitIntoBlows = (hit: Hit, strikes: number): Hit[] => {
     const damage = isLast ? total - perBlow * (strikes - 1) : perBlow;
     const blocked = Math.min(guardLeft, damage);
     guardLeft -= blocked;
+    const isKill = hit.isKill === true && hp > 0 && damage - blocked >= hp;
+    hp -= damage - blocked;
     return {
       ...hit,
       amount: damage - blocked,
       blocked,
       armored: isLast ? armored - armorPerBlow * (strikes - 1) : armorPerBlow,
-      isKill: isLast && hit.isKill === true,
+      isKill,
     };
   });
 };
@@ -298,14 +280,14 @@ const gainsBetween = (
 
 /** What debuff pops read from a unit: its debuffs, Shock bursts, Bleed bites. */
 type DebuffLook = Record<DebuffKind, number> & {
-  shockBursts: number;
+  shockDamageTaken: number;
   bleedTaken: number;
 };
 
 /** A unit's debuffs and burst/bite counts, for debuffsBetween. */
 const debuffLookOf = (unit: Combatant): DebuffLook => ({
   ...unit.statuses,
-  shockBursts: unit.shockBursts ?? 0,
+        shockDamageTaken: unit.shockDamageTaken ?? 0,
   bleedTaken: unit.bleedTaken ?? 0,
 });
 
@@ -349,13 +331,13 @@ const bleedBiteBetween = (
  * Shock also reaches 0 by fading after an action (no burst, no damage).
  */
 const shockBurstBetween = (
-  before: Pick<DebuffLook, 'shock' | 'shockBursts'>,
-  after: Pick<DebuffLook, 'shockBursts'>
+  before: Pick<DebuffLook, 'shockDamageTaken'>,
+  after: Pick<DebuffLook, 'shockDamageTaken'>
 ): Hit | null =>
-  after.shockBursts > before.shockBursts && before.shock > 0
+  after.shockDamageTaken > before.shockDamageTaken
     ? {
         kind: 'shockBurst',
-        amount: before.shock * SHOCK_BURST_FACTOR,
+        amount: after.shockDamageTaken - before.shockDamageTaken,
         blocked: 0,
       }
     : null;
@@ -365,11 +347,18 @@ const shockBurstBetween = (
  * out, since each shows as its own number (the engine lands them in the
  * same step). Null when nothing is left.
  */
-const withoutSplits = (hit: Hit | null, splits: readonly Hit[]): Hit | null => {
+const withoutSplits = (hit: Hit | null, splits: Hit[], startingHp: number): Hit | null => {
   if (!hit || splits.length === 0) return hit;
   const split = splits.reduce((sum, pop) => sum + pop.amount, 0);
   const amount = Math.max(0, hit.amount - split);
-  return amount > 0 || hit.blocked > 0 ? { ...hit, amount } : null;
+  let hp = startingHp - amount;
+  for (const pop of splits) {
+    pop.isKill = !!hit.isKill && hp > 0 && pop.amount >= hp;
+    hp -= pop.amount;
+  }
+  return amount > 0 || hit.blocked > 0 || (hit.armored ?? 0) > 0
+    ? { ...hit, amount, isKill: !!hit.isKill && amount >= startingHp }
+    : null;
 };
 
 /** How far down a hero's drawn box its hits land (0 top, 1 feet). */
@@ -384,8 +373,8 @@ export const bodyPointOf = (uid: number, strikeIndex?: number): Point | null => 
   const rect = body.getBoundingClientRect();
   // A golden-angle step separates consecutive strikes across the torso.
   const angle = ((uid + (strikeIndex ?? 0)) * 137.5 * Math.PI) / 180;
-  const dx = strikeIndex === undefined ? 0 : Math.cos(angle) * rect.width * 0.27;
-  const dy = strikeIndex === undefined ? 0 : Math.sin(angle) * rect.height * 0.24;
+  const dx = strikeIndex === undefined ? 0 : Math.cos(angle) * rect.width * 0.18;
+  const dy = strikeIndex === undefined ? 0 : Math.sin(angle) * rect.height * 0.16;
   return {
     x: rect.left + rect.width / 2 + dx,
     y: rect.top + rect.height * BODY_FOCUS_Y + dy,
@@ -416,7 +405,7 @@ const lookAt = (
         weaken: unit.statuses.weaken,
         vex: unit.statuses.vex,
         enfeeble: unit.statuses.enfeeble,
-        shockBursts: unit.shockBursts ?? 0,
+        shockDamageTaken: unit.shockDamageTaken ?? 0,
         bleedTaken: unit.bleedTaken ?? 0,
         point: bodyPointOf(unit.uid) ?? before.get(unit.uid)?.point ?? null,
       },
@@ -425,7 +414,7 @@ const lookAt = (
 
 /**
  * Hero pops since the last look: hits, and on the heroes' turn what
- * their moves gave them. A hero gone from the field lost all its HP.
+ * their moves gave them. Removed heroes use the final counters recorded by the engine.
  */
 const heroPopsSince = (
   before: ReadonlyMap<number, HeroLook>,
@@ -439,8 +428,8 @@ const heroPopsSince = (
 ): Omit<HitPop, 'id' | 'typical'>[] =>
   [...before].flatMap(([uid, old]) => {
     const unit = heroes.find((hero) => hero.uid === uid);
-    const now = unit
-      ? {
+    if (!unit) return [];
+    const now = {
           hp: unit.hp,
           guard: unit.guard,
           damageTaken: unit.damageTaken,
@@ -456,17 +445,16 @@ const heroPopsSince = (
           weaken: unit.statuses.weaken,
           vex: unit.statuses.vex,
           enfeeble: unit.statuses.enfeeble,
-          shockBursts: unit.shockBursts ?? 0,
+        shockDamageTaken: unit.shockDamageTaken ?? 0,
           bleedTaken: unit.bleedTaken ?? 0,
-        }
-      : goneAfter(old);
-    const debuffs = unit ? debuffsBetween(old, now) : [];
+        };
+    const debuffs = debuffsBetween(old, now);
     const splits = debuffs.filter(isSplitPop);
-    const found = withoutSplits(hitBetween(old, now, countsBlocked), splits);
+    const found = withoutSplits(hitBetween(old, now, countsBlocked), splits, old.hp);
     // On the heroes' turn only statuses harm them: name the one that ticked.
     const tick = isHeroTurn ? tickCauseOf(old, now) : undefined;
     const hit = found ? { ...found, source, element, edge, tick } : null;
-    const gains = isHeroTurn && unit ? gainsBetween(old, now) : [];
+    const gains = isHeroTurn ? gainsBetween(old, now) : [];
     const misses = missesBetween(old, now);
     const point = bodyPointOf(uid, hit && !isHeroTurn ? strikeIndex : undefined) ?? old.point;
     if (!point) return [];
@@ -537,7 +525,7 @@ export const useHitPops = (
   edge: MeleeEdge | undefined,
   history: HitHistory,
   strikeIndex: number,
-  fallenFromTick?: HeroUnit
+  fallen: readonly HeroUnit[]
 ): HitPop[] => {
   const [pops, add] = usePopQueue<Omit<HitPop, 'id' | 'typical'>>(history);
   const lastLookRef = useRef(new Map<number, HeroLook>());
@@ -548,7 +536,7 @@ export const useHitPops = (
     const countsBlocked = lastTurnRef.current === turn && !isHeroTurn;
     const hits = heroPopsSince(
       lastLookRef.current,
-      fallenFromTick ? [...heroes, fallenFromTick] : heroes,
+      [...heroes, ...fallen],
       countsBlocked,
       isHeroTurn,
       isHeroTurn ? 'curse' : cardType,
@@ -559,7 +547,7 @@ export const useHitPops = (
     lastLookRef.current = lookAt(heroes, lastLookRef.current);
     lastTurnRef.current = turn;
     if (hits.length > 0) add(hits);
-  }, [heroes, turn, isHeroTurn, cardType, element, edge, strikeIndex, fallenFromTick, add]);
+  }, [heroes, turn, isHeroTurn, cardType, element, edge, strikeIndex, fallen, add]);
 
   return pops;
 };
@@ -572,7 +560,8 @@ export const useHitPops = (
 const villainGainsBetween = (before: Combatant, after: Combatant): Hit[] => {
   const buffs = VILLAIN_GAINS.map((kind) => ({
     kind,
-    amount: after.statuses[kind] - before.statuses[kind],
+    amount: kind === 'protection' && after.statuses[kind] > before.statuses[kind]
+      ? after.statuses[kind] : after.statuses[kind] - before.statuses[kind],
     blocked: 0,
   }));
   const guard = {
@@ -601,7 +590,8 @@ export const usePlayerHits = (
   turn: number,
   source: CardType | null,
   history: HitHistory,
-  strikes = 1
+  strikes = 1,
+  element?: MagicElement
 ): PlayerHitPop[] => {
   const [pops, add] = usePopQueue<Hit>(history);
   const lastRef = useRef({ player, turn });
@@ -617,7 +607,7 @@ export const usePlayerHits = (
     const debuffs = allDebuffs.filter((pop) => !isSplitPop(pop));
     const found = withoutSplits(
       hitBetween(last.player, player, last.turn === turn),
-      splits
+      splits, last.player.hp
     );
     // Untyped harm (no hero attack landing) is a status ticking.
     const tick =
@@ -625,7 +615,7 @@ export const usePlayerHits = (
         ? tickCauseOf(last.player.statuses, player.statuses)
         : undefined;
     const [firstBlow, ...laterBlows] = found
-      ? splitIntoBlows({ ...found, source: source ?? undefined, tick }, strikes)
+      ? splitIntoBlows({ ...found, source: source ?? undefined, element, tick }, strikes, last.player.hp)
       : [];
     const gains = villainGainsBetween(last.player, player);
     const misses = missesBetween(last.player, player);
@@ -646,7 +636,7 @@ export const usePlayerHits = (
     );
     if (splits.length > 0)
       window.setTimeout(() => add(splits), laterBlows.length * BLOW_STAGGER_MS);
-  }, [player, turn, source, strikes, add]);
+  }, [player, turn, source, strikes, element, add]);
 
   return pops;
 };

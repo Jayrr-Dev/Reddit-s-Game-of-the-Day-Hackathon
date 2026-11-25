@@ -1,14 +1,9 @@
 // ===================================================================
 // HIT NUMBERS
-// The damage numbers that punch in over the hero that was hit, then
-// drift up, swelling as they fade (see --animate-hit-pop). Several hits on one target
-// pile up like in action games: each lands near the same spot with a
-// small random nudge and tilt, the newest drawn on top, while the ones
-// under it dim so the fresh number always reads first. The number is the HP
-// lost; the part a Guard soaked up shows beside it as a grey shield number. What a hero
-// gains from its own move (heal, Guard, Wrath) pops as "+N" + icon.
+// Damage labels hold at their individual impact points until they fade.
 // ===================================================================
 
+import { tierNumeral } from '../../../../shared/game/describe';
 import type { CSSProperties } from 'react';
 import type { CardType } from '../../../../shared/game/types';
 import { CARD_LOOK, POP_LOOK } from '../../../content/visuals';
@@ -151,7 +146,7 @@ export const HitLine = ({
   );
   if (isGuardedWhole) {
     return (
-      <div className="flex items-center gap-1 animate-hit-pop">
+      <div className="flex items-center gap-1 animate-damage-fade">
         <BlockedPart blocked={blocked} typical={typical} scale={1} />
         {armorPart}
       </div>
@@ -214,7 +209,7 @@ const GainLine = ({
       className={`flex items-center gap-0.5 font-display font-black whitespace-nowrap animate-hit-pop drop-shadow-[0_1px_2px_black] ${look.toneClass}`}
       style={{ fontSize: popFontPx(amount, typical, GAIN_SCALE) }}
     >
-      {`+${amount}`}
+      {kind === 'protection' || kind === 'enfeeble' ? tierNumeral(amount) : `+${amount}`}
       <Glyph name={look.glyph} className="size-[0.8em]" />
     </div>
   );
@@ -288,7 +283,7 @@ export const HitStack = ({
           key={hit.id}
           className={`absolute bottom-0 whitespace-nowrap transition-opacity duration-150 ${align === 'center' ? 'left-1/2' : 'left-0'}`}
           style={{
-            ...pileStyleOf(hit, index, align),
+            ...pileStyleOf(hit, hit.id, align),
             ...(isDrifting ? driftOf(hit.id) : {}),
             zIndex: index,
             opacity: hit.id === newestId ? 1 : BURIED_OPACITY,
@@ -301,43 +296,19 @@ export const HitStack = ({
   );
 };
 
-/** Groups pops by hero, in the order they happened. */
-const popsByHero = (pops: readonly HitPop[]): HitPop[][] => [
-  ...pops
-    .reduce((groups, pop) => {
-      groups.set(pop.uid, [...(groups.get(pop.uid) ?? []), pop]);
-      return groups;
-    }, new Map<number, HitPop[]>())
-    .values(),
-];
-
-// --- COMPONENT ---
-/**
- * Renders the current damage numbers over their heroes; each hero's
- * stack is anchored at its latest hit point and grows upward.
- */
+/** Each number retains the viewport position captured when its own hit landed. */
 export const HitNumbers = ({ pops }: { pops: HitPop[] }) => (
   <div className="pointer-events-none fixed inset-0 z-40">
-    {popsByHero(pops).map((group) => {
-      const latest = group[group.length - 1];
-      if (!latest) return null;
-      return (
-        <div key={latest.uid}>
-          {/* EFFECTS OVER THE BODY (under the numbers) */}
-          {group.map(pop => (
-            <div key={pop.id} className="absolute size-28 -translate-x-1/2 -translate-y-1/2"
-              style={{ left: pop.point.x, top: pop.point.y, ['--mark-scatter' as string]: '0%' }}>
-              <ImpactOverlay pops={[pop]} />
-            </div>
-          ))}
-          <div
-            className="absolute -translate-x-1/2 -translate-y-full"
-            style={{ left: latest.point.x, top: latest.point.y + 24 }}
-          >
-            <HitStack hits={group} />
-          </div>
+    {pops.map(pop => (
+      <div key={pop.id} className="absolute" style={{ left: pop.point.x, top: pop.point.y }}>
+        <div className="absolute size-28 -translate-x-1/2 -translate-y-1/2"
+          style={{ ['--mark-scatter' as string]: '0%' }}>
+          <ImpactOverlay pops={[pop]} />
         </div>
-      );
-    })}
+        <div className="absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap">
+          <PopLine hit={pop} />
+        </div>
+      </div>
+    ))}
   </div>
 );

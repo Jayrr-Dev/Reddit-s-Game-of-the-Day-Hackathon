@@ -27,6 +27,12 @@ type Playback = {
 /** Gap between one hit landing and the next (ms). Quick, so it stays snappy. */
 export const HIT_STAGGER_MS = 180;
 
+/** Leave the final damage number visible before the victory screen replaces combat. */
+const isLastLethalBeat = ({ beats, index }: Playback): boolean => {
+  const heroes = beats[index]?.heroes;
+  return index === beats.length - 1 && !!heroes?.length && heroes.every(isDefeated);
+};
+
 // --- HOOK ---
 /**
  * Returns the state to draw (a hit beat while one plays, else the real
@@ -50,7 +56,7 @@ export const useCardHits = (
         return;
       }
       setPlayback({ ...playback, index: playback.index + 1 });
-    }, HIT_STAGGER_MS);
+    }, isLastLethalBeat(playback) ? 1400 : HIT_STAGGER_MS);
     return () => window.clearTimeout(timer);
   }, [playback, onAction]);
 

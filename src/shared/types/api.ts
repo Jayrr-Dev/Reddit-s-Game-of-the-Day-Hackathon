@@ -23,6 +23,8 @@ export type StreakSummary = {
 
 // --- GET /api/init ---
 export type InitResponse = {
+  accountId?: string;
+  lifetimeWins?: number;
   type: 'init';
   postId: string;
   dailyKey: string;
@@ -37,6 +39,8 @@ export type InitResponse = {
 // Called when the player begins a run. The first run of the day is the
 // ranked one; any later run is practice and never touches the board.
 export type StartRunResponse = {
+  build?: import('../game/playerBuild.ts').PlayerBuild;
+  profile?: { id: string; wins: number };
   type: 'runStart';
   isRanked: boolean;
 };
@@ -45,6 +49,7 @@ export type StartRunResponse = {
 // The client sends its action log, not a score. The server replays the
 // log with the shared engine and computes the score itself.
 export type FinishRunRequest = {
+  runId?: string;
   actions: RunAction[];
 };
 

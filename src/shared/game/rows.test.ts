@@ -87,7 +87,7 @@ const placesOf = (heroes: readonly HeroUnit[]): string[] =>
 void test('Spiked Guard can strike a Paladin backed by Valen', () => {
   const state = fightAt([
     ['paladin', 'front', 0],
-    ['valen', 'back', 0],
+    ['valen', 'back', 0], ['archer', 'back', 2],
   ], ['spikedGuard']);
   const paladin = unitAt(state, 0);
   assert.equal(canPush(state.heroes, paladin), false);
@@ -109,6 +109,7 @@ void test('Killing Spree requires three fresh kills in one hit, then pays one to
   ]);
   const field = {
     ...start,
+    energy: 6,
     heroes: start.heroes.map(hero => ({ ...hero, hp: hero.row === 'front' ? 1 : 20 })),
     drawPile: Array<CardId>(3).fill('darkCloak'),
   };
@@ -159,7 +160,7 @@ void test('Move 2 boosts the next Charge or Back Step and is then spent', () => 
   }
 });
 
-void test('Siege Blast hits every grounded row and knocks all survivors back up to two rows', () => {
+void test('Siege Blast damages the front line and pushes its survivors up to two rows', () => {
   const fight = fightAt([
     ['squire', 'front', 0], ['archer', 'back', 1], ['priest', 'horizon', 2],
   ], ['siegeBlast']);
@@ -167,8 +168,10 @@ void test('Siege Blast hits every grounded row and knocks all survivors back up 
   const after = playCard(state, 0, -1);
   assert.equal(after.energy, state.energy - 2);
   assert.deepEqual(after.heroes.map(hero => [hero.hp, hero.row]), [
-    [38, 'horizon'], [38, 'horizon'], [38, 'horizon'],
+    [38, 'horizon'], [50, 'back'], [50, 'horizon'],
   ]);
+  const emptyFront = { ...state, heroes: state.heroes.filter(hero => hero.row !== 'front') };
+  assert.equal(playCard(emptyFront, 0, -1), emptyFront);
   const lethal = { ...state, heroes: state.heroes.map(hero => hero.row === 'front' ? { ...hero, hp: 1 } : hero) };
   const kill = playCard(lethal, 0, -1);
   assert.equal(kill.slain, 1);
@@ -185,7 +188,7 @@ void test('replacement waves fill the Horizon and overflow into the Backline', (
     const horizonCells = cells.filter((cell) => cell.row === 'horizon').length;
     assert.ok(horizonCells > 0);
     for (const hero of next.heroes.filter((unit) => unit.row === 'back')) {
-      assert.ok(cellsOf(hero).length > BATTLEFIELD_COLUMNS - horizonCells);
+      assert.ok(cellsOf(hero).length > BATTLEFIELD_COLUMNS * 2 - horizonCells);
     }
     assert.ok(cells.every((cell) => cell.row !== 'front'));
     assert.equal(new Set(cells.map((cell) => cell.row + cell.col)).size, cells.length);
@@ -343,7 +346,7 @@ void test('a deep boss Back Steps as a whole, then walks back in', () => {
   const griffon = unitAt(after, 0);
   assert.deepEqual(
     cellsOf(griffon).map((cell) => `${cell.row}:${cell.col}`),
-    ['back:1', 'horizon:1']
+    ['back:1', 'back:1.5', 'horizon:1', 'horizon:1.5']
   );
   // Still immovable by Force Pull / Push.
   assert.equal(canPull(after.heroes, griffon), false);
@@ -552,7 +555,10 @@ void test('the Ballista is Anchored: nothing pushes it, but you can close in', (
   const lone = fightAt([['ballista', 'back', 1]]);
   assert.ok(canMove(lone, 'charge'));
   assert.equal(unitAt(move(lone, 'charge'), 0).row, 'front');
-  assert.equal(advanceHeroes(lone.heroes)[0]?.row, 'horizon');
+  for (const row of ['front', 'back', 'horizon'] as const) {
+    const placed = fightAt([['ballista', row, 1]]);
+    assert.deepEqual(advanceHeroes(placed.heroes), placed.heroes);
+  }
   // It starts and holds on the farthest line.
   const fresh = startCombat({
     hp: 60,
@@ -597,6 +603,19 @@ void test('the Siege Bolt hits harder and knocks you back 2 lines', () => {
   const start = ballistaFight(siegeIndex).player.hp;
   assert.ok(start - siege.player.hp > start - plain.player.hp);
   assert.equal(unitAt(siege, 0).row, 'horizon');
+  assert.deepEqual(siege.forcedMovement, { count: 1, move: 'backStep', distance: 2 });
+  assert.equal(siege.travelRows, -2);
+});
+
+void test('Winch Back pulls the player closer only when there is room', () => {
+  const index = getHero('ballista').moves.findIndex(move => move.name === 'Winch Back');
+  const state = ballistaFight(index);
+  const blocked = endTurn(state);
+  assert.equal(blocked.forcedMovement?.distance, 0);
+  const pulled = endTurn({ ...state, heroes: state.heroes.filter(unit => unit.heroId === 'ballista') });
+  assert.deepEqual(pulled.forcedMovement, { count: 1, move: 'charge', distance: 1 });
+  assert.equal(pulled.travelRows, 1);
+  assert.equal(pulled.lastMovement, state.lastMovement);
 });
 
 void test('the Ballista also looses plain arrows, fire and barbed bolts', () => {
@@ -643,10 +662,10 @@ void test('heroes never fill more than the cell cap: summons fizzle', () => {
     ['archmage', 'back', 0],
     ['priest', 'horizon', 0],
   ]);
-  // 2 + 2 + 1 = 5 cells filled: room for one more grunt, not two.
-  assert.equal(freeHeroCells(state.heroes), MAX_HERO_CELLS - 5);
+  // Two large units and one grunt occupy four columns.
+  assert.equal(freeHeroCells(state.heroes), MAX_HERO_CELLS - 4);
   const priest = unitAt(state, 2);
-  assert.equal(summonSeats(state.heroes, priest, 1, 2).length, 1);
+  assert.equal(summonSeats(state.heroes, priest, 1, 2).length, 2);
 });
 
 // --- INSTINCT (DODGE) ---
@@ -754,12 +773,12 @@ void test('displaced specialists return one row at a time and respect occupied c
     assert.equal(settled[0]?.row, 'back');
     assert.equal(advanceHeroes(settled)[0]?.row, 'back');
   }
-  for (const id of ['ballista', 'valen'] as const) {
-    const field = fightAt([[id, 'front', 0]]).heroes;
+  {
+    const field = fightAt([['valen', 'front', 0]]).heroes;
     const step = advanceHeroes(field);
     assert.equal(step[0]?.row, 'back');
     assert.equal(advanceHeroes(step)[0]?.row, 'horizon');
   }
-  const blocked = fightAt([['lysa', 'front', 0], ['archmage', 'back', 0]]).heroes;
+  const blocked = fightAt([['lysa', 'front', 0], ['archmage', 'back', 0], ['archer', 'back', 2]]).heroes;
   assert.equal(advanceHeroes(blocked)[0]?.row, 'front');
 });

@@ -38,7 +38,7 @@ export const useShockSplash = (combatant: Combatant): number | null => {
     const before = lastRef.current;
     lastRef.current = combatant;
     if (!didBurst(before, combatant)) return;
-    setSplashed(before.statuses.shock);
+    setSplashed((combatant.shockDamageTaken ?? 0) - (before.shockDamageTaken ?? 0));
     window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => setSplashed(null), SPLASH_MS);
   }, [combatant]);

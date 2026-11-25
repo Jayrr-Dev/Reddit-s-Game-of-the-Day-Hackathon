@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import { FEATURES } from './features.ts';
 import {
   advanceHeroes,
+  cellsOf,
   canPull,
   legalTargets,
   sizeOf,
@@ -111,18 +112,13 @@ void test('every horde the kingdom can roll fits on the field', () => {
   ];
   for (const horde of hordes) {
     const { heroes } = fight(horde, []);
-    const cells = heroes.flatMap((unit) =>
-      Array.from(
-        { length: sizeOf(unit) },
-        (_, i) => `${unit.row}${unit.col + i}`
-      )
-    );
+    const cells = heroes.flatMap(cellsOf);
     assert.equal(
-      new Set(cells).size,
+      new Set(cells.map(({row, col}) => row + col)).size,
       cells.length,
       `overlap in ${horde.join()}`
     );
-    assert.ok(cells.every((cell) => Number(cell.slice(-1)) < 3));
+    assert.ok(cells.every((cell) => cell.col >= 0 && cell.col < 3));
   }
 });
 
@@ -145,11 +141,11 @@ void test('Reach and curses can hit the back row', () => {
   assert.equal(targetRuleOf('whisperHex'), 'any');
 });
 
-void test('Range, Magic, Curse and the Siege Blast shockwave reach across rows', () => {
+void test('Range, Magic and Curse reach across rows', () => {
   for (const cardId of ALL_CARD_IDS) {
     const { type, reach } = getCard(cardId);
     const isShort = !['range', 'magic', 'curse'].includes(type);
-    assert.equal(reach, !isShort || cardId === 'siegeBlast', `${cardId} (${type})`);
+    assert.equal(reach, !isShort, `${cardId} (${type})`);
   }
   assert.equal(targetRuleOf('cruelSlash'), 'front');
   assert.equal(targetRuleOf('mourningCurse'), 'any');
@@ -310,4 +306,12 @@ void test('with the three-row flag off, Longrange is neither printed nor offered
   assert.equal(isCardInPlay('eagleEye'), false);
   assert.ok(!cardsOfRarity('uncommon').includes('eagleEye'));
   assert.deepEqual(passivesOf({ heroId: 'archer' }), []);
+});
+
+void test('two large heroes share a row and each fills exactly half', () => {
+  for (const id of ['holt', 'archmage'] as const) {
+    const { heroes } = fight([id, id], []);
+    assert.ok(heroes.every(unit => sizeOf(unit) === 1.5 && unit.row === heroes[0]?.row));
+    assert.deepEqual(heroes.map(unit => unit.col).sort(), [0, 1.5]);
+  }
 });

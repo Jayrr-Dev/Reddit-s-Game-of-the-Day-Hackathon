@@ -12,3 +12,7 @@ declare module '*.webp' {
   const content: string;
   export default content;
 }
+declare module '*.ogg' {
+  const url: string;
+  export default url;
+}

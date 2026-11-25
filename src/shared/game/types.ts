@@ -1,3 +1,4 @@
+import type { Equipment, TraitNodes, Traits } from './character.ts';
 // ===================================================================
 // GAME TYPES
 // The vocabulary of Villain Run. Catalogs (cards, heroes) are data that
@@ -93,6 +94,9 @@ export type PassiveId = 'vigor' | 'longRange' | 'anchored';
 
 /** Anything with HP that fights: the villain or a hero. */
 export type Combatant = {
+  traits?: Traits;
+  traitNodes?: TraitNodes;
+  equipment?: Equipment;
   hp: number;
   maxHp: number;
   /** Absorbs damage before HP. Clears at the start of the owner's turn. */
@@ -122,6 +126,7 @@ export type Combatant = {
    * burst: Shock can also reach 0 by fading, which is not a burst.
    */
   shockBursts?: number;
+  shockDamageTaken?: number;
   /** True when Protection was cast this turn (else it lapses at turn end). */
   protectionCast?: boolean;
   /** True when Enfeeble was laid on this unit this villain turn. */
@@ -204,6 +209,7 @@ export type TimedBuff = {
 // --- IMBUE ---
 /** A keyword a card can be printed with or imbued with. */
 export type CardKeyword =
+  | 'charge'
   | 'hold'
   | 'piercing'
   | 'remove'
@@ -257,7 +263,7 @@ export type MeleeEdge = 'sharp' | 'blunt';
  * Utility cards generally grant energy, restore HP, or draw cards. Some are consumables.
  */
 export type CardType =
-  'melee' | 'range' | 'magic' | 'defend' | 'buff' | 'curse' | 'utility' | 'movement';
+  'melee' | 'range' | 'magic' | 'defend' | 'buff' | 'imbue' | 'curse' | 'utility' | 'movement';
 
 export type CardDef = {
   costReductionPerKill?: number;
@@ -358,7 +364,7 @@ export type HeroEffect =
    * Knocks the villain back `lines` lines: every hero ends up that much
    * farther, as with a Back Step (and nobody walks in that turn).
    */
-  | { kind: 'knockBack'; lines: number }
+  | { kind: 'knockBack' | 'pullPlayer'; lines: number }
   /** Sets off the villain's Shock now, however many hits it has taken. */
   | { kind: 'detonate' };
 
@@ -370,6 +376,7 @@ export type HeroEffect =
 export type SummonId = 'angelArcher';
 
 export type HeroMove = {
+  element?: MagicElement;
   name: string;
   effects: readonly HeroEffect[];
   /** The hero's signature move: it plays its own special animation. */
@@ -389,7 +396,7 @@ export type HeroTier = 'grunt' | 'elite' | 'champion' | 'boss';
  */
 export type HeroRow = 'front' | 'back' | 'horizon';
 /** How many columns a hero fills: grunts 1, elites 2, champions 3. */
-export type HeroSize = 1 | 2 | 3;
+export type HeroSize = 1 | 1.5 | 2 | 3;
 export type HeroDef = {
   name: string;
   tier: HeroTier;
@@ -454,11 +461,37 @@ export type StowedImbue = { cardId: CardId; imbues: Imbue[] };
  */
 export type UsesSpent = Partial<Record<CardId, number>>;
 
+/** A committed player play, with the cost and card upgrades at that moment. */
+export type CardPlayRecord = { turn: number; cost: number } & (
+  | { cardId: CardId; imbues?: readonly Imbue[]; usesSpent?: number }
+  | { move: MovementId }
+);
+
+export type EnemyAttackRecord = {
+  heroId: HeroId;
+  turn: number;
+  attackName: string;
+  attackType: HeroAttackType;
+  hpLost: number;
+  guardLost: number;
+};
+
+export type CombatHistoryRecord = CardPlayRecord | EnemyAttackRecord | {
+  turn: number;
+  event: 'death' | 'heal' | 'guard' | 'status' | 'arrival';
+  subject: string;
+  detail: string;
+  status?: StatusId;
+};
+
 export type CombatState = {
+  /** Replacement wave spends its first enemy phase entering the battlefield. */
+  waveArrival?: boolean;
+  playHistory?: readonly CombatHistoryRecord[];
   player: Combatant;
   heroes: HeroUnit[];
   energy: number;
-  /** Unspent energy carried over from last turn (RESERVE_ENERGY_SLOTS). */
+  /** Unspent energy carried over from last turn. */
   reserve: number;
   hand: CardId[];
   drawPile: CardId[];
@@ -481,9 +514,11 @@ export type CombatState = {
   turn: number;
   /** Heroes defeated so far in this fight. */
   slain: number;
+  killsThisTurn?: number;
   rng: RngState;
   /** Net rows the villain has travelled toward the enemy since combat began. */
   travelRows?: number;
+  forcedMovement?: { count: number; move: MovementId; distance: number };
   /** The last movement (its streak raises the next one's cost). */
   followUpReady?: boolean;
   mostKillsInOneHit?: number;

@@ -24,7 +24,7 @@ export const MenuPanel = ({ title, onClose, children }: MenuPanelProps) => (
   <section
     role="dialog"
     aria-label={title}
-    className="absolute inset-0 z-40 flex flex-col items-center gap-3 overflow-hidden bg-surface p-4 animate-rise"
+    className="run-menu-panel absolute inset-0 z-40 flex flex-col items-center gap-3 overflow-hidden bg-surface p-4 animate-rise"
   >
     <h2 className="font-display text-xl font-black uppercase tracking-widest text-accent">
       {title}

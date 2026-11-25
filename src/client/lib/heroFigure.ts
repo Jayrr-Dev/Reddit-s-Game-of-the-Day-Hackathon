@@ -8,7 +8,7 @@ import type { HeroSize } from '../../shared/game/types';
 
 // --- CONSTANTS ---
 /** Body width in viewBox units per hero size (height stays BODY_HEIGHT). */
-export const BODY_WIDTH: Record<HeroSize, number> = { 1: 60, 2: 110, 3: 150 };
+export const BODY_WIDTH: Record<HeroSize, number> = { 1: 60, 1.5: 85, 2: 110, 3: 150 };
 /** Height of the drawing in viewBox units. */
 export const BODY_HEIGHT = 100;
 

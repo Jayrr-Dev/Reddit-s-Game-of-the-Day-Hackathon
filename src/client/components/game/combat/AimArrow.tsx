@@ -26,6 +26,7 @@ export type AimArrowProps = {
   damageFactor?: number;
   /** The chance each shot lands on this target (1 = sure, no label). */
   hitChance?: number;
+  critChance?: number;
   /** 0 = full arrow; toward 1 it shrinks into the card and fades out. */
   retract?: number;
   /**
@@ -246,7 +247,7 @@ const BonusLabel = ({ at, factor }: { at: Point; factor: number }) => (
 );
 
 /** A shot's chance to land, under the tip, e.g. "50% hit". */
-const ChanceLabel = ({ at, chance }: { at: Point; chance: number }) => (
+const ChanceLabel = ({ at, chance, kind = 'hit' }: { at: Point; chance: number; kind?: 'hit' | 'crit' }) => (
   <text
     x={at.x}
     y={at.y + LOCK_RING_RADIUS + CHANCE_GAP_PX}
@@ -257,7 +258,7 @@ const ChanceLabel = ({ at, chance }: { at: Point; chance: number }) => (
     strokeWidth="3"
     strokeLinejoin="round"
   >
-    {`${Math.round(chance * 100)}% hit`}
+    {`${Math.round(chance * 100)}% ${kind}`}
   </text>
 );
 
@@ -270,6 +271,7 @@ export const AimArrow = ({
   isLethal = false,
   damageFactor = 1,
   hitChance = 1,
+  critChance = 0,
   retract = 0,
   arc = 'rise',
   hasLockRing = true,
@@ -305,6 +307,7 @@ export const AimArrow = ({
       {isLive && damageFactor !== 1 && (
         <BonusLabel at={to} factor={damageFactor} />
       )}
+      {isLive && critChance > 0 && <ChanceLabel at={to} chance={critChance} kind="crit" />}
       {isLive && hitChance < 1 && <ChanceLabel at={to} chance={hitChance} />}
       {isLive && !isLethal && hasLockRing && (
         <circle

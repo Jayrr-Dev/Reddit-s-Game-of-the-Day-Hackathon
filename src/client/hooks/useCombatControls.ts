@@ -47,7 +47,9 @@ import {
   autoTargets,
   canPlayCard,
   aimHitChance,
+  aimCritChance,
   playDamageFactor,
+  positionForCard,
   targetsFor,
   wouldFell,
 } from '../../shared/game/combat';
@@ -157,7 +159,7 @@ export const useCombatControls = (
     heldIndex !== null &&
     canPlayCard(combat, heldIndex);
   const legalUids = isHolding
-    ? targetsFor(combat, heldCard).map((unit) => unit.uid)
+    ? targetsFor(combat, heldCard, heldIndex ?? undefined).map((unit) => unit.uid)
     : [];
   // Picks only count while their card is still the one held.
   const pickedUids =
@@ -265,7 +267,7 @@ export const useCombatControls = (
       release();
       return imbue.drop();
     }
-    const legal = targetsFor(combat, cardId).map((unit) => unit.uid);
+    const legal = targetsFor(combat, cardId, handIndex).map((unit) => unit.uid);
     const { isLive, target } = resolveDrop(cardId, drop, legal);
     if (!isLive) return release();
     if (!target) {
@@ -330,7 +332,7 @@ export const useCombatControls = (
   const aimFactor =
     hoverUnit && dragCard !== undefined && drag
       ? playDamageFactor(
-          combat.player,
+          positionForCard(combat, dragCard, drag.handIndex).player,
           hoverUnit,
           getCard(dragCard),
           cardHasKeyword(
@@ -490,6 +492,7 @@ export const useCombatControls = (
     isLethal,
     aimFactor,
     aimChance,
+    critChance: hoverUnit && drag ? aimCritChance(combat, drag.handIndex, hoverUnit) : 0,
     autoAimUids,
     isAutoAimLethal,
     arrowRetract,

@@ -16,7 +16,6 @@ import {
 import { playBotRun } from './testBot.ts';
 import type { RunState } from './run.ts';
 import type { CombatState } from './types.ts';
-import { EXHAUST_USES } from './rules.ts';
 
 const DAY = '2026-11-23';
 
@@ -131,17 +130,25 @@ const winWith = (run: RunState, drink: boolean): RunState => {
 };
 
 void test('an Exhaust card counts its uses across fights', () => {
-  const run = lastHeroFight(['healingPotion', 'backhand']);
+  const fight = lastHeroFight(['rushPotion', 'backhand']);
+  const run: RunState = { ...fight, deck: [...fight.deck, 'rushPotion'] };
   const won = winWith(run, true);
   assert.equal(won.phase.kind, 'reward');
   assert.deepEqual(won.deck, run.deck, 'one use spent: still in the deck');
-  assert.equal(won.usesSpent.healingPotion, 1);
+  assert.equal(won.usesSpent.rushPotion, 1);
+  const route = runReducer(won, { type: 'pickCard', offerIndex: null });
+  if (route.phase.kind !== 'route') throw new Error('no route');
+  const next = route.phase.options.map((_, option) =>
+    runReducer(route, { type: 'chooseStop', option })
+  ).find(state => state.phase.kind === 'combat');
+  assert.ok(next?.phase.kind === 'combat');
+  assert.equal(next.phase.combat.usesSpent.rushPotion, 1);
 });
 
 void test('its last use takes it out of the deck for the run', () => {
   const fresh = lastHeroFight(['healingPotion', 'backhand']);
   if (fresh.phase.kind !== 'combat') throw new Error('no fight');
-  const usesSpent = { healingPotion: EXHAUST_USES - 1 };
+  const usesSpent = { healingPotion: 1 }; // A copy used before Healing Potion became single-use.
   const run: RunState = {
     ...fresh,
     usesSpent,
@@ -160,4 +167,37 @@ void test('an Exhaust card not played is untouched', () => {
   assert.equal(won.phase.kind, 'reward');
   assert.deepEqual(won.deck, run.deck);
   assert.deepEqual(won.usesSpent, {});
+});
+void test('story champions unlock slots 1 through 5 across cumulative victories', () => {
+  const base = lastHeroFight(['healingPotion', 'backhand']);
+  assert.equal(winWith(base, false).character.ringProgress.bossWins, 0);
+  if (base.phase.kind !== 'combat') throw Error('missing combat');
+  const champion = routeOptions(DAY, 5)[0]!;
+  for (let wins = 0; wins <= 5; wins++) {
+    const won = winWith({ ...base, character: { ...base.character, ringProgress: { bossWins: wins, rareSlots: [] } },
+      phase: { ...base.phase, stop: champion } }, false);
+    assert.equal(won.character.ringProgress.bossWins, wins + 1);
+    assert.equal(won.storyRingUnlocked, wins < 5 ? wins + 1 : undefined);
+  }
+});
+
+void test('ending a run cannot unlock extra ring slots', () => {
+  const fresh = createRun(DAY);
+  const result = runReducer({...fresh,stats:{...fresh.stats,wavesCleared:1}}, {type:'abandon'});
+  assert.deepEqual(result.ringDrops,[]);
+  assert.equal(result.character.equipment.rings.length,5);
+});
+void test('only lethal battles retain the final field for the story defeat screen', () => {
+  const first = createRun(DAY);
+  const battle = runReducer(first, { type: 'chooseStop', option: 0 });
+  assert.ok(battle.phase.kind === 'combat');
+  const combat = battle.phase.combat;
+  const poisoned = { ...combat, player: { ...combat.player, hp: 1, statuses: { ...combat.player.statuses, poison: 100 } } };
+  const lost = runReducer({ ...battle, phase: { ...battle.phase, combat: poisoned } }, { type: 'endTurn' });
+  assert.ok(lost.phase.kind === 'fallen');
+  assert.equal(lost.phase.battlefield?.combat.player.hp, 0);
+  assert.deepEqual(lost.phase.battlefield?.stop, battle.phase.stop);
+  const abandoned = runReducer(battle, { type: 'abandon' });
+  assert.ok(abandoned.phase.kind === 'fallen');
+  assert.equal(abandoned.phase.battlefield, undefined);
 });

@@ -123,9 +123,9 @@ type Placement = {
 // Fighters hold the front; support and ranged heroes keep to the back.
 const FRONT: Placement = { row: 'front', size: 1 };
 const BACK: Placement = { row: 'back', size: 1 };
-const WIDE_FRONT: Placement = { row: 'front', size: 2 };
-const WIDE_BACK: Placement = { row: 'back', size: 2 };
-/** A champion: two columns of the front row, leaving one open. */
+const WIDE_FRONT: Placement = { row: 'front', size: 1.5 };
+const WIDE_BACK: Placement = { row: 'back', size: 1.5 };
+/** A champion: half of the front row. */
 const CHAMPION: Placement = WIDE_FRONT;
 /**
  * A boss in a T: the whole front row plus the back row's centre,
@@ -229,7 +229,7 @@ export const HEROES = {
       move('Heavy Bolt', shoot(9), knockBack(1)),
       move('Arrow Volley', shoot(4, 3)),
       move('Fire Bolt', shoot(7), burn(4)),
-      move('Winch Back', guard(6)),
+      move('Winch Back', guard(6), { kind: 'pullPlayer', lines: 1 }),
       move('Barbed Bolt', shoot(7), bleed(4)),
       signature(move('Siege Bolt', shoot(16), knockBack(2))),
     ],
@@ -266,7 +266,7 @@ export const HEROES = {
     move('Feint', weaken(2), guard(8)),
     move('Execution', strike(20)),
   ]),
-  valen: hero('Valen the Radiant', 'champion', 90, 48, 6, { row: 'horizon', size: 2 }, [
+  valen: hero('Valen the Radiant', 'champion', 90, 48, 6, { row: 'horizon', size: 1.5 }, [
     move('Radiance', wrath(2), guard(12)),
     move('Lightbringer', spell(9, 2)),
     move('Brand of Light', hex(6)),
@@ -293,12 +293,12 @@ export const HEROES = {
     [
       move('Call the Host', summon('angelArcher', 2)),
       // A dragon breathes fire: its breaths lay Burn.
-      move('Holy Breath', spell(8, 2), burn(4)),
+      { ...move('Holy Breath', spell(8, 2), burn(4)), element: 'fire' },
       move('Sanctuary Wings', guard(20)),
-      move('Dragonfire', {
+      { ...move('Dragonfire', {
         ...spell(5, 3),
         perHit: [{ status: 'burn', amount: 3 }],
-      }),
+      }), element: 'fire' },
       signature(move('Halo of Judgment', revive(), spell(26))),
       move('Radiant Roar', wrath(2)),
       // Blesses the whole host: Wrath and Protection on every hero.

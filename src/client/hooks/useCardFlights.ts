@@ -14,6 +14,7 @@
 // ===================================================================
 
 import { useLayoutEffect, useRef, useState } from 'react';
+import { playDraw, playSound } from '../lib/gameAudio';
 import type { CombatState } from '../../shared/game/types';
 import type { Point } from './useCardDrag';
 
@@ -148,6 +149,10 @@ export const useCardFlights = (combat: CombatState): CardFlight[] => {
     const after = { draw, discard, removed, hand };
     countsRef.current = after;
     if (!before) return;
+    if (after.discard < before.discard) playSound('shuffle');
+    else if (after.draw < before.draw || after.hand > before.hand) playDraw();
+    else if (after.removed > before.removed) playSound('remove', 1, .7);
+    else if (after.discard > before.discard) playSound('draw', .77, .5);
     const planned = flightsFor(before, after);
     if (planned.riffleAtMs !== null) riffleDrawPile(planned.riffleAtMs);
     if (planned.flights.length === 0) return;

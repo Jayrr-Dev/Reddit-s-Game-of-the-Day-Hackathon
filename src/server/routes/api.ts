@@ -4,15 +4,17 @@
 // input, delegates to core/ modules, and returns a typed response.
 // ===================================================================
 
+import { defaultBuild, isPlayerBuild } from '../../shared/game/playerBuild';
+import { randomUUID } from 'node:crypto';
+import { redisKeys } from '../core/redisKeys';
 import { Hono } from 'hono';
-import { context, reddit } from '@devvit/web/server';
+import { context, reddit, redis } from '@devvit/web/server';
+import { replayForScore } from '../../shared/game/replayForScore';
 import { MAX_RUN_ACTIONS } from '../../shared/game/rules';
 import {
   computeScore,
   isRunAction,
   isRunOver,
-  replayRun,
-  type RunAction,
 } from '../../shared/game/run';
 import type {
   FinishRunRequest,
@@ -41,6 +43,7 @@ export const api = new Hono();
 const isFinishRunRequest = (body: unknown): body is FinishRunRequest =>
   typeof body === 'object' &&
   body !== null &&
+  (!('runId' in body) || (typeof body.runId === 'string' && /^[a-f0-9-]{36}$/.test(body.runId))) &&
   'actions' in body &&
   Array.isArray(body.actions) &&
   body.actions.length <= MAX_RUN_ACTIONS &&
@@ -57,6 +60,26 @@ const recordRankedScore = async (
   return { bestScoreToday, rank };
 };
 
+const buildKey = (id:string) => 'profile:build:v1:' + id;
+async function getBuild(id:string) {
+  const raw = await redis.get(buildKey(id));
+  const data:unknown = raw ? JSON.parse(raw) : null;
+  return isPlayerBuild(data) ? data : defaultBuild();
+}
+api.get('/profile',async c => {
+  const id=context.userId;
+  if(!id)return jsonError(c,401,'Sign in to load your profile');
+  const [build,wins]=await Promise.all([getBuild(id),redis.zCard(redisKeys.victories(id))]);
+  return c.json({build,wins});
+});
+api.post('/profile',async c => {
+  const id=context.userId;
+  if(!id)return jsonError(c,401,'Sign in to save your profile');
+  const build:unknown=await c.req.json();
+  if(!isPlayerBuild(build))return jsonError(c,400,'Invalid character or starter deck');
+  await redis.set(buildKey(id),JSON.stringify(build));
+  return c.json({saved:true});
+});
 // --- GET /api/init ---
 // Everything the game needs on first paint: day, player, best score, streak.
 api.get('/init', async (c) => {
@@ -77,6 +100,7 @@ api.get('/init', async (c) => {
       postId,
       dailyKey,
       username,
+      ...(userId && { accountId: userId, lifetimeWins: await redis.zCard(redisKeys.victories(userId)) }),
       bestScoreToday,
       streak,
       hasStartedRankedRun: startedRanked,
@@ -95,11 +119,33 @@ api.post('/run/start', async (c) => {
     const isRanked = userId
       ? await beginRun(getCurrentPostDailyKey(), userId)
       : false;
-    return c.json<StartRunResponse>({ type: 'runStart', isRanked });
+    if (!userId) return c.json<StartRunResponse>({ type: 'runStart', isRanked });
+    const profile = { id: randomUUID(), wins: await redis.zCard(redisKeys.victories(userId)) };
+    await redis.set(redisKeys.runBaseline(userId, getCurrentPostDailyKey(), profile.id), String(profile.wins));
+    return c.json<StartRunResponse>({ type: 'runStart', isRanked, profile, build: await getBuild(userId) });
   } catch (error) {
     console.error('api/run/start failed', error);
     return jsonError(c, 500, toErrorMessage(error));
   }
+});
+
+async function verifyProgress(day: string, body: FinishRunRequest, userId: string | undefined) {
+  if (!body.runId) return replayForScore(day, body.actions);
+  if (!userId) return null;
+  const baseline = await redis.get(redisKeys.runBaseline(userId, day, body.runId));
+  if (baseline == null) return null;
+  const run = replayForScore(day, body.actions, Number(baseline));
+  const awards = Array.from({ length: run.stats.wavesCleared }, (_, index) => ({
+    member: body.runId + ':' + index, score: index
+  }));
+  if (awards.length) await redis.zAdd(redisKeys.victories(userId), ...awards);
+  return run;
+}
+api.post('/run/progress', async (c) => {
+  const body: unknown = await c.req.json();
+  if (!isFinishRunRequest(body) || !body.runId) return jsonError(c, 400, 'Invalid progress log');
+  const run = await verifyProgress(getCurrentPostDailyKey(), body, context.userId);
+  return run ? c.json({ saved: true }) : jsonError(c, 400, 'Unknown run');
 });
 
 // --- POST /api/run/finish ---
@@ -112,8 +158,8 @@ api.post('/run/finish', async (c) => {
 
   try {
     const dailyKey = getCurrentPostDailyKey();
-    const actions: RunAction[] = body.actions;
-    const finalState = replayRun(dailyKey, actions);
+    const finalState = await verifyProgress(dailyKey, body, userId);
+    if (!finalState) return jsonError(c, 400, 'Unknown run');
     if (!isRunOver(finalState)) return jsonError(c, 400, 'Run is not over');
 
     const score = computeScore(finalState.stats);

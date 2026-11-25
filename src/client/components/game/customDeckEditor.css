@@ -1,0 +1,269 @@
+/* --- PRACTICE DECK EDITOR --- */
+.custom-deck-editor {
+  --cde-paper: color-mix(in srgb, var(--color-parchment) 76%, var(--color-ink));
+  --cde-shade: color-mix(
+    in srgb,
+    var(--color-accent) 26%,
+    var(--color-parchment)
+  );
+  --cde-line: color-mix(
+    in srgb,
+    var(--color-on-parchment) 67%,
+    var(--color-parchment)
+  );
+  --cde-muted: color-mix(
+    in srgb,
+    var(--color-on-parchment) 78%,
+    var(--color-parchment)
+  );
+  color-scheme: light;
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(29rem, calc(100% - 0.75rem));
+  height: min(32rem, calc(100% - 0.75rem));
+  max-width: 100%;
+  max-height: 100%;
+  padding: clamp(0.55rem, 2vw, 1rem);
+  border: 3px double var(--cde-line);
+  border-radius: 0.2rem;
+  overflow: hidden;
+  background: linear-gradient(
+    110deg,
+    var(--cde-shade),
+    var(--cde-paper) 18%,
+    var(--cde-paper) 84%,
+    var(--cde-shade)
+  );
+  color: var(--color-on-parchment);
+  font: 0.8rem/1.3 var(--font-display);
+}
+.custom-deck-editor[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+.custom-deck-editor::backdrop {
+  background: color-mix(in srgb, var(--color-surface-sunken) 82%, transparent);
+}
+.cde-head,
+.cde-foot,
+.cde-views,
+.cde-counter,
+.cde-card {
+  display: flex;
+  align-items: center;
+}
+.cde-head,
+.cde-foot {
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+.cde-head h2 {
+  font: 800 1.35rem var(--font-display);
+  color: var(--color-on-parchment);
+}
+.custom-deck-editor button,
+.custom-deck-editor input {
+  min-width: 0;
+  min-height: 1.9rem;
+  border: 1px solid var(--cde-line);
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.45rem;
+  background: color-mix(in srgb, var(--cde-paper) 76%, var(--color-ink));
+  color: var(--color-on-parchment);
+}
+.custom-deck-editor input {
+  user-select: text;
+}
+.custom-deck-editor button {
+  cursor: pointer;
+}
+.custom-deck-editor button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.custom-deck-editor :is(input, button):focus-visible {
+  outline: 2px dashed var(--color-card-melee);
+  outline-offset: -3px;
+}
+.cde-field {
+  display: grid;
+  gap: 0.15rem;
+  font-weight: 700;
+  color: var(--color-on-parchment);
+}
+.cde-field input {
+  font-weight: normal;
+}
+.cde-views {
+  gap: 0.25rem;
+}
+.cde-views button {
+  flex: 1;
+}
+.cde-views button[aria-pressed='true'],
+.custom-deck-editor .cde-save {
+  border-color: var(--color-on-parchment);
+  background: var(--color-on-parchment);
+  color: var(--cde-paper);
+  font-weight: 700;
+}
+.cde-catalog {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--cde-line) var(--cde-shade);
+}
+.cde-catalog p {
+  margin: 0.5rem;
+  color: var(--cde-muted);
+}
+.cde-card {
+  gap: 0.38rem;
+  min-height: 2.8rem;
+  border-bottom: 1px solid var(--cde-line);
+  padding: 0.2rem 0.1rem;
+}
+.cde-art {
+  flex: none;
+  width: 2.05rem;
+  height: 2.15rem;
+  border: 1px solid var(--cde-line);
+  border-radius: 0.2rem;
+  display: grid;
+  place-items: center;
+  background-image: var(--illustration);
+  background-position: center;
+  background-size: cover;
+}
+.cde-art svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  filter: drop-shadow(0 1px 1px var(--color-surface-sunken));
+}
+.cde-card-name {
+  flex: 1;
+  min-width: 0;
+}
+.cde-card-name b,
+.cde-card-name small {
+  display: block;
+}
+.cde-card-name b {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+}
+.cde-card-name small {
+  color: var(--cde-muted);
+  font-size: 0.67rem;
+}
+.cde-counter {
+  flex: none;
+  gap: 0.1rem;
+}
+.cde-counter button {
+  width: 1.7rem;
+  padding-inline: 0;
+  font-weight: 700;
+}
+.cde-counter input {
+  appearance: textfield;
+  width: 2.1rem;
+  text-align: center;
+  padding-inline: 0;
+  font-variant-numeric: tabular-nums;
+}
+.cde-counter input::-webkit-inner-spin-button,
+.cde-counter input::-webkit-outer-spin-button {
+  appearance: none;
+}
+.cde-foot {
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--cde-line);
+}
+.cde-foot b {
+  color: var(--color-on-parchment);
+}
+
+/* --- INK AND RULED PAPER --- */
+.cde-head {
+  padding-bottom: 0.35rem;
+  border-bottom: 2px solid var(--cde-line);
+}
+.cde-head h2 {
+  font-variant: small-caps;
+  letter-spacing: 0.03em;
+}
+.custom-deck-editor input::placeholder {
+  color: var(--cde-muted);
+  opacity: 1;
+}
+.custom-deck-editor input[type='search'] {
+  border: 2px solid var(--cde-line);
+}
+.cde-catalog {
+  border: 1px solid var(--cde-line);
+  background: color-mix(in srgb, var(--cde-paper) 80%, transparent);
+}
+.cde-card {
+  padding-inline: 0.3rem;
+}
+.cde-card:last-child {
+  border-bottom: 0;
+}
+.cde-art {
+  color: var(--color-ink);
+}
+.custom-deck-editor .cde-save:focus-visible,
+.custom-deck-editor .cde-views button[aria-pressed='true']:focus-visible {
+  outline-color: var(--cde-paper);
+}
+
+/* --- DECK KEYWORD FILTERS --- */
+.cde-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 0.35rem;
+}
+.cde-filters select {
+  min-width: 0;
+  border: 1px solid var(--cde-line);
+  border-radius: 0.25rem;
+  padding: 0.25rem;
+  background: var(--cde-paper);
+  color: var(--color-on-parchment);
+  font: inherit;
+}
+.cde-filters select:focus-visible {
+  outline: 2px dashed var(--color-card-melee);
+  outline-offset: -3px;
+}
+.cde-filter-summary,
+.cde-filter-tags {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.cde-filter-summary {
+  justify-content: space-between;
+}
+.cde-filter-tags {
+  min-width: 0;
+  flex-wrap: wrap;
+  max-height: 3.8rem;
+  overflow-y: auto;
+}
+.cde-filter-tags button,
+.cde-filter-summary .cde-clear {
+  min-height: 1.65rem;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.4rem;
+}
+.cde-filter-tags button {
+  background: var(--cde-shade);
+}
+.cde-filter-summary .cde-clear {
+  flex: none;
+}

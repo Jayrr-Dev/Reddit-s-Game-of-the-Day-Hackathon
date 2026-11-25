@@ -16,24 +16,28 @@ export type BossArrival = 'descend' | 'rise';
 export type BossEntrance = {
   /** A line under the name on the title card. */
   epithet: string;
+  line: string;
   arrival: BossArrival;
+  durationMs?: number;
+  landingMs?: number;
 };
 
 // --- TIMING ---
 /** The whole entrance, title card included (ms). */
-export const BOSS_ENTRANCE_MS = 2600;
+export const BOSS_ENTRANCE_MS = 7600;
 /** When the boss lands (ms): shake, dust, halo flare and HP bar fill. */
 export const BOSS_LANDING_MS = 1300;
 
 // --- TABLE ---
 const DEFAULT_ENTRANCE: BossEntrance = {
   epithet: 'Champion of the Realm',
+  line: 'Lay down your arms. This road ends here.',
   arrival: 'rise',
 };
 
 const BOSS_ENTRANCES: Partial<Record<HeroId, BossEntrance>> = {
-  holyDragon: { epithet: 'Wyrm of the Last Light', arrival: 'descend' },
-  grandGriffon: { epithet: 'Talon of the High Sky', arrival: 'descend' },
+  holyDragon: { epithet: 'Wyrm of the Last Light', line: 'I kept this flame when your kingdom was ash.', arrival: 'descend', durationMs: 8400, landingMs: 2200 },
+  grandGriffon: { epithet: 'Talon of the High Sky', line: 'Look up. You have crossed my shadow.', arrival: 'descend' },
 };
 
 // --- HELPERS ---
