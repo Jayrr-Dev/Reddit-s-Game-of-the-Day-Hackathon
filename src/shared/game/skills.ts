@@ -115,6 +115,11 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     name: 'Malediction',
     description: 'Afflictions deal 5% more damage per rank (up to +25%)',
   },
+  '4-3-1': {
+    name: 'Seeping Wounds',
+    description:
+      'Cards that afflict on hit ignore Guard: their damage goes straight to HP',
+  },
   '4-3-0': {
     name: 'Sixfold Curse',
     description:
@@ -367,6 +372,9 @@ export const hasHexSixOf = (picks?: readonly SkillPick[]): boolean =>
 /** MALEDICTION (Hex and Curses line): affliction damage, +5% per rank. */
 export const afflictionSkillBonusOf = (picks?: readonly SkillPick[]): number =>
   ranksIn(picks, 4, 1, 0) * EDGE_DAMAGE_PER_RANK;
+/** SEEPING WOUNDS (other afflictions capstone): afflicting hits skip Guard. */
+export const guardSeepOf = (picks?: readonly SkillPick[]): boolean =>
+  hasSkill(picks, 4, 3, 1);
 /** SHOCKWAVE (Blunt capstone): Momentum turns Melee strikes into Cleaves. */
 export const hasMomentumCleave = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 1, 3, 0);
