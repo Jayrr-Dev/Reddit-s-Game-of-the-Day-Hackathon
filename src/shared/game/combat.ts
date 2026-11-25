@@ -16,7 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
-import { battlemageBonusOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
+import { battlemageBonusOf, buffStackBonusOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -106,6 +106,7 @@ import {
 import { nextFloat, pickOne, shuffle, type RngState } from './rng.ts';
 import {
   ELEMENT_ON_HIT,
+  ON_OFF_BUFFS,
   LONG_RANGE_DAMAGE_FACTOR,
   MAX_HAND_SIZE,
   MALAISE_TURNS,
@@ -1020,7 +1021,7 @@ const applyCardEffect = (
     case 'wrath':
       return {
         ...state,
-        player: addStatus(state.player, 'wrath', effect.amount),
+        player: addStatus(state.player, 'wrath', effect.amount + buffStackBonusOf(state.player.skillPicks)),
       };
     case 'draw':
       return drawCards(state, effect.amount);
@@ -1147,13 +1148,16 @@ const grantBuff = (
   state: CombatState,
   effect: Extract<CardEffect, { kind: 'buff' }>
 ): CombatState => {
-  const player = addStatus(state.player, effect.buff, effect.amount);
+  // OVERFLOW (skill tree): stacked buffs gain one more stack (on/off ones can't).
+  const extra = ON_OFF_BUFFS.has(effect.buff) ? 0 : buffStackBonusOf(state.player.skillPicks);
+  const amount = effect.amount + extra;
+  const player = addStatus(state.player, effect.buff, amount);
   const { duration } = effect;
   if (duration === undefined || duration === 'battle')
     return { ...state, player };
   const timed: TimedBuff = {
     buff: effect.buff,
-    amount: effect.amount,
+    amount,
     duration,
   };
   return { ...state, player, timedBuffs: [...state.timedBuffs, timed] };

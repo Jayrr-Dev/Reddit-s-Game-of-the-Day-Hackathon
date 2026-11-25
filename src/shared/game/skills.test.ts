@@ -17,6 +17,7 @@ import {
   skillPointsLeft,
   movementDiscountOf,
   reflexDodgeOf,
+  buffStackBonusOf,
   volleyHitsOf,
   magicAccuracyBonusOf,
   cardChanceBonusOf,
@@ -355,4 +356,9 @@ test('Everlasting: Stacked Buffs last one more turn', () => {
   const buffed = { ...base, skillPicks: [{ branch: 3, tier: 3, slot: 0 }] };
   assert.equal(addStatus(base, 'instinct', 1).instinctTurns, 2);
   assert.equal(addStatus(buffed, 'instinct', 1).instinctTurns, 3);
+});
+
+test('Overflow: one more stack per buff', () => {
+  assert.equal(buffStackBonusOf([{ branch: 3, tier: 3, slot: 1 }]), 1);
+  assert.equal(buffStackBonusOf([]), 0);
 });
