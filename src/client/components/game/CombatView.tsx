@@ -115,6 +115,8 @@ export type CombatViewProps = {
   /** Extra buttons for the pause menu (e.g. the sandbox's reshuffle). */
   pauseActions?: ReactNode;
   renderTrainingMenu?: (resume: () => void, guides: ReactNode) => ReactNode;
+  /** Open the pause menu on mount (training starts on its Scenarios picker). */
+  startsPaused?: boolean;
 };
 
 // --- HELPERS ---
@@ -240,6 +242,7 @@ export const CombatView = ({
   onAction,
   pauseActions,
   renderTrainingMenu,
+  startsPaused = false,
   manualTurns,
   tutorialCue, levelGuide, onPileClosed, onCharacterOpened, onCharacterClosed, allowCombatAction,
 }: CombatViewProps) => {
@@ -434,7 +437,7 @@ export const CombatView = ({
   const controls = useCombatControls(combat, routeAction);
   const cardFlights = useCardFlights(combat);
   const settings = <SettingsDialog className="self-center">{settingInputs}</SettingsDialog>;
-  const [isPaused, setIsPaused] = useState(false);
+  const [isPaused, setIsPaused] = useState(startsPaused);
   const [showCharacter, setShowCharacter] = useState(false);
   // Out of plays: the turn ends itself after a beat (see useAutoEndTurn).
   useAutoEndTurn(

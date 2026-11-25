@@ -50,6 +50,8 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
         deck={deck}
         terrainIndex={terrainIndex}
         where="Illusion Training"
+        // Entering training opens the menu on Scenarios; later rounds don't.
+        startsPaused={round === 0 && retries === 0}
         score={0}
         onAction={act}
         renderTrainingMenu={(resume, settings) => (
