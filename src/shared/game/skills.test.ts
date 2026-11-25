@@ -309,15 +309,26 @@ test('Armory and Quiver: path entries make Melee or Range offers 30% likelier', 
   );
 });
 
-test('Arcane Power and Arcane Focus: +5% Magic damage and accuracy per rank', () => {
-  const power = { branch: 2, tier: 1, slot: 0 };
+test('Battlemage, Sniper and both accuracy circles', () => {
+  const bm = { branch: 2, tier: 1, slot: 0 };
+  const sn = { branch: 2, tier: 1, slot: 1 };
   const focus = { branch: 2, tier: 2, slot: 0 };
-  const mage = {
-    ...createCombatant(50, 50),
-    skillPicks: [power, power, power, power, power],
-  };
-  assert.equal(attackDamage(100, mage, 'magic'), 125);
-  assert.equal(attackDamage(100, mage, 'melee'), 100);
+  const state = startCombat({
+    hp: 50,
+    maxHp: 50,
+    deck: ['twinDaggers' as const],
+    heroIds: ['squire' as const],
+    might: 1,
+    seed: 3,
+  });
+  const hero = { ...state.heroes[0]!, guard: 0 };
+  const magic = { ...getCard('twinDaggers'), type: 'magic' as const };
+  const range = { ...getCard('twinDaggers'), type: 'range' as const };
+  const front = { ...hero, row: 'front' as const };
+  const back = { ...hero, row: 'back' as const };
+  assert.equal(cardHitOn(front, 100, magic, [bm, bm, bm, bm, bm]), 125);
+  assert.equal(cardHitOn(back, 100, magic, [bm, bm, bm, bm, bm]), 100);
+  assert.equal(cardHitOn(front, 100, range, [sn, sn]), 100);
   assert.ok(
     Math.abs(magicAccuracyBonusOf([focus, focus, focus]) - 0.15) < 1e-9
   );

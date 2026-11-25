@@ -95,8 +95,18 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
       'Cards that apply an affliction are 30% more likely in card offers',
   },
   '2-1-0': {
-    name: 'Arcane Power',
-    description: 'Magic cards deal +5% damage per rank (up to +25%)',
+    name: 'Battlemage',
+    description:
+      'Magic cards deal +5% damage per rank to heroes on Line 1 (up to +25%)',
+  },
+  '2-1-1': {
+    name: 'Sniper',
+    description:
+      'Range cards deal +5% damage per rank to heroes past Line 1 (up to +25%)',
+  },
+  '2-2-1': {
+    name: 'Steady Aim',
+    description: 'Range cards are +5% more accurate per rank (up to +25%)',
   },
   '2-2-0': {
     name: 'Arcane Focus',
@@ -232,9 +242,15 @@ export const cardChanceBonusOf = (
     ? ENTRY_CARD_CHANCE
     : 0;
 };
-/** ARCANE POWER (Magic line): extra Magic damage, +5% per rank. */
-export const magicDamageBonusOf = (picks?: readonly SkillPick[]): number =>
+/** BATTLEMAGE (Magic line): extra Magic damage at Line 1, +5% per rank. */
+export const battlemageBonusOf = (picks?: readonly SkillPick[]): number =>
   ranksIn(picks, 2, 1, 0) * EDGE_DAMAGE_PER_RANK;
+/** SNIPER (Arrows line): extra Range damage past Line 1, +5% per rank. */
+export const sniperBonusOf = (picks?: readonly SkillPick[]): number =>
+  ranksIn(picks, 2, 1, 1) * EDGE_DAMAGE_PER_RANK;
+/** STEADY AIM (Arrows line): extra Range accuracy, +5% per rank. */
+export const rangeAccuracyBonusOf = (picks?: readonly SkillPick[]): number =>
+  ranksIn(picks, 2, 2, 1) * EDGE_DAMAGE_PER_RANK;
 /** ARCANE FOCUS (Magic line): extra Magic accuracy, +5% per rank. */
 export const magicAccuracyBonusOf = (picks?: readonly SkillPick[]): number =>
   ranksIn(picks, 2, 2, 0) * EDGE_DAMAGE_PER_RANK;

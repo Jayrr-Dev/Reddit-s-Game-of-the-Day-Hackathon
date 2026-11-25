@@ -28,7 +28,7 @@ import {
   ROUND_BUFFS,
 } from './rules.ts';
 import { characterBonuses, healingAmount } from './character.ts';
-import { edgeDamageBonusOf, magicDamageBonusOf, momentumSkillBonusOf } from './skills.ts';
+import { edgeDamageBonusOf, momentumSkillBonusOf } from './skills.ts';
 import { pickOne, type RngState } from './rng.ts';
 import type {
   BuffId,
@@ -167,8 +167,6 @@ const boostFactorOf = (
 ): number =>
   // HEAVY HANDS / KEEN EDGE (skill tree): +% to Blunt or Sharp Melee.
   (type === 'melee' && edge ? 1 + edgeDamageBonusOf(attacker.skillPicks, edge) : 1) *
-  // ARCANE POWER (skill tree): +% to Magic.
-  (type === 'magic' ? 1 + magicDamageBonusOf(attacker.skillPicks) : 1) *
   (hasMomentumFor(attacker, type) ? momentumFactorOf(attacker, isRampage) : 1) *
   (hasSharpshooterFor(attacker, type) ? SHARPSHOOTER_DAMAGE_FACTOR : 1);
 

@@ -16,7 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
-import { fleshWoundBonusOf, magicAccuracyBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
+import { battlemageBonusOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
@@ -648,13 +648,16 @@ export const targetDamageFactor = (
   picks?: readonly SkillPick[]
 ): number =>
   (isLongRangeShot(unit, cardDef) ? villainLongRangeFactor(unit, picks) : 1) *
-  guardBreakFactor(unit, cardDef, picks);
+  skillTargetFactor(unit, cardDef, picks);
 
 /**
  * GUARD BREAK / FLESH WOUND (skill tree): a Blunt Melee card hits a hero
  * with Guard or Armor harder; a Sharp one hits a hero with neither harder.
  */
-const guardBreakFactor = (unit: HeroUnit, cardDef: CardDef, picks?: readonly SkillPick[]): number => {
+const skillTargetFactor = (unit: HeroUnit, cardDef: CardDef, picks?: readonly SkillPick[]): number => {
+  // BATTLEMAGE / SNIPER (skill tree): Magic at Line 1, Range past it.
+  if (cardDef.type === 'magic' && unit.row === 'front') return 1 + battlemageBonusOf(picks);
+  if (cardDef.type === 'range' && unit.row !== 'front') return 1 + sniperBonusOf(picks);
   if (cardDef.type !== 'melee') return 1;
   const isProtected = unit.guard > 0 || unit.statuses.armor > 0;
   if (cardDef.edge === 'blunt' && isProtected) return 1 + guardBreakBonusOf(picks);
@@ -689,7 +692,7 @@ export const cardHitOn = (
 ): number =>
   Math.round(
     (isLongRangeShot(unit, cardDef) ? longRangeHit(perHit, villainLongRangeFactor(unit, picks)) : perHit) *
-      guardBreakFactor(unit, cardDef, picks)
+      skillTargetFactor(unit, cardDef, picks)
   );
 
 /**
@@ -1345,6 +1348,8 @@ const accuracyBonusOf = (villain: Combatant, type: CardType): number =>
   (villain.statuses.sharpshooter > 0 ? SHARPSHOOTER_ACCURACY_BONUS : 0) +
   // ARCANE FOCUS (skill tree): Magic shots land more often.
   (type === 'magic' ? magicAccuracyBonusOf(villain.skillPicks) : 0) +
+  // STEADY AIM (skill tree): Range shots land more often.
+  (type === 'range' ? rangeAccuracyBonusOf(villain.skillPicks) : 0) +
   (canCrit(type) && villain.traits ? combatantBonuses(villain).accuracyPercent / 100 : 0);
 
 /**
