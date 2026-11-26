@@ -21,6 +21,14 @@
   animation-delay: inherit;
 }
 
+/* The flying arrow fades up from 0% to 100% as it leaves the string,
+   on the flight's own delay, so it appears at the bow's release (the
+   nocked arrow in the archer art hands over to it) instead of popping. */
+[data-projectile-kind='arrow'] > svg {
+  animation: projectile-arrow-fade-in 220ms linear both;
+  animation-delay: inherit;
+}
+
 [data-front-on-release] .projectile-arrow-shaft {
   transform-origin: 100% 50%;
   animation: projectile-foreshorten 220ms linear both;
@@ -38,6 +46,11 @@
   30%, to { transform: scaleX(1); }
 }
 
+@keyframes projectile-arrow-fade-in {
+  from { opacity: 0; }
+  35%, to { opacity: 1; }
+}
+
 @keyframes projectile-smear {
   from, to { opacity: 0; }
   22% { opacity: .9; }
@@ -46,5 +59,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .projectile-arrow-smear { display: none; }
+  [data-projectile-kind='arrow'] > svg { animation: none; }
   [data-front-on-release] .projectile-arrow-shaft { animation: none; }
 }
