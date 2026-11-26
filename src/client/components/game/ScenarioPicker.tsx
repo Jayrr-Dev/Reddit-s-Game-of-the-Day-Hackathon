@@ -10,7 +10,15 @@
 
 import { CustomDeckEditor } from './CustomDeckEditor';
 import { MAP_IMAGES, MAP_NAMES } from './combat/Backdrop';
-import { bossArenaOf, TRAINING_BOSS_ARENAS, type BossArena } from '../../content/bossArenas';
+import { BOSS_ARENAS, bossArenaOf, TRAINING_BOSS_ARENAS, type BossArena } from '../../content/bossArenas';
+import {
+  isArenaUnlocked,
+  isCardUnlocked,
+  isLimited,
+  isLineupUnlocked,
+  isMapUnlocked,
+  type UnlockAccess,
+} from '../../../shared/game/unlocks';
 import { Fragment, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { newestCardIds } from '../../../shared/game/cardReleases';
@@ -42,6 +50,7 @@ import {
   type CustomTrainingDeck,
 } from '../../../shared/game/sandboxDecks';
 import { ProgressiveImg } from '../ui/ProgressiveImage';
+import { LockedPreview } from '../ui/LockedPreview';
 
 // --- TYPES ---
 type PickerTab = 'scenarios' | 'units' | 'decks' | 'map';
@@ -72,6 +81,18 @@ const UNIT_GROUPS: readonly PickerSection[] = groupUnitsByUnitType().map((group)
   ...group,
   scenarios: group.heroIds.map(soloUnitScenario),
 }));
+
+// --- UNLOCKS ---
+/** How to unlock each kind of locked tile (the padlock's tooltip). */
+const UNLOCK_HINTS = {
+  scenario: 'Kill every unit in this scenario during a run to unlock it.',
+  unit: 'Kill this unit during a run to unlock it.',
+  map: 'Visit this map during a run to unlock it.',
+} as const;
+
+/** The hero ids whose encounter takes place in an arena (any of them opens it). */
+const arenaHeroIds = (arena: BossArena): string[] =>
+  Object.entries(BOSS_ARENAS).flatMap(([heroId, entry]) => (entry?.name === arena.name ? [heroId] : []));
 
 // --- SUBCOMPONENTS ---
 const DECK_EXAMPLES = {
@@ -275,12 +296,15 @@ const InfoButton = ({ name, onInfo, label = 'Attacks' }: { name: string; onInfo:
 /** Scenarios under unit type headings; a tap asks to fight first. */
 const ScenarioSections = ({
   groups,
+  access,
   terrainIndex,
   onPick,
   onInfo,
   themePreview,
 }: {
   groups: readonly PickerSection[];
+  /** Lineups with a unit not killed yet show blurred under a padlock. */
+  access: UnlockAccess;
   terrainIndex: number;
   onPick: (scenario: SandboxScenario) => void;
   /** Set on the Units tab: each card gets an info icon for its attacks. */
@@ -291,15 +315,21 @@ const ScenarioSections = ({
     <Fragment key={group.id}>
       <SectionHeading>{group.label}</SectionHeading>
       {group.scenarios.map((scenario) => (
-        <div className="training-custom-tile" key={scenario.id}>
-        <ScenarioEntry
-          scenario={scenario}
-          terrainIndex={terrainIndex}
-          onPick={onPick}
-          themePreview={themePreview}
-        />
-        {onInfo && <InfoButton name={scenario.name} onInfo={() => onInfo(scenario)} />}
-        </div>
+        <LockedPreview
+          key={scenario.id}
+          isLocked={!isLineupUnlocked(access, scenario.heroIds)}
+          hint={onInfo ? UNLOCK_HINTS.unit : UNLOCK_HINTS.scenario}
+        >
+          <div className="training-custom-tile">
+            <ScenarioEntry
+              scenario={scenario}
+              terrainIndex={terrainIndex}
+              onPick={onPick}
+              themePreview={themePreview}
+            />
+            {onInfo && <InfoButton name={scenario.name} onInfo={() => onInfo(scenario)} />}
+          </div>
+        </LockedPreview>
       ))}
     </Fragment>
   ));
@@ -346,6 +376,7 @@ const ScenarioEntry = ({
 export const ScenarioPicker = ({
   renderHeader,
   terrainIndex,
+  access,
   onPickMap,
   activeArena,
   onPickArena,
@@ -361,6 +392,8 @@ export const ScenarioPicker = ({
   /** Renders the banner above the tabs; openDeck jumps to a new custom deck. */
   renderHeader: (openDeck: () => void) => ReactNode;
   terrainIndex: number;
+  /** What the viewer has unlocked; null shows everything (admins). */
+  access: UnlockAccess;
   onPickMap: (index: number) => void;
   activeArena?: BossArena | undefined;
   onPickArena: (arena: BossArena) => void;
@@ -387,6 +420,7 @@ export const ScenarioPicker = ({
     setPending(scenario);
   };
   const draft = customDecks.find((deck) => deck.id === editing);
+
   // Closing the menu (resume, pause toggle) ends any theme preview.
   const stopPreview = themePreview.stop;
   useEffect(() => stopPreview, [stopPreview]);
@@ -410,6 +444,7 @@ export const ScenarioPicker = ({
       {editing !== null && (
         <CustomDeckEditor
           initial={draft}
+          isCardAllowed={(cardId) => isCardUnlocked(access, cardId)}
           onClose={() => setEditing(null)}
           onSave={(name, cards) => {
             onSaveCustom(name, cards, draft?.id);
@@ -426,6 +461,7 @@ export const ScenarioPicker = ({
         {tab === 'scenarios' || tab === 'units' ? (
           <ScenarioSections
             groups={tab === 'units' ? UNIT_GROUPS : SCENARIO_GROUPS}
+            access={access}
             terrainIndex={terrainIndex}
             onPick={(scenario) => askToFight(scenario, false)}
             onInfo={tab === 'units' ? (scenario) => askToFight(scenario, true) : undefined}
@@ -435,7 +471,8 @@ export const ScenarioPicker = ({
           <>
           <SectionHeading>Boss arenas</SectionHeading>
           {TRAINING_BOSS_ARENAS.map(arena => (
-            <div key={arena.name} className="training-custom-tile">
+            <LockedPreview key={arena.name} isLocked={!isArenaUnlocked(access, arenaHeroIds(arena))} hint={UNLOCK_HINTS.map}>
+            <div className="training-custom-tile">
               <button type="button" className="training-map"
                 aria-pressed={arena.name === activeArena?.name} onClick={() => onPickArena(arena)}>
                 <ProgressiveImg alt="" src={arena.image} />
@@ -443,10 +480,12 @@ export const ScenarioPicker = ({
               </button>
               <InfoButton name={arena.name} label="View" onInfo={() => setViewedMap(arenaView(arena))} />
             </div>
+            </LockedPreview>
           ))}
           <SectionHeading>Region maps</SectionHeading>
           {MAP_NAMES.map((name, index) => (
-            <div key={name} className="training-custom-tile">
+            <LockedPreview key={name} isLocked={!isMapUnlocked(access, name)} hint={UNLOCK_HINTS.map}>
+            <div className="training-custom-tile">
               <button
                 type="button"
                 className="training-map"
@@ -458,6 +497,7 @@ export const ScenarioPicker = ({
               </button>
               <InfoButton name={name} label="View" onInfo={() => setViewedMap(regionView(name, index))} />
             </div>
+            </LockedPreview>
           ))}
           </>
         ) : (
@@ -486,7 +526,8 @@ export const ScenarioPicker = ({
                 </button>
               </div>
             ))}
-            {SANDBOX_DECKS.map((deck) => (
+            {/* The themed test decks are for testing: admins only. */}
+            {!isLimited(access) && SANDBOX_DECKS.map((deck) => (
               <EntryButton
                 key={deck.id}
                 entry={deck}

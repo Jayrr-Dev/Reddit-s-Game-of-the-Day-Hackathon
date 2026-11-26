@@ -33,11 +33,14 @@ import {
   normalizeSearch,
   SEARCH_INDEX,
 } from './deckCardSearch';
+import { LockedPreview } from '../ui/LockedPreview';
 import './customDeckEditor.css';
 
 // --- TYPES ---
 type EditorProps = {
   initial?: CustomTrainingDeck | undefined;
+  /** False for cards the viewer hasn't unlocked yet; they show blurred and locked. */
+  isCardAllowed: (id: CardId) => boolean;
   onSave: (name: string, cards: CardId[]) => void;
   onClose: () => void;
 };
@@ -58,6 +61,9 @@ const BLOCKED_ADD_TEXT: Record<AddCardBlocker, string> = {
   unique: `${KEYWORD_INFO.unique.label}: ${KEYWORD_INFO.unique.description.toLowerCase()}`,
   full: `The deck is full (${CUSTOM_DECK_LIMIT} cards)`,
 };
+
+/** How to unlock a locked catalog card (the padlock's tooltip). */
+const CARD_UNLOCK_HINT = 'Add this card to your deck during a run to unlock it.';
 
 // --- CARD TILE ---
 /** One real card in either grid: tap or Enter acts on it, a press-and-move drags it. */
@@ -198,7 +204,7 @@ const useCatalogGroups = (query: string, keywords: string[]) => {
 };
 
 /** Builds a practice deck from the full card catalog. */
-export const CustomDeckEditor = ({ initial, onSave, onClose }: EditorProps) => {
+export const CustomDeckEditor = ({ initial, isCardAllowed, onSave, onClose }: EditorProps) => {
   // --- STATE ---
   const dialog = useRef<HTMLDialogElement>(null);
   const [name, setName] = useState(initial?.name ?? '');
@@ -222,6 +228,7 @@ export const CustomDeckEditor = ({ initial, onSave, onClose }: EditorProps) => {
   };
   /** Adds one copy, or explains in the footer why it can't. */
   const add = (id: CardId) => {
+    if (!isCardAllowed(id)) return; // Locked cards are preview only.
     setNotice(blockedNoteOf(id) ?? null);
     setCards((previous) => addCardToDeck(previous, id));
   };
@@ -293,15 +300,16 @@ export const CustomDeckEditor = ({ initial, onSave, onClose }: EditorProps) => {
                 <h3>{CARD_LOOK[group.type].typeName}</h3>
                 <div className="cde-grid">
                   {group.cards.map((id) => (
-                    <DeckCardTile
-                      key={id}
-                      id={id}
-                      zone="catalog"
-                      disabled={isDeckFull || blockedNoteOf(id) !== undefined}
-                      blockedNote={isDeckFull ? undefined : blockedNoteOf(id)}
-                      onPress={startPress(id, 'catalog')}
-                      onActivate={tap(() => add(id))}
-                    />
+                    <LockedPreview key={id} isLocked={!isCardAllowed(id)} hint={CARD_UNLOCK_HINT}>
+                      <DeckCardTile
+                        id={id}
+                        zone="catalog"
+                        disabled={isDeckFull || blockedNoteOf(id) !== undefined}
+                        blockedNote={isDeckFull ? undefined : blockedNoteOf(id)}
+                        onPress={startPress(id, 'catalog')}
+                        onActivate={tap(() => add(id))}
+                      />
+                    </LockedPreview>
                   ))}
                 </div>
               </div>

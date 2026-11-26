@@ -37,7 +37,8 @@ const HORDE_SIZE_BUDGET = 5;
 const MIN_DUMMIES = 2;
 const MAX_DUMMIES = 5;
 /** Grunts show up most, champions least, so layouts vary. */
-const DUMMY_POOL: readonly { item: HeroId; weight: number }[] = [
+type DummyPool = readonly { item: HeroId; weight: number }[];
+const DUMMY_POOL: DummyPool = [
   ...GRUNT_IDS.map((item) => ({ item, weight: 3 })),
   ...ELITE_IDS.map((item) => ({ item, weight: 2 })),
   ...CHAMPION_IDS.map((item) => ({ item, weight: 1 })),
@@ -461,8 +462,19 @@ export const describeUnitStats = (heroId: HeroId): UnitStat[] => {
 };
 
 // --- HORDE ---
-/** Rolls 2 to 5 random heroes that fit the field together. */
-export const rollDummies = (seed: RngState): [HeroId[], RngState] => {
+/**
+ * The random-horde pool, limited to `allowed` heroes when given (a
+ * player can only face units they have unlocked; see unlocks.ts).
+ */
+const dummyPool = (allowed?: readonly HeroId[]): DummyPool =>
+  allowed ? DUMMY_POOL.filter((entry) => allowed.includes(entry.item)) : DUMMY_POOL;
+
+/** True when a random horde can be rolled from the allowed heroes. */
+export const canRollDummies = (allowed?: readonly HeroId[]): boolean => dummyPool(allowed).length > 0;
+
+/** Rolls 2 to 5 random heroes that fit the field together (from `allowed`, if given). */
+export const rollDummies = (seed: RngState, allowed?: readonly HeroId[]): [HeroId[], RngState] => {
+  const pool = dummyPool(allowed);
   const [extra, afterCount] = nextInt(seed, MAX_DUMMIES - MIN_DUMMIES + 1);
   const wanted = MIN_DUMMIES + extra;
   const heroIds: HeroId[] = [];
@@ -470,7 +482,7 @@ export const rollDummies = (seed: RngState): [HeroId[], RngState] => {
   let rng = afterCount;
   // Imperative on purpose: each pick shrinks the room for the next one.
   while (heroIds.length < wanted) {
-    const fitting = DUMMY_POOL.filter(
+    const fitting = pool.filter(
       (entry) => cellCountOf({ heroId: entry.item }) <= budget
     );
     if (fitting.length === 0) break;
@@ -511,8 +523,8 @@ const sandboxSetup = (
  * above every earlier one so the view never mistakes them for the
  * heroes that just fell.
  */
-const nextHorde = (state: CombatState, firstUid: number): CombatState => {
-  const [heroIds, rng] = rollDummies(state.rng);
+const nextHorde = (state: CombatState, firstUid: number, allowed?: readonly HeroId[]): CombatState => {
+  const [heroIds, rng] = rollDummies(state.rng, allowed);
   const fresh = startCombat({ ...sandboxSetup(heroIds, rng), formation: 'furthest' });
   const heroes = fresh.heroes.map((unit) => ({
     ...unit,
@@ -554,9 +566,10 @@ export const createSandbox = (
   deckId: SandboxDeckId | readonly CardId[] = 'all',
   traits?: Traits,
   equipment?: Equipment,
-  traitNodes?: TraitNodes
+  traitNodes?: TraitNodes,
+  allowed?: readonly HeroId[]
 ): CombatState => {
-  const [heroIds, rng] = rollDummies(seed);
+  const [heroIds, rng] = rollDummies(seed, allowed);
   return startCombat(sandboxSetup(heroIds, rng, deckId, traits, equipment, traitNodes));
 };
 
@@ -595,19 +608,23 @@ const setZeruelFormation = (heroes: HeroUnit[]): HeroUnit[] => {
     : unit.heroId === 'zeruelBlueSun' ? { ...unit, row: 'back', col: 2 } : unit);
 };
 
-/** Applies one input; brings a new horde when cleared. */
+/**
+ * Applies one input; brings a new horde (from `allowed` heroes, if
+ * given) when cleared. With no horde to roll, the cleared field stays.
+ */
 export const stepSandbox = (
   state: CombatState,
-  action: SandboxAction
+  action: SandboxAction,
+  allowed?: readonly HeroId[]
 ): { combat: CombatState; victory: boolean } => {
   const acted = applyAction(state, action);
   if (acted === state) return { combat: state, victory: false };
   const isCleared = combatOutcome(acted) === 'won';
   // Every uid so far (summons included) is below nextUid.
-  if (!isCleared) return { combat: acted, victory: false };
+  if (!isCleared || !canRollDummies(allowed)) return { combat: acted, victory: isCleared };
   // A status kill during the heroes' turn has already closed the player's turn.
   const finished = action.type === 'endTurn' ? acted : finishPlayerTurn(acted);
-  return { combat: startPlayerTurn(nextHorde(finished, finished.nextUid - 1)), victory: true };
+  return { combat: startPlayerTurn(nextHorde(finished, finished.nextUid - 1, allowed)), victory: true };
 };
 
 /** Replay the selected encounter and exact deck with the current training build. */

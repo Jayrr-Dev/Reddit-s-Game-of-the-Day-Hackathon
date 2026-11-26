@@ -14,6 +14,21 @@ import type { SandboxScenario } from '../../../shared/game/sandbox';
 import { ScenarioPicker } from './ScenarioPicker';
 import { useThemePreview } from '../../hooks/useThemePreview';
 import { useProgressiveImage } from '../../hooks/useProgressiveImage';
+import { useUnlocks } from '../../hooks/useUnlocks';
+import { canRollDummies } from '../../../shared/game/sandbox';
+import { dummyHeroes, isMapUnlocked, type UnlockAccess } from '../../../shared/game/unlocks';
+
+// --- PRACTICE TERRAIN ---
+/**
+ * The backdrop a fight uses when no map is picked: it cycles every map
+ * from the elven forest for admins, and only visited maps for everyone
+ * else (the first map before any run).
+ */
+const practiceTerrain = (access: UnlockAccess, round: number): number => {
+  if (access === null) return (PRACTICE_TERRAIN_START + round) % MAP_NAMES.length;
+  const visited = MAP_NAMES.flatMap((name, index) => (isMapUnlocked(access, name) ? [index] : []));
+  return visited.length > 0 ? visited[round % visited.length] ?? 0 : 0;
+};
 
 /** Setup uses the same settings as the combat pause menu. */
 const SetupSettings = () => {
@@ -23,15 +38,17 @@ const SetupSettings = () => {
 
 /** Opens configuration before a scenario or random fight is chosen. */
 export const SandboxView = ({ onExit }: { onExit: () => void }) => {
+  const access = useUnlocks();
+  const canRandomFight = canRollDummies(dummyHeroes(access));
   const {
     combat, character, round, retry, leaveFight, retries, deckId, deck, activeCustomId,
     customDecks, saveCustomDeck, pickCustomDeck, act, respec, reshuffle, summon, pickDeck,
-  } = useSandbox();
+  } = useSandbox(access);
   const [selectedMap, setSelectedMap] = useState<number | null>(null);
   const [arenaOverride, setArenaOverride] = useState<BossArena | null | undefined>(undefined);
   const [isConfirmingExit, setIsConfirmingExit] = useState(false);
   const arena = arenaOverride !== undefined ? arenaOverride ?? undefined : combat ? bossArenaOf(combat.heroes.map(unit => unit.heroId), combat.fallen.map(unit => unit.heroId)) : undefined;
-  const terrainIndex = selectedMap ?? (PRACTICE_TERRAIN_START + round) % MAP_NAMES.length;
+  const terrainIndex = selectedMap ?? practiceTerrain(access, round);
   const themePreview = useThemePreview(MAP_NAMES[terrainIndex] ?? '');
   const headerArt = useProgressiveImage(arena?.image ?? MAP_IMAGES[terrainIndex] ?? '');
   /** Runs a menu action after silencing any theme preview, so fight music takes over. */
@@ -53,12 +70,13 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
             {/* Banner actions sit on the image so the picker keeps the vertical space. */}
             <div className="training-actions">
               <Button variant="menu" onClick={openDeck}>Custom deck</Button>
-              {resume && <Button variant="menu" onClick={reshuffle}>New opponents</Button>}
+              {resume && canRandomFight && <Button variant="menu" onClick={reshuffle}>New opponents</Button>}
               {settings}
             </div>
           </header>
         )}
         terrainIndex={terrainIndex}
+        access={access}
         onPickMap={thenStopPreview((index: number) => { setSelectedMap(index); setArenaOverride(null); })}
         activeArena={arena}
         onPickArena={thenStopPreview(setArenaOverride)}
@@ -73,7 +91,7 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
       />
       <footer className="training-footer">
         <Button variant="menu" onClick={thenStopPreview(onExit)}>Leave training</Button>
-        <Button variant="menuPrimary" onClick={thenStopPreview(resume ?? reshuffle)}>
+        <Button variant="menuPrimary" disabled={!resume && !canRandomFight} onClick={thenStopPreview(resume ?? reshuffle)}>
           {resume ? 'Resume' : 'Start random fight'}
         </Button>
       </footer>

@@ -11,7 +11,8 @@ import { discardPlayerItem, getItems, spendPlayerItem } from '../core/playerItem
 import { isItemId } from '../../shared/game/items';
 import { Hono } from 'hono';
 import { context, reddit, redis } from '@devvit/web/server';
-import { replayForScore } from '../../shared/game/replayForScore';
+import { replayForScore, replayForScoreAndUnlocks } from '../../shared/game/replayForScore';
+import { getUnlocks, recordUnlocks } from '../core/playerUnlocks';
 import { MAX_RUN_ACTIONS } from '../../shared/game/rules';
 import {
   computeScore,
@@ -98,8 +99,8 @@ async function getBuild(id:string) {
 api.get('/profile',async c => {
   const id=context.userId;
   if(!id)return jsonError(c,401,'Sign in to load your profile');
-  const [build,wins,items]=await Promise.all([getBuild(id),redis.zCard(redisKeys.victories(id)),getItems(id)]);
-  return c.json<ProfileResponse>({build,wins,items});
+  const [build,wins,items,unlocks]=await Promise.all([getBuild(id),redis.zCard(redisKeys.victories(id)),getItems(id),getUnlocks(id)]);
+  return c.json<ProfileResponse>({build,wins,items,unlocks});
 });
 api.post('/profile',async c => {
   const id=context.userId;
@@ -186,7 +187,9 @@ async function verifyProgress(day: string, body: FinishRunRequest, userId: strin
   if (!userId) return null;
   const baseline = await redis.get(redisKeys.runBaseline(userId, day, body.runId));
   if (baseline == null) return null;
-  const run = replayForScore(day, body.actions, Number(baseline));
+  // One replay both verifies the run and finds what it unlocked.
+  const { state: run, unlocks } = replayForScoreAndUnlocks(day, body.actions, Number(baseline));
+  await recordUnlocks(userId, unlocks);
   const awards = Array.from({ length: run.stats.wavesCleared }, (_, index) => ({
     member: body.runId + ':' + index, score: index
   }));

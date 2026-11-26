@@ -1,5 +1,6 @@
 import { trainingRingProgress } from './character.ts';
-import { replayRun, type RunAction } from './run.ts';
+import { createRun, replayRun, type RunAction } from './run.ts';
+import { replayWithUnlocks } from './unlocks.ts';
 
 /**
  * A ranked log may move the starter Iron Ring to a slot unlocked on this device.
@@ -9,3 +10,7 @@ import { replayRun, type RunAction } from './run.ts';
  */
 export const replayForScore = (day: string, actions: readonly RunAction[], wins = 0) =>
   replayRun(day, actions, trainingRingProgress(), 0, wins);
+
+/** The same verified replay as replayForScore, plus what the run unlocked. */
+export const replayForScoreAndUnlocks = (day: string, actions: readonly RunAction[], wins = 0) =>
+  replayWithUnlocks(createRun(day, trainingRingProgress(), 0, wins), actions);

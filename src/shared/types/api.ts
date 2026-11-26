@@ -58,6 +58,8 @@ export type ProfileResponse = {
   build: import('../game/playerBuild.ts').PlayerBuild;
   wins: number;
   items: import('../game/items.ts').ItemBag;
+  /** What the player has unlocked in runs (Illusion Training content). */
+  unlocks: import('../game/unlocks.ts').Unlocks;
 };
 
 // --- POST /api/profile/use-item ---

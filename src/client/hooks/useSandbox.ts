@@ -19,6 +19,7 @@ import {
 import type { CardId } from '../../shared/game/cards';
 import { activeTrainingCards, restoreTrainingDecks, saveTrainingDeck, type TrainingDeckSelection, type SandboxDeckId } from '../../shared/game/sandboxDecks';
 import type { CombatState } from '../../shared/game/types';
+import { dummyHeroes, unlockedPracticeDeck, type UnlockAccess } from '../../shared/game/unlocks';
 
 // --- TYPES ---
 /**
@@ -32,6 +33,8 @@ type SandboxState = TrainingDeckSelection & {
   retries: number;
   round: number;
   deck: CardId[];
+  /** What the viewer has unlocked (null: admin, everything). */
+  access: UnlockAccess;
 };
 
 type SandboxEvent =
@@ -48,17 +51,35 @@ type SandboxEvent =
       heroIds: readonly HeroId[];
       startsInPlace: boolean;
     }
-  | { type: 'deck'; seed: number; deckId: SandboxDeckId };
+  | { type: 'deck'; seed: number; deckId: SandboxDeckId }
+  | { type: 'access'; access: UnlockAccess };
 
 // --- HELPERS ---
+/**
+ * The cards a fight deals: the picked custom deck, else the picked test
+ * deck, or for a limited viewer (test decks are admin only) their
+ * unlocked cards.
+ */
+const trainingSource = (selection: TrainingDeckSelection, access: UnlockAccess): SandboxDeckId | CardId[] =>
+  selection.activeCustomId ? activeTrainingCards(selection)
+    : access ? unlockedPracticeDeck(access) : selection.deckId;
+
+/** The card list a fight's source deals (a test deck id resolves to its cards). */
+const sourceCards = (selection: TrainingDeckSelection, access: UnlockAccess): CardId[] => {
+  const source = trainingSource(selection, access);
+  return typeof source === 'string' ? activeTrainingCards(selection) : source;
+};
+
 /** A fresh seed; practice fights don't need to be reproducible. */
 const freshSeed = (): number => Math.floor(Math.random() * 2 ** 32);
 
 // --- REDUCER ---
 /** Routes combat inputs to the engine; other run actions are ignored. */
 const reduce = (state: SandboxState, event: SandboxEvent): SandboxState => {
-  const { character, round } = state;
-  const source = state.activeCustomId ? state.deck : state.deckId;
+  const { character, round, access } = state;
+  const source = trainingSource(state, access);
+  const allowed = dummyHeroes(access);
+  if (event.type === 'access') return { ...state, access: event.access, deck: sourceCards(state, event.access) };
   if (event.type === 'retry') {
     if (!state.combat || !state.opening || state.combat.player.hp > 0) return state;
     const combat = retryTrainingFight(state.opening, character);
@@ -67,7 +88,7 @@ const reduce = (state: SandboxState, event: SandboxEvent): SandboxState => {
   // Dropping the fight sends the view back to the scenario picker.
   if (event.type === 'leaveFight') return { ...state, combat: null, opening: null };
   if (event.type === 'reshuffle' || event.type === 'summon') {
-    const combat = event.type === 'reshuffle' ? createSandbox(event.seed, source, character.traits, character.equipment, character.traitNodes)
+    const combat = event.type === 'reshuffle' ? createSandbox(event.seed, source, character.traits, character.equipment, character.traitNodes, allowed)
       : createSandboxWith(event.seed, event.heroIds, event.startsInPlace, source, character.traits, character.equipment, character.traitNodes);
     return { ...state, combat, opening: combat, round: state.combat ? round + 1 : round };
   }
@@ -81,10 +102,10 @@ const reduce = (state: SandboxState, event: SandboxEvent): SandboxState => {
       selection = saveTrainingDeck(state, event.id, event.name, event.cards, event.editing);
       if (selection === state) return state;
     }
-    const chosen = activeTrainingCards(selection);
+    const chosen = sourceCards(selection, access);
     if (!state.combat) return { ...state, ...selection, deck: chosen };
     const heroes = state.combat.heroes.map(unit => unit.heroId);
-    const combat = createSandboxWith(event.seed, heroes, false, selection.activeCustomId ? chosen : selection.deckId, character.traits, character.equipment, character.traitNodes);
+    const combat = createSandboxWith(event.seed, heroes, false, trainingSource(selection, access), character.traits, character.equipment, character.traitNodes);
     return { ...state, ...selection, deck: chosen, combat, opening: combat, round: round + 1 };
   }
   const credited = character.highestVigor ?? character.traits.vigor;
@@ -111,7 +132,7 @@ const reduce = (state: SandboxState, event: SandboxEvent): SandboxState => {
     action.type === 'endTurn' ||
     action.type === 'move';
   if (!isCombatInput || !state.combat) return state;
-  const { combat } = stepSandbox(state.combat, action);
+  const { combat } = stepSandbox(state.combat, action, allowed);
   return combat === state.combat ? state : { ...state, combat };
 };
 
@@ -120,7 +141,7 @@ const DECK_SAVE_KEY = 'villain-arc:practice:decks';
 const PRACTICE_SAVE_KEY = 'villain-arc:practice:character';
 
 /** Restores the practice character without touching a ranked run. */
-const startPractice = (): SandboxState => {
+const startPractice = (access: UnlockAccess): SandboxState => {
   let character: CharacterState;
   try {
     character = restoreCharacter(JSON.parse(localStorage.getItem(PRACTICE_SAVE_KEY) ?? 'null'), true);
@@ -131,14 +152,16 @@ const startPractice = (): SandboxState => {
   let selection = restoreTrainingDecks(null);
   try { selection = restoreTrainingDecks(JSON.parse(localStorage.getItem(DECK_SAVE_KEY) ?? 'null')); }
   catch { /* Practice also works without browser storage. */ }
-  const deck = activeTrainingCards(selection);
-  return { ...selection, character, deck, combat: null, opening: null, round: 0, retries: 0 };
+  const deck = sourceCards(selection, access);
+  return { ...selection, access, character, deck, combat: null, opening: null, round: 0, retries: 0 };
 };
 
 // --- HOOK ---
 /** Returns the practice fight and functions to act or reroll the dummies. */
-export const useSandbox = () => {
-  const [state, send] = useReducer(reduce, null, startPractice);
+export const useSandbox = (access: UnlockAccess) => {
+  const [state, send] = useReducer(reduce, access, startPractice);
+  // Unlocks load after the menu opens; later fights use them.
+  useEffect(() => send({ type: 'access', access }), [access]);
   useEffect(() => {
     try {
       localStorage.setItem(PRACTICE_SAVE_KEY, JSON.stringify(state.character));

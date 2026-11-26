@@ -21,6 +21,8 @@ export const redisKeys = {
   playerBuild: (userId: string) => `profile:build:v1:${userId}`,
   /** String (JSON): one player's item bag, item id -> count. Server-owned. */
   playerItems: (userId: string) => `profile:items:v1:${userId}`,
+  /** String (JSON): what a player has unlocked in runs (kills, cards, maps). Server-owned. */
+  playerUnlocks: (userId: string) => `profile:unlocks:v1:${userId}`,
   /** String (JSON): admin unit stat overrides, hero id -> changed stats. */
   unitOverrides: () => 'balance:v1:unit-overrides',
 } as const;
