@@ -1,7 +1,43 @@
+import { useId } from 'react';
 import shopAmbient from '../../../assets/npcs/metatron-shop-ambient.webp';
 import shopFrame from '../../../assets/npcs/metatron-shop-frame.webp';
 import { Button } from '../../ui/Button';
-import { ProgressiveImg } from '../../ui/ProgressiveImage';
+import { ProgressiveImg, ProgressiveSvgImage } from '../../ui/ProgressiveImage';
+import './metatron-shop.css';
+
+const SCENE_WIDTH = 1200;
+const SCENE_HEIGHT = 675;
+
+/** Animate only the feathers and skull inside the approved painting. */
+function MetatronIdle() {
+  const id = useId();
+  const frame = { width: SCENE_WIDTH, height: SCENE_HEIGHT };
+  const region = { x: 0, y: 0, ...frame, maskUnits: 'userSpaceOnUse' };
+  return (
+    <svg className="metatron-idle pointer-events-none absolute inset-0 -z-10 h-full w-full"
+      viewBox={`0 0 ${SCENE_WIDTH} ${SCENE_HEIGHT}`} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <defs>
+        <radialGradient id={`${id}-soft-edge`}>
+          <stop offset=".54" stopColor="white" />
+          <stop offset="1" stopColor="black" />
+        </radialGradient>
+        <mask id={`${id}-head`} {...region}>
+          <ellipse cx="600" cy="179" rx="184" ry="157" fill={`url(#${id}-soft-edge)`} />
+        </mask>
+        <mask id={`${id}-feathers`} {...region}>
+          <ellipse cx="481" cy="302" rx="72" ry="82" fill={`url(#${id}-soft-edge)`} />
+          <ellipse cx="719" cy="302" rx="72" ry="82" fill={`url(#${id}-soft-edge)`} />
+        </mask>
+      </defs>
+      <g mask={`url(#${id}-feathers)`}>
+        <g className="metatron-idle-feathers"><ProgressiveSvgImage href={shopFrame} {...frame} /></g>
+      </g>
+      <g mask={`url(#${id}-head)`}>
+        <g className="metatron-idle-head"><ProgressiveSvgImage href={shopFrame} {...frame} /></g>
+      </g>
+    </svg>
+  );
+}
 
 export const MetatronShop = ({ onClose }: { onClose: () => void }) => (
   <section
@@ -16,6 +52,8 @@ export const MetatronShop = ({ onClose }: { onClose: () => void }) => (
       height={675}
       className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-contain"
     />
+
+    <MetatronIdle />
 
     <img
       src={shopAmbient}

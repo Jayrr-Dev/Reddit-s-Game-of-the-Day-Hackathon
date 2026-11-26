@@ -1,0 +1,25 @@
+/* A soft stationary mask keeps the lighting, room edges, and counter planted. */
+.metatron-idle-head, .metatron-idle-feathers { transform-box: view-box; }
+.metatron-idle-head {
+  transform-origin: 600px 224px;
+  animation: metatron-head-breath 7.2s ease-in-out infinite;
+}
+.metatron-idle-feathers {
+  transform-origin: 600px 373px;
+  animation: metatron-shoulder-breath 7.2s ease-in-out infinite;
+}
+
+@keyframes metatron-head-breath {
+  0%, 100% { transform: none; }
+  42% { transform: translate(1px, -3.7px) rotate(-.42deg); }
+  69% { transform: translate(0, .8px) rotate(.16deg); }
+}
+@keyframes metatron-shoulder-breath {
+  0%, 100% { transform: none; }
+  50% { transform: translateY(-2.8px) scaleX(1.009); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metatron-idle { display: none; }
+  .metatron-idle-head, .metatron-idle-feathers { animation: none; }
+}
