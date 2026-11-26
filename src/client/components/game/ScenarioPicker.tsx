@@ -11,7 +11,7 @@
 import { CustomDeckEditor } from './CustomDeckEditor';
 import { MAP_IMAGES, MAP_NAMES } from './combat/Backdrop';
 import { bossArenaOf, TRAINING_BOSS_ARENAS, type BossArena } from '../../content/bossArenas';
-import { Fragment, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { newestCardIds } from '../../../shared/game/cardReleases';
 import { getHero, type HeroId } from '../../../shared/game/heroes';
@@ -23,6 +23,8 @@ import { BODY_HEIGHT, BODY_WIDTH } from '../../lib/heroFigure';
 import { cssVars } from '../../lib/cssVars';
 import { Glyph } from '../ui/Glyph';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { ThemeSpeaker } from './ThemeSpeaker';
+import type { ThemePreviewControls } from '../../hooks/useThemePreview';
 import {
   groupScenariosByUnitType,
   groupUnitsByUnitType,
@@ -279,34 +281,68 @@ const ScenarioSections = ({
   terrainIndex,
   onPick,
   onInfo,
+  themePreview,
 }: {
   groups: readonly PickerSection[];
   terrainIndex: number;
   onPick: (scenario: SandboxScenario) => void;
   /** Set on the Units tab: each card gets an info icon for its attacks. */
   onInfo?: ((scenario: SandboxScenario) => void) | undefined;
+  themePreview: ThemePreviewControls;
 }) =>
   groups.map((group) => (
     <Fragment key={group.id}>
       <SectionHeading>{group.label}</SectionHeading>
       {group.scenarios.map((scenario) => (
         <div className="training-custom-tile" key={scenario.id}>
-        <EntryButton
-          entry={{ ...scenario, nameClass: TIER_NAME_CLASS[scenarioTier(scenario)] }}
-          preview={
-            <ScenarioPreview
-              scenario={scenario}
-              terrain={bossArenaOf(scenario.heroIds)?.image ?? MAP_IMAGES[terrainIndex]}
-            />
-          }
-          isActive={false}
-          onPick={() => onPick(scenario)}
+        <ScenarioEntry
+          scenario={scenario}
+          terrainIndex={terrainIndex}
+          onPick={onPick}
+          themePreview={themePreview}
         />
         {onInfo && <InfoButton name={scenario.name} onInfo={() => onInfo(scenario)} />}
         </div>
       ))}
     </Fragment>
   ));
+
+/** One scenario card; a boss scenario also gets a speaker for its theme. */
+const ScenarioEntry = ({
+  scenario,
+  terrainIndex,
+  onPick,
+  themePreview,
+}: {
+  scenario: SandboxScenario;
+  terrainIndex: number;
+  onPick: (scenario: SandboxScenario) => void;
+  themePreview: ThemePreviewControls;
+}) => {
+  const tier = scenarioTier(scenario);
+  const arena = bossArenaOf(scenario.heroIds);
+  const card = (
+    <EntryButton
+      entry={{ ...scenario, nameClass: TIER_NAME_CLASS[tier] }}
+      preview={
+        <ScenarioPreview scenario={scenario} terrain={arena?.image ?? MAP_IMAGES[terrainIndex]} />
+      }
+      isActive={false}
+      onPick={() => onPick(scenario)}
+    />
+  );
+  if (tier !== 'boss') return card;
+  return (
+    <>
+      {card}
+      <ThemeSpeaker
+        preview={{ key: 'scenario:' + scenario.id, arena }}
+        name={scenario.name}
+        controls={themePreview}
+      />
+    </>
+  );
+};
 
 // --- COMPONENT ---
 /** Renders the tabs and the active tab's entries in a two-column grid. */
@@ -323,6 +359,7 @@ export const ScenarioPicker = ({
   onSaveCustom,
   onPickScenario,
   onPickDeck,
+  themePreview,
 }: {
   /** Renders the banner above the tabs; openDeck jumps to a new custom deck. */
   renderHeader: (openDeck: () => void) => ReactNode;
@@ -337,6 +374,8 @@ export const ScenarioPicker = ({
   onSaveCustom: (name: string, cards: CardId[], id?: string) => void;
   onPickScenario: (scenario: SandboxScenario) => void;
   onPickDeck: (deckId: SandboxDeckId) => void;
+  /** Plays a boss arena's theme from the speaker on its card. */
+  themePreview: ThemePreviewControls;
 }) => {
   const [tab, setTab] = useState<PickerTab>('scenarios');
   const [editing, setEditing] = useState<string | null>(null);
@@ -349,6 +388,9 @@ export const ScenarioPicker = ({
     setPending(scenario);
   };
   const draft = customDecks.find((deck) => deck.id === editing);
+  // Closing the menu (resume, pause toggle) ends any theme preview.
+  const stopPreview = themePreview.stop;
+  useEffect(() => stopPreview, [stopPreview]);
   return (
     <>
     {renderHeader(() => { setTab('decks'); setEditing(''); })}
@@ -384,16 +426,20 @@ export const ScenarioPicker = ({
             terrainIndex={terrainIndex}
             onPick={(scenario) => askToFight(scenario, false)}
             onInfo={tab === 'units' ? (scenario) => askToFight(scenario, true) : undefined}
+            themePreview={themePreview}
           />
         ) : tab === 'map' ? (
           <>
           <SectionHeading>Boss arenas</SectionHeading>
           {TRAINING_BOSS_ARENAS.map(arena => (
-            <button key={arena.name} type="button" className="training-map"
-              aria-pressed={arena.name === activeArena?.name} onClick={() => onPickArena(arena)}>
-              <img alt="" loading="lazy" src={arena.image} />
-              <span>{arena.name}</span>
-            </button>
+            <div key={arena.name} className="training-themed">
+              <button type="button" className="training-map"
+                aria-pressed={arena.name === activeArena?.name} onClick={() => onPickArena(arena)}>
+                <img alt="" loading="lazy" src={arena.image} />
+                <span>{arena.name}</span>
+              </button>
+              <ThemeSpeaker preview={{ key: 'arena:' + arena.name, arena }} name={arena.name} controls={themePreview} />
+            </div>
           ))}
           <SectionHeading>Region maps</SectionHeading>
           {MAP_NAMES.map((name, index) => (

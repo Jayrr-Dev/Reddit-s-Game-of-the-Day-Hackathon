@@ -808,6 +808,11 @@
 .training-deck-tools button, .training-deck-edit { border: 1px solid var(--color-edge); border-radius: 4px; background: var(--color-surface-raised); color: var(--color-accent); font-weight: bold; }
 .training-deck-tools button { padding: 3px 10px; }
 .training-custom-tile { position: relative; min-width: 0; }
+/* A card with a theme speaker (top left, clear of the info icon): the speaker is a sibling of the card's button, so tapping it never picks the card. */
+.training-themed { position: relative; display: grid; min-width: 0; }
+.training-themed > .training-map { width: 100%; height: 100%; }
+.training-speaker { position: absolute; left: 6px; top: 6px; display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--color-edge); border-radius: 999px; background: #000a; color: var(--color-accent); }
+.training-speaker:hover, .training-speaker[aria-pressed=true] { border-color: var(--color-accent); background: var(--color-accent); color: var(--color-on-accent); }
 .training-custom-tile .training-entry { width: 100%; height: 100%; }
 .training-deck-edit { position: absolute; right: 4px; top: 4px; padding: 2px 5px; font-size: 11px; }
 .training-info { position: absolute; right: 6px; top: 6px; display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid var(--color-edge); border-radius: 50%; background: var(--color-surface-raised); color: var(--color-accent); font-family: var(--font-display); font-weight: 900; font-style: italic; font-size: 14px; line-height: 1; }

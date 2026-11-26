@@ -9,7 +9,9 @@ import { CombatView } from './CombatView';
 import { MAP_IMAGES, MAP_NAMES, PRACTICE_TERRAIN_START } from './combat/Backdrop';
 import { SettingsDialog } from './menu/SettingsDialog';
 import { bossArenaOf, type BossArena } from '../../content/bossArenas';
+import type { SandboxScenario } from '../../../shared/game/sandbox';
 import { ScenarioPicker } from './ScenarioPicker';
+import { useThemePreview } from '../../hooks/useThemePreview';
 
 /** Setup uses the same settings as the combat pause menu. */
 const SetupSettings = () => {
@@ -27,6 +29,9 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
   const [arenaOverride, setArenaOverride] = useState<BossArena | null | undefined>(undefined);
   const arena = arenaOverride !== undefined ? arenaOverride ?? undefined : combat ? bossArenaOf(combat.heroes.map(unit => unit.heroId), combat.fallen.map(unit => unit.heroId)) : undefined;
   const terrainIndex = selectedMap ?? (PRACTICE_TERRAIN_START + round) % MAP_NAMES.length;
+  const themePreview = useThemePreview(MAP_NAMES[terrainIndex] ?? '');
+  /** Runs a menu action after silencing any theme preview, so fight music takes over. */
+  const thenStopPreview = <A extends unknown[]>(action: (...args: A) => void) => (...args: A) => { themePreview.stop(); action(...args); };
 
   const trainingMenu = (resume: (() => void) | undefined, settings: ReactNode) => (
     <section role="dialog" aria-modal="true" aria-label="Illusion Training" className="training-menu">
@@ -36,7 +41,7 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
             className="training-header"
             style={{ backgroundImage: 'linear-gradient(90deg, #21150e 8%, #21150e70), url("' + (arena?.image ?? MAP_IMAGES[terrainIndex]) + '")' }}
           >
-            <IconButton icon="back" label="Back to menu" onClick={onExit} />
+            <IconButton icon="back" label="Back to menu" onClick={thenStopPreview(onExit)} />
             <div className="min-w-0 mr-auto">
               <h2>Illusion Training</h2>
               <span>{arena?.name ?? MAP_NAMES[terrainIndex]}</span>
@@ -50,20 +55,21 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
           </header>
         )}
         terrainIndex={terrainIndex}
-        onPickMap={index => { setSelectedMap(index); setArenaOverride(null); }}
+        onPickMap={thenStopPreview((index: number) => { setSelectedMap(index); setArenaOverride(null); })}
         activeArena={arena}
-        onPickArena={setArenaOverride}
+        onPickArena={thenStopPreview(setArenaOverride)}
         deckId={deckId}
         customDecks={customDecks}
         activeCustomId={activeCustomId}
         onPickCustom={pickCustomDeck}
         onSaveCustom={saveCustomDeck}
-        onPickScenario={scenario => { setArenaOverride(undefined); summon(scenario.heroIds, scenario.startsInPlace); }}
+        onPickScenario={thenStopPreview((scenario: SandboxScenario) => { setArenaOverride(undefined); summon(scenario.heroIds, scenario.startsInPlace); })}
         onPickDeck={pickDeck}
+        themePreview={themePreview}
       />
       <footer className="training-footer">
-        <Button variant="menu" onClick={onExit}>Leave training</Button>
-        <Button variant="menuPrimary" onClick={resume ?? reshuffle}>
+        <Button variant="menu" onClick={thenStopPreview(onExit)}>Leave training</Button>
+        <Button variant="menuPrimary" onClick={thenStopPreview(resume ?? reshuffle)}>
           {resume ? 'Resume' : 'Start random fight'}
         </Button>
       </footer>
@@ -83,6 +89,7 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
               deck={deck}
               terrainIndex={terrainIndex}
               trainingArenaOverride={arenaOverride}
+              musicMuted={themePreview.isPreviewing}
               where="Illusion Training"
               score={0}
               onAction={act}

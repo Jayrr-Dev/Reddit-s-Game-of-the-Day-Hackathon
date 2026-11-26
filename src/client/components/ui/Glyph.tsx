@@ -49,7 +49,8 @@ export type GlyphName =
   | 'dagger'
   | 'hammer'
   | 'dodging'
-  | 'back';
+  | 'back'
+  | 'speaker';
 
 export type GlyphProps = {
   name: GlyphName;

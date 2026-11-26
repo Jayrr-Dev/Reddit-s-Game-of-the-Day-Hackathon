@@ -112,6 +112,8 @@ export type CombatViewProps = {
   /** Terrain for this region or practice round. */
   terrainIndex: number;
   trainingArenaOverride?: BossArena | null | undefined;
+  /** Silences this fight's music while the training menu previews a theme. */
+  musicMuted?: boolean | undefined;
   where: string;
   score: number;
   onAction: (action: RunAction) => void;
@@ -241,6 +243,7 @@ export const CombatView = ({
   deck,
   terrainIndex,
   trainingArenaOverride,
+  musicMuted = false,
   where,
   score,
   onAction,
@@ -276,7 +279,7 @@ export const CombatView = ({
   );
   useMapAudio({
     mapId: mapName,
-    active: realCombat.player.hp > 0,
+    active: realCombat.player.hp > 0 && !musicMuted,
     bossActive: hasBoss || trainingArenaOverride != null,
     bossAmbience: bossArena?.ambience,
     alternateBattle: battleMusic === 'orchestral',
