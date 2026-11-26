@@ -3,7 +3,7 @@ import type { HeroAction } from '../../../content/heroLooks';
 import { HERO_ATTACK_MS } from '../../../hooks/useHeroTurn';
 import woodland from '../../../assets/heroes/woodland-archers/woodland-archer-strip.webp';
 import crowned from '../../../assets/heroes/woodland-archers/crowned-archer-strip.webp';
-import angel from '../../../assets/heroes/woodland-archers/angel-archer-strip.webp';
+import angel from '../../../assets/heroes/woodland-archers/angel-archer-clear-windup-strip.webp';
 import cerviel from '../../../assets/heroes/woodland-archers/cerviel-bow-strip.webp';
 import './woodland-archer.css';
 

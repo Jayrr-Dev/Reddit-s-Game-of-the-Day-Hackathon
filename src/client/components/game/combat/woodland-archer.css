@@ -25,8 +25,8 @@
 
 .woodland-archer[data-archer-sprite='wingedArcher'] { aspect-ratio: 132 / 146; }
 .woodland-archer[data-archer-sprite='wingedArcher'] .woodland-arrow-origin {
-  left: 45%;
-  top: 42%;
+  left: 72.3%;
+  top: 44.8%;
 }
 
 /* Inside Cerviel's original SVG art box, so its screen size and hover
