@@ -501,7 +501,8 @@ export const DISPEL_INFO: StatusInfo = {
 
 export const DISRUPT_INFO: StatusInfo = {
   label: 'Disrupt',
-  description: 'Disrupt N lowers one random buff or affliction by N stacks or tiers.',
+  description:
+    'Disrupt N lowers one random buff or affliction by N stacks or tiers.\nCan pick **Hit Limit** and lower it like any affliction.\n**Mass Disrupt** also gives every hero **Hit Limit 1**.',
 };
 
 export const CLEANSE_INFO: StatusInfo = {
