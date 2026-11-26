@@ -27,7 +27,7 @@
 .poison-fumes span:nth-child(3) { left: 43%; bottom: 2%; animation-delay: 125ms; opacity: .75; }
 .poison-drop {
   position: absolute;
-  bottom: 25%;
+  bottom: calc(var(--drop-y) * 1%);
   width: var(--drop-size);
   aspect-ratio: .8;
   border-radius: 64% 36% 67% 33% / 66% 47% 53% 34%;
@@ -35,10 +35,10 @@
   box-shadow: 0 0 5px #79a62e88;
   animation: poison-drop .94s ease-out both;
 }
-.poison-effect[data-poison-surface='screen'] .poison-drop { bottom: 7%; }
+.poison-effect[data-poison-surface='screen'] .poison-drop { bottom: calc(var(--drop-y) * .3%); }
 @keyframes poison-fade { 0% { opacity: .14; } 16% { opacity: .9; } 42% { opacity: .73; } 100% { opacity: 0; } }
 @keyframes poison-rise { from { transform: translate(0, 9%) scale(.76); opacity: .3; } to { transform: translate(7%, -30%) scale(1.22); opacity: 0; } }
-@keyframes poison-drop { 0% { opacity: 0; transform: translate(0, 0) rotate(0deg) scale(.65); } 24% { opacity: .86; } 100% { opacity: 0; transform: translate(var(--poison-drift), -36px) rotate(40deg) scale(.35); } }
+@keyframes poison-drop { 0% { opacity: 0; transform: translate(0, 0) rotate(0deg) scale(.65); } 24% { opacity: .86; } 100% { opacity: 0; transform: translate(var(--poison-drift), var(--poison-rise)) rotate(40deg) scale(.35); } }
 @media (prefers-reduced-motion: reduce) {
   .poison-fumes span, .poison-drop { animation: none; }
   .poison-drop { display: none; }
