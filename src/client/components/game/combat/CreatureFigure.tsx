@@ -35,7 +35,7 @@
 // ===================================================================
 
 import type { JSX } from 'react';
-import { IvoryWerewolf, WolfCentaur } from './WolfFigures';
+import { IvoryWerewolf, WolfCentaur } from './WolfSpriteFigure';
 import { AngelMage } from './AngelMageFigure';
 import { WingedArcher } from './WingedArcherFigure';
 import { ApollyonSeraph } from './ApollyonSeraphFigure';

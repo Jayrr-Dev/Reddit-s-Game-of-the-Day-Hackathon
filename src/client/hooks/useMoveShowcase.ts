@@ -8,7 +8,7 @@
 import { useEffect, useState } from 'react';
 import { describeHeroMoveList, type MoveIntent } from '../../shared/game/describe';
 import type { HeroId } from '../../shared/game/heroes';
-import type { HeroAction, HeroActionStyle } from '../content/heroLooks';
+import { wolfAttackOf, type HeroAction, type HeroActionStyle } from '../content/heroLooks';
 
 // --- CONSTANTS ---
 /** How long each move plays, then the pause before the next (ms). */
@@ -55,6 +55,8 @@ export const useMoveShowcase = (heroId: HeroId, isPlaying: boolean): ShowcaseBea
   if (!isPlaying || !move) return { moveName: '', action: null };
   if (!isActing) return { moveName: move.name, action: null };
   const action = showcaseActionOf(move);
+  const wolfAttack = wolfAttackOf(heroId, move.name);
+  if (wolfAttack) action.wolfAttack = wolfAttack;
   if (heroId === 'twinAxeKnight' && action.style === 'melee') {
     action.khanAttackPhase = action.isSignature ? 'signature-preview' : 'cleave';
   }

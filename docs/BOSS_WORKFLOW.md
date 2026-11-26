@@ -26,14 +26,15 @@ Use this workflow for new units and animation updates in Villain Run. The delive
 
 ## 5. Interpolate motion before export
 
-- Keep an untouched copy of the aligned keyframes. Run motion interpolation between clean poses to generate in-between frames. Try 24–30 fps for review while keeping the original move duration and release or impact timing.
-- Replay the result at game speed. If anything looks off, step through the generated frames and compare them to the original keyframes. Look for unwanted ghosting, doubled weapons, warped grips, shifting feet, and flickering transparency.
+- Keep an untouched copy of the aligned keyframes. Interpolate between clean poses on a 24 fps timeline without changing the original move duration, release, or impact timing.
+- Default to **animating on threes**: hold each drawing for three frames at 24 fps (one pose slot every 125 ms). Keep the clearest pose in each slot, prioritizing the contact, release, and readable smears. Use twos or ones only where a faster cadence reads better and is approved.
+- Replay the result at game speed, then step through the distinct poses. Remove doubled weapons, warped grips, shifting feet, or accidental ghosting. Replace the bad pose with a clean adjacent drawing or intentional hold rather than shortening the clip.
 - On fast swings and spins, add directional smears to the in-between frames. Keep the held poses, weapon release, and impact sharp so the move still reads clearly.
 - Replace bad in-betweens with clean drawn poses or keep a sharp transition where a hit or abrupt turn needs it. Do not blend across a cut, a deliberate impact hold, or mismatched silhouettes just to increase frame rate.
 
 ## 6. Preview the GIF and export WebP
 
-- Send a GIF preview with the full character in frame. Check that attack clips return to neutral and that idle loops have no visible seam. Review the animation and resolve any art corrections before replacing the live asset.
+- Send a 24 fps preview with the full character in frame. Use MP4 for exact cadence or GIF for quick review. Check that attack clips return to neutral and that idle loops have no visible seam. Resolve art corrections before replacing the live asset.
 - Export the checked sequence as a transparent WebP sprite strip or animated WebP, matching the playback component. Put the game asset under `src/client/assets/heroes/`, keep the static neutral sprite, and retain the editable source and GIF outside the runtime bundle.
 - Decode the final WebP to verify transparency, frame count and order, dimensions, file size, and timing. Attacks should play once and return to idle; ambient or idle clips may loop. Use a stable static sprite for reduced motion.
 

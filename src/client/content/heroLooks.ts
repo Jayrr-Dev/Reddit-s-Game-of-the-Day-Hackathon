@@ -487,6 +487,18 @@ export const HERO_LOOKS: Record<HumanoidId, HeroLook> = {
 /** How a hero's attack animates (the type of move it is making). */
 export type HeroActionStyle = 'melee' | 'range' | 'magic' | 'support';
 
+export type WolfAttack = 'rend' | 'pounce' | 'staff';
+
+/** Both Training and combat use the same pose strip for an existing move. */
+export function wolfAttackOf(heroId: string | undefined, move: string | undefined): WolfAttack | undefined {
+  if (heroId === 'ivoryWerewolf') {
+    if (move === 'Rend') return 'rend';
+    if (move === 'Savage Bite') return 'pounce';
+  }
+  if (heroId === 'wolfCentaur' && move === 'Staff Strike') return 'staff';
+  return undefined;
+}
+
 /**
  * The ways a melee weapon can be swung, so close-up attacks vary:
  *   slash  a wide sideways sweep
@@ -522,4 +534,5 @@ export type HeroAction = {
   isTwoHanded: boolean;
   cervielVolleyKey?: number;
   khanAttackPhase?: 'cleave' | 'charge' | 'slam' | 'signature-preview';
+  wolfAttack?: WolfAttack;
 };

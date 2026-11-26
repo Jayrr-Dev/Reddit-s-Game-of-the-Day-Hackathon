@@ -327,7 +327,7 @@ export const HEROES = {
   ]),
   wolfCentaur: hero('Wolf-Centaur', 'elite', 43, 260, 6, WIDE_FRONT, [
     move('Hunting Call', { kind: 'pullPlayer', lines: 1 }),
-    move('Pounce', strike(12), weaken(1)),
+    move('Staff Strike', strike(12), weaken(1)),
     move('Pack Howl', wrath(1, 'allies')),
   ]),
 

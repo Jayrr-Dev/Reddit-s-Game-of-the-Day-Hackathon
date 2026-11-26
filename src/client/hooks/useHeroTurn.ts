@@ -18,6 +18,7 @@ import { bossMoveCue, type Cue, type MoveMoment } from '../content/bossMoveCues'
 import {
   humanoidLookOf,
   MELEE_SWINGS,
+  wolfAttackOf,
   type HeroAction,
 } from '../content/heroLooks';
 
@@ -70,6 +71,7 @@ const actionOf = (step: Beat, uid: number): HeroAction => {
   const unit = step.state.heroes.find((hero) => hero.uid === uid);
   const isBowman = unit && humanoidLookOf(unit.heroId)?.prop === 'longbow';
   const style = step.attackType ?? 'support';
+  const wolfAttack = wolfAttackOf(unit?.heroId, step.move?.name);
   let khanAttackPhase: HeroAction['khanAttackPhase'];
   if (unit?.heroId === 'twinAxeKnight') {
     if (step.move?.isSignature) khanAttackPhase = step.isCharge ? 'charge' : 'slam';
@@ -81,6 +83,7 @@ const actionOf = (step: Beat, uid: number): HeroAction => {
       MELEE_SWINGS[(uid + step.state.turn) % MELEE_SWINGS.length] ?? 'slash',
     isSignature: step.move?.isSignature ?? false,
     isTwoHanded: step.move?.isTwoHanded ?? false,
+    ...(wolfAttack === undefined ? {} : { wolfAttack }),
     ...(khanAttackPhase === undefined ? {} : { khanAttackPhase }),
     ...(step.cervielVolleyKey === undefined ? {} : { cervielVolleyKey: step.cervielVolleyKey }),
   };
