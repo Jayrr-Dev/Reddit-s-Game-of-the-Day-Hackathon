@@ -17,6 +17,7 @@ import {
   sandboxReducer,
   SANDBOX_HP,
   stepSandbox, retryTrainingFight,
+  groupScenariosByUnitType,
 } from './sandbox.ts';
 import { CARDS_PER_TURN, ENERGY_PER_TURN } from './rules.ts';
 import { getCard, isCardInPlay, type CardId } from './cards.ts';
@@ -316,4 +317,17 @@ void test('training defeat can retry the same encounter with its deck, restored 
   assert.equal(retry.player.hp, characterBonuses(trained.traits).maxHp);
   assert.equal(retry.player.traits?.vigor, 64);
   assert.equal(retry.turn, opening.turn);
+});
+
+void test('scenarios are grouped by unit type: Angels, Dragons, Beasts, Humans', () => {
+  const groups = groupScenariosByUnitType();
+  assert.deepEqual(groups.map((group) => group.label), ['Angels', 'Dragons', 'Beasts', 'Humans']);
+  // Every scenario lands in exactly one section.
+  const grouped = groups.flatMap((group) => group.scenarios.map((scenario) => scenario.id));
+  assert.deepEqual([...grouped].sort(), SANDBOX_SCENARIOS.map((scenario) => scenario.id).sort());
+  const idsOf = (label: string) => groups.find((group) => group.label === label)?.scenarios.map((scenario) => scenario.id);
+  assert.deepEqual(idsOf('Dragons'), ['fulgurDragonknight', 'holyDragon', 'tempestWyrm']);
+  assert.deepEqual(idsOf('Beasts'), ['wolfPack', 'grandGriffon']);
+  // Angel Mage is filed by its lead, not the sentinel standing in front.
+  assert.ok(idsOf('Angels')?.includes('angelMage'));
 });

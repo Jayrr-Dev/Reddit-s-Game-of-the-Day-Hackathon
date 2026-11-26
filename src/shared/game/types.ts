@@ -431,6 +431,8 @@ export type HeroMove = {
 };
 
 export type HeroTier = 'grunt' | 'elite' | 'champion' | 'boss';
+/** What kind of being a hero is (Illusion Training groups scenarios by it). */
+export type UnitType = 'angel' | 'dragon' | 'beast' | 'human';
 
 // --- BATTLEFIELD ---
 /**

@@ -1,7 +1,7 @@
 // ===================================================================
 // SCENARIO PICKER
 // The target dummies' pause-menu picker, in tabs: Scenarios (preset
-// lineups, SANDBOX_SCENARIOS) and Decks (themed test decks,
+// lineups, SANDBOX_SCENARIOS, in unit type sections) and Decks (themed test decks,
 // SANDBOX_DECKS). Tapping a scenario asks first (fight or not), so a
 // stray tap never drops the player into a boss; tapping a deck deals a
 // fresh fight from it against the same dummies.
@@ -10,7 +10,7 @@
 import { CustomDeckEditor } from './CustomDeckEditor';
 import { MAP_IMAGES, MAP_NAMES } from './combat/Backdrop';
 import { bossArenaOf, TRAINING_BOSS_ARENAS, type BossArena } from '../../content/bossArenas';
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useState, type CSSProperties, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { getHero, type HeroId } from '../../../shared/game/heroes';
 import { CARD_LOOK, EDGE_ART, ELEMENT_LOOK } from '../../content/visuals';
@@ -21,7 +21,7 @@ import { cssVars } from '../../lib/cssVars';
 import { Glyph } from '../ui/Glyph';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import {
-  SANDBOX_SCENARIOS,
+  groupScenariosByUnitType,
   type SandboxScenario,
 } from '../../../shared/game/sandbox';
 import {
@@ -43,7 +43,17 @@ const TAB_LABELS: Record<PickerTab, string> = {
   map: 'Map',
 };
 
+/** Scenarios in unit type sections; the catalog is static, so group once. */
+const SCENARIO_GROUPS = groupScenariosByUnitType();
+
 // --- SUBCOMPONENTS ---
+/** A full-width heading that starts a section of the entry grid. */
+const SectionHeading = ({ children }: { children: ReactNode }) => (
+  <h3 className="col-span-full mt-1 text-xs font-bold uppercase tracking-widest text-[#f2d29b]">
+    {children}
+  </h3>
+);
+
 const DECK_EXAMPLES = {
   stackedBuffs: ['sap', 'bulwark', 'instinct'],
   all: ['twinDaggers', 'frostBolt', 'boneWard'],
@@ -280,23 +290,28 @@ export const ScenarioPicker = ({
         aria-label={TAB_LABELS[tab]}
       >
         {tab === 'scenarios' ? (
-          SANDBOX_SCENARIOS.map((scenario) => (
-            <EntryButton
-              key={scenario.id}
-              entry={scenario}
-              preview={
-                <ScenarioPreview
-                  scenario={scenario}
-                  terrain={bossArenaOf(scenario.heroIds)?.image ?? MAP_IMAGES[terrainIndex]}
+          SCENARIO_GROUPS.map((group) => (
+            <Fragment key={group.unitType}>
+              <SectionHeading>{group.label}</SectionHeading>
+              {group.scenarios.map((scenario) => (
+                <EntryButton
+                  key={scenario.id}
+                  entry={scenario}
+                  preview={
+                    <ScenarioPreview
+                      scenario={scenario}
+                      terrain={bossArenaOf(scenario.heroIds)?.image ?? MAP_IMAGES[terrainIndex]}
+                    />
+                  }
+                  isActive={false}
+                  onPick={() => setPending(scenario)}
                 />
-              }
-              isActive={false}
-              onPick={() => setPending(scenario)}
-            />
+              ))}
+            </Fragment>
           ))
         ) : tab === 'map' ? (
           <>
-          <h3 className="col-span-full mt-1 text-xs font-bold uppercase tracking-widest text-[#f2d29b]">Boss arenas</h3>
+          <SectionHeading>Boss arenas</SectionHeading>
           {TRAINING_BOSS_ARENAS.map(arena => (
             <button key={arena.name} type="button" className="training-map"
               aria-pressed={arena.name === activeArena?.name} onClick={() => onPickArena(arena)}>
@@ -304,7 +319,7 @@ export const ScenarioPicker = ({
               <span>{arena.name}</span>
             </button>
           ))}
-          <h3 className="col-span-full mt-1 text-xs font-bold uppercase tracking-widest text-[#f2d29b]">Region maps</h3>
+          <SectionHeading>Region maps</SectionHeading>
           {MAP_NAMES.map((name, index) => (
             <button
               key={name}

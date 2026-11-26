@@ -17,6 +17,7 @@ import type {
   HeroTier,
   PassiveId,
   SummonId,
+  UnitType,
 } from './types.ts';
 
 import { cervielSecondPhase, cervielSummonMoves } from './heroPhases.ts';
@@ -542,6 +543,81 @@ export type HeroId = keyof typeof HEROES;
 
 /** Looks up a hero definition. */
 export const getHero = (id: HeroId): HeroDef => HEROES[id];
+
+// --- UNIT TYPES ---
+/** The order unit type sections appear in. */
+export const UNIT_TYPES: readonly UnitType[] = ['angel', 'dragon', 'beast', 'human'];
+
+/** Section headings for grouping heroes by unit type. */
+export const UNIT_TYPE_LABELS: Readonly<Record<UnitType, string>> = {
+  angel: 'Angels',
+  dragon: 'Dragons',
+  beast: 'Beasts',
+  human: 'Humans',
+};
+
+/**
+ * What kind of being each hero is, judged from its art and name. Every
+ * hero must have one (the satisfies check fails on a missing id), so a
+ * new hero can't silently drop out of the grouped lists.
+ */
+const HERO_UNIT_TYPES = {
+  // Humans: the kingdom's soldiers, champions, knights and mages.
+  squire: 'human',
+  bard: 'human',
+  archer: 'human',
+  priest: 'human',
+  shieldmaiden: 'human',
+  rogue: 'human',
+  paladin: 'human',
+  archmage: 'human',
+  ballista: 'human',
+  holt: 'human',
+  lysa: 'human',
+  maren: 'human',
+  brannoc: 'human',
+  seris: 'human',
+  valen: 'human',
+  swordPrelate: 'human',
+  hornedSentinel: 'human',
+  stormLancer: 'human',
+  sevenEyedOracle: 'human',
+  holyKing: 'human',
+  mageBorneAstra: 'human',
+  mageBorneAzula: 'human',
+  twinAxeKnight: 'human',
+  // Angels: winged heavenly host, plus the summons they bring.
+  angelArcher: 'angel',
+  purpleCupid: 'angel',
+  angelMage: 'angel',
+  grandangelCerviel: 'angel',
+  cervielSword: 'angel',
+  cervielBow: 'angel',
+  grandangelCambiel: 'angel',
+  archangelZeruel: 'angel',
+  zeruelRedSun: 'angel',
+  zeruelBlueSun: 'angel',
+  grandangelRaziel: 'angel',
+  grandangelGeonosis: 'angel',
+  zadkielOfDominations: 'angel',
+  grandangelCherubiel: 'angel',
+  lightLordMori: 'angel',
+  apollyonSeraph: 'angel',
+  angelAssassin: 'angel',
+  archangelUriel: 'angel',
+  zeruelArmored: 'angel',
+  // Dragons.
+  fulgurDragonknight: 'dragon',
+  holyDragon: 'dragon',
+  tempestWyrm: 'dragon',
+  // Beasts.
+  ivoryWerewolf: 'beast',
+  wolfCentaur: 'beast',
+  grandGriffon: 'beast',
+} as const satisfies Record<HeroId, UnitType>;
+
+/** Looks up what kind of being a hero is. */
+export const unitTypeOf = (id: HeroId): UnitType => HERO_UNIT_TYPES[id];
 
 export const GRUNT_IDS: readonly HeroId[] = [
   'squire',

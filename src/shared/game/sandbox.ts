@@ -10,14 +10,14 @@
 import { advanceHeroes, cellCountOf } from './battlefield.ts';
 import { characterBonuses, syncCharacterCombat, type CharacterState, type Equipment, type TraitNodes, type Traits } from './character.ts';
 import { drawCards, combatOutcome, endTurn, finishPlayerTurn, playCard, startCombat, startPlayerTurn } from './combat.ts';
-import { CHAMPION_IDS, ELITE_IDS, getHero, GRUNT_IDS, type HeroId } from './heroes.ts';
+import { CHAMPION_IDS, ELITE_IDS, getHero, GRUNT_IDS, UNIT_TYPE_LABELS, UNIT_TYPES, unitTypeOf, type HeroId } from './heroes.ts';
 import { move } from './movement.ts';
 import { nextInt, pickWeighted, type RngState } from './rng.ts';
 import { BATTLEFIELD_ROWS, PLAYER_MAX_HP } from './rules.ts';
 import type { MoveAction, PlayCardAction } from './run.ts';
 import type { CardId } from './cards.ts';
 import { isCustomDeckList, sandboxDeckCards, type SandboxDeckId } from './sandboxDecks.ts';
-import type { CombatState, HeroUnit } from './types.ts';
+import type { CombatState, HeroUnit, UnitType } from './types.ts';
 
 // --- TYPES ---
 /** What the sandbox accepts: the combat inputs. */
@@ -56,6 +56,18 @@ export type SandboxScenario = {
    * in), to show a set formation from the first turn.
    */
   startsInPlace?: boolean;
+  /**
+   * The hero the scenario is about, when it isn't the first in heroIds
+   * (e.g. Angel Mage stands behind its escorts). Sets its unit type group.
+   */
+  leadHeroId?: HeroId;
+};
+
+/** One unit type's heading and the scenarios led by that kind of hero. */
+export type ScenarioGroup = {
+  unitType: UnitType;
+  label: string;
+  scenarios: readonly SandboxScenario[];
 };
 
 /**
@@ -174,6 +186,7 @@ export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
     name: 'Angel Mage',
     blurb: 'A winged time mage shields a prelate and sentinel, then casts Frost.',
     heroIds: ['hornedSentinel', 'swordPrelate', 'angelMage'],
+    leadHeroId: 'angelMage',
     startsInPlace: true,
   },
   {
@@ -268,6 +281,27 @@ export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
     startsInPlace: true,
   },
 ];
+
+/** The unit type a scenario is filed under: its lead hero's (Humans if it has none). */
+export const scenarioUnitType = (scenario: SandboxScenario): UnitType => {
+  const lead = scenario.leadHeroId ?? scenario.heroIds[0];
+  return lead ? unitTypeOf(lead) : 'human';
+};
+
+/**
+ * Scenarios split into unit type sections (Angels, Dragons, Beasts,
+ * Humans), keeping list order inside each and dropping empty sections.
+ */
+export const groupScenariosByUnitType = (
+  scenarios: readonly SandboxScenario[] = SANDBOX_SCENARIOS
+): ScenarioGroup[] =>
+  UNIT_TYPES
+    .map((unitType) => ({
+      unitType,
+      label: UNIT_TYPE_LABELS[unitType],
+      scenarios: scenarios.filter((scenario) => scenarioUnitType(scenario) === unitType),
+    }))
+    .filter((group) => group.scenarios.length > 0);
 
 // --- HORDE ---
 /** Rolls 2 to 5 random heroes that fit the field together. */
