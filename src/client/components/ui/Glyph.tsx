@@ -50,7 +50,8 @@ export type GlyphName =
   | 'hammer'
   | 'dodging'
   | 'back'
-  | 'speaker';
+  | 'speaker'
+  | 'close';
 
 export type GlyphProps = {
   name: GlyphName;

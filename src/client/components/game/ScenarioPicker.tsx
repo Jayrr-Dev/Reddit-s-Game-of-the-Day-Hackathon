@@ -25,6 +25,7 @@ import { cssVars } from '../../lib/cssVars';
 import { Glyph } from '../ui/Glyph';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { ThemeSpeaker } from './ThemeSpeaker';
+import { ArenaDialog } from './ArenaDialog';
 import type { ThemePreviewControls } from '../../hooks/useThemePreview';
 import {
   groupScenariosByUnitType,
@@ -276,8 +277,8 @@ const FightPrompt = ({
 };
 
 /** The round "i" that opens a unit's attacks, over the corner of its card. */
-const InfoButton = ({ name, onInfo }: { name: string; onInfo: () => void }) => (
-  <button type="button" className="training-info" aria-label={'Attacks of ' + name} title="Attacks" onClick={onInfo}>
+const InfoButton = ({ name, onInfo, label = 'Attacks' }: { name: string; onInfo: () => void; label?: string }) => (
+  <button type="button" className="training-info" aria-label={label + ' of ' + name} title={label} onClick={onInfo}>
     i
   </button>
 );
@@ -388,6 +389,8 @@ export const ScenarioPicker = ({
   const [editing, setEditing] = useState<string | null>(null);
   // The scenario waiting on the fight-or-not answer, if any.
   const [pending, setPending] = useState<SandboxScenario | null>(null);
+  // The boss arena shown full size in its info dialog, if any.
+  const [viewedArena, setViewedArena] = useState<BossArena | null>(null);
   // True when the prompt was opened from a unit's info icon (lists its attacks).
   const [isShowingMoves, setShowingMoves] = useState(false);
   const askToFight = (scenario: SandboxScenario, showMoves: boolean) => {
@@ -410,6 +413,9 @@ export const ScenarioPicker = ({
           onFight={() => { setPending(null); onPickScenario(pending); }}
           onBack={() => setPending(null)}
         />
+      )}
+      {viewedArena && (
+        <ArenaDialog arena={viewedArena} themePreview={themePreview} onClose={() => setViewedArena(null)} />
       )}
       {editing !== null && (
         <CustomDeckEditor
@@ -439,13 +445,13 @@ export const ScenarioPicker = ({
           <>
           <SectionHeading>Boss arenas</SectionHeading>
           {TRAINING_BOSS_ARENAS.map(arena => (
-            <div key={arena.name} className="training-themed">
+            <div key={arena.name} className="training-custom-tile">
               <button type="button" className="training-map"
                 aria-pressed={arena.name === activeArena?.name} onClick={() => onPickArena(arena)}>
                 <img alt="" loading="lazy" src={arena.image} />
                 <span>{arena.name}</span>
               </button>
-              <ThemeSpeaker preview={{ key: 'arena:' + arena.name, arena }} name={arena.name} controls={themePreview} />
+              <InfoButton name={arena.name} label="View" onInfo={() => setViewedArena(arena)} />
             </div>
           ))}
           <SectionHeading>Region maps</SectionHeading>

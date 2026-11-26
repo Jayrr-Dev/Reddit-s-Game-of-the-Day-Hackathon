@@ -18,6 +18,8 @@ export type ThemePreviewControls = {
   playingKey: string | undefined;
   /** Starts this theme, or stops it when it is already playing. */
   toggle: (preview: ThemePreview) => void;
+  /** Starts this theme (stable, so a dialog can start it on open). */
+  play: (preview: ThemePreview) => void;
   stop: () => void;
 };
 
@@ -37,10 +39,12 @@ export function useThemePreview(mapId: string): ThemePreviewControls & { isPrevi
   });
   // Stable so the menu can stop the preview when it closes.
   const stop = useCallback(() => setPreview(null), []);
+  const play = useCallback((next: ThemePreview) => setPreview(next), []);
   return {
     playingKey: preview?.key,
     isPreviewing: preview !== null,
     toggle: (next) => setPreview((current) => (current?.key === next.key ? null : next)),
+    play,
     stop,
   };
 }
