@@ -5,6 +5,7 @@ import {
   HOMING_INFO,
   KNOCKBACK_INFO,
   OUT_OF_RANGE_INFO,
+  IDEAL_RANGE_INFO,
   PASSIVE_INFO,
   PULL_INFO,
   STATUS_INFO,
@@ -32,5 +33,5 @@ export const COMBAT_STATUS_SECTIONS: readonly ReferenceSection[] = [
   { title: 'Evasion', headline: 'Dodge hits or prevent targeting', entries: status('instinct', 'reflex', 'cloak', 'aloft') },
   { title: 'Offense buffs', headline: 'Which attacks improve', entries: status('wrath', 'might', 'surge', 'hone', 'bane', 'sharpshooter', 'berserker') },
   { title: 'Movement effects', headline: 'Change distance or movement cost', entries: [...status('momentum', 'move', 'rush'), PULL_INFO, KNOCKBACK_INFO] },
-  { title: 'Counters and passives', headline: 'Remove, reduce, or bypass effects', entries: [CLEANSE_INFO, DISPEL_INFO, DISRUPT_INFO, HOMING_INFO, OUT_OF_RANGE_INFO, ...Object.values(PASSIVE_INFO)] },
+  { title: 'Counters and passives', headline: 'Remove, reduce, or bypass effects', entries: [CLEANSE_INFO, DISPEL_INFO, DISRUPT_INFO, HOMING_INFO, IDEAL_RANGE_INFO, OUT_OF_RANGE_INFO, ...Object.values(PASSIVE_INFO)] },
 ];

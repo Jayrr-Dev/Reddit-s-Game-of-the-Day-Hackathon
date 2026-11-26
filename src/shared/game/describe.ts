@@ -24,6 +24,7 @@ import {
   BUFF_KEYWORDS,
   ON_OFF_BUFFS,
   OUT_OF_RANGE_HIT_CHANCE,
+  LONG_RANGE_DAMAGE_FACTOR,
   ALOFT_EVASION,
   SHARPSHOOTER_ACCURACY_BONUS,
   SHARPSHOOTER_DAMAGE_FACTOR,
@@ -501,20 +502,32 @@ export const CLEANSE_INFO: StatusInfo = {
  * What players call each row (the Frontline is nearest the villain) and what
  * it means. The engine's names (front, back, horizon) never show.
  */
+/** The Range bonus past Frontline as a percent (+25%). */
+const IDEAL_RANGE_BONUS_PERCENT = Math.round((LONG_RANGE_DAMAGE_FACTOR - 1) * 100);
+
 export const ROW_INFO: Record<HeroRow, StatusInfo> = {
   front: {
     label: ROW_LABEL.front,
-    description: 'The nearest row\n**Melee** reaches only here',
+    description: 'The nearest row\n**Melee** reaches only here\nToo close for **Ideal Range**: **Range** loses its bonus',
   },
   back: {
     label: ROW_LABEL.back,
-    description: 'The middle row\nArchers and healers keep here',
+    description: `The middle row\nArchers and healers keep here\n**Ideal Range**: **Range** deals **+${IDEAL_RANGE_BONUS_PERCENT}%** and is never **Out of Range**`,
   },
   horizon: {
     label: ROW_LABEL.horizon,
     description:
-      'The farthest row\nNew heroes march in from here\nShots from or into it are **Out of Range**',
+      'The farthest row\nNew heroes march in from here\nPast **Ideal Range**: shots from or into it are **Out of Range**',
   },
+};
+
+/**
+ * Midline is where a Range shot is at its best: past Frontline it gets
+ * LONG_RANGE_DAMAGE_FACTOR, and unlike Backline it is never Out of Range.
+ */
+export const IDEAL_RANGE_INFO: StatusInfo = {
+  label: 'Ideal Range',
+  description: `**Range** shots into or from **${ROW_LABEL.back}** deal **+${IDEAL_RANGE_BONUS_PERCENT}%** and are never **Out of Range**\nOn **${ROW_LABEL.front}** they lose the bonus\nOn **${ROW_LABEL.horizon}** they keep it but are **Out of Range**`,
 };
 
 /** A row's player-facing name (see ROW_LABEL in rules.ts). */
@@ -613,7 +626,7 @@ export const GLOSSARY: Readonly<Record<string, GlossaryEntry>> =
         HOMING_INFO,
         RANDOMLY_INFO,
       ]),
-      ...inCategory('term', [...Object.values(ROW_INFO), OUT_OF_RANGE_INFO]),
+      ...inCategory('term', [...Object.values(ROW_INFO), IDEAL_RANGE_INFO, OUT_OF_RANGE_INFO]),
     ].map((entry) => [entry.label, entry])
   );
 
