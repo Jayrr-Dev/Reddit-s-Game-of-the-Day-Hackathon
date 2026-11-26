@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { RunAction } from '../../shared/game/run';
 import type { FinishRunResponse, InitResponse } from '../../shared/types/api';
+import { setUnitOverrides } from '../../shared/game/unitOverrides';
 import { apiClient } from '../lib/apiClient';
 
 // --- TYPES ---
@@ -37,7 +38,11 @@ export const useDailyGame = () => {
   useEffect(() => {
     apiClient
       .init()
-      .then((data) => setState({ status: 'ready', data }))
+      .then((data) => {
+        // Before the run screen mounts, so a resumed run replays with them.
+        setUnitOverrides(data.unitOverrides);
+        setState({ status: 'ready', data });
+      })
       .catch((error: unknown) =>
         setState({
           status: 'error',

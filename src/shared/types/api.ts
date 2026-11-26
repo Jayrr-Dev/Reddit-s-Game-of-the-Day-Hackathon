@@ -6,6 +6,7 @@
 // ===================================================================
 
 import type { RunAction, RunStats } from '../game/run.ts';
+import type { UnitStatOverride, UnitStatOverrides } from '../game/unitOverrides.ts';
 
 // --- SHARED SHAPES ---
 /** A single row on the daily leaderboard. */
@@ -33,6 +34,22 @@ export type InitResponse = {
   streak: StreakSummary;
   /** True once the player has started today's ranked run. */
   hasStartedRankedRun: boolean;
+  /** True when the viewer may edit unit stats (checked again on save). */
+  isAdmin: boolean;
+  /** Admin balance changes laid over the hero catalog. */
+  unitOverrides: UnitStatOverrides;
+};
+
+// --- POST /api/admin/unit-stats ---
+// Admin only. Saves one unit's stat override; null resets it to the catalog.
+export type SaveUnitStatsRequest = {
+  heroId: string;
+  override: UnitStatOverride | null;
+};
+
+export type SaveUnitStatsResponse = {
+  type: 'unitStats';
+  unitOverrides: UnitStatOverrides;
 };
 
 // --- POST /api/run/start ---

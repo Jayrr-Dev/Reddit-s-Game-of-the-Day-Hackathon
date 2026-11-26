@@ -18,6 +18,7 @@ import { useRunSubmission } from '../hooks/useRunSubmission';
 import { playSound } from '../lib/gameAudio';
 import { apiClient } from '../lib/apiClient';
 import { PlayerName } from '../lib/playerName';
+import { IsAdmin } from '../lib/adminRole';
 import { journeys } from '../lib/journeys';
 import { StarterPicker } from './game/StarterPicker';
 import type { PlayerBuild } from '../../shared/game/playerBuild';
@@ -147,6 +148,6 @@ export const GameScreen = () => {
   if (state.status === 'error')
     return <Screen>Something went wrong: {state.message}</Screen>;
   return (
-    <PlayerName.Provider value={state.data.username}><GameSession key={state.data.accountId} data={state.data} startRun={startRun} finishRun={finishRun} /></PlayerName.Provider>
+    <PlayerName.Provider value={state.data.username}><IsAdmin.Provider value={state.data.isAdmin}><GameSession key={state.data.accountId} data={state.data} startRun={startRun} finishRun={finishRun} /></IsAdmin.Provider></PlayerName.Provider>
   );
 };

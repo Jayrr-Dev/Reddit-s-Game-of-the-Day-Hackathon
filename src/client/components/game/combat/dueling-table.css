@@ -845,6 +845,14 @@
 .unit-stat-list dt { color: var(--color-ink-muted); font-size: 12px; }
 .unit-stat-list dd { justify-self: end; color: var(--color-ink); font-weight: 800; font-size: 13px; }
 .unit-stat-list p { grid-column: 1 / -1; color: var(--color-ink-muted); font-size: 11px; line-height: 1.3; }
+/* ADMIN STAT EDITOR: number fields above the stat list */
+.unit-stat-editor { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px; padding: 6px 8px; border: 1px dashed var(--color-accent); border-radius: 6px; text-align: left; }
+.unit-stat-editor-title, .unit-stat-editor-actions, .unit-stat-editor-status { grid-column: 1 / -1; }
+.unit-stat-editor-title { color: var(--color-accent); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+.unit-stat-editor label { display: grid; gap: 2px; color: var(--color-ink-muted); font-size: 11px; }
+.unit-stat-editor input { width: 100%; padding: 3px 6px; border: 1px solid var(--color-edge); border-radius: 4px; background: var(--color-surface-sunken); color: var(--color-ink); font-size: 13px; font-weight: 800; }
+.unit-stat-editor-actions { display: flex; gap: 6px; }
+.unit-stat-editor-status { min-height: 14px; color: var(--color-ink-muted); font-size: 11px; }
 .unit-move-list { display: grid; gap: 6px; text-align: left; }
 .unit-move-list > li { display: grid; gap: 4px; padding: 6px 8px; border: 1px solid var(--color-edge); border-radius: 6px; background: var(--color-surface-sunken); font-size: 12px; }
 .unit-move-list > li[data-signature] { border-color: var(--color-accent); }

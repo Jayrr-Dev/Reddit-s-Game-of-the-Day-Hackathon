@@ -21,6 +21,8 @@ import type {
   FinishRunResponse,
   InitResponse,
   LeaderboardResponse,
+  SaveUnitStatsRequest,
+  SaveUnitStatsResponse,
   StartRunResponse,
 } from '../../shared/types/api';
 import { getDailyKey } from '../../shared/utils/dailyKey';
@@ -34,8 +36,20 @@ import {
 import { beginRun, completeRun, hasStartedRankedRun } from '../core/rankedRun';
 import { getStreak, recordPlay } from '../core/streaks';
 import { jsonError, toErrorMessage } from '../http/errors';
+import { isAdminUsername, isCurrentUserAdmin } from '../core/admins';
+import { activateUnitOverrides, saveUnitOverride } from '../core/unitOverrides';
+import { HEROES } from '../../shared/game/heroes';
+import { getUnitOverrides, isUnitStatOverride } from '../../shared/game/unitOverrides';
 
 export const api = new Hono();
+
+// --- MIDDLEWARE ---
+// Every request runs the shared rules with the admin's current unit
+// stats, so a run replay scores with the numbers the player fought.
+api.use('*', async (_c, next) => {
+  await activateUnitOverrides();
+  await next();
+});
 
 // --- HELPERS ---
 
@@ -48,6 +62,16 @@ const isFinishRunRequest = (body: unknown): body is FinishRunRequest =>
   Array.isArray(body.actions) &&
   body.actions.length <= MAX_RUN_ACTIONS &&
   body.actions.every((action: unknown) => isRunAction(action));
+
+/** True when the body names a catalog hero and a valid override or null. */
+const isSaveUnitStatsRequest = (body: unknown): body is SaveUnitStatsRequest =>
+  typeof body === 'object' &&
+  body !== null &&
+  'heroId' in body &&
+  typeof body.heroId === 'string' &&
+  Object.hasOwn(HEROES, body.heroId) &&
+  'override' in body &&
+  (body.override === null || isUnitStatOverride(body.override));
 
 /** Saves a ranked score and returns the player's best and rank. */
 const recordRankedScore = async (
@@ -104,6 +128,9 @@ api.get('/init', async (c) => {
       bestScoreToday,
       streak,
       hasStartedRankedRun: startedRanked,
+      isAdmin: isAdminUsername(username),
+      // The middleware already loaded them for this request.
+      unitOverrides: getUnitOverrides(),
     });
   } catch (error) {
     console.error('api/init failed', error);
@@ -189,6 +216,22 @@ api.post('/run/finish', async (c) => {
     });
   } catch (error) {
     console.error('api/run/finish failed', error);
+    return jsonError(c, 500, toErrorMessage(error));
+  }
+});
+
+// --- POST /api/admin/unit-stats ---
+// Admin only: the server checks the viewer's username itself, so a
+// non-admin calling this directly is refused.
+api.post('/admin/unit-stats', async (c) => {
+  if (!(await isCurrentUserAdmin())) return jsonError(c, 403, 'Admins only');
+  const body: unknown = await c.req.json();
+  if (!isSaveUnitStatsRequest(body)) return jsonError(c, 400, 'Invalid unit stats');
+  try {
+    const unitOverrides = await saveUnitOverride(body.heroId, body.override);
+    return c.json<SaveUnitStatsResponse>({ type: 'unitStats', unitOverrides });
+  } catch (error) {
+    console.error('api/admin/unit-stats failed', error);
     return jsonError(c, 500, toErrorMessage(error));
   }
 });

@@ -8,7 +8,7 @@ import type { Context } from 'hono';
 import type { ApiErrorResponse } from '../../shared/types/api';
 
 // --- TYPES ---
-type ErrorStatus = 400 | 401 | 404 | 500;
+type ErrorStatus = 400 | 401 | 403 | 404 | 500;
 
 // --- FUNCTIONS ---
 

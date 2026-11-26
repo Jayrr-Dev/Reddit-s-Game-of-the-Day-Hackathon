@@ -17,4 +17,6 @@ export const redisKeys = {
     `ranked-run:${dailyKey}:${userId}`,
   /** String: the post id created for one day, so the daily post is made once. */
   dailyPostId: (dailyKey: string) => `daily-post:${dailyKey}`,
+  /** String (JSON): admin unit stat overrides, hero id -> changed stats. */
+  unitOverrides: () => 'balance:v1:unit-overrides',
 } as const;

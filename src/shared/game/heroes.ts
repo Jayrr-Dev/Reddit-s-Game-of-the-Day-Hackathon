@@ -21,6 +21,7 @@ import type {
 } from './types.ts';
 
 import { cervielSecondPhase, cervielSummonMoves } from './heroPhases.ts';
+import { applyUnitOverride, getUnitOverrides } from './unitOverrides.ts';
 
 // --- EFFECT BUILDERS ---
 type HeroAttack = Extract<HeroEffect, { kind: 'attack' }>;
@@ -556,8 +557,12 @@ export const HEROES = {
 // --- DERIVED DATA ---
 export type HeroId = keyof typeof HEROES;
 
-/** Looks up a hero definition. */
-export const getHero = (id: HeroId): HeroDef => HEROES[id];
+/** A hero exactly as the catalog defines it, ignoring admin overrides. */
+export const getCatalogHero = (id: HeroId): HeroDef => HEROES[id];
+
+/** Looks up a hero definition, with any admin stat override applied. */
+export const getHero = (id: HeroId): HeroDef =>
+  applyUnitOverride(HEROES[id], getUnitOverrides()[id]);
 
 // --- UNIT TYPES ---
 /** The order unit type sections appear in. */

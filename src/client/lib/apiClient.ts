@@ -10,6 +10,8 @@ import type {
   FinishRunResponse,
   InitResponse,
   LeaderboardResponse,
+  SaveUnitStatsRequest,
+  SaveUnitStatsResponse,
   StartRunResponse,
 } from '../../shared/types/api';
 
@@ -56,6 +58,8 @@ export const apiClient = {
   progress: (payload: FinishRunRequest) => postJson<{saved: boolean}>('/api/run/progress', payload),
   finishRun: (payload: FinishRunRequest) =>
     postJson<FinishRunResponse>('/api/run/finish', payload),
+  saveUnitStats: (payload: SaveUnitStatsRequest) =>
+    postJson<SaveUnitStatsResponse>('/api/admin/unit-stats', payload),
 };
 /** Read a bundled audio asset for gapless Web Audio playback. */
 export async function readAudioAsset(url: string): Promise<ArrayBuffer> {
