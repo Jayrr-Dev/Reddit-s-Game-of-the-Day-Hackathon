@@ -162,3 +162,22 @@
 .inv-detail-body > p {
   justify-self: stretch;
 }
+
+/* --- DRAG AND DROP --- */
+/* Only filled squares capture touch, so empty ones still scroll the feed. */
+.inv-cell[data-draggable='true'] {
+  touch-action: none;
+  cursor: grab;
+}
+.inv-cell[data-over='true'] {
+  outline: 2px dashed var(--color-on-parchment);
+  outline-offset: 1px;
+}
+.inv-ghost {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  translate: -50% -50%;
+  opacity: 0.85;
+  box-shadow: 0 6px 14px rgb(0 0 0 / 0.45);
+}

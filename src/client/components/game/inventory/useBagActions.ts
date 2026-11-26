@@ -32,6 +32,26 @@ export type BagHandlers = {
   onTrash: (stack: InventorySlot) => void;
 };
 
+// --- DROP ZONES ---
+/** The attribute that marks a square as a drop zone for a dragged stack. */
+export const BAG_ZONE_ATTRIBUTE = 'data-bag-zone';
+
+/** Names a target as a drop-zone string, e.g. "cell:belt:2" or "equip:ring:1". */
+export const zoneOf = (target: BagTarget): string =>
+  target.kind === 'cell' ? `cell:${target.cell.area}:${target.cell.index}`
+    : target.kind === 'equip' ? `equip:${target.target.slot}:${target.target.ringIndex ?? ''}`
+      : 'trash';
+
+/** Reads a drop-zone string back into a target. */
+export const targetOf = (zone: string | null): BagTarget | null => {
+  const [kind, a, b] = (zone ?? '').split(':');
+  if (kind === 'trash') return { kind: 'trash' };
+  if (kind === 'cell' && (a === 'backpack' || a === 'belt')) return { kind: 'cell', cell: { area: a, index: Number(b) } };
+  if (kind === 'equip' && (a === 'ring' || a === 'amulet'))
+    return { kind: 'equip', target: a === 'ring' ? { slot: a, ringIndex: Number(b) } : { slot: a } };
+  return null;
+};
+
 // --- HELPERS ---
 /** Where an equipped ring or amulet is worn, if it is. */
 const wornAt = (owner: InventoryOwner, id: string): EquipTarget | undefined => {
