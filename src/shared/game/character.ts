@@ -141,25 +141,30 @@ export function traitNodeArms(trait: TraitId): Readonly<Record<TraitArm, readonl
     ? { left: [...enduranceArms.left], right: [...enduranceArms.right], mixed: [...enduranceArms.mixed] }
     : distributeTraitNodes(trait);
   for (const arm of armNames) {
-    arms[arm].sort((a, b) => traitRewardShare(trait, a) - traitRewardShare(trait, b) || a - b);
+    arms[arm].sort((a, b) => baseRewardShare(trait, a) - baseRewardShare(trait, b) || a - b);
   }
   boards.set(trait, arms);
   return arms;
 }
 
+/** A node's share of its trait's total bonus, from the given curves. */
+const shareOf = (curves: [StatKey, number[]][], id: number) =>
+  curves.reduce((sum, [, curve]) => sum + (curve[id]! - curve[id - 1]!) / curve[TRAIT_CAP]!, 0);
+/** The share under the original schedule; it fixes each arm's purchase order. */
+const baseRewardShare = (trait: TraitId, id: number) => shareOf(baseCurves[trait], id);
+/** The share a node pays now (after the arm reward pattern). */
 export function traitRewardShare(trait: TraitId, id: number): number {
-  return statCurves[trait].reduce((sum, [, curve]) =>
-    sum + (curve[id]! - curve[id - 1]!) / curve[TRAIT_CAP]!, 0);
+  return shareOf(rewardCurves(trait), id);
 }
 
 function distributeTraitNodes(trait: TraitId): BoardArms {
   const arms: BoardArms = { left: [], right: [], mixed: [] };
   const families = { left: [] as number[], right: [] as number[] };
   const blank: number[] = [];
-  const leftStat = statCurves[trait][0]![0];
+  const leftStat = baseCurves[trait][0]![0];
   // The shared reward is paid once. Keep the last original reward on the mixed path.
   for (const id of nodeIds.slice(1, -1)) {
-    const gain = traitNodeGains(trait, id);
+    const gain = nodeGainsFrom(baseCurves[trait], id);
     if (gain[leftStat]) families.left.push(id);
     else if (Object.keys(gain).length) families.right.push(id);
     else blank.push(id);
@@ -480,7 +485,8 @@ const baseStats = {
 };
 type StatKey = keyof typeof baseStats;
 type NodeGain = Partial<Record<StatKey, number>>;
-const statCurves: Record<TraitId, [StatKey, number[]][]> = {
+/** The original per-rank schedules; each arm's totals come from these. */
+const baseCurves: Record<TraitId, [StatKey, number[]][]> = {
   vigor: [['maxHp', hpCurve], ['shieldPercent', shieldPercentCurve]],
   strength: [['meleeFlat', attackFlatCurve], ['meleePercent', attackPercentCurve]],
   dexterity: [['rangeFlat', attackFlatCurve], ['rangePercent', rangedPercentCurve], ['accuracyPercent', accuracyCurve]],
@@ -489,22 +495,115 @@ const statCurves: Record<TraitId, [StatKey, number[]][]> = {
   endurance: [['shieldFlat', guardCurve], ['startingEnergy', startingEnergyCurve], ['retainEnergy', reserveCurve], ['maxEnergy', capacityCurve], ['healingPercent', healingCurve]],
 };
 
-/** One board node grants exactly the marginal bonus of its original hybrid rank. */
-export function traitNodeGains(trait: TraitId, node: number): NodeGain {
+// --- ARM REWARD PATTERN ---
+// Along each arm, from the junction out: three small circles, then one
+// worth 5 of them, repeating, and the arm's tip is worth 10. Each arm
+// keeps the exact totals it had under the base schedule; only how they are
+// spread along the arm changes (see packArm).
+const ARM_SMALL_WEIGHT = 1;
+const ARM_STEP_WEIGHT = 5;
+const ARM_STEP_EVERY = 4;
+const ARM_TIP_WEIGHT = 10;
+
+/** Weight of the circle at `position` (0 = next to the junction) on an arm of `length`. */
+export const armRewardWeight = (position: number, length: number): number =>
+  position === length - 1 ? ARM_TIP_WEIGHT
+    : (position + 1) % ARM_STEP_EVERY === 0 ? ARM_STEP_WEIGHT : ARM_SMALL_WEIGHT;
+
+/** A node's marginal bonus on the given curves. */
+function nodeGainsFrom(curves: [StatKey, number[]][], node: number): NodeGain {
   const gain: NodeGain = {};
   if (!isTraitNode(node)) return gain;
-  for (const [key, curve] of statCurves[trait]) {
+  for (const [key, curve] of curves) {
     const delta = curve[node]! - curve[node - 1]!;
     if (delta) gain[key] = delta;
   }
   return gain;
 }
 
+type RewardUnit = { key: StatKey; share: number };
+
+/**
+ * Hands an arm's reward units out to its circles so each circle's share of
+ * the trait tracks its pattern weight. Every circle first gets one unit (the
+ * biggest units go to the heaviest circles), then each remaining unit, largest
+ * first, goes to the circle furthest below its target. Units are whole stat
+ * points, so totals stay exact even for small stats like +1 affliction stack.
+ */
+function packArm(units: RewardUnit[], weights: readonly number[]): RewardUnit[][] {
+  const totalShare = units.reduce((sum, unit) => sum + unit.share, 0);
+  const weightSum = weights.reduce((a, b) => a + b, 0);
+  const targets = weights.map(weight => totalShare * weight / weightSum);
+  const bins: RewardUnit[][] = weights.map(() => []);
+  const got = weights.map(() => 0);
+  const queue = [...units].sort((a, b) => b.share - a.share);
+  // Heaviest circle first; nearer the tip first on equal weight.
+  const heaviest = weights.map((_, i) => i).sort((a, b) => weights[b]! - weights[a]! || b - a);
+  for (const i of heaviest) {
+    const unit = queue.shift();
+    if (!unit) break;
+    bins[i]!.push(unit);
+    got[i]! += unit.share;
+  }
+  for (const unit of queue) {
+    let best = 0;
+    for (let i = 1; i < bins.length; i++)
+      if (targets[i]! - got[i]! > targets[best]! - got[best]!) best = i;
+    bins[best]!.push(unit);
+    got[best]! += unit.share;
+  }
+  return bins;
+}
+
+const rewardCurveCache = new Map<TraitId, [StatKey, number[]][]>();
+/** The live curves: each arm's base totals re-spread by the arm reward pattern. */
+function rewardCurves(trait: TraitId): [StatKey, number[]][] {
+  const cached = rewardCurveCache.get(trait);
+  if (cached) return cached;
+  const base = baseCurves[trait];
+  const delta = (curve: number[], id: number) => curve[id]! - curve[id - 1]!;
+  // The junction (and any node outside the arms) keeps its base reward.
+  const deltas = new Map<StatKey, number[]>(base.map(([key, curve]) =>
+    [key, Array.from({ length: TRAIT_CAP + 1 }, (_, id) => (id ? delta(curve, id) : 0))]));
+  for (const arm of Object.values(traitNodeArms(trait))) {
+    const units: RewardUnit[] = base.flatMap(([key, curve]) => {
+      const total = arm.reduce((sum, id) => sum + delta(curve, id), 0);
+      const share = 1 / (curve[TRAIT_CAP]! - curve[0]!);
+      return Array.from({ length: Math.max(0, total) }, () => ({ key, share }));
+    });
+    const bins = packArm(units, arm.map((_, i) => armRewardWeight(i, arm.length)));
+    arm.forEach((id, i) => {
+      for (const [key] of base) deltas.get(key)![id] = bins[i]!.filter(unit => unit.key === key).length;
+    });
+  }
+  const curves = base.map(([key, curve]): [StatKey, number[]] => {
+    const live = [curve[0]!];
+    for (let id = 1; id <= TRAIT_CAP; id++) live.push(live[id - 1]! + deltas.get(key)![id]!);
+    return [key, live];
+  });
+  rewardCurveCache.set(trait, curves);
+  return curves;
+}
+
+/** What one board node grants under the arm reward pattern. */
+export function traitNodeGains(trait: TraitId, node: number): NodeGain {
+  return nodeGainsFrom(rewardCurves(trait), node);
+}
+
+/** The pattern weight of a node (1, 5 or 10); the junction has none. */
+export function traitNodeWeight(trait: TraitId, node: number): number | undefined {
+  for (const arm of Object.values(traitNodeArms(trait))) {
+    const position = arm.indexOf(node);
+    if (position >= 0) return armRewardWeight(position, arm.length);
+  }
+  return undefined;
+}
+
 /** Keep hybrid prefixes, then allocate distinct nodes matching the old preferred stats. */
 export function migratePathNodes(trait: TraitId, allocation: PathRanks): number[] {
   const selected = new Set(prefixes[allocation.hybrid]);
   const categories = nodeIds.map(node => {
-    const curves = statCurves[trait];
+    const curves = baseCurves[trait];
     const group = curves.findIndex(([, curve]) => curve[node]! > curve[node - 1]!);
     return { node, side: group < 0 ? undefined : group === 0 ? 'left' : 'right' };
   });
@@ -536,7 +635,7 @@ export function characterBonuses(traits: Partial<Traits> = {}, equipment?: Equip
   const stats = { ...baseStats };
   for (const trait of TRAITS) {
     const selected = nodes?.[trait];
-    for (const [key, curve] of statCurves[trait]) {
+    for (const [key, curve] of rewardCurves(trait)) {
       stats[key] += selected
         ? selected.reduce((total, id) => total + curve[id]! - curve[id - 1]!, 0)
         : curve[traits[trait] ?? 0]!;

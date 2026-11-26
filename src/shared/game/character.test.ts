@@ -6,6 +6,7 @@ import {
   setTraitPathRank,
   setTraitNode,
   traitNodeArms,
+  armRewardWeight,
   normalizeTraitNodeIds,
   traitNodeBlocker,
   traitNodeIds,
@@ -39,7 +40,7 @@ void test('70 levels fund 210 points while each of six traits caps at 64', () =>
   assert.deepEqual(Object.values(character.traits), [64, 64, 64, 18, 0, 0]);
 });
 
-void test('hybrid curves reward the opening and mastery and preserve all endpoints', () => {
+void test('full traits keep every endpoint after the 1-1-1-5 arm payout', () => {
   const max = createCharacter().traits;
   for (const t of TRAITS) max[t] = 64;
   assert.deepEqual(characterBonuses(max), {
@@ -61,11 +62,6 @@ void test('hybrid curves reward the opening and mastery and preserve all endpoin
     cardsPerTurn: 5,
     maxEnergy: 20,
   });
-  const hp = (rank: number) => characterBonuses({ vigor: rank }).maxHp;
-  for (const rank of [16, 32, 48, 64])
-    assert.ok(hp(rank) - hp(rank - 1) > hp(rank - 1) - hp(rank - 2));
-  assert.ok(hp(16) - hp(0) > hp(32) - hp(16));
-  assert.ok(hp(64) - hp(48) > hp(16) - hp(0));
 });
 
 void test('equipment validates slot ownership and restores independently of point allocation', () => {
@@ -183,42 +179,24 @@ void test('lower Endurance clamps active and reserved energy; dead players stay 
   assert.equal(changed.reserve, 1);
   assert.equal(changed.player.hp, 0);
 });
-void test('all six traits stagger gains across 64 ranks without changing equipment bonuses', () => {
+void test('all six traits grow across 64 ranks without changing equipment bonuses', () => {
   const character = createCharacter();
   const equipped = { ...character.equipment, amulet: 'travelers-amulet' };
   for (const trait of TRAITS) {
     let previous = characterBonuses({}, equipped);
-    const milestones: number[] = [];
     for (let rank = 1; rank <= 64; rank++) {
       const current = characterBonuses({ [trait]: rank }, equipped);
-      const changed = (Object.keys(current) as (keyof typeof current)[])
-        .filter(key => current[key] !== previous[key]);
-      assert.ok(changed.length <= 1, trait + ' rank ' + rank + ': ' + changed.join(', '));
-      for (const key of changed) assert.ok(Number.isInteger(current[key]) && current[key] > previous[key]);
-      if (trait === 'scorn') {
-        assert.equal(changed.length, 1);
-        if (changed[0] === 'afflictionFlat') {
-          assert.equal(current.afflictionFlat - previous.afflictionFlat, 1);
-          milestones.push(rank);
-        } else {
-          assert.equal(changed[0], 'afflictionDamagePercent');
-          assert.ok([1, 2].includes(current.afflictionDamagePercent - previous.afflictionDamagePercent));
-        }
-      }
+      for (const key of Object.keys(current) as (keyof typeof current)[])
+        assert.ok(Number.isInteger(current[key]) && current[key] >= previous[key], trait + ' rank ' + rank + ' ' + key);
       assert.equal(current.cardsPerTurn, 6);
       assert.equal(current.retainEnergy, 1 + characterBonuses({ [trait]: rank }).retainEnergy);
-      if (rank % 16 === 0) assert.equal(changed.length, 1);
       previous = current;
     }
-    if (trait === 'scorn') assert.deepEqual(milestones, [4, 10, 16, 22, 32, 40, 48, 56, 60, 64]);
   }
+  // Full traits keep the totals of the original schedule.
+  assert.equal(characterBonuses({ scorn: 64 }).afflictionFlat, 10);
+  assert.equal(characterBonuses({ endurance: 64 }).startingEnergy, 6);
   assert.equal(characterBonuses().afflictionDamagePercent, 0);
-  assert.equal(characterBonuses({ dexterity: 1 }).rangePercent, 0);
-  assert.ok(characterBonuses({ dexterity: 1 }).rangeFlat > 0);
-  assert.ok(characterBonuses({ dexterity: 2 }).accuracyPercent > 0);
-  assert.ok(characterBonuses({ dexterity: 3 }).rangePercent > 0);
-  for (let rank = 0; rank <= 64; rank++)
-    assert.equal(characterBonuses({ endurance: rank }).startingEnergy, 3 + [5, 48, 64].filter(id => id <= rank).length);
 });
 void test('old level-100 saves retain equipment and unlocks and fit 300 spent points into 210', () => {
   const original = createCharacter({ bossWins: 3, rareSlots: [8] });
@@ -350,19 +328,33 @@ void test('sparse saves receive the shared star and contiguous rewards on the in
   assert.deepEqual(restoreCharacter(migrated), migrated);
   assert.deepEqual(normalizeTraitNodeIds('vigor', [64]), [1]);
 });
-void test('all 18 curls progress from smallest reward to strongest', () => {
+void test('all 18 curls pay small circles, bigger 5x circles, and the biggest at the tip', () => {
   const base = characterBonuses();
+  // WHOLE-NUMBER LIMIT: an arm paid only in +1% units can't make a 5x circle
+  // bigger without raising its total, so only most arms must step up.
+  const stepped: string[] = [];
   for (const trait of TRAITS) {
     const full = characterBonuses({ [trait]: 64 });
     for (const [arm, ids] of Object.entries(traitNodeArms(trait))) {
-      const shares = ids.map(id => {
-        const gain = traitNodeGains(trait, id);
-        return Object.entries(gain).reduce((sum, [key, delta]) =>
-          sum + delta / (full[key as keyof typeof full] - base[key as keyof typeof base]), 0);
-      });
-      assert.deepEqual(shares, [...shares].sort((a, b) => a - b), trait + '/' + arm);
-      assert.ok(shares[0]! < shares.at(-1)!);
-      if (trait === 'endurance') assert.deepEqual(traitNodeGains(trait, ids.at(-1)!), { startingEnergy: 1 });
+      const shares = ids.map(id => Object.entries(traitNodeGains(trait, id)).reduce((sum, [key, delta]) =>
+        sum + delta / (full[key as keyof typeof full] - base[key as keyof typeof base]), 0));
+      const label = trait + '/' + arm;
+      const weights = ids.map((_, i) => armRewardWeight(i, ids.length));
+      const average = (weight: number) => {
+        const picked = shares.filter((_, i) => weights[i] === weight);
+        return picked.reduce((a, b) => a + b, 0) / picked.length;
+      };
+      assert.ok(shares.every(share => share > 0), label + ' empty circle');
+      assert.ok(average(5) >= average(1), label + ' steps');
+      if (average(5) > average(1)) stepped.push(label);
+      assert.ok(shares.slice(0, -1).every(share => share <= shares.at(-1)!), label + ' tip');
     }
   }
+  assert.ok(stepped.length >= 17, 'stepped arms ' + stepped.join(' '));
+});
+
+void test('arm reward weights run 1-1-1-5 and end on a 10x tip', () => {
+  const weights = Array.from({ length: 21 }, (_, i) => armRewardWeight(i, 21));
+  assert.deepEqual(weights.slice(0, 8), [1, 1, 1, 5, 1, 1, 1, 5]);
+  assert.equal(weights.at(-1), 10);
 });

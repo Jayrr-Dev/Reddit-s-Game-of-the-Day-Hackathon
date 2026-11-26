@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { nameTraitNodes } from '../../content/traitNodeNames';
 import { createPortal } from 'react-dom';
-import { characterBonuses, TRAIT_CAP, TRAIT_LABELS, traitNodeIds, traitRewardShare, traitNodeGains, traitNodeArms, traitPointsAvailable, type CharacterState, type TraitId } from '../../../shared/game/character';
+import { characterBonuses, TRAIT_CAP, TRAIT_LABELS, traitNodeIds, traitNodeWeight, traitNodeGains, traitNodeArms, traitPointsAvailable, type CharacterState, type TraitId } from '../../../shared/game/character';
 import { Glyph, type GlyphName } from '../ui/Glyph';
 import '../../semanticStats.css';
 import './TraitSpiral.css';
@@ -94,6 +94,11 @@ function arrangeRewards(rewards: Reward[], trait: TraitId, diameters: number[]) 
   return { positioned, curves };
 }
 
+// --- CIRCLE SIZES ---
+/** Diameter by pattern weight (1 small, 5 step, 10 tip); the junction star is its own size. */
+const CIRCLE_DIAMETER: Record<number, number> = { 1: 15, 5: 26, 10: 36 };
+const JUNCTION_DIAMETER = 28;
+
 export const TraitSpiral = ({ trait, character, stats, onSetNode, previewHost }: Props) => {
   const owned = new Set(traitNodeIds(character.traits, character.traitNodes, trait));
 
@@ -112,10 +117,8 @@ export const TraitSpiral = ({ trait, character, stats, onSetNode, previewHost }:
         return delta > 0 ? [{ ...stat, delta }] : [];
       }) };
     });
-    const shares = rewards.map(node => traitRewardShare(trait, node.id));
-    const levels = [...new Set(shares)].sort((a, b) => a - b);
-    const diameters = shares.map((share, i) => i === 0 ? 28
-      : 15 + 20 * levels.indexOf(share) / Math.max(1, levels.length - 1));
+    // Circle size follows the arm reward pattern: small, 5x step, 10x tip.
+    const diameters = rewards.map(node => CIRCLE_DIAMETER[traitNodeWeight(trait, node.id) ?? 0] ?? JUNCTION_DIAMETER);
     const { positioned: arranged, curves } = arrangeRewards(rewards, trait, diameters);
     // Fit the board uniformly so crowding cannot flatten the reward-size hierarchy.
     let scale = 1;
