@@ -17,10 +17,21 @@
     --inv-slot: 2.6rem;
   }
 }
+/* Wide sheets: the backpack takes two thirds and its squares stretch
+   to fill it, so the details column never crowds the bag (Sam). */
 @container character-frame (min-width: 40rem) {
   .inv-panel {
-    grid-template-columns: auto minmax(0, 1fr);
+    --inv-col: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
     align-items: start;
+  }
+  .inv-panel .inv-bag {
+    width: auto;
+  }
+  .inv-layout .inv-cell {
+    width: auto;
+    height: auto;
+    aspect-ratio: 1;
   }
 }
 
@@ -32,7 +43,7 @@
 }
 .inv-layout {
   display: grid;
-  grid-template-columns: repeat(4, var(--inv-slot));
+  grid-template-columns: repeat(4, var(--inv-col, var(--inv-slot)));
   gap: 0.3rem;
 }
 .inv-backpack,
@@ -43,11 +54,11 @@
 }
 .inv-backpack {
   grid-column: 1 / -1;
-  grid-template-columns: repeat(4, var(--inv-slot));
+  grid-template-columns: repeat(4, var(--inv-col, var(--inv-slot)));
 }
 .inv-belt {
   grid-column: 1 / -1;
-  grid-template-columns: repeat(4, var(--inv-slot));
+  grid-template-columns: repeat(4, var(--inv-col, var(--inv-slot)));
   margin-top: 0.25rem;
   padding-top: 0.45rem;
   border-top: 1px solid var(--line);
@@ -87,16 +98,16 @@
   border-radius: inherit;
 }
 .inv-art .cs-jewelry {
-  width: calc(var(--inv-slot) * 0.6);
-  height: calc(var(--inv-slot) * 0.6);
+  width: 60%;
+  height: 60%;
 }
 .inv-cell[data-kind='jewelry'] .cs-jewelry {
   color: var(--color-card-melee);
   fill: color-mix(in srgb, var(--color-accent) 48%, transparent);
 }
 .inv-glyph {
-  width: calc(var(--inv-slot) * 0.62);
-  height: calc(var(--inv-slot) * 0.62);
+  width: 62%;
+  height: 62%;
   color: var(--color-blood);
 }
 .inv-trash .inv-glyph {
