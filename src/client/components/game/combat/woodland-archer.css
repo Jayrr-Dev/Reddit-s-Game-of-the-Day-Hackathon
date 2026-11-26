@@ -1,0 +1,33 @@
+.woodland-archer {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  height: 100%;
+  aspect-ratio: 120 / 208;
+  transform: translateX(-50%);
+  background: 0 0 / 1600% 100% no-repeat;
+  pointer-events: none;
+}
+
+.woodland-archer[data-shooting='true'] {
+  /* Frame 9 is the release, at 9/16 of the attack (~315 ms). The
+     projectile starts at 319 ms. Frame 15 matches the held neutral frame. */
+  animation: woodland-archer-shot var(--archer-shot-time) steps(16, jump-none) both;
+}
+
+.woodland-arrow-origin {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  left: 47%;
+  top: 32%;
+}
+
+@keyframes woodland-archer-shot {
+  from { background-position-x: 0%; }
+  to { background-position-x: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .woodland-archer[data-shooting='true'] { animation: none; }
+}
