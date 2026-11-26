@@ -14,6 +14,7 @@ import {
 } from '../../../shared/game/character';
 import { Glyph, type GlyphName } from '../ui/Glyph';
 import { IconButton } from '../ui/IconButton';
+import { Tooltip } from '../ui/Tooltip';
 import type { SkillPick } from '../../../shared/game/skills';
 import { SkillTree } from './SkillTree';
 import { TraitSpiral } from './TraitSpiral';
@@ -78,22 +79,22 @@ function PlayerStats({ character, vitals, previewRef, onRespec, respecItem }: Pi
   /** Refunds every trait point with the paper sound. */
   const respec = () => { playSound('respec', 1, .72); onRespec?.(); };
   const flatAndPercent = (flat: number, percent: number) => '+' + flat + ' / +' + percent + '%';
-  const rows: { label: string; ink: string; icon: GlyphName; value: string }[] = [
-    { label: vitals ? 'HP' : 'Max HP', icon: 'heart', ink: 'hp', value: vitals ? vitals.hp + ' / ' + vitals.maxHp : String(stats.maxHp) },
-    { label: 'Healing bonus', icon: 'heartbeat', ink: 'heal', value: '+' + stats.healingPercent + '%' },
-    { label: 'Shield bonus', icon: 'shield', ink: 'guard', value: flatAndPercent(stats.shieldFlat, stats.shieldPercent) },
-    { label: 'Melee', icon: 'sword', ink: 'melee', value: flatAndPercent(stats.meleeFlat, stats.meleePercent) },
-    { label: 'Ranged', icon: 'bow', ink: 'range', value: flatAndPercent(stats.rangeFlat, stats.rangePercent) },
-    { label: 'Magic', icon: 'swirl', ink: 'magic', value: flatAndPercent(stats.magicFlat, stats.magicPercent) },
-    { label: 'Accuracy', icon: 'eye', ink: 'range', value: '+' + stats.accuracyPercent + '%' },
-    { label: 'Affliction damage', icon: 'skull', ink: 'status', value: '+' + stats.afflictionDamagePercent + '%' },
-    { label: 'Affliction stacks', icon: 'skull', ink: 'status', value: '+' + stats.afflictionFlat },
-    { label: vitals?.energy === undefined ? 'Max energy' : 'Energy', icon: 'flask', ink: 'energy', value: vitals?.energy === undefined ? String(stats.maxEnergy) : vitals.energy + ' / ' + stats.maxEnergy },
-    { label: 'Cards per turn', icon: 'cards', ink: 'draw', value: String(stats.cardsPerTurn) },
-    { label: 'Starting energy', icon: 'bolt', ink: 'energy', value: String(stats.startingEnergy) },
-    { label: 'Retained energy', icon: 'hourglass', ink: 'energy', value: String(stats.retainEnergy) },
+  const rows: { label: string; description: string; ink: string; icon: GlyphName; value: string }[] = [
+    { label: vitals ? 'HP' : 'Max HP', description: vitals ? 'Your current health and its maximum. At 0 HP the run ends.' : 'The most health you can have. At 0 HP the run ends.', icon: 'heart', ink: 'hp', value: vitals ? vitals.hp + ' / ' + vitals.maxHp : String(stats.maxHp) },
+    { label: 'Healing bonus', description: 'Extra healing from every heal.', icon: 'heartbeat', ink: 'heal', value: '+' + stats.healingPercent + '%' },
+    { label: 'Shield bonus', description: 'Extra **Guard** from shield cards: a flat amount, then a percent.', icon: 'shield', ink: 'guard', value: flatAndPercent(stats.shieldFlat, stats.shieldPercent) },
+    { label: 'Melee', description: 'Extra **Melee** damage: a flat amount, then a percent.', icon: 'sword', ink: 'melee', value: flatAndPercent(stats.meleeFlat, stats.meleePercent) },
+    { label: 'Ranged', description: 'Extra **Ranged** damage: a flat amount, then a percent.', icon: 'bow', ink: 'range', value: flatAndPercent(stats.rangeFlat, stats.rangePercent) },
+    { label: 'Magic', description: 'Extra **Magic** damage: a flat amount, then a percent.', icon: 'swirl', ink: 'magic', value: flatAndPercent(stats.magicFlat, stats.magicPercent) },
+    { label: 'Accuracy', description: 'Raises the chance each shot lands.', icon: 'eye', ink: 'range', value: '+' + stats.accuracyPercent + '%' },
+    { label: 'Affliction damage', description: 'Extra damage from the afflictions you apply.', icon: 'skull', ink: 'status', value: '+' + stats.afflictionDamagePercent + '%' },
+    { label: 'Affliction stacks', description: 'Extra stacks each time you apply an affliction.', icon: 'skull', ink: 'status', value: '+' + stats.afflictionFlat },
+    { label: vitals?.energy === undefined ? 'Max energy' : 'Energy', description: 'The most energy you can hold to play cards.', icon: 'flask', ink: 'energy', value: vitals?.energy === undefined ? String(stats.maxEnergy) : vitals.energy + ' / ' + stats.maxEnergy },
+    { label: 'Cards per turn', description: 'Cards you draw at the start of each turn.', icon: 'cards', ink: 'draw', value: String(stats.cardsPerTurn) },
+    { label: 'Starting energy', description: 'Energy you get at the start of each turn.', icon: 'bolt', ink: 'energy', value: String(stats.startingEnergy) },
+    { label: 'Retained energy', description: 'Unspent energy you can carry into your next turn.', icon: 'hourglass', ink: 'energy', value: String(stats.retainEnergy) },
   ];
-  if (vitals?.guard !== undefined) rows.push({ label: 'Guard', icon: 'shield', ink: 'guard', value: String(vitals.guard) });
+  if (vitals?.guard !== undefined) rows.push({ label: 'Guard', description: 'Blocks damage before it reaches your HP.', icon: 'shield', ink: 'guard', value: String(vitals.guard) });
   return (
     <section className="cs-player-stats" aria-label="Player stats">
       <div className="cs-player-stats-head">
@@ -107,9 +108,9 @@ function PlayerStats({ character, vitals, previewRef, onRespec, respecItem }: Pi
       </div>
       <div className="cs-trait-preview-slot" ref={previewRef} />
       <div className="cs-player-stats-list" role="region" aria-label="Stat values" tabIndex={0}>
-        <dl>{rows.map(({ label, ink, icon, value }) => (
+        <dl>{rows.map(({ label, description, ink, icon, value }) => (
           <div className="stat-ink" data-stat={ink} key={label}>
-            <dt><Glyph name={icon} /><span title={label}>{label}</span></dt><dd title={value.replace(' / +', ' flat, +')}>{value}</dd>
+            <dt><Glyph name={icon} /><Tooltip content={{ title: label, description }}><span>{label}</span></Tooltip></dt><dd title={value.replace(' / +', ' flat, +')}>{value}</dd>
           </div>
         ))}</dl>
       </div>

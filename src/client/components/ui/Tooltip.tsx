@@ -113,6 +113,13 @@ const TooltipLabel = ({
   </div>
 );
 
+/**
+ * Where the label renders: inside an open modal dialog (the character
+ * sheet sits in the top layer, above body), otherwise in body.
+ */
+const labelHostOf = (trigger: Element | null): Element =>
+  trigger?.closest('dialog[open]') ?? document.body;
+
 // --- HOOKS ---
 /**
  * Closes an open popover when the pointer goes down anywhere outside
@@ -155,6 +162,7 @@ export const Tooltip = ({
   opensOn?: 'hover' | 'click';
 }) => {
   const [placement, setPlacement] = useState<Placement | null>(null);
+  const [labelHost, setLabelHost] = useState<Element | null>(null);
   const triggerRef = useRef<HTMLSpanElement>(null);
   const timerRef = useRef<number | undefined>(undefined);
   // True after a long press showed the label, so the finger lifting
@@ -173,6 +181,7 @@ export const Tooltip = ({
     window.clearTimeout(timerRef.current);
     timerRef.current = window.setTimeout(() => {
       const rect = triggerRef.current?.getBoundingClientRect();
+      setLabelHost(labelHostOf(triggerRef.current));
       if (rect) setPlacement(placeFloating(rect, MAX_WIDTH, MIN_ROOM_ABOVE));
     }, delayMs);
   };
@@ -213,6 +222,7 @@ export const Tooltip = ({
    */
   const togglePopover = () => {
     const rect = triggerRef.current?.getBoundingClientRect();
+    setLabelHost(labelHostOf(triggerRef.current));
     setPlacement((open) =>
       open || !rect
         ? null
@@ -257,7 +267,7 @@ export const Tooltip = ({
       {placement &&
         createPortal(
           <TooltipLabel content={content} placement={placement} />,
-          document.body
+          labelHost ?? document.body
         )}
     </>
   );
