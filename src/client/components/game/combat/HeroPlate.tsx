@@ -25,7 +25,7 @@ import { isAnchored, preferredRow, rowDepth } from '../../../../shared/game/batt
 import { getHero } from '../../../../shared/game/heroes';
 import { debuffPowerOf } from '../../../../shared/game/skills';
 import type { Combatant, HeroUnit } from '../../../../shared/game/types';
-import { INTENT_LOOK } from '../../../content/visuals';
+import { INTENT_LOOK, TIER_NAME_CLASS } from '../../../content/visuals';
 import { Chip } from '../../ui/Chip';
 import { EnemyStatuses } from '../StatusRow';
 import { FLOATING_UID_ATTR, PLATE_UID_ATTR } from '../../../hooks/usePlateSpacing';
@@ -121,7 +121,7 @@ export const HeroPlate = ({ unit, field, player }: HeroPlateProps) => {
     );
   }, []);
   const { tier, name } = getHero(unit.heroId);
-  const nameClass = tier === 'boss' ? 'text-accent' : tier === 'elite' ? 'text-[#8bc8ff]' : 'text-ink';
+  const nameClass = TIER_NAME_CLASS[tier];
   return (
     <>
       <div

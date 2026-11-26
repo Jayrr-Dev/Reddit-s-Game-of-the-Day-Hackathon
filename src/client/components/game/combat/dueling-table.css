@@ -802,7 +802,8 @@
 
 .training-entries { grid-auto-rows: max-content; min-height: 0; }
 .training-entry-copy { flex: none; width: 100%; }
-.training-entry-copy > span:first-child { color: #fff4da; line-height: 1.15; overflow-wrap: anywhere; }
+/* No colour here: the name's tier class (TIER_NAME_CLASS) sets it. */
+.training-entry-copy > span:first-child { line-height: 1.15; overflow-wrap: anywhere; }
 .training-deck-tools { display: flex; justify-content: flex-end; padding: 5px 3px 0; }
 .training-deck-tools button, .training-deck-edit { border: 1px solid var(--color-edge); border-radius: 4px; background: var(--color-surface-raised); color: var(--color-accent); font-weight: bold; }
 .training-deck-tools button { padding: 3px 10px; }

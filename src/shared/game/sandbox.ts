@@ -17,7 +17,7 @@ import { BATTLEFIELD_ROWS, PLAYER_MAX_HP } from './rules.ts';
 import type { MoveAction, PlayCardAction } from './run.ts';
 import type { CardId } from './cards.ts';
 import { isCustomDeckList, sandboxDeckCards, type SandboxDeckId } from './sandboxDecks.ts';
-import type { CombatState, HeroUnit, UnitType } from './types.ts';
+import type { CombatState, HeroTier, HeroUnit, UnitType } from './types.ts';
 
 // --- TYPES ---
 /** What the sandbox accepts: the combat inputs. */
@@ -282,10 +282,23 @@ export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
   },
 ];
 
+/** The hero a scenario is about: its leadHeroId, else its first hero. */
+const scenarioLeadHeroId = (scenario: SandboxScenario): HeroId | undefined =>
+  scenario.leadHeroId ?? scenario.heroIds[0];
+
 /** The unit type a scenario is filed under: its lead hero's (Humans if it has none). */
 export const scenarioUnitType = (scenario: SandboxScenario): UnitType => {
-  const lead = scenario.leadHeroId ?? scenario.heroIds[0];
+  const lead = scenarioLeadHeroId(scenario);
   return lead ? unitTypeOf(lead) : 'human';
+};
+
+/**
+ * A scenario's rank: its lead hero's tier (grunt if it has none), so the
+ * picker can colour boss and elite names the same way the battlefield does.
+ */
+export const scenarioTier = (scenario: SandboxScenario): HeroTier => {
+  const lead = scenarioLeadHeroId(scenario);
+  return lead ? getHero(lead).tier : 'grunt';
 };
 
 /**

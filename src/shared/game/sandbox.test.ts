@@ -18,6 +18,7 @@ import {
   SANDBOX_HP,
   stepSandbox, retryTrainingFight,
   groupScenariosByUnitType,
+  scenarioTier,
 } from './sandbox.ts';
 import { CARDS_PER_TURN, ENERGY_PER_TURN } from './rules.ts';
 import { getCard, isCardInPlay, type CardId } from './cards.ts';
@@ -332,4 +333,21 @@ void test('scenarios are grouped by unit type: Angels, Dragons, Beasts, Humans, 
   assert.deepEqual(idsOf('Demi-humans'), ['mageBorneAstra', 'mageBorneAzula']);
   // Angel Mage is filed by its lead, not the sentinel standing in front.
   assert.ok(idsOf('Angels')?.includes('angelMage'));
+});
+
+void test('scenario tier follows its lead hero, so boss and elite names can be coloured', () => {
+  const tierOf = (id: string) => {
+    const scenario = SANDBOX_SCENARIOS.find((entry) => entry.id === id);
+    assert.ok(scenario, id);
+    return scenarioTier(scenario);
+  };
+  // The Angels from the playtest screenshot.
+  assert.equal(tierOf('grandangelCerviel'), 'boss');
+  assert.equal(tierOf('archangelZeruel'), 'boss');
+  assert.equal(tierOf('zadkielOfDominations'), 'boss');
+  // Elites, including one filed by its lead rather than the unit in front.
+  assert.equal(tierOf('apollyonSeraph'), 'elite');
+  assert.equal(tierOf('angelMage'), 'elite');
+  assert.equal(tierOf('archers'), 'grunt');
+  assert.equal(scenarioTier({ id: 'empty', name: 'Empty', blurb: '', heroIds: [] }), 'grunt');
 });

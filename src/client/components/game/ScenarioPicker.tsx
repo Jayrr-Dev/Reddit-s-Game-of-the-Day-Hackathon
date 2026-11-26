@@ -13,7 +13,7 @@ import { bossArenaOf, TRAINING_BOSS_ARENAS, type BossArena } from '../../content
 import { Fragment, useState, type CSSProperties, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { getHero, type HeroId } from '../../../shared/game/heroes';
-import { CARD_LOOK, EDGE_ART, ELEMENT_LOOK } from '../../content/visuals';
+import { CARD_LOOK, EDGE_ART, ELEMENT_LOOK, TIER_NAME_CLASS } from '../../content/visuals';
 import { HeroFigure } from './combat/HeroFigure';
 import { FIGURE_BOUNDS, type FigureBounds } from '../../content/figureBounds';
 import { BODY_HEIGHT, BODY_WIDTH } from '../../lib/heroFigure';
@@ -22,6 +22,7 @@ import { Glyph } from '../ui/Glyph';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import {
   groupScenariosByUnitType,
+  scenarioTier,
   type SandboxScenario,
 } from '../../../shared/game/sandbox';
 import {
@@ -33,8 +34,8 @@ import {
 // --- TYPES ---
 type PickerTab = 'scenarios' | 'decks' | 'map';
 
-/** One entry in either tab. */
-type PickerEntry = { id: string; name: string; blurb?: string };
+/** One entry in either tab; nameClass colours the name (scenario tier). */
+type PickerEntry = { id: string; name: string; blurb?: string; nameClass?: string };
 
 // --- CONSTANTS ---
 const TAB_LABELS: Record<PickerTab, string> = {
@@ -169,7 +170,7 @@ const EntryButton = ({
   >
     {preview}
     <span className="training-entry-copy">
-      <span className="font-display text-sm font-black text-ink">
+      <span className={`font-display text-sm font-black ${entry.nameClass ?? 'text-ink'}`}>
         {entry.name}
       </span>
       {entry.blurb && (
@@ -296,7 +297,7 @@ export const ScenarioPicker = ({
               {group.scenarios.map((scenario) => (
                 <EntryButton
                   key={scenario.id}
-                  entry={scenario}
+                  entry={{ ...scenario, nameClass: TIER_NAME_CLASS[scenarioTier(scenario)] }}
                   preview={
                     <ScenarioPreview
                       scenario={scenario}

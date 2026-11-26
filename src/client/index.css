@@ -78,6 +78,9 @@
   /* --- BRAND --- */
   --color-accent: #d4a24c;
   --color-accent-hover: #e8bb66;
+  /* Hero name colours by tier (TIER_NAME_CLASS): bosses gold, elites blue. */
+  --color-boss: var(--color-accent);
+  --color-elite: #8bc8ff;
   --color-on-accent: #1a0f0a;
   --color-blood: #b3263e;
 

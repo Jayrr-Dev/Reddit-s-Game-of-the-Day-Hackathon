@@ -11,6 +11,7 @@ import type {
   CardKeyword,
   CardRarity,
   CardType,
+  HeroTier,
   MagicElement,
   MeleeEdge,
   MovementId,
@@ -352,4 +353,17 @@ export const MOVEMENT_LOOK: Record<MovementId, MovementLook> = {
     toneClass:
       'bg-surface-raised shadow-[0_0_14px_var(--color-guard)] [&_svg]:rotate-180',
   },
+};
+
+// --- HERO TIER NAMES ---
+/**
+ * Name colour by hero tier, shared by the battlefield plates and the
+ * Illusion Training scenario cards: bosses gold, elites blue, the rest
+ * plain ink. The colours are theme tokens (--color-boss, --color-elite).
+ */
+export const TIER_NAME_CLASS: Record<HeroTier, string> = {
+  boss: 'text-boss',
+  elite: 'text-elite',
+  champion: 'text-ink',
+  grunt: 'text-ink',
 };
