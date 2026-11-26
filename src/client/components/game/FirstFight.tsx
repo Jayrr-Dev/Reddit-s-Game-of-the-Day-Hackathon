@@ -1,3 +1,4 @@
+import { getCard } from '../../../shared/game/cards';
 import { useEffect, useState, type MouseEvent } from 'react';
 import { playSound } from '../../lib/gameAudio';
 import {
@@ -253,7 +254,7 @@ function LessonFight({
           '. Tap your highlighted portrait to spend a trait point, or finish here.'
     : (step?.tip ??
       (lesson.id === 'piles'
-        ? 'You played Backhand twice. The reshuffle returned it to your hand, Hold kept Ruin in hand, and Blood Pact stayed removed.'
+        ? `You played ${getCard('backhand').name} twice. The reshuffle returned it to your hand, Hold kept Ruin in hand, and Blood Pact stayed removed.`
         : lesson.id === 'rows'
           ? `You opened the ${ROW_LABEL.front} with Back Step, closed the gap with Charge, and spent Momentum on a melee hit.`
           : 'You applied Poison and watched it trigger before the enemy acted.'));

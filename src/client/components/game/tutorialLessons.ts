@@ -1,4 +1,4 @@
-import type { CardId } from '../../../shared/game/cards';
+import { getCard, type CardId } from '../../../shared/game/cards';
 import type { HeroId } from '../../../shared/game/heroes';
 import { ROW_LABEL } from '../../../shared/game/rules';
 import type { MovementId } from '../../../shared/game/types';
@@ -6,6 +6,10 @@ import duelArt from '../../assets/table/melee.webp';
 import pileArt from '../../assets/table/imbue.webp';
 import movementArt from '../../assets/table/back-step.webp';
 import poisonArt from '../../assets/table/range.webp';
+
+// --- CARD NAMES ---
+/** The first melee card's printed name, read from the card data so a rename reaches the tutorial. */
+const STRIKE_CARD = getCard('backhand').name;
 
 type Instruction = { label: string; tip: string };
 export type LessonStep = Instruction &
@@ -73,8 +77,8 @@ export const lessons: Lesson[] = [
       ),
       play(
         'backhand',
-        'Play Backhand',
-        `Spend 1 energy on Backhand, then strike the Squire on the ${ROW_LABEL.front}.`
+        `Play ${STRIKE_CARD}`,
+        `Spend 1 energy on ${STRIKE_CARD}, then strike the Squire on the ${ROW_LABEL.front}.`
       ),
       play(
         'darkCloak',
@@ -108,13 +112,13 @@ export const lessons: Lesson[] = [
       ),
       play(
         'backhand',
-        'Play Backhand',
-        'Strike the Squire with Backhand. Watch which pile receives the card.'
+        `Play ${STRIKE_CARD}`,
+        `Strike the Squire with ${STRIKE_CARD}. Watch which pile receives the card.`
       ),
       pile(
         'discard',
-        'Find Backhand',
-        'Open Discard beside your portrait. Backhand can return when you reshuffle.'
+        `Find ${STRIKE_CARD}`,
+        `Open Discard beside your portrait. ${STRIKE_CARD} can return when you reshuffle.`
       ),
       play(
         'bloodPact',
@@ -141,8 +145,8 @@ export const lessons: Lesson[] = [
       ),
       play(
         'backhand',
-        'Replay Backhand',
-        'Backhand is back in hand after the reshuffle. Play it again. Ruin stayed with you and Blood Pact stayed removed.'
+        `Replay ${STRIKE_CARD}`,
+        `${STRIKE_CARD} is back in hand after the reshuffle. Play it again. Ruin stayed with you and Blood Pact stayed removed.`
       ),
     ],
   },
@@ -159,7 +163,7 @@ export const lessons: Lesson[] = [
       inspect(
         '[data-hero-row="front"]',
         ROW_LABEL.front,
-        `Tap the Squire on the ${ROW_LABEL.front}. Backhand can hit it here. The Archer starts one line farther away.`
+        `Tap the Squire on the ${ROW_LABEL.front}. ${STRIKE_CARD} can hit it here. The Archer starts one line farther away.`
       ),
       {
         kind: 'move',
@@ -170,7 +174,7 @@ export const lessons: Lesson[] = [
       inspect(
         '[data-hero-row="back"]',
         ROW_LABEL.back,
-        `Tap the Squire again. The ${ROW_LABEL.front} is empty, so Backhand has no target.`
+        `Tap the Squire again. The ${ROW_LABEL.front} is empty, so ${STRIKE_CARD} has no target.`
       ),
       inspect(
         '[data-hero-row="horizon"]',
@@ -191,7 +195,7 @@ export const lessons: Lesson[] = [
       play(
         'backhand',
         'Use Momentum',
-        `The Squire is back on the ${ROW_LABEL.front}. Strike it with Backhand to use Momentum for extra melee damage.`
+        `The Squire is back on the ${ROW_LABEL.front}. Strike it with ${STRIKE_CARD} to use Momentum for extra melee damage.`
       ),
     ],
   },

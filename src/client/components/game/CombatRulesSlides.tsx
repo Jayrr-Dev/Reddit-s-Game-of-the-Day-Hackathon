@@ -5,7 +5,7 @@ import { COMBAT_STATUS_SECTIONS, type ReferenceEntry } from '../../../shared/gam
 import { STATUS_LOOK } from '../../content/visuals';
 import { Glyph } from '../ui/Glyph';
 import { RichText } from '../ui/RichText';
-import type { CardId } from '../../../shared/game/cards';
+import { getCard, type CardId } from '../../../shared/game/cards';
 import duelArt from '../../assets/table/melee.webp';
 import targetArt from '../../assets/table/range.webp';
 import movementArt from '../../assets/table/charge.webp';
@@ -58,7 +58,7 @@ const SLIDES: readonly Lesson[] = [
       [ROW_LABEL.horizon, `Range and Magic shots into or out of the farthest row have a base ${Math.round(OUT_OF_RANGE_HIT_CHANCE*100)}% Out of Range hit chance. Longrange ignores that penalty.`],
       ['Special cases', 'Aloft blocks ordinary Melee. Cloak blocks direct targeting. Individual card effects can override normal reach.'],
     ],
-    example: 'If Backhand cannot reach, use a spell or Charge when the Frontline is clear.',
+    example: `If ${getCard('backhand').name} cannot reach, use a spell or Charge when the Frontline is clear.`,
     cards: ['backhand','arrowShot','arcaneBolt'],
   },
   {
@@ -80,7 +80,7 @@ const SLIDES: readonly Lesson[] = [
       ['Remove vs. Exhaust', 'Remove lasts for the fight. Exhaust uses a per-run counter; when the last use is spent, that copy leaves the run deck.'],
       [KEYWORD_INFO.unique.label, `${KEYWORD_INFO.unique.description}. Card rewards skip a Unique card you already own, and the deck builder won't add a second copy.`],
     ],
-    example: 'Blood Pact goes to Remove; an ordinary Backhand can return after reshuffling.',
+    example: `Blood Pact goes to Remove; an ordinary ${getCard('backhand').name} can return after reshuffling.`,
     cards: ['bloodPact','ruin'],
   },
   {
