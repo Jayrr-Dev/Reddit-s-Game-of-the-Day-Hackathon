@@ -13,6 +13,7 @@ import { MAP_IMAGES, MAP_NAMES } from './combat/Backdrop';
 import { bossArenaOf, TRAINING_BOSS_ARENAS, type BossArena } from '../../content/bossArenas';
 import { Fragment, useState, type CSSProperties, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
+import { newestCardIds } from '../../../shared/game/cardReleases';
 import { getHero, type HeroId } from '../../../shared/game/heroes';
 import { CARD_LOOK, EDGE_ART, ELEMENT_LOOK, TIER_NAME_CLASS } from '../../content/visuals';
 import { HeroFigure } from './combat/HeroFigure';
@@ -68,6 +69,7 @@ const SectionHeading = ({ children }: { children: ReactNode }) => (
 const DECK_EXAMPLES = {
   stackedBuffs: ['sap', 'bulwark', 'instinct'],
   all: ['twinDaggers', 'frostBolt', 'boneWard'],
+  newCards: newestCardIds(3),
   lightning: ['forkedBolt', 'staticCharge', 'overcharge'],
   hex: ['whisperHex', 'mourningCurse', 'chainsOfGrief'],
   fire: ['sear', 'emberRune', 'hexfire'],

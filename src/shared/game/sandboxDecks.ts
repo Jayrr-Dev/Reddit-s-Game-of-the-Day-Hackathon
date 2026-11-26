@@ -7,12 +7,14 @@
 // Add a deck by adding an entry to SANDBOX_DECKS.
 // ===================================================================
 
+import { newestCardIds } from './cardReleases.ts';
 import { ALL_CARD_IDS, getCard, isCardId, isCardInPlay, type CardId } from './cards.ts';
 import type { CardDef, CardEffect } from './types.ts';
 
 // --- TYPES ---
 export type SandboxDeckId =
   | 'all'
+  | 'newCards'
   | 'stackedBuffs'
   | 'lightning'
   | 'hex'
@@ -32,12 +34,18 @@ export type SandboxDeck = {
   name: string;
   blurb: string;
   copies?: number;
-  fits: (card: CardDef) => boolean;
+  fits: (card: CardDef, id: CardId) => boolean;
 };
 
 // --- CONSTANTS ---
 /** Copies of each fitting card in a themed deck (the full deck has 1). */
 const DECK_COPIES = 2;
+
+/** How many of the newest cards the "New cards" deck holds. */
+export const NEW_CARDS_COUNT = 10;
+
+/** The newest cards, read once: the catalog is static at runtime. */
+const NEWEST_CARD_IDS: ReadonlySet<CardId> = new Set(newestCardIds(NEW_CARDS_COUNT));
 
 // --- HELPERS ---
 /** The effect itself, or the effect an Imbue card grants. */
@@ -92,6 +100,12 @@ export const SANDBOX_DECKS: readonly SandboxDeck[] = [
     name: 'Every card',
     blurb: 'One of each card in the game.',
     fits: () => true,
+  },
+  {
+    id: 'newCards',
+    name: 'New cards',
+    blurb: `The ${NEW_CARDS_COUNT} newest cards in the game, to try them out.`,
+    fits: (_card, id) => NEWEST_CARD_IDS.has(id),
   },
   {
     id: 'stackedBuffs',
@@ -204,7 +218,7 @@ export const sandboxDeckCards = (id: SandboxDeckId): CardId[] => {
   const deck = deckOf(id);
   const copies = deck.copies ?? (deck.id === 'all' ? 1 : DECK_COPIES);
   return ALL_CARD_IDS.filter(isCardInPlay)
-    .filter((cardId) => deck.fits(getCard(cardId)))
+    .filter((cardId) => deck.fits(getCard(cardId), cardId))
     .flatMap((cardId) => Array.from({ length: copies }, () => cardId));
 };
 

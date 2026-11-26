@@ -1,0 +1,135 @@
+// ===================================================================
+// CARD RELEASES
+// Every card id in the order it joined the game, oldest first. The
+// "New cards" test deck reads the newest cards from here, so it stays
+// current on its own. Rebuilt from the git history of cards.ts
+// (first commit that added each id) on 2026-11-26.
+// When you add a card to CARDS, append its id to the END of this list;
+// a test fails until every card is listed exactly once.
+// ===================================================================
+
+import { ALL_CARD_IDS, isCardInPlay, type CardId } from './cards.ts';
+
+// --- DATA ---
+/** Card ids in release order: oldest first, newest last. */
+export const CARD_RELEASE_ORDER = [
+  'backhand',
+  'darkCloak',
+  'mourningCurse',
+  'cruelSlash',
+  'twinDaggers',
+  'boneWard',
+  'whisperHex',
+  'quickJab',
+  'sneer',
+  'fortressOfSpite',
+  'sear',
+  'cleave',
+  'reap',
+  'seethe',
+  'ruin',
+  'coldResolve',
+  'bloodPact',
+  'stormOfBlades',
+  'plague',
+  'darkBulwark',
+  'drain',
+  'cataclysm',
+  'vengeance',
+  'gravePact',
+  'doom',
+  'undyingHatred',
+  'chainsOfGrief',
+  'spiteBolt',
+  'hurlAside',
+  'beckon',
+  'hexfire',
+  'barbedVolley',
+  'flurry',
+  'spikedGuard',
+  'blackArrow',
+  'retreatingShot',
+  'wardingBolt',
+  'bloodlust',
+  'darkSurge',
+  'deadeye',
+  'ironHide',
+  'shadowBarrage',
+  'rainOfThorns',
+  'soulLance',
+  'tyrantsStance',
+  'ascendance',
+  'scatterShot',
+  'forkedBolt',
+  'reapingCuts',
+  'bulwark',
+  'purge',
+  'venomDart',
+  'frostBolt',
+  'serratedSlash',
+  'holdFast',
+  'emberRune',
+  'venomCoat',
+  'wardRune',
+  'purifyingRune',
+  'sapStrength',
+  'weakeningGaze',
+  'barbedTip',
+  'impale',
+  'standFirm',
+  'ironRune',
+  'keenEdge',
+  'steadyAim',
+  'battleFury',
+  'lastRites',
+  'redMist',
+  'vanish',
+  'repulse',
+  'eagleEye',
+  'healingPotion',
+  'antidote',
+  'swiftTonic',
+  'mend',
+  'siphonBolt',
+  'darkRenewal',
+  'sharpshooter',
+  'vexingWord',
+  'bane',
+  'adrenaline',
+  'instinct',
+  'forcePull',
+  'forcePush',
+  'sap',
+  'plateArmor',
+  'staticCharge',
+  'stormFront',
+  'overcharge',
+  'chaosBolt',
+  'wildVolley',
+  'berserker',
+  'hemorrhage',
+  'jump',
+  'followUp',
+  'chargeForward',
+  'retreat',
+  'evasiveStep',
+  'quickFootwork',
+  'killingSpree',
+  'siegeBlast',
+  'decimate',
+  'arcaneBolt',
+  'arrowShot',
+  'rushPotion',
+  'dispel',
+  'massDisrupt',
+] as const satisfies readonly CardId[];
+
+// --- PUBLIC API ---
+/** True when every catalog card is listed exactly once (guards the list). */
+export const isReleaseOrderComplete = (): boolean =>
+  CARD_RELEASE_ORDER.length === ALL_CARD_IDS.length &&
+  new Set<CardId>(CARD_RELEASE_ORDER).size === ALL_CARD_IDS.length;
+
+/** The `count` newest cards in play, newest first. */
+export const newestCardIds = (count: number): CardId[] =>
+  CARD_RELEASE_ORDER.filter(isCardInPlay).slice(-count).reverse();
