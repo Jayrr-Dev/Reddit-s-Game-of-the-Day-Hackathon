@@ -34,6 +34,7 @@ export const SlotShell = ({ stack, label, isSelected, placeholder, className = '
     <div className="inv-art" inert aria-hidden="true">{stack ? slotLook(stack).icon : placeholder}</div>
     <button type="button" className="inv-slot" aria-pressed={isSelected} aria-label={label} onClick={onTap}>
       {stack && stack.quantity > 1 && <b className="inv-qty">{stack.quantity}</b>}
+      {stack?.kind === 'jewelry' && stack.equipped && <b className="inv-worn" title="Equipped">E</b>}
     </button>
   </div>
 );

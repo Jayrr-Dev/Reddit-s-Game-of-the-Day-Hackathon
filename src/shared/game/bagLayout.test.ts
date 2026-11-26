@@ -6,7 +6,7 @@ test('arranging keeps saved spots, drops lost stacks and fills new ones in', () 
   const saved = { backpack: [null, 'a', 'gone'], belt: ['b'] };
   const bag = arrangeBag(saved, ['a', 'b', 'c']);
   assert.equal(bag.backpack.length, 16);
-  assert.equal(bag.belt.length, 5);
+  assert.equal(bag.belt.length, 3);
   assert.deepEqual(bag.backpack.slice(0, 3), ['c', 'a', null]);
   assert.equal(bag.belt[0], 'b');
   assert.ok(isBagLayout(bag));

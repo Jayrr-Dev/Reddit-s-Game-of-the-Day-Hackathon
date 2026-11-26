@@ -23,5 +23,5 @@ export const DAILY_DATA_TTL_DAYS = 30;
 export const BACKPACK_SLOTS = 16;
 /** Columns in the backpack grid. */
 export const BACKPACK_COLUMNS = 4;
-/** Cells in the belt strip under the backpack; with the trash it spans the 6-square row. */
-export const BELT_SLOTS = 5;
+/** Cells in the belt strip under the backpack; with the trash it fills one 4-square row. */
+export const BELT_SLOTS = 3;

@@ -1,22 +1,18 @@
 // ===================================================================
 // INVENTORY PANEL
-// An arrangeable RPG bag: a 4 x 4 backpack, a belt strip with a trash
-// slot, and ring and amulet slots that only take matching jewelry.
+// An arrangeable RPG bag: a 4 x 4 backpack and a belt strip with a
+// trash slot. Wearing jewelry stays on the Equipment tab.
 // Drag a stack where it should go (mouse or finger), or tap it and
 // then tap the destination. The details of the selected stack show alongside.
 // ===================================================================
 import { useState, type PointerEvent, type ReactNode } from 'react';
-import { RING_SLOT_COUNT, ringSlotUnlocked } from '../../../../shared/game/character';
 import { stackKey, type InventoryOwner, type InventorySlot } from '../../../../shared/game/inventory';
 import type { BagArea } from '../../../../shared/game/bagLayout';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
-import { Glyph } from '../../ui/Glyph';
-import { JewelryIcon } from '../jewelry';
 import { SlotShell, TrashSlot } from './BagSlots';
 import { slotLook } from './slotLooks';
-import { useEquipSounds } from '../../../hooks/useEquipSounds';
 import { usePointerDrag } from '../../../hooks/usePointerDrag';
-import { BAG_ZONE_ATTRIBUTE, targetOf, useBagActions, zoneOf, type BagHandlers, type BagTarget, type EquipTarget } from './useBagActions';
+import { BAG_ZONE_ATTRIBUTE, targetOf, useBagActions, zoneOf, type BagHandlers, type BagTarget } from './useBagActions';
 import './inventory.css';
 
 // --- TYPES ---
@@ -51,7 +47,7 @@ const BagGrid = ({ area, actions, dnd, className, children }: {
           isOver={dnd.overZone === zoneOf(cell)}
           onPress={key ? dnd.pressFor(key) : undefined}
           stack={stack}
-          label={stack ? `${stack.name}, ${stack.quantity}` : `Empty ${area} slot ${index + 1}`}
+          label={stack ? `${stack.name}, ${stack.quantity}${stack.kind === 'jewelry' && stack.equipped ? ', equipped' : ''}` : `Empty ${area} slot ${index + 1}`}
           isSelected={!!key && key === (actions.selected && stackKey(actions.selected))}
           onTap={dnd.onTap(() => actions.tap(cell, key))}
         />
@@ -60,41 +56,6 @@ const BagGrid = ({ area, actions, dnd, className, children }: {
     {children}
   </div>
 );
-
-// --- EQUIPMENT ---
-/** The amulet and ring slots, each taking only its own kind of jewelry. */
-const EquipColumn = ({ owner, actions, dnd }: { owner: InventoryOwner; actions: Actions; dnd: Dnd }) => {
-  const { rings, amulet } = owner.character.equipment;
-  const targets: Array<EquipTarget & { id: string | null }> = [
-    { slot: 'amulet', id: amulet },
-    ...Array.from({ length: RING_SLOT_COUNT }, (_, ringIndex) => ({ slot: 'ring' as const, ringIndex, id: rings[ringIndex] ?? null })),
-  ];
-  return (
-    <div className="inv-equip" aria-label="Equipment slots">
-      {targets.map(({ id, ...target }) => {
-        const key = id && `jewelry:${id}`;
-        const stack = actions.stackOf(key);
-        const isLocked = target.ringIndex !== undefined && target.ringIndex > 0 && !ringSlotUnlocked(owner.character, target.ringIndex);
-        const name = target.slot === 'amulet' ? 'Amulet slot' : `Ring slot ${(target.ringIndex ?? 0) + 1}`;
-        const drop: BagTarget = { kind: 'equip', target };
-        return (
-          <SlotShell
-            key={name}
-            className={isLocked ? 'inv-locked' : ''}
-            zone={zoneOf(drop)}
-            isOver={dnd.overZone === zoneOf(drop)}
-            onPress={key ? dnd.pressFor(key) : undefined}
-            stack={stack}
-            label={`${name}, ${stack ? stack.name : isLocked ? 'locked' : 'empty'}`}
-            isSelected={!!key && key === (actions.selected && stackKey(actions.selected))}
-            placeholder={isLocked ? <Glyph name="padlock" className="inv-glyph" /> : <JewelryIcon slot={target.slot} />}
-            onTap={dnd.onTap(() => actions.tap(drop, key))}
-          />
-        );
-      })}
-    </div>
-  );
-};
 
 // --- DETAILS ---
 /** Name, kind and full description of the selected stack. */
@@ -111,7 +72,7 @@ const InventoryDetails = ({ stack, notice }: { stack: InventorySlot | undefined;
             <div className="inv-detail-body">{look.details}</div>
           </>
         ) : (
-          <p className="inv-subtitle">Drag an item where it goes, or tap it and then tap the spot. Drop it on a ring or amulet slot to wear it, or on the trash to destroy it.</p>
+          <p className="inv-subtitle">Drag an item where it goes, or tap it and then tap the spot. Drop it on the trash to destroy it. Wear jewelry from the Equipment tab.</p>
         )}
       </div>
     </section>
@@ -123,7 +84,6 @@ const InventoryDetails = ({ stack, notice }: { stack: InventorySlot | undefined;
 export const InventoryPanel = ({ owner, ...handlers }: PanelProps) => {
   const [trashing, setTrashing] = useState<InventorySlot | undefined>();
   const actions = useBagActions(owner, { ...handlers, onTrash: setTrashing });
-  useEquipSounds(owner.character.equipment);
   const used = actions.bag.backpack.filter((key) => key !== null).length;
   const { drag, startPress, consumeDrag } = usePointerDrag<string>(BAG_ZONE_ATTRIBUTE, (key, zone) => {
     const stack = actions.stackOf(key);
@@ -142,7 +102,6 @@ export const InventoryPanel = ({ owner, ...handlers }: PanelProps) => {
         <h3>Backpack <span className="cs-inventory-count">{used}/{actions.bag.backpack.length}</span></h3>
         <div className="cs-compartment inv-layout">
           <BagGrid area="backpack" actions={actions} dnd={dnd} className="inv-backpack" />
-          <EquipColumn owner={owner} actions={actions} dnd={dnd} />
           <BagGrid area="belt" actions={actions} dnd={dnd} className="inv-belt">
             <TrashSlot isOver={dnd.overZone === 'trash'} onTap={dnd.onTap(() => actions.tap({ kind: 'trash' }, null))} />
           </BagGrid>

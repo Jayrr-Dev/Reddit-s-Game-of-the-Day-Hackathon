@@ -42,8 +42,6 @@ export const BattleCharacterSheet = ({ deck, ...sheet }: Props) => {
           owner={{ character, bag: items }}
           layout={layout}
           onLayout={setLayout}
-          onEquip={(slot, itemId, ringIndex) =>
-            onAction({ type: 'equipItem', slot, itemId, ...(ringIndex !== undefined && { ringIndex }) })}
           onTrash={trash}
         />
       }

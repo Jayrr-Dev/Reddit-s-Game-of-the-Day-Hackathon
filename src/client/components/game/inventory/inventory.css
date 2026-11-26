@@ -24,35 +24,30 @@
   }
 }
 
-/* --- LAYOUT: one 6-square grid, so every row lines up edge to edge.
-   Backpack 4 wide + equipment 2 wide; the belt (5 + trash) spans all 6. --- */
+/* --- LAYOUT: one 4-square grid, so every row lines up edge to edge.
+   The backpack is 4 x 4; the belt (3 + trash) fills the row below. --- */
 .inv-bag {
   width: fit-content;
   max-width: 100%;
 }
 .inv-layout {
   display: grid;
-  grid-template-columns: repeat(6, var(--inv-slot));
+  grid-template-columns: repeat(4, var(--inv-slot));
   gap: 0.3rem;
 }
 .inv-backpack,
-.inv-equip,
 .inv-belt {
   display: grid;
   gap: 0.3rem;
   align-content: start;
 }
 .inv-backpack {
-  grid-column: 1 / 5;
+  grid-column: 1 / -1;
   grid-template-columns: repeat(4, var(--inv-slot));
-}
-.inv-equip {
-  grid-column: 5 / 7;
-  grid-template-columns: repeat(2, var(--inv-slot));
 }
 .inv-belt {
   grid-column: 1 / -1;
-  grid-template-columns: repeat(6, var(--inv-slot));
+  grid-template-columns: repeat(4, var(--inv-slot));
   margin-top: 0.25rem;
   padding-top: 0.45rem;
   border-top: 1px solid var(--line);
@@ -82,13 +77,6 @@
   border-radius: 0.3rem;
   background: color-mix(in srgb, var(--paper-shadow) 42%, transparent);
   box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.35);
-}
-.inv-equip .inv-cell {
-  border-style: dashed;
-}
-.inv-equip .inv-cell[data-empty='true'] .inv-art,
-.inv-locked .inv-art {
-  opacity: 0.4;
 }
 .inv-art {
   position: absolute;
@@ -122,6 +110,13 @@
 .inv-slot[aria-pressed='true'] {
   outline: 2px solid var(--color-on-parchment);
   outline-offset: 1px;
+}
+.inv-worn {
+  position: absolute;
+  top: 0.1rem;
+  left: 0.15rem;
+  color: var(--color-on-parchment);
+  font: 800 0.62rem/1 var(--font-display);
 }
 .inv-qty {
   position: absolute;

@@ -176,8 +176,6 @@ export function ProfileView({
           owner={{ character, bag: items }}
           layout={build.bag}
           onLayout={(bag) => setBuild((previous) => ({ ...previous, bag }))}
-          onEquip={(slot, itemId, ringIndex) =>
-            changeCharacter({ type: 'equipItem', slot, itemId, ...(ringIndex !== undefined && { ringIndex }) })}
           onTrash={(stack) => void trash(stack)}
         />
       }
