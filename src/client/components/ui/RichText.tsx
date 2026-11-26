@@ -5,7 +5,7 @@
 // **bold** for key words and numbers. A bold glossary word wears its
 // own colour with its icon before it (lookOfTerm), so "**Frost**"
 // reads like the Frost chip. Plain text also picks out, in bold white,
-// the word dodge and every percentage (green when it is a gain like
+// key words (dodge, all, hit, turn) and every percentage (green when it is a gain like
 // "+25%", red when a loss like "-25%"), so the numbers that decide a
 // fight stand out without markup in every description.
 // ===================================================================
@@ -18,17 +18,26 @@ import { Glyph } from './Glyph';
 /** Splits a line into plain and **bold** parts (odd parts are bold). */
 const boldParts = (line: string): string[] => line.split('**');
 
+// --- AUTO EMPHASIS ---
 /**
- * Emphasised spans inside plain text: percentages and the word dodge
- * (dodge, dodges, dodged). The capture group keeps the matches, so
- * odd parts of the split are the emphasised ones.
+ * Words drawn bold white wherever they appear in plain text, as
+ * regex stems so their forms match too (dodges, dodged, hits, turns).
  */
-const AUTO_EMPHASIS = /([+−-]?\d+%|\bdodge[sd]?\b)/i;
+const EMPHASIS_WORDS = ['dodge[sd]?', 'all', 'hits?', 'turns?'];
+/**
+ * Emphasised spans inside plain text: signed or bare percentages and
+ * the EMPHASIS_WORDS. The capture group keeps the matches, so odd
+ * parts of the split are the emphasised ones.
+ */
+const AUTO_EMPHASIS = new RegExp(
+  `([+−-]?\\d+%|\\b(?:${EMPHASIS_WORDS.join('|')})\\b)`,
+  'i'
+);
 const emphasisParts = (text: string): string[] => text.split(AUTO_EMPHASIS);
 
 /**
  * The colour of an emphasised span: a gain ("+25%") is heal green, a
- * loss ("-25%") is HP red, anything else (dodge, 50%) is white.
+ * loss ("-25%") is HP red, anything else (a word, 50%) is white.
  */
 const emphasisToneClass = (text: string): string => {
   if (/^\+\d+%$/.test(text)) return 'text-heal';
