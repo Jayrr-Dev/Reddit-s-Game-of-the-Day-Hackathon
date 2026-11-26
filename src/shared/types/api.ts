@@ -69,6 +69,10 @@ export type UseItemResponse = {
   spent: boolean;
 };
 
+// --- POST /api/profile/discard-item ---
+// The Inventory trash: destroys every copy of one item (UseItemRequest body).
+export type DiscardItemResponse = { items: import('../game/items.ts').ItemBag };
+
 // --- POST /api/run/start ---
 // Called when the player begins a run. The first run of the day is the
 // ranked one; any later run is practice and never touches the board.

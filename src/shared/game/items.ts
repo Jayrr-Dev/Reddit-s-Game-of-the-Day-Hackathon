@@ -49,6 +49,9 @@ export function isItemBag(data: unknown): data is ItemBag {
   );
 }
 
+/** Destroys a whole stack (the Inventory trash); the bag remembers the item as 0. */
+export const discardStack = (bag: ItemBag, id: ItemId): ItemBag => ({ ...bag, [id]: 0 });
+
 /** Spends one item; returns null when the bag has none to spend. */
 export const spendItem = (bag: ItemBag, id: ItemId): ItemBag | null => {
   const count = itemQuantity(bag, id);

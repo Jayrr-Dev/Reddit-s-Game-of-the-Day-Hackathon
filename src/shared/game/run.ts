@@ -1,6 +1,6 @@
 import { isStarterName, validStarter, type StarterName } from './starters.ts';
 import { planSkillPath, buySkill, isSkillPick, type SkillPick } from './skills.ts';
-import { progressionFromWins, healingAmount, type RingProgress, allocateTrait, awardCharacterVictory, characterBonuses, createCharacter, equipItem, isRingIndex, isTrait, isTraitRank, isTraitNode, isTraitPath, traitPathCap, type TraitPath, setTraitNode, setTraitPathRank, setTraitRank, traitHealth, syncCharacterCombat, type CharacterState, type TraitId, type EquipmentSlot } from './character.ts';
+import { progressionFromWins, healingAmount, type RingProgress, allocateTrait, awardCharacterVictory, characterBonuses, createCharacter, discardItem, equipItem, isRingIndex, isTrait, isTraitRank, isTraitNode, isTraitPath, traitPathCap, type TraitPath, setTraitNode, setTraitPathRank, setTraitRank, traitHealth, syncCharacterCombat, type CharacterState, type TraitId, type EquipmentSlot } from './character.ts';
 // ===================================================================
 // RUN (THE CONQUEST)
 // A whole day's run as one pure reducer: runReducer(state, action).
@@ -107,6 +107,8 @@ export type RunAction =
   | { type: 'buySkill'; pick: SkillPick }
   | { type: 'allocateTrait'; trait: TraitId }
   | { type: 'equipItem'; slot: EquipmentSlot; itemId: string | null; ringIndex?: number }
+  /** Destroys an owned ring or amulet (trashed from the Inventory). */
+  | { type: 'discardItem'; itemId: string }
   | { type: 'chooseStop'; option: number }
   | PlayCardAction
   | { type: 'endTurn' }
@@ -284,7 +286,7 @@ const visitGrave = (state: RunState, choice: GraveChoice): RunState => {
 /** Apply the same character edits in a story run and in Illusion Training. */
 export const applyCharacterAction = (
   character: CharacterState,
-  action: Extract<RunAction, { type: 'setTraitNode' | 'setTraitPathRank' | 'setTraitRank' | 'allocateTrait' | 'buySkill' | 'skillPath' | 'equipItem' }>
+  action: Extract<RunAction, { type: 'setTraitNode' | 'setTraitPathRank' | 'setTraitRank' | 'allocateTrait' | 'buySkill' | 'skillPath' | 'equipItem' | 'discardItem' }>
 ): CharacterState => {
   switch (action.type) {
     case 'setTraitNode': return setTraitNode(character, action.trait, action.node, action.owned);
@@ -294,6 +296,7 @@ export const applyCharacterAction = (
     case 'buySkill': return buySkill(character, action.pick);
     case 'allocateTrait': return allocateTrait(character, action.trait);
     case 'equipItem': return equipItem(character, action.slot, action.itemId, action.ringIndex);
+    case 'discardItem': return discardItem(character, action.itemId);
   }
 };
 
@@ -314,7 +317,8 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
     case 'setTraitPathRank':
     case 'setTraitRank':
     case 'allocateTrait':
-    case 'equipItem': {
+    case 'equipItem':
+    case 'discardItem': {
       if (phase.kind === 'fallen') return state;
       const character = applyCharacterAction(state.character, action);
       if (character === state.character) return state;
@@ -422,6 +426,7 @@ export const isRunAction = (value: unknown): value is RunAction => {
     case 'buySkill': return 'pick' in value && isSkillPick(value.pick);
     case 'allocateTrait': return 'trait' in value && isTrait(value.trait);
     case 'equipItem': return 'slot' in value && (value.slot === 'ring' || value.slot === 'amulet') && (!('ringIndex' in value) || (value.slot === 'ring' && isRingIndex(value.ringIndex))) && 'itemId' in value && (typeof value.itemId === 'string' || value.itemId === null);
+    case 'discardItem': return 'itemId' in value && typeof value.itemId === 'string';
     case 'chooseStop':
       return 'option' in value && isIndex(value.option);
     case 'playCard':

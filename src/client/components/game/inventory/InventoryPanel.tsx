@@ -1,127 +1,147 @@
 // ===================================================================
 // INVENTORY PANEL
-// The RPG bag on the character sheet: one slot grid per inventory
-// section, quantity badges, and details for the tapped slot.
+// An arrangeable RPG bag: a 4 x 4 backpack, a belt strip with a trash
+// slot, and ring and amulet slots that only take matching jewelry.
+// Tap a stack to select it, then tap where it should go (or drag it
+// with a mouse). The details of the selected stack show alongside.
 // ===================================================================
-import { useId, useState } from 'react';
-import {
-  inventoryOf,
-  itemCount,
-  type InventoryOwner,
-  type InventorySection,
-  type InventorySlot,
-} from '../../../../shared/game/inventory';
+import { useState, type ReactNode } from 'react';
+import { RING_SLOT_COUNT, ringSlotUnlocked } from '../../../../shared/game/character';
+import { stackKey, type InventoryOwner, type InventorySlot } from '../../../../shared/game/inventory';
+import type { BagArea } from '../../../../shared/game/bagLayout';
+import { ConfirmDialog } from '../../ui/ConfirmDialog';
+import { Glyph } from '../../ui/Glyph';
+import { JewelryIcon } from '../jewelry';
+import { SlotShell, TrashSlot } from './BagSlots';
 import { slotLook } from './slotLooks';
+import { useBagActions, type BagHandlers, type EquipTarget } from './useBagActions';
 import './inventory.css';
 
-// --- HELPERS ---
-/** A slot's key is unique across sections, since a card and an item may share an id. */
-const slotKey = (slot: InventorySlot) => `${slot.kind}:${slot.id}`;
+// --- TYPES ---
+type Actions = ReturnType<typeof useBagActions>;
+type PanelProps = BagHandlers & { owner: InventoryOwner };
 
-/** Finds the slot to show first: the first filled slot of any section. */
-const firstSlot = (sections: readonly InventorySection[]) =>
-  sections.flatMap((section) => section.slots)[0];
+// --- BAG AREA ---
+/** One grid of bag cells (the backpack or the belt). */
+const BagGrid = ({ area, actions, className, children }: {
+  area: BagArea;
+  actions: Actions;
+  className: string;
+  children?: ReactNode;
+}) => (
+  <div className={className}>
+    {actions.bag[area].map((key, index) => {
+      const stack = actions.stackOf(key);
+      const cell = { kind: 'cell', cell: { area, index } } as const;
+      return (
+        <SlotShell
+          key={index}
+          stackKey={key}
+          stack={stack}
+          label={stack ? `${stack.name}, ${stack.quantity}` : `Empty ${area} slot ${index + 1}`}
+          isSelected={!!key && key === (actions.selected && stackKey(actions.selected))}
+          onTap={() => actions.tap(cell, key)}
+          onDropKey={(dragged) => { const moving = actions.stackOf(dragged); if (moving) actions.drop(moving, cell); }}
+        />
+      );
+    })}
+    {children}
+  </div>
+);
 
-// --- SLOT ---
-/** One bag slot: the item's picture with a quantity badge, tapped to inspect. */
-const InventorySlotButton = ({ slot, isSelected, detailId, onSelect }: {
-  slot: InventorySlot;
-  isSelected: boolean;
-  detailId: string;
-  onSelect: () => void;
-}) => {
-  const isEquipped = slot.kind === 'jewelry' && slot.equipped;
+// --- EQUIPMENT ---
+/** The amulet and ring slots, each taking only its own kind of jewelry. */
+const EquipColumn = ({ owner, actions }: { owner: InventoryOwner; actions: Actions }) => {
+  const { rings, amulet } = owner.character.equipment;
+  const targets: Array<EquipTarget & { id: string | null }> = [
+    { slot: 'amulet', id: amulet },
+    ...Array.from({ length: RING_SLOT_COUNT }, (_, ringIndex) => ({ slot: 'ring' as const, ringIndex, id: rings[ringIndex] ?? null })),
+  ];
   return (
-    <div className="inv-cell" data-kind={slot.kind}>
-      {/* The picture sits under the button so card faces (themselves buttons) never nest inside it. */}
-      <div className="inv-art" inert aria-hidden="true">{slotLook(slot).icon}</div>
-      <button
-        type="button"
-        className="inv-slot"
-        aria-pressed={isSelected}
-        aria-controls={detailId}
-        aria-label={`${slot.name}, ${slot.quantity}${isEquipped ? ', equipped' : ''}`}
-        onClick={onSelect}
-      >
-        {slot.quantity > 1 && <b className="inv-qty">x{slot.quantity}</b>}
-        {isEquipped && <b className="inv-worn" title="Equipped">E</b>}
-      </button>
+    <div className="inv-equip" aria-label="Equipment slots">
+      {targets.map(({ id, ...target }) => {
+        const key = id && `jewelry:${id}`;
+        const stack = actions.stackOf(key);
+        const isLocked = target.ringIndex !== undefined && target.ringIndex > 0 && !ringSlotUnlocked(owner.character, target.ringIndex);
+        const name = target.slot === 'amulet' ? 'Amulet slot' : `Ring slot ${(target.ringIndex ?? 0) + 1}`;
+        const drop = { kind: 'equip', target } as const;
+        return (
+          <SlotShell
+            key={name}
+            className={isLocked ? 'inv-locked' : ''}
+            stackKey={key}
+            stack={stack}
+            label={`${name}, ${stack ? stack.name : isLocked ? 'locked' : 'empty'}`}
+            isSelected={!!key && key === (actions.selected && stackKey(actions.selected))}
+            placeholder={isLocked ? <Glyph name="padlock" className="inv-glyph" /> : <JewelryIcon slot={target.slot} />}
+            onTap={() => actions.tap(drop, key)}
+            onDropKey={(dragged) => { const moving = actions.stackOf(dragged); if (moving) actions.drop(moving, drop); }}
+          />
+        );
+      })}
     </div>
   );
 };
 
-// --- SECTION ---
-/** One labelled bag: filled slots first, then empty slots to complete the grid. */
-const InventoryGrid = ({ section, selectedKey, detailId, onSelect }: {
-  section: InventorySection;
-  selectedKey: string | undefined;
-  detailId: string;
-  onSelect: (slot: InventorySlot) => void;
-}) => (
-  <section className="cs-paper inv-bag" aria-label={section.label}>
-    <h3>
-      {section.label} <span className="cs-inventory-count">{itemCount(section.slots)}</span>
-    </h3>
-    <div className="cs-compartment inv-grid">
-      {section.slots.map((slot) => (
-        <InventorySlotButton
-          key={slotKey(slot)}
-          slot={slot}
-          isSelected={slotKey(slot) === selectedKey}
-          detailId={detailId}
-          onSelect={() => onSelect(slot)}
-        />
-      ))}
-      {Array.from({ length: section.emptySlots }, (_, index) => (
-        <div key={index} className="inv-cell inv-empty" aria-hidden="true" />
-      ))}
-    </div>
-  </section>
-);
-
 // --- DETAILS ---
-/** Name, kind and full description of the tapped slot. */
-const InventoryDetails = ({ slot, detailId }: { slot: InventorySlot | undefined; detailId: string }) => {
-  if (!slot) return <section id={detailId} className="cs-paper inv-details"><p className="cs-bag-empty">Your bag is empty.</p></section>;
-  const look = slotLook(slot);
+/** Name, kind and full description of the selected stack. */
+const InventoryDetails = ({ stack, notice }: { stack: InventorySlot | undefined; notice: string }) => {
+  const look = stack && slotLook(stack);
   return (
-    <section id={detailId} className="cs-paper inv-details" aria-label="Item details" aria-live="polite">
-      <h3>{slot.name}</h3>
+    <section className="cs-paper inv-details" aria-label="Item details" aria-live="polite">
+      <h3>{stack ? stack.name : 'Inventory'}</h3>
       <div className="cs-compartment">
-        <p className="inv-subtitle">{look.subtitle}</p>
-        <div className="inv-detail-body" inert={slot.kind === 'card'}>{look.details}</div>
+        {notice && <p className="inv-notice" role="status">{notice}</p>}
+        {look ? (
+          <>
+            <p className="inv-subtitle">{look.subtitle}</p>
+            <div className="inv-detail-body" inert={stack.kind === 'card'}>{look.details}</div>
+          </>
+        ) : (
+          <p className="inv-subtitle">Tap an item, then tap where it goes. Drop it on a ring or amulet slot to wear it, or on the trash to destroy it.</p>
+        )}
       </div>
     </section>
   );
 };
 
 // --- PANEL ---
-/** Shows everything the player owns, read from their saved profile. */
-export const InventoryPanel = ({ owner }: { owner: InventoryOwner }) => {
-  const detailId = useId();
-  const sections = inventoryOf(owner);
-  const [selectedKey, setSelectedKey] = useState<string | undefined>();
-  const slots = sections.flatMap((section) => section.slots);
-  const selected = slots.find((slot) => slotKey(slot) === selectedKey) ?? firstSlot(sections);
-  /** Selects a slot and brings its details into view (they sit below the bags on phones). */
-  const select = (slot: InventorySlot) => {
-    setSelectedKey(slotKey(slot));
-    requestAnimationFrame(() => document.getElementById(detailId)?.scrollIntoView({ block: 'nearest' }));
-  };
+/** The whole Inventory tab, read from and saved to the player's profile. */
+export const InventoryPanel = ({ owner, ...handlers }: PanelProps) => {
+  const [trashing, setTrashing] = useState<InventorySlot | undefined>();
+  const actions = useBagActions(owner, { ...handlers, onTrash: setTrashing });
+  const used = actions.bag.backpack.filter((key) => key !== null).length;
   return (
     <div className="inv-panel">
-      <div className="inv-bags">
-        {sections.map((section) => (
-          <InventoryGrid
-            key={section.id}
-            section={section}
-            selectedKey={selected && slotKey(selected)}
-            detailId={detailId}
-            onSelect={select}
-          />
-        ))}
-      </div>
-      <InventoryDetails slot={selected} detailId={detailId} />
+      <section className="cs-paper inv-bag" aria-label="Backpack">
+        <h3>Backpack <span className="cs-inventory-count">{used}/{actions.bag.backpack.length}</span></h3>
+        <div className="cs-compartment inv-layout">
+          <BagGrid area="backpack" actions={actions} className="inv-backpack" />
+          <EquipColumn owner={owner} actions={actions} />
+          <BagGrid area="belt" actions={actions} className="inv-belt">
+            <TrashSlot
+              onTap={() => actions.tap({ kind: 'trash' }, null)}
+              onDropKey={(dragged) => { const moving = actions.stackOf(dragged); if (moving) actions.drop(moving, { kind: 'trash' }); }}
+            />
+          </BagGrid>
+          <div className="inv-actions">
+            <button type="button" onClick={actions.sort}>Sort backpack</button>
+            <button type="button" onClick={actions.clear}>Clear</button>
+          </div>
+        </div>
+      </section>
+      <InventoryDetails stack={actions.selected} notice={actions.notice} />
+      {trashing && (
+        <ConfirmDialog
+          title={`Trash ${trashing.name}?`}
+          confirmLabel="Trash"
+          cancelLabel="Keep"
+          onCancel={() => setTrashing(undefined)}
+          onConfirm={() => { handlers.onTrash(trashing); setTrashing(undefined); }}
+        >
+          {trashing.quantity > 1 ? `All ${trashing.quantity} are destroyed.` : 'It is destroyed.'} This can’t be undone.
+        </ConfirmDialog>
+      )}
     </div>
   );
 };

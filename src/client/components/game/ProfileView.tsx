@@ -24,6 +24,7 @@ import { localBuild, storeBuild } from '../../lib/playerBuild';
 import { Button } from '../ui/Button';
 import { CardView } from './CardView';
 import { InventoryPanel } from './inventory/InventoryPanel';
+import type { InventorySlot } from '../../../shared/game/inventory';
 import { RunCharacterSheet } from './RunCharacterSheet';
 
 export function ProfileView({
@@ -44,7 +45,7 @@ export function ProfileView({
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState(false);
   const [retry, setRetry] = useState(0);
-  const { items, setItems, spend } = usePlayerItems(data.accountId);
+  const { items, setItems, spend, discard } = usePlayerItems(data.accountId);
   useEffect(() => {
     if (!data.accountId) return;
     let live = true;
@@ -120,6 +121,13 @@ export function ProfileView({
       character: previous.character.filter((a) => a.type !== 'setTraitNode'),
     }));
   }
+  /** Destroys a trashed stack: consumables on the server, jewelry through the saved build. */
+  async function trash(stack: InventorySlot) {
+    setError('');
+    if (stack.kind === 'jewelry') return changeCharacter({ type: 'discardItem', itemId: stack.id });
+    if (stack.kind === 'item' && !(await discard(stack.id)))
+      setError(`Could not trash the ${stack.name}. Try again.`);
+  }
   const { name: itemName, pluralName, icon } = getItem(RESPEC_ITEM);
   const respecItem = {
     name: itemName,
@@ -164,7 +172,16 @@ export function ProfileView({
       onAction={changeCharacter}
       onRespec={() => void respec()}
       respecItem={respecItem}
-      inventory={<InventoryPanel owner={{ character, deck: cards, bag: items }} />}
+      inventory={
+        <InventoryPanel
+          owner={{ character, deck: cards, bag: items }}
+          layout={build.bag}
+          onLayout={(bag) => setBuild((previous) => ({ ...previous, bag }))}
+          onEquip={(slot, itemId, ringIndex) =>
+            changeCharacter({ type: 'equipItem', slot, itemId, ...(ringIndex !== undefined && { ringIndex }) })}
+          onTrash={(stack) => void trash(stack)}
+        />
+      }
       onClose={() => void leave()}
       profile={
         <>

@@ -6,11 +6,14 @@ import {
   type StarterName,
 } from './starters.ts';
 import type { CardId } from './cards.ts';
+import { isBagLayout, type BagLayout } from './bagLayout.ts';
 
 export type PlayerBuild = {
   selected: StarterName;
   decks: Partial<Record<StarterName, CardId[]>>;
   character: RunAction[];
+  /** Where the player arranged their Inventory stacks (positions only). */
+  bag?: BagLayout;
 };
 export const defaultBuild = (): PlayerBuild => ({
   selected: 'Warrior',
@@ -18,7 +21,7 @@ export const defaultBuild = (): PlayerBuild => ({
   character: [],
 });
 export const characterEdit = (a: RunAction) =>
-  ['equipItem', 'setTraitNode', 'skillPath', 'buySkill'].includes(a.type);
+  ['equipItem', 'discardItem', 'setTraitNode', 'skillPath', 'buySkill'].includes(a.type);
 export function isPlayerBuild(data: unknown): data is PlayerBuild {
   if (
     !data ||
@@ -32,7 +35,8 @@ export function isPlayerBuild(data: unknown): data is PlayerBuild {
     !('decks' in data) ||
     !data.decks ||
     typeof data.decks !== 'object' ||
-    Array.isArray(data.decks)
+    Array.isArray(data.decks) ||
+    ('bag' in data && !isBagLayout(data.bag))
   )
     return false;
   return Object.entries(data.decks).every(([key, list]) =>

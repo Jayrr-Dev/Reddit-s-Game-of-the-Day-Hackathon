@@ -1,16 +1,17 @@
 // ===================================================================
 // USE PLAYER ITEMS
-// The player's item bag on the client. Signed-in players spend items
-// through the server, which owns the counts; a local player (no Reddit
-// account, e.g. dev) spends from an in-memory starting bag.
+// The player's item bag on the client. Signed-in players spend and
+// trash items through the server, which owns the counts; a local
+// player (no Reddit account, e.g. dev) uses an in-memory starting bag.
 // ===================================================================
 import { useCallback, useState } from 'react';
-import { spendItem, startingBag, type ItemBag, type ItemId } from '../../shared/game/items';
+import { discardStack, spendItem, startingBag, type ItemBag, type ItemId } from '../../shared/game/items';
 import { apiClient } from '../lib/apiClient';
 
-/** Holds the bag and spends one item at a time; spend resolves false when it fails. */
+/** Holds the bag; spend and discard resolve false when the change fails. */
 export function usePlayerItems(accountId: string | undefined) {
   const [items, setItems] = useState<ItemBag>(startingBag);
+  /** Spends one item (a respec). */
   const spend = useCallback(
     async (id: ItemId): Promise<boolean> => {
       if (!accountId) {
@@ -19,8 +20,7 @@ export function usePlayerItems(accountId: string | undefined) {
         return !!next;
       }
       try {
-        const result = await apiClient.useItem({ itemId: id });
-        setItems(result.items);
+        setItems((await apiClient.useItem({ itemId: id })).items);
         return true;
       } catch {
         return false;
@@ -28,5 +28,21 @@ export function usePlayerItems(accountId: string | undefined) {
     },
     [accountId, items]
   );
-  return { items, setItems, spend } as const;
+  /** Destroys the whole stack of one item (the trash). */
+  const discard = useCallback(
+    async (id: ItemId): Promise<boolean> => {
+      if (!accountId) {
+        setItems((bag) => discardStack(bag, id));
+        return true;
+      }
+      try {
+        setItems((await apiClient.discardItem({ itemId: id })).items);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [accountId]
+  );
+  return { items, setItems, spend, discard } as const;
 }

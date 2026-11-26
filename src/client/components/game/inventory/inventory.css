@@ -1,35 +1,82 @@
 /* ===================================================================
    INVENTORY PANEL
-   Parchment bags of square slots, reusing the Equipment ledger paper.
+   Parchment backpack, belt and equipment squares, reusing the
+   Equipment ledger paper.
    =================================================================== */
 
-/* --- LAYOUT: bags above details on phones, side by side when wide --- */
+/* --- SIZES: smaller squares when the sheet is narrow (phones) --- */
 .inv-panel {
+  --inv-slot: 3.2rem;
+  /* A fan card shrunk to fit one square. */
+  --inv-card-scale: 0.42;
   display: grid;
   gap: 0.5rem;
   color: var(--color-on-parchment);
   font-family: var(--font-display);
 }
-.inv-bags {
-  display: grid;
-  gap: 0.5rem;
-  min-width: 0;
-}
-@container character-frame (min-width: 34rem) {
+@container character-frame (max-width: 30rem) {
   .inv-panel {
-    grid-template-columns: minmax(0, 1fr) 12rem;
+    --inv-slot: 2.6rem;
+    --inv-card-scale: 0.34;
+  }
+}
+@container character-frame (min-width: 40rem) {
+  .inv-panel {
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: start;
   }
 }
 
-/* --- SLOT GRID --- */
-.inv-grid {
-  --inv-slot: 3.2rem;
+/* --- LAYOUT: one 6-square grid, so every row lines up edge to edge.
+   Backpack 4 wide + equipment 2 wide; the belt (5 + trash) spans all 6. --- */
+.inv-bag {
+  width: fit-content;
+  max-width: 100%;
+}
+.inv-layout {
   display: grid;
-  grid-template-columns: repeat(auto-fill, var(--inv-slot));
-  justify-content: start;
+  grid-template-columns: repeat(6, var(--inv-slot));
   gap: 0.3rem;
 }
+.inv-backpack,
+.inv-equip,
+.inv-belt {
+  display: grid;
+  gap: 0.3rem;
+  align-content: start;
+}
+.inv-backpack {
+  grid-column: 1 / 5;
+  grid-template-columns: repeat(4, var(--inv-slot));
+}
+.inv-equip {
+  grid-column: 5 / 7;
+  grid-template-columns: repeat(2, var(--inv-slot));
+}
+.inv-belt {
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(6, var(--inv-slot));
+  margin-top: 0.25rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid var(--line);
+}
+.inv-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  margin-top: 0.2rem;
+  gap: 0.4rem;
+}
+.inv-actions button {
+  min-height: 1.8rem;
+  padding: 0.15rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--paper-shadow) 42%, transparent);
+}
+
+/* --- SQUARES --- */
 .inv-cell {
   position: relative;
   width: var(--inv-slot);
@@ -39,8 +86,12 @@
   background: color-mix(in srgb, var(--paper-shadow) 42%, transparent);
   box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.35);
 }
-.inv-empty {
-  opacity: 0.55;
+.inv-equip .inv-cell {
+  border-style: dashed;
+}
+.inv-equip .inv-cell[data-empty='true'] .inv-art,
+.inv-locked .inv-art {
+  opacity: 0.4;
 }
 .inv-art {
   position: absolute;
@@ -50,17 +101,28 @@
   overflow: hidden;
   border-radius: inherit;
 }
+.inv-art .cs-jewelry {
+  width: calc(var(--inv-slot) * 0.6);
+  height: calc(var(--inv-slot) * 0.6);
+}
 .inv-cell[data-kind='jewelry'] .cs-jewelry {
   color: var(--color-card-melee);
   fill: color-mix(in srgb, var(--color-accent) 48%, transparent);
 }
-/* A fan card shrunk to fit the slot, keeping its frame colour and art. */
 .inv-cell[data-kind='card'] .inv-art > * {
   position: absolute;
   top: 50%;
   left: 50%;
   translate: -50% -50%;
-  scale: 0.42;
+  scale: var(--inv-card-scale);
+}
+.inv-glyph {
+  width: calc(var(--inv-slot) * 0.62);
+  height: calc(var(--inv-slot) * 0.62);
+  color: var(--color-blood);
+}
+.inv-trash .inv-glyph {
+  color: var(--faded-ink);
 }
 .inv-slot {
   position: absolute;
@@ -71,25 +133,13 @@
   outline: 2px solid var(--color-on-parchment);
   outline-offset: 1px;
 }
-
-/* --- BADGES --- */
-.inv-qty,
-.inv-worn {
-  position: absolute;
-  padding: 0 0.25rem;
-  border: 1px solid var(--color-accent);
-  border-radius: 0.5rem;
-  background: var(--color-surface-sunken);
-  color: var(--color-accent);
-  font: 800 0.62rem/1.35 var(--font-display);
-}
 .inv-qty {
-  right: -0.2rem;
-  bottom: -0.2rem;
-}
-.inv-worn {
-  top: -0.2rem;
-  left: -0.2rem;
+  position: absolute;
+  right: 0.1rem;
+  bottom: 0;
+  color: var(--color-on-parchment);
+  font: 800 0.7rem/1 var(--font-display);
+  text-shadow: 0 0 2px var(--paper), 0 0 2px var(--paper);
 }
 
 /* --- DETAILS --- */
@@ -99,15 +149,16 @@
   font-weight: 700;
   color: var(--faded-ink);
 }
+.inv-notice {
+  margin: 0 0 0.35rem;
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: var(--color-blood);
+}
 .inv-detail-body {
   display: grid;
   justify-items: center;
 }
 .inv-detail-body > p {
   justify-self: stretch;
-}
-.inv-glyph {
-  width: 2rem;
-  height: 2rem;
-  color: var(--color-blood);
 }

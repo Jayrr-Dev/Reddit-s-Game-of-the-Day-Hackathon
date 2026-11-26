@@ -283,6 +283,20 @@ export const equipItem = (
   return { ...character, equipment: { ...equipment, rings } };
 };
 
+/** Destroys one owned ring or amulet, taking it out of any slot it was worn in. */
+export const discardItem = (character: CharacterState, id: string): CharacterState => {
+  if (!character.inventory.some((item) => item.id === id)) return character;
+  const { rings, amulet } = character.equipment;
+  return {
+    ...character,
+    inventory: character.inventory.filter((item) => item.id !== id),
+    equipment: {
+      rings: rings.map((current) => (current === id ? null : current)),
+      amulet: amulet === id ? null : amulet,
+    },
+  };
+};
+
 const levelXpThreshold = (level: number) => 100 + 5 * (level - 1);
 export const xpToNextLevel = (level: number) =>
   level >= LEVEL_CAP ? 0 : levelXpThreshold(level);

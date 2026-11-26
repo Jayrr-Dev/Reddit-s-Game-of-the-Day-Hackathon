@@ -7,7 +7,7 @@
 import { defaultBuild, isPlayerBuild } from '../../shared/game/playerBuild';
 import { randomUUID } from 'node:crypto';
 import { redisKeys } from '../core/redisKeys';
-import { getItems, spendPlayerItem } from '../core/playerItems';
+import { discardPlayerItem, getItems, spendPlayerItem } from '../core/playerItems';
 import { isItemId } from '../../shared/game/items';
 import { Hono } from 'hono';
 import { context, reddit, redis } from '@devvit/web/server';
@@ -29,6 +29,7 @@ import type {
   StartRunResponse,
   UseItemRequest,
   UseItemResponse,
+  DiscardItemResponse,
 } from '../../shared/types/api';
 import { getDailyKey } from '../../shared/utils/dailyKey';
 import { getCurrentPostDailyKey } from '../core/dailyPost';
@@ -118,6 +119,15 @@ api.post('/profile/use-item', async (c) => {
   const result = await spendPlayerItem(id, itemId, await isCurrentUserAdmin());
   if (!result) return jsonError(c, 400, 'You have none of that item');
   return c.json<UseItemResponse>(result);
+});
+// --- POST /api/profile/discard-item ---
+// The Inventory trash: destroys every copy of one item in the player's bag.
+api.post('/profile/discard-item', async (c) => {
+  const id = context.userId;
+  if (!id) return jsonError(c, 401, 'Sign in to trash items');
+  const { itemId } = await c.req.json<Partial<UseItemRequest>>();
+  if (!isItemId(itemId)) return jsonError(c, 400, 'Unknown item');
+  return c.json<DiscardItemResponse>({ items: await discardPlayerItem(id, itemId) });
 });
 // --- GET /api/init ---
 // Everything the game needs on first paint: day, player, best score, streak.

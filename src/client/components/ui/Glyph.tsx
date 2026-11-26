@@ -52,7 +52,8 @@ export type GlyphName =
   | 'back'
   | 'speaker'
   | 'close'
-  | 'book';
+  | 'book'
+  | 'trash';
 
 export type GlyphProps = {
   name: GlyphName;

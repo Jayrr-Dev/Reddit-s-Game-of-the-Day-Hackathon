@@ -4,7 +4,7 @@
 // its own counts; it can only ask to spend one item at a time.
 // ===================================================================
 import { redis } from '@devvit/web/server';
-import { isItemBag, spendItem, startingBag, type ItemBag, type ItemId } from '../../shared/game/items';
+import { discardStack, isItemBag, spendItem, startingBag, type ItemBag, type ItemId } from '../../shared/game/items';
 import { redisKeys } from './redisKeys';
 
 // --- READ ---
@@ -13,6 +13,14 @@ export async function getItems(userId: string): Promise<ItemBag> {
   const raw = await redis.get(redisKeys.playerItems(userId));
   const data: unknown = raw ? JSON.parse(raw) : null;
   return isItemBag(data) ? data : startingBag();
+}
+
+// --- TRASH ---
+/** Destroys every copy of one item. Admins included: trashing is always real. */
+export async function discardPlayerItem(userId: string, id: ItemId): Promise<ItemBag> {
+  const next = discardStack(await getItems(userId), id);
+  await redis.set(redisKeys.playerItems(userId), JSON.stringify(next));
+  return next;
 }
 
 // --- SPEND ---

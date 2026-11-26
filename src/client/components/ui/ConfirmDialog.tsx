@@ -20,6 +20,8 @@ type ConfirmDialogProps = {
   cancelLabel: string;
   /** Greys out the confirm button (e.g. the player can't afford it). */
   isConfirmDisabled?: boolean;
+  /** Widens to keep short content and both button labels on one line. */
+  fitsContent?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -33,6 +35,7 @@ export const ConfirmDialog = ({
   confirmLabel,
   cancelLabel,
   isConfirmDisabled = false,
+  fitsContent = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) => (
@@ -40,9 +43,10 @@ export const ConfirmDialog = ({
     title={title}
     header={header}
     onDismiss={onCancel}
+    fitsContent={fitsContent}
     actions={<>
-      <Button variant="menu" onClick={onCancel}>{cancelLabel}</Button>
-      <Button variant="menuPrimary" onClick={onConfirm} disabled={isConfirmDisabled} autoFocus>{confirmLabel}</Button>
+      <Button variant="menu" className="whitespace-nowrap" onClick={onCancel}>{cancelLabel}</Button>
+      <Button variant="menuPrimary" className="whitespace-nowrap" onClick={onConfirm} disabled={isConfirmDisabled} autoFocus>{confirmLabel}</Button>
     </>}
   >
     {children}

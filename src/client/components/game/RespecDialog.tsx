@@ -31,6 +31,7 @@ export const RespecDialog = ({ item, onConfirm, onCancel }: {
       confirmLabel={`Use ${item.name}`}
       cancelLabel="Cancel"
       isConfirmDisabled={!canConfirm}
+      fitsContent
       onConfirm={onConfirm}
       onCancel={onCancel}
     >
