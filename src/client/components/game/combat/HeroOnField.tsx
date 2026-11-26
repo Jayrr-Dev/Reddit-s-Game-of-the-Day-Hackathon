@@ -130,13 +130,13 @@ const marchDelayMs = (unit: HeroUnit): number =>
 
 /**
  * How far-off each row looks: the Midline is drawn at full brightness
- * (Sam found the old 75% dim too dark), the Backline dimmed and faded
- * (it is Out of Range). Filter and opacity only.
+ * (Sam found the old 75% dim too dark), the Backline lightly dimmed and
+ * faded (it is Out of Range; Sam found 60% / 70% too dark). Filter and opacity only.
  */
 const ROW_TINT_CLASS: Record<HeroRow, string> = {
   front: '',
   back: '',
-  horizon: 'brightness-60 opacity-70',
+  horizon: 'brightness-80 opacity-85',
 };
 
 /**
