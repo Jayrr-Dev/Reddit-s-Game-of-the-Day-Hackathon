@@ -43,11 +43,6 @@ export type TooltipContent = {
    * coloured effect lines); `description` still names it for screen readers.
    */
   body?: ReactNode;
-  /**
-   * True: plain white text (title and description) with no glossary
-   * colours or icons, like the intent popovers and unit info window.
-   */
-  isPlain?: boolean;
 };
 
 type Placement = FloatingPlacement;
@@ -100,25 +95,14 @@ const TooltipLabel = ({
     <div className="relative rounded-md border border-edge bg-surface-raised px-2.5 py-1.5 text-left shadow-[0_6px_18px_rgb(0_0_0/0.5)]">
       <TooltipTitle
         title={content.title}
-        look={
-          content.isPlain
-            ? undefined
-            : (content.look ?? lookOfTerm(content.title))
-        }
+        look={content.look ?? lookOfTerm(content.title)}
       />
       {content.body ? (
         <div className="mt-1 text-[11px] leading-snug">{content.body}</div>
-      ) : (
-        content.description && (
-          <div
-            className={`mt-0.5 text-[11px] leading-snug ${content.isPlain ? 'text-ink' : 'text-ink-muted'}`}
-          >
-            <RichText
-            text={content.description}
-            isPlain={content.isPlain ?? false}
-          />
-          </div>
-        )
+      ) : content.description && (
+        <div className="mt-0.5 text-[11px] leading-snug text-ink-muted">
+          <RichText text={content.description} />
+        </div>
       )}
     </div>
     {/* ARROW: a rotated square sharing the label's border */}

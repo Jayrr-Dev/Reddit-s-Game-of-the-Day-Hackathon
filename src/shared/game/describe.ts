@@ -213,11 +213,11 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
     description:
       'Reduces each Melee or Range hit taken. Lasts the fight.',
   },
-  move: { label: 'Move', description: 'Your next Charge or Back Step travels up to this many extra rows.' },
+  move: { label: 'Move', description: 'Your next **Charge** or **Back Step** travels up to this many extra rows.' },
   rush: {
     label: 'Rush',
     description:
-      'Each stack makes one Charge or Back Step free this turn.',
+      'Each stack makes one **Charge** or **Back Step** free this turn.',
   },
 };
 
@@ -234,7 +234,7 @@ export const PASSIVE_INFO: Record<PassiveId, StatusInfo> = {
   anchored: {
     label: 'Anchored',
     description:
-      'Immune to Pull and Knockback. Holds its line when you Charge or Back Step.',
+      'Immune to Pull and Knockback. Holds its line when you **Charge** or **Back Step**.',
   },
 };
 

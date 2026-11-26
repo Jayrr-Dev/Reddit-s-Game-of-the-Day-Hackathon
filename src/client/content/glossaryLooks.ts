@@ -53,12 +53,11 @@ const GLOSSARY_LOOK: ReadonlyMap<string, Look> = new Map([
   [KNOCKBACK_INFO.label, { glyph: 'march', toneClass: 'text-guard' }],
   [HOMING_INFO.label, { glyph: 'targeting', toneClass: 'text-magic' }],
   [RANDOMLY_INFO.label, { glyph: 'targeting', toneClass: 'text-energy' }],
-  // Card types and movements tooltips mention.
+  // Card types tooltips mention. Charge and Back Step are left out on
+  // purpose: Sam wants them plain bold white wherever they are named.
   ['Melee', INTENT_LOOK.attack],
   ['Range', INTENT_LOOK.range],
   ['Magic', INTENT_LOOK.magic],
-  ['Charge', { glyph: 'bolt', toneClass: 'text-energy' }],
-  ['Back Step', { glyph: 'march', toneClass: 'text-guard' }],
   // The rows: Frontline to Backline (Backline is Out of Range, faded).
   ...Object.values(ROW_INFO).map((info): [string, Look] => [
     info.label,
