@@ -161,6 +161,13 @@ export function SkillTree({
           aria-label="Skill paths"
           onClick={() => setDetail(null)}
         >
+          <defs>
+            {/* WARM PLATE: the amber wash behind every learned circle. */}
+            <radialGradient id="cs-skill-plate" cx="50%" cy="38%" r="65%">
+              <stop offset="0%" className="cs-skill-plate-glow" />
+              <stop offset="100%" className="cs-skill-plate-edge" />
+            </radialGradient>
+          </defs>
           {branchNames.map((name, b) => {
             if (branch !== null && branch !== b) return null;
             const owned = picks.filter((p) => p.branch === b);
@@ -243,8 +250,8 @@ export function SkillTree({
                         <circle
                           cx={node.x}
                           cy={heights[t]}
+                          className="cs-skill-plate"
                           r={radius}
-                          style={r ? { fill: color } : undefined}
                         />
                         <g
                           transform={`translate(${node.x} ${heights[t]}) rotate(${-rotation}) scale(${radius / 16}) translate(-12 -12)`}

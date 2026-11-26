@@ -8,6 +8,7 @@
 // ===================================================================
 
 import type { GlyphName } from '../components/ui/Glyph';
+import { SKILL_ICONS } from './skillIcons';
 
 // --- TYPES ---
 export type GameIcon = { path: string; author: string; source: string };
@@ -236,5 +237,9 @@ export const GAME_ICONS: Record<GlyphName, GameIcon> = {
 // --- CREDITS ---
 /** The icon authors, for the in-game credit line. */
 export const ICON_AUTHORS: readonly string[] = [
-  ...new Set(Object.values(GAME_ICONS).map((icon) => icon.author)),
+  ...new Set(
+    [...Object.values(GAME_ICONS), ...Object.values(SKILL_ICONS)].map(
+      (icon) => icon.author
+    )
+  ),
 ];

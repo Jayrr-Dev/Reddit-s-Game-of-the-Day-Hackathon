@@ -648,16 +648,22 @@
 .cs-skill-chart[data-detail-open=true] { min-height: max(10rem, var(--skill-detail-height, 0px)); }
 .cs-skill-link {opacity:.45;}
 .cs-skill-link[data-lit='true'] {opacity:1;stroke-width:3px;}
-.cs-skill-glyph {
-  --glyph-body: #593017;
-  --glyph-facet: #ba6a20;
+/* --- SKILL ICONS ---
+   Stride-art palette: a deep brown silhouette on a warm amber plate. A
+   learned circle lights its plate; an unlearned one stays on bare paper
+   with a faded mark. The rim keeps the path's own colour. */
+.cs-skill-tree {
+  --skill-ink: var(--color-card-trim-dark);
+  --skill-ink-faded: color-mix(in srgb, var(--color-card-trim-dark) 78%, var(--paper));
+  --skill-plate-glow: var(--color-card-trim-light);
+  --skill-plate-edge: color-mix(in srgb, var(--color-card-trim) 70%, var(--color-card-trim-light));
 }
-.cs-click-node[data-owned='true'] .cs-skill-glyph {
-  --glyph-body: #ffe8b3;
-  --glyph-facet: #f7ad50;
-}
-.cs-glyph-body { fill: var(--glyph-body); }
-.cs-glyph-facet { fill: var(--glyph-facet); }
+.cs-skill-glyph { fill: var(--skill-ink-faded); }
+.cs-click-node[data-owned='true'] .cs-skill-glyph,
+.cs-skill-badge .cs-skill-glyph { fill: var(--skill-ink); }
+.cs-skill-plate-glow { stop-color: var(--skill-plate-glow); }
+.cs-skill-plate-edge { stop-color: var(--skill-plate-edge); }
+.cs-skill-tree .cs-click-node[data-owned='true'] .cs-skill-plate { fill: url(#cs-skill-plate); }
 .cs-click-node {cursor:pointer;}
 .cs-click-node[aria-disabled=true] {opacity:.68;cursor:default;}
 .cs-click-node:focus { outline: none; }
@@ -690,8 +696,9 @@
   place-items: center;
   aspect-ratio: 1;
   border: 1px solid var(--line);
-  border-radius: .25rem;
-  background: #edbf7a;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 38%, var(--skill-plate-glow), var(--skill-plate-edge));
+  box-shadow: inset 0 0 0 1.5px var(--color-card-trim), inset 0 0 0 2.5px var(--skill-plate-glow);
 }
 .cs-skill-badge svg {
   display: block;
