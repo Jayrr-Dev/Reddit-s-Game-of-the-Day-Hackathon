@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getCard } from '../../../shared/game/cards';
+import { stackDeck } from '../../../shared/game/deckBuilder';
 import {
   xpToNextLevel,
   type RingProgress,
@@ -22,6 +23,7 @@ import type { InitResponse } from '../../../shared/types/api';
 import { apiClient } from '../../lib/apiClient';
 import { localBuild, storeBuild } from '../../lib/playerBuild';
 import { Button } from '../ui/Button';
+import { CardView } from './CardView';
 import { RunCharacterSheet } from './RunCharacterSheet';
 
 export function ProfileView({
@@ -173,11 +175,18 @@ export function ProfileView({
               ))}
             </div>
             <div className="profile-decklist">
-              {[...new Set(cards)].map((id) => (
-                <span key={id}>
-                  {getCard(id).name}{' '}
-                  <b>×{cards.filter((card) => card === id).length}</b>
-                </span>
+              {stackDeck(cards).map(({ id, count }) => (
+                <div
+                  key={id}
+                  className="profile-deck-card"
+                  role="img"
+                  aria-label={`${getCard(id).name} x${count}`}
+                >
+                  <div inert aria-hidden="true">
+                    <CardView cardId={id} size="fan" />
+                  </div>
+                  <b>x{count}</b>
+                </div>
               ))}
             </div>
           </section>
