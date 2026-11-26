@@ -3477,8 +3477,11 @@ textarea,
 .results-stats { grid-template-columns:repeat(3,minmax(0,1fr)); border-block:1px solid #82613c; padding-block:10px; }
 .results-stats > div { min-width:0; padding:2px; background:transparent; border-radius:0; }
 .results-stats > div + div { border-left:1px solid #725536; }
-.results-actions { grid-template-columns:1fr 1fr; gap:8px; }
-.results-actions .oak-menu-button { min-height:40px; padding-inline:10px; }
+/* Buttons stay one line and equal width: two columns when both labels fit
+   (176px holds "Start new conquest" clear of the diamond ornaments), else
+   they stack full width instead of wrapping. */
+.results-actions { width:min(100%, 380px); grid-template-columns:repeat(auto-fit, minmax(176px, 1fr)); gap:8px; }
+.results-actions .oak-menu-button { min-height:40px; white-space:nowrap; }
 .results-board { width:min(100%,320px); color:#ddcba6; font-size:12px; }
 .results-board summary { cursor:pointer; }
 .portrait-level { position:absolute; left:50%; top:0; transform:translate(-50%,-55%); white-space:nowrap; padding:1px 5px; border:1px solid #bc9455; border-radius:4px; background:#2c1c13; color:#ffdf99; font:bold 11px/1.15 var(--font-display); pointer-events:none; }
