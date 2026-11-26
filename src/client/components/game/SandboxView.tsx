@@ -43,7 +43,7 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
         renderHeader={openDeck => (
           <header
             className="training-header"
-            style={{ backgroundImage: 'linear-gradient(90deg, #21150e 8%, #21150e70), url("' + headerArt + '")' }}
+            style={{ backgroundImage: 'linear-gradient(90deg, #21150e 8%, #21150e70), url("' + headerArt.src + '")' }}
           >
             <IconButton icon="back" label="Back to menu" onClick={thenStopPreview(onExit)} />
             <div className="min-w-0 mr-auto">

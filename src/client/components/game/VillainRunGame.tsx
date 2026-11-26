@@ -146,7 +146,7 @@ export const VillainRunGame = ({ run, onAction }: VillainRunGameProps) => {
       </div>
     );
   return (
-    <div className="run-board flex h-full w-full flex-col overflow-hidden" style={run.phase.kind === 'reward' ? undefined : { backgroundImage: `linear-gradient(#140e0bbc, #140d09e8), url("${regionArt}")` }}>
+    <div className="run-board flex h-full w-full flex-col overflow-hidden" style={run.phase.kind === 'reward' ? undefined : { backgroundImage: `linear-gradient(#140e0bbc, #140d09e8), url("${regionArt.src}")` }}>
       <RunHud run={run} onOpenCharacter={() => setShowCharacter(true)} />
       <main className="flex min-h-0 flex-1 flex-col items-center justify-center-safe overflow-y-auto p-3">
         {run.phase.kind === 'reward' && run.phase.leveledUp && (

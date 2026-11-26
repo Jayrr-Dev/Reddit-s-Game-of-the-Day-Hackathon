@@ -909,7 +909,9 @@
 
 .parallax-layer {
   transform: translateX(calc(var(--cam) * var(--depth) * 1px));
-  transition: transform 700ms cubic-bezier(0.3, 0.8, 0.3, 1);
+  transition:
+    transform 700ms cubic-bezier(0.3, 0.8, 0.3, 1),
+    filter var(--image-reveal-ms) ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3547,4 +3549,29 @@ textarea,
   .zeruel-sun {
     animation: none;
   }
+}
+
+/* --- PROGRESSIVE IMAGES ---
+   A low-res placeholder paints first (see components/ui/ProgressiveImage).
+   <img> and terrain layers sharpen from a blur once the full image is in;
+   SVG <image> cross-fades instead. Tokens tune both. */
+:root {
+  --image-reveal-ms: 450ms;
+  --image-placeholder-blur: 6px;
+}
+.progressive-image {
+  transition: filter var(--image-reveal-ms) ease-out;
+}
+.progressive-image[data-placeholder] {
+  filter: blur(var(--image-placeholder-blur));
+}
+@keyframes progressive-fade-in {
+  from { opacity: 0; }
+}
+.progressive-fade-in {
+  animation: progressive-fade-in var(--image-reveal-ms) ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .progressive-image { transition: none; }
+  .progressive-fade-in { animation-duration: 1ms; }
 }

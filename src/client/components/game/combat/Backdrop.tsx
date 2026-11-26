@@ -76,19 +76,22 @@ export const Backdrop = memo(function Backdrop({ terrainIndex, bossArena, depths
     back: hasHorizon ? 37 : 23,
     front: hasHorizon ? 67 : 57,
   };
-  const sceneSrc = useProgressiveImage(scene);
-  const backgroundImage = `url("${sceneSrc}")`;
+  const sceneImage = useProgressiveImage(scene);
+  const backgroundImage = `url("${sceneImage.src}")`;
+  /** Placeholder blur while the scene loads, then the layer's depth blur (CSS eases between them). */
+  const layerFilter = (layer: keyof typeof TERRAIN_BLUR_PX): string =>
+    sceneImage.isPlaceholder ? 'blur(var(--image-placeholder-blur))' : terrainBlur(layer);
   // Bottom-align the image so its recorded horizon lands at 20% of the frame.
   const terrainStyle = { backgroundImage, backgroundPositionX: `${(1.2 * vanishingX - 50) / 0.2}%`, backgroundSize: `120% ${8000 / (100 - horizon)}%`, backgroundPositionY: 'bottom' };
   const layer = 'parallax-layer pointer-events-none absolute -inset-x-8 inset-y-0 ';
   return (
     <div aria-hidden="true" data-boss-arena={bossArena?.name} className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className={layer} style={{ ...depthStyle(0.12), ...terrainStyle, filter: terrainBlur('sky') }} />
+      <div className={layer} style={{ ...depthStyle(0.12), ...terrainStyle, filter: layerFilter('sky') }} />
       {[...rows].reverse().map((row) => (
         <div key={row} className={layer} style={{
           ...depthStyle(depths[row]),
           ...terrainStyle,
-          filter: terrainBlur(row),
+          filter: layerFilter(row),
           maskImage: `linear-gradient(transparent ${groundStarts[row]}%, black ${groundStarts[row] + 9}%)`,
         }} />
       ))}

@@ -32,7 +32,7 @@ You are writing a Devvit web application that will be executed on Reddit.com.
 ### Images
 
 - Every raster image gets a small placeholder on the first render; the full image swaps in once it has loaded. Never render a full-size image directly.
-- Use `ProgressiveImg` (for `<img>`) and `ProgressiveSvgImage` (for SVG `<image>`) from `components/ui/ProgressiveImage.tsx`. For an inline `backgroundImage` style, pass the URL through `useProgressiveImage` first.
+- Use `ProgressiveImg` (for `<img>`) and `ProgressiveSvgImage` (for SVG `<image>`) from `components/ui/ProgressiveImage.tsx`. These blur-to-sharp (`<img>`) or cross-fade (SVG) into the full image; timing and blur live in the `--image-reveal-ms` and `--image-placeholder-blur` tokens. For an inline `backgroundImage` style, pass the URL through `useProgressiveImage` and use its `src` (and `isPlaceholder` if the element can blur without blurring its content).
 - After adding or changing any `.webp`/`.png`/`.jpg` under `src/client/assets`, run `npm run images:placeholders` and commit the regenerated `src/client/lib/imagePlaceholders.generated.ts`. Images without an entry still work, but show nothing until they load.
 - Keep file stems unique across asset folders (placeholders are keyed by file name). Prefer `.webp` sized near how big the art is drawn.
 
