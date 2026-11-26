@@ -17,8 +17,9 @@ export const MetatronShop = ({ onClose }: { onClose: () => void }) => (
       </div>
       <p className="mb-1 mt-3 text-[10px] font-bold uppercase tracking-[0.22em] text-accent">Shopkeeper</p>
       <h3 className="text-balance font-display text-xl font-black leading-tight text-ink">
-        Metatron the Fallen Angel
+        Metatron
       </h3>
+      <p className="mt-0.5 text-sm text-ink-muted">The Fallen Angel</p>
       <p className="mt-2 text-xs text-ink-muted">The shop isn’t stocked yet.</p>
     </div>
   </MenuPanel>
