@@ -30,6 +30,7 @@ import { Chip } from '../../ui/Chip';
 import { EnemyStatuses } from '../StatusRow';
 import { FLOATING_UID_ATTR, PLATE_UID_ATTR } from '../../../hooks/usePlateSpacing';
 import { DrainBar } from './DrainBar';
+import { MoveEffect } from '../MoveEffect';
 
 // --- TYPES ---
 export type HeroPlateProps = {
@@ -45,6 +46,19 @@ function intentFill(kind: IntentKind, signature: boolean) {
   if (kind === 'heal') return 'var(--color-heal)';
   return signature ? 'var(--color-accent)' : undefined;
 }
+/**
+ * The popover under an intent chip: each effect in its battlefield
+ * colour with bright numbers (the same MoveEffect as the unit info
+ * window), then where the hero moves, muted.
+ */
+const IntentPopoverBody = ({ move, positioning }: { move: MoveIntent; positioning: string }) => (
+  <div className="intent-popover">
+    {move.isSignature && <span className="unit-move-tag">Signature</span>}
+    <ul>{move.intents.map((intent, index) => <MoveEffect key={index} intent={intent} />)}</ul>
+    <p className="unit-move-detail">{positioning}</p>
+  </div>
+);
+
 /**
  * One planned move as ONE arrow: its first effect sets the colour and
  * leads, the rest follow inside it (Guard 6 | Wrath +1 is one action).
@@ -73,6 +87,7 @@ const MoveArrow = ({ move, unit }: { move: MoveIntent; unit: HeroUnit }) => {
       info={{
         title: move.name,
         description: [...move.intents.map((intent) => intent.label), positioning].join('\n'),
+        body: <IntentPopoverBody move={move} positioning={positioning} />,
       }}
     />
   );

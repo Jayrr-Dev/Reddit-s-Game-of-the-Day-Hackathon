@@ -38,6 +38,11 @@ export type TooltipContent = {
   description?: string;
   /** The title's icon and colour; a glossary word finds its own. */
   look?: Look;
+  /**
+   * Formatted content drawn in place of `description` (an intent's
+   * coloured effect lines); `description` still names it for screen readers.
+   */
+  body?: ReactNode;
 };
 
 type Placement = FloatingPlacement;
@@ -92,7 +97,9 @@ const TooltipLabel = ({
         title={content.title}
         look={content.look ?? lookOfTerm(content.title)}
       />
-      {content.description && (
+      {content.body ? (
+        <div className="mt-1 text-[11px] leading-snug">{content.body}</div>
+      ) : content.description && (
         <div className="mt-0.5 text-[11px] leading-snug text-ink-muted">
           <RichText text={content.description} />
         </div>

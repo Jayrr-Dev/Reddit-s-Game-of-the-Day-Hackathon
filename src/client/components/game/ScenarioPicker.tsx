@@ -15,8 +15,9 @@ import { Fragment, useEffect, useState, type CSSProperties, type ReactNode } fro
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { newestCardIds } from '../../../shared/game/cardReleases';
 import { getHero, type HeroId } from '../../../shared/game/heroes';
-import { describeHeroMoveList, type Intent } from '../../../shared/game/describe';
-import { CARD_LOOK, EDGE_ART, ELEMENT_LOOK, INTENT_LOOK, TIER_NAME_CLASS } from '../../content/visuals';
+import { describeHeroMoveList } from '../../../shared/game/describe';
+import { CARD_LOOK, EDGE_ART, ELEMENT_LOOK, TIER_NAME_CLASS } from '../../content/visuals';
+import { MoveEffect } from './MoveEffect';
 import { HeroFigure } from './combat/HeroFigure';
 import { FIGURE_BOUNDS, type FigureBounds } from '../../content/figureBounds';
 import { BODY_HEIGHT, BODY_WIDTH } from '../../lib/heroFigure';
@@ -225,32 +226,6 @@ const TabBar = ({
     ))}
   </div>
 );
-
-/** Numbers (6, 4×3=12, 25%) inside an effect line, so they can stand out. */
-const NUMBER_PATTERN = /(\d+(?:[×=]\d+)*%?)/;
-
-/** One line of text with its numbers in bold, bright figures. */
-const WithNumbers = ({ text }: { text: string }) =>
-  text.split(NUMBER_PATTERN).map((part, index) =>
-    index % 2 === 1 ? <b key={index} className="unit-move-number">{part}</b> : part
-  );
-
-/**
- * One effect of a move: its icon and headline in the effect's colour
- * (the same INTENT_LOOK as the battlefield chips), then any rules text
- * muted underneath.
- */
-const MoveEffect = ({ intent }: { intent: Intent }) => {
-  const { glyph, toneClass } = INTENT_LOOK[intent.kind];
-  const [headline = '', ...details] = intent.label.split('\n');
-  return (
-    <li className="unit-move-effect">
-      <Glyph name={glyph} className={'size-4 ' + toneClass} />
-      <span className={'font-semibold ' + toneClass}><WithNumbers text={headline} /></span>
-      {details.length > 0 && <span className="unit-move-detail">{details.join(' ')}</span>}
-    </li>
-  );
-};
 
 /** One unit's moves, in the order it cycles them, each with its effects. */
 const UnitMoveList = ({ heroId }: { heroId: HeroId }) => (

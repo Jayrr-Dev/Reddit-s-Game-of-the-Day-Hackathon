@@ -827,6 +827,12 @@
 .unit-move-effect { display: grid; grid-template-columns: 16px 1fr; column-gap: 6px; align-items: center; }
 .unit-move-detail { grid-column: 2; color: var(--color-ink-muted); font-size: 11px; line-height: 1.3; }
 .unit-move-number { color: var(--color-ink); font-size: 13px; font-weight: 900; }
+/* INTENT POPOVER: the unit info styling, a step smaller for the 200px popover */
+.intent-popover { display: grid; gap: 4px; }
+.intent-popover ul { display: grid; gap: 3px; }
+.intent-popover .unit-move-tag { justify-self: start; margin-left: 0; }
+.intent-popover .unit-move-number { font-size: 12px; }
+.intent-popover .unit-move-detail { font-size: 10px; }
 
 .history-thumbnail[data-event=death]{color:#ff9393}.history-thumbnail[data-event=heal]{color:#8fe09c}.history-thumbnail[data-event=guard]{color:#93caff}.history-thumbnail[data-event=status]{color:#eac478}
  
