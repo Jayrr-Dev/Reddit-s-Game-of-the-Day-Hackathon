@@ -546,7 +546,7 @@ export const getHero = (id: HeroId): HeroDef => HEROES[id];
 
 // --- UNIT TYPES ---
 /** The order unit type sections appear in. */
-export const UNIT_TYPES: readonly UnitType[] = ['angel', 'dragon', 'beast', 'human'];
+export const UNIT_TYPES: readonly UnitType[] = ['angel', 'dragon', 'beast', 'human', 'demiHuman'];
 
 /** Section headings for grouping heroes by unit type. */
 export const UNIT_TYPE_LABELS: Readonly<Record<UnitType, string>> = {
@@ -554,6 +554,7 @@ export const UNIT_TYPE_LABELS: Readonly<Record<UnitType, string>> = {
   dragon: 'Dragons',
   beast: 'Beasts',
   human: 'Humans',
+  demiHuman: 'Demi-humans',
 };
 
 /**
@@ -583,9 +584,10 @@ const HERO_UNIT_TYPES = {
   stormLancer: 'human',
   sevenEyedOracle: 'human',
   holyKing: 'human',
-  mageBorneAstra: 'human',
-  mageBorneAzula: 'human',
   twinAxeKnight: 'human',
+  // Demi-humans: human-shaped but born of magic, not of the kingdom.
+  mageBorneAstra: 'demiHuman',
+  mageBorneAzula: 'demiHuman',
   // Angels: winged heavenly host, plus the summons they bring.
   angelArcher: 'angel',
   purpleCupid: 'angel',

@@ -319,15 +319,17 @@ void test('training defeat can retry the same encounter with its deck, restored 
   assert.equal(retry.turn, opening.turn);
 });
 
-void test('scenarios are grouped by unit type: Angels, Dragons, Beasts, Humans', () => {
+void test('scenarios are grouped by unit type: Angels, Dragons, Beasts, Humans, Demi-humans', () => {
   const groups = groupScenariosByUnitType();
-  assert.deepEqual(groups.map((group) => group.label), ['Angels', 'Dragons', 'Beasts', 'Humans']);
+  assert.deepEqual(groups.map((group) => group.label), ['Angels', 'Dragons', 'Beasts', 'Humans', 'Demi-humans']);
   // Every scenario lands in exactly one section.
   const grouped = groups.flatMap((group) => group.scenarios.map((scenario) => scenario.id));
   assert.deepEqual([...grouped].sort(), SANDBOX_SCENARIOS.map((scenario) => scenario.id).sort());
   const idsOf = (label: string) => groups.find((group) => group.label === label)?.scenarios.map((scenario) => scenario.id);
   assert.deepEqual(idsOf('Dragons'), ['fulgurDragonknight', 'holyDragon', 'tempestWyrm']);
   assert.deepEqual(idsOf('Beasts'), ['wolfPack', 'grandGriffon']);
+  // The Mage Borne bosses are Demi-humans, not Humans.
+  assert.deepEqual(idsOf('Demi-humans'), ['mageBorneAstra', 'mageBorneAzula']);
   // Angel Mage is filed by its lead, not the sentinel standing in front.
   assert.ok(idsOf('Angels')?.includes('angelMage'));
 });

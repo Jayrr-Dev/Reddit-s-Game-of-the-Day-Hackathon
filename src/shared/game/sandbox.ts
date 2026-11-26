@@ -290,7 +290,7 @@ export const scenarioUnitType = (scenario: SandboxScenario): UnitType => {
 
 /**
  * Scenarios split into unit type sections (Angels, Dragons, Beasts,
- * Humans), keeping list order inside each and dropping empty sections.
+ * Humans, Demi-humans), keeping list order inside each and dropping empty sections.
  */
 export const groupScenariosByUnitType = (
   scenarios: readonly SandboxScenario[] = SANDBOX_SCENARIOS
