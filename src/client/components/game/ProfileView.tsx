@@ -1,6 +1,4 @@
 import { useEffect, useState } from 'react';
-import { getCard } from '../../../shared/game/cards';
-import { stackDeck } from '../../../shared/game/deckBuilder';
 import { type RingProgress } from '../../../shared/game/character';
 import {
   characterEdit,
@@ -22,7 +20,7 @@ import { usePlayerItems } from '../../hooks/usePlayerItems';
 import { apiClient } from '../../lib/apiClient';
 import { localBuild, storeBuild } from '../../lib/playerBuild';
 import { Button } from '../ui/Button';
-import { CardView } from './CardView';
+import { ProfileDeck, ProfileStrip } from './profileParts';
 import { InventoryPanel } from './inventory/InventoryPanel';
 import type { InventorySlot } from '../../../shared/game/inventory';
 import { RunCharacterSheet } from './RunCharacterSheet';
@@ -185,25 +183,8 @@ export function ProfileView({
       onClose={() => void leave()}
       profile={
         <>
-          <section className="profile-strip">
-            <div>
-              <strong>
-                {data.username ? 'u/' + data.username : 'Local player'}
-              </strong>
-              <span>Player</span>
-            </div>
-            <div>
-              <strong>{wins}</strong>
-              <span>Waves won</span>
-            </div>
-            <div>
-              <strong>{data.bestScoreToday ?? 0}</strong>
-              <span>Daily best</span>
-            </div>
-          </section>
-          <section className="profile-decks">
-            <h2>Starter deck</h2>
-            <p>Choose the deck for your next conquest.</p>
+          <ProfileStrip username={data.username} wins={wins} bestScore={data.bestScoreToday ?? 0} />
+          <ProfileDeck title="Starter deck" note="Choose the deck for your next conquest." cards={cards}>
             <div className="profile-classes">
               {starterNames.map((style) => (
                 <Button
@@ -216,22 +197,7 @@ export function ProfileView({
                 </Button>
               ))}
             </div>
-            <div className="profile-decklist">
-              {stackDeck(cards).map(({ id, count }) => (
-                <div
-                  key={id}
-                  className="profile-deck-card"
-                  role="img"
-                  aria-label={`${getCard(id).name} x${count}`}
-                >
-                  <div inert aria-hidden="true">
-                    <CardView cardId={id} size="fan" />
-                  </div>
-                  <b className="profile-deck-count">x{count}</b>
-                </div>
-              ))}
-            </div>
-          </section>
+          </ProfileDeck>
           {saving && <p role="status">Saving…</p>}
           {error && <p role="alert">{error}</p>}
         </>

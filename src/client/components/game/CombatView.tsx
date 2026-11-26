@@ -31,7 +31,7 @@ import { rowDepth } from '../../../shared/game/battlefield';
 import { endTurn, movementFailsOn, SELF_TARGET_UID } from '../../../shared/game/combat';
 import type { RunAction } from '../../../shared/game/run';
 import type { CharacterState } from '../../../shared/game/character';
-import { RunCharacterSheet } from './RunCharacterSheet';
+import { BattleCharacterSheet } from './BattleCharacterSheet';
 import type {
   CardType,
   MagicElement,
@@ -696,7 +696,7 @@ export const CombatView = ({
           : tutorialCue)} />
       )}
       {showCharacter && (
-        <RunCharacterSheet levelGuide={levelGuide} vitals={{ hp: combat.player.hp, maxHp: combat.player.maxHp, guard: combat.player.guard, energy: combat.energy }} onRespec={onRespec} character={character} onAction={onAction} onClose={() => { setShowCharacter(false); onCharacterClosed?.(); }} />
+        <BattleCharacterSheet deck={deck} levelGuide={levelGuide} vitals={{ hp: combat.player.hp, maxHp: combat.player.maxHp, guard: combat.player.guard, energy: combat.energy }} onRespec={onRespec} character={character} onAction={onAction} onClose={() => { setShowCharacter(false); onCharacterClosed?.(); }} />
       )}
       {openPile && (
         <PileDialog

@@ -7,7 +7,7 @@
 import { playSound } from '../../lib/gameAudio';
 import { useEffect, useRef, useState } from 'react';
 import { regionIndexOf, regionName } from '../../../shared/game/kingdom';
-import { RunCharacterSheet } from './RunCharacterSheet';
+import { BattleCharacterSheet } from './BattleCharacterSheet';
 import {
   computeScore,
   type RunAction,
@@ -158,7 +158,7 @@ export const VillainRunGame = ({ run, onAction }: VillainRunGameProps) => {
         <PhaseBody run={run} onAction={onAction} />
       </main>
       {showCharacter && (
-        <RunCharacterSheet vitals={{ hp: run.hp, maxHp: run.maxHp }} character={run.character} onAction={onAction} onClose={() => setShowCharacter(false)} />
+        <BattleCharacterSheet deck={run.deck} vitals={{ hp: run.hp, maxHp: run.maxHp }} character={run.character} onAction={onAction} onClose={() => setShowCharacter(false)} />
       )}
     </div>
   );
