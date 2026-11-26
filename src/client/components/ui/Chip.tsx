@@ -36,22 +36,33 @@ export type ChipProps = {
   extras?: readonly ChipPart[];
   /** A drawing in place of the glyph (e.g. Shock's filling drop). */
   icon?: ReactNode;
-  /** Actual turns left and the duration when this effect is applied. */
-  duration?: TurnDuration | undefined;
+  /** Turns left before this effect wears off, shown as an hourglass and a number. */
+  turnsLeft?: number | undefined;
 };
 
-export type TurnDuration = { left: number; total: number };
+// --- TURNS LEFT ---
+/** Where the countdown sits: inline at a chip's end, or a tile's top-left corner. */
+type TurnsLeftPlacement = 'inline' | 'corner';
 
-export const TurnDrain = ({ left, total, compact = false }: TurnDuration & { compact?: boolean }) => (
-  <span aria-hidden="true" data-turns-left={left}
-    className={'pointer-events-none flex shrink-0 flex-col-reverse ' +
-      (total > 1 ? 'justify-between ' : 'justify-center ') +
-      (compact ? 'absolute left-0.5 top-[calc(50%-2px)] h-4 -translate-y-1/2' : 'mr-0.5 h-3')}>
-    {Array.from({ length: total }, (_, i) => (
-      <span key={i} data-turn-lit={i < left}
-        className="h-[2px] w-[3px] rounded-full bg-current motion-safe:transition-opacity motion-safe:duration-200"
-        style={{ opacity: i < left ? 1 : 0.24 }} />
-    ))}
+/**
+ * PLACEMENT LOOKS: inline sits after a divider inside the chip; the
+ * corner tab mirrors a tile's value tab (bottom-right) so both read as
+ * labels on the tile rather than floating marks.
+ */
+const TURNS_LEFT_CLASS: Record<TurnsLeftPlacement, string> = {
+  inline: 'border-l border-current/30 pl-0.5 text-[10px] opacity-80',
+  corner: 'absolute left-0 top-0 rounded-br-sm bg-black/90 pr-px text-[9px] text-white',
+};
+
+/**
+ * A timed effect's countdown: an hourglass and the turns left, e.g. "⌛2".
+ * It replaced a column of 2px dots that read as a stray minus sign.
+ */
+export const TurnsLeft = ({ turns, placement = 'inline' }: { turns: number; placement?: TurnsLeftPlacement }) => (
+  <span aria-hidden="true" data-turns-left={turns}
+    className={`pointer-events-none inline-flex shrink-0 items-center leading-none font-bold tabular-nums ${TURNS_LEFT_CLASS[placement]}`}>
+    <Glyph name="hourglass" className={placement === 'corner' ? 'size-2' : 'size-2.5'} />
+    {turns}
   </span>
 );
 
@@ -158,15 +169,15 @@ const Badge = ({
   fill,
   extras = [],
   icon,
-  duration,
+  turnsLeft,
 }: Omit<ChipProps, 'info'>) =>
   shape === 'square' ? (
     <span
       className={`inline-flex items-center gap-0.5 rounded-[3px] px-1 py-0.5 text-[11px] font-bold ring-1 ${fill ? 'text-black ring-black' : `bg-surface-sunken ring-edge ${toneClass}`}`}
       style={fill ? { backgroundColor: fill } : undefined}
     >
-      {duration && <TurnDrain {...duration} />}
       <BadgeContent glyph={glyph} text={text} iconClass="" icon={icon} />
+      {turnsLeft !== undefined && <TurnsLeft turns={turnsLeft} />}
     </span>
   ) : (
     <span

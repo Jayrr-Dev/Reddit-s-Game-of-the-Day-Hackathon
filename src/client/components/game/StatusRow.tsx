@@ -38,7 +38,6 @@ import {
   SHOCK_BURST_FACTOR,
   SHOCK_HITS,
   OUT_OF_RANGE_HIT_CHANCE,
-  STACKING_BUFF_TURNS,
   TIERED_MAX_TIER,
   MALAISE_TURNS,
 } from '../../../shared/game/rules';
@@ -60,7 +59,7 @@ import {
 } from '../../lib/floatingPlacement';
 import { useFitCount } from '../../hooks/useFitCount';
 import { useShockSplash } from '../../hooks/useShockSplash';
-import { Chip, TurnDrain, type ChipProps } from '../ui/Chip';
+import { Chip, TurnsLeft, type ChipProps } from '../ui/Chip';
 import { Glyph } from '../ui/Glyph';
 import { Tooltip } from '../ui/Tooltip';
 import {
@@ -74,7 +73,7 @@ import { reflexDodgeOf } from '../../../shared/game/skills';
 // --- TYPES ---
 /** One status as a chip, with its tooltip text. */
 type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
-  Pick<ChipProps, 'fill' | 'duration'> & {
+  Pick<ChipProps, 'fill' | 'turnsLeft'> & {
     /** Shock's drop stage, drawn in place of its glyph. */
     shockCharge?: Charge;
     key: StatusId | PassiveId | 'guard' | 'outOfRange';
@@ -272,16 +271,14 @@ const statusChipsOf = (
     const timedTurns = id === 'protection' ? combatant.cardProtectionTurns ?? 0
       : id === 'enfeeble' ? combatant.enfeebleTurns ?? 0
       : id === 'instinct' ? combatant.instinctTurns ?? 0 : 0;
-    const duration = timedTurns > 0
-      ? { left: timedTurns, total: id === 'protection'
-        ? combatant.cardProtectionDuration ?? STACKING_BUFF_TURNS
-        : STACKING_BUFF_TURNS }
-      : id === 'protection' || id === 'reflex' ? { left: 1, total: 1 } : undefined;
+    // TURNS LEFT: timed tiers count down; card Protection and Reflex last until the unit's next turn.
+    const turnsLeft = timedTurns > 0 ? timedTurns
+      : id === 'protection' || id === 'reflex' ? 1 : undefined;
     const durationText = timedTurns > 0
       ? timedTurns + (timedTurns === 1 ? ' enemy turn left.' : ' enemy turns left.')
       : id === 'protection' ? 'Expires when this unit next starts its turn.' : '';
     return [{
-      ...(duration && { duration }),
+      ...(turnsLeft !== undefined && { turnsLeft }),
       key: id,
       ...STATUS_LOOK[id],
       text: id === 'reflex' ? `+${Math.round(reflexDodgeOf(combatant) * 100)}%`
@@ -321,7 +318,7 @@ const StatusChipView = ({ chip }: { chip: StatusChip }) => (
     text={chip.text}
     toneClass={chip.toneClass}
     fill={chip.fill}
-    duration={chip.duration}
+    turnsLeft={chip.turnsLeft}
     icon={chipIconOf(chip)}
     shape="square"
     info={{ title: chip.title, description: chip.description }}
@@ -352,7 +349,7 @@ const StatusPopover = ({
             text={chip.text}
             toneClass={chip.toneClass}
             fill={chip.fill}
-            duration={chip.duration}
+            turnsLeft={chip.turnsLeft}
             icon={chipIconOf(chip)}
             shape="square"
           />
@@ -461,14 +458,14 @@ export const EnemyStatuses = ({
     >
       {shown.map(chip => (
         <Tooltip key={chip.key} opensOn="click" content={{title: chip.title, description: chip.description}}>
-          <button type="button" aria-label={([chip.title, chip.text].join(' ').trim()) + (chip.duration ? ', ' + chip.duration.left + (chip.duration.left === 1 ? ' turn left' : ' turns left') : '')}
+          <button type="button" aria-label={([chip.title, chip.text].join(' ').trim()) + (chip.turnsLeft !== undefined ? ', ' + chip.turnsLeft + (chip.turnsLeft === 1 ? ' turn left' : ' turns left') : '')}
             className={`relative grid size-6 cursor-pointer place-items-center rounded-[3px] bg-surface-sunken ring-1 ring-edge focus-visible:outline-2 focus-visible:outline-accent ${chip.fill ? 'text-black' : chip.toneClass}`}
             style={{backgroundColor: chip.fill}}>
-            <span className={chip.duration ? 'translate-x-0.5 -translate-y-0.5' : chip.text ? '-translate-x-0.5 -translate-y-0.5' : ''}>
+            <span className={chip.turnsLeft !== undefined ? 'translate-x-0.5 translate-y-0.5' : chip.text ? '-translate-x-0.5 -translate-y-0.5' : ''}>
               {chipIconOf(chip) ?? <Glyph name={chip.glyph} className="size-4" />}
             </span>
             {chip.text && <span className="absolute right-0 bottom-0 rounded-tl-sm bg-black/90 px-px text-[10px] leading-none font-bold tabular-nums text-white">{chip.text}</span>}
-            {chip.duration && <TurnDrain {...chip.duration} compact />}
+            {chip.turnsLeft !== undefined && <TurnsLeft turns={chip.turnsLeft} placement="corner" />}
           </button>
         </Tooltip>
       ))}
@@ -525,7 +522,7 @@ export const StatusRow = ({
             text={chip.text}
             toneClass={chip.toneClass}
             fill={chip.fill}
-            duration={chip.duration}
+            turnsLeft={chip.turnsLeft}
             icon={chipIconOf(chip)}
             shape="square"
           />
