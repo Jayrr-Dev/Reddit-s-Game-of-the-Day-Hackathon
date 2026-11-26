@@ -746,6 +746,29 @@
 }
 .training-figure ~ .training-figure { left: 23%; bottom: 8px; height: 70%; z-index: 0; }
 .training-figure ~ .training-figure:last-child { left: 77%; }
+/* A measured boss (content/figureBounds.ts) scaled so its visible
+   drawing fills the card by the same margin, centred both ways. --scale
+   is the length of one viewBox unit: the larger scale that keeps the
+   drawing inside both the card's height and its width share. */
+.training-art { container-type: size; }
+.training-portrait {
+  --portrait-margin: 5px;
+  --portrait-width-share: 62cqw;
+  --scale: min(
+    calc((100cqh - 2 * var(--portrait-margin)) / var(--fit-height)),
+    calc(var(--portrait-width-share) / var(--fit-width))
+  );
+  position: absolute;
+  z-index: 1;
+  left: calc(50% - (var(--fit-x) + var(--fit-width) / 2) * var(--scale));
+  top: calc(50% - (var(--fit-y) + var(--fit-height) / 2) * var(--scale));
+  width: calc(var(--body-width) * var(--scale));
+  height: calc(var(--body-height) * var(--scale));
+  filter: drop-shadow(0 2px 2px #21140f);
+}
+/* The flanking figures sit beside the fitted boss, not after a .training-figure. */
+.training-portrait ~ .training-figure { left: 23%; bottom: 8px; height: 70%; z-index: 0; }
+.training-portrait ~ .training-figure:last-child { left: 77%; }
 .training-deck-art {
   background: radial-gradient(ellipse at bottom, #aa814c66, transparent 75%), url('../../../assets/table/character-oak-grain.webp') center / cover;
   border-bottom: 1px solid #795832;

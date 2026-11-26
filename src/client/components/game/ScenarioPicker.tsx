@@ -9,11 +9,14 @@
 import { CustomDeckEditor } from './CustomDeckEditor';
 import { MAP_IMAGES, MAP_NAMES } from './combat/Backdrop';
 import { bossArenaOf, TRAINING_BOSS_ARENAS, type BossArena } from '../../content/bossArenas';
-import { useState, type ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { getHero, type HeroId } from '../../../shared/game/heroes';
 import { CARD_LOOK, EDGE_ART, ELEMENT_LOOK } from '../../content/visuals';
 import { HeroFigure } from './combat/HeroFigure';
+import { FIGURE_BOUNDS, type FigureBounds } from '../../content/figureBounds';
+import { BODY_HEIGHT, BODY_WIDTH } from '../../lib/heroFigure';
+import { cssVars } from '../../lib/cssVars';
 import { Glyph } from '../ui/Glyph';
 import {
   SANDBOX_SCENARIOS,
@@ -65,6 +68,33 @@ const FEATURED_HEROES: Record<string, readonly HeroId[]> = {
   ballista: ['ballista', 'archer', 'shieldmaiden'],
 };
 
+/**
+ * Inline style that scales a figure so its measured drawing fills the
+ * arena card by the shared margin, centred (rules in .training-portrait).
+ */
+const portraitStyle = (heroId: HeroId, bounds: FigureBounds): CSSProperties =>
+  cssVars({
+    '--body-width': BODY_WIDTH[getHero(heroId).size],
+    '--body-height': BODY_HEIGHT,
+    '--fit-x': bounds.x,
+    '--fit-y': bounds.y,
+    '--fit-width': bounds.width,
+    '--fit-height': bounds.height,
+  });
+
+/** One hero in a lineup preview; a measured boss is fitted to the card. */
+const PreviewFigure = ({ heroId, isLead }: { heroId: HeroId; isLead: boolean }) => {
+  const bounds = isLead ? FIGURE_BOUNDS[heroId] : undefined;
+  return (
+    <span
+      className={bounds ? 'training-portrait' : 'training-figure'}
+      style={bounds && portraitStyle(heroId, bounds)}
+    >
+      <HeroFigure heroId={heroId} size={getHero(heroId).size} />
+    </span>
+  );
+};
+
 const ScenarioPreview = ({
   scenario,
   terrain,
@@ -76,9 +106,7 @@ const ScenarioPreview = ({
     <img alt="" src={terrain} />
     {(FEATURED_HEROES[scenario.id] ?? scenario.heroIds.slice(0, 3)).map(
       (heroId, i) => (
-        <span className="training-figure" key={i}>
-          <HeroFigure heroId={heroId} size={getHero(heroId).size} />
-        </span>
+        <PreviewFigure heroId={heroId} isLead={i === 0} key={i} />
       )
     )}
   </span>
