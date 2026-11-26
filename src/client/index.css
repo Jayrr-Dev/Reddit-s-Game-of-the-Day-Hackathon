@@ -116,6 +116,9 @@
   --color-imbue: #3fe0c5;
   /* Range: steel arrows, silver grey (cards, chips, hit numbers, streaks). */
   --color-range: #b9c2cc;
+  /* Tier numerals in tooltip text: I-III a neutral grey, IV gold (the top tier). */
+  --color-tier-numeral: #8f949c;
+  --color-tier-top: var(--color-accent);
   --color-movement: #b58458;
   /* Card numbers raised by a buff / lowered by a debuff (on parchment). */
   --color-boosted: #23803f;

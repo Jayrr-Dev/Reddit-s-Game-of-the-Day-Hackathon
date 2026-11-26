@@ -22,27 +22,45 @@ import { Glyph } from './Glyph';
 const boldParts = (line: string): string[] => line.split('**');
 
 // --- AUTO EMPHASIS ---
+/** Words drawn bold white wherever they appear in plain text, any case. */
+const EMPHASIS_WORDS = [
+  'dodge',
+  'dodges',
+  'dodged',
+  'all',
+  'hit',
+  'hits',
+  'turn',
+  'turns',
+];
 /**
- * Words drawn bold white wherever they appear in plain text, as
- * regex stems so their forms match too (dodges, dodged, hits, turns).
+ * Tier numerals (Enfeeble I, Tier IV), longest first. Matched in
+ * capitals only, so they never catch a stray lowercase letter.
  */
-const EMPHASIS_WORDS = ['dodge[sd]?', 'all', 'hits?', 'turns?'];
+const TIER_NUMERALS = ['IV', 'III', 'II', 'I'];
+
+/** A word's pattern in any letter case ("all" also matches "ALL"). */
+const anyCase = (word: string): string =>
+  word.replace(/[a-z]/g, (letter) => `[${letter}${letter.toUpperCase()}]`);
+
 /**
- * Emphasised spans inside plain text: signed or bare percentages and
- * the EMPHASIS_WORDS. The capture group keeps the matches, so odd
- * parts of the split are the emphasised ones.
+ * Emphasised spans inside plain text: signed or bare percentages, the
+ * EMPHASIS_WORDS and the TIER_NUMERALS. The capture group keeps the
+ * matches, so odd parts of the split are the emphasised ones.
  */
 const AUTO_EMPHASIS = new RegExp(
-  `([+−-]?\\d+%|\\b(?:${EMPHASIS_WORDS.join('|')})\\b)`,
-  'i'
+  `([+−-]?\\d+%|\\b(?:${[...EMPHASIS_WORDS.map(anyCase), ...TIER_NUMERALS].join('|')})\\b)`
 );
 const emphasisParts = (text: string): string[] => text.split(AUTO_EMPHASIS);
 
 /**
  * The colour of an emphasised span: a gain ("+25%") is heal green, a
- * loss ("-25%") is HP red, anything else (a word, 50%) is white.
+ * loss ("-25%") is HP red, a tier numeral grey (IV gold, the top
+ * tier), anything else (a word, 50%) is white.
  */
 const emphasisToneClass = (text: string): string => {
+  if (text === 'IV') return 'text-tier-top';
+  if (TIER_NUMERALS.includes(text)) return 'text-tier-numeral';
   if (/^\+\d+%$/.test(text)) return 'text-heal';
   if (/^[-−]\d+%$/.test(text)) return 'text-hp';
   return 'text-ink';
