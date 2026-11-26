@@ -67,7 +67,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   },
   '0-1-0': {
     name: 'Impact',
-    description: '+5% Momentum bonus per rank (up to +25%)',
+    description: '+5% Momentum damage bonus per rank (up to +25% damage)',
   },
   '0-1-1': {
     name: 'Light Feet',
