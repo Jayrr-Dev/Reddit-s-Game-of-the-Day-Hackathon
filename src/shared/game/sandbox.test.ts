@@ -326,9 +326,9 @@ void test('training defeat can retry the same encounter with its deck, restored 
   assert.equal(retry.turn, opening.turn);
 });
 
-void test('scenarios are grouped by unit type: Angels, Dragons, Beasts, Humans, Demi-humans', () => {
+void test('scenarios are grouped by unit type, including the Seven Sins', () => {
   const groups = groupScenariosByUnitType();
-  assert.deepEqual(groups.map((group) => group.label), ['Angels', 'Dragons', 'Beasts', 'Humans', 'Demi-humans']);
+  assert.deepEqual(groups.map((group) => group.label), ['Angels', 'Dragons', 'Beasts', 'Humans', 'Demi-humans', 'Seven Sins']);
   // Every scenario lands in exactly one section.
   const grouped = groups.flatMap((group) => group.scenarios.map((scenario) => scenario.id));
   assert.deepEqual([...grouped].sort(), SANDBOX_SCENARIOS.map((scenario) => scenario.id).sort());
@@ -360,7 +360,7 @@ void test('scenario tier follows its lead hero, so boss and elite names can be c
 
 void test('the Units tab lists every hero once, in unit type sections, weakest rank first', () => {
   const groups = groupUnitsByUnitType();
-  assert.deepEqual(groups.map((group) => group.label), ['Angels', 'Dragons', 'Beasts', 'Humans', 'Demi-humans', 'Stationary']);
+  assert.deepEqual(groups.map((group) => group.label), ['Angels', 'Dragons', 'Beasts', 'Humans', 'Demi-humans', 'Seven Sins', 'Stationary']);
   // Every hero in the catalog lands in exactly one section: Stationary if anchored, else its unit type.
   const listed = groups.flatMap((group) => group.heroIds);
   assert.deepEqual([...listed].sort(), [...ALL_HERO_IDS].sort());

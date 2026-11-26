@@ -415,6 +415,21 @@ export const HEROES = {
     signature(move('Judgment of the Halo', homing(spell(14)), detonate())),
   ]),
 
+  // THE SEVEN SINS
+  greed: hero('Greed', 'boss', 220, 40, 5, BACK, [
+    move('Hoard', guard(14)),
+    move('Gilded Bolt', spell(9, 2)),
+    move('Take What’s Yours', spell(12), dispel()),
+    signature(move('Golden Tribute', spell(21), guard(8))),
+  ]),
+
+  envy: hero('Envy', 'boss', 195, 125, 4, FRONT, [
+    move('Venom Spit', spell(6), poison(3)),
+    move('Goo Lash', strike(13), weaken(2)),
+    move('Reform', heal(12, 'self')),
+    signature(move('Viridian Flood', spell(14), poison(5))),
+  ]),
+
   mageBorneAzula: hero('Mage Borne Azula', 'boss', 190, 49, 6, BACK, [
     move('Sevenfold Ward', guard(12), protect('self')),
     move('Oracle’s Hex', spell(7, 2), hex(3)),
@@ -546,7 +561,7 @@ export const getHero = (id: HeroId): HeroDef => HEROES[id];
 
 // --- UNIT TYPES ---
 /** The order unit type sections appear in. */
-export const UNIT_TYPES: readonly UnitType[] = ['angel', 'dragon', 'beast', 'human', 'demiHuman'];
+export const UNIT_TYPES: readonly UnitType[] = ['angel', 'dragon', 'beast', 'human', 'demiHuman', 'sin'];
 
 /** Section headings for grouping heroes by unit type. */
 export const UNIT_TYPE_LABELS: Readonly<Record<UnitType, string>> = {
@@ -555,6 +570,7 @@ export const UNIT_TYPE_LABELS: Readonly<Record<UnitType, string>> = {
   beast: 'Beasts',
   human: 'Humans',
   demiHuman: 'Demi-humans',
+  sin: 'Seven Sins',
 };
 
 /**
@@ -585,6 +601,9 @@ const HERO_UNIT_TYPES = {
   sevenEyedOracle: 'human',
   holyKing: 'human',
   twinAxeKnight: 'human',
+  // Seven Sins.
+  greed: 'sin',
+  envy: 'sin',
   // Demi-humans: human-shaped but born of magic, not of the kingdom.
   mageBorneAstra: 'demiHuman',
   mageBorneAzula: 'demiHuman',

@@ -129,6 +129,8 @@ export const MAIL = {
  * drawing of their own instead of the shared humanoid figure.
  */
 export const CREATURE_IDS = [
+  'greed',
+  'envy',
   'apollyonSeraph',
   'lightLordMori',
   'mageBorneAzula',
@@ -198,6 +200,8 @@ const HUMANOID_SHADOW: GroundShadow = {
 const CREATURE_SHADOW: Record<CreatureId, GroundShadow> = {
   apollyonSeraph: { halfWidthShare: 0.32, opacity: 0.38, ...LIFT_RESPONSE },
   lightLordMori: { halfWidthShare: 0.23, opacity: 0.3, ...LIFT_RESPONSE },
+  greed: { halfWidthShare: 0.29, opacity: 0.33, ...LIFT_RESPONSE },
+  envy: { halfWidthShare: 0.37, opacity: 0.27, ...LIFT_RESPONSE },
   mageBorneAzula: { halfWidthShare: 0.27, opacity: 0.32, ...LIFT_RESPONSE },
   grandangelCherubiel: { halfWidthShare: 0.25, opacity: 0.3, ...LIFT_RESPONSE },
   fulgurDragonknight: { halfWidthShare: 0.34, opacity: 0.36, ...LIFT_RESPONSE },

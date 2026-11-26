@@ -38,6 +38,8 @@ import type { JSX } from 'react';
 import { IvoryWerewolf, WolfCentaur } from './WolfFigures';
 import { AngelMage } from './AngelMageFigure';
 import { ApollyonSeraph } from './ApollyonSeraphFigure';
+import greedArt from '../../../assets/heroes/greed.webp';
+import envyArt from '../../../assets/heroes/envy.webp';
 import moriArt from '../../../assets/heroes/light-lord-mori.webp';
 import azulaArt from '../../../assets/heroes/mage-borne-azula.webp';
 import cherubielArt from '../../../assets/heroes/grandangel-cherubiel.webp';
@@ -54,7 +56,7 @@ import razielArt from '../../../assets/heroes/grandangel-raziel.webp';
 import zeruelArt from '../../../assets/heroes/archangel-zeruel.webp';
 import astraArt from '../../../assets/heroes/mage-borne-astra.webp';
 import twinAxeArt from '../../../assets/heroes/archangels/twin-axe-knight.webp';
-import urielArt from '../../../assets/heroes/archangels/uriel.webp';
+import { UrielFigure } from './UrielFigure';
 import zeruelArmoredArt from '../../../assets/heroes/archangels/zeruel-armored.webp';
 import alphaPlasmaArt from '../../../assets/heroes/archangels/alpha-plasma.webp';
 import omegaPlasmaArt from '../../../assets/heroes/archangels/omega-plasma.webp';
@@ -771,10 +773,12 @@ const CREATURE_DRAWINGS: Record<
   CreatureId,
   (props: { mood: HeroMood; size: HeroSize; action?: HeroAction | null }) => JSX.Element
 > = {
+  greed: ({ size }) => <BossSprite size={size} art={greedArt} inset={2} />,
+  envy: ({ size }) => <BossSprite size={size} art={envyArt} inset={10} />,
   holyDragon: HolyDragon,
   angelAssassin: ({ size }) => <BossSprite size={size} art={angelAssassinArt} hover />,
   twinAxeKnight: ({ size }) => <BossSprite size={size} art={twinAxeArt} />,
-  archangelUriel: ({ size }) => <BossSprite size={size} art={urielArt} hover />,
+  archangelUriel: UrielFigure,
   zeruelArmored: ({ size }) => <BossSprite size={size} art={zeruelArmoredArt} hover />,
   angelArcher: AngelArcher,
   grandGriffon: GrandGriffon,

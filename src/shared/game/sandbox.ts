@@ -78,6 +78,20 @@ export type ScenarioGroup = {
  */
 export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
   {
+    id: 'greed',
+    name: getHero('greed').name,
+    blurb: 'A one-eyed pig mage who shields his hoard and strips away your buffs.',
+    heroIds: ['greed'],
+    startsInPlace: true,
+  },
+  {
+    id: 'envy',
+    name: getHero('envy').name,
+    blurb: 'An emerald slime that poisons you and reforms to restore health.',
+    heroIds: ['envy'],
+    startsInPlace: true,
+  },
+  {
     id: 'mageBorneAstra',
     name: getHero('mageBorneAstra').name,
     blurb: 'A silent oracle who shuts down buffs and counters with astral magic.',
@@ -304,7 +318,7 @@ export const scenarioTier = (scenario: SandboxScenario): HeroTier => {
 
 /**
  * Scenarios split into unit type sections (Angels, Dragons, Beasts,
- * Humans, Demi-humans), keeping list order inside each and dropping empty sections.
+ * Humans, Demi-humans, Seven Sins), keeping list order inside each and dropping empty sections.
  */
 export const groupScenariosByUnitType = (
   scenarios: readonly SandboxScenario[] = SANDBOX_SCENARIOS
