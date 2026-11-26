@@ -8,12 +8,18 @@ tooltip at a time. Change the shared source listed below.
 Normal sentence text stays muted. Only the words below stand out. Never make a
 whole tooltip white.
 
+**The colour rule:** keywords with a chip wear their own colour and icon. Game
+mechanic words (hand, stack, block, dodge…) and numbers are white. Damage is
+red, gains are green, and losses are red.
+
 | What | Looks like | Source |
 | --- | --- | --- |
 | Keywords and statuses (Shock, Frost, Melee, Guard…) | Their own colour, with their icon in front, bolded or not | `GLOSSARY_LOOK` in [`glossaryLooks.ts`](../src/client/content/glossaryLooks.ts) (built from the chip look tables in `visuals.ts`) |
 | Charge, Back Step | White, with the Movement card's foot icon | `MOVEMENT_TERM_LOOK` in `glossaryLooks.ts` |
 | Move, Use, Hold, Remove | Plain unless the text bolds them (they're also everyday verbs) | `VERB_TERMS` in `glossaryLooks.ts` |
-| dodge, all, hit, turn (any case, with plurals) | Bold white | `EMPHASIS_WORDS` in `RichText.tsx` |
+| Game mechanic words: all, block, deck, discard, dodge, draw, hand, hit, miss, stack, turn (any case, with -s/-es/-ed) | Bold white | `MECHANIC_WORDS` in `RichText.tsx` |
+| damage (any case) | Bold HP red (`--color-hp`) | `DAMAGE_WORDS` in `RichText.tsx` |
+| Any other number (5, 1.5, 4×3=12) | Bold white, unless a rule above colours it | `AUTO_EMPHASIS` in `RichText.tsx` |
 | +N% | Bold heal green (`--color-heal`) | `emphasisToneClass` in `RichText.tsx` |
 | -N% | Bold HP red (`--color-hp`) | `emphasisToneClass` in `RichText.tsx` |
 | N% (no sign) | Bold white | `emphasisToneClass` in `RichText.tsx` |
@@ -29,7 +35,7 @@ Never use a raw hex value.
 
 - **A new keyword:** give it a look in `visuals.ts`. It's coloured everywhere
   automatically once it's in `GLOSSARY_LOOK`.
-- **A new white word:** add it to `EMPHASIS_WORDS`.
+- **A new white word:** add it to `MECHANIC_WORDS` if it's a game mechanic. A new red damage word goes in `DAMAGE_WORDS`.
 - **A new colour:** add a token to `index.css` first.
 - **The unit info window and intent popovers:** their effect headlines keep the
   effect colour ([`MoveEffect.tsx`](../src/client/components/game/MoveEffect.tsx)).

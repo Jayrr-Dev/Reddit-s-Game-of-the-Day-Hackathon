@@ -5,7 +5,8 @@
 // **bold** for key words and numbers. A bold glossary word wears its
 // own colour with its icon before it (lookOfTerm), so "**Frost**"
 // reads like the Frost chip. Plain text also picks out, in bold white,
-// key words (dodge, all, hit, turn) and every percentage (green when it is a gain like
+// every bare number, game mechanic words (MECHANIC_WORDS: hand, stack, block…), the word
+// damage in red, and every percentage (green when it is a gain like
 // "+25%", red when a loss like "-25%"), so the numbers that decide a
 // fight stand out without markup in every description.
 // The word affliction wears the Curse purple (TintedText). Glossary
@@ -22,17 +23,28 @@ import { Glyph } from './Glyph';
 const boldParts = (line: string): string[] => line.split('**');
 
 // --- AUTO EMPHASIS ---
-/** Words drawn bold white wherever they appear in plain text, any case. */
-const EMPHASIS_WORDS = [
-  'dodge',
-  'dodges',
-  'dodged',
+/**
+ * Game mechanic words, drawn bold white wherever they appear in plain
+ * text, any case, with their forms (stacks, blocked, draws). White
+ * means "this is a rule of the game", not a keyword with its own chip.
+ */
+const MECHANIC_WORDS = [
   'all',
+  'block',
+  'deck',
+  'discard',
+  'dodge',
+  'draw',
+  'hand',
   'hit',
-  'hits',
+  'miss',
+  'stack',
   'turn',
-  'turns',
 ];
+/** The word endings a mechanic word may take (hits, blocked, misses). */
+const MECHANIC_ENDINGS = '(?:s|es|ed|d)?';
+/** Words drawn bold HP red wherever they appear, any case. */
+const DAMAGE_WORDS = ['damage', 'damages', 'damaged'];
 /**
  * Tier numerals (Enfeeble I, Tier IV), longest first. Matched in
  * capitals only, so they never catch a stray lowercase letter.
@@ -44,25 +56,31 @@ const anyCase = (word: string): string =>
   word.replace(/[a-z]/g, (letter) => `[${letter}${letter.toUpperCase()}]`);
 
 /**
- * Emphasised spans inside plain text: signed or bare percentages, the
- * EMPHASIS_WORDS and the TIER_NUMERALS. The capture group keeps the
- * matches, so odd parts of the split are the emphasised ones.
+ * Emphasised spans inside plain text, first match wins: signed or bare
+ * percentages, then the mechanic and damage words and tier numerals, then any other bare
+ * number (5, 1.5). The capture group keeps the matches, so odd parts
+ * of the split are the emphasised ones.
  */
 const AUTO_EMPHASIS = new RegExp(
-  `([+−-]?\\d+%|\\b(?:${[...EMPHASIS_WORDS.map(anyCase), ...TIER_NUMERALS].join('|')})\\b)`
+  `([+−-]?\\d+(?:\\.\\d+)?%|\\b(?:${[
+    ...MECHANIC_WORDS.map((word) => anyCase(word) + MECHANIC_ENDINGS),
+    ...DAMAGE_WORDS.map(anyCase),
+    ...TIER_NUMERALS,
+  ].join('|')})\\b|\\d+(?:\\.\\d+)?)`
 );
 const emphasisParts = (text: string): string[] => text.split(AUTO_EMPHASIS);
 
 /**
  * The colour of an emphasised span: a gain ("+25%") is heal green, a
- * loss ("-25%") is HP red, a tier numeral grey (IV gold, the top
- * tier), anything else (a word, 50%) is white.
+ * loss ("-25%") and the word damage HP red, a tier numeral grey (IV
+ * gold, the top tier), anything else (a number, a key word) white.
  */
 const emphasisToneClass = (text: string): string => {
   if (text === 'IV') return 'text-tier-top';
   if (TIER_NUMERALS.includes(text)) return 'text-tier-numeral';
-  if (/^\+\d+%$/.test(text)) return 'text-heal';
-  if (/^[-−]\d+%$/.test(text)) return 'text-hp';
+  if (DAMAGE_WORDS.includes(text.toLowerCase())) return 'text-hp';
+  if (/^\+[\d.]+%$/.test(text)) return 'text-heal';
+  if (/^[-−][\d.]+%$/.test(text)) return 'text-hp';
   return 'text-ink';
 };
 
