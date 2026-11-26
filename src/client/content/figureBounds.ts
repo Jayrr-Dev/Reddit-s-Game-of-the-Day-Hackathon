@@ -28,6 +28,7 @@ export const FIGURE_BOUNDS: Readonly<Partial<Record<HeroId, FigureBounds>>> = {
   angelArcher: { x: -4.3, y: 20.6, width: 68.6, height: 60.9 },
   angelAssassin: { x: 1.3, y: 24.1, width: 57.4, height: 73.3 },
   angelMage: { x: 2.0, y: 3.0, width: 81.0, height: 96.0 },
+  wingedArcher: { x: 2.0, y: 3.0, width: 84.0, height: 96.0 },
   apollyonSeraph: { x: 13.3, y: 11.7, width: 123.3, height: 87.0 },
   archangelUriel: { x: 5.34, y: 71.44, width: 48.75, height: 26.83 },
   archangelZeruel: { x: 24.5, y: -6.8, width: 100.9, height: 106.5 },

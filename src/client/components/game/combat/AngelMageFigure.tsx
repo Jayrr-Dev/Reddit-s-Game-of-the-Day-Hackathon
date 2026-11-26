@@ -57,8 +57,12 @@ const DivineCircle = () => (
   </g>
 );
 
-/** The shoulder wings, white hood, staff and a spinning circle of divine light. */
-export const AngelMage = ({ mood }: { mood: HeroMood }) => (
+/**
+ * The Angel Host's shared body: shoulder wings, white hooded robe, face
+ * and left arm. The Angel Mage and the Angel Archer add their own
+ * weapon hand on top, so both read as the same order of angels.
+ */
+export const AngelHostBody = ({ mood }: { mood: HeroMood }) => (
   <>
     <Wing />
     <g transform="translate(85 0) scale(-1 1)"><Wing /></g>
@@ -76,6 +80,13 @@ export const AngelMage = ({ mood }: { mood: HeroMood }) => (
     <polygon points="36,33 35,44 32,48 33,36 38,29 43,24 49,28 52,35 52,45 49,48 48,36 46,32 41,28" fill={GOLD} />
     <path d={mood === 'fierce' ? 'M37 35 41 37 M45 37 49 35' : 'M37 36h4m3 0h4'} fill="none" stroke={INK} strokeWidth="1.15" />
     <polygon points="28,50 32,56 25,72 20,71 20,66" fill={MAUVE} />
+  </>
+);
+
+/** The Angel Host body with a staff and a spinning circle of divine light. */
+export const AngelMage = ({ mood }: { mood: HeroMood }) => (
+  <>
+    <AngelHostBody mood={mood} />
     <path d="M13 85 24 66 29 57" fill="none" stroke={GOLD} strokeWidth="2.2" />
     <ellipse cx="12" cy="85" rx="4" ry="2.5" fill="none" stroke={GOLD} strokeWidth="1.1" />
     <polygon points="54,49 60,49 61,59 66,55 69,57 63,66 58,66" fill={MAUVE} />

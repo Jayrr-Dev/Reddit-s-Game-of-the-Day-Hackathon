@@ -37,6 +37,7 @@
 import type { JSX } from 'react';
 import { IvoryWerewolf, WolfCentaur } from './WolfFigures';
 import { AngelMage } from './AngelMageFigure';
+import { WingedArcher } from './WingedArcherFigure';
 import { ApollyonSeraph } from './ApollyonSeraphFigure';
 import slothArt from '../../../assets/heroes/sloth.webp';
 import prideArt from '../../../assets/heroes/pride.webp';
@@ -795,6 +796,7 @@ const CREATURE_DRAWINGS: Record<
   ivoryWerewolf: IvoryWerewolf,
   wolfCentaur: WolfCentaur,
   angelMage: AngelMage,
+  wingedArcher: WingedArcher,
   apollyonSeraph: ApollyonSeraph,
   lightLordMori: LightLordMori,
   mageBorneAzula: MageBorneAzula,

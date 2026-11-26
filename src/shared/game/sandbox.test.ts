@@ -353,7 +353,8 @@ void test('scenario tier follows its lead hero, so boss and elite names can be c
   assert.equal(tierOf('zadkielOfDominations'), 'boss');
   // Elites, including one filed by its lead rather than the unit in front.
   assert.equal(tierOf('apollyonSeraph'), 'elite');
-  assert.equal(tierOf('angelMage'), 'elite');
+  // Angel Mage is a basic unit of the Angel Host (Sam, 2026-11-26).
+  assert.equal(tierOf('angelMage'), 'grunt');
   assert.equal(tierOf('archers'), 'grunt');
   assert.equal(scenarioTier({ id: 'empty', name: 'Empty', blurb: '', heroIds: [] }), 'grunt');
 });

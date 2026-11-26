@@ -279,10 +279,11 @@ export const HEROES = {
   ]),
 
   // IVORY HOST (PRACTICE ROSTER; NOT PART OF THE RANKED ROUTE POOLS)
-  purpleCupid: hero('Purple Cupid', 'grunt', 14, 290, 8, BACK, [
-    move('Heartpiercer', shoot(5), { kind: 'frost', amount: 2 }),
-    move('Misdirect', { kind: 'pullPlayer', lines: 1 }),
-    move('Barbed Heart', shoot(4), bleed(2)),
+  /** An archer of the Angel Host (same order as the Angel Mage). */
+  wingedArcher: hero('Angel Archer', 'grunt', 14, 290, 8, BACK, [
+    move('Piercing Light', shoot(5), { kind: 'frost', amount: 2 }),
+    move('Heaven\'s Tether', { kind: 'pullPlayer', lines: 1 }),
+    move('Barbed Halo', shoot(4), bleed(2)),
   ]),
   swordPrelate: hero('Sword Prelate', 'elite', 34, 55, 5, BACK, [
     move('Absolution', cleanse(), guard(4, 'allies')),
@@ -326,7 +327,7 @@ export const HEROES = {
     move('Pack Howl', wrath(1, 'allies')),
   ]),
 
-  angelMage: hero('Angel Mage', 'elite', 37, 55, 6, WIDE_BACK, [
+  angelMage: hero('Angel Mage', 'grunt', 37, 55, 6, WIDE_BACK, [
     move('Borrowed Time', protect(), guard(5, 'allies')),
     { ...move('Stasis Pulse', spell(6), { kind: 'frost', amount: 3 }), element: 'ice' },
     move('Reverse Time', heal(10, 'self'), cleanse('self')),
@@ -646,7 +647,7 @@ const HERO_UNIT_TYPES = {
   mageBorneAzula: 'demiHuman',
   // Angels: winged heavenly host, plus the summons they bring.
   angelArcher: 'angel',
-  purpleCupid: 'angel',
+  wingedArcher: 'angel',
   angelMage: 'angel',
   grandangelCerviel: 'angel',
   cervielSword: 'angel',

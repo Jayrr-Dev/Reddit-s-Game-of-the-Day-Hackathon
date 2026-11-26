@@ -20,7 +20,7 @@ void test('Ivory Host adds five independent enemies without changing ranked pool
   assert.equal(getHero(sentinel.heroId).armor, 2);
   assert.equal(isAnchored(sentinel), false);
   assert.deepEqual(fight.heroes.map(hero => plannedHeroMoves(hero, fight.heroes)[0]?.move.name).sort(),
-    ['Absolution', 'Conducting Thrust', 'Heartpiercer', 'Plant the Hammer', 'Unravel']);
+    ['Absolution', 'Conducting Thrust', 'Piercing Light', 'Plant the Hammer', 'Unravel']);
 });
 
 void test('Angel Mage uses Borrowed Time to protect every ally', () => {

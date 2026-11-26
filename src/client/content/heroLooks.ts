@@ -162,6 +162,7 @@ export const CREATURE_IDS = [
   'ivoryWerewolf',
   'wolfCentaur',
   'angelMage',
+  'wingedArcher',
   'tempestWyrm',
 ] as const satisfies readonly HeroId[];
 export type CreatureId = (typeof CREATURE_IDS)[number];
@@ -227,6 +228,7 @@ const CREATURE_SHADOW: Record<CreatureId, GroundShadow> = {
   ivoryWerewolf: { halfWidthShare: 0.34, opacity: 0.45, ...LIFT_RESPONSE },
   wolfCentaur: { halfWidthShare: 0.46, opacity: 0.45, ...LIFT_RESPONSE },
   angelMage: { halfWidthShare: 0.31, opacity: 0.29, ...LIFT_RESPONSE },
+  wingedArcher: { halfWidthShare: 0.31, opacity: 0.29, ...LIFT_RESPONSE },
   holyDragon: { halfWidthShare: 0.39, opacity: 0.45, ...LIFT_RESPONSE },
   angelArcher: { halfWidthShare: 0.2, opacity: 0.3, ...LIFT_RESPONSE },
   grandGriffon: {
@@ -280,12 +282,6 @@ export const humanoidLookOf = (id: HeroId): HeroLook | null =>
 // --- CATALOG (HUMANOIDS) ---
 export const HERO_LOOKS: Record<HumanoidId, HeroLook> = {
   // IVORY HOST
-  purpleCupid: {
-    headgear: 'leafCirclet', prop: 'longbow', face: 'bare',
-    skin: PARCHMENT, robe: tone('#826c96', '#5c456d'), gear: PARCHMENT,
-    accent: '#d2a64c', armor: 'cloth', cape: tone('#655174', '#44324f'),
-    features: { eyes: 'sharp', brow: 'arched', mouth: 'smirk' },
-  },
   swordPrelate: {
     headgear: 'mitre', prop: 'sword', face: 'bare',
     skin: SKIN_WARM, robe: tone('#786487', '#55425e'), gear: PARCHMENT,

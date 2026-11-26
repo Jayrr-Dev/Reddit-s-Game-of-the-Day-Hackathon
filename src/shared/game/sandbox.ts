@@ -207,7 +207,7 @@ export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
     id: 'ivoryHost',
     name: 'Ivory Host',
     blurb: 'Five new enemies: forced movement, Shock combos, and Buff disruption.',
-    heroIds: ['hornedSentinel', 'stormLancer', 'swordPrelate', 'purpleCupid', 'sevenEyedOracle'],
+    heroIds: ['hornedSentinel', 'stormLancer', 'swordPrelate', 'wingedArcher', 'sevenEyedOracle'],
     startsInPlace: true,
   },
   {
