@@ -94,6 +94,8 @@ export type StatusId =
   | 'pin'
   /** Fatigue: at the villain's turn start, this many random cards in hand cost 1 more this turn. */
   | 'fatigue'
+  /** Fatigue ALL: at the villain's turn start, every card (of fatigueAllType, if set) costs this much more this turn. */
+  | 'fatigueAll'
   | BuffId;
 export type Statuses = Record<StatusId, number>;
 /**
@@ -145,6 +147,8 @@ export type Combatant = {
   protectionCast?: boolean;
   /** Enemy turns remaining for Protection cast by a player card. */
   cardProtectionTurns?: number;
+  /** The only card type Fatigue ALL raises (none: every card). */
+  fatigueAllType?: CardType | undefined;
   /** Full duration this Protection was applied with, including any trait extension. */
   cardProtectionDuration?: number;
   /** Enemy turns remaining for Instinct. */
@@ -391,8 +395,12 @@ export type HeroEffect =
   | { kind: 'malaise'; amount: number }
   /** Pin N on the villain: no Charge, Back Step or forced movement for N turns. */
   | { kind: 'pin'; amount: number }
-  /** Fatigue N on the villain: N random cards in its next hand cost 1 more. */
-  | { kind: 'fatigue'; amount: number }
+  /**
+   * Fatigue N on the villain: N random cards in its next hand cost 1
+   * more. With `all`, every card in that hand costs N more instead
+   * (only cards of `cardType` when given: "Fatigue 1 ALL Movement").
+   */
+  | { kind: 'fatigue'; amount: number; all?: true; cardType?: CardType }
   | { kind: 'guard'; amount: number; who: 'self' | 'allies' }
   /** Hide the acting hero from direct targeting until this duration or their next attack. */
   | { kind: 'cloak'; amount: number }
@@ -582,6 +590,8 @@ export type CombatState = {
   handImbues: Imbue[][];
   /** Extra energy each hand slot costs this turn (Fatigue); slot for slot with hand. */
   handFatigue?: number[];
+  /** Extra energy Charge and Back Step cost this turn (Fatigue ALL on Movement). */
+  movementFatigue?: number;
   /**
    * Battle imbues of cards that left the hand for the piles. Copies of a
    * card can't be told apart there, so the next copy drawn takes them.

@@ -60,6 +60,7 @@ import type {
   Combatant,
   HeroAttackType,
   HeroEffect,
+  CardType,
   HeroMove,
   HeroUnit,
   PassiveId,
@@ -226,6 +227,11 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
     label: 'Fatigue',
     description:
       'Next turn, this many random cards in your hand cost **1** more energy. Then it clears.',
+  },
+  fatigueAll: {
+    label: 'Fatigue ALL',
+    description:
+      'Next turn, **every** card in your hand costs this much more energy. **Fatigue ALL Movement** raises only Movement cards, **Charge** and **Back Step**. Then it clears.',
   },
   rush: {
     label: 'Rush',
@@ -559,6 +565,17 @@ export const OUT_OF_RANGE_INFO: StatusInfo = {
     OUT_OF_RANGE_HIT_CHANCE * 100
   )}%** of the time\nBoth ways: you and the heroes\n**Longrange** ignores it`,
 };
+
+// --- FATIGUE ---
+/** How each card type reads after "Fatigue 1 ALL" ("Movement"). */
+const CARD_TYPE_WORD: Readonly<Record<CardType, string>> = {
+  melee: 'Melee', range: 'Range', magic: 'Magic', defend: 'Defend', buff: 'Buff',
+  imbue: 'Imbue', curse: 'Curse', utility: 'Utility', movement: 'Movement',
+};
+
+/** A Fatigue effect's name: "Fatigue 1", "Fatigue 1 ALL", "Fatigue 1 ALL Movement". */
+export const fatigueName = (effect: { amount: number; all?: true; cardType?: CardType }): string =>
+  `Fatigue ${effect.amount}${effect.all ? ' ALL' : ''}${effect.all && effect.cardType ? ` ${CARD_TYPE_WORD[effect.cardType]}` : ''}`;
 
 // --- GLOSSARY CATEGORIES ---
 /**
@@ -968,8 +985,11 @@ const describeHeroEffect = (
     case 'malaise':
       return { kind: 'malaise', text: String(effect.amount), label: `Malaise ${effect.amount}\n${STATUS_INFO.malaise.description}` };
     case 'pin':
-    case 'fatigue':
-      return { kind: effect.kind, text: String(effect.amount), label: `${STATUS_INFO[effect.kind].label} ${effect.amount}\n${STATUS_INFO[effect.kind].description}` };
+      return { kind: 'pin', text: String(effect.amount), label: `Pin ${effect.amount}\n${STATUS_INFO.pin.description}` };
+    case 'fatigue': {
+      const info = STATUS_INFO[effect.all ? 'fatigueAll' : 'fatigue'];
+      return { kind: 'fatigue', text: effect.all ? `${effect.amount} ALL` : String(effect.amount), label: `${fatigueName(effect)}\n${info.description}` };
+    }
     case 'cloak':
       return { kind: 'cloak', text: String(effect.amount), label: `Cloak ${effect.amount}\n${STATUS_INFO.cloak.description}` };
     case 'guard': {

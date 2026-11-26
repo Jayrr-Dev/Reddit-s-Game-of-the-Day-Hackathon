@@ -196,7 +196,7 @@ export const FROST_DAMAGE_PER_STACK = 1;
  * and Fatigue (only units lay it, on the villain's cards). The Mechanics
  * library lists them under Unit Statuses.
  */
-export const UNIT_ONLY_STATUSES: ReadonlySet<StatusId> = new Set(['aloft', 'fatigue']);
+export const UNIT_ONLY_STATUSES: ReadonlySet<StatusId> = new Set(['aloft', 'fatigue', 'fatigueAll']);
 /** Fatigue: each stack makes one random card in hand cost this much more. */
 export const FATIGUE_COST_PER_STACK = 1;
 /**
@@ -236,6 +236,7 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   armor: false,
   pin: true,
   fatigue: true,
+  fatigueAll: true,
 };
 
 /**

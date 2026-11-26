@@ -452,8 +452,26 @@ const applyFatigue = (state: CombatState): CombatState => {
   return {
     ...state,
     rng,
-    handFatigue: state.hand.map((_, index) => (tired.has(index) ? FATIGUE_COST_PER_STACK : 0)),
+    handFatigue: state.hand.map((_, index) => fatigueAt(state, index) + (tired.has(index) ? FATIGUE_COST_PER_STACK : 0)),
     player: { ...state.player, statuses: { ...state.player.statuses, fatigue: 0 } },
+  };
+};
+
+/**
+ * FATIGUE ALL N: once the new hand is drawn, every card in it (only
+ * those of fatigueAllType, when set) costs N more this turn, and so do
+ * Charge and Back Step when Movement is hit. Then it clears.
+ */
+const applyFatigueAll = (state: CombatState): CombatState => {
+  const amount = state.player.statuses.fatigueAll;
+  if (amount <= 0) return { ...state, movementFatigue: 0 };
+  const type = state.player.fatigueAllType;
+  const isHit = (cardType: CardType) => type === undefined || type === cardType;
+  return {
+    ...state,
+    handFatigue: state.hand.map((cardId, index) => fatigueAt(state, index) + (isHit(getCard(cardId).type) ? amount : 0)),
+    movementFatigue: isHit('movement') ? amount : 0,
+    player: { ...state.player, fatigueAllType: undefined, statuses: { ...state.player.statuses, fatigueAll: 0 } },
   };
 };
 
@@ -1848,8 +1866,15 @@ const applyHeroEffect = (
     case 'malaise':
       return afflictVillain(state, 'malaise', effect.amount, accuracyBonusOf(actor, 'magic'));
     case 'pin':
-    case 'fatigue':
-      return afflictVillain(state, effect.kind, effect.amount, accuracyBonusOf(actor, 'magic'));
+      return afflictVillain(state, 'pin', effect.amount, accuracyBonusOf(actor, 'magic'));
+    case 'fatigue': {
+      if (!effect.all) return afflictVillain(state, 'fatigue', effect.amount, accuracyBonusOf(actor, 'magic'));
+      // FATIGUE ALL: the newest one sets which card type it raises.
+      const laid = afflictVillain(state, 'fatigueAll', effect.amount, accuracyBonusOf(actor, 'magic'));
+      return laid.player.statuses.fatigueAll === state.player.statuses.fatigueAll
+        ? laid
+        : { ...laid, player: { ...laid.player, fatigueAllType: effect.cardType } };
+    }
     case 'guard':
       return updateHeroes(
         state,
@@ -2119,7 +2144,7 @@ export const heroTurnOrder = (heroes: readonly HeroUnit[]): HeroUnit[] =>
  */
 export const startPlayerTurn = (state: CombatState): CombatState => {
   const { startingEnergy, maxEnergy, cardsPerTurn } = combatantBonuses(state.player);
-  return applyFatigue(drawCards(
+  return applyFatigueAll(applyFatigue(drawCards(
     {
       ...state,
       // Hex and Poison run before the villain's action (its turn).
@@ -2131,7 +2156,7 @@ export const startPlayerTurn = (state: CombatState): CombatState => {
       followUpReady: false,
     },
     cardsPerTurn
-  ));
+  )));
 };
 
 /** Closes the player turn, including discards, reserve and status upkeep. */

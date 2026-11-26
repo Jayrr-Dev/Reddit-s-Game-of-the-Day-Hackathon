@@ -128,7 +128,9 @@ export const movementCost = (state: CombatState, move: MovementId): number =>
         0,
         MOVEMENTS[move].baseCost - movementDiscountOf(state.player.skillPicks)
       ) +
-      streakOf(state) * MOVEMENT_STREAK_COST;
+      streakOf(state) * MOVEMENT_STREAK_COST +
+      // FATIGUE ALL Movement: Charge and Back Step cost more this turn.
+      (state.movementFatigue ?? 0);
 
 /** Spends one Rush stack (none left: nothing changes). */
 const spendRush = (player: Combatant): Combatant => ({

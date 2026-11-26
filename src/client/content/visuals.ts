@@ -72,6 +72,7 @@ export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
   armor: { glyph: 'breastplate', toneClass: 'text-guard' },
   pin: { glyph: 'anchor', toneClass: 'text-vex' },
   fatigue: { glyph: 'hourglass', toneClass: 'text-energy' },
+  fatigueAll: { glyph: 'hourglass', toneClass: 'text-energy' },
 };
 
 // --- KEYWORDS ---

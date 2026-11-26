@@ -83,6 +83,7 @@ export const NO_STATUSES: Statuses = {
   armor: 0,
   pin: 0,
   fatigue: 0,
+  fatigueAll: 0,
 };
 
 /** Which buff powers up each card type's damage (curses and buffs: none). */

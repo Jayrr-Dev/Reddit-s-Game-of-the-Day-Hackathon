@@ -999,6 +999,7 @@ void test('afflictions are the harmful statuses, flagged in one table', () => {
     'burn',
     'enfeeble',
     'fatigue',
+    'fatigueAll',
     'frost',
     'hex',
     'hitLimit',
