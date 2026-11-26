@@ -11,6 +11,8 @@ import { STATUS_FX, type FxKind } from './statusFx';
 import { keyLabel } from '../lib/keyLabel';
 import { IMAGE_PLACEHOLDERS } from '../lib/imagePlaceholders.generated';
 import type { PlayerHitPop } from '../hooks/useHitPops';
+import { SKILL_ICONS } from './skillIcons';
+import { SKILL_EFFECTS } from '../../shared/game/skills';
 
 // --- TYPES ---
 /** One effect: its name and the pop that makes ImpactOverlay draw it. */
@@ -68,8 +70,6 @@ const IMAGE_URLS = import.meta.glob<string>(
   [
     '../assets/*.{webp,png,svg}',
     '../assets/table/*.{webp,png,svg}',
-    '../assets/skills/*.{webp,png,svg}',
-    '../assets/skills-generated/*.{webp,png,svg}',
     '../assets/cerviel/phase-two-seal.webp',
   ],
   { eager: true, query: '?url', import: 'default' },
@@ -97,6 +97,25 @@ const toImageAsset = ([path, url]: [string, string]): ImageAsset => {
   };
 };
 
-export const IMAGE_ASSETS: readonly ImageAsset[] = Object.entries(IMAGE_URLS)
-  .map(toImageAsset)
+// --- SKILL ICONS ---
+// The skill icons are inline paths, not files, so each one is wrapped in a
+// small SVG data URL to sit in the same list. A data URL cannot read the
+// theme tokens, so the tint is fixed here to the amber of the dark UI.
+const SKILL_ICON_TINT = '#e8bb66';
+
+/** One skill's silhouette as a stand-alone image, named after its skill. */
+const toSkillAsset = ([key, icon]: [string, { path: string }]): ImageAsset => ({
+  name: SKILL_EFFECTS[key]?.name ?? key,
+  group: 'Skills',
+  url:
+    'data:image/svg+xml,' +
+    encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="${SKILL_ICON_TINT}" d="${icon.path}"/></svg>`
+    ),
+});
+
+export const IMAGE_ASSETS: readonly ImageAsset[] = [
+  ...Object.entries(IMAGE_URLS).map(toImageAsset),
+  ...Object.entries(SKILL_ICONS).map(toSkillAsset),
+]
   .sort((a, b) => a.group.localeCompare(b.group) || a.name.localeCompare(b.name));
