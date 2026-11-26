@@ -14,7 +14,9 @@ import { useRef, type ReactNode } from 'react';
 import { activeRows, rowDepth, sizeOf } from '../../../../shared/game/battlefield';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
 import type { Combatant, HeroRow, HeroUnit } from '../../../../shared/game/types';
+import { weatherOf } from '../../../content/fieldWeather';
 import { isBoss, type HeroAction } from '../../../content/heroLooks';
+import { FieldWeather } from './FieldWeather';
 import { FIELD_ATTR } from '../../../hooks/useCardDrag';
 import { cssVars, depthStyle } from '../../../lib/cssVars';
 import { Backdrop } from './Backdrop';
@@ -134,6 +136,7 @@ export const BattlefieldView = ({
             background: `linear-gradient(transparent, rgb(20 14 24 / 0.18))`,
           }}
         />
+        <FieldWeather weather={weatherOf(heroes)} />
         {[...heroes.map(unit => ({ unit, isDying: false })), ...ghosts.map(unit => ({ unit, isDying: true }))].map(({ unit, isDying }) => (
           <RowLayer key={unit.uid} row={unit.row}>
             <HeroOnField unit={unit} player={player} isDying={isDying}

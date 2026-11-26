@@ -31,6 +31,8 @@ import {
 } from '../../../hooks/useCardDrag';
 import type { AimState, PickMarker } from '../../../hooks/useCombatControls';
 import {
+  bossStageOf,
+  type BossStage,
   drawSizeOf,
   groundShadowOf,
   isBoss,
@@ -76,6 +78,11 @@ const BOSS_DRAW_COLUMNS = 3;
  * rows' height; only its wingtips spill past the edges.
  */
 const BOSS_OVERSPILL = 1.25;
+/**
+ * A staged boss's drawing may be this wide, as a share of the field (its
+ * wingtips spill a little past the drawing itself).
+ */
+const STAGED_BOSS_SPAN = 0.95;
 
 /**
  * How the whole body moves during each kind of move (the prop's own
@@ -376,10 +383,29 @@ const BossDeath = ({ unit }: { unit: HeroUnit }) => {
 const bodyStyleOf = (unit: HeroUnit, size: HeroSize): CSSProperties => {
   const rowScale = { front: 1.28, back: 1.45, horizon: 1.65 }[unit.row];
   const scale = isDeep(unit) ? Math.min(rowScale, 1.2) : isBoss(unit) ? Math.min(rowScale, 1.3) : rowScale;
+  const stage = isBoss(unit) ? bossStageOf(unit.heroId) : undefined;
+  if (stage) return stagedBodyStyle(stage, scale, size);
   const widthLimit = (isBoss(unit) ? BOSS_OVERSPILL : 1) * 100 / figureAspect(size);
   return {
     height: `min(${100 * scale}cqh, ${widthLimit * scale}cqw)`,
     aspectRatio: figureAspect(size),
+  };
+};
+
+/**
+ * A staged boss (heroLooks, bossStageOf): it grows from its usual height
+ * (`scale`) up to its reach, as far as the field's width allows, and
+ * sinks by its `forward` share of whatever it grew, so it comes toward
+ * the player instead of climbing under its name plate.
+ */
+const stagedBodyStyle = (stage: BossStage, scale: number, size: HeroSize): CSSProperties => {
+  const widthLimit = (STAGED_BOSS_SPAN * 100) / figureAspect(size);
+  const height = `min(${100 * stage.reach}cqh, ${widthLimit}cqw)`;
+  const growth = `max(0px, ${height} - ${100 * scale}cqh)`;
+  return {
+    height,
+    aspectRatio: figureAspect(size),
+    bottom: `calc(${growth} * ${-stage.forward})`,
   };
 };
 

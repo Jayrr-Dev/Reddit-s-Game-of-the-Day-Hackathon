@@ -169,6 +169,28 @@ const CREATURE_SHADOW: Record<CreatureId, GroundShadow> = {
 export const groundShadowOf = (id: HeroId): GroundShadow =>
   isCreature(id) ? CREATURE_SHADOW[id] : HUMANOID_SHADOW;
 
+/**
+ * How a boss fills a wide (desktop) field. By default a boss is as tall
+ * as its slot allows, which on a wide field leaves it small in the
+ * middle. A staged boss grows instead:
+ *   reach    how tall it may grow, as a share of its slot's height
+ *   forward  the share of that growth that goes down, toward the
+ *            player, rather than up under its name plate (it steps
+ *            closer, its feet behind your hand)
+ * On a narrow (phone) field the field's width stops the growth, so it
+ * looks the same there.
+ */
+export type BossStage = { reach: number; forward: number };
+const BOSS_STAGES: Partial<Record<HeroId, BossStage>> = {
+  // Vael's wings should run out toward the frame, with the thunderhead
+  // rolling in behind your hand.
+  tempestWyrm: { reach: 1.8, forward: 0.9 },
+};
+
+/** How a boss fills a wide field, if it has a stage of its own. */
+export const bossStageOf = (id: HeroId): BossStage | undefined =>
+  BOSS_STAGES[id];
+
 /** True for a hero with a drawing of its own (see CREATURE_IDS). */
 export const isCreature = (id: HeroId): id is CreatureId =>
   (CREATURE_IDS as readonly HeroId[]).includes(id);

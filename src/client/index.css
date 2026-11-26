@@ -2093,6 +2093,74 @@ textarea,
   }
 }
 
+/* --- FIELD MIST ---
+   Weather over the battlefield (FieldWeather). A bank is twice the
+   field's width and its puffs repeat every half, so sliding it left by
+   half its width loops without a seam. Each bank sets its own height,
+   speed (--mist-s) and thickness. */
+@keyframes field-mist-drift {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes field-mist-arrive {
+  from {
+    opacity: 0;
+  }
+}
+
+.field-mist {
+  position: absolute;
+  pointer-events: none;
+}
+
+.field-mist-veil {
+  inset: 0;
+  background: linear-gradient(
+    rgb(84 92 120 / 0.62),
+    rgb(112 120 146 / 0.34) 45%,
+    rgb(140 146 168 / 0.3)
+  );
+  animation: field-mist-arrive 2400ms ease-out backwards;
+}
+
+.field-mist-bank {
+  left: 0;
+  width: 200%;
+  background-repeat: repeat-x;
+  background-size: 50% 100%;
+  background-image:
+    radial-gradient(ellipse 21% 46% at 16% 62%, var(--mist), transparent 70%),
+    radial-gradient(ellipse 28% 40% at 47% 48%, var(--mist), transparent 70%),
+    radial-gradient(ellipse 23% 50% at 80% 58%, var(--mist), transparent 70%),
+    radial-gradient(ellipse 15% 30% at 64% 76%, var(--mist), transparent 70%);
+  animation:
+    field-mist-drift var(--mist-s) linear infinite,
+    field-mist-arrive 2400ms ease-out backwards;
+}
+
+.field-mist-far {
+  --mist: rgb(206 212 228 / 0.6);
+  --mist-s: 64s;
+  top: 14%;
+  height: 46%;
+}
+
+.field-mist-near {
+  --mist: rgb(226 230 242 / 0.42);
+  --mist-s: 38s;
+  bottom: -6%;
+  height: 42%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field-mist-veil,
+  .field-mist-bank {
+    animation: none;
+  }
+}
+
 /* --- FLIGHT (ALOFT) ---
    A hero Aloft (data-aloft on its field box) rises out of reach: its
    drawing lifts and shrinks into the sky while its shadow stays on the
