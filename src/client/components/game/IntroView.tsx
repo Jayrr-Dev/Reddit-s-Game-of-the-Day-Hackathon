@@ -31,6 +31,7 @@ import { useGameSettings } from '../../hooks/useGameSettings';
 import { SettingsDialog } from './menu/SettingsDialog';
 import { MenuPanel } from './menu/MenuPanel';
 import { MetatronShop } from './menu/MetatronShop';
+import { DevPanel } from './menu/DevPanel';
 import { ProfileView } from './ProfileView';
 import type { RingProgress } from '../../../shared/game/character';
 import { FirstFight } from './FirstFight';
@@ -53,7 +54,7 @@ export type IntroViewProps = {
 const SHOW_PRACTICE = true;
 
 /** Which sheet (if any) covers the menu. */
-type Sheet = 'profile' | 'none' | 'tutorial' | 'rules' | 'board' | 'shop';
+type Sheet = 'profile' | 'none' | 'tutorial' | 'rules' | 'board' | 'shop' | 'dev';
 
 /**
  * HOME BADGE TOOLTIPS: what each corner counter means, in plain words,
@@ -172,7 +173,7 @@ export const IntroView = ({
 }: IntroViewProps) => {
   const [sheet, setSheet] = useState<Sheet>('none');
   const musicVolume = useSyncExternalStore(subscribeVolume, () => getVolume('music'));
-  useMapAudio({ mapId: 'Home', active: sheet !== 'tutorial', bossActive: false, musicVolume: musicVolume / 100, sfxVolume: 0 });
+  useMapAudio({ mapId: 'Home', active: sheet !== 'tutorial' && sheet !== 'dev', bossActive: false, musicVolume: musicVolume / 100, sfxVolume: 0 });
   const isAdmin = useIsAdmin();
   const settings = useGameSettings();
   const closeSheet = () => setSheet('none');
@@ -207,9 +208,9 @@ export const IntroView = ({
               Illusion Training
             </Button>
           )}
-          {/* DEV: admin-only placeholder; no action yet */}
+          {/* DEV: admin-only reference tabs (sounds, assets) */}
           {isAdmin && (
-            <Button variant="menu" title="Dev tools (placeholder)">
+            <Button variant="menu" onClick={() => setSheet('dev')}>
               Dev
             </Button>
           )}
@@ -221,6 +222,7 @@ export const IntroView = ({
         </nav>
       </div>
       {sheet === 'shop' && <MetatronShop onClose={closeSheet} />}
+      {sheet === 'dev' && isAdmin && <DevPanel onClose={closeSheet} />}
       {sheet === 'rules' && (
         <MenuPanel title="Combat Rules" onClose={() => setSheet('tutorial')} wide>
           <CombatRulesSlides />

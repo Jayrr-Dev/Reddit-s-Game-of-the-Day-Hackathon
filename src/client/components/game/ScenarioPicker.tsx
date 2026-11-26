@@ -3,7 +3,7 @@
 // The target dummies' pause-menu picker, in tabs: Scenarios (preset
 // lineups, SANDBOX_SCENARIOS, in unit type sections), Units (every hero
 // in the catalog, one by one, to fight alone), Decks (themed test decks,
-// SANDBOX_DECKS), Map and Sounds (every music loop and sound effect). Tapping a scenario asks first (fight or not), so a
+// SANDBOX_DECKS) and Map. Tapping a scenario asks first (fight or not), so a
 // stray tap never drops the player into a boss; tapping a deck deals a
 // fresh fight from it against the same dummies.
 // ===================================================================
@@ -27,9 +27,7 @@ import { Glyph } from '../ui/Glyph';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { ThemeSpeaker } from './ThemeSpeaker';
 import { MapViewDialog, type MapView } from './MapViewDialog';
-import { SoundLibrary } from './menu/SoundLibrary';
-import { AssetLibrary } from './menu/AssetLibrary';
-import { useIsAdmin } from '../../lib/adminRole';
+import { SectionHeading } from './SectionHeading';
 import type { ThemePreviewControls } from '../../hooks/useThemePreview';
 import {
   groupScenariosByUnitType,
@@ -46,7 +44,7 @@ import {
 import { ProgressiveImg } from '../ui/ProgressiveImage';
 
 // --- TYPES ---
-type PickerTab = 'scenarios' | 'units' | 'decks' | 'map' | 'sounds' | 'assets';
+type PickerTab = 'scenarios' | 'units' | 'decks' | 'map';
 
 /** One entry in either tab; nameClass colours the name (scenario tier). */
 type PickerEntry = { id: string; name: string; blurb?: string; nameClass?: string };
@@ -55,18 +53,14 @@ type PickerEntry = { id: string; name: string; blurb?: string; nameClass?: strin
 type PickerSection = { id: string; label: string; scenarios: readonly SandboxScenario[] };
 
 // --- CONSTANTS ---
-const PICKER_TABS: readonly PickerTab[] = ['scenarios', 'units', 'decks', 'map', 'sounds', 'assets'];
+const PICKER_TABS: readonly PickerTab[] = ['scenarios', 'units', 'decks', 'map'];
 const TAB_LABELS: Record<PickerTab, string> = {
   scenarios: 'Scenarios',
   units: 'Units',
   decks: 'Decks',
   map: 'Map',
-  sounds: 'Sounds',
-  assets: 'Assets',
 };
 
-/** Tabs only admins see (reference material, not part of the game). */
-const ADMIN_TABS: ReadonlySet<PickerTab> = new Set(['assets']);
 
 /** Scenarios in unit type sections; the catalog is static, so group once. */
 const SCENARIO_GROUPS: readonly PickerSection[] = groupScenariosByUnitType().map((group) => ({
@@ -80,13 +74,6 @@ const UNIT_GROUPS: readonly PickerSection[] = groupUnitsByUnitType().map((group)
 }));
 
 // --- SUBCOMPONENTS ---
-/** A full-width heading that starts a section of the entry grid. */
-const SectionHeading = ({ children }: { children: ReactNode }) => (
-  <h3 className="col-span-full mt-1 text-xs font-bold uppercase tracking-widest text-[#f2d29b]">
-    {children}
-  </h3>
-);
-
 const DECK_EXAMPLES = {
   stackedBuffs: ['sap', 'bulwark', 'instinct'],
   all: ['twinDaggers', 'frostBolt', 'boneWard'],
@@ -388,9 +375,6 @@ export const ScenarioPicker = ({
   themePreview: ThemePreviewControls;
 }) => {
   const [tab, setTab] = useState<PickerTab>('scenarios');
-  const isAdmin = useIsAdmin();
-  // Admin-only tabs (Assets) stay hidden for everyone else.
-  const visibleTabs = isAdmin ? PICKER_TABS : PICKER_TABS.filter((id) => !ADMIN_TABS.has(id));
   const [editing, setEditing] = useState<string | null>(null);
   // The scenario waiting on the fight-or-not answer, if any.
   const [pending, setPending] = useState<SandboxScenario | null>(null);
@@ -410,7 +394,7 @@ export const ScenarioPicker = ({
     <>
     {renderHeader(() => { setTab('decks'); setEditing(''); })}
     <section className="training-picker">
-      <TabBar ids={visibleTabs} labels={TAB_LABELS} tab={tab} onTab={setTab} />
+      <TabBar ids={PICKER_TABS} labels={TAB_LABELS} tab={tab} onTab={setTab} />
       {pending && (
         <FightPrompt
           scenario={pending}
@@ -447,10 +431,6 @@ export const ScenarioPicker = ({
             onInfo={tab === 'units' ? (scenario) => askToFight(scenario, true) : undefined}
             themePreview={themePreview}
           />
-        ) : tab === 'assets' && isAdmin ? (
-          <AssetLibrary renderHeading={(label) => <SectionHeading key={label}>{label}</SectionHeading>} />
-        ) : tab === 'sounds' ? (
-          <SoundLibrary renderHeading={(label) => <SectionHeading key={label}>{label}</SectionHeading>} />
         ) : tab === 'map' ? (
           <>
           <SectionHeading>Boss arenas</SectionHeading>
