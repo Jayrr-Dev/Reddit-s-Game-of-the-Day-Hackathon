@@ -73,7 +73,7 @@ export const ResultsView = ({
       {entries.length > 0 && (
         <details className="results-board">
           <summary>Today's leaderboard</summary>
-          <LeaderboardList entries={entries} limit={LEADERBOARD_PREVIEW_ROWS} />
+          <LeaderboardList entries={entries} limit={LEADERBOARD_PREVIEW_ROWS} showPodium={false} />
         </details>
       )}
     </main>
