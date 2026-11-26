@@ -1,3 +1,4 @@
+import shopAmbient from '../../../assets/npcs/metatron-shop-ambient.webp';
 import shopFrame from '../../../assets/npcs/metatron-shop-frame.webp';
 import { Button } from '../../ui/Button';
 import { ProgressiveImg } from '../../ui/ProgressiveImage';
@@ -14,6 +15,15 @@ export const MetatronShop = ({ onClose }: { onClose: () => void }) => (
       width={1200}
       height={675}
       className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-contain"
+    />
+
+    <img
+      src={shopAmbient}
+      alt=""
+      aria-hidden="true"
+      width={1200}
+      height={675}
+      className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-contain motion-reduce:hidden"
     />
 
     <header className="w-fit max-w-[90%] rounded-md bg-[#17111d]/90 px-3 py-2">
