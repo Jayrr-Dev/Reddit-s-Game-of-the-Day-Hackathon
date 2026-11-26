@@ -28,6 +28,8 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { ThemeSpeaker } from './ThemeSpeaker';
 import { MapViewDialog, type MapView } from './MapViewDialog';
 import { SoundLibrary } from './menu/SoundLibrary';
+import { AssetLibrary } from './menu/AssetLibrary';
+import { useIsAdmin } from '../../lib/adminRole';
 import type { ThemePreviewControls } from '../../hooks/useThemePreview';
 import {
   groupScenariosByUnitType,
@@ -44,7 +46,7 @@ import {
 import { ProgressiveImg } from '../ui/ProgressiveImage';
 
 // --- TYPES ---
-type PickerTab = 'scenarios' | 'units' | 'decks' | 'map' | 'sounds';
+type PickerTab = 'scenarios' | 'units' | 'decks' | 'map' | 'sounds' | 'assets';
 
 /** One entry in either tab; nameClass colours the name (scenario tier). */
 type PickerEntry = { id: string; name: string; blurb?: string; nameClass?: string };
@@ -53,14 +55,18 @@ type PickerEntry = { id: string; name: string; blurb?: string; nameClass?: strin
 type PickerSection = { id: string; label: string; scenarios: readonly SandboxScenario[] };
 
 // --- CONSTANTS ---
-const PICKER_TABS: readonly PickerTab[] = ['scenarios', 'units', 'decks', 'map', 'sounds'];
+const PICKER_TABS: readonly PickerTab[] = ['scenarios', 'units', 'decks', 'map', 'sounds', 'assets'];
 const TAB_LABELS: Record<PickerTab, string> = {
   scenarios: 'Scenarios',
   units: 'Units',
   decks: 'Decks',
   map: 'Map',
   sounds: 'Sounds',
+  assets: 'Assets',
 };
+
+/** Tabs only admins see (reference material, not part of the game). */
+const ADMIN_TABS: ReadonlySet<PickerTab> = new Set(['assets']);
 
 /** Scenarios in unit type sections; the catalog is static, so group once. */
 const SCENARIO_GROUPS: readonly PickerSection[] = groupScenariosByUnitType().map((group) => ({
@@ -382,6 +388,9 @@ export const ScenarioPicker = ({
   themePreview: ThemePreviewControls;
 }) => {
   const [tab, setTab] = useState<PickerTab>('scenarios');
+  const isAdmin = useIsAdmin();
+  // Admin-only tabs (Assets) stay hidden for everyone else.
+  const visibleTabs = isAdmin ? PICKER_TABS : PICKER_TABS.filter((id) => !ADMIN_TABS.has(id));
   const [editing, setEditing] = useState<string | null>(null);
   // The scenario waiting on the fight-or-not answer, if any.
   const [pending, setPending] = useState<SandboxScenario | null>(null);
@@ -401,7 +410,7 @@ export const ScenarioPicker = ({
     <>
     {renderHeader(() => { setTab('decks'); setEditing(''); })}
     <section className="training-picker">
-      <TabBar ids={PICKER_TABS} labels={TAB_LABELS} tab={tab} onTab={setTab} />
+      <TabBar ids={visibleTabs} labels={TAB_LABELS} tab={tab} onTab={setTab} />
       {pending && (
         <FightPrompt
           scenario={pending}
@@ -438,6 +447,8 @@ export const ScenarioPicker = ({
             onInfo={tab === 'units' ? (scenario) => askToFight(scenario, true) : undefined}
             themePreview={themePreview}
           />
+        ) : tab === 'assets' && isAdmin ? (
+          <AssetLibrary renderHeading={(label) => <SectionHeading key={label}>{label}</SectionHeading>} />
         ) : tab === 'sounds' ? (
           <SoundLibrary renderHeading={(label) => <SectionHeading key={label}>{label}</SectionHeading>} />
         ) : tab === 'map' ? (

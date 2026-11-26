@@ -88,6 +88,7 @@ import buffMinorUrl from '../assets/audio/buff-minor-user.ogg';
 import buffMajorUrl from '../assets/audio/buff-major-user.ogg';
 import utilityCueUrl from '../assets/audio/utility-cue.ogg';
 import { getCard, type CardId } from '../../shared/game/cards';
+import { keyLabel } from './keyLabel';
 
 export type AudioChannel = 'music' | 'sfx';
 const defaults = { music: 25, sfx: 50 };
@@ -104,15 +105,9 @@ const sounds = { cervielCrack: cervielCrackUrl, cervielSeal: cervielSealUrl, cer
 export type Sound = keyof typeof sounds;
 
 // --- SOUND LIBRARY: EFFECTS ---
-/** Turns a cue key such as "magicFireHit" into "Magic fire hit". */
-const cueLabel = (key: string) => {
-  const words = key.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
-  return words.charAt(0).toUpperCase() + words.slice(1);
-};
-
 /** Every sound effect file once (cues that share a file keep the first name), A to Z. */
 export const SOUND_EFFECTS: readonly { name: string; url: string }[] = [
-  ...new Map(Object.entries(sounds).reverse().map(([key, url]) => [url, { name: cueLabel(key), url }])).values(),
+  ...new Map(Object.entries(sounds).reverse().map(([key, url]) => [url, { name: keyLabel(key), url }])).values(),
 ].sort((a, b) => a.name.localeCompare(b.name));
 const deathCues = Object.values(deathVoiceCues).flat();
 const nextDeathByVoice = new Map<keyof typeof deathVoiceCues, number>();

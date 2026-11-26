@@ -912,3 +912,11 @@
 .training-sound:hover, .training-sound[aria-pressed=true] { border-color: var(--color-accent); }
 .training-sound[aria-pressed=true] { background: var(--color-accent); color: var(--color-on-accent); }
 .training-sound[aria-pressed=true] svg { color: var(--color-on-accent); }
+
+/* --- ASSETS TAB (ADMIN) --- */
+.asset-tile { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 34px; padding: 4px 8px; border: 1px solid var(--color-edge); border-radius: 6px; background: var(--color-surface-raised); color: var(--color-ink); font-size: 12px; text-align: left; }
+.asset-tile:hover { border-color: var(--color-accent); }
+.asset-tile img { width: 26px; height: 26px; flex: none; object-fit: contain; }
+.asset-tile span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.asset-stage { position: relative; width: min(16rem, 100%); aspect-ratio: 3 / 4; margin: 0 auto; border-radius: 8px; background: radial-gradient(circle, #3a3028 0%, #120e0b 75%); overflow: hidden; }
+.asset-full { display: block; max-width: 100%; max-height: 60vh; margin: 0 auto; object-fit: contain; background: repeating-conic-gradient(#2a2420 0 25%, #1c1815 0 50%) 0 0 / 16px 16px; }
