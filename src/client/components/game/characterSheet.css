@@ -762,3 +762,18 @@
   background: transparent;
   border-color: transparent;
 }
+
+/* Unspent points beside the Traits and Skill tree tab names. */
+.cs-tab-points {
+  margin-left: 0.3rem;
+  padding: 0 0.35rem;
+  border-radius: 0.6rem;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 0.72em;
+  line-height: 1.4;
+}
+.cs-pages button[aria-pressed='true'] .cs-tab-points {
+  background: var(--color-on-accent);
+  color: var(--color-accent);
+}

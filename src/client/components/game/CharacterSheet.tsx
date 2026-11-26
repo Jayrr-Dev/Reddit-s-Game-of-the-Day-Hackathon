@@ -1,12 +1,14 @@
 // --- CHARACTER SHEET ---
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { playSound } from '../../lib/gameAudio';
+import { useNewItems } from '../../hooks/useNewItems';
 import {
   characterBonuses,
   ringSlotAccepts,
   ringSlotUnlocked,
   TRAITS,
   TRAIT_LABELS,
+  traitPointsAvailable,
   TRAIT_CAP,
   xpToNextLevel,
   type CharacterState,
@@ -16,7 +18,7 @@ import {
 import { Glyph, type GlyphName } from '../ui/Glyph';
 import { IconButton } from '../ui/IconButton';
 import { Tooltip } from '../ui/Tooltip';
-import type { SkillPick } from '../../../shared/game/skills';
+import { skillPointsLeft, type SkillPick } from '../../../shared/game/skills';
 import { SkillTree } from './SkillTree';
 import { TraitSpiral } from './TraitSpiral';
 import { TutorialSpotlight } from './combat/TutorialSpotlight';
@@ -44,6 +46,14 @@ type SheetProps = {
   respecItem?: RespecItem | undefined;
 };
 type SheetPage = 'profile' | 'inventory' | 'traits' | 'equipment' | 'skills';
+/** The tab order. Profile and Inventory show only when the sheet is given them. */
+const SHEET_TABS: ReadonlyArray<{ page: SheetPage; label: string }> = [
+  { page: 'profile', label: 'Profile' },
+  { page: 'skills', label: 'Skill tree' },
+  { page: 'traits', label: 'Traits' },
+  { page: 'equipment', label: 'Equipment' },
+  { page: 'inventory', label: 'Inventory' },
+];
 type Stat = keyof ReturnType<typeof characterBonuses>;
 const TRAIT_ICONS: Record<TraitId, GlyphName> = {
   vigor: 'heart',
@@ -348,6 +358,12 @@ const Equipment = ({
     </div>
   );
 };
+/** A small count beside a tab name; hidden at zero. */
+const TabCount = ({ badge }: { badge: { count: number; label: string } | undefined }) =>
+  badge && badge.count > 0 ? (
+    <span className="cs-tab-points" aria-label={`${badge.count} ${badge.label}`}>{badge.count}</span>
+  ) : null;
+
 /** Opens the character sheet as a focus-trapped dialog within the game viewport. */
 export const CharacterSheet = ({
   onSkill,
@@ -366,6 +382,13 @@ export const CharacterSheet = ({
   const [page, setPage] = useState<SheetPage>(profile ? 'profile' : 'traits');
   const [trait, setTrait] = useState<TraitId>('vigor');
   const needed = xpToNextLevel(character.level);
+  const { newCount, markSeen } = useNewItems(character.inventory.map((item) => item.id));
+  /** Counts beside the tab names: unspent points, and new items on Equipment. */
+  const tabCounts: Partial<Record<SheetPage, { count: number; label: string }>> = {
+    traits: { count: traitPointsAvailable(character), label: 'points to spend' },
+    skills: { count: skillPointsLeft(character), label: 'points to spend' },
+    ...(newCount > 0 && { equipment: { count: newCount, label: newCount === 1 ? 'new item' : 'new items' } }),
+  };
   useLayoutEffect(() => {
     const node = dialog.current;
     const frame = node?.closest('.dueling-table, #root') ?? node?.parentElement;
@@ -432,45 +455,22 @@ export const CharacterSheet = ({
       )}
       </header>
       <div className="cs-pages" aria-label="Character views">
-        {profile && (
+        {SHEET_TABS.filter(({ page: tab }) => (tab === 'profile' ? profile : tab === 'inventory' ? inventory : true)).map(({ page: tab, label }) => (
           <button
+            key={tab}
             type="button"
-            aria-pressed={page === 'profile'}
-            onClick={() => setPage('profile')}
+            data-tab={tab}
+            aria-pressed={page === tab}
+            onClick={() => {
+              if (tab === 'traits' && page !== 'traits') setTrait('vigor');
+              if (tab === 'equipment') markSeen();
+              setPage(tab);
+            }}
           >
-            Profile
+            {label}
+            <TabCount badge={tabCounts[tab]} />
           </button>
-        )}
-        {inventory && (
-          <button
-            type="button"
-            aria-pressed={page === 'inventory'}
-            onClick={() => setPage('inventory')}
-          >
-            Inventory
-          </button>
-        )}
-        <button
-          type="button"
-          aria-pressed={page === 'traits'}
-          onClick={() => { if (page !== 'traits') setTrait('vigor'); setPage('traits'); }}
-        >
-          Traits
-        </button>
-        <button
-          type="button"
-          aria-pressed={page === 'equipment'}
-          onClick={() => setPage('equipment')}
-        >
-          Equipment
-        </button>
-        <button
-          type="button"
-          aria-pressed={page === 'skills'}
-          onClick={() => setPage('skills')}
-        >
-          Skill tree
-        </button>
+        ))}
       </div>
       <div className="cs-body" key={page} data-page={page}>
         {page === 'profile' ? (
@@ -495,7 +495,7 @@ export const CharacterSheet = ({
       </div>
       </div>
       {levelGuide && <TutorialSpotlight
-        selector={levelGuide === 'close' ? '.cs-back' : page === 'traits' ? '.trait-spiral-node[data-arm="junction"]' : '.cs-pages button:first-child'}
+        selector={levelGuide === 'close' ? '.cs-back' : page === 'traits' ? '.trait-spiral-node[data-arm="junction"]' : '.cs-pages [data-tab="traits"]'}
         label={levelGuide === 'close' ? 'Back' : page === 'traits' ? 'Tap the star' : 'Open Traits'}
       />}
     </dialog>
