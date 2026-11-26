@@ -230,7 +230,7 @@ export const IntroView = ({
       )}
       {sheet === 'board' && (
         <MenuPanel title="Today's tyrants" onClose={closeSheet}>
-          <LeaderboardList entries={entries} limit={LEADERBOARD_SIZE} />
+          <LeaderboardList entries={entries} limit={LEADERBOARD_SIZE} currentUsername={data.username} />
         </MenuPanel>
       )}
     </main>
