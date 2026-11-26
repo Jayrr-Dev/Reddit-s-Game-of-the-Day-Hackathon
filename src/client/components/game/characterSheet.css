@@ -225,7 +225,7 @@
   border: 1px solid var(--line);
   transform: rotate(45deg);
 }
-.cs-skill-tree svg {
+.cs-skill-tree [data-skill-map] {
   display: block;
   width: 100%;
   height: auto;
@@ -236,7 +236,7 @@
   fill: none;
   stroke-width: 2;
 }
-.cs-skill-tree svg.cs-focused-path {
+.cs-skill-tree .cs-focused-path {
   height: min(44vh, 15rem);
 }
 @media (max-width: 23rem) {
@@ -244,7 +244,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-.cs-skill-tree path {
+.cs-skill-link {
   vector-effect: non-scaling-stroke;
   stroke-width: 1.25px;
 }
@@ -647,10 +647,20 @@
 /* --- DIRECT SKILL PATH CONTROLS --- */
 .cs-skill-chart {position:relative;}
 .cs-skill-chart[data-detail-open=true] { min-height: max(10rem, var(--skill-detail-height, 0px)); }
-.cs-skill-chart path {opacity:.45;}
-.cs-skill-chart path[data-lit='true'] {opacity:1;stroke-width:3px;}
+.cs-skill-link {opacity:.45;}
+.cs-skill-link[data-lit='true'] {opacity:1;stroke-width:3px;}
+.cs-skill-glyph {
+  --glyph-body: #593017;
+  --glyph-facet: #ba6a20;
+}
+.cs-click-node[data-owned='true'] .cs-skill-glyph {
+  --glyph-body: #ffe8b3;
+  --glyph-facet: #f7ad50;
+}
+.cs-glyph-body { fill: var(--glyph-body); }
+.cs-glyph-facet { fill: var(--glyph-facet); }
 .cs-click-node {cursor:pointer;}
-.cs-click-node[aria-disabled=true] {opacity:.5;cursor:default;}
+.cs-click-node[aria-disabled=true] {opacity:.68;cursor:default;}
 .cs-click-node:focus { outline: none; }
 .cs-click-node:focus-visible circle:first-of-type {
   stroke: var(--color-on-parchment) !important;
@@ -659,13 +669,12 @@
 }
 .cs-node-detail {
   --tip-width: min(17rem, 100%);
-  --skill-accent: var(--color-card-movement);
   position: absolute;
   z-index: 2;
   top: 0;
   left: 0;
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  grid-template-columns: 2.6rem minmax(0, 1fr);
   align-items: start;
   gap: .55rem;
   box-sizing: border-box;
@@ -677,36 +686,18 @@
   color: var(--color-on-parchment);
   box-shadow: 0 3px 10px #26180c38;
 }
-.cs-node-detail[data-branch='1'] { --skill-accent: var(--color-card-melee); }
-.cs-node-detail[data-branch='2'] { --skill-accent: var(--color-card-range); }
-.cs-node-detail[data-branch='3'] { --skill-accent: var(--color-card-utility); }
-.cs-node-detail[data-branch='4'] { --skill-accent: var(--color-card-curse); }
-.cs-skill-art {
-  position: relative;
+.cs-skill-badge {
   display: grid;
   place-items: center;
-  aspect-ratio: 2 / 3;
+  aspect-ratio: 1;
   border: 1px solid var(--line);
   border-radius: .25rem;
-  overflow: hidden;
-  background:
-    radial-gradient(ellipse at center, color-mix(in srgb, var(--skill-accent) 55%, var(--paper)) 0 20%, transparent 72%),
-    linear-gradient(135deg, var(--paper-shadow), var(--color-ink));
+  background: #edbf7a;
 }
-.cs-skill-art::after {
-  content: '';
-  position: absolute;
-  inset: 4px;
-  border: 1px solid color-mix(in srgb, var(--paper) 52%, transparent);
-  border-radius: .12rem;
-  pointer-events: none;
-}
-.cs-skill-art img {
+.cs-skill-badge svg {
   display: block;
-  width: 96%;
+  width: 72%;
   aspect-ratio: 1;
-  object-fit: contain;
-  filter: drop-shadow(0 3px 5px #130e1480);
 }
 .cs-node-copy {
   display: grid;

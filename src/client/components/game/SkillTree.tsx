@@ -1,7 +1,7 @@
 import { playSound } from '../../lib/gameAudio';
 // --- SKILL TREE ---
 import { useLayoutEffect, useRef, useState } from 'react';
-import { skillArtworkFor } from './skillArtwork';
+import { SkillGlyph } from './SkillGlyph';
 import { TintedText } from '../ui/RichText';
 import type { CharacterState } from '../../../shared/game/character';
 import {
@@ -15,7 +15,6 @@ import {
   planSkillPath,
   type SkillPick,
 } from '../../../shared/game/skills';
-import { ProgressiveImg, ProgressiveSvgImage } from '../ui/ProgressiveImage';
 
 const colors = ['movement', 'melee', 'range', 'utility', 'curse'];
 const overviewHeights = [-104, -144, -171, -201];
@@ -43,15 +42,13 @@ export function SkillTree({
   const local = picks.filter((p) => p.branch === active?.branch);
   const rank = active ? skillRank(local, active.tier, active.slot) : 0;
 
-  const activeArt = active ? skillArtworkFor(active) : undefined;
-
   useLayoutEffect(() => {
     const box = chart.current;
     const tip = popover.current;
     if (!detail || !box || !tip) return;
     const { target } = detail;
 
-    /** Prefer a free side of the node, then clamp the portrait panel inside the chart. */
+    /** Prefer a free side of the node, then clamp the detail panel inside the chart. */
     function place() {
       if (!box || !tip) return;
       const gap = 8;
@@ -157,6 +154,7 @@ export function SkillTree({
         }}
       >
         <svg
+          data-skill-map
           className={branch !== null ? 'cs-focused-path' : undefined}
           viewBox={branch !== null ? '0 -48 265 108' : '-219 -218 438 229'}
           role="group"
@@ -174,7 +172,7 @@ export function SkillTree({
                 stroke={color}
                 transform={`rotate(${rotation})`}
               >
-                <path d={'M0 0 V' + heights[0]} data-lit={owned.length > 0} />
+                <path className="cs-skill-link" d={'M0 0 V' + heights[0]} data-lit={owned.length > 0} />
                 {tiers.map((row, t) =>
                   row.map((node, s) =>
                     node.parents.map((parent) => {
@@ -183,6 +181,7 @@ export function SkillTree({
                       return (
                         <path
                           key={[t, s, parent].join('-')}
+                          className="cs-skill-link"
                           data-lit={
                             !!skillRank(owned, t, s) &&
                             !!skillRank(owned, t - 1, parent)
@@ -198,7 +197,6 @@ export function SkillTree({
                     const r = skillRank(owned, t, s);
                     const pick = { branch: b, tier: t, slot: s };
                     const effect = skillEffectOf(pick);
-                    const icon = skillArtworkFor(pick);
                     const radius = branch !== null
                       ? skillCap(t) === 1 ? 13 : 10.5
                       : skillCap(t) === 1 ? 10 : 5.5;
@@ -223,6 +221,7 @@ export function SkillTree({
                         tabIndex={0}
                         aria-label={label}
                         className="cs-click-node"
+                        data-owned={r > 0}
                         onClick={(e) => {
                           e.stopPropagation();
                           activate(pick, e.currentTarget);
@@ -247,18 +246,12 @@ export function SkillTree({
                           r={radius}
                           style={r ? { fill: color } : undefined}
                         />
-                        {icon && (
-                          <ProgressiveSvgImage
-                            href={icon}
-                            x={node.x - radius * 0.88}
-                            y={heights[t]! - radius * 0.88}
-                            width={radius * 1.76}
-                            height={radius * 1.76}
-                            transform={`rotate(${-rotation} ${node.x} ${heights[t]})`}
-                            pointerEvents="none"
-                            aria-hidden="true"
-                          />
-                        )}
+                        <g
+                          transform={`translate(${node.x} ${heights[t]}) rotate(${-rotation}) scale(${radius / 16}) translate(-12 -12)`}
+                          pointerEvents="none"
+                        >
+                          <SkillGlyph pick={pick} />
+                        </g>
                         {branch !== null && (
                           <text
                             // RANK UNDER THE CIRCLE: the path is turned 90°,
@@ -295,13 +288,10 @@ export function SkillTree({
             className="cs-node-detail"
             role="group"
             aria-label="Circle details"
-            data-branch={active.branch}
           >
-            {activeArt && (
-              <div className="cs-skill-art" aria-hidden="true">
-                <ProgressiveImg src={activeArt} alt="" draggable={false} />
-              </div>
-            )}
+            <div className="cs-skill-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><SkillGlyph pick={active} /></svg>
+            </div>
             <div className="cs-node-copy">
               <strong>
                 {skillEffectOf(active)?.name ?? branchNames[active.branch]} ·{' '}
