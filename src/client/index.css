@@ -194,7 +194,9 @@
   --animate-unit-cast-lift: unit-cast-lift 560ms ease-in-out;
   --animate-hero-pulse: hero-pulse 560ms ease-in-out;
   --animate-hero-shot: hero-shot 220ms cubic-bezier(0.4, 0, 0.9, 0.7) both;
-  --animate-hero-sway: hero-sway 4s ease-in-out infinite;
+  --animate-hero-sway:
+    hero-sway 4s ease-in-out infinite,
+    hero-bob 1s ease-in-out infinite alternate;
   --animate-hero-death: hero-death 520ms ease-in forwards;
   --animate-tooltip-in: tooltip-in 120ms ease-out;
   --animate-speed-lines: speed-lines 560ms ease-out forwards;
@@ -420,7 +422,8 @@
   }
 
   /* A hero's idle sway: shifts its weight side to side. Each hero sets
-     its own --sway-px, --sway-tilt, duration and delay (HeroOnField). */
+     its own --sway-px, --sway-tilt, duration, delay and direction
+     (HeroOnField). */
   @keyframes hero-sway {
     0%,
     100% {
@@ -430,6 +433,18 @@
     50% {
       transform: translateX(calc(var(--sway-px, 2) * 1px))
         rotate(calc(var(--sway-tilt, 0.6) * 1deg));
+    }
+  }
+
+  /* The bob riding on the sway: a small lift each time the weight
+     passes centre (twice per sway, so each leg is a quarter of the period). Uses
+     the separate translate property so it adds to the sway's transform. */
+  @keyframes hero-bob {
+    from {
+      translate: 0 0;
+    }
+    to {
+      translate: 0 calc(var(--sway-bob, 0) * -1px);
     }
   }
 

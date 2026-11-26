@@ -140,19 +140,22 @@ const ROW_TINT_CLASS: Record<HeroRow, string> = {
 };
 
 /**
- * Idle sway: each hero rocks on its own period, phase and strength, so
- * the horde never moves in lockstep. Parallax: the front row (nearer)
- * sways about twice as far as the back row.
+ * Idle sway: each hero rocks on its own period, phase, strength, tilt,
+ * bob and starting side, so the horde never moves in lockstep. Parallax:
+ * the front row (nearer) sways about twice as far as the back row.
+ * Amounts were trimmed ~30% at Sam's ask (2026-11-26).
  */
-const SWAY_PERIOD_MIN_MS = 3200;
-const SWAY_PERIOD_SPREAD_MS = 2000;
+const SWAY_PERIOD_MIN_MS = 2800;
+const SWAY_PERIOD_SPREAD_MS = 3000;
 const SWAY_PX: Record<HeroRow, { min: number; spread: number }> = {
-  front: { min: 2.5, spread: 1.5 },
-  back: { min: 1.2, spread: 0.8 },
-  horizon: { min: 0.6, spread: 0.4 },
+  front: { min: 1.6, spread: 1.2 },
+  back: { min: 0.8, spread: 0.6 },
+  horizon: { min: 0.4, spread: 0.3 },
 };
-/** Tilt (deg) per px of sway, so the rock reads as weight shifting. */
-const SWAY_TILT_PER_PX = 0.3;
+/** Tilt (deg) per px of sway: some heroes rock stiffly, others lean in. */
+const SWAY_TILT_PER_PX = { min: 0.12, spread: 0.3 } as const;
+/** Lift (px) per px of sway as the weight passes centre (a breathing bob). */
+const SWAY_BOB_PER_PX = { min: 0, spread: 0.35 } as const;
 
 /** Gap (px) kept between the plate and the top of the drawing space. */
 const PLATE_REST_PX = 2;
@@ -208,15 +211,24 @@ const plateStyle = (size: HeroSize): CSSProperties => ({
  * this hero's own layer (no inherited properties, no restyle).
  */
 const swayStyle = (unit: HeroUnit): CSSProperties => {
-  const period =
-    SWAY_PERIOD_MIN_MS + seeded(unit.uid, 1) * SWAY_PERIOD_SPREAD_MS;
+  const roll = (salt: number) => seeded(unit.uid, salt);
+  const period = SWAY_PERIOD_MIN_MS + roll(1) * SWAY_PERIOD_SPREAD_MS;
   const { min, spread } = SWAY_PX[unit.row];
-  const px = min + seeded(unit.uid, 2) * spread;
+  const px = min + roll(2) * spread;
+  const tilt = px * (SWAY_TILT_PER_PX.min + roll(4) * SWAY_TILT_PER_PX.spread);
+  const bob = px * (SWAY_BOB_PER_PX.min + roll(5) * SWAY_BOB_PER_PX.spread);
+  const startsRight = roll(6) < 0.5;
+  const delay = -Math.round(roll(3) * period);
+  // Two animations (index.css): the sway, then the bob. The bob runs a
+  // quarter sway each way ('alternate'), on the same delay, so it is low
+  // at each side of the sway and peaks as the weight crosses centre.
   return {
-    animationDuration: `${Math.round(period)}ms`,
-    animationDelay: `${-Math.round(seeded(unit.uid, 3) * period)}ms`,
+    animationDuration: `${Math.round(period)}ms, ${Math.round(period / 4)}ms`,
+    animationDelay: `${delay}ms, ${delay}ms`,
+    animationDirection: `${startsRight ? 'reverse' : 'normal'}, alternate`,
     ['--sway-px' as string]: px.toFixed(2),
-    ['--sway-tilt' as string]: (px * SWAY_TILT_PER_PX).toFixed(2),
+    ['--sway-tilt' as string]: tilt.toFixed(2),
+    ['--sway-bob' as string]: bob.toFixed(2),
   };
 };
 
