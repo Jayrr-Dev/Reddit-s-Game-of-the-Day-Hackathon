@@ -161,7 +161,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: color-mix(in srgb, var(--stat-ink) 16%, #ffefcf);
 }
 .trait-hybrid-half[data-side=left] { clip-path: inset(0 50% 0 0); }
 .trait-hybrid-half[data-side=right] { clip-path: inset(0 0 0 50%); }

@@ -98,12 +98,13 @@ function arrangeRewards(rewards: Reward[], trait: TraitId, diameters: number[]) 
 }
 
 // --- HYBRID HALVES ---
-/** Left half in the first stat's ink, right half in the second's, one icon split down the middle. */
-const HybridHalves = ({ icon, inks, showIcon }: { icon: Stat['key']; inks: readonly [string, string]; showIcon: boolean }) => (
+/** Each half shows its own stat's icon and style: e.g. half heart (HP), half shield (Shield %). */
+const HybridHalves = ({ stats, showIcon }: { stats: readonly [Stat, Stat]; showIcon: boolean }) => (
   <>
-    {inks.map((ink, side) => (
-      <span key={side} className="trait-hybrid-half stat-ink" data-stat={ink} data-side={side === 0 ? 'left' : 'right'} aria-hidden="true">
-        {showIcon && <StatIcon stat={icon} />}
+    {stats.map((stat, side) => (
+      <span key={stat.key} className="trait-hybrid-half stat-ink" data-stat={INKS[stat.key]}
+        data-kind={stat.percent ? 'percent' : 'flat'} data-side={side === 0 ? 'left' : 'right'} aria-hidden="true">
+        {showIcon && <StatIcon stat={stat.key} />}
       </span>
     ))}
   </>
@@ -226,8 +227,8 @@ export const TraitSpiral = ({ trait, character, stats, onSetNode, onSaveTraits, 
         {nodes.map((node, i) => {
           const point = node.point;
           const gain = node.changes[0];
-          // HYBRID: a second stat in another colour (Vigor's HP + Shield) splits the circle.
-          const second = gain && node.changes.find(stat => INKS[stat.key] !== INKS[gain.key]);
+          // HYBRID: any circle paying two stats (HP + Shield, flat + % damage) splits in half.
+          const second = node.changes[1];
           const filled = owned.has(node.id);
           const steps = planFor(node.id);
           const saved = isSaved(node.id);
@@ -257,7 +258,7 @@ export const TraitSpiral = ({ trait, character, stats, onSetNode, onSaveTraits, 
               data-stat={gain ? INKS[gain.key] : undefined} data-kind={gain ? gain.percent ? 'percent' : 'flat' : undefined}
               data-hybrid={second ? true : undefined}
               style={{ width: node.diameter, height: node.diameter }}>
-              {gain && second && <HybridHalves icon={gain.key} inks={[INKS[gain.key], INKS[second.key]]} showIcon={!filled} />}
+              {gain && second && <HybridHalves stats={[gain, second]} showIcon={!filled} />}
               {node.arm === 'junction' && <svg aria-hidden="true" className="trait-start-star" viewBox="0 0 30 30"><path d="m15 1.5 4 8.3 9.4 1.3-6.8 6.6 1.7 9.4-8.3-4.5-8.3 4.5 1.7-9.4-6.8-6.6 9.4-1.3z" /></svg>}
               {filled ? <svg className="trait-owned-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4.5 4.5L19 7" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg> : gain && !second && <StatIcon stat={gain.key} />}
             </span>
