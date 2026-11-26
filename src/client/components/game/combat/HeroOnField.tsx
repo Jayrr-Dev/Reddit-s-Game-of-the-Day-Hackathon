@@ -517,12 +517,14 @@ export const HeroOnField = ({
                       key={secondPhase ? 'cerviel-phase-two' : lastHitId ?? 'steady'}
                       className={`h-full w-full origin-bottom ${lastHitId === null ? '' : 'animate-flinch'} ${unit.statuses.cloak > 0 ? 'opacity-45' : ''}`}
                     >
-                      {secondPhase ? <CervielSecondPhase action={action} uid={unit.uid} /> : <HeroFigure
-                        heroId={unit.heroId}
-                        size={size}
-                        action={action}
-                        mood={mood}
-                      />}
+                      <div className={`h-full w-full origin-bottom ${unit.heroId === 'ivoryWerewolf' ? 'scale-200 pointer-events-none' : ''}`}>
+                        {secondPhase ? <CervielSecondPhase action={action} uid={unit.uid} /> : <HeroFigure
+                          heroId={unit.heroId}
+                          size={size}
+                          action={action}
+                          mood={mood}
+                        />}
+                      </div>
                     </div>
                     </div>
                   </div>

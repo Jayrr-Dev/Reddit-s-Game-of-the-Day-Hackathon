@@ -48,7 +48,7 @@ Use a **layered rig** when the original art should stay intact and the action ca
 
 ### Preview and export WebP
 
-- Send a 24 fps preview with the full character in frame. Use MP4 for exact cadence or GIF for quick review. Check that attack clips return to neutral and that idle loops have no visible seam. Resolve art corrections before replacing the live asset.
+- Send a 24 fps preview with the full character in frame. Generate character poses on transparent backgrounds. Deliver character GIFs with real transparency from the first review; don't bake in a matte, checkerboard, or scenery. An optional MP4 can show exact cadence against a test backdrop. Check that attacks return to neutral and idle loops have no visible seam.
 - Export the checked sequence as a transparent WebP sprite strip or animated WebP, matching the playback component. Put the game asset under `src/client/assets/heroes/`, keep the static neutral sprite, and retain the editable source and GIF outside the runtime bundle.
 - Decode the final WebP to verify transparency, frame count and order, dimensions, file size, and timing. Attacks should play once and return to idle; ambient or idle clips may loop. Use a stable static sprite for reduced motion.
 

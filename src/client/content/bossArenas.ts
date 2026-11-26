@@ -13,7 +13,7 @@ import scene8 from '../assets/terrain/boss/cambiel-gilded-eclipse.webp';
 import scene9 from '../assets/terrain/boss/geonosis-glacier-chapel.webp';
 import scene10 from '../assets/terrain/boss/raziel-veiled-scriptorium.webp';
 import scene11 from '../assets/terrain/boss/holy-dragon-sunspire-aerie.webp';
-import scene12 from '../assets/terrain/boss/vael-thunder-gorge.webp';
+import scene12 from '../assets/terrain/boss/vael-thunder-gorge-cloud-floor.webp';
 import scene13 from '../assets/terrain/boss/holy-king-crown-basilica.webp';
 
 import slothArena from '../assets/terrain/cave.webp';
