@@ -47,6 +47,10 @@ export const BOSS_INTROS: Record<BossIntroId, BossIntro> = {
 const DEFAULT_BOSS_INTRO: BossIntroId = 'riseFromBelow';
 
 const BOSS_INTRO_BY_HERO: Partial<Record<HeroId, BossIntroId>> = {
+  sloth: 'riseFromBelow',
+  pride: 'crashLanding',
+  lust: 'riseFromBelow',
+  gluttony: 'riseFromBelow',
   mageBorneAstra: 'riseFromBelow',
   grandangelCambiel: 'riseFromBelow',
   mageBorneAzula: 'riseFromBelow',

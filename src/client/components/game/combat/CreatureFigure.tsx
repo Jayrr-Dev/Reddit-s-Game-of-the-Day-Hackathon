@@ -38,6 +38,10 @@ import type { JSX } from 'react';
 import { IvoryWerewolf, WolfCentaur } from './WolfFigures';
 import { AngelMage } from './AngelMageFigure';
 import { ApollyonSeraph } from './ApollyonSeraphFigure';
+import slothArt from '../../../assets/heroes/sloth.webp';
+import prideArt from '../../../assets/heroes/pride.webp';
+import lustArt from '../../../assets/heroes/lust.webp';
+import gluttonyArt from '../../../assets/heroes/gluttony.webp';
 import greedArt from '../../../assets/heroes/greed.webp';
 import envyArt from '../../../assets/heroes/envy.webp';
 import moriArt from '../../../assets/heroes/light-lord-mori.webp';
@@ -774,6 +778,10 @@ const CREATURE_DRAWINGS: Record<
   CreatureId,
   (props: { mood: HeroMood; size: HeroSize; action?: HeroAction | null }) => JSX.Element
 > = {
+  sloth: ({ size }) => <BossSprite size={size} art={slothArt} inset={10} />,
+  pride: ({ size }) => <BossSprite size={size} art={prideArt} inset={2} />,
+  lust: ({ size }) => <BossSprite size={size} art={lustArt} inset={1} hover />,
+  gluttony: ({ size }) => <BossSprite size={size} art={gluttonyArt} inset={9} />,
   greed: ({ size }) => <BossSprite size={size} art={greedArt} inset={2} />,
   envy: ({ size }) => <BossSprite size={size} art={envyArt} inset={10} />,
   holyDragon: HolyDragon,

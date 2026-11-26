@@ -16,6 +16,11 @@ import scene11 from '../assets/terrain/boss/holy-dragon-sunspire-aerie.webp';
 import scene12 from '../assets/terrain/boss/vael-thunder-gorge.webp';
 import scene13 from '../assets/terrain/boss/holy-king-crown-basilica.webp';
 
+import slothArena from '../assets/terrain/cave.webp';
+import prideArena from '../assets/terrain/royal-court.webp';
+import lustArena from '../assets/terrain/monastery.webp';
+import gluttonyArena from '../assets/terrain/dungeon.webp';
+
 export type BossArenaAmbience = 'stone' | 'highland' | 'civic';
 export type BossArena = {
   name: string;
@@ -26,6 +31,10 @@ export type BossArena = {
 };
 
 export const BOSS_ARENAS: Readonly<Partial<Record<string, BossArena>>> = {
+  sloth: { name: 'Basalt Hollows', image: slothArena, ambience: 'stone', vanishingX: 50, horizon: 38 },
+  pride: { name: 'Hall of Mirrors', image: prideArena, ambience: 'stone', vanishingX: 50, horizon: 38 },
+  lust: { name: 'The Veiled Sanctuary', image: lustArena, ambience: 'stone', vanishingX: 50, horizon: 38 },
+  gluttony: { name: 'The Hollow Maw', image: gluttonyArena, ambience: 'stone', vanishingX: 50, horizon: 38 },
   zeruelArmored: { name: 'Twin Eclipse Citadel', image: scene0, ambience: 'stone', vanishingX: 50, horizon: 38 },
   archangelZeruel: { name: 'Twin Eclipse Citadel', image: scene0, ambience: 'stone', vanishingX: 50, horizon: 38 },
   fulgurDragonknight: { name: 'Thunderbreak Roost', image: scene1, ambience: 'highland', vanishingX: 50, horizon: 33 },

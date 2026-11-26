@@ -431,6 +431,34 @@ export const HEROES = {
     signature(move('Viridian Flood', spell(14), poison(5))),
   ]),
 
+  sloth: armored(hero('Sloth', 'boss', 245, 25, 2, FRONT, [
+    move('Basalt Layer', guard(20)),
+    move('Heavy Drag', strike(12), weaken(1)),
+    move('Stone Sleep', guard(12), protect('self')),
+    signature(move('Mountain Breaker', strike(20), knockBack(1))),
+  ]), 1),
+
+  pride: hero('Pride', 'boss', 225, 310, 8, FRONT, [
+    move('Royal Challenge', wrath(3)),
+    move('Sovereign’s Cut', strike(12), bleed(2)),
+    move('Imperious Guard', guard(12)),
+    signature(move('Sovereign’s Verdict', strike(10, 2))),
+  ]),
+
+  lust: hero('Lust', 'boss', 190, 350, 6, BACK, [
+    move('Beckon', spell(7), hex(3)),
+    move('Veiled Favor', guard(11), protect('self')),
+    move('Unwanted Gift', spell(10), dispel()),
+    signature(move('Velvet Thrall', spell(13), { kind: 'malaise', amount: 1 })),
+  ]),
+
+  gluttony: hero('Gluttony', 'boss', 245, 16, 4, FRONT, [
+    move('Ravenous Lash', strike(6, 2)),
+    move('Hunger Gaze', spell(11), weaken(1)),
+    move('Coil Inward', guard(15)),
+    signature(move('Devour', strike(16), heal(18, 'self'))),
+  ]),
+
   mageBorneAzula: hero('Mage Borne Azula', 'boss', 190, 49, 6, BACK, [
     move('Sevenfold Ward', guard(12), protect('self')),
     move('Oracle’s Hex', spell(7, 2), hex(3)),
@@ -608,6 +636,10 @@ const HERO_UNIT_TYPES = {
   twinAxeKnight: 'human',
   // Seven Sins.
   greed: 'sin',
+  sloth: 'sin',
+  pride: 'sin',
+  lust: 'sin',
+  gluttony: 'sin',
   envy: 'sin',
   // Demi-humans: human-shaped but born of magic, not of the kingdom.
   mageBorneAstra: 'demiHuman',

@@ -86,6 +86,10 @@ const BOSS_ENTRANCES: Partial<Record<HeroId, BossEntrance>> = {
   twinAxeKnight: { epithet: 'The Gilded Headsman', line: 'I bring a verdict with both hands.' },
   archangelUriel: { epithet: 'Warden of the Crimson Gate', line: 'Stand before the flame and be weighed.' },
   zeruelArmored: { epithet: 'The Ivory Eclipse', line: 'The two suns bear witness.' },
+  sloth: { epithet: 'The Unmoving', line: 'All your fury, and the mountain has not moved.' },
+  pride: { epithet: 'The Fallen Sovereign', line: 'Look up. You stand before a sovereign.' },
+  lust: { epithet: 'The Veiled Apparition', line: 'Tell me what you want. Leave out the lies.' },
+  gluttony: { epithet: 'The Hollow Hunger', line: 'Bring me what you have left.' },
   holyDragon: { epithet: 'Wyrm of the Last Light', line: 'I kept this flame when your kingdom was ash.', durationMs: 9200, landingMs: 2200, voice: { cue: 'bossUncVoice', durationMs: 4330 } },
   tempestWyrm: { epithet: 'Spear of the Breaking Sky', line: 'The storm bows to no one. Least of all to you.', landingMs: 2200 },
   grandGriffon: {

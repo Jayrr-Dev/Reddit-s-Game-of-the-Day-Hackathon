@@ -20,6 +20,10 @@ type MoveCues = Partial<Record<MoveMoment, Cue>>;
 
 // --- TABLE ---
 const BOSS_MOVE_CUES: Partial<Record<HeroId, Record<string, MoveCues>>> = {
+  sloth: { 'Basalt Layer': { start: { sound: 'armorUp', gain: 0.65 } }, 'Mountain Breaker': { impact: { sound: 'bluntImpact', gain: 0.9 } } },
+  pride: { 'Royal Challenge': { start: { sound: 'buffMajor', gain: 0.75 } }, 'Sovereign’s Verdict': { charge: { sound: 'bossDescent', gain: 0.55 }, impact: { sound: 'bladeHit', gain: 0.88 } } },
+  lust: { Beckon: { start: { sound: 'curse', gain: 0.65 } }, 'Velvet Thrall': { charge: { sound: 'hexTrigger', gain: 0.55 }, impact: { sound: 'magicArcaneHit', gain: 0.72 } } },
+  gluttony: { 'Ravenous Lash': { start: { sound: 'move', gain: 0.60 } }, Devour: { charge: { sound: 'curse', gain: 0.68 }, impact: { sound: 'bluntImpact', gain: 0.92 } } },
   holyDragon: {
     'Halo of Judgment': { impact: { sound: 'uncUltimate', gain: 0.95 } },
   },
