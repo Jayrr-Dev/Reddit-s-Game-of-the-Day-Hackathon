@@ -15,9 +15,9 @@ import { Fragment, useEffect, useState, type CSSProperties, type ReactNode } fro
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { newestCardIds } from '../../../shared/game/cardReleases';
 import { getHero, type HeroId } from '../../../shared/game/heroes';
-import { describeHeroMoveList } from '../../../shared/game/describe';
 import { CARD_LOOK, EDGE_ART, ELEMENT_LOOK, TIER_NAME_CLASS } from '../../content/visuals';
-import { MoveEffect } from './MoveEffect';
+import { UnitInfo } from './UnitInfo';
+import { TabBar } from '../ui/TabBar';
 import { HeroFigure } from './combat/HeroFigure';
 import { FIGURE_BOUNDS, type FigureBounds } from '../../content/figureBounds';
 import { BODY_HEIGHT, BODY_WIDTH } from '../../lib/heroFigure';
@@ -51,6 +51,7 @@ type PickerEntry = { id: string; name: string; blurb?: string; nameClass?: strin
 type PickerSection = { id: string; label: string; scenarios: readonly SandboxScenario[] };
 
 // --- CONSTANTS ---
+const PICKER_TABS: readonly PickerTab[] = ['scenarios', 'units', 'decks', 'map', 'sounds'];
 const TAB_LABELS: Record<PickerTab, string> = {
   scenarios: 'Scenarios',
   units: 'Units',
@@ -206,47 +207,7 @@ const EntryButton = ({
   </button>
 );
 
-/** The practice menu tabs. */
-const TabBar = ({
-  tab,
-  onTab,
-}: {
-  tab: PickerTab;
-  onTab: (tab: PickerTab) => void;
-}) => (
-  <div className="training-tabs grid grid-cols-5 gap-1" role="tablist">
-    {(Object.keys(TAB_LABELS) as PickerTab[]).map((id) => (
-      <button
-        key={id}
-        type="button"
-        role="tab"
-        aria-selected={tab === id}
-        onClick={() => onTab(id)}
-        className={`rounded-full px-0.5 py-0.5 text-[10px] font-bold uppercase tracking-normal transition sm:px-1 sm:text-xs sm:tracking-widest ${tab === id ? 'bg-accent text-on-accent' : 'text-ink/60 hover:text-ink'}`}
-      >
-        {TAB_LABELS[id]}
-      </button>
-    ))}
-  </div>
-);
 
-/** One unit's moves, in the order it cycles them, each with its effects. */
-const UnitMoveList = ({ heroId }: { heroId: HeroId }) => (
-  <ol className="unit-move-list">
-    {describeHeroMoveList(heroId).map((move, index) => (
-      <li key={index} data-signature={move.isSignature || undefined}>
-        <span className="unit-move-name">
-          <span className="unit-move-step">{index + 1}</span>
-          {move.name}
-          {move.isSignature && <span className="unit-move-tag">Signature</span>}
-        </span>
-        <ul>
-          {move.intents.map((intent, i) => <MoveEffect key={i} intent={intent} />)}
-        </ul>
-      </li>
-    ))}
-  </ol>
-);
 
 /**
  * Asks whether to fight the tapped scenario before it starts. With
@@ -255,11 +216,14 @@ const UnitMoveList = ({ heroId }: { heroId: HeroId }) => (
 const FightPrompt = ({
   scenario,
   showMoves,
+  terrain,
   onFight,
   onBack,
 }: {
   scenario: SandboxScenario;
   showMoves: boolean;
+  /** Backdrop for the Sprite tab. */
+  terrain: string | undefined;
   onFight: () => void;
   onBack: () => void;
 }) => {
@@ -273,7 +237,9 @@ const FightPrompt = ({
       onCancel={onBack}
     >
       {scenario.blurb}
-      {showMoves && heroId && <UnitMoveList heroId={heroId} />}
+      {showMoves && heroId && (
+        <UnitInfo heroId={heroId} sprite={<ScenarioPreview scenario={scenario} terrain={terrain} />} />
+      )}
     </ConfirmDialog>
   );
 };
@@ -421,11 +387,12 @@ export const ScenarioPicker = ({
     <>
     {renderHeader(() => { setTab('decks'); setEditing(''); })}
     <section className="training-picker">
-      <TabBar tab={tab} onTab={setTab} />
+      <TabBar ids={PICKER_TABS} labels={TAB_LABELS} tab={tab} onTab={setTab} />
       {pending && (
         <FightPrompt
           scenario={pending}
           showMoves={isShowingMoves}
+          terrain={bossArenaOf(pending.heroIds)?.image ?? MAP_IMAGES[terrainIndex]}
           onFight={() => { setPending(null); onPickScenario(pending); }}
           onBack={() => setPending(null)}
         />

@@ -22,6 +22,7 @@ import {
   ALL_HERO_IDS,
   groupUnitsByUnitType,
   soloUnitScenario,
+  describeUnitStats,
 } from './sandbox.ts';
 import { getHero, unitTypeOf } from './heroes.ts';
 import { describeHeroMoveList } from './describe.ts';
@@ -408,4 +409,17 @@ void test('a solo unit names the line it prefers to fight from', () => {
   // FEATURES.threeRowField is off in this file, so rows fold onto two lines.
   assert.match(soloUnitScenario('squire').blurb, /Frontline$/);
   assert.match(soloUnitScenario('archer').blurb, /Midline$/);
+});
+
+void test('unit stats read its rank, HP, line and traits from the catalog', () => {
+  const statsOf = (heroId: Parameters<typeof describeUnitStats>[0]) =>
+    Object.fromEntries(describeUnitStats(heroId).map((stat) => [stat.label === 'Trait' ? stat.value : stat.label, stat.value]));
+  const ballista = statsOf('ballista');
+  assert.equal(ballista['Rank'], 'Elite');
+  assert.equal(ballista['HP'], String(getHero('ballista').maxHp));
+  assert.equal(ballista['Unit type'], 'Humans');
+  assert.ok('Anchored' in ballista && 'Longrange' in ballista);
+  // Armor only shows on a hero that has some.
+  assert.ok(!('Armor' in statsOf('squire')));
+  assert.equal(statsOf('hornedSentinel')['Armor'], String(getHero('hornedSentinel').armor));
 });

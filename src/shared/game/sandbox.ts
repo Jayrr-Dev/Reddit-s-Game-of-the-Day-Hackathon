@@ -14,7 +14,7 @@ import { CHAMPION_IDS, ELITE_IDS, getHero, GRUNT_IDS, HEROES, UNIT_TYPE_LABELS, 
 import { move } from './movement.ts';
 import { nextInt, pickWeighted, type RngState } from './rng.ts';
 import { BATTLEFIELD_ROWS, PLAYER_MAX_HP } from './rules.ts';
-import { preferredPositionLabel } from './describe.ts';
+import { PASSIVE_INFO, preferredPositionLabel } from './describe.ts';
 import type { MoveAction, PlayCardAction } from './run.ts';
 import type { CardId } from './cards.ts';
 import { isCustomDeckList, sandboxDeckCards, type SandboxDeckId } from './sandboxDecks.ts';
@@ -385,6 +385,37 @@ export const soloUnitScenario = (heroId: HeroId): SandboxScenario => {
     heroIds: [heroId],
     startsInPlace: true,
   };
+};
+
+/** One row of a unit's Stats tab; info is glossary markup under the value. */
+export type UnitStat = { label: string; value: string; info?: string };
+
+/** "1 column", "2 columns": how wide a hero stands on the field. */
+const columnsLabel = (size: number): string => size + (size === 1 ? ' column' : ' columns');
+
+/**
+ * A unit's numbers and traits for the Units tab's Stats view, read from
+ * the hero catalog: rank, kind, HP, line, width, speed, armor (when it
+ * has any) and one row per built-in trait.
+ */
+export const describeUnitStats = (heroId: HeroId): UnitStat[] => {
+  const hero = getHero(heroId);
+  const traits = (hero.passives ?? []).map((passive) => ({
+    label: 'Trait',
+    value: PASSIVE_INFO[passive].label,
+    info: PASSIVE_INFO[passive].description,
+  }));
+  return [
+    { label: 'Rank', value: TIER_LABELS[hero.tier] },
+    { label: 'Unit type', value: UNIT_TYPE_LABELS[unitTypeOf(heroId)] },
+    { label: 'HP', value: String(hero.maxHp) },
+    { label: 'Preferred line', value: preferredPositionLabel(heroId) },
+    { label: 'Size', value: columnsLabel(hero.size) },
+    { label: 'Speed', value: String(hero.speed), info: 'Higher acts **earlier** on the heroes\' turn' },
+    ...(hero.armor ? [{ label: 'Armor', value: String(hero.armor) }] : []),
+    { label: 'Moves', value: String(hero.moves.length + (hero.secondPhase?.moves.length ?? 0)) },
+    ...traits,
+  ];
 };
 
 // --- HORDE ---
