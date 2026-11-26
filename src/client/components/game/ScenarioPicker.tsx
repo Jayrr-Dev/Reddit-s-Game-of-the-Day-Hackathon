@@ -2,8 +2,8 @@
 // SCENARIO PICKER
 // The target dummies' pause-menu picker, in tabs: Scenarios (preset
 // lineups, SANDBOX_SCENARIOS, in unit type sections), Units (every hero
-// in the catalog, one by one, to fight alone) and Decks (themed test decks,
-// SANDBOX_DECKS). Tapping a scenario asks first (fight or not), so a
+// in the catalog, one by one, to fight alone), Decks (themed test decks,
+// SANDBOX_DECKS), Map and Sounds (every music loop and sound effect). Tapping a scenario asks first (fight or not), so a
 // stray tap never drops the player into a boss; tapping a deck deals a
 // fresh fight from it against the same dummies.
 // ===================================================================
@@ -26,6 +26,7 @@ import { Glyph } from '../ui/Glyph';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { ThemeSpeaker } from './ThemeSpeaker';
 import { ArenaDialog } from './ArenaDialog';
+import { SoundLibrary } from './menu/SoundLibrary';
 import type { ThemePreviewControls } from '../../hooks/useThemePreview';
 import {
   groupScenariosByUnitType,
@@ -41,7 +42,7 @@ import {
 } from '../../../shared/game/sandboxDecks';
 
 // --- TYPES ---
-type PickerTab = 'scenarios' | 'units' | 'decks' | 'map';
+type PickerTab = 'scenarios' | 'units' | 'decks' | 'map' | 'sounds';
 
 /** One entry in either tab; nameClass colours the name (scenario tier). */
 type PickerEntry = { id: string; name: string; blurb?: string; nameClass?: string };
@@ -55,6 +56,7 @@ const TAB_LABELS: Record<PickerTab, string> = {
   units: 'Units',
   decks: 'Decks',
   map: 'Map',
+  sounds: 'Sounds',
 };
 
 /** Scenarios in unit type sections; the catalog is static, so group once. */
@@ -212,7 +214,7 @@ const TabBar = ({
   tab: PickerTab;
   onTab: (tab: PickerTab) => void;
 }) => (
-  <div className="training-tabs grid grid-cols-4 gap-1" role="tablist">
+  <div className="training-tabs grid grid-cols-5 gap-1" role="tablist">
     {(Object.keys(TAB_LABELS) as PickerTab[]).map((id) => (
       <button
         key={id}
@@ -220,7 +222,7 @@ const TabBar = ({
         role="tab"
         aria-selected={tab === id}
         onClick={() => onTab(id)}
-        className={`rounded-full px-0.5 py-0.5 text-[11px] font-bold uppercase tracking-normal transition sm:px-1 sm:text-xs sm:tracking-widest ${tab === id ? 'bg-accent text-on-accent' : 'text-ink/60 hover:text-ink'}`}
+        className={`rounded-full px-0.5 py-0.5 text-[10px] font-bold uppercase tracking-normal transition sm:px-1 sm:text-xs sm:tracking-widest ${tab === id ? 'bg-accent text-on-accent' : 'text-ink/60 hover:text-ink'}`}
       >
         {TAB_LABELS[id]}
       </button>
@@ -441,6 +443,8 @@ export const ScenarioPicker = ({
             onInfo={tab === 'units' ? (scenario) => askToFight(scenario, true) : undefined}
             themePreview={themePreview}
           />
+        ) : tab === 'sounds' ? (
+          <SoundLibrary renderHeading={(label) => <SectionHeading key={label}>{label}</SectionHeading>} />
         ) : tab === 'map' ? (
           <>
           <SectionHeading>Boss arenas</SectionHeading>

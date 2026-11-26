@@ -74,6 +74,22 @@ const scenes: Record<string, readonly [ambience: string, score: string]> = {
   Dungeon: [stone, dungeonScore],
 } satisfies Record<(typeof MAP_NAMES)[number] | "Home", readonly [ambience: string, score: string]>;
 
+// --- SOUND LIBRARY: MUSIC AND AMBIENCE ---
+/** One named loop the Sounds tab can preview. */
+export type AudioTrack = { name: string; url: string };
+
+/** Every music loop the game plays, scene themes first, battle and boss last. */
+export const MUSIC_TRACKS: readonly AudioTrack[] = [
+  ...Object.entries(scenes).map(([name, [, url]]) => ({ name, url })),
+  { name: 'Wandering', url: wander },
+  { name: 'Battle (orchestral)', url: battleOrchestral },
+  { name: 'Boss: Army of Minotaur', url: boss },
+];
+
+/** Every ambience bed, one row per sound file. */
+export const AMBIENCE_TRACKS: readonly AudioTrack[] = Object.entries({ wild, civic, stone, water, highland, fire })
+  .map(([name, url]) => ({ name: name[0]?.toUpperCase() + name.slice(1), url }));
+
 type Playing = { url: string; source: AudioBufferSourceNode; gain: GainNode; targetLevel: number };
 type Layer = { fading: Set<Playing>; playing?: Playing | undefined; pending?: { url: string } | undefined };
 // Decoded music is much larger than its .ogg. Keep only recent scenes in memory.

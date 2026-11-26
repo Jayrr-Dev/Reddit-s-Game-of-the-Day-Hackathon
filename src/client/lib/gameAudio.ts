@@ -102,6 +102,18 @@ for (const channel of ['music', 'sfx'] as const) {
 }
 const sounds = { cervielCrack: cervielCrackUrl, cervielSeal: cervielSealUrl, cervielBlade: cervielBladeUrl, tempestSpear: tempestSpearUrl, tempestWings: tempestWingsUrl, tempestThunder: tempestThunderUrl, tempestCharge: tempestChargeUrl, tempestSkyBreaker: tempestSkyBreakerUrl, tempestRoar: tempestRoarUrl, draw: drawUrl, discard: discardUrl, menu: menuUrl, conquestOpen: conquestOpenUrl, conquestStart: conquestStartUrl, levelUp: levelUpUrl, victory: victoryUrl, runeClick: runeClickUrl, equip: equipUrl, unequip: unequipUrl, blunt: bluntUrl, blade: bladeUrl, arrow: arrowUrl, siegeArrow: siegeArrowUrl, respec: respecUrl, swiftArrow: swiftArrowUrl, cardClick: cardClickUrl, hoverTick: hoverTickUrl, cardHover: cardHoverUrl, turnEnd: turnEndUrl, bluntImpact: bluntImpactUrl, guardSet: guardUrl, armorUp: armorUpUrl, heal: healUrl, buffMinor: buffMinorUrl, buffMajor: buffMajorUrl, utilityCue: utilityCueUrl, arcane: arcaneUrl, curse: curseUrl, hexTrigger: hexTriggerUrl, guard: blockThudUrl, move: moveUrl, potion: potionUrl, imbue: buffMinorUrl, grave: graveUrl, knockback: knockbackUrl, enemyKnockback: enemyKnockbackUrl, shuffle: shuffleUrl, remove: removeUrl, reward: rewardUrl, bladeHit: bladeHitUrl, arrowHit: arrowHitUrl, shotMiss: shotMissUrl, poison: poisonUrl, bleedBite: bleedBiteUrl, magicFire: magicFireUrl, magicFireHit: magicFireHitUrl, magicIce: magicIceUrl, magicIceHit: magicIceHitUrl, magicLightning: magicLightningUrl, magicLightningHit: magicLightningHitUrl, shock: shockUrl, shockBurst: shockBurstUrl, magicArcaneHit: magicArcaneHitUrl, charge: chargeUrl, rush: rushUrl, backstep: backstepUrl, enemyStep: backstepUrl, bossDescent: bossDescentUrl, bossTouchdown: bossTouchdownUrl, bossUncVoice: bossUncVoiceUrl, bossRioVoice: bossRioVoiceUrl, deathScreen: deathScreenUrl, playerDeath: playerDeathUrl, uncUltimate: uncUltimateUrl, griffonTakeoff: griffonTakeoffUrl, griffonDive: griffonDiveUrl, griffonDiveWhoosh: griffonDiveWhooshUrl, deathHumanLowA, deathHumanLowB, deathHumanMidA, deathHumanMidB, deathHumanGritA, deathHumanGritB, deathHumanBreathA, deathHumanBreathB, deathBossSol, deathBossRio };
 export type Sound = keyof typeof sounds;
+
+// --- SOUND LIBRARY: EFFECTS ---
+/** Turns a cue key such as "magicFireHit" into "Magic fire hit". */
+const cueLabel = (key: string) => {
+  const words = key.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+/** Every sound effect file once (cues that share a file keep the first name), A to Z. */
+export const SOUND_EFFECTS: readonly { name: string; url: string }[] = [
+  ...new Map(Object.entries(sounds).reverse().map(([key, url]) => [url, { name: cueLabel(key), url }])).values(),
+].sort((a, b) => a.name.localeCompare(b.name));
 const deathCues = Object.values(deathVoiceCues).flat();
 const nextDeathByVoice = new Map<keyof typeof deathVoiceCues, number>();
 
