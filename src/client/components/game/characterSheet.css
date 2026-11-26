@@ -764,12 +764,18 @@
   background: transparent;
   font-size: .72rem;
 }
+/* Solid fills so the actions read as buttons on the dark tooltip. */
 .cs-node-detail .cs-rank-up {
-  border-color: var(--color-accent);
-  color: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 700;
 }
 .cs-node-detail .cs-refund {
-  color: var(--color-ink-muted);
+  border-color: var(--color-bleed);
+  background: var(--color-blood);
+  color: var(--color-ink);
+  font-weight: 700;
 }
 .cs-node-detail button:enabled:hover { box-shadow: inset 0 0 0 1px currentColor; }
 .cs-node-detail button:enabled:active { transform: translateY(1px); }
