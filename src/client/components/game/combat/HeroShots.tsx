@@ -19,7 +19,7 @@ import { POV_ANCHOR_ATTR } from './PovImpact';
 import { Projectile, type ProjectileFlight } from './Projectile';
 
 // --- TYPES ---
-type Shot = { id: number; from: Point; to: Point; kind: 'arrow' | 'lightning' };
+type Shot = { id: number; from: Point; to: Point; kind: 'arrow' | 'lightning'; frontOnRelease: boolean };
 
 /** A hero's shot as a projectile: an arrow, loosed at the release. */
 const asFlight = (shot: Shot): ProjectileFlight => ({
@@ -46,17 +46,18 @@ const shotPath = (
   uid: number,
   seed: number,
   kind: Shot['kind']
-): { from: Point; to: Point } | null => {
+): Pick<Shot, 'from' | 'to' | 'frontOnRelease'> | null => {
   const hero = document.querySelector(`[${HERO_UID_ATTR}="${uid}"]`);
-  const from =
-    centreOf(hero?.querySelector(kind === 'lightning' ? '[data-fulgur-cast-origin]' : '[data-archer-arrow-origin], .hero-arrow') ?? null) ?? centreOf(hero);
+  const spriteBow = kind === 'arrow' ? hero?.querySelector('[data-archer-arrow-origin]') : null;
+  const origin = spriteBow ?? hero?.querySelector(kind === 'lightning' ? '[data-fulgur-cast-origin]' : '.hero-arrow');
+  const from = centreOf(origin ?? null) ?? centreOf(hero);
   const centre = centreOf(document.querySelector(`[${POV_ANCHOR_ATTR}]`));
   if (!from || !centre) return null;
   const to = {
     x: centre.x + spread(seed, 1) * (kind === 'lightning' ? 10 : AIM_SCATTER_PX),
     y: centre.y + spread(seed, 2) * (kind === 'lightning' ? 10 : AIM_SCATTER_PX),
   };
-  return { from, to };
+  return { from, to, frontOnRelease: !!spriteBow };
 };
 
 // --- HOOKS ---

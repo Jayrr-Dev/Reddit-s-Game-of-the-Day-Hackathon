@@ -12,6 +12,7 @@ import type { MagicElement } from '../../../../shared/game/types';
 import { ELEMENT_LOOK } from '../../../content/visuals';
 import type { Point } from '../../../hooks/useCardDrag';
 import { CombatFx } from './CombatFx';
+import './projectile.css';
 
 // --- TYPES ---
 export type ProjectileKind = 'arrow' | 'bolt' | 'lightning';
@@ -23,6 +24,8 @@ export type ProjectileFlight = {
   to: Point;
   /** Wait before it leaves (ms). */
   delayMs: number;
+  /** The bow is facing the camera at release. */
+  frontOnRelease?: boolean;
   /** A Magic bolt's element (its colours), if it has one. */
   element?: MagicElement | undefined;
 };
@@ -54,9 +57,11 @@ const Arrow = () => (
     className="h-2.5 w-10 -translate-x-full -translate-y-1/2 [transform-origin:100%_50%] [rotate:var(--shot-angle)]"
     aria-hidden="true"
   >
-    <path d="M2 4h30" stroke="#5a3a22" strokeWidth="2" />
-    <path d="M40 4 31 0.5v7z" fill="#d8d2d8" />
-    <path d="M0 0.5h6l3 3.5H3zM0 7.5h6l3-3.5H3z" fill="#e8e0c8" />
+    <g className="projectile-arrow-shaft">
+      <path d="M2 4h30" stroke="#5a3a22" strokeWidth="2" />
+      <path d="M40 4 31 0.5v7z" fill="#d8d2d8" />
+      <path d="M0 0.5h6l3 3.5H3zM0 7.5h6l3-3.5H3z" fill="#e8e0c8" />
+    </g>
   </svg>
 );
 
@@ -112,9 +117,11 @@ export const Projectile = ({
   <div
     className={`absolute ${className} ${flight.kind === 'bolt' ? 'magic-flight' : ''}`}
     data-projectile-kind={flight.kind}
+    data-front-on-release={flight.frontOnRelease || undefined}
     style={flightStyle(flight)}
   >
     {flight.kind === 'arrow' && <CombatFx kind="projectile-speed" delayMs={flight.delayMs} />}
+    {flight.kind === 'arrow' && <span aria-hidden="true" className="projectile-arrow-smear" />}
     {flight.kind === 'arrow' ? <Arrow /> : flight.kind === 'lightning' ? <Lightning /> : <Bolt element={flight.element} />}
   </div>
 );

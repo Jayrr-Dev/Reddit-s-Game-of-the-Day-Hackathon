@@ -1,0 +1,50 @@
+/* The nocked arrow belongs to the archer art. Do not paint the flying
+   arrow (or its trail) during the bow's draw, even with a CSS delay. */
+[data-projectile-kind='arrow'] {
+  opacity: 0;
+  animation-fill-mode: forwards;
+}
+
+.projectile-arrow-smear {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 88px;
+  height: 8px;
+  pointer-events: none;
+  transform-origin: 100% 50%;
+  transform: translate(-100%, -50%) rotate(var(--shot-angle));
+  background: linear-gradient(90deg, transparent, #fff0bd75 75%, transparent);
+  border-radius: 50%;
+  filter: blur(1.6px);
+  animation: projectile-smear 220ms ease-out both;
+  animation-delay: inherit;
+}
+
+[data-front-on-release] .projectile-arrow-shaft {
+  transform-origin: 100% 50%;
+  animation: projectile-foreshorten 220ms linear both;
+}
+
+[data-front-on-release] > svg {
+  animation-delay: inherit;
+}
+[data-front-on-release] > svg .projectile-arrow-shaft {
+  animation-delay: inherit;
+}
+
+@keyframes projectile-foreshorten {
+  from { transform: scaleX(.16); }
+  30%, to { transform: scaleX(1); }
+}
+
+@keyframes projectile-smear {
+  from, to { opacity: 0; }
+  22% { opacity: .9; }
+  75% { opacity: .6; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .projectile-arrow-smear { display: none; }
+  [data-front-on-release] .projectile-arrow-shaft { animation: none; }
+}
