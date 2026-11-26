@@ -23,7 +23,7 @@ import {
 } from './character.ts';
 import { createSandbox } from './sandbox.ts';
 import { createRun, isRunAction, replayRun, runReducer } from './run.ts';
-import { PLAYER_MAX_HP } from './rules.ts';
+import { PLAYER_HP_CAP, PLAYER_MAX_HP } from './rules.ts';
 
 void test('70 levels fund 210 points while each of six traits caps at 64', () => {
   let character = createCharacter();
@@ -43,7 +43,7 @@ void test('hybrid curves reward the opening and mastery and preserve all endpoin
   const max = createCharacter().traits;
   for (const t of TRAITS) max[t] = 64;
   assert.deepEqual(characterBonuses(max), {
-    maxHp: 666,
+    maxHp: PLAYER_HP_CAP,
     shieldPercent: 100,
     meleePercent: 100,
     meleeFlat: 30,

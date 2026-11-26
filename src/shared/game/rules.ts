@@ -14,8 +14,10 @@ import type {
 } from './types.ts';
 
 // --- THE VILLAIN ---
-export const PLAYER_MAX_HP = 333;
-export const PLAYER_HP_CAP = 666;
+/** Starting max HP before any Vigor training. */
+export const PLAYER_MAX_HP = 66;
+/** Total max HP with the Vigor tree fully trained; Vigor's gains span the gap. */
+export const PLAYER_HP_CAP = 333;
 export const ENERGY_PER_TURN = 3;
 /**
  * RESERVE ENERGY: how much unspent energy can carry over when you end
