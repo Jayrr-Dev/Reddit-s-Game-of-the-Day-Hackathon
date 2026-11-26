@@ -1,7 +1,8 @@
 // ===================================================================
 // SCENARIO PICKER
 // The target dummies' pause-menu picker, in tabs: Scenarios (preset
-// lineups, SANDBOX_SCENARIOS, in unit type sections) and Decks (themed test decks,
+// lineups, SANDBOX_SCENARIOS, in unit type sections), Units (every hero
+// in the catalog, one by one, to fight alone) and Decks (themed test decks,
 // SANDBOX_DECKS). Tapping a scenario asks first (fight or not), so a
 // stray tap never drops the player into a boss; tapping a deck deals a
 // fresh fight from it against the same dummies.
@@ -22,8 +23,11 @@ import { Glyph } from '../ui/Glyph';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import {
   groupScenariosByUnitType,
+  groupUnitsByUnitType,
   scenarioTier,
+  soloUnitScenario,
   type SandboxScenario,
+  type ScenarioGroup,
 } from '../../../shared/game/sandbox';
 import {
   SANDBOX_DECKS,
@@ -32,7 +36,7 @@ import {
 } from '../../../shared/game/sandboxDecks';
 
 // --- TYPES ---
-type PickerTab = 'scenarios' | 'decks' | 'map';
+type PickerTab = 'scenarios' | 'units' | 'decks' | 'map';
 
 /** One entry in either tab; nameClass colours the name (scenario tier). */
 type PickerEntry = { id: string; name: string; blurb?: string; nameClass?: string };
@@ -40,12 +44,18 @@ type PickerEntry = { id: string; name: string; blurb?: string; nameClass?: strin
 // --- CONSTANTS ---
 const TAB_LABELS: Record<PickerTab, string> = {
   scenarios: 'Scenarios',
+  units: 'Units',
   decks: 'Decks',
   map: 'Map',
 };
 
 /** Scenarios in unit type sections; the catalog is static, so group once. */
 const SCENARIO_GROUPS = groupScenariosByUnitType();
+/** Every unit as a one-on-one scenario, in the same unit type sections. */
+const UNIT_GROUPS = groupUnitsByUnitType().map((group) => ({
+  ...group,
+  scenarios: group.heroIds.map(soloUnitScenario),
+}));
 
 // --- SUBCOMPONENTS ---
 /** A full-width heading that starts a section of the entry grid. */
@@ -190,7 +200,7 @@ const TabBar = ({
   tab: PickerTab;
   onTab: (tab: PickerTab) => void;
 }) => (
-  <div className="training-tabs grid grid-cols-3 gap-1" role="tablist">
+  <div className="training-tabs grid grid-cols-4 gap-1" role="tablist">
     {(Object.keys(TAB_LABELS) as PickerTab[]).map((id) => (
       <button
         key={id}
@@ -198,7 +208,7 @@ const TabBar = ({
         role="tab"
         aria-selected={tab === id}
         onClick={() => onTab(id)}
-        className={`rounded-full px-3 py-0.5 text-xs font-bold uppercase tracking-widest transition ${tab === id ? 'bg-accent text-on-accent' : 'text-ink/60 hover:text-ink'}`}
+        className={`rounded-full px-0.5 py-0.5 text-[11px] font-bold uppercase tracking-normal transition sm:px-1 sm:text-xs sm:tracking-widest ${tab === id ? 'bg-accent text-on-accent' : 'text-ink/60 hover:text-ink'}`}
       >
         {TAB_LABELS[id]}
       </button>
@@ -226,6 +236,36 @@ const FightPrompt = ({
     {scenario.blurb}
   </ConfirmDialog>
 );
+
+/** Scenarios under unit type headings; a tap asks to fight first. */
+const ScenarioSections = ({
+  groups,
+  terrainIndex,
+  onPick,
+}: {
+  groups: readonly ScenarioGroup[];
+  terrainIndex: number;
+  onPick: (scenario: SandboxScenario) => void;
+}) =>
+  groups.map((group) => (
+    <Fragment key={group.unitType}>
+      <SectionHeading>{group.label}</SectionHeading>
+      {group.scenarios.map((scenario) => (
+        <EntryButton
+          key={scenario.id}
+          entry={{ ...scenario, nameClass: TIER_NAME_CLASS[scenarioTier(scenario)] }}
+          preview={
+            <ScenarioPreview
+              scenario={scenario}
+              terrain={bossArenaOf(scenario.heroIds)?.image ?? MAP_IMAGES[terrainIndex]}
+            />
+          }
+          isActive={false}
+          onPick={() => onPick(scenario)}
+        />
+      ))}
+    </Fragment>
+  ));
 
 // --- COMPONENT ---
 /** Renders the tabs and the active tab's entries in a two-column grid. */
@@ -290,26 +330,12 @@ export const ScenarioPicker = ({
         role="tabpanel"
         aria-label={TAB_LABELS[tab]}
       >
-        {tab === 'scenarios' ? (
-          SCENARIO_GROUPS.map((group) => (
-            <Fragment key={group.unitType}>
-              <SectionHeading>{group.label}</SectionHeading>
-              {group.scenarios.map((scenario) => (
-                <EntryButton
-                  key={scenario.id}
-                  entry={{ ...scenario, nameClass: TIER_NAME_CLASS[scenarioTier(scenario)] }}
-                  preview={
-                    <ScenarioPreview
-                      scenario={scenario}
-                      terrain={bossArenaOf(scenario.heroIds)?.image ?? MAP_IMAGES[terrainIndex]}
-                    />
-                  }
-                  isActive={false}
-                  onPick={() => setPending(scenario)}
-                />
-              ))}
-            </Fragment>
-          ))
+        {tab === 'scenarios' || tab === 'units' ? (
+          <ScenarioSections
+            groups={tab === 'units' ? UNIT_GROUPS : SCENARIO_GROUPS}
+            terrainIndex={terrainIndex}
+            onPick={setPending}
+          />
         ) : tab === 'map' ? (
           <>
           <SectionHeading>Boss arenas</SectionHeading>

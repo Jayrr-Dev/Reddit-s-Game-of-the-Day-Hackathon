@@ -19,7 +19,11 @@ import {
   stepSandbox, retryTrainingFight,
   groupScenariosByUnitType,
   scenarioTier,
+  ALL_HERO_IDS,
+  groupUnitsByUnitType,
+  soloUnitScenario,
 } from './sandbox.ts';
+import { getHero, unitTypeOf } from './heroes.ts';
 import { CARDS_PER_TURN, ENERGY_PER_TURN } from './rules.ts';
 import { getCard, isCardInPlay, type CardId } from './cards.ts';
 import { SANDBOX_DECKS, sandboxDeckCards, activeTrainingCards, restoreTrainingDecks, saveTrainingDeck } from './sandboxDecks.ts';
@@ -350,4 +354,30 @@ void test('scenario tier follows its lead hero, so boss and elite names can be c
   assert.equal(tierOf('angelMage'), 'elite');
   assert.equal(tierOf('archers'), 'grunt');
   assert.equal(scenarioTier({ id: 'empty', name: 'Empty', blurb: '', heroIds: [] }), 'grunt');
+});
+
+void test('the Units tab lists every hero once, in unit type sections, weakest rank first', () => {
+  const groups = groupUnitsByUnitType();
+  assert.deepEqual(groups.map((group) => group.label), ['Angels', 'Dragons', 'Beasts', 'Humans', 'Demi-humans']);
+  // Every hero in the catalog lands in exactly one section, in its own unit type.
+  const listed = groups.flatMap((group) => group.heroIds);
+  assert.deepEqual([...listed].sort(), [...ALL_HERO_IDS].sort());
+  assert.ok(groups.every((group) => group.heroIds.every((id) => unitTypeOf(id) === group.unitType)));
+  // Ranks never go backwards inside a section (grunts, elites, champions, bosses).
+  const rank = ['grunt', 'elite', 'champion', 'boss'];
+  for (const group of groups) {
+    const ranks = group.heroIds.map((id) => rank.indexOf(getHero(id).tier));
+    assert.deepEqual(ranks, [...ranks].sort((a, b) => a - b), group.label);
+  }
+  const humans = groups.find((group) => group.label === 'Humans')?.heroIds ?? [];
+  assert.deepEqual(humans.slice(0, 2), ['squire', 'bard']);
+  assert.deepEqual(groups.find((group) => group.label === 'Demi-humans')?.heroIds, ['mageBorneAstra', 'mageBorneAzula']);
+});
+
+void test('a solo unit fight puts just that unit on the field', () => {
+  for (const heroId of ALL_HERO_IDS) {
+    const scenario = soloUnitScenario(heroId);
+    const fight = createSandboxWith(1, scenario.heroIds, scenario.startsInPlace);
+    assert.deepEqual(fight.heroes.map((unit) => unit.heroId), [heroId], heroId);
+  }
 });

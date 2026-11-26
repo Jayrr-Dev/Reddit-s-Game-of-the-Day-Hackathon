@@ -10,7 +10,7 @@
 import { advanceHeroes, cellCountOf } from './battlefield.ts';
 import { characterBonuses, syncCharacterCombat, type CharacterState, type Equipment, type TraitNodes, type Traits } from './character.ts';
 import { drawCards, combatOutcome, endTurn, finishPlayerTurn, playCard, startCombat, startPlayerTurn } from './combat.ts';
-import { CHAMPION_IDS, ELITE_IDS, getHero, GRUNT_IDS, UNIT_TYPE_LABELS, UNIT_TYPES, unitTypeOf, type HeroId } from './heroes.ts';
+import { CHAMPION_IDS, ELITE_IDS, getHero, GRUNT_IDS, HEROES, UNIT_TYPE_LABELS, UNIT_TYPES, unitTypeOf, type HeroId } from './heroes.ts';
 import { move } from './movement.ts';
 import { nextInt, pickWeighted, type RngState } from './rng.ts';
 import { BATTLEFIELD_ROWS, PLAYER_MAX_HP } from './rules.ts';
@@ -315,6 +315,62 @@ export const groupScenariosByUnitType = (
       scenarios: scenarios.filter((scenario) => scenarioUnitType(scenario) === unitType),
     }))
     .filter((group) => group.scenarios.length > 0);
+
+// --- UNITS ---
+/** One unit type's heading and every hero of that kind, weakest rank first. */
+export type UnitGroup = {
+  unitType: UnitType;
+  label: string;
+  heroIds: readonly HeroId[];
+};
+
+/** Rank order for the Units list: the horde first, bosses last. */
+const TIER_ORDER: readonly HeroTier[] = ['grunt', 'elite', 'champion', 'boss'];
+
+/** Display names for a hero's rank, shown under each unit. */
+export const TIER_LABELS: Readonly<Record<HeroTier, string>> = {
+  grunt: 'Grunt',
+  elite: 'Elite',
+  champion: 'Champion',
+  boss: 'Boss',
+};
+
+/** Every hero id in catalog order (the catalog is the one source of units). */
+export const ALL_HERO_IDS: readonly HeroId[] = Object.keys(HEROES).filter(
+  (id): id is HeroId => id in HEROES
+);
+
+/**
+ * Heroes split into unit type sections (same order as the Scenarios tab),
+ * sorted by rank inside each (stable, so catalog order breaks ties) and
+ * dropping empty sections.
+ */
+export const groupUnitsByUnitType = (heroIds: readonly HeroId[] = ALL_HERO_IDS): UnitGroup[] =>
+  UNIT_TYPES
+    .map((unitType) => ({
+      unitType,
+      label: UNIT_TYPE_LABELS[unitType],
+      heroIds: heroIds
+        .filter((id) => unitTypeOf(id) === unitType)
+        .toSorted((a, b) => TIER_ORDER.indexOf(getHero(a).tier) - TIER_ORDER.indexOf(getHero(b).tier)),
+    }))
+    .filter((group) => group.heroIds.length > 0);
+
+/**
+ * A one-on-one fight against a single unit, as a scenario so it runs
+ * through the same fight prompt and summon flow as the preset lineups.
+ * It starts in its home line, like the scenarios do.
+ */
+export const soloUnitScenario = (heroId: HeroId): SandboxScenario => {
+  const hero = getHero(heroId);
+  return {
+    id: 'unit:' + heroId,
+    name: hero.name,
+    blurb: TIER_LABELS[hero.tier] + ' · ' + hero.maxHp + ' HP',
+    heroIds: [heroId],
+    startsInPlace: true,
+  };
+};
 
 // --- HORDE ---
 /** Rolls 2 to 5 random heroes that fit the field together. */
