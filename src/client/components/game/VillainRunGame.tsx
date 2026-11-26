@@ -22,6 +22,7 @@ import { routeLocation } from './routeLocation';
 import { RouteView } from './RouteView';
 import { MAP_IMAGES } from './combat/Backdrop';
 import { RunHud } from './RunHud';
+import { useProgressiveImage } from '../../hooks/useProgressiveImage';
 
 // --- TYPES ---
 export type VillainRunGameProps = {
@@ -129,6 +130,8 @@ export const VillainRunGame = ({ run, onAction }: VillainRunGameProps) => {
     return () => window.clearTimeout(timer);
   }, [startingNextWave, run.stop]);
 
+  const regionArt = useProgressiveImage(MAP_IMAGES[regionIndexOf(run.stop) % MAP_IMAGES.length] ?? '');
+
   if (startingNextWave)
     return (
       <div className="run-board flex h-full flex-col items-center justify-center gap-2 text-center" role="status">
@@ -143,7 +146,7 @@ export const VillainRunGame = ({ run, onAction }: VillainRunGameProps) => {
       </div>
     );
   return (
-    <div className="run-board flex h-full w-full flex-col overflow-hidden" style={run.phase.kind === 'reward' ? undefined : { backgroundImage: `linear-gradient(#140e0bbc, #140d09e8), url("${MAP_IMAGES[regionIndexOf(run.stop) % MAP_IMAGES.length]}")` }}>
+    <div className="run-board flex h-full w-full flex-col overflow-hidden" style={run.phase.kind === 'reward' ? undefined : { backgroundImage: `linear-gradient(#140e0bbc, #140d09e8), url("${regionArt}")` }}>
       <RunHud run={run} onOpenCharacter={() => setShowCharacter(true)} />
       <main className="flex min-h-0 flex-1 flex-col items-center justify-center-safe overflow-y-auto p-3">
         {run.phase.kind === 'reward' && run.phase.leveledUp && (

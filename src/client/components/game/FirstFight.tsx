@@ -16,6 +16,7 @@ import { createSandboxWith } from '../../../shared/game/sandbox';
 import { Button } from '../ui/Button';
 import { CombatView } from './CombatView';
 import { lessons, portrait } from './tutorialLessons';
+import { ProgressiveImg } from '../ui/ProgressiveImage';
 
 function completedLessons(key: string): string[] {
   try {
@@ -81,7 +82,7 @@ export function FirstFight({
               }
             >
               <div className="lesson-art">
-                <img src={lesson.art} alt="" />
+                <ProgressiveImg src={lesson.art} alt="" />
                 {checked && (
                   <span className="lesson-check" aria-hidden="true">
                     &#10003;

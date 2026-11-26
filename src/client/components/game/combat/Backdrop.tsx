@@ -28,6 +28,7 @@ import mines from '../../../assets/terrain/mines.webp';
 import cave from '../../../assets/terrain/cave.webp';
 import dungeon from '../../../assets/terrain/dungeon.webp';
 import riverBridge from '../../../assets/terrain/river-bridge.webp';
+import { useProgressiveImage } from '../../../hooks/useProgressiveImage';
 
 // Each artwork's distant road, gate or clearing, in image percentages.
 const scenes = [
@@ -75,7 +76,8 @@ export const Backdrop = memo(function Backdrop({ terrainIndex, bossArena, depths
     back: hasHorizon ? 37 : 23,
     front: hasHorizon ? 67 : 57,
   };
-  const backgroundImage = `url("${scene}")`;
+  const sceneSrc = useProgressiveImage(scene);
+  const backgroundImage = `url("${sceneSrc}")`;
   // Bottom-align the image so its recorded horizon lands at 20% of the frame.
   const terrainStyle = { backgroundImage, backgroundPositionX: `${(1.2 * vanishingX - 50) / 0.2}%`, backgroundSize: `120% ${8000 / (100 - horizon)}%`, backgroundPositionY: 'bottom' };
   const layer = 'parallax-layer pointer-events-none absolute -inset-x-8 inset-y-0 ';

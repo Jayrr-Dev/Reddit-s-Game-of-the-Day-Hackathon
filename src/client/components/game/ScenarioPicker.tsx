@@ -40,6 +40,7 @@ import {
   type SandboxDeckId,
   type CustomTrainingDeck,
 } from '../../../shared/game/sandboxDecks';
+import { ProgressiveImg } from '../ui/ProgressiveImage';
 
 // --- TYPES ---
 type PickerTab = 'scenarios' | 'units' | 'decks' | 'map' | 'sounds';
@@ -141,7 +142,7 @@ const ScenarioPreview = ({
   terrain: string | undefined;
 }) => (
   <span className="training-art training-lineup" aria-hidden="true">
-    <img alt="" src={terrain} />
+    <ProgressiveImg alt="" src={terrain} />
     {(FEATURED_HEROES[scenario.id] ?? scenario.heroIds.slice(0, 3)).map(
       (heroId, i) => (
         <PreviewFigure heroId={heroId} isLead={i === 0} key={i} />
@@ -433,7 +434,7 @@ export const ScenarioPicker = ({
             <div key={arena.name} className="training-custom-tile">
               <button type="button" className="training-map"
                 aria-pressed={arena.name === activeArena?.name} onClick={() => onPickArena(arena)}>
-                <img alt="" loading="lazy" src={arena.image} />
+                <ProgressiveImg alt="" src={arena.image} />
                 <span>{arena.name}</span>
               </button>
               <InfoButton name={arena.name} label="View" onInfo={() => setViewedMap(arenaView(arena))} />
@@ -448,7 +449,7 @@ export const ScenarioPicker = ({
                 aria-pressed={!activeArena && index === terrainIndex}
                 onClick={() => onPickMap(index)}
               >
-                <img alt="" loading="lazy" src={MAP_IMAGES[index]} />
+                <ProgressiveImg alt="" src={MAP_IMAGES[index]} />
                 <span>{name}</span>
               </button>
               <InfoButton name={name} label="View" onInfo={() => setViewedMap(regionView(name, index))} />

@@ -10,6 +10,7 @@ import { STOP_COPY } from '../../content/lore';
 
 import { MAP_IMAGES } from './combat/Backdrop';
 import { routeLocation } from './routeLocation';
+import { ProgressiveImg } from '../ui/ProgressiveImage';
 
 // --- TYPES ---
 export type RouteViewProps = {
@@ -29,7 +30,7 @@ const PathCard = ({ stop, location, selected, onChoose }: {
       aria-pressed={selected}
       className="path-card text-left"
     >
-      <span className="route-portrait"><img src={MAP_IMAGES[location.terrain]} alt="" /></span>
+      <span className="route-portrait"><ProgressiveImg src={MAP_IMAGES[location.terrain]} alt="" /></span>
       <span className="path-name">{location.name}</span>
       <span className="path-rules">{location.flavour}</span>
       <span className="path-type">{copy.title}</span>

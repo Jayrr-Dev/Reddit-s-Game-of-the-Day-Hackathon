@@ -9,6 +9,7 @@
 import { useEffect, useId, useRef } from 'react';
 import { IconButton } from '../ui/IconButton';
 import type { ThemePreview, ThemePreviewControls } from '../../hooks/useThemePreview';
+import { ProgressiveImg } from '../ui/ProgressiveImage';
 
 // --- TYPES ---
 /** What the dialog shows and which theme it plays. */
@@ -51,7 +52,7 @@ export const MapViewDialog = ({
       onCancel={(event) => { event.preventDefault(); onClose(); }}
       onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
     >
-      <img alt={view.name} src={view.image} />
+      <ProgressiveImg alt={view.name} src={view.image} />
       <h2 id={titleId}>{view.name}</h2>
       <IconButton icon="close" label="Close" className="arena-dialog-close" onClick={onClose} autoFocus />
     </dialog>

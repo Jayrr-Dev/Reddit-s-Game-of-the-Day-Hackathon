@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import seraphArt from '../../../assets/heroes/apollyon-seraph.webp';
 import './ApollyonSeraphFigure.css';
+import { ProgressiveSvgImage } from '../../ui/ProgressiveImage';
 
 const WIDTH = 1536;
 const HEIGHT = 1024;
@@ -45,7 +46,7 @@ export const ApollyonSeraph = () => {
   return (
     <g data-apollyon-seraph="" transform="translate(7 10) scale(.0885)">
       <defs>
-        <image id={id + '-art'} href={seraphArt} width={WIDTH} height={HEIGHT} />
+        <ProgressiveSvgImage id={id + '-art'} href={seraphArt} width={WIDTH} height={HEIGHT} />
         <clipPath id={id + '-eye'} clipPathUnits="userSpaceOnUse">
           <polygon points={core} />
         </clipPath>

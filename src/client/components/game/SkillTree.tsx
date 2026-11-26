@@ -15,6 +15,7 @@ import {
   planSkillPath,
   type SkillPick,
 } from '../../../shared/game/skills';
+import { ProgressiveImg, ProgressiveSvgImage } from '../ui/ProgressiveImage';
 
 const colors = ['movement', 'melee', 'range', 'utility', 'curse'];
 const overviewHeights = [-104, -144, -171, -201];
@@ -247,7 +248,7 @@ export function SkillTree({
                           style={r ? { fill: color } : undefined}
                         />
                         {icon && (
-                          <image
+                          <ProgressiveSvgImage
                             href={icon}
                             x={node.x - radius * 0.88}
                             y={heights[t]! - radius * 0.88}
@@ -298,7 +299,7 @@ export function SkillTree({
           >
             {activeArt && (
               <div className="cs-skill-art" aria-hidden="true">
-                <img src={activeArt} alt="" draggable={false} />
+                <ProgressiveImg src={activeArt} alt="" draggable={false} />
               </div>
             )}
             <div className="cs-node-copy">

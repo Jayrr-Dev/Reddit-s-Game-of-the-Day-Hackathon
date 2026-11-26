@@ -87,6 +87,7 @@ import {
   HaloShards,
   type HaloSpec,
 } from './HolyHalo';
+import { ProgressiveSvgImage } from '../../ui/ProgressiveImage';
 
 // --- TYPES ---
 export type CreatureFigureProps = {
@@ -669,7 +670,7 @@ const Ballista = () => {
   const width = BODY_WIDTH[1] * BALLISTA_DRAW_SPAN;
   const height = width / BALLISTA_ASPECT;
   return (
-    <image
+    <ProgressiveSvgImage
       href={ballistaArt}
       x={(BODY_WIDTH[1] - width) / 2}
       y={BODY_HEIGHT - height}
@@ -682,27 +683,27 @@ const Ballista = () => {
 /** The original Penitent concept art, positioned to show its halo and keep the robe above the shadow. */
 const LightLordMori = () => (
   <g className="angel-hover" data-light-lord-mori="">
-    <image href={moriArt} x={21} y={-11} width={108} height={108} />
+    <ProgressiveSvgImage href={moriArt} x={21} y={-11} width={108} height={108} />
   </g>
 );
 
 /** The original Seven-Eyed Oracle art, positioned with the robe at the shared baseline. */
 const MageBorneAzula = () => (
   <g data-mage-borne-azula="">
-    <image href={azulaArt} x={37} y={-12} width={76} height={114} />
+    <ProgressiveSvgImage href={azulaArt} x={37} y={-12} width={76} height={114} />
   </g>
 );
 
 /** The original many-eyed angel art, kept centered above its battlefield shadow. */
 const GrandangelCherubiel = () => (
   <g className="angel-hover" data-grandangel-cherubiel="">
-    <image href={cherubielArt} x={15} y={-24} width={120} height={120} />
+    <ProgressiveSvgImage href={cherubielArt} x={15} y={-24} width={120} height={120} />
   </g>
 );
 
 const FulgurDragonknight = () => (
   <g className="fulgur-throw-pose">
-    <image data-fulgur-dragonknight="" href={fulgurArt} x={1} y={0} width={148} height={99} />
+    <ProgressiveSvgImage data-fulgur-dragonknight="" href={fulgurArt} x={1} y={0} width={148} height={99} />
     <circle data-fulgur-cast-origin="" cx={99} cy={17} r={1} fill="transparent" />
     <g className="fulgur-hand-charge" fill="none" strokeLinecap="round" strokeLinejoin="round">
       <path d="M94 13 97 17 101 15 104 19 107 16 M96 21 99 19 102 23 106 21 M100 11l2 4"
@@ -714,12 +715,12 @@ const FulgurDragonknight = () => (
 
 const ZadkielOfDominations = () => (
   <g className="angel-hover" data-zadkiel-of-dominations="">
-    <image href={zadkielArt} x={-4} y={-14} width={158} height={111} />
+    <ProgressiveSvgImage href={zadkielArt} x={-4} y={-14} width={158} height={111} />
   </g>
 );
 
 const MageBorneAstra = () => (
-  <image data-mage-borne-astra="" href={astraArt} x={36} y={-15} width={78} height={117} />
+  <ProgressiveSvgImage data-mage-borne-astra="" href={astraArt} x={36} y={-15} width={78} height={117} />
 );
 
 const CERVIEL_ART = { staff: cervielStaffArt, sword: cervielSwordArt, bow: cervielBowArt };
@@ -732,7 +733,7 @@ const CervielForm = ({ form, size, action }: { form: keyof typeof CERVIEL_ART; s
   const left = half - width / 2;
   return (
     <g className="angel-hover" data-cerviel-form={form}>
-      <image href={form === 'sword' && action?.style === 'magic' ? cervielOpenArt : form === 'sword' && action?.style === 'support' ? cervielFistsArt : CERVIEL_ART[form]} x={left} y={y} width={width} height={height} />
+      <ProgressiveSvgImage href={form === 'sword' && action?.style === 'magic' ? cervielOpenArt : form === 'sword' && action?.style === 'support' ? cervielFistsArt : CERVIEL_ART[form]} x={left} y={y} width={width} height={height} />
       {form === 'bow' && <circle className="hero-arrow" cx={left + width * .14} cy={y + height * .337} r={1} fill="transparent" />}
     </g>
   );
@@ -740,30 +741,30 @@ const CervielForm = ({ form, size, action }: { form: keyof typeof CERVIEL_ART; s
 
 const GrandangelCambiel = () => (
   <g className="angel-hover" data-grandangel-cambiel="">
-    <image href={cambielArt} x={24} y={-7} width={102} height={103} />
+    <ProgressiveSvgImage href={cambielArt} x={24} y={-7} width={102} height={103} />
   </g>
 );
 
 const GrandangelGeonosis = () => (
   <g className="angel-hover" data-grandangel-geonosis="">
-    <image href={geonosisArt} x={17} y={-19} width={116} height={116} />
+    <ProgressiveSvgImage href={geonosisArt} x={17} y={-19} width={116} height={116} />
   </g>
 );
 
 const GrandangelRaziel = () => (
   <g className="angel-hover" data-grandangel-raziel="">
-    <image href={razielArt} x={28} y={-20} width={94} height={117} />
+    <ProgressiveSvgImage href={razielArt} x={28} y={-20} width={94} height={117} />
   </g>
 );
 
 const ArchangelZeruel = () => (
-  <image data-archangel-zeruel="" href={zeruelArt} x={24} y={-8} width={102} height={109} />
+  <ProgressiveSvgImage data-archangel-zeruel="" href={zeruelArt} x={24} y={-8} width={102} height={109} />
 );
 
 const BossSprite = ({ size, art, hover, inset = 0 }: {
   size: HeroSize; art: string; hover?: boolean; inset?: number;
 }) => (
-  <image href={art} x={0} y={inset / 2} width={BODY_WIDTH[size]} height={BODY_HEIGHT - inset}
+  <ProgressiveSvgImage href={art} x={0} y={inset / 2} width={BODY_WIDTH[size]} height={BODY_HEIGHT - inset}
     preserveAspectRatio="xMidYMax meet" className={hover ? 'angel-hover' : undefined} />
 );
 

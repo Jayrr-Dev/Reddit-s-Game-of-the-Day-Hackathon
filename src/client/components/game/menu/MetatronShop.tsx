@@ -1,12 +1,13 @@
 import metatronPortrait from '../../../assets/npcs/metatron-the-fallen-angel.webp';
 import { MenuPanel } from './MenuPanel';
+import { ProgressiveImg } from '../../ui/ProgressiveImage';
 
 export const MetatronShop = ({ onClose }: { onClose: () => void }) => (
   <MenuPanel title="Shop" onClose={onClose}>
     <div className="w-full text-center">
       <div className="relative isolate mx-auto w-[min(100%,15rem)] border-b border-accent/35">
         <div aria-hidden="true" className="absolute inset-4 -z-10 rounded-full bg-[#6e416e]/45 blur-xl" />
-        <img
+        <ProgressiveImg
           src={metatronPortrait}
           alt="Metatron in a purple feathered mantle and an ivory antlered mask"
           className="mx-auto block h-auto w-full object-contain"

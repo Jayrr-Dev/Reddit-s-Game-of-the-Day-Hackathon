@@ -29,6 +29,13 @@ You are writing a Devvit web application that will be executed on Reddit.com.
 
 - Instead of `window.location` or `window.assign`, use `navigateTo` from `@devvit/web/client`
 
+### Images
+
+- Every raster image gets a small placeholder on the first render; the full image swaps in once it has loaded. Never render a full-size image directly.
+- Use `ProgressiveImg` (for `<img>`) and `ProgressiveSvgImage` (for SVG `<image>`) from `components/ui/ProgressiveImage.tsx`. For an inline `backgroundImage` style, pass the URL through `useProgressiveImage` first.
+- After adding or changing any `.webp`/`.png`/`.jpg` under `src/client/assets`, run `npm run images:placeholders` and commit the regenerated `src/client/lib/imagePlaceholders.generated.ts`. Images without an entry still work, but show nothing until they load.
+- Keep file stems unique across asset folders (placeholders are keyed by file name). Prefer `.webp` sized near how big the art is drawn.
+
 ### Limitations
 
 - `window.alert`: Use `showToast` or `showForm` from `@devvit/web/client`

@@ -13,6 +13,7 @@ import { bossArenaOf, type BossArena } from '../../content/bossArenas';
 import type { SandboxScenario } from '../../../shared/game/sandbox';
 import { ScenarioPicker } from './ScenarioPicker';
 import { useThemePreview } from '../../hooks/useThemePreview';
+import { useProgressiveImage } from '../../hooks/useProgressiveImage';
 
 /** Setup uses the same settings as the combat pause menu. */
 const SetupSettings = () => {
@@ -32,6 +33,7 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
   const arena = arenaOverride !== undefined ? arenaOverride ?? undefined : combat ? bossArenaOf(combat.heroes.map(unit => unit.heroId), combat.fallen.map(unit => unit.heroId)) : undefined;
   const terrainIndex = selectedMap ?? (PRACTICE_TERRAIN_START + round) % MAP_NAMES.length;
   const themePreview = useThemePreview(MAP_NAMES[terrainIndex] ?? '');
+  const headerArt = useProgressiveImage(arena?.image ?? MAP_IMAGES[terrainIndex] ?? '');
   /** Runs a menu action after silencing any theme preview, so fight music takes over. */
   const thenStopPreview = <A extends unknown[]>(action: (...args: A) => void) => (...args: A) => { themePreview.stop(); action(...args); };
 
@@ -41,7 +43,7 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
         renderHeader={openDeck => (
           <header
             className="training-header"
-            style={{ backgroundImage: 'linear-gradient(90deg, #21150e 8%, #21150e70), url("' + (arena?.image ?? MAP_IMAGES[terrainIndex]) + '")' }}
+            style={{ backgroundImage: 'linear-gradient(90deg, #21150e 8%, #21150e70), url("' + headerArt + '")' }}
           >
             <IconButton icon="back" label="Back to menu" onClick={thenStopPreview(onExit)} />
             <div className="min-w-0 mr-auto">
