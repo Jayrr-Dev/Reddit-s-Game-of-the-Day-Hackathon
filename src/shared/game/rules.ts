@@ -192,6 +192,11 @@ export const SHOCK_BURST_FACTOR = 2;
 /** Each stack of Frost takes this much off every hit its bearer deals. */
 export const FROST_DAMAGE_PER_STACK = 1;
 /**
+ * Statuses only bosses carry (the Grand Griffon's Aloft). The Mechanics
+ * library lists them under Boss Statuses.
+ */
+export const BOSS_ONLY_STATUSES: ReadonlySet<StatusId> = new Set(['aloft']);
+/**
  * Which statuses are AFFLICTIONS (harmful to whoever carries them).
  * Cleanse removes one of these at random; every status must say.
  */

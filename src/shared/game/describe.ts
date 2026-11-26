@@ -34,6 +34,7 @@ import {
   SHOCK_HITS,
   STATUS_IS_AFFLICTION,
   BANE_AFFLICTIONS,
+  BOSS_ONLY_STATUSES,
   TIERED_MAX_TIER,
   MALAISE_TURNS,
   REFLEX_DODGE,
@@ -545,24 +546,26 @@ export type GlossaryCategory = 'keyword' | 'status' | 'term';
 /**
  * How the Statuses tab splits: helpful buffs, debuffs that weaken
  * (Weaken, Vex...), and afflictions that stack up and deal damage
- * (Hex, Burn, Bleed...).
+ * (Hex, Burn, Bleed...), plus what only bosses carry (Aloft, passives).
  */
-export type StatusGroup = 'buff' | 'debuff' | 'affliction';
+export type StatusGroup = 'buff' | 'debuff' | 'affliction' | 'boss';
 
 /** Group order and headings in the Mechanics library. */
-export const STATUS_GROUPS: readonly StatusGroup[] = ['buff', 'debuff', 'affliction'];
+export const STATUS_GROUPS: readonly StatusGroup[] = ['buff', 'debuff', 'affliction', 'boss'];
 export const STATUS_GROUP_LABEL: Readonly<Record<StatusGroup, string>> = {
   buff: 'Buffs',
   debuff: 'Debuffs',
   affliction: 'Afflictions',
+  boss: 'Boss Statuses',
 };
 
 /**
  * A status's group, read from the rules tables so it never drifts:
  * stacking damage afflictions (BANE_AFFLICTIONS), other afflictions
- * (STATUS_IS_AFFLICTION), and everything else is a buff (Guard too).
+ * (STATUS_IS_AFFLICTION), boss-only ones (BOSS_ONLY_STATUSES), and everything else is a buff (Guard too).
  */
 const statusGroupOf = (id: StatusId | 'guard'): StatusGroup => {
+  if (id !== 'guard' && BOSS_ONLY_STATUSES.has(id)) return 'boss';
   if (id === 'guard' || !STATUS_IS_AFFLICTION[id]) return 'buff';
   return BANE_AFFLICTIONS.has(id) ? 'affliction' : 'debuff';
 };
@@ -584,6 +587,11 @@ export const GLOSSARY: Readonly<Record<string, GlossaryEntry>> =
   // keyword Charge, as before.
   Object.fromEntries(
     [
+      // Boss passives (Vigor, Anchored) sit with Boss Statuses. Listed
+      // first, so a keyword of the same name (Longrange) wins its label.
+      ...Object.values(PASSIVE_INFO).map(
+        (info): GlossaryEntry => ({ ...info, category: 'status', group: 'boss' })
+      ),
       ...(Object.keys(STATUS_INFO) as (StatusId | 'guard')[]).map(
         (id): GlossaryEntry => ({
           ...STATUS_INFO[id],
