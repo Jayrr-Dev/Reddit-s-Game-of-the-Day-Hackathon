@@ -1,0 +1,184 @@
+/* Every cut rotates on an artwork-space joint, not the bounding box of its
+   feathers. The torso stays planted; no sprite-wide float is required. */
+.gz-rig .gz-pivot {
+  transform-box: view-box;
+  transform-origin: var(--gz-pivot);
+}
+.gz-rig .gz-still { display: none; }
+.gz-rig .gz-braces { opacity: 0; }
+.gz-rig:not([data-gz-clip="idle"]) .gz-braces { opacity: 1; }
+.gz-rig [data-gz-part$="-l"] { --gz-side: 1; }
+.gz-rig [data-gz-part$="-r"] { --gz-side: -1; }
+
+.gz-rig[data-gz-angel="geonosis"] [data-gz-part^="wing-"] {
+  --gz-peak: 3.3;
+  animation: gz-wing-idle 4.9s ease-in-out infinite;
+}
+.gz-rig[data-gz-angel="geonosis"] [data-gz-part="wing-r"] { animation-delay: -.37s; }
+.gz-rig[data-gz-angel="geonosis"] [data-gz-part="trail"] {
+  animation: gz-frost-trail 4.5s ease-in-out infinite;
+}
+.gz-rig[data-gz-angel="geonosis"]:not([data-gz-clip="idle"]) [data-gz-part^="wing-"] {
+  --gz-beat: 13;
+  animation: gz-cast-wing .64s cubic-bezier(.38,0,.22,1) both;
+}
+.gz-rig[data-gz-angel="geonosis"]:is([data-gz-clip="release"],[data-gz-clip="showcase"]) [data-gz-part^="wing-"] {
+  --gz-beat: 14;
+  animation-duration: .54s;
+}
+.gz-rig[data-gz-angel="geonosis"]:is([data-gz-clip="magic"],[data-gz-clip="release"],[data-gz-clip="showcase"]) [data-gz-part^="arm-"] {
+  --gz-reach: 7;
+  animation: gz-uncross .62s ease-in-out both;
+}
+.gz-rig[data-gz-angel="geonosis"]:is([data-gz-clip="release"],[data-gz-clip="showcase"]) [data-gz-part^="arm-"] {
+  --gz-reach: 9.5;
+  animation-duration: .54s;
+}
+.gz-rig[data-gz-angel="geonosis"][data-gz-clip="support"] [data-gz-part^="arm-"] {
+  animation: gz-palm-ward .62s ease-out both;
+}
+
+.gz-rig[data-gz-angel="zadkiel"] [data-gz-part^="bank-"] {
+  --gz-peak: 4;
+  --gz-beat: 7.5;
+  animation: gz-wing-idle 4.6s ease-in-out infinite;
+}
+.gz-rig[data-gz-angel="zadkiel"] [data-gz-part^="bank-1"] { --gz-peak: 3.2; --gz-beat: -4; animation-delay: -.72s; }
+.gz-rig[data-gz-angel="zadkiel"] [data-gz-part^="bank-2"] { --gz-peak: -4.2; --gz-beat: -8; animation-delay: -1.39s; }
+.gz-rig[data-gz-angel="zadkiel"] [data-gz-part="bank-0-r"] { animation-delay: -.27s; }
+.gz-rig[data-gz-angel="zadkiel"] [data-gz-part="bank-1-r"] { animation-delay: -.94s; }
+.gz-rig[data-gz-angel="zadkiel"] [data-gz-part="bank-2-r"] { animation-delay: -1.59s; }
+.gz-rig[data-gz-angel="zadkiel"]:not([data-gz-clip="idle"]) [data-gz-part^="bank-"] {
+  animation: gz-cast-wing .66s cubic-bezier(.3,0,.28,1) both;
+}
+.gz-rig[data-gz-angel="zadkiel"]:not([data-gz-clip="idle"]) [data-gz-part^="bank-1"] { animation-delay: .045s; }
+.gz-rig[data-gz-angel="zadkiel"]:not([data-gz-clip="idle"]) [data-gz-part^="bank-2"] { animation-delay: .085s; }
+.gz-rig[data-gz-angel="zadkiel"]:is([data-gz-clip="release"],[data-gz-clip="showcase"]) [data-gz-part^="bank-"] {
+  animation-duration: .49s;
+}
+.gz-rig[data-gz-angel="zadkiel"] [data-gz-part="halo"] {
+  animation: gz-halo-breathe 4.7s ease-in-out infinite;
+}
+.gz-rig[data-gz-angel="zadkiel"] [data-gz-part^="trail-"] {
+  --gz-side: 1;
+  animation: gz-cloth 4.2s ease-in-out infinite;
+}
+.gz-rig[data-gz-angel="zadkiel"] [data-gz-part="trail-r"] { --gz-side: -1; animation-delay: -.67s; }
+.gz-rig[data-gz-angel="zadkiel"] [data-gz-part="trail-c"] { animation-delay: -1.3s; }
+.gz-rig[data-gz-angel="zadkiel"]:is([data-gz-clip="magic"],[data-gz-clip="release"],[data-gz-clip="showcase"]) [data-gz-part^="arm-"] {
+  --gz-reach: -9;
+  animation: gz-uncross .64s ease-in-out both;
+}
+.gz-rig[data-gz-angel="zadkiel"]:is([data-gz-clip="release"],[data-gz-clip="showcase"]) [data-gz-part^="arm-"] { --gz-reach: -13; animation-duration: .54s; }
+.gz-rig[data-gz-angel="zadkiel"][data-gz-clip="support"] [data-gz-part^="arm-"] {
+  animation: gz-palm-ward .6s ease-out both;
+}
+
+.gz-rig :is(.gz-ward, .gz-release) {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  pointer-events: none;
+}
+.gz-rig:is([data-gz-clip="magic"],[data-gz-clip="release"],[data-gz-clip="showcase"]) .gz-release {
+  animation: gz-release .55s ease-out both;
+}
+.gz-rig[data-gz-clip="support"] .gz-ward { animation: gz-ward .64s ease-out both; }
+.gz-rig[data-gz-clip="charge"] .gz-ward { animation: gz-charge-glow .9s ease-out both; }
+.gz-rig[data-gz-clip="charge"] [data-gz-part^="wing-"],
+.gz-rig[data-gz-clip="charge"] [data-gz-part^="bank-"] {
+  animation: gz-coil-wing .89s cubic-bezier(.36,0,.32,1) both;
+}
+.gz-rig[data-gz-clip="charge"] [data-gz-part^="arm-"] { animation: gz-coil-arm .89s ease-out both; }
+.gz-rig[data-gz-clip="release"] [data-gz-part^="wing-"],
+.gz-rig[data-gz-clip="release"] [data-gz-part^="bank-"] {
+  animation-name: gz-open-wing;
+}
+.gz-rig[data-gz-clip="release"] [data-gz-part^="arm-"] { animation-name: gz-open-arm; }
+.gz-rig[data-gz-clip="showcase"] [data-gz-part^="wing-"],
+.gz-rig[data-gz-clip="showcase"] [data-gz-part^="bank-"] {
+  animation: gz-show-wing 1.04s cubic-bezier(.36,0,.32,1) both;
+}
+.gz-rig[data-gz-clip="showcase"] [data-gz-part^="arm-"] { animation: gz-show-arm 1.04s ease-in-out both; }
+.gz-rig[data-gz-clip="showcase"] .gz-release { animation-delay: .47s; }
+
+@keyframes gz-wing-idle {
+  0%, 100% { transform: rotate(calc(var(--gz-peak) * var(--gz-side) * -.35deg)); }
+  45% { transform: rotate(calc(var(--gz-peak) * var(--gz-side) * 1deg)); }
+}
+@keyframes gz-cast-wing {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(calc(var(--gz-beat) * var(--gz-side) * -.28deg)); }
+  58% { transform: rotate(calc(var(--gz-beat) * var(--gz-side) * 1deg)); }
+  78% { transform: rotate(calc(var(--gz-beat) * var(--gz-side) * .57deg)); }
+}
+@keyframes gz-coil-wing {
+  0% { transform: rotate(0deg); }
+  72% { transform: rotate(calc(var(--gz-side) * -5.7deg)); }
+  100% { transform: rotate(calc(var(--gz-side) * -5deg)); }
+}
+@keyframes gz-open-wing {
+  0% { transform: rotate(calc(var(--gz-side) * -5deg)); }
+  51% { transform: rotate(calc(var(--gz-beat) * var(--gz-side) * 1deg)); }
+  100% { transform: rotate(0deg); }
+}
+@keyframes gz-show-wing {
+  0%, 100% { transform: rotate(0deg); }
+  45% { transform: rotate(calc(var(--gz-side) * -5deg)); }
+  69% { transform: rotate(calc(var(--gz-beat) * var(--gz-side) * 1deg)); }
+}
+@keyframes gz-coil-arm {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(calc(var(--gz-side) * -6deg)); }
+}
+@keyframes gz-open-arm {
+  0% { transform: rotate(calc(var(--gz-side) * -6deg)); }
+  54% { transform: rotate(calc(var(--gz-reach) * var(--gz-side) * 1deg)); }
+  100% { transform: rotate(0deg); }
+}
+@keyframes gz-show-arm {
+  0%, 100% { transform: rotate(0deg); }
+  45% { transform: rotate(calc(var(--gz-side) * -6deg)); }
+  72% { transform: rotate(calc(var(--gz-reach) * var(--gz-side) * 1deg)); }
+}
+@keyframes gz-uncross {
+  0%, 100% { transform: rotate(0deg); }
+  33% { transform: rotate(calc(var(--gz-reach) * var(--gz-side) * -.36deg)); }
+  62% { transform: rotate(calc(var(--gz-reach) * var(--gz-side) * 1deg)); }
+}
+@keyframes gz-palm-ward {
+  0%, 100% { transform: rotate(0deg); }
+  34%, 60% { transform: rotate(calc(var(--gz-side) * -7deg)); }
+}
+@keyframes gz-frost-trail {
+  0%, 100% { transform: skewX(-.9deg); }
+  50% { transform: skewX(1.15deg); }
+}
+@keyframes gz-cloth {
+  0%, 100% { transform: rotate(calc(var(--gz-side) * -1.3deg)); }
+  48% { transform: rotate(calc(var(--gz-side) * 2.3deg)); }
+}
+@keyframes gz-halo-breathe {
+  0%, 100% { opacity: 1; transform: rotate(-4deg); }
+  52% { opacity: .81; transform: rotate(4deg); }
+}
+@keyframes gz-release {
+  0%, 24% { opacity: 0; transform: scale(.55); }
+  52% { opacity: .94; transform: scale(.96); }
+  100% { opacity: 0; transform: scale(1.36); }
+}
+@keyframes gz-ward {
+  0% { opacity: 0; transform: scale(.62); }
+  32% { opacity: .82; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.16); }
+}
+@keyframes gz-charge-glow {
+  0% { opacity: 0; transform: scale(.35); }
+  55% { opacity: .7; transform: scale(.78); }
+  100% { opacity: .94; transform: scale(.95); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gz-rig .gz-still { display: inline; }
+  .gz-rig .gz-layers { display: none; }
+}

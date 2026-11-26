@@ -1,0 +1,52 @@
+.raziel-animated .rz-float { animation: rz-float 4.2s ease-in-out infinite; }
+.raziel-animated :is(.rz-shoulder, .rz-elbow, .rz-hand) { transform-box: view-box; }
+.raziel-animated .rz-shoulder { animation: rz-arm 3.8s var(--rz-delay) ease-in-out infinite; }
+.raziel-animated .rz-elbow { animation: rz-elbow 3.9s calc(var(--rz-delay) - .21s) ease-in-out infinite; }
+.raziel-animated .rz-hand { animation: rz-elbow 4s calc(var(--rz-delay) - .46s) ease-in-out infinite; }
+.raziel-animated .rz-halo-light { animation: rz-orbit 5.4s linear infinite; }
+.rz-static { display: none; }
+.rz-spark { opacity: 0; pointer-events: none; }
+.raziel-animated[data-raziel-pose="word"] .rz-shoulder { animation: rz-word .56s ease-out both; }
+.raziel-animated[data-raziel-pose="word"] .rz-elbow { animation: rz-open .56s ease-out both; }
+.raziel-animated[data-raziel-pose="seal"] .rz-shoulder { animation: rz-seal .60s ease-out both; }
+.raziel-animated[data-raziel-pose="seal"] .rz-elbow { animation: rz-fold .60s ease-out both; }
+.raziel-animated[data-raziel-pose="revelation"] .rz-shoulder { animation: rz-reveal 1.46s ease-in-out both; }
+.raziel-animated[data-raziel-pose="revelation"] .rz-elbow { animation: rz-fold 1.46s ease-in-out both; }
+.raziel-animated[data-raziel-pose="revelation"] .rz-spark { animation: rz-reveal-light 1.46s ease-out both; }
+@keyframes rz-float { 50% { translate: 0 -4px; } }
+@keyframes rz-arm { 0%, 100% { rotate: -1.3deg; } 50% { rotate: 1.7deg; } }
+@keyframes rz-elbow { 0%, 100% { rotate: 1.8deg; } 50% { rotate: -2deg; } }
+@keyframes rz-orbit { to { stroke-dashoffset: -87; } }
+@keyframes rz-word {
+  0%,100% { rotate: 0deg; }
+  26% { rotate: var(--rz-draw); }
+  62% { rotate: var(--rz-aim); }
+}
+@keyframes rz-open { 40% { rotate: 6deg; } 61% { rotate: -6deg; } }
+@keyframes rz-seal { 40%, 63% { rotate: var(--rz-lift); } }
+@keyframes rz-fold { 37%, 57% { rotate: 9deg; } }
+@keyframes rz-reveal {
+  0%,100% { rotate: 0deg; }
+  34%, 59% { rotate: var(--rz-lift); }
+  69%, 77% { rotate: var(--rz-aim); }
+}
+@keyframes rz-reveal-light {
+  0%, 30%, 92%, 100% { opacity: 0; }
+  58% { opacity: .7; }
+  69% { opacity: 1; }
+}
+.raziel-animated[data-raziel-pose="gather"] .rz-shoulder { animation: rz-gather .9s ease-out both; }
+.raziel-animated[data-raziel-pose="gather"] .rz-elbow { animation: rz-fold .9s ease-out both; }
+.raziel-animated[data-raziel-pose="gather"] .rz-spark { animation: rz-gather-light .9s ease-out both; }
+.raziel-animated[data-raziel-pose="burst"] .rz-shoulder { animation: rz-burst .56s ease-out both; }
+.raziel-animated[data-raziel-pose="burst"] .rz-elbow { animation: rz-open .56s ease-out both; }
+.raziel-animated[data-raziel-pose="burst"] .rz-spark { animation: rz-burst-light .56s ease-out both; }
+@keyframes rz-gather { from { rotate: 0deg; } 50%, to { rotate: var(--rz-lift); } }
+@keyframes rz-burst { from { rotate: var(--rz-lift); } 30% { rotate: var(--rz-aim); } to { rotate: 0deg; } }
+@keyframes rz-gather-light { from { opacity: 0; } to { opacity: .68; } }
+@keyframes rz-burst-light { from { opacity: .68; } 30% { opacity: 1; } to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .raziel-animated .rz-static { display: inline; }
+  .raziel-animated .rz-float { display: none; }
+  .raziel-animated *, .raziel-animated { animation: none !important; }
+}

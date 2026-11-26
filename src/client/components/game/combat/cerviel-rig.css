@@ -1,0 +1,93 @@
+/* The six arms are independent raster cutouts, pinned at their shoulder
+   or rib joints. Their original fingers and grips move with their props. */
+.cerviel-rig-arm, .cerviel-rig-robe, .cerviel-rig-halo, .cerviel-rig-pulse {
+  transform-box: view-box;
+}
+.cerviel-rig-arm {
+  animation: cerviel-arm-idle 3.8s ease-in-out infinite;
+  animation-delay: calc(var(--cerviel-arm-delay, 0ms) * -8);
+}
+.cerviel-rig-robe { animation: cerviel-cloth 3.3s ease-in-out infinite; }
+.cerviel-rig-halo { animation: cerviel-halo 3.9s ease-in-out infinite; }
+.cerviel-rig-pulse {
+  transform-origin: 300px 193px;
+  opacity: 0;
+}
+[data-cerviel-pose='melee'] .cerviel-rig-arm {
+  animation: cerviel-sabres 530ms cubic-bezier(.16,.61,.31,1) both;
+  animation-delay: var(--cerviel-arm-delay, 0ms);
+}
+[data-cerviel-pose='magic'] .cerviel-rig-arm {
+  animation: cerviel-concord 565ms ease-in-out both;
+  animation-delay: var(--cerviel-arm-delay, 0ms);
+}
+[data-cerviel-pose='support'] .cerviel-rig-arm {
+  animation: cerviel-ward 525ms ease-in-out both;
+  animation-delay: var(--cerviel-arm-delay, 0ms);
+}
+[data-cerviel-pose='magic'] .cerviel-rig-pulse,
+[data-cerviel-pose='support'] .cerviel-rig-pulse {
+  animation: cerviel-light 560ms ease-out both;
+}
+[data-cerviel-arm-row='0'] { --cerviel-action-angle: 17deg; }
+[data-cerviel-arm-row='1'] { --cerviel-action-angle: -14deg; }
+[data-cerviel-arm-row='2'] { --cerviel-action-angle: 12deg; }
+[data-cerviel-form='staff'] [data-cerviel-arm='middle-left'] { --cerviel-action-angle: 18deg; }
+[data-cerviel-form='bow'] [data-cerviel-arm-row='1'] { animation: none; }
+
+@keyframes cerviel-arm-idle {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(calc(var(--cerviel-side, 1) * var(--cerviel-idle-angle, 2.1deg))); }
+}
+@keyframes cerviel-sabres {
+  0%, 100% { transform: rotate(0); }
+  34% { transform: rotate(calc(var(--cerviel-side, 1) * var(--cerviel-action-angle) * -.72)); }
+  56% { transform: rotate(calc(var(--cerviel-side, 1) * var(--cerviel-action-angle))); }
+  68% { transform: rotate(calc(var(--cerviel-side, 1) * var(--cerviel-action-angle) * .82)); }
+}
+@keyframes cerviel-concord {
+  0%, 100% { transform: rotate(0); }
+  40% { transform: rotate(calc(var(--cerviel-side, 1) * var(--cerviel-action-angle) * -.6)); }
+  57% { transform: rotate(calc(var(--cerviel-side, 1) * var(--cerviel-action-angle) * .73)); }
+}
+@keyframes cerviel-ward {
+  0%, 100% { transform: rotate(0); }
+  40%, 64% { transform: rotate(calc(var(--cerviel-side, 1) * var(--cerviel-action-angle) * -.44)); }
+}
+@keyframes cerviel-cloth {
+  0%, 100% { transform: skewX(0); }
+  32% { transform: skewX(1.4deg); }
+  74% { transform: skewX(-1deg); }
+}
+@keyframes cerviel-halo {
+  0%, 100% { transform: translateY(0) scaleX(1); }
+  50% { transform: translateY(-5px) scaleX(.94); }
+}
+@keyframes cerviel-light {
+  0%, 25%, 100% { opacity: 0; transform: scale(.4); }
+  53% { opacity: .9; transform: scale(1); }
+  74% { opacity: .26; transform: scale(1.2); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cerviel-rig-arm, .cerviel-rig-robe, .cerviel-rig-halo, .cerviel-rig-pulse {
+    animation: none !important;
+  }
+}
+[data-cerviel-charging] .cerviel-rig-arm {
+  animation: cerviel-covenant-windup 900ms cubic-bezier(.3,0,.28,1) both;
+  animation-delay: var(--cerviel-arm-delay, 0ms);
+}
+[data-cerviel-charging] .cerviel-rig-pulse {
+  animation: cerviel-core-gather 900ms ease-in both;
+}
+@keyframes cerviel-covenant-windup {
+  from { transform: rotate(0); }
+  to { transform: rotate(calc(var(--cerviel-side, 1) * var(--cerviel-action-angle) * -.65)); }
+}
+@keyframes cerviel-core-gather {
+  from { opacity: 0; transform: scale(.38); }
+  to { opacity: .6; transform: scale(.9); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-cerviel-charging] .cerviel-rig-arm, [data-cerviel-charging] .cerviel-rig-pulse { animation: none !important; }
+}

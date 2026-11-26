@@ -1,0 +1,175 @@
+/* Zeruel opens the upper pinions first; the lower ones arrive a beat later. */
+.zeruel-back-rig,
+.zeruel-core-rig {
+  transform-box: view-box;
+  transform-origin: 350px 420px;
+  animation: zeruel-suspension 4.8s ease-in-out infinite;
+}
+[data-zeruel-part="wing"] {
+  animation: zeruel-pinions 3.8s cubic-bezier(.44,.04,.42,.99) infinite;
+  animation-delay: calc(-2s + var(--zeruel-phase, 0s));
+}
+[data-zeruel-part="halo"] {
+  animation: zeruel-corona 5.6s ease-in-out infinite;
+}
+[data-zeruel-part="ribbon"] {
+  animation: zeruel-thread 3.7s ease-in-out infinite;
+  animation-delay: calc(-2s + var(--zeruel-phase, 0s));
+}
+[data-zeruel-part="arm"] {
+  animation: zeruel-arm-idle 4.8s ease-in-out infinite;
+}
+.zeruel-halo-shimmer {
+  opacity: .7;
+  stroke-dasharray: 16 238;
+  animation: zeruel-crown-light 3.2s linear infinite;
+}
+
+@keyframes zeruel-suspension {
+  0%, 100% { transform: translateY(1px); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes zeruel-pinions {
+  0%, 100% { transform: rotate(calc(var(--zeruel-angle) * -.3)); }
+  32% { transform: rotate(calc(var(--zeruel-angle) * .75)) scaleX(.965); }
+  62% { transform: rotate(calc(var(--zeruel-angle) * -.63)); }
+}
+@keyframes zeruel-corona {
+  0%, 100% { transform: translateY(-1px) rotate(-1.2deg); }
+  50% { transform: translateY(-4px) rotate(1.2deg); }
+}
+@keyframes zeruel-thread {
+  0%, 100% { transform: rotate(calc(var(--zeruel-angle) * -.45)) skewX(-.5deg); }
+  45% { transform: rotate(calc(var(--zeruel-angle) * .58)) skewX(.5deg); }
+}
+@keyframes zeruel-arm-idle {
+  0%, 100% { transform: rotate(calc(var(--zeruel-angle) * -.08)); }
+  50% { transform: rotate(calc(var(--zeruel-angle) * .1)); }
+}
+@keyframes zeruel-crown-light { to { stroke-dashoffset: -254; } }
+
+/* Brace inward, open palms for judgment, then let the feather tips recoil. */
+[data-zeruel-pose="melee"] [data-zeruel-part="arm"],
+[data-zeruel-pose="range"] [data-zeruel-part="arm"] {
+  animation: zeruel-strike-arm 520ms ease-out both;
+}
+[data-zeruel-pose="magic"] [data-zeruel-part="arm"],
+[data-zeruel-pose="signature"] [data-zeruel-part="arm"] {
+  animation: zeruel-cast-arm 540ms ease-out both;
+}
+[data-zeruel-pose="support"] [data-zeruel-part="arm"] {
+  animation: zeruel-brace-arm 530ms ease-out both;
+}
+[data-zeruel-pose]:not([data-zeruel-pose="idle"]) [data-zeruel-part="wing"] {
+  animation: zeruel-wing-strike 545ms cubic-bezier(.18,.58,.38,1) both;
+  animation-delay: calc(var(--zeruel-phase, 0s) * .065);
+}
+[data-zeruel-pose="signature"] [data-zeruel-part="halo"] {
+  animation: zeruel-halo-strike 540ms ease-out both;
+}
+[data-zeruel-pose="charge"] [data-zeruel-part="arm"] {
+  animation: zeruel-ritual-charge 900ms cubic-bezier(.3,.1,.2,1) both;
+}
+[data-zeruel-pose="charge"] [data-zeruel-part="wing"] {
+  animation: zeruel-ritual-gather 900ms ease-in-out both;
+}
+[data-zeruel-pose="charge"] .zeruel-rite {
+  animation: zeruel-ritual-light 900ms ease-in-out both;
+}
+[data-zeruel-pose="showcase"] [data-zeruel-part="arm"] {
+  animation: zeruel-ritual-demo 1460ms cubic-bezier(.3,.1,.2,1) both;
+}
+[data-zeruel-pose="showcase"] [data-zeruel-part="wing"] {
+  animation: zeruel-wing-demo 1460ms cubic-bezier(.3,.1,.2,1) both;
+}
+[data-zeruel-pose="showcase"] .zeruel-rite {
+  animation: zeruel-ritual-demo-light 1460ms ease-in-out both;
+}
+.zeruel-rite {
+  opacity: 0;
+  animation: zeruel-rite-surge 550ms ease-out both;
+}
+[data-zeruel-pose="signature"] .zeruel-seal-left > g,
+[data-zeruel-pose="signature"] .zeruel-seal-right > g {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: zeruel-seal-open 550ms ease-out both;
+}
+@keyframes zeruel-strike-arm {
+  0%, 100% { transform: rotate(0); }
+  32% { transform: rotate(calc(var(--zeruel-angle) * -.38)); }
+  59% { transform: rotate(calc(var(--zeruel-angle) * .68)); }
+  77% { transform: rotate(calc(var(--zeruel-angle) * .18)); }
+}
+@keyframes zeruel-cast-arm {
+  0%, 100% { transform: rotate(0); }
+  36% { transform: rotate(calc(var(--zeruel-angle) * .73)); }
+  58% { transform: rotate(calc(var(--zeruel-angle) * .32)); }
+}
+[data-zeruel-pose="signature"] [data-zeruel-part="arm"] {
+  animation-name: zeruel-release-arm;
+}
+@keyframes zeruel-release-arm {
+  from { transform: rotate(calc(var(--zeruel-angle) * -.54)); }
+  33% { transform: rotate(calc(var(--zeruel-angle) * .7)); }
+  69% { transform: rotate(calc(var(--zeruel-angle) * .22)); }
+  to { transform: rotate(0); }
+}
+@keyframes zeruel-ritual-charge {
+  from { transform: rotate(0); }
+  to { transform: rotate(calc(var(--zeruel-angle) * -.54)); }
+}
+@keyframes zeruel-ritual-gather {
+  from { transform: rotate(0); }
+  to { transform: rotate(calc(var(--zeruel-angle) * -.44)) scaleX(.974); }
+}
+@keyframes zeruel-ritual-light {
+  from { opacity: 0; }
+  to { opacity: .58; }
+}
+@keyframes zeruel-ritual-demo {
+  0%, 100% { transform: rotate(0); }
+  61.6% { transform: rotate(calc(var(--zeruel-angle) * -.54)); }
+  74% { transform: rotate(calc(var(--zeruel-angle) * .7)); }
+}
+@keyframes zeruel-wing-demo {
+  0%, 100% { transform: rotate(0); }
+  61.6% { transform: rotate(calc(var(--zeruel-angle) * -.44)) scaleX(.974); }
+  77% { transform: rotate(calc(var(--zeruel-angle) * .95)) scaleX(1.025); }
+}
+@keyframes zeruel-ritual-demo-light {
+  0%, 100% { opacity: 0; }
+  61.6% { opacity: .58; }
+  77% { opacity: .95; }
+}
+@keyframes zeruel-brace-arm {
+  0%, 100% { transform: rotate(0); }
+  30%, 64% { transform: rotate(calc(var(--zeruel-angle) * -.36)); }
+}
+@keyframes zeruel-wing-strike {
+  0%, 100% { transform: rotate(0); }
+  24% { transform: rotate(calc(var(--zeruel-angle) * -.44)) scaleX(.974); }
+  52% { transform: rotate(calc(var(--zeruel-angle) * .95)) scaleX(1.025); }
+  72% { transform: rotate(calc(var(--zeruel-angle) * -.12)); }
+}
+@keyframes zeruel-halo-strike {
+  0%, 100% { transform: translateY(0) scale(1); }
+  52% { transform: translateY(-9px) scale(1.045); }
+}
+@keyframes zeruel-rite-surge {
+  0%, 100% { opacity: 0; }
+  23% { opacity: .28; }
+  54% { opacity: .95; }
+  74% { opacity: .38; }
+}
+@keyframes zeruel-seal-open {
+  0% { transform: scale(.55) rotate(-16deg); }
+  55% { transform: scale(1.12) rotate(7deg); }
+  100% { transform: scale(1.48) rotate(16deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-zeruel-pose] :is([data-zeruel-part], .zeruel-back-rig, .zeruel-core-rig, .zeruel-halo-shimmer, .zeruel-rite, .zeruel-seal-left > g, .zeruel-seal-right > g) {
+    animation: none !important;
+  }
+  .zeruel-halo-shimmer { opacity: 0; }
+}

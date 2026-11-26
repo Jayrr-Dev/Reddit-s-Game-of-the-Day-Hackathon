@@ -1,0 +1,128 @@
+/* Live SVG layers clipped from the approved texture. Motion is anchored
+   at the wing roots, ribbon pins, and halo center, not the image center. */
+.grandangel-rig-part { transform-box: view-box; transform-origin: var(--gar-pivot); }
+.grandangel-part-rig .gar-left-wing { --gar-sign: 1; animation: gar-wing 3.2s ease-in-out infinite; }
+.grandangel-part-rig .gar-right-wing { --gar-sign: -1; animation: gar-wing 3.2s ease-in-out -110ms infinite; }
+.grandangel-part-rig .gar-crown-left { --gar-sign: 1; animation: gar-crown 3.2s ease-in-out -450ms infinite; }
+.grandangel-part-rig .gar-crown-right { --gar-sign: -1; animation: gar-crown 3.2s ease-in-out -530ms infinite; }
+.grandangel-part-rig .gar-ribbon-left { --gar-sign: 1; animation: gar-ribbon 2.6s ease-in-out -280ms infinite; }
+.grandangel-part-rig .gar-ribbon-right { --gar-sign: -1; animation: gar-ribbon 2.9s ease-in-out -180ms infinite; }
+.cherubiel-part-rig :is(.gar-ribbon-left,.gar-ribbon-right) { animation-name: gar-ribbon-small; }
+.grandangel-part-rig .gar-tail { --gar-sign: 1; animation: gar-ribbon 3.4s ease-in-out -700ms infinite; }
+.grandangel-part-rig .gar-ambient { animation: gar-float 3.5s ease-in-out infinite; }
+.grandangel-part-rig .gar-eclipse,
+.grandangel-part-rig .gar-arc,
+.grandangel-part-rig .gar-sigil,
+.grandangel-part-rig .gar-cherub-light { opacity: 0; }
+.cambiel-part-rig .gar-eclipse { transform-origin: 350px 203px; }
+.cherubiel-part-rig .gar-eclipse,
+.cherubiel-part-rig .gar-cherub-halo { transform-origin: 349px 303px; }
+.cherubiel-part-rig .gar-cherub-halo { animation: gar-spin 38s linear infinite; }
+
+@keyframes gar-wing {
+  0%,100% { transform: rotate(calc(var(--gar-sign) * 3deg)) scaleX(.98); }
+  45% { transform: rotate(calc(var(--gar-sign) * -5deg)) scaleX(1.025); }
+}
+@keyframes gar-crown {
+  0%,100% { transform: rotate(calc(var(--gar-sign) * 1deg)); }
+  50% { transform: rotate(calc(var(--gar-sign) * -3deg)); }
+}
+@keyframes gar-ribbon {
+  0%,100% { transform: rotate(calc(var(--gar-sign) * -2deg)); }
+  50% { transform: rotate(calc(var(--gar-sign) * 3deg)); }
+}
+@keyframes gar-ribbon-small {
+  0%,100% { transform: rotate(calc(var(--gar-sign) * -1deg)); }
+  50% { transform: rotate(calc(var(--gar-sign) * 1.8deg)); }
+}
+@keyframes gar-float {
+  0%,100% { transform: translateY(0); }
+  45% { transform: translateY(-9px); }
+}
+@keyframes gar-spin { to { transform: rotate(1turn); } }
+
+.cambiel-part-rig[data-gar-clip="melee"] .gar-left-wing {
+  animation: gar-blade 560ms both;
+}
+.cambiel-part-rig[data-gar-clip="melee"] .gar-right-wing {
+  animation: gar-followup 560ms both;
+}
+.cambiel-part-rig[data-gar-clip="melee"] .gar-arc {
+  animation: gar-blade-flash 560ms both;
+}
+.cambiel-part-rig[data-gar-clip="melee"] .gar-action {
+  transform-origin: 350px 315px;
+  animation: gar-melee-body 560ms both;
+}
+@keyframes gar-blade {
+  0%,100% { transform: rotate(0); }
+  26% { transform: rotate(-8deg) scaleX(1.03); }
+  43% { transform: rotate(9deg) scaleX(.96); }
+  65% { transform: rotate(5deg); }
+}
+@keyframes gar-followup {
+  0%,100% { transform: rotate(0); }
+  43% { transform: rotate(8deg) scaleX(1.04); }
+  64% { transform: rotate(-8deg) scaleX(.95); }
+}
+@keyframes gar-melee-body {
+  0%,100% { transform: none; }
+  26% { transform: translate(-7px,-10px) rotate(-3deg); }
+  47% { transform: translate(9px, 7px) rotate(3deg) scale(1.025); }
+  65% { transform: translate(-6px, 5px) rotate(-2deg); }
+}
+@keyframes gar-blade-flash {
+  0%,34%,80%,100% { opacity: 0; }
+  45% { opacity: .82; }
+  62% { opacity: .44; transform: translate(-25px,14px); }
+}
+.grandangel-part-rig:is([data-gar-clip="guard"],[data-gar-clip="cast"],[data-gar-clip="signature"]) :is(.gar-left-wing,.gar-right-wing) {
+  animation: gar-wing-cue 560ms both;
+}
+.grandangel-part-rig[data-gar-clip="guard"] { --gar-sweep: 10deg; --gar-feather-scale: .94; }
+.grandangel-part-rig[data-gar-clip="cast"] { --gar-sweep: -9deg; --gar-feather-scale: 1.04; }
+.grandangel-part-rig[data-gar-clip="signature"] { --gar-sweep: -10deg; --gar-feather-scale: 1.045; }
+.cherubiel-part-rig[data-gar-clip] { --gar-sweep: -6deg; --gar-feather-scale: 1.025; }
+.cherubiel-part-rig[data-gar-clip="guard"] { --gar-sweep: 6deg; --gar-feather-scale: .97; }
+.grandangel-part-rig[data-gar-clip="signature"] :is(.gar-crown-left,.gar-crown-right) { animation: gar-wing-cue 560ms both; }
+@keyframes gar-wing-cue {
+  0%,100% { transform: none; }
+  24% { transform: rotate(calc(var(--gar-sign) * 2deg)); }
+  55% { transform: rotate(calc(var(--gar-sign) * var(--gar-sweep))) scaleX(var(--gar-feather-scale)); }
+  76% { transform: rotate(calc(var(--gar-sign) * var(--gar-sweep) * .54)); }
+}
+.grandangel-part-rig[data-gar-clip]:not([data-gar-clip="idle"]) :is(.gar-sigil,.gar-cherub-light) { animation: gar-core-light 560ms both; }
+.grandangel-part-rig:is([data-gar-clip="signature"],[data-gar-clip="cast"],[data-gar-clip="guard"]) .gar-eclipse { animation: gar-ring-cue 560ms both; }
+@keyframes gar-core-light {
+  0%,100% { opacity: 0; }
+  40%,70% { opacity: .69; }
+}
+@keyframes gar-ring-cue {
+  0%,100% { opacity: 0; transform: scale(.88) rotate(0); }
+  55% { opacity: .75; transform: scale(1.06) rotate(33deg); }
+  83% { opacity: .32; transform: scale(1.13) rotate(43deg); }
+}
+
+/* Combat charges for 900ms; the burst starts on the separate release beat. */
+.grandangel-part-rig[data-gar-clip="charge"] :is(.gar-left-wing,.gar-right-wing,.gar-crown-left,.gar-crown-right) { animation: gar-gather-wing 900ms both; }
+.grandangel-part-rig[data-gar-clip="charge"] .gar-eclipse { animation: gar-gather-ring 900ms both; }
+.grandangel-part-rig[data-gar-clip="charge"] :is(.gar-sigil,.gar-cherub-light) { animation: gar-gather-light 900ms both; }
+@keyframes gar-gather-wing {
+  0% { transform: none; }
+  57% { transform: rotate(calc(var(--gar-sign) * 7deg)) scaleX(.94); }
+  100% { transform: rotate(calc(var(--gar-sign) * 4deg)) scaleX(.98); }
+}
+@keyframes gar-gather-ring {
+  0% { opacity: 0; transform: scale(.65) rotate(-44deg); }
+  78% { opacity: .58; transform: scale(.79) rotate(-10deg); }
+  100% { opacity: .86; transform: scale(.85) rotate(0); }
+}
+@keyframes gar-gather-light {
+  from { opacity: 0; }
+  to { opacity: .59; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grandangel-part-rig * { animation: none !important; }
+  .grandangel-part-rig[data-gar-clip]:not([data-gar-clip="idle"]) :is(.gar-sigil,.gar-cherub-light) { opacity: .28; }
+}

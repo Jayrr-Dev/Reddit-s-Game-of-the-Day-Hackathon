@@ -47,25 +47,18 @@ import greedArt from '../../../assets/heroes/greed.webp';
 import envyArt from '../../../assets/heroes/envy.webp';
 import moriArt from '../../../assets/heroes/light-lord-mori.webp';
 import azulaArt from '../../../assets/heroes/mage-borne-azula.webp';
-import cherubielArt from '../../../assets/heroes/grandangel-cherubiel.webp';
 import fulgurArt from '../../../assets/heroes/fulgur-dragonknight-idle.webp';
-import zadkielArt from '../../../assets/heroes/zadkiel-of-dominations.webp';
-import cervielStaffArt from '../../../assets/heroes/cerviel-staff.webp';
-import cervielSwordArt from '../../../assets/cerviel/Villain-Run-Cerviel-Sword-Grips.webp';
-import cervielOpenArt from '../../../assets/cerviel/Villain-Run-Cerviel-Open-Hands.webp';
-import cervielFistsArt from '../../../assets/cerviel/Villain-Run-Cerviel-Closed-Fists.webp';
-import { ArcherSprite } from './ArcherSprite';
-import cambielArt from '../../../assets/heroes/grandangel-cambiel.webp';
-import geonosisArt from '../../../assets/heroes/grandangel-geonosis.webp';
-import razielArt from '../../../assets/heroes/grandangel-raziel.webp';
-import zeruelArt from '../../../assets/heroes/archangel-zeruel.webp';
+import { RazielRigFigure } from './RazielRigFigure';
+import { CambielRigFigure, CherubielRigFigure } from './CambielCherubielRig';
+import { CervielRigFigure } from './CervielRigFigure';
+import { GeonosisRigFigure, ZadkielRigFigure } from './GrandangelGzFigures';
+import { ZeruelRigFigure } from './ZeruelRigFigure';
 import astraArt from '../../../assets/heroes/mage-borne-astra.webp';
 import { GeneralKhanFigure } from './GeneralKhanFigure';
 import { UrielFigure } from './UrielFigure';
-import zeruelArmoredArt from '../../../assets/heroes/archangels/zeruel-armored.webp';
 import alphaPlasmaArt from '../../../assets/heroes/archangels/alpha-plasma.webp';
 import omegaPlasmaArt from '../../../assets/heroes/archangels/omega-plasma.webp';
-import angelAssassinArt from '../../../assets/heroes/angel-assassin.webp';
+import { AngelAssassinRigFigure } from './AngelAssassinRigFigure';
 import ballistaArt from '../../../assets/heroes/ballista.webp';
 import type {
   CreatureId,
@@ -699,13 +692,6 @@ const MageBorneAzula = () => (
   </g>
 );
 
-/** The original many-eyed angel art, kept centered above its battlefield shadow. */
-const GrandangelCherubiel = () => (
-  <g className="angel-hover" data-grandangel-cherubiel="">
-    <ProgressiveSvgImage href={cherubielArt} x={15} y={-24} width={120} height={120} />
-  </g>
-);
-
 const FulgurDragonknight = () => (
   <g className="fulgur-throw-pose">
     <ProgressiveSvgImage data-fulgur-dragonknight="" href={fulgurArt} x={1} y={0} width={148} height={99} />
@@ -718,59 +704,8 @@ const FulgurDragonknight = () => (
   </g>
 );
 
-const ZadkielOfDominations = () => (
-  <g className="angel-hover" data-zadkiel-of-dominations="">
-    <ProgressiveSvgImage href={zadkielArt} x={-4} y={-14} width={158} height={111} />
-  </g>
-);
-
 const MageBorneAstra = () => (
   <ProgressiveSvgImage data-mage-borne-astra="" href={astraArt} x={36} y={-15} width={78} height={117} />
-);
-
-const CERVIEL_ART = { staff: cervielStaffArt, sword: cervielSwordArt };
-const CervielForm = ({ form, size, action }: { form: keyof typeof CERVIEL_ART | 'bow'; size: HeroSize; action?: HeroAction | null | undefined }) => {
-  const half = BODY_WIDTH[size] / 2;
-  const isStaff = form === 'staff';
-  const width = isStaff || form === 'sword' ? 104 : 87;
-  const height = width * 1316 / 1195;
-  const y = 97 - height;
-  const left = half - width / 2;
-  return (
-    <g className="angel-hover" data-cerviel-form={form}>
-      {form === 'bow' ? (
-        <foreignObject x={left} y={y} width={width} height={height} pointerEvents="none">
-          <div className="relative size-full">
-            <ArcherSprite heroId="cervielBow" action={action ?? null} />
-          </div>
-        </foreignObject>
-      ) : (
-        <ProgressiveSvgImage href={form === 'sword' && action?.style === 'magic' ? cervielOpenArt : form === 'sword' && action?.style === 'support' ? cervielFistsArt : CERVIEL_ART[form]} x={left} y={y} width={width} height={height} />
-      )}
-    </g>
-  );
-};
-
-const GrandangelCambiel = () => (
-  <g className="angel-hover" data-grandangel-cambiel="">
-    <ProgressiveSvgImage href={cambielArt} x={24} y={-7} width={102} height={103} />
-  </g>
-);
-
-const GrandangelGeonosis = () => (
-  <g className="angel-hover" data-grandangel-geonosis="">
-    <ProgressiveSvgImage href={geonosisArt} x={17} y={-19} width={116} height={116} />
-  </g>
-);
-
-const GrandangelRaziel = () => (
-  <g className="angel-hover" data-grandangel-raziel="">
-    <ProgressiveSvgImage href={razielArt} x={28} y={-20} width={94} height={117} />
-  </g>
-);
-
-const ArchangelZeruel = () => (
-  <ProgressiveSvgImage data-archangel-zeruel="" href={zeruelArt} x={24} y={-8} width={102} height={109} />
 );
 
 const BossSprite = ({ size, art, hover, inset = 0 }: {
@@ -793,10 +728,10 @@ const CREATURE_DRAWINGS: Record<
   greed: ({ size }) => <BossSprite size={size} art={greedArt} inset={2} />,
   envy: ({ size }) => <BossSprite size={size} art={envyArt} inset={10} />,
   holyDragon: HolyDragon,
-  angelAssassin: ({ size }) => <BossSprite size={size} art={angelAssassinArt} hover />,
+  angelAssassin: AngelAssassinRigFigure,
   twinAxeKnight: GeneralKhanFigure,
   archangelUriel: UrielFigure,
-  zeruelArmored: ({ size }) => <BossSprite size={size} art={zeruelArmoredArt} hover />,
+  zeruelArmored: ({ size, action }) => <ZeruelRigFigure size={size} action={action} armored />,
   angelArcher: AngelArcher,
   grandGriffon: GrandGriffon,
   ballista: Ballista,
@@ -807,16 +742,16 @@ const CREATURE_DRAWINGS: Record<
   apollyonSeraph: ApollyonSeraph,
   lightLordMori: LightLordMori,
   mageBorneAzula: MageBorneAzula,
-  grandangelCherubiel: GrandangelCherubiel,
+  grandangelCherubiel: CherubielRigFigure,
   fulgurDragonknight: FulgurDragonknight,
-  zadkielOfDominations: ZadkielOfDominations,
-  grandangelCerviel: ({ size }) => <CervielForm form="staff" size={size} />,
-  cervielSword: ({ size, action }) => <CervielForm form="sword" size={size} action={action} />,
-  cervielBow: ({ size, action }) => <CervielForm form="bow" size={size} action={action} />,
-  grandangelCambiel: GrandangelCambiel,
-  grandangelGeonosis: GrandangelGeonosis,
-  grandangelRaziel: GrandangelRaziel,
-  archangelZeruel: ArchangelZeruel,
+  zadkielOfDominations: ZadkielRigFigure,
+  grandangelCerviel: ({ size, action }) => <CervielRigFigure form="staff" size={size} action={action} />,
+  cervielSword: ({ size, action }) => <CervielRigFigure form="sword" size={size} action={action} />,
+  cervielBow: ({ size, action }) => <CervielRigFigure form="bow" size={size} action={action} />,
+  grandangelCambiel: CambielRigFigure,
+  grandangelGeonosis: GeonosisRigFigure,
+  grandangelRaziel: RazielRigFigure,
+  archangelZeruel: ZeruelRigFigure,
   zeruelRedSun: ({ size }) => <BossSprite size={size} art={alphaPlasmaArt} hover inset={14} />,
   zeruelBlueSun: ({ size }) => <BossSprite size={size} art={omegaPlasmaArt} hover inset={14} />,
   mageBorneAstra: MageBorneAstra,

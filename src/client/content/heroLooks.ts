@@ -530,6 +530,8 @@ export type HeroAction = {
   style: HeroActionStyle;
   swing: MeleeSwing;
   isSignature: boolean;
+  /** Present for a live signature: true during windup, false on release. */
+  isCharging?: boolean;
   /** A two-handed swipe: the claws cross (Crossed Talon). */
   isTwoHanded: boolean;
   cervielVolleyKey?: number;

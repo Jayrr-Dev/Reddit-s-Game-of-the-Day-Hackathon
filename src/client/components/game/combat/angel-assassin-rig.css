@@ -1,0 +1,16 @@
+[data-angel-assassin-rig] [data-assassin-wing] {
+  transform-box: view-box;
+  animation: assassin-wing-flex 2.85s cubic-bezier(.4,0,.4,1) infinite;
+}
+[data-assassin-wing='left'] { --assassin-wing-side: 1; }
+[data-assassin-wing='right'] { --assassin-wing-side: -1; }
+[data-angel-assassin-rig] [data-assassin-wing='right'] { animation-delay: -115ms; }
+
+@keyframes assassin-wing-flex {
+  0%, 100% { transform: rotate(0) scaleX(1); }
+  28% { transform: rotate(calc(-4deg * var(--assassin-wing-side))) scaleX(.982); }
+  65% { transform: rotate(calc(6deg * var(--assassin-wing-side))) scaleX(.952); }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-angel-assassin-rig], [data-angel-assassin-rig] [data-assassin-wing] { animation: none !important; }
+}
