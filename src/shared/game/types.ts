@@ -84,6 +84,8 @@ export type StatusId =
   /** Keeps Guard from expiring, one turn per stack. */
   | 'brace'
   | 'aloft'
+  /** Remaining opposing turns during which this unit cannot be targeted directly. */
+  | 'cloak'
   /** Rush: the next this-many movements this turn cost 0. */
   | 'move'
   | 'rush'
@@ -172,6 +174,8 @@ export type BaseCardEffect =
   | { kind: 'charge' | 'backStep' | 'momentum' }
   /** Armor N: each physical (Melee, Range) hit on you is N lower. */
   | { kind: 'armor'; amount: number }
+  /** Hide the player from direct targeting until this duration or their next attack. */
+  | { kind: 'cloak'; amount: number }
   | { kind: 'poison'; amount: number; target: CardTarget }
   | { kind: 'burn'; amount: number; target: CardTarget }
   | { kind: 'frost'; amount: number; target: CardTarget }
@@ -374,6 +378,8 @@ export type HeroEffect =
   /** Locks the villain's Buff cards for this many turns. */
   | { kind: 'malaise'; amount: number }
   | { kind: 'guard'; amount: number; who: 'self' | 'allies' }
+  /** Hide the acting hero from direct targeting until this duration or their next attack. */
+  | { kind: 'cloak'; amount: number }
   | { kind: 'wrath'; amount: number; who: 'self' | 'allies' }
   | { kind: 'heal'; amount: number; who: 'self' | 'allies' }
   /** Casts Protection (a tier up) on itself or every hero; spent when their next turn starts. */
@@ -387,7 +393,7 @@ export type HeroEffect =
    * the summoner's own row, nearest first. Bound to the summoner: they
    * fall when it falls.
    */
-  | { kind: 'summon'; heroId: SummonId; count: number }
+  | { kind: 'summon'; heroId: HeroId; count: number; onceAt?: { row: 'back'; col: number } }
   /**
    * Brings every fallen ally back at full HP, into the spot it fell in
    * when that spot is free.
@@ -421,6 +427,7 @@ export type HeroMove = {
   isSignature?: boolean;
   /** Cosmetic: a two-handed swipe (claws cross; see GriffonFigure). */
   isTwoHanded?: boolean;
+  visual?: 'cervielBladeVolley';
 };
 
 export type HeroTier = 'grunt' | 'elite' | 'champion' | 'boss';
@@ -441,6 +448,7 @@ export type HeroDef = {
   maxHp: number;
   /** Moves repeat in order, so players can read and plan around them. */
   moves: readonly HeroMove[];
+  secondPhase?: { restoreHpFraction: number; moves: readonly HeroMove[]; visual: 'cervielBladeVolley' };
   /** Portrait hue (0 to 360). Each hero gets its own heraldic colour. */
   hue: number;
   /** Preferred fighting row. After acting, the hero tries to return here. */
@@ -467,6 +475,9 @@ export type HeroUnit = Combatant & {
   uid: number;
   heroId: HeroId;
   moveIndex: number;
+  phase?: 2;
+  summonedOnceIds?: readonly HeroId[];
+  onceSummoned?: true;
   /** Strength multiplier from how deep into the kingdom this fight is. */
   might: number;
   row: HeroRow;

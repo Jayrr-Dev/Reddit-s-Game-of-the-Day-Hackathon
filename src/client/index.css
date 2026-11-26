@@ -12,7 +12,7 @@
   padding-inline: 1.25rem;
   border: 1px solid #966f40;
   background: linear-gradient(#ae86432c, #170d0770),
-    url('./assets/table/character-oak-grain.jpg') center / cover;
+    url('./assets/table/character-oak-grain.webp') center / cover;
   color: #f7e5c3;
   box-shadow: inset 0 0 0 2px #281b11, inset 0 0 0 3px #8d69435c, 0 2px 4px #0008;
 }
@@ -3364,7 +3364,7 @@ textarea,
 
 .first-fight { height:100%; display:grid; grid-template-rows:auto minmax(0,1fr); }
 .first-fight-guide, .first-fight-result {
-  background: #23160f url('./assets/table/character-oak-grain.jpg') center / cover;
+  background: #23160f url('./assets/table/character-oak-grain.webp') center / cover;
   color: #fff0d5;
 }
 .first-fight-guide { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 12px; border-bottom:1px solid #b08a50; }
@@ -3384,12 +3384,12 @@ textarea,
   --color-edge:#775932;
   --color-ink-muted:#cfbfa5;
   color:#f8ecd5;
-  background: #22170f url('./assets/table/character-oak-grain.jpg') center / cover;
+  background: #22170f url('./assets/table/character-oak-grain.webp') center / cover;
 }
 .run-board > header { border-bottom:2px ridge #a27f48; }
 .run-panel, .death-script, .run-results, .run-menu-panel {
   border:8px solid #795733;
-  border-image:url('./assets/table/character-oak-frame.jpg') 34 round;
+  border-image:url('./assets/table/character-oak-frame.webp') 34 round;
 }
 .run-panel, .death-script { padding:clamp(12px,3vw,26px); }
 .run-choice { cursor:pointer; border:1px solid #977446; border-radius:5px; background:linear-gradient(#493321,#2b1e16); }
@@ -3467,7 +3467,7 @@ button[data-card-size]:enabled { cursor:pointer; }
 .rules-reference details { margin:12px 0 0; color:#c8b79d; font-size:11px; }
 .rules-reference summary { cursor:pointer; }
 .player-reddit-name { position:absolute; bottom:calc(100% + 9px); left:0; width:max-content; max-width:115px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#ffedc5; background:#23180fe8; padding:1px 4px; border-radius:3px; font:bold 11px var(--font-display); pointer-events:none; }
-.lesson-book {height:100%;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:14px;padding:16px;background:linear-gradient(#170e0988,#160d08bb),url('./assets/table/character-oak-grain.jpg') center/cover;color:#f5e7c9}
+.lesson-book {height:100%;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:14px;padding:16px;background:linear-gradient(#170e0988,#160d08bb),url('./assets/table/character-oak-grain.webp') center/cover;color:#f5e7c9}
 .lesson-book header,.lesson-book footer {display:flex;align-items:center;justify-content:space-between;gap:12px;width:min(100%,620px)}
 .lesson-book h1 {font: bold 25px var(--font-display);color:#efc379}
 .lesson-book header span,.lesson-caption span {font-size:12px}
@@ -3485,7 +3485,7 @@ button[data-card-size]:enabled { cursor:pointer; }
 .first-fight[data-lesson="rows"] [data-hero-row="front"]::after {content:"Line 1"}
 .first-fight[data-lesson="rows"] [data-hero-row="back"]::after {content:"Line 2"}
 .first-fight[data-lesson="rows"] [data-hero-row="horizon"]::after {content:"Line 3"}
-.profile-view {height:100%;overflow:auto;padding:clamp(12px,3vw,28px);background:linear-gradient(#21140bd9,#160d09ed),url('./assets/table/character-oak-grain.jpg') center/cover;color:#f6e6c8}
+.profile-view {height:100%;overflow:auto;padding:clamp(12px,3vw,28px);background:linear-gradient(#21140bd9,#160d09ed),url('./assets/table/character-oak-grain.webp') center/cover;color:#f6e6c8}
 .profile-view>header,.profile-view>section,.profile-view>footer,.profile-view>p {max-width:640px;margin:0 auto 14px}
 .profile-view header,.profile-view footer,.profile-strip,.profile-classes,.profile-decklist {display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .profile-view header {justify-content:space-between}
@@ -3495,13 +3495,13 @@ button[data-card-size]:enabled { cursor:pointer; }
 .profile-strip>div {display:grid;min-width:65px;flex:1}.profile-view p,.profile-strip span {font-size:12px}.profile-view .oak-menu-button {width:auto;min-width:88px;padding:0 15px}
 .profile-classes,.profile-decklist {margin:10px 0}.profile-decklist span {font-size:12px;border:1px solid #705336;background:#211710;border-radius:4px;padding:3px 7px}.profile-decklist b {color:#f0c077}
 .profile-view footer {justify-content:flex-end}.profile-slots {display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin-top:14px}.profile-slots p {grid-column:1/-1}.profile-slots label {display:grid;font-size:11px}.profile-slots select {color:#f5e7c9;background:#271c16;padding:5px;border:1px solid #937246}
-.starter-picker {position:relative;display:grid;grid-template-rows:auto minmax(0,1fr) auto;align-content:center;gap:12px;height:100%;padding:clamp(10px,3vw,24px);background:linear-gradient(#1b100bba,#17100cef),url('./assets/table/character-oak-grain.jpg') center/cover;color:#f5e5c2}
+.starter-picker {position:relative;display:grid;grid-template-rows:auto minmax(0,1fr) auto;align-content:center;gap:12px;height:100%;padding:clamp(10px,3vw,24px);background:linear-gradient(#1b100bba,#17100cef),url('./assets/table/character-oak-grain.webp') center/cover;color:#f5e5c2}
 .starter-picker h1 {text-align:center;font:bold clamp(19px,3vw,28px) var(--font-display);color:#f3c778}
 .starter-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-content:center;gap:10px;overflow:auto}
 .starter-option {display:flex;flex-direction:column;overflow:hidden;border:1px solid #927047;border-radius:7px;background:#2d2117}
 .starter-option[data-selected=true]{border-color:#ffcf70;box-shadow:inset 0 0 0 1px #ffcf70}
 .starter-select {position:relative;width:100%;cursor:pointer}
-.starter-art {display:block;width:100%;aspect-ratio:1.35;position:relative;overflow:hidden}.starter-art::before{content:"";position:absolute;top:50%;left:0;width:100%;aspect-ratio:1;transform:translateY(-50%);background-size:200% 200%;background-position:inherit;background-image:url('./assets/table/starter-classes.jpg')}
+.starter-art {display:block;width:100%;aspect-ratio:1.35;position:relative;overflow:hidden}.starter-art::before{content:"";position:absolute;top:50%;left:0;width:100%;aspect-ratio:1;transform:translateY(-50%);background-size:200% 200%;background-position:inherit;background-image:url('./assets/table/starter-classes.webp')}
 .starter-art[data-style=Warrior]{background-position:0 0}.starter-art[data-style=Mage]{background-position:100% 0}.starter-art[data-style=Hexer]{background-position:0 100%}.starter-art[data-style=Archer]{background-position:100% 100%}
 .starter-copy {display:grid;padding:5px}.starter-copy strong {color:#f3c778;font: bold 18px var(--font-display)}.starter-copy small {font-size:12px}.starter-option>.oak-menu-button{align-self:center;width:calc(100% - 14px);margin:0 7px 7px}
 .starter-tick {position:absolute;top:4px;right:4px;border-radius:50%;background:#21513a;border:1px solid #b3c88c;width:22px;color:white}

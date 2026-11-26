@@ -28,19 +28,19 @@ const BANKS_BEHIND = ['storm', 'far', 'mid', 'floor'] as const;
 
 // --- COMPONENT ---
 /** Draws the field's weather, if it has any. */
-export const FieldWeather = ({ weather }: { weather: Weather | undefined }) => {
+export const FieldWeather = ({ weather, overArena = false }: { weather: Weather | undefined; overArena?: boolean }) => {
   if (weather !== 'mist') return null;
   return (
     <>
       <div
         className="field-mist field-mist-sky"
-        style={{ zIndex: LAYER.behind }}
+        style={{ zIndex: LAYER.behind, ...(overArena ? { opacity: .22 } : {}) }}
       />
       {BANKS_BEHIND.map((bank) => (
         <div
           key={bank}
           className={`field-mist field-mist-bank field-mist-${bank}`}
-          style={{ zIndex: LAYER.behind }}
+          style={{ zIndex: LAYER.behind, ...(overArena ? { opacity: .61 } : {}) }}
         />
       ))}
       <div

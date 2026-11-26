@@ -63,6 +63,7 @@ export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
   momentum: { glyph: 'bolt', toneClass: 'text-hp' },
   protection: { glyph: 'aegis', toneClass: 'text-guard' },
   aloft: { glyph: 'wing', toneClass: 'text-accent' },
+  cloak: { glyph: 'ghost', toneClass: 'text-hex' },
   // Rush makes movements free, so it wears the energy colour.
   move: { glyph: 'heartbeat', toneClass: 'text-energy' },
   rush: { glyph: 'heartbeat', toneClass: 'text-energy' },
@@ -115,6 +116,7 @@ export const INTENT_LOOK: Record<IntentKind, Look> = {
   bleed: STATUS_LOOK.bleed,
   weaken: STATUS_LOOK.weaken,
   malaise: STATUS_LOOK.malaise,
+  cloak: STATUS_LOOK.cloak,
   guard: { glyph: 'shield', toneClass: 'text-guard' },
   buff: STATUS_LOOK.wrath,
   heal: { glyph: 'heart', toneClass: 'text-heal' },

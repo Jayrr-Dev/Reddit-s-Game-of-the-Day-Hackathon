@@ -8,6 +8,7 @@
 
 import { CustomDeckEditor } from './CustomDeckEditor';
 import { MAP_IMAGES, MAP_NAMES } from './combat/Backdrop';
+import { bossArenaOf, TRAINING_BOSS_ARENAS, type BossArena } from '../../content/bossArenas';
 import { useState, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { getHero, type HeroId } from '../../../shared/game/heroes';
@@ -170,6 +171,8 @@ export const ScenarioPicker = ({
   renderTools,
   terrainIndex,
   onPickMap,
+  activeArena,
+  onPickArena,
   deckId,
   customDecks,
   activeCustomId,
@@ -181,6 +184,8 @@ export const ScenarioPicker = ({
   renderTools: (openDeck: () => void) => ReactNode;
   terrainIndex: number;
   onPickMap: (index: number) => void;
+  activeArena?: BossArena | undefined;
+  onPickArena: (arena: BossArena) => void;
   deckId: SandboxDeckId;
   customDecks: readonly CustomTrainingDeck[];
   activeCustomId: string | null;
@@ -221,7 +226,7 @@ export const ScenarioPicker = ({
               preview={
                 <ScenarioPreview
                   scenario={scenario}
-                  terrain={MAP_IMAGES[terrainIndex]}
+                  terrain={bossArenaOf(scenario.heroIds)?.image ?? MAP_IMAGES[terrainIndex]}
                 />
               }
               isActive={false}
@@ -229,18 +234,29 @@ export const ScenarioPicker = ({
             />
           ))
         ) : tab === 'map' ? (
-          MAP_NAMES.map((name, index) => (
+          <>
+          <h3 className="col-span-full mt-1 text-xs font-bold uppercase tracking-widest text-[#f2d29b]">Boss arenas</h3>
+          {TRAINING_BOSS_ARENAS.map(arena => (
+            <button key={arena.name} type="button" className="training-map"
+              aria-pressed={arena.name === activeArena?.name} onClick={() => onPickArena(arena)}>
+              <img alt="" loading="lazy" src={arena.image} />
+              <span>{arena.name}</span>
+            </button>
+          ))}
+          <h3 className="col-span-full mt-1 text-xs font-bold uppercase tracking-widest text-[#f2d29b]">Region maps</h3>
+          {MAP_NAMES.map((name, index) => (
             <button
               key={name}
               type="button"
               className="training-map"
-              aria-pressed={index === terrainIndex}
+              aria-pressed={!activeArena && index === terrainIndex}
               onClick={() => onPickMap(index)}
             >
               <img alt="" loading="lazy" src={MAP_IMAGES[index]} />
               <span>{name}</span>
             </button>
-          ))
+          ))}
+          </>
         ) : (
           <>
             {customDecks.map((deck) => (

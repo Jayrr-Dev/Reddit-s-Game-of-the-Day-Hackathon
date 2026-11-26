@@ -22,6 +22,7 @@
 import './combat/dueling-table.css';
 import { getVolume, playAfflictionBurst, playCardSound, playCombatImpact, playUnitDeath, playSound, subscribeVolume, usesShockCue } from '../../lib/gameAudio';
 import { useMapAudio } from '../../lib/mapAudio';
+import { bossArenaOf, type BossArena } from '../../content/bossArenas';
 import { isBoss, isCreature } from "../../content/heroLooks";
 import { useEffect, useCallback, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
@@ -109,6 +110,7 @@ export type CombatViewProps = {
   deck: readonly CardId[];
   /** Terrain for this region or practice round. */
   terrainIndex: number;
+  trainingArenaOverride?: BossArena | null | undefined;
   where: string;
   score: number;
   onAction: (action: RunAction) => void;
@@ -237,6 +239,7 @@ export const CombatView = ({
   onRespec,
   deck,
   terrainIndex,
+  trainingArenaOverride,
   where,
   score,
   onAction,
@@ -266,7 +269,20 @@ export const CombatView = ({
   const musicVolume = useSyncExternalStore(subscribeVolume, () => getVolume('music'));
   const sfxVolume = useSyncExternalStore(subscribeVolume, () => getVolume('sfx'));
   const mapName = MAP_NAMES[terrainIndex % MAP_NAMES.length] ?? MAP_NAMES[0] ?? '';
-  useMapAudio({ mapId: mapName, active: realCombat.player.hp > 0, bossActive: hasBoss, alternateBattle: battleMusic === 'orchestral', musicVolume: musicVolume / 100, sfxVolume: sfxVolume / 100 });
+  const bossArena = trainingArenaOverride !== undefined ? trainingArenaOverride ?? undefined : bossArenaOf(
+    realCombat.heroes.map(unit => unit.heroId),
+    realCombat.fallen.map(unit => unit.heroId)
+  );
+  useMapAudio({
+    mapId: mapName,
+    active: realCombat.player.hp > 0,
+    bossActive: hasBoss || trainingArenaOverride != null,
+    bossScoreUrl: bossArena?.scoreUrl,
+    bossAmbience: bossArena?.ambience,
+    alternateBattle: battleMusic === 'orchestral',
+    musicVolume: musicVolume / 100,
+    sfxVolume: sfxVolume / 100,
+  });
   useEffect(() => {
     const pending = incomingAttackTimers.current;
     return () => { pending.forEach(window.clearTimeout); pending.clear(); };
@@ -542,7 +558,7 @@ export const CombatView = ({
     >
       <div inert={!!bossEntrance.entering} className="table-field-frame relative flex min-h-0 flex-1 flex-col">
         <TopBar
-          location={mapName}
+          location={bossArena?.name ?? mapName}
           where={where}
           score={score}
           onOpenMenu={() => setIsPaused(true)}
@@ -557,6 +573,7 @@ export const CombatView = ({
             player={combat.player}
             travelRows={combat.travelRows ?? 0}
             terrainIndex={terrainIndex}
+            bossArena={bossArena}
             focusUid={controls.focusUid}
             aimOf={controls.aimOf}
             pickMarkerOf={controls.pickMarkerOf}

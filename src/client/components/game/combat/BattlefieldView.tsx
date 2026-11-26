@@ -20,6 +20,7 @@ import { FieldWeather } from './FieldWeather';
 import { FIELD_ATTR } from '../../../hooks/useCardDrag';
 import { cssVars, depthStyle } from '../../../lib/cssVars';
 import { Backdrop } from './Backdrop';
+import type { BossArena } from '../../../content/bossArenas';
 import type { AimState, PickMarker } from '../../../hooks/useCombatControls';
 import type { useBossEntrance } from '../../../hooks/useBossEntrance';
 import { useFallenHeroes } from '../../../hooks/useFallenHeroes';
@@ -33,6 +34,7 @@ export type BattlefieldViewProps = {
   heroes: readonly HeroUnit[];
   player: Combatant;
   terrainIndex: number;
+  bossArena?: BossArena | undefined;
   travelRows: number;
   focusUid: number | null;
   /** Aim state per hero uid while a card is held (empty when none). */
@@ -88,6 +90,7 @@ export const BattlefieldView = ({
   heroes,
   player,
   terrainIndex,
+  bossArena,
   travelRows,
   focusUid,
   aimOf,
@@ -115,6 +118,7 @@ export const BattlefieldView = ({
         : '';
   const entrance = bossEntrance.entering && bossEntranceOf(bossEntrance.entering.heroId);
   const skipClass = bossEntrance.isSkipped ? 'boss-entrance-skipped' : '';
+  const cervielDark = heroes.some(unit => unit.phase === 2 && unit.hp > 0);
   const focused = heroes.find((unit) => unit.uid === focusUid);
 
   return (
@@ -126,7 +130,10 @@ export const BattlefieldView = ({
     >
       <div className={`absolute isolate inset-0 ${shakeClass}`}>
         <div className="field-camera pointer-events-none absolute inset-0" style={{ ...cssVars({ '--travel-rows': travelRows }), transformOrigin: '50% var(--horizon)' }}>
-          <Backdrop terrainIndex={terrainIndex} depths={ROW_DEPTH} hasHorizon={activeRows().includes('horizon')} />
+          <Backdrop terrainIndex={terrainIndex} bossArena={bossArena} depths={ROW_DEPTH} hasHorizon={activeRows().includes('horizon')} />
+          <div aria-hidden="true" data-cerviel-dark={cervielDark ? '' : undefined}
+            className="pointer-events-none absolute inset-0 bg-[#090611] transition-opacity duration-[1300ms] motion-reduce:transition-none"
+            style={{ opacity: cervielDark ? 0.57 : 0 }} />
         </div>
         <div
           className="parallax-layer pointer-events-none absolute -inset-x-8 bottom-0 h-1/2"
@@ -136,7 +143,7 @@ export const BattlefieldView = ({
             background: `linear-gradient(transparent, rgb(20 14 24 / 0.18))`,
           }}
         />
-        <FieldWeather weather={weatherOf(heroes)} />
+        <FieldWeather weather={weatherOf(heroes)} overArena={bossArena !== undefined} />
         {[...heroes.map(unit => ({ unit, isDying: false })), ...ghosts.map(unit => ({ unit, isDying: true }))].map(({ unit, isDying }) => (
           <RowLayer key={unit.uid} row={unit.row}>
             <HeroOnField unit={unit} player={player} isDying={isDying}

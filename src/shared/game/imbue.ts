@@ -169,6 +169,7 @@ const EFFECT_STACKS: Record<ImbuableEffect['kind'], boolean> = {
   armor: true,
   enfeeble: false,
   malaise: false,
+  cloak: false,
   protect: false,
   cleanse: false,
   dispel: false,

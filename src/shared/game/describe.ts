@@ -156,6 +156,10 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
     label: 'Malaise',
     description: 'Blocks buffs for **N** turns. Cleanse can remove it.',
   },
+  cloak: {
+    label: 'Cloak',
+    description: 'Untargetable for **N** enemy turns or until attacking. Area effects and existing afflictions still apply.',
+  },
   brace: {
     label: 'Brace',
     description:
@@ -293,6 +297,8 @@ export const describeCardEffect = (
       return describeStatusLine(effect, attacker, target);
     case 'malaise':
       return `Malaise ${effect.amount}${areaWord(effect.target)}`;
+    case 'cloak':
+      return `Cloak ${effect.amount}`;
     case 'enfeeble':
       return `Enfeeble ${tierNumeral((target?.statuses.enfeeble ?? 0) + (effect.times ?? 1) + (attacker ? scornBonus(attacker, 'enfeeble') : 0))}${areaWord(effect.target)}`;
     case 'reap': {
@@ -586,6 +592,8 @@ export const imbueTag = (gift: ImbueGift): string => {
       return `${STATUS_INFO[effect.buff].label}${buffAmountText(effect)}`;
     case 'malaise':
       return `Malaise ${effect.amount}`;
+    case 'cloak':
+      return `Cloak ${effect.amount}`;
     case 'enfeeble':
       return `Enfeeble ${tierNumeral(effect.times ?? 1)}`;
     case 'move':
@@ -742,6 +750,7 @@ export type IntentKind =
   | 'bleed'
   | 'weaken'
   | 'malaise'
+  | 'cloak'
   | 'guard'
   | 'buff'
   | 'protect'
@@ -830,6 +839,8 @@ const describeHeroEffect = (
       };
     case 'malaise':
       return { kind: 'malaise', text: String(effect.amount), label: `Malaise ${effect.amount}\n${STATUS_INFO.malaise.description}` };
+    case 'cloak':
+      return { kind: 'cloak', text: String(effect.amount), label: `Cloak ${effect.amount}\n${STATUS_INFO.cloak.description}` };
     case 'guard': {
       const amount = scaled(effect.amount);
       return {
@@ -888,7 +899,7 @@ const describeHeroEffect = (
       return {
         kind: 'summon',
         text: `${effect.count}`,
-        label: `Summons ${effect.count} ${getHero(effect.heroId).name}${effect.count > 1 ? 's' : ''}`,
+        label: `Summons ${effect.count} ${getHero(effect.heroId).name}${effect.count > 1 ? 's' : ''}${effect.onceAt ? ' (once per fight)' : ''}`,
       };
     case 'detonate':
       return {

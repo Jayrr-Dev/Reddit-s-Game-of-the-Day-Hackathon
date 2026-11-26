@@ -130,6 +130,12 @@ export const MAIL = {
  */
 export const CREATURE_IDS = [
   'holyDragon',
+  'angelAssassin',
+  'twinAxeKnight',
+  'archangelUriel',
+  'zeruelArmored',
+  'eclipseAlphaTraining',
+  'eclipseOmegaTraining',
   'angelArcher',
   'grandGriffon',
   'ballista',
@@ -183,6 +189,12 @@ const CREATURE_SHADOW: Record<CreatureId, GroundShadow> = {
   },
   ballista: { halfWidthShare: 0.55, opacity: 0.45, ...LIFT_RESPONSE },
   tempestWyrm: { halfWidthShare: 0.46, opacity: 0.5, ...LIFT_RESPONSE },
+  angelAssassin: { halfWidthShare: 0.22, opacity: 0.24, ...LIFT_RESPONSE },
+  twinAxeKnight: { halfWidthShare: 0.39, opacity: 0.46, ...LIFT_RESPONSE },
+  archangelUriel: { halfWidthShare: 0.26, opacity: 0.33, ...LIFT_RESPONSE },
+  zeruelArmored: { halfWidthShare: 0.26, opacity: 0.33, ...LIFT_RESPONSE },
+  eclipseAlphaTraining: { halfWidthShare: 0.24, opacity: 0.22, ...LIFT_RESPONSE },
+  eclipseOmegaTraining: { halfWidthShare: 0.24, opacity: 0.22, ...LIFT_RESPONSE },
 };
 
 /** The ground shadow a hero casts. */
@@ -429,4 +441,5 @@ export type HeroAction = {
   isSignature: boolean;
   /** A two-handed swipe: the claws cross (Crossed Talon). */
   isTwoHanded: boolean;
+  cervielVolleyKey?: number;
 };
