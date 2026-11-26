@@ -7,6 +7,11 @@
   padding: 6px 8px;
   position: relative;
 }
+.trait-spiral-title {
+  display: block;
+  text-align: center;
+  font: 800 1.15rem/1.2 var(--font-display);
+}
 .trait-spiral-chart {
   width: 100%;
   aspect-ratio: 1;

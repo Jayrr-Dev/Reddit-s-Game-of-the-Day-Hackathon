@@ -172,6 +172,10 @@ export const TraitSpiral = ({ trait, character, stats, onSetNode, previewHost }:
   }
   return (
     <section ref={spiral} className="trait-spiral" aria-label={trait + ' rewards'}>
+      {/* POINTS LEFT: the canvas title, like the skill tree's points line. */}
+      <strong className="trait-spiral-title" role="status">
+        {traitPointsAvailable(character)} {traitPointsAvailable(character) === 1 ? 'point' : 'points'} available
+      </strong>
       <div className="trait-spiral-chart">
         <svg aria-hidden="true" viewBox="0 0 360 360">
           {curves.map(({ arm, path }) => <polyline key={arm} data-arm={arm} points={path} />)}

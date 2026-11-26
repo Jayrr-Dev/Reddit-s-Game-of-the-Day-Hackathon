@@ -191,6 +191,13 @@
   color: var(--color-on-parchment);
   font-family: var(--font-display);
 }
+.cs-skill-points {
+  display: block;
+  margin-top: 0.4rem;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
 .cs-branch-picker {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -424,15 +431,7 @@
   }
 }
 .cs-trait-summary { grid-area: traits; justify-content: flex-end; flex-wrap: wrap; }
-.cs-trait-summary h3, .cs-trait-points, .cs-trait-summary button { white-space: nowrap; }
-.cs-trait-points {
-  font-size: .78rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 800;
-  line-height: 1.25;
-  text-align: right;
-  color: var(--color-accent-hover);
-}
+.cs-trait-summary h3, .cs-trait-summary button { white-space: nowrap; }
 
 /* --- LOCKED RING SLOTS --- */
 .cs-slot[data-locked='true'] {
@@ -539,7 +538,7 @@
   .cs-body[data-page='traits'] > :is(.cs-trait-grid,.cs-player-stats) { grid-column: 1; margin: 0; }
   .cs-body[data-page='traits'] > .cs-rank-panel { grid-column: 2; grid-row: 1 / 3; align-self: start; min-width: 0; }
   .cs-body[data-page='traits'] > .cs-player-stats { grid-row: 2; }
-  .cs-body[data-page='traits'] .trait-spiral-chart { width: min(100%,340px,calc(100cqh - 10rem)); }
+  .cs-body[data-page='traits'] .trait-spiral-chart { width: min(100%,340px,calc(100cqh - 12.4rem)); }
 }
 @container character-frame (max-width: 37.99rem) {
   .cs-body[data-page='traits'] { display: flex; flex-direction: column; }

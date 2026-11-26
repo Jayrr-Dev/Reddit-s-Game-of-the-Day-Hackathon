@@ -108,9 +108,6 @@ export function SkillTree({
 
   return (
     <section className="cs-skill-tree cs-paper" aria-label="Skill tree">
-      <strong aria-live="polite">
-        {skillPointsLeft(character)} skill points available
-      </strong>
       <div className="cs-branch-picker" role="group" aria-label="Path view">
         {[null, ...branchNames.keys()].map((b) => (
           <button
@@ -347,6 +344,10 @@ export function SkillTree({
           </div>
         )}
       </div>
+      {/* POINTS LEFT: under the tree, large, so it reads as the budget for it. */}
+      <strong className="cs-skill-points" aria-live="polite">
+        {skillPointsLeft(character)} skill points available
+      </strong>
     </section>
   );
 }

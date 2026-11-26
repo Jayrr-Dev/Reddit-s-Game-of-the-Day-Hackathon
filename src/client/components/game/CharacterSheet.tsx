@@ -7,7 +7,6 @@ import {
   ringSlotUnlocked,
   TRAITS,
   TRAIT_CAP,
-  traitPointsAvailable,
   xpToNextLevel,
   type CharacterState,
   type EquipmentSlot,
@@ -364,7 +363,6 @@ export const CharacterSheet = ({
   const dialog = useRef<HTMLDialogElement>(null);
   const [page, setPage] = useState<SheetPage>(profile ? 'profile' : 'traits');
   const [trait, setTrait] = useState<TraitId>('vigor');
-  const points = traitPointsAvailable(character);
   const needed = xpToNextLevel(character.level);
   useLayoutEffect(() => {
     const node = dialog.current;
@@ -428,7 +426,6 @@ export const CharacterSheet = ({
       {page === 'traits' && (
         <div className="cs-trait-summary">
           <h3><span className="cs-name">{trait}</span> {character.traits[trait]}/{TRAIT_CAP}</h3>
-          <strong className="cs-trait-points" role="status">{points} {points === 1 ? 'point' : 'points'} available</strong>
         </div>
       )}
       </header>
