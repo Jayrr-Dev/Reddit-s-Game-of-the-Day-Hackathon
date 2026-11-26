@@ -1,49 +1,36 @@
 // ===================================================================
 // MECHANICS LIBRARY (DATA)
 // The How to Play "Mechanics" library, grouped into tabs. Every entry
-// comes from the shared GLOSSARY (describe.ts), the same table card
-// text, chips and tooltips read, so a new keyword or status shows up
-// here on its own with no second list to keep in step.
+// comes from the shared GLOSSARY (describe.ts), and its tab is the
+// entry's own `category`, so a new keyword or status lands in the
+// right tab on its own with no second list to keep in step.
 // ===================================================================
 
 import {
   GLOSSARY,
-  KEYWORD_INFO,
-  STATUS_INFO,
-  type StatusInfo,
+  type GlossaryCategory,
+  type GlossaryEntry,
 } from '../../shared/game/describe';
 
-// --- TYPES ---
-export type MechanicsTab = 'keywords' | 'statuses' | 'terms';
-
 // --- TABS ---
-export const MECHANICS_TABS: readonly MechanicsTab[] = ['keywords', 'statuses', 'terms'];
+export const MECHANICS_TABS: readonly GlossaryCategory[] = ['keyword', 'status', 'term'];
 
-export const MECHANICS_TAB_LABEL: Readonly<Record<MechanicsTab, string>> = {
-  keywords: 'Keywords',
-  statuses: 'Statuses',
-  terms: 'Other',
+export const MECHANICS_TAB_LABEL: Readonly<Record<GlossaryCategory, string>> = {
+  keyword: 'Keywords',
+  status: 'Statuses',
+  term: 'Other',
 };
 
-// --- HELPERS ---
-/** Sorts entries A to Z by their printed name. */
-const byLabel = (entries: readonly StatusInfo[]): StatusInfo[] =>
-  [...entries].sort((a, b) => a.label.localeCompare(b.label));
-
-// Keyword and status names, so "Other" gets everything else in the glossary.
-const KEYWORD_LABELS = new Set(Object.values(KEYWORD_INFO).map((info) => info.label));
-const STATUS_LABELS = new Set(Object.values(STATUS_INFO).map((info) => info.label));
-
 // --- LIBRARY ---
-/** Each tab's entries, A to Z. Keywords win a name shared with a status. */
-export const MECHANICS_LIBRARY: Readonly<Record<MechanicsTab, StatusInfo[]>> = {
-  keywords: byLabel(Object.values(KEYWORD_INFO)),
-  statuses: byLabel(
-    Object.values(STATUS_INFO).filter((info) => !KEYWORD_LABELS.has(info.label))
-  ),
-  terms: byLabel(
-    Object.values(GLOSSARY).filter(
-      (info) => !KEYWORD_LABELS.has(info.label) && !STATUS_LABELS.has(info.label)
-    )
-  ),
+/** The entries of one tab, A to Z by printed name. */
+const entriesIn = (category: GlossaryCategory): GlossaryEntry[] =>
+  Object.values(GLOSSARY)
+    .filter((entry) => entry.category === category)
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+/** Each tab's entries, A to Z. */
+export const MECHANICS_LIBRARY: Readonly<Record<GlossaryCategory, GlossaryEntry[]>> = {
+  keyword: entriesIn('keyword'),
+  status: entriesIn('status'),
+  term: entriesIn('term'),
 };

@@ -11,8 +11,8 @@ import {
   MECHANICS_LIBRARY,
   MECHANICS_TAB_LABEL,
   MECHANICS_TABS,
-  type MechanicsTab,
 } from '../../content/mechanicsLibrary';
+import type { GlossaryCategory } from '../../../shared/game/describe';
 import { lookOfTerm } from '../../content/glossaryLooks';
 import { Button } from '../ui/Button';
 import { ModalDialog } from '../ui/ModalDialog';
@@ -23,7 +23,7 @@ import { TooltipTitle } from '../ui/Tooltip';
 // --- COMPONENT ---
 /** Renders the open library; onClose unmounts it. */
 export const MechanicsLibrary = ({ onClose }: { onClose: () => void }) => {
-  const [tab, setTab] = useState<MechanicsTab>('keywords');
+  const [tab, setTab] = useState<GlossaryCategory>('keyword');
 
   return (
     <ModalDialog

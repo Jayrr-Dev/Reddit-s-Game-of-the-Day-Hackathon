@@ -532,25 +532,45 @@ export const OUT_OF_RANGE_INFO: StatusInfo = {
   )}%** of the time\nBoth ways: you and the heroes\n**Longrange** ignores it`,
 };
 
-export const GLOSSARY: Readonly<Record<string, StatusInfo>> =
+// --- GLOSSARY CATEGORIES ---
+/**
+ * Which Mechanics library tab a glossary word belongs to: a keyword
+ * printed on cards (Hold, Charge, Pull...), a status a unit carries
+ * (Bleed, Armor, Aloft...), or another rules term (rows, Out of Range).
+ */
+export type GlossaryCategory = 'keyword' | 'status' | 'term';
+
+/** A glossary entry tagged with its library tab. */
+export type GlossaryEntry = StatusInfo & { category: GlossaryCategory };
+
+/** Tags a list of entries with one category. */
+const inCategory = (
+  category: GlossaryCategory,
+  infos: readonly StatusInfo[]
+): GlossaryEntry[] => infos.map((info) => ({ ...info, category }));
+
+export const GLOSSARY: Readonly<Record<string, GlossaryEntry>> =
+  // Later entries win a shared label: the movement Charge replaces the
+  // keyword Charge, as before.
   Object.fromEntries(
     [
-      ...Object.values(STATUS_INFO),
-      ...Object.values(KEYWORD_INFO),
+      ...inCategory('status', Object.values(STATUS_INFO)),
+      ...inCategory('keyword', [
+        ...Object.values(KEYWORD_INFO),
         { label: 'Charge', description: `Move forward when the ${ROW_LABEL.front} is empty and gain **Momentum**` },
         { label: 'Back Step', description: 'Move back if there is room. Gain **Reflex**.' },
-      { label: 'Energy', description: 'Gain this much energy immediately to spend on cards or movement.' },
-      IMBUE_INFO,
-      CLEANSE_INFO,
-      DISPEL_INFO,
-      DISRUPT_INFO,
-      PULL_INFO,
-      KNOCKBACK_INFO,
-      HOMING_INFO,
-      RANDOMLY_INFO,
-      ...Object.values(ROW_INFO),
-      OUT_OF_RANGE_INFO,
-    ].map((info) => [info.label, info])
+        { label: 'Energy', description: 'Gain this much energy immediately to spend on cards or movement.' },
+        IMBUE_INFO,
+        CLEANSE_INFO,
+        DISPEL_INFO,
+        DISRUPT_INFO,
+        PULL_INFO,
+        KNOCKBACK_INFO,
+        HOMING_INFO,
+        RANDOMLY_INFO,
+      ]),
+      ...inCategory('term', [...Object.values(ROW_INFO), OUT_OF_RANGE_INFO]),
+    ].map((entry) => [entry.label, entry])
   );
 
 /** How each keyword reads on a card. */
