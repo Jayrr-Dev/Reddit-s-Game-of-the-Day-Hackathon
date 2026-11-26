@@ -13,7 +13,6 @@ import { createPortal } from 'react-dom';
 import { useLayoutEffect, useRef, useState } from 'react';
 import {
   describeHeroIntent,
-  rowLabel,
   type MoveIntent,
   type IntentKind,
 } from '../../../../shared/game/describe';
@@ -22,7 +21,6 @@ import {
   isOutOfRangeShot,
   passivesOf,
 } from '../../../../shared/game/combat';
-import { isAnchored, preferredRow, rowDepth } from '../../../../shared/game/battlefield';
 import { getHero } from '../../../../shared/game/heroes';
 import { debuffPowerOf } from '../../../../shared/game/skills';
 import type { Combatant, HeroUnit } from '../../../../shared/game/types';
@@ -50,13 +48,12 @@ function intentFill(kind: IntentKind, signature: boolean) {
 /**
  * The popover under an intent chip: each effect in its battlefield
  * colour with bright numbers (the same MoveEffect as the unit info
- * window), then where the hero moves, muted.
+ * window). The positioning note was dropped: Sam found it noise.
  */
-const IntentPopoverBody = ({ move, positioning }: { move: MoveIntent; positioning: string }) => (
+const IntentPopoverBody = ({ move }: { move: MoveIntent }) => (
   <div className="intent-popover">
     {move.isSignature && <span className="unit-move-tag">Signature</span>}
     <ul>{move.intents.map((intent, index) => <MoveEffect key={index} intent={intent} />)}</ul>
-    <p className="unit-move-detail">{positioning}</p>
   </div>
 );
 
@@ -64,15 +61,9 @@ const IntentPopoverBody = ({ move, positioning }: { move: MoveIntent; positionin
  * One planned move as ONE arrow: its first effect sets the colour and
  * leads, the rest follow inside it (Guard 6 | Wrath +1 is one action).
  */
-const MoveArrow = ({ move, unit }: { move: MoveIntent; unit: HeroUnit }) => {
+const MoveArrow = ({ move }: { move: MoveIntent }) => {
   const [lead, ...rest] = move.intents;
   if (!lead) return null;
-  const home = preferredRow(unit);
-  const position = rowLabel(home);
-  const direction = rowDepth(unit.row) > rowDepth(home) ? 'advance' : 'retreat';
-  const positioning = isAnchored(unit) ? 'Holds position.' : unit.row === home
-    ? `Holding preferred position (${position}).`
-    : `Tries to ${direction} toward the ${position} after acting.`;
   return (
     <Chip
       {...INTENT_LOOK[lead.kind]}
@@ -87,8 +78,8 @@ const MoveArrow = ({ move, unit }: { move: MoveIntent; unit: HeroUnit }) => {
       }))}
       info={{
         title: move.name,
-        description: [...move.intents.map((intent) => intent.label), positioning].join('\n'),
-        body: <IntentPopoverBody move={move} positioning={positioning} />,
+        description: move.intents.map((intent) => intent.label).join('\n'),
+        body: <IntentPopoverBody move={move} />,
       }}
     />
   );
@@ -119,7 +110,7 @@ export const IntentChips = ({
   });
   return <div ref={stack} className="hero-action-chips flex flex-col items-end gap-1">
     {describeHeroIntent(unit, field, debuffBonus).moves.map((move, index) => (
-      <MoveArrow key={`${move.name}-${index}`} move={move} unit={unit} />
+      <MoveArrow key={`${move.name}-${index}`} move={move} />
     ))}
   </div>;
 };
