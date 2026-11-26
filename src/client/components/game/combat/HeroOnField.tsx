@@ -445,9 +445,8 @@ export const HeroOnField = ({
     return isBoss(unit) ? <BossDeath unit={unit} field={field} /> : <DyingHero unit={unit} field={field} />;
   const hero = getHero(unit.heroId);
   const size = drawSizeOf(unit);
-  const focusClass = isFocused
-    ? 'drop-shadow-[0_0_10px_var(--color-accent)]'
-    : '';
+  // The outline only marks a choice: with one hero left there is nothing to pick between.
+  const isOutlined = isFocused && field.length > 1;
   const bodyStyle = bodyStyleOf(unit, size);
   const secondPhase = unit.phase === 2 && hero.secondPhase?.visual === 'cervielBladeVolley';
   const mood = moodOf({
@@ -507,8 +506,12 @@ export const HeroOnField = ({
                   style={swayStyle(unit)}
                 >
                   <div
-                    className={`h-full w-full ${isDeep(unit) || unit.heroId === 'apollyonSeraph' || unit.heroId === 'lightLordMori' || unit.heroId === 'mageBorneAzula' || unit.heroId === 'grandangelCherubiel' || unit.heroId === 'zadkielOfDominations' || unit.heroId === 'mageBorneAstra' || unit.heroId === 'grandangelGeonosis' || unit.heroId === 'grandangelRaziel' || unit.heroId === 'grandangelCerviel' || unit.heroId === 'cervielBow' || (unit.heroId === 'angelArcher' && unit.row === 'back') ? '' : ROW_TINT_CLASS[unit.row]} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
+                    className={`h-full w-full ${isDeep(unit) || unit.heroId === 'apollyonSeraph' || unit.heroId === 'lightLordMori' || unit.heroId === 'mageBorneAzula' || unit.heroId === 'grandangelCherubiel' || unit.heroId === 'zadkielOfDominations' || unit.heroId === 'mageBorneAstra' || unit.heroId === 'grandangelGeonosis' || unit.heroId === 'grandangelRaziel' || unit.heroId === 'grandangelCerviel' || unit.heroId === 'cervielBow' || (unit.heroId === 'angelArcher' && unit.row === 'back') ? '' : ROW_TINT_CLASS[unit.row]} ${aim === 'legal' ? 'animate-pulse' : ''}`}
                   >
+                    {/* SELECTED: a crisp blue outline (dueling-table.css) on its own
+                      layer, so its filter never fights the row tint's.
+                      Shown only while there is more than one hero. */}
+                    <div className={`h-full w-full ${isOutlined ? 'hero-selected' : ''}`}>
                     {/* FLINCH: re-keyed by each new hit, so it plays once per hit */}
                     <div
                       key={secondPhase ? 'cerviel-phase-two' : lastHitId ?? 'steady'}
@@ -520,6 +523,7 @@ export const HeroOnField = ({
                         action={action}
                         mood={mood}
                       />}
+                    </div>
                     </div>
                   </div>
                   <HexAura hex={unit.statuses.hex} />

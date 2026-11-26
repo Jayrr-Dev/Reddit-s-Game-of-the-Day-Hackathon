@@ -99,6 +99,8 @@
 
   /* --- BRAND --- */
   --color-accent: #d4a24c;
+  /* The selected unit's outline on the battlefield. */
+  --color-select: #4aa8ff;
   --color-accent-hover: #e8bb66;
   /* Hero name colours by tier (TIER_NAME_CLASS): bosses gold, elites blue. */
   --color-boss: var(--color-accent);
