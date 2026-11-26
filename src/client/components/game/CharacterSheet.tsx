@@ -1,7 +1,8 @@
 // --- CHARACTER SHEET ---
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { playSound } from '../../lib/gameAudio';
 import { useNewItems } from '../../hooks/useNewItems';
+import { useEquipSounds } from '../../hooks/useEquipSounds';
 import {
   characterBonuses,
   ringSlotAccepts,
@@ -196,16 +197,7 @@ const Equipment = ({
     requestAnimationFrame(() => detailRef.current?.scrollIntoView({ block: 'nearest' }));
   };
   const { rings, amulet } = character.equipment;
-  const previousEquipment = useRef({ rings, amulet });
-  useEffect(() => {
-    const before = previousEquipment.current;
-    previousEquipment.current = { rings, amulet };
-    if ((amulet && amulet !== before.amulet) || rings.some((id, i) => id && id !== before.rings[i])) {
-      playSound('equip', 1, .84);
-    } else if ((before.amulet && !amulet) || before.rings.some((id, i) => id && !rings[i])) {
-      playSound('unequip', 1, .88);
-    }
-  }, [rings, amulet]);
+  useEquipSounds(character.equipment);
   const nearestRingSlot = (id: string) => {
     const origin = typeof selected === 'number' ? selected : 0;
     const eligible = rings.map((_, index) => index)

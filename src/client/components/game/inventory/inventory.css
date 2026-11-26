@@ -7,8 +7,6 @@
 /* --- SIZES: smaller squares when the sheet is narrow (phones) --- */
 .inv-panel {
   --inv-slot: 3.2rem;
-  /* A fan card shrunk to fit one square. */
-  --inv-card-scale: 0.42;
   display: grid;
   gap: 0.5rem;
   color: var(--color-on-parchment);
@@ -17,7 +15,6 @@
 @container character-frame (max-width: 30rem) {
   .inv-panel {
     --inv-slot: 2.6rem;
-    --inv-card-scale: 0.34;
   }
 }
 @container character-frame (min-width: 40rem) {
@@ -108,13 +105,6 @@
 .inv-cell[data-kind='jewelry'] .cs-jewelry {
   color: var(--color-card-melee);
   fill: color-mix(in srgb, var(--color-accent) 48%, transparent);
-}
-.inv-cell[data-kind='card'] .inv-art > * {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  translate: -50% -50%;
-  scale: var(--inv-card-scale);
 }
 .inv-glyph {
   width: calc(var(--inv-slot) * 0.62);

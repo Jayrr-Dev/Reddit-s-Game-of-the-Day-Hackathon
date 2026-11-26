@@ -31,7 +31,6 @@ type SlotShellProps = {
 export const SlotShell = ({ stack, label, isSelected, placeholder, className = '', zone, isOver, onTap, onPress }: SlotShellProps) => (
   <div className={`inv-cell ${className}`} data-kind={stack?.kind} data-empty={!stack} data-over={isOver}
     data-draggable={!!onPress} {...{ [BAG_ZONE_ATTRIBUTE]: zone }} onPointerDown={onPress}>
-    {/* The picture sits under the button so card faces (themselves buttons) never nest inside it. */}
     <div className="inv-art" inert aria-hidden="true">{stack ? slotLook(stack).icon : placeholder}</div>
     <button type="button" className="inv-slot" aria-pressed={isSelected} aria-label={label} onClick={onTap}>
       {stack && stack.quantity > 1 && <b className="inv-qty">{stack.quantity}</b>}

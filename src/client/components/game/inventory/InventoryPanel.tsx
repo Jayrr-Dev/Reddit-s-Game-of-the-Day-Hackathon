@@ -14,6 +14,7 @@ import { Glyph } from '../../ui/Glyph';
 import { JewelryIcon } from '../jewelry';
 import { SlotShell, TrashSlot } from './BagSlots';
 import { slotLook } from './slotLooks';
+import { useEquipSounds } from '../../../hooks/useEquipSounds';
 import { usePointerDrag } from '../../../hooks/usePointerDrag';
 import { BAG_ZONE_ATTRIBUTE, targetOf, useBagActions, zoneOf, type BagHandlers, type BagTarget, type EquipTarget } from './useBagActions';
 import './inventory.css';
@@ -107,7 +108,7 @@ const InventoryDetails = ({ stack, notice }: { stack: InventorySlot | undefined;
         {look ? (
           <>
             <p className="inv-subtitle">{look.subtitle}</p>
-            <div className="inv-detail-body" inert={stack.kind === 'card'}>{look.details}</div>
+            <div className="inv-detail-body">{look.details}</div>
           </>
         ) : (
           <p className="inv-subtitle">Drag an item where it goes, or tap it and then tap the spot. Drop it on a ring or amulet slot to wear it, or on the trash to destroy it.</p>
@@ -122,6 +123,7 @@ const InventoryDetails = ({ stack, notice }: { stack: InventorySlot | undefined;
 export const InventoryPanel = ({ owner, ...handlers }: PanelProps) => {
   const [trashing, setTrashing] = useState<InventorySlot | undefined>();
   const actions = useBagActions(owner, { ...handlers, onTrash: setTrashing });
+  useEquipSounds(owner.character.equipment);
   const used = actions.bag.backpack.filter((key) => key !== null).length;
   const { drag, startPress, consumeDrag } = usePointerDrag<string>(BAG_ZONE_ATTRIBUTE, (key, zone) => {
     const stack = actions.stackOf(key);

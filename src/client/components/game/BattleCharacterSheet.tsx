@@ -39,7 +39,7 @@ export const BattleCharacterSheet = ({ deck, ...sheet }: Props) => {
       }
       inventory={
         <InventoryPanel
-          owner={{ character, deck, bag: items }}
+          owner={{ character, bag: items }}
           layout={layout}
           onLayout={setLayout}
           onEquip={(slot, itemId, ringIndex) =>

@@ -173,7 +173,7 @@ export function ProfileView({
       respecItem={respecItem}
       inventory={
         <InventoryPanel
-          owner={{ character, deck: cards, bag: items }}
+          owner={{ character, bag: items }}
           layout={build.bag}
           onLayout={(bag) => setBuild((previous) => ({ ...previous, bag }))}
           onEquip={(slot, itemId, ringIndex) =>

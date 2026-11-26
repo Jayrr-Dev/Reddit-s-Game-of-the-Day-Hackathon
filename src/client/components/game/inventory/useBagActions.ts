@@ -105,7 +105,7 @@ export function useBagActions(owner: InventoryOwner, { layout, onLayout, onEquip
       const refusal = equipRefusal(owner, stack, target.target);
       if (refusal) return setNotice(refusal);
       onEquip(target.target.slot, stack.id, target.target.ringIndex);
-    } else if (!stack.isTrashable) return setNotice('Starter deck cards can’t be trashed.');
+    } else if (!stack.isTrashable) return setNotice('That can’t be trashed.');
     else onTrash(stack);
     setSelectedKey(undefined);
   };
@@ -125,7 +125,7 @@ export function useBagActions(owner: InventoryOwner, { layout, onLayout, onEquip
     stackOf,
     tap,
     drop,
-    /** Packs the backpack in list order: items, then cards. */
+    /** Packs the backpack in list order: consumables, then jewelry. */
     sort: () => onLayout(sortBackpack(bag, inBag.map(stackKey))),
     /** Returns every stack from the belt and spreads the backpack back to its default order. */
     clear: () => onLayout(arrangeBag(undefined, inBag.map(stackKey))),

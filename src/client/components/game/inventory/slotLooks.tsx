@@ -7,7 +7,6 @@
 import type { ReactNode } from 'react';
 import type { InventorySlot } from '../../../../shared/game/inventory';
 import { Glyph } from '../../ui/Glyph';
-import { CardView } from '../CardView';
 import { ItemEffect, JewelryIcon } from '../jewelry';
 import { itemBonusSummary, itemFlavor } from '../jewelryCopy';
 
@@ -41,12 +40,6 @@ export const slotLook = (slot: InventorySlot): SlotLook => {
             <ItemEffect id={slot.id} />
           </>
         ),
-      };
-    case 'card':
-      return {
-        icon: <CardView cardId={slot.id} size="fan" />,
-        subtitle: `Card in your deck · ${slot.quantity} ${slot.quantity === 1 ? 'copy' : 'copies'}`,
-        details: <CardView cardId={slot.id} size="offer" />,
       };
   }
 };
