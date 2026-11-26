@@ -152,17 +152,37 @@ export const drawSizeOf = (unit: Pick<HeroUnit, 'heroId'>): HeroSize =>
 
 /**
  * A hero's ground shadow: its half-width as a share of the drawing's
- * width, and how dark it is. Humanoids share one; creatures differ (the
- * angel hovers, so its shadow is small and faint).
+ * width, and how dark it is on the ground. Lifted off the ground (any
+ * reason: Aloft, an entrance, a spell's rise) it shrinks to
+ * `liftedScale` of its size and `liftedFade` of its darkness at a full
+ * flight's height (index.css, UNIT LIFT). Humanoids share one;
+ * creatures differ (the angel hovers, so its shadow is small and faint;
+ * the griffon's stays clear so its landing spot reads).
  */
-export type GroundShadow = { halfWidthShare: number; opacity: number };
-const HUMANOID_SHADOW: GroundShadow = { halfWidthShare: 0.44, opacity: 0.45 };
+export type GroundShadow = {
+  halfWidthShare: number;
+  opacity: number;
+  liftedScale: number;
+  liftedFade: number;
+};
+/** How a shadow responds to lift unless a creature says otherwise. */
+const LIFT_RESPONSE = { liftedScale: 0.4, liftedFade: 0.45 } as const;
+const HUMANOID_SHADOW: GroundShadow = {
+  halfWidthShare: 0.44,
+  opacity: 0.45,
+  ...LIFT_RESPONSE,
+};
 const CREATURE_SHADOW: Record<CreatureId, GroundShadow> = {
-  holyDragon: { halfWidthShare: 0.39, opacity: 0.45 },
-  angelArcher: { halfWidthShare: 0.2, opacity: 0.3 },
-  grandGriffon: { halfWidthShare: 0.28, opacity: 0.45 },
-  ballista: { halfWidthShare: 0.55, opacity: 0.45 },
-  tempestWyrm: { halfWidthShare: 0.46, opacity: 0.5 },
+  holyDragon: { halfWidthShare: 0.39, opacity: 0.45, ...LIFT_RESPONSE },
+  angelArcher: { halfWidthShare: 0.2, opacity: 0.3, ...LIFT_RESPONSE },
+  grandGriffon: {
+    halfWidthShare: 0.28,
+    opacity: 0.45,
+    liftedScale: 0.6,
+    liftedFade: 0.85,
+  },
+  ballista: { halfWidthShare: 0.55, opacity: 0.45, ...LIFT_RESPONSE },
+  tempestWyrm: { halfWidthShare: 0.46, opacity: 0.5, ...LIFT_RESPONSE },
 };
 
 /** The ground shadow a hero casts. */

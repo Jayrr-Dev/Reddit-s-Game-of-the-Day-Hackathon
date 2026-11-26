@@ -34,7 +34,6 @@ import {
   bossStageOf,
   type BossStage,
   drawSizeOf,
-  groundShadowOf,
   isBoss,
   type HeroAction,
   type HeroActionStyle,
@@ -43,6 +42,7 @@ import { bossEntranceOf } from '../../../content/bossEntrances';
 import { figureAspect, headTopShare } from '../../../lib/heroFigure';
 import { moodOf } from '../../../lib/heroMood';
 import { seeded } from '../../../lib/seeded';
+import { GroundShadow } from './GroundShadow';
 import { HexAura } from './HexAura';
 import { HeroFigure } from './HeroFigure';
 import { HeroPlate } from './HeroPlate';
@@ -97,6 +97,14 @@ const BODY_ACTION_CLASS: Record<HeroActionStyle, string> = {
   range: 'animate-hero-recoil',
   magic: 'animate-hero-cast',
   support: 'animate-hero-pulse',
+};
+
+/**
+ * Moves that lift the unit off the ground (index.css, UNIT LIFT): set on
+ * the field box, so the shadow, which sits outside the body, answers it.
+ */
+const LIFT_ACTION_CLASS: Partial<Record<HeroActionStyle, string>> = {
+  magic: 'animate-unit-cast-lift',
 };
 
 /** The body's motion for a move; a forward cut lunges deeper. */
@@ -162,7 +170,10 @@ const boxStyle = (unit: HeroUnit): CSSProperties => {
   const depthScale = feet / rowPerspective('front').feet;
   const columnCenter = (unit.col + sizeOf(unit) / 2) / BATTLEFIELD_COLUMNS;
   const horizontalSpan = unit.row === 'horizon' ? HORIZON_SLOT_SPAN : feet;
-  const span = unit.heroId === 'angelArcher' ? Math.max(horizontalSpan, 0.96) : horizontalSpan;
+  const span =
+    unit.heroId === 'angelArcher'
+      ? Math.max(horizontalSpan, 0.96)
+      : horizontalSpan;
   const center = 0.5 + (columnCenter - 0.5) * span;
   const columns = boss ? BOSS_DRAW_COLUMNS : sizeOf(unit);
   const width = (columns / BATTLEFIELD_COLUMNS) * depthScale;
@@ -280,36 +291,6 @@ const DyingHero = ({ unit }: { unit: HeroUnit }) => {
 };
 
 /**
- * The hero's shadow on the ground, under the drawing but outside every
- * animated wrapper (sway, lunge, flinch), so it stays put while the
- * body moves. Same box as the drawing, so it scales with it.
- */
-const GroundShadow = ({
-  unit,
-  style,
-}: {
-  unit: HeroUnit;
-  style: CSSProperties;
-}) => {
-  const { halfWidthShare, opacity } = groundShadowOf(unit.heroId);
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2"
-      style={style}
-    >
-      {/* SHRINKS AND FADES WHILE THE HERO IS ALOFT (index.css, FLIGHT) */}
-      <div className={`hero-flight-shadow absolute inset-0 ${unit.heroId === 'grandGriffon' ? 'griffon-shadow' : ''}`}>
-        <div
-          className="absolute bottom-[1%] left-1/2 h-[6%] -translate-x-1/2 rounded-[50%] bg-black"
-          style={{ width: `${halfWidthShare * 200}%`, opacity }}
-        />
-      </div>
-    </div>
-  );
-};
-
-/**
  * A hero summoned or revived mid-fight arrives in a shaft of holy
  * light: it plays once, when the hero first appears.
  */
@@ -382,10 +363,15 @@ const BossDeath = ({ unit }: { unit: HeroUnit }) => {
 /** Enlarge the foot-anchored figure within its lane, with extra legibility at distance. */
 const bodyStyleOf = (unit: HeroUnit, size: HeroSize): CSSProperties => {
   const rowScale = { front: 1.28, back: 1.45, horizon: 1.65 }[unit.row];
-  const scale = isDeep(unit) ? Math.min(rowScale, 1.2) : isBoss(unit) ? Math.min(rowScale, 1.3) : rowScale;
+  const scale = isDeep(unit)
+    ? Math.min(rowScale, 1.2)
+    : isBoss(unit)
+      ? Math.min(rowScale, 1.3)
+      : rowScale;
   const stage = isBoss(unit) ? bossStageOf(unit.heroId) : undefined;
   if (stage) return stagedBodyStyle(stage, scale, size);
-  const widthLimit = (isBoss(unit) ? BOSS_OVERSPILL : 1) * 100 / figureAspect(size);
+  const widthLimit =
+    ((isBoss(unit) ? BOSS_OVERSPILL : 1) * 100) / figureAspect(size);
   return {
     height: `min(${100 * scale}cqh, ${widthLimit * scale}cqw)`,
     aspectRatio: figureAspect(size),
@@ -398,7 +384,11 @@ const bodyStyleOf = (unit: HeroUnit, size: HeroSize): CSSProperties => {
  * sinks by its `forward` share of whatever it grew, so it comes toward
  * the player instead of climbing under its name plate.
  */
-const stagedBodyStyle = (stage: BossStage, scale: number, size: HeroSize): CSSProperties => {
+const stagedBodyStyle = (
+  stage: BossStage,
+  scale: number,
+  size: HeroSize
+): CSSProperties => {
   const widthLimit = (STAGED_BOSS_SPAN * 100) / figureAspect(size);
   const height = `min(${100 * stage.reach}cqh, ${widthLimit}cqw)`;
   const growth = `max(0px, ${height} - ${100 * scale}cqh)`;
@@ -450,74 +440,83 @@ export const HeroOnField = ({
       onClick={() => onTap(unit.uid)}
       {...{ [HERO_UID_ATTR]: unit.uid, [HERO_ROW_ATTR]: unit.row }}
       aria-label={`${hero.name}, ${unit.hp} of ${unit.maxHp} HP, ${rowLabel(unit.row)}`}
-      className={`pointer-events-auto absolute transition-[left,bottom,width,height,scale,opacity,filter] duration-500 ease-in-out motion-reduce:transition-none ${AIM_CLASS[aim]}`}
+      className={`pointer-events-auto absolute transition-[left,bottom,width,height,scale,opacity,filter] duration-500 ease-in-out motion-reduce:transition-none ${AIM_CLASS[aim]} ${action ? (LIFT_ACTION_CLASS[action.style] ?? '') : ''}`}
       style={boxStyle(unit)}
       data-aloft={isAloft(unit) ? '' : undefined}
       data-acting={action ? '' : undefined}
     >
-      {/* BOSS SHADOW STAYS ON THE GROUND: it waits at the landing spot and
-          grows as the boss comes down (index.css, boss-shadow-arrive). Same
-          size box and container as the body's, so its cq sizes match. */}
-      {isBoss(unit) && (
-        <div className="boss-shadow-arrive pointer-events-none absolute inset-0 origin-bottom [container-type:size]">
-          <GroundShadow unit={unit} style={bodyStyle} />
-        </div>
-      )}
-      {/* ENTERS ONCE, WHEN THE HERO FIRST APPEARS: A WAVE MARCHES IN, A
-          BOSS DESCENDS OR RISES (its entrance, see BossEntrance) */}
+      {/* STAGE: holds the unit's lift (index.css, UNIT LIFT), which every
+          reason to leave the ground feeds (Aloft, a boss's entrance, a
+          spell's rise). The shadow and the body both read it: the body
+          climbs, the shadow stays on its spot and shrinks. */}
       <div
-        className={`relative h-full w-full origin-bottom [container-type:size] ${isBoss(unit) ? 'boss-arrive' : 'animate-hero-march'}`}
-        style={
-          isBoss(unit)
-            ? undefined
-            : { animationDelay: `${arrivalDelay}ms` }
-        }
+        className="unit-stage relative h-full w-full [container-type:size]"
         data-arrival={
           isBoss(unit) ? bossEntranceOf(unit.heroId).arrival : undefined
         }
       >
-        {isBoss(unit) && <BossLanding />}
-        {!isBoss(unit) && <GroundShadow unit={unit} style={bodyStyle} />}
+        <GroundShadow
+          unit={unit}
+          restStyle={bodyStyle}
+          marchDelayMs={arrivalDelay}
+        />
+        {/* ENTERS ONCE, WHEN THE HERO FIRST APPEARS: A WAVE MARCHES IN, A
+            BOSS DESCENDS OR RISES (its entrance, see BossEntrance) */}
         <div
-          className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${action ? bodyActionClass(action) : ''}`}
-          style={bodyStyle}
+          className={`absolute inset-0 origin-bottom ${isBoss(unit) ? 'boss-arrive' : 'animate-hero-march'}`}
+          style={
+            isBoss(unit) ? undefined : { animationDelay: `${arrivalDelay}ms` }
+          }
         >
-          <div className="hero-flight relative h-full w-full" {...{ [HERO_ANCHOR_ATTR]: true }}>
-            <div className="hero-step-gait h-full w-full">
-              {/* IDLE SWAY: figure and pick mark rock together */}
-              <div
-                className="relative h-full w-full origin-bottom animate-hero-sway"
-                style={swayStyle(unit)}
-              >
+          {isBoss(unit) && <BossLanding />}
+          <div
+            className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${action ? bodyActionClass(action) : ''}`}
+            style={bodyStyle}
+          >
+            <div
+              className="hero-flight relative h-full w-full"
+              {...{ [HERO_ANCHOR_ATTR]: true }}
+            >
+              <div className="hero-step-gait h-full w-full">
+                {/* IDLE SWAY: figure and pick mark rock together */}
                 <div
-                  className={`h-full w-full ${isDeep(unit) ? '' : ROW_TINT_CLASS[unit.row]} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
+                  className="relative h-full w-full origin-bottom animate-hero-sway"
+                  style={swayStyle(unit)}
                 >
-                  {/* FLINCH: re-keyed by each new hit, so it plays once per hit */}
                   <div
-                    key={lastHitId ?? 'steady'}
-                    className={`h-full w-full origin-bottom ${lastHitId === null ? '' : 'animate-flinch'}`}
+                    className={`h-full w-full ${isDeep(unit) ? '' : ROW_TINT_CLASS[unit.row]} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
                   >
-                    <HeroFigure
-                      heroId={unit.heroId}
-                      size={size}
-                      action={action}
-                      mood={mood}
-                    />
+                    {/* FLINCH: re-keyed by each new hit, so it plays once per hit */}
+                    <div
+                      key={lastHitId ?? 'steady'}
+                      className={`h-full w-full origin-bottom ${lastHitId === null ? '' : 'animate-flinch'}`}
+                    >
+                      <HeroFigure
+                        heroId={unit.heroId}
+                        size={size}
+                        action={action}
+                        mood={mood}
+                      />
+                    </div>
                   </div>
+                  <HexAura hex={unit.statuses.hex} />
+                  {pickMarker && <PickMark marker={pickMarker} />}
+                  {unit.joinedMidFight && <ArrivalLight />}
                 </div>
-                <HexAura hex={unit.statuses.hex} />
-                {pickMarker && <PickMark marker={pickMarker} />}
-                {unit.joinedMidFight && <ArrivalLight />}
               </div>
-            </div>
-            {/* PLATE: outside the sway, so its text never tilts (a tilted,
+              {/* PLATE: outside the sway, so its text never tilts (a tilted,
                 scaled-down plate rasterizes blurry) and its chips hold
                 still under the finger. */}
-            <div
-              className="absolute inset-x-0 flex justify-center"
-              style={unit.heroId === 'angelArcher' ? { bottom: '82%' } : plateStyle(size)}
-            >
-              <HeroPlate unit={unit} field={field} player={player} />
+              <div
+                className="absolute inset-x-0 flex justify-center"
+                style={
+                  unit.heroId === 'angelArcher'
+                    ? { bottom: '82%' }
+                    : plateStyle(size)
+                }
+              >
+                <HeroPlate unit={unit} field={field} player={player} />
+              </div>
             </div>
           </div>
         </div>

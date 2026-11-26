@@ -72,6 +72,8 @@
   --color-edge: #3a2338;
   --color-ink: #f3e9dc;
   --color-ink-muted: #a99aa6;
+  /* The ground shadow a unit casts (GroundShadow). */
+  --color-ground-shadow: #000000;
 
   /* --- BRAND --- */
   --color-accent: #d4a24c;
@@ -161,6 +163,7 @@
   --animate-hero-lunge-deep: hero-lunge-deep 560ms ease-in-out;
   --animate-hero-recoil: hero-recoil 560ms ease-out;
   --animate-hero-cast: hero-cast 560ms ease-in-out;
+  --animate-unit-cast-lift: unit-cast-lift 560ms ease-in-out;
   --animate-hero-pulse: hero-pulse 560ms ease-in-out;
   --animate-hero-shot: hero-shot 220ms cubic-bezier(0.4, 0, 0.9, 0.7) both;
   --animate-hero-sway: hero-sway 4s ease-in-out infinite;
@@ -461,7 +464,7 @@
     }
   }
 
-  /* A spell: the caster rises as the power gathers, then settles. */
+  /* A spell: the caster swells as the power gathers, then settles. */
   @keyframes hero-cast {
     0%,
     100% {
@@ -470,7 +473,18 @@
     }
     50% {
       scale: 1.06;
-      translate: -50% -6%;
+      translate: -50% 0;
+    }
+  }
+  /* ...and rises off the ground with it (a lift, so its shadow shrinks:
+     UNIT LIFT). Played on the field box, its heights of its drawing. */
+  @keyframes unit-cast-lift {
+    0%,
+    100% {
+      --move-lift: 0;
+    }
+    50% {
+      --move-lift: 0.06;
     }
   }
 
@@ -2199,38 +2213,99 @@ textarea,
   }
 }
 
+/* --- UNIT LIFT ---
+   One number, --unit-lift, says how high a unit is above the spot it is
+   stationed on, in heights of its own drawing (0: feet on the ground;
+   below 0: under it, like a boss rising out of the earth). It lives on
+   the unit's stage (.unit-stage, HeroOnField) and adds up every reason
+   to leave the ground:
+     --aloft-progress  Aloft, 0 on the ground to 1 in the sky (FLIGHT)
+     --entrance-lift   a boss dropping in or rising up (BOSS ENTRANCE)
+     --move-lift       a move that lifts, like a spell (unit-cast-lift)
+   The drawing climbs by it (.hero-flight). The ground shadow is drawn
+   apart from the body and never moves with it: it stays on the spot
+   and shrinks and fades by it (.ground-shadow). A new kind of lift only
+   has to drive one of the sources above; the shadow follows for free.
+   Registered so each source can transition and animate. */
+@property --aloft-progress {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --entrance-lift {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --move-lift {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --unit-lift {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+.unit-stage {
+  /* How high Aloft carries a unit (drawing heights): a full flight, and
+     the height at which a shadow has shrunk all it will. */
+  --aloft-height: 0.72;
+  --unit-lift: calc(
+    var(--aloft-progress) * var(--aloft-height) + var(--entrance-lift) +
+      var(--move-lift)
+  );
+}
+
+/* The body rises by the lift (its own height per 1). */
+.hero-flight {
+  transform-origin: 50% 100%;
+  translate: 0 calc(var(--unit-lift) * -100%);
+}
+
+/* The shadow: a soft, blurred-edge pool on the ground. --shadow-rise is
+   the distance off the ground either way, as a share of a full flight;
+   at 1 the shadow is down to --shadow-lifted-scale of its size and
+   --shadow-lifted-fade of its darkness (GroundShadow sets both). */
+.ground-shadow {
+  --shadow-rise: clamp(
+    0,
+    max(var(--unit-lift), -1 * var(--unit-lift)) / var(--aloft-height),
+    1
+  );
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    var(--color-ground-shadow) 0%,
+    color-mix(in srgb, var(--color-ground-shadow) 80%, transparent) 50%,
+    transparent 100%
+  );
+  scale: calc(1 - var(--shadow-rise) * (1 - var(--shadow-lifted-scale, 0.4)));
+  opacity: calc(
+    var(--shadow-opacity, 0.4) *
+      (1 - var(--shadow-rise) * (1 - var(--shadow-lifted-fade, 0.45)))
+  );
+}
+
 /* --- FLIGHT (ALOFT) ---
    A hero Aloft (data-aloft on its field box) rises out of reach: its
-   drawing lifts and shrinks into the sky while its shadow stays on the
-   ground, shrinking and fading. Transitions, so the direction picks the
-   pace: the take-off (rule under [data-aloft]) dips into a crouch, then
+   drawing lifts and shrinks into the sky (a lift, see UNIT LIFT, so its
+   shadow stays on the ground, shrinking and fading). A transition, so
+   the direction picks the pace: the take-off (rule under [data-aloft])
    climbs over a second; the dive (the base rule) drops in a quarter
    second, accelerating, and the field shakes as it lands. */
-.hero-flight,
-.hero-flight-shadow {
-  transform-origin: 50% 100%;
-  transition:
-    transform 260ms cubic-bezier(0.7, 0, 1, 1),
-    opacity 260ms ease-in;
+.unit-stage {
+  transition: --aloft-progress 260ms cubic-bezier(0.7, 0, 1, 1);
+}
+[data-aloft] > .unit-stage {
+  --aloft-progress: 1;
+  transition: --aloft-progress 1100ms cubic-bezier(0.35, 0, 0.25, 1);
 }
 
-[data-aloft] .hero-flight {
-  transform: translateY(-72%) scale(0.42);
-  transition: transform 1100ms cubic-bezier(0.35, 0, 0.25, 1);
-}
-
-[data-aloft] .hero-flight-shadow {
-  transform: scale(0.4);
-  opacity: 0.45;
-  transition:
-    transform 1100ms ease-out,
-    opacity 1100ms ease-out;
-}
-
-/* Keep the landing spot visible under the airborne griffon. */
-[data-aloft] .griffon-shadow {
-  transform: scale(0.5, 0.85);
-  opacity: 0.85;
+/* Aloft also recedes into the sky: the drawing shrinks as it climbs. */
+.hero-flight {
+  scale: calc(1 - var(--aloft-progress) * 0.58);
 }
 
 /* --- POV IMPACT ---
@@ -2906,52 +2981,66 @@ textarea,
 .boss-arrive {
   animation: calc(var(--landing-ms, 1300) * 1ms) cubic-bezier(0.55, 0, 0.75, 0.4) both;
 }
-.boss-arrive[data-arrival='descend'] {
+[data-arrival='descend'] > .boss-arrive {
   animation-name: boss-descend;
 }
-.boss-arrive[data-arrival='rise'] {
+[data-arrival='rise'] > .boss-arrive {
   animation-name: boss-rise;
 }
 @keyframes boss-descend {
   0% {
     opacity: 0;
-    transform: translateY(-75%) scale(1.15);
+    transform: scale(1.15);
   }
   25% {
     opacity: 1;
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: scale(1);
   }
 }
 @keyframes boss-rise {
   0% {
     opacity: 0;
-    transform: translateY(35%) scale(0.85);
+    transform: scale(0.85);
   }
   30% {
     opacity: 1;
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: scale(1);
   }
 }
 
-/* Its ground shadow stays put at the landing spot: small and faint while
-   the boss is high, full size as it touches down (same timing). */
-.boss-shadow-arrive {
-  animation: boss-shadow-arrive calc(var(--landing-ms, 1300) * 1ms) cubic-bezier(0.55, 0, 0.75, 0.4) both;
+/* The fall or climb itself is a lift (UNIT LIFT), played on the stage
+   with the same timing: the boss comes down from high or up from below
+   ground, and its shadow waits on the landing spot, small and faint,
+   growing to full as the boss touches down. */
+.unit-stage[data-arrival] {
+  animation: calc(var(--landing-ms, 1300) * 1ms) cubic-bezier(0.55, 0, 0.75, 0.4) both;
 }
-@keyframes boss-shadow-arrive {
-  0% {
-    opacity: 0.2;
-    transform: scale(0.3);
+.unit-stage[data-arrival='descend'] {
+  animation-name: boss-descend-lift;
+}
+.unit-stage[data-arrival='rise'] {
+  animation-name: boss-rise-lift;
+}
+@keyframes boss-descend-lift {
+  from {
+    --entrance-lift: 0.6;
   }
-  100% {
-    opacity: 1;
-    transform: scale(1);
+  to {
+    --entrance-lift: 0;
+  }
+}
+@keyframes boss-rise-lift {
+  from {
+    --entrance-lift: -0.28;
+  }
+  to {
+    --entrance-lift: 0;
   }
 }
 
@@ -3013,7 +3102,7 @@ textarea,
 }
 
 /* A tap skips: everything jumps to how it ends. */
-.boss-entrance-skipped :is(.boss-arrive, .boss-flare, .boss-dust, .boss-shadow-arrive),
+.boss-entrance-skipped :is(.boss-arrive, .boss-flare, .boss-dust, .unit-stage[data-arrival]),
 .boss-entrance-skipped .boss-arrive [role='meter'] {
   animation: none;
 }
@@ -3022,6 +3111,9 @@ textarea,
   .boss-arrive {
     animation-name: fx-fade-in !important;
     animation-timing-function: ease-out;
+  }
+  .unit-stage[data-arrival] {
+    animation-name: none;
   }
   .boss-entrance-card,
   .boss-entrance-rule,
