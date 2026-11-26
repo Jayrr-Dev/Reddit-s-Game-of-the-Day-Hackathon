@@ -33,7 +33,11 @@ export type FxShape =
   /** A blood splat: a blob with drops flung round it. */
   | 'splat'
   /** A lightning bolt striking down from the sky (Shock bursting). */
-  | 'bolt';
+  | 'bolt'
+  /** A gold ring with star glints (Invincible), see HolySeal. */
+  | 'seal'
+  /** A boot with a wing at the heel (Reflex: quick on your feet). */
+  | 'wingedShoe';
 
 /**
  * How a particle moves (index.css "STATUS FX"): rise floats up, fall
@@ -150,8 +154,22 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     ],
     hasGlow: true,
   },
-  reflex: { layers: [{ shape: 'chevron', motion: 'rise', count: 2, size: 14 }], hasGlow: false },
-  invincible: { layers: [{ shape: 'chevron', motion: 'rise', count: 3, size: 14 }], hasGlow: true },
+  /** Reflex: a winged shoe flashes up as speed lines dash past. */
+  reflex: {
+    layers: [
+      { shape: 'streak', motion: 'dash', count: 3, size: 34 },
+      { shape: 'wingedShoe', motion: 'flash', count: 1, size: 54 },
+    ],
+    hasGlow: true,
+  },
+  /** Invincible: a holy seal blooms over the unit, sparks fly off it. */
+  invincible: {
+    layers: [
+      { shape: 'seal', motion: 'flash', count: 1, size: 92 },
+      { shape: 'spark', motion: 'burst', count: 6, size: 10 },
+    ],
+    hasGlow: true,
+  },
   /** Bane (stronger afflictions): the flask flashes and bubbles rise. */
   bane: {
     layers: [

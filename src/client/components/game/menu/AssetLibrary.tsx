@@ -13,8 +13,8 @@ import { cssVars } from '../../../lib/cssVars';
 import { EFFECT_ASSETS, IMAGE_ASSETS, type EffectAsset, type ImageAsset } from '../../../content/assetCatalog';
 
 // --- CONSTANTS ---
-/** How often an open effect replays (ms); the longest effects last about 1.2 s. */
-const EFFECT_REPLAY_MS = 1600;
+/** How often an open effect replays (ms): just past the longest (Burn, 1.32 s), so the stage is never blank for long. */
+const EFFECT_REPLAY_MS = 1400;
 
 // --- TYPES ---
 /** The asset open in the viewer, if any. */

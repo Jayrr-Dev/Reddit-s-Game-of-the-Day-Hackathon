@@ -22,6 +22,7 @@ import { POP_LOOK, toneVarOf } from '../../../content/visuals';
 import { seeded, spread } from '../../../lib/seeded';
 import { Glyph, type GlyphName } from '../../ui/Glyph';
 import { HexSigil } from './HexSigil';
+import { HolySeal } from './HolySeal';
 
 // --- CONSTANTS ---
 /** Time between particles of one layer starting (ms). */
@@ -57,6 +58,30 @@ const SHAPE_PATHS: Record<Exclude<FxShape, 'icon'>, ReactNode> = {
   ),
   shard: <path d="M5 0 6.7 5 5 10 3.3 5Z" fill="currentColor" />,
   sigil: <HexSigil />,
+  seal: <HolySeal />,
+  wingedShoe: (
+    <>
+      {/* WING: three feathers sweeping back and up from the heel */}
+      <path
+        d="M3.9 5.6C3 3.5 1.7 1.5 0 .6c.8 1 1.2 1.7 1.4 2.4C.9 2.6.4 2.5-.1 2.6c.8.6 1.3 1.1 1.5 1.7-.5-.1-1-.1-1.3.1 1.3.6 2.5 1 3.8 1.2Z"
+        fill="currentColor"
+      />
+      <path
+        d="M3.3 5 1.1 2.5M3.4 5.3.9 4.2"
+        fill="none"
+        stroke="#fff8e0"
+        strokeWidth="0.25"
+        strokeLinecap="round"
+        opacity="0.7"
+      />
+      {/* BOOT: shaft, toe and a pale sole */}
+      <path
+        d="M3.6 2.6h2.3v3.3l2.6 1c.8.3 1.2.9 1.2 1.6H3.1c-.4 0-.6-.3-.5-.7l.6-1.9.4-3.3Z"
+        fill="currentColor"
+      />
+      <path d="M3 8.5h6.7" stroke="#fff8e0" strokeWidth="0.5" strokeLinecap="round" />
+    </>
+  ),
   drop: (
     <path
       d="M5 .5C6.5 3 8 4.8 8 6.6a3 3 0 0 1-6 0C2 4.8 3.5 3 5 .5Z"
