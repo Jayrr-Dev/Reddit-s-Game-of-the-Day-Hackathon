@@ -325,6 +325,11 @@ export type CardDef = {
   /** An Exhaust card's own number of uses (default EXHAUST_USES). */
   uses?: number;
   /**
+   * Retired cards stay defined (old saves and decks still load) but leave
+   * the pool: no rewards, test decks or deck editor.
+   */
+  retired?: boolean;
+  /**
    * Reach cards can hit the back row. Without Reach, damage is melee and
    * only reaches the front row (curses and Hex always reach). Derived
    * from `type` when the card is built (see REACHING_TYPES in cards.ts).

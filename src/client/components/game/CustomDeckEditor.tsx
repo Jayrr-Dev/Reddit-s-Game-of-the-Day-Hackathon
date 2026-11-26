@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ALL_CARD_IDS,
+  isCardInPlay,
   getCard,
   isKeywordOn,
   type CardId,
@@ -27,7 +28,7 @@ type EditorProps = {
   onClose: () => void;
 };
 
-const CATALOG = [...ALL_CARD_IDS].sort((a, b) =>
+const CATALOG = ALL_CARD_IDS.filter(isCardInPlay).sort((a, b) =>
   getCard(a).name.localeCompare(getCard(b).name)
 );
 

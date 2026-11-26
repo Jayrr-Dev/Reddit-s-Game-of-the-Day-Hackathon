@@ -123,6 +123,8 @@ type CardTraits = {
   edge?: MeleeEdge;
   /** An Exhaust card's own number of uses (default EXHAUST_USES). */
   uses?: number;
+  /** Out of the pool (see CardDef.retired). */
+  retired?: boolean;
 };
 const REMOVES: CardTraits = { keywords: ['remove'] };
 /** Consumables: a few uses in the run (EXHAUST_USES), then gone. */
@@ -156,7 +158,7 @@ const card = (
   cost: number,
   rarity: CardRarity,
   effects: CardEffect[],
-  { keywords = [], targets = 1, element, edge, uses, costReductionPerKill, requiredKillsInOneHit }: CardTraits = {}
+  { keywords = [], targets = 1, element, edge, uses, costReductionPerKill, requiredKillsInOneHit, retired }: CardTraits = {}
 ): CardDef => ({
   name,
   type,
@@ -169,6 +171,7 @@ const card = (
   ...(requiredKillsInOneHit ? { requiredKillsInOneHit } : {}),
   ...(costReductionPerKill ? { costReductionPerKill } : {}),
   ...(uses ? { uses } : {}),
+  ...(retired ? { retired } : {}),
   reach: REACHING_TYPES.has(type),
   targets,
 });
@@ -568,8 +571,10 @@ export const CARDS = {
   ),
 
   // RARE
+  // Retired by Sam (2026-11-26): out of the pool.
   killingSpree: card('Killing Spree', 'utility', 1, 'rare', [draw(3), energy(3)], {
     requiredKillsInOneHit: 3,
+    retired: true,
   }),
   siegeBlast: card('Siege Blast', 'melee', 2, 'rare', [hitAll(12), { kind: 'push', rows: 2, target: 'all' }], {
 
@@ -660,10 +665,12 @@ export const hasKeyword = (id: CardId, keyword: CardKeyword): boolean =>
   CARDS[id].keywords.includes(keyword) && isKeywordOn(keyword);
 
 /**
- * True when a card can be offered: an Imbue card that grants a keyword
- * not in play (Eagle Eye with the three-row flag off) cannot.
+ * True when a card can be offered: a retired card cannot, nor can an
+ * Imbue card that grants a keyword not in play (Eagle Eye with the
+ * three-row flag off).
  */
 export const isCardInPlay = (id: CardId): boolean =>
+  !getCard(id).retired &&
   CARDS[id].effects.every(
     (effect) =>
       effect.kind !== 'imbue' ||

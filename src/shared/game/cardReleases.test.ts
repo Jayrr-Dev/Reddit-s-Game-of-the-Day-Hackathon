@@ -11,6 +11,7 @@ import {
   isReleaseOrderComplete,
   newestCardIds,
 } from './cardReleases.ts';
+import { cardsOfRarity, isCardInPlay } from './cards.ts';
 import { NEW_CARDS_COUNT, sandboxDeckCards } from './sandboxDecks.ts';
 
 // --- TESTS ---
@@ -34,4 +35,14 @@ void test('New cards deck holds the 10 newest cards, two copies each', () => {
   assert.equal(new Set(cards).size, 10);
   assert.deepEqual(new Set(cards), new Set(newest));
   assert.equal(cards.length, 20);
+});
+
+void test('a retired card leaves the pool and New cards fills its slot', () => {
+  assert.equal(isCardInPlay('killingSpree'), false);
+  assert.ok(!cardsOfRarity('rare').includes('killingSpree'));
+  assert.ok(!sandboxDeckCards('all').includes('killingSpree'));
+  const newest = newestCardIds(NEW_CARDS_COUNT);
+  assert.equal(newest.length, NEW_CARDS_COUNT);
+  assert.ok(!newest.includes('killingSpree'));
+  assert.ok(newest.includes('retreat'));
 });
