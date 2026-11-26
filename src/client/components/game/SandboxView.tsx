@@ -29,24 +29,23 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
 
   const trainingMenu = (resume: (() => void) | undefined, settings: ReactNode) => (
     <section role="dialog" aria-modal="true" aria-label="Illusion Training" className="training-menu">
-      <header
-        className="training-header flex items-center justify-between gap-2"
-        style={{ backgroundImage: 'linear-gradient(90deg, #21150e 8%, #21150e70), url("' + (arena?.image ?? MAP_IMAGES[terrainIndex]) + '")' }}
-      >
-        <div>
-          <h2>Illusion Training</h2>
-          <span>{arena?.name ?? MAP_NAMES[terrainIndex]}</span>
-        </div>
-        {settings}
-      </header>
       <ScenarioPicker
-        renderTools={openDeck => (
-          <div className="training-tools">
+        renderHeader={openDeck => (
+          <header
+            className="training-header"
+            style={{ backgroundImage: 'linear-gradient(90deg, #21150e 8%, #21150e70), url("' + (arena?.image ?? MAP_IMAGES[terrainIndex]) + '")' }}
+          >
+            <div className="min-w-0">
+              <h2>Illusion Training</h2>
+              <span>{arena?.name ?? MAP_NAMES[terrainIndex]}</span>
+            </div>
+            {/* Banner actions sit on the image so the picker keeps the vertical space. */}
             <div className="training-actions">
               <Button variant="menu" onClick={openDeck}>Custom deck</Button>
               {resume && <Button variant="menu" onClick={reshuffle}>New opponents</Button>}
+              {settings}
             </div>
-          </div>
+          </header>
         )}
         terrainIndex={terrainIndex}
         onPickMap={index => { setSelectedMap(index); setArenaOverride(null); }}

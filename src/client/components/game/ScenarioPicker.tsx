@@ -168,7 +168,7 @@ const TabBar = ({
 // --- COMPONENT ---
 /** Renders the tabs and the active tab's entries in a two-column grid. */
 export const ScenarioPicker = ({
-  renderTools,
+  renderHeader,
   terrainIndex,
   onPickMap,
   activeArena,
@@ -181,7 +181,8 @@ export const ScenarioPicker = ({
   onPickScenario,
   onPickDeck,
 }: {
-  renderTools: (openDeck: () => void) => ReactNode;
+  /** Renders the banner above the tabs; openDeck jumps to a new custom deck. */
+  renderHeader: (openDeck: () => void) => ReactNode;
   terrainIndex: number;
   onPickMap: (index: number) => void;
   activeArena?: BossArena | undefined;
@@ -199,7 +200,7 @@ export const ScenarioPicker = ({
   const draft = customDecks.find((deck) => deck.id === editing);
   return (
     <>
-    {renderTools(() => { setTab('decks'); setEditing(''); })}
+    {renderHeader(() => { setTab('decks'); setEditing(''); })}
     <section className="training-picker">
       <TabBar tab={tab} onTab={setTab} />
       {editing !== null && (
