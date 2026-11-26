@@ -48,7 +48,7 @@ export function SkillTree({
     if (!detail || !box || !tip) return;
     const { target } = detail;
 
-    /** Prefer a free side of the node, then clamp the detail panel inside the chart. */
+    /** Prefer above the node, then below, then a free side; clamp the panel inside the chart. */
     function place() {
       if (!box || !tip) return;
       const gap = 8;
@@ -63,13 +63,14 @@ export function SkillTree({
       const below = node.bottom - area.top + gap;
       const cx = (node.left + node.right) / 2 - area.left;
       const cy = (node.top + node.bottom) / 2 - area.top;
+      // The panel may rise past the chart over the path buttons, up to the section's top.
+      const ceiling = (box.closest('.cs-skill-tree')?.getBoundingClientRect().top ?? area.top) - area.top;
+      const vertical = above >= ceiling ? above : below + height <= area.height ? below : null;
       const side = after + width <= area.width ? after : before >= 0 ? before : null;
-      const left = side ?? cx - width / 2;
-      const top = side !== null
-        ? cy - height / 2
-        : below + height <= area.height ? below : above;
+      const left = vertical !== null || side === null ? cx - width / 2 : side;
+      const top = vertical ?? (side !== null ? cy - height / 2 : above);
       tip.style.left = Math.max(0, Math.min(area.width - width, left)) + 'px';
-      tip.style.top = Math.max(0, Math.min(area.height - height, top)) + 'px';
+      tip.style.top = Math.max(ceiling, Math.min(area.height - height, top)) + 'px';
     }
 
     place();
