@@ -113,7 +113,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   },
   shock: {
     label: 'Shock',
-    description: `The **${ordinal(SHOCK_HITS)}** hit taken in one turn sets it off: **${SHOCK_BURST_FACTOR}×** its stacks as damage, then clears. Loses 1 stack after each action.`,
+    description: `The **${ordinal(SHOCK_HITS)}** hit taken in one turn sets it off: **${SHOCK_BURST_FACTOR}×** its stacks as damage, then clears, and sets off every other Shock on its side, one by one. Loses 1 stack after each action.`,
   },
   poison: {
     label: 'Poison',

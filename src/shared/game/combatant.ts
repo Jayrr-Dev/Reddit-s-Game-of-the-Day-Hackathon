@@ -453,6 +453,41 @@ export const burstShock = <T extends Combatant>(
   return loseHp(cleared, damage);
 };
 
+// --- SHOCK CHAIN ---
+/** True when this unit's Shock went off between two looks (a fade is no burst). */
+export const didShockBurst = (before: Combatant, after: Combatant): boolean =>
+  (after.shockBursts ?? 0) > (before.shockBursts ?? 0);
+
+/**
+ * SHOCK CHAIN (Sam, 2026-11-26): once one unit's Shock goes off, every
+ * other standing unit on its side that still holds Shock goes off too,
+ * one at a time in field order. Returns the side after each chained
+ * burst (empty when nothing went off), so the view can show each bolt
+ * on its own beat. It can't loop: a chained burst is not a hit (it never
+ * counts toward SHOCK_HITS) and it clears that unit's Shock, so every
+ * unit goes off at most once per chain.
+ */
+export const shockChain = <T extends Combatant & { uid: number }>(
+  before: readonly T[],
+  after: readonly T[],
+  source?: Combatant
+): T[][] => {
+  const isTriggered = after.some((unit) => {
+    const old = before.find((prior) => prior.uid === unit.uid);
+    return old !== undefined && didShockBurst(old, unit);
+  });
+  if (!isTriggered) return [];
+  const charged = after.filter((unit) => unit.hp > 0 && unit.statuses.shock > 0);
+  // Imperative on purpose: each step builds on the side the last burst left.
+  const steps: T[][] = [];
+  let side: T[] = [...after];
+  for (const { uid } of charged) {
+    side = side.map((unit) => (unit.uid === uid ? burstShock(unit, source) : unit));
+    steps.push(side);
+  }
+  return steps;
+};
+
 // --- TIERED STATUSES (Protection, Enfeeble; see TIERED_CUT_BY_TIER) ---
 /** The share of damage a tier cuts (0 for no tier). */
 export const tierCut = (tier: number): number =>

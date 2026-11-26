@@ -3223,3 +3223,51 @@ void test('combat history records each unit’s dodge count delta, including a u
   ]);
   assert.equal(recordEffects(next, next).playHistory, next.playHistory);
 });
+
+// --- SHOCK CHAIN ---
+/** Squire on its 4th Shock hit, Archer shocked too, both in reach. */
+const chainReady = (): CombatState => {
+  const start = squireAndArcher(['backhand']);
+  const [squire, archer] = start.heroes;
+  const charge = (shockHits: number) => ({
+    row: 'front' as const, hp: 80, maxHp: 80, guard: 0, shockHits,
+  });
+  return {
+    ...start,
+    energy: 3,
+    heroes: [
+      { ...squire!, ...charge(3), statuses: { ...squire!.statuses, shock: 5 } },
+      { ...archer!, ...charge(0), statuses: { ...archer!.statuses, shock: 4 } },
+    ],
+  };
+};
+
+void test('one Shock going off sets off every other Shock on the field', () => {
+  const state = chainReady();
+  const [squire, archer] = state.heroes;
+  const after = playCard(state, 0, squire!.uid);
+  const archerAfter = after.heroes.find((unit) => unit.uid === archer!.uid)!;
+  assert.equal(archerAfter.statuses.shock, 0);
+  assert.equal(archerAfter.shockBursts, 1);
+  // Never hit by the card: all it lost is its own burst (4 x 2).
+  assert.equal(archerAfter.hp, 80 - 4 * SHOCK_BURST_FACTOR);
+});
+
+void test('the chained Shock goes off on its own beat, after the burst that set it off', () => {
+  const state = chainReady();
+  const [squire, archer] = state.heroes;
+  const beats = playCardSteps(state, 0, squire!.uid).slice(0, -1);
+  const burstsOf = (beat: CombatState, uid: number) =>
+    beat.heroes.find((unit) => unit.uid === uid)!.shockBursts ?? 0;
+  const first = beats.findIndex((beat) => burstsOf(beat, squire!.uid) === 1);
+  const chained = beats.findIndex((beat) => burstsOf(beat, archer!.uid) === 1);
+  assert.ok(first >= 0 && chained === first + 1);
+});
+
+void test('a Shock chain leaves heroes with no Shock alone', () => {
+  const state = chainReady();
+  const [squire, archer] = state.heroes;
+  const calm = { ...state, heroes: [squire!, { ...archer!, statuses: { ...archer!.statuses, shock: 0 } }] };
+  const after = playCard(calm, 0, squire!.uid);
+  assert.equal(after.heroes.find((unit) => unit.uid === archer!.uid)!.hp, 80);
+});

@@ -60,6 +60,7 @@ import {
   bleedOnAttack,
   dropRoundBuffs,
   burstShock,
+  shockChain,
   enfeebleTimes,
   tickStackingBuffs,
   tierIVExpires,
@@ -1310,8 +1311,14 @@ const cardBeats = (
     const ridesBlock = (effect: CardEffect) => isRelentless && hasConnected && isAfflictionEffect(effect);
     const apply = (effect: CardEffect) => {
       if (aimed === SELF_TARGET_UID && current.player.hp <= 0) return;
+      const before = current;
       current = applyCardEffect(current, effect, aimed, cardDef, plan, guardRepeats);
       states.push(current);
+      // SHOCK CHAIN: a burst on this beat sets off the other Shocks, a beat each.
+      for (const heroes of shockChain(before.heroes, current.heroes, current.player)) {
+        current = { ...current, heroes };
+        states.push(current);
+      }
     };
     for (const effect of beats) {
       const before = current;

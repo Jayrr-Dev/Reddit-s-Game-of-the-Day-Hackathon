@@ -7,6 +7,7 @@
 // ===================================================================
 
 import { useEffect, useRef, useState } from 'react';
+import { didShockBurst } from '../../shared/game/combatant';
 import type { Combatant } from '../../shared/game/types';
 
 // --- CONSTANTS ---
@@ -19,8 +20,7 @@ const SPLASH_MS = 600;
  * burst. Shock fading to 0 or a Cleanse clearing it is no burst.
  */
 const didBurst = (before: Combatant, after: Combatant): boolean =>
-  (after.shockBursts ?? 0) > (before.shockBursts ?? 0) &&
-  before.statuses.shock > 0;
+  didShockBurst(before, after) && before.statuses.shock > 0;
 
 // --- HOOK ---
 /** The Shock value that just burst, while its splash shows, else null. */

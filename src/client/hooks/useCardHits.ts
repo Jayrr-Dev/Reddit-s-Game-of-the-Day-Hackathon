@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { playCardSteps } from '../../shared/game/combat';
-import { isDefeated } from '../../shared/game/combatant';
+import { didShockBurst, isDefeated } from '../../shared/game/combatant';
 import type { PlayCardAction, RunAction } from '../../shared/game/run';
 import type { CombatState } from '../../shared/game/types';
 
@@ -26,11 +26,30 @@ type Playback = {
 // --- CONSTANTS ---
 /** Gap between one hit landing and the next (ms). Quick, so it stays snappy. */
 export const HIT_STAGGER_MS = 180;
+/** Gap before a Shock goes off (ms): longer, so a Shock chain reads bolt by bolt. */
+const SHOCK_STAGGER_MS = 360;
 
 /** Leave the final damage number visible before the victory screen replaces combat. */
 const isLastLethalBeat = ({ beats, index }: Playback): boolean => {
   const heroes = beats[index]?.heroes;
   return index === beats.length - 1 && !!heroes?.length && heroes.every(isDefeated);
+};
+
+/** True when the beat after this one sets off a hero's Shock (a chain link). */
+const isShockNext = ({ beats, index }: Playback): boolean => {
+  const now = beats[index];
+  const next = beats[index + 1];
+  if (!now || !next) return false;
+  return next.heroes.some((unit) => {
+    const old = now.heroes.find((hero) => hero.uid === unit.uid);
+    return old !== undefined && didShockBurst(old, unit);
+  });
+};
+
+/** How long this beat holds before the next one (or the commit). */
+const holdMsOf = (playback: Playback): number => {
+  if (isLastLethalBeat(playback)) return 1400;
+  return isShockNext(playback) ? SHOCK_STAGGER_MS : HIT_STAGGER_MS;
 };
 
 // --- HOOK ---
@@ -56,7 +75,7 @@ export const useCardHits = (
         return;
       }
       setPlayback({ ...playback, index: playback.index + 1 });
-    }, isLastLethalBeat(playback) ? 1400 : HIT_STAGGER_MS);
+    }, holdMsOf(playback));
     return () => window.clearTimeout(timer);
   }, [playback, onAction]);
 
