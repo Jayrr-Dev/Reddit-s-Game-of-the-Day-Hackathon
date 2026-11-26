@@ -194,6 +194,9 @@ const boxStyle = (unit: HeroUnit, field: readonly HeroUnit[]): CSSProperties => 
   };
 };
 
+// The doubled wolf's visible ears sit about 150% of the base figure height above its feet.
+const IVORY_WEREWOLF_PLATE: CSSProperties = { bottom: 'calc(150% + 4px)' };
+
 /**
  * Seats the plate just above the helmet. The drawing has empty space
  * above the head (headTopShare of its height); the plate sinks into
@@ -539,7 +542,7 @@ export const HeroOnField = ({
                 still under the finger. */}
             <div
               className="absolute inset-x-0 flex justify-center"
-              style={unit.heroId === 'holyKing' ? { bottom: 'calc(116% + 4px)' } : unit.heroId === 'lightLordMori' ? { bottom: 'calc(111% + 4px)' } : unit.heroId === 'fulgurDragonknight' ? { bottom: 'calc(107% + 3px)' } : unit.heroId === 'zadkielOfDominations' || unit.heroId === 'mageBorneAstra' || unit.heroId === 'grandangelCerviel' || unit.heroId === 'grandangelGeonosis' || unit.heroId === 'grandangelRaziel' ? { bottom: 'calc(120% + 4px)' } : unit.heroId === 'archangelZeruel' ? { bottom: 'calc(110% + 3px)' } : unit.heroId === 'cervielSword' || unit.heroId === 'cervielBow' ? { bottom: 'calc(98% + 3px)' } : unit.heroId === 'grandangelCherubiel' ? { bottom: 'calc(125% + 4px)' } : unit.heroId === 'mageBorneAzula' ? { bottom: 'calc(113% + 4px)' } : unit.heroId === 'angelArcher' ? { bottom: '82%' } : plateStyle(size)}
+              style={unit.heroId === 'holyKing' ? { bottom: 'calc(116% + 4px)' } : unit.heroId === 'lightLordMori' ? { bottom: 'calc(111% + 4px)' } : unit.heroId === 'fulgurDragonknight' ? { bottom: 'calc(107% + 3px)' } : unit.heroId === 'zadkielOfDominations' || unit.heroId === 'mageBorneAstra' || unit.heroId === 'grandangelCerviel' || unit.heroId === 'grandangelGeonosis' || unit.heroId === 'grandangelRaziel' ? { bottom: 'calc(120% + 4px)' } : unit.heroId === 'archangelZeruel' ? { bottom: 'calc(110% + 3px)' } : unit.heroId === 'cervielSword' || unit.heroId === 'cervielBow' ? { bottom: 'calc(98% + 3px)' } : unit.heroId === 'grandangelCherubiel' ? { bottom: 'calc(125% + 4px)' } : unit.heroId === 'mageBorneAzula' ? { bottom: 'calc(113% + 4px)' } : unit.heroId === 'angelArcher' ? { bottom: '82%' } : unit.heroId === 'ivoryWerewolf' ? IVORY_WEREWOLF_PLATE : plateStyle(size)}
             >
               <HeroPlate unit={unit} field={field} player={player} />
             </div>
