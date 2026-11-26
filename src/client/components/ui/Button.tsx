@@ -14,7 +14,7 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 // --- STYLES ---
 const BASE_CLASSES =
-  'inline-flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+  'inline-flex items-center justify-center transition-colors disabled:opacity-50';
 
 /** Round pill buttons (primary, ghost) and wide title-menu slabs (menu*). */
 const MENU_SLAB =

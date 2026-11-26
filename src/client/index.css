@@ -7,6 +7,28 @@
    =================================================================== */
 @import 'tailwindcss';
 
+/* ===================================================================
+   INTERACTIVE CURSOR
+   One shared rule: anything a player can click or tap shows the
+   pointer, and anything disabled falls back to the default arrow.
+   It lives in the base layer so a utility (cursor-crosshair while
+   targeting) or a component rule can still override it. Tailwind v4
+   dropped the pointer from buttons, which is why this is needed.
+   =================================================================== */
+@layer base {
+  :where(
+    button, a[href], summary, select, label[for],
+    input:is([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file'], [type='button'], [type='submit']),
+    [role='button'], [role='tab'], [role='option'], [role='menuitem'], [role='menuitemradio'],
+    [role='checkbox'], [role='radio'], [role='switch'], [role='link']
+  ) {
+    cursor: pointer;
+  }
+  :where(:disabled, [aria-disabled='true'], [aria-disabled='true'] *) {
+    cursor: default;
+  }
+}
+
 .oak-menu-button {
   position: relative;
   padding-inline: 1.25rem;
@@ -3421,7 +3443,6 @@ textarea,
 .death-script .oak-menu-button { width:min(100%,220px); height:42px; }
 .run-results .oak-menu-button { width:auto; }
 .spoils-offer { background:transparent; animation:spoils-arrive .55s ease-out both; }
-button[data-card-size]:enabled { cursor:pointer; }
 @keyframes spoils-arrive { from { opacity:0; } to { opacity:1; } }
 @media (prefers-reduced-motion:reduce) { .spoils-offer,.spoils-offer [data-card-size] { animation:none; } }
 .path-card[aria-pressed=true], button[data-card-size=offer][aria-pressed=true] {
