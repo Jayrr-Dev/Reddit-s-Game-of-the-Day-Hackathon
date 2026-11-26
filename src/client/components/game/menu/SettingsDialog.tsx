@@ -1,7 +1,7 @@
 import { useId, useRef, type ReactNode } from 'react';
 import { IconButton } from '../../ui/IconButton';
 import { Button } from '../../ui/Button';
-import { MODAL_DIALOG_CLASSES } from '../../ui/ConfirmDialog';
+import { MODAL_DIALOG_CLASSES } from '../../ui/ModalDialog';
 
 export function SettingsDialog({ children, className = '' }: { children: ReactNode; className?: string }) {
   const dialog = useRef<HTMLDialogElement>(null);

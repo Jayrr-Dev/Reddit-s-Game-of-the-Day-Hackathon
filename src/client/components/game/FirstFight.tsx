@@ -14,6 +14,7 @@ import { ROW_LABEL } from '../../../shared/game/rules';
 import type { RunAction } from '../../../shared/game/run';
 import { createSandboxWith } from '../../../shared/game/sandbox';
 import { Button } from '../ui/Button';
+import { ModalDialog } from '../ui/ModalDialog';
 import { CombatView } from './CombatView';
 import { lessons, portrait } from './tutorialLessons';
 import { ProgressiveImg } from '../ui/ProgressiveImage';
@@ -143,6 +144,7 @@ function LessonFight({
   });
   const [stepIndex, advance] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [dismissedGuide, setDismissedGuide] = useState<string | null>(null);
   const step = lesson.steps[stepIndex];
   const outcome = combatOutcome(combat);
   const levelUp = index === 0 && outcome === 'won';
@@ -224,6 +226,30 @@ function LessonFight({
     )
       advance(stepIndex + 1);
   }
+  // --- GUIDE DIALOG ---
+  // The guide opens again each time its text changes (a new step, the
+  // level-up prompt, the sheet hint). Dismissing remembers only that text.
+  const guideText = levelUp
+    ? spent
+      ? 'Point spent. Close the sheet to finish.'
+      : sheetOpen
+        ? 'Tap the starting star on the Traits page to preview. Tap it again to spend the point.'
+        : 'You reached level ' +
+          character.level +
+          '. Tap your highlighted portrait to spend a trait point, or finish here.'
+    : (step?.tip ??
+      (lesson.id === 'piles'
+        ? 'You played Backhand twice. The reshuffle returned it to your hand, Hold kept Ruin in hand, and Blood Pact stayed removed.'
+        : lesson.id === 'rows'
+          ? `You opened the ${ROW_LABEL.front} with Back Step, closed the gap with Charge, and spent Momentum on a melee hit.`
+          : 'You applied Poison and watched it trigger before the enemy acted.'));
+  const stepCount =
+    step && !levelUp
+      ? 'Step ' + (stepIndex + 1) + ' of ' + lesson.steps.length
+      : undefined;
+  const canFinish = practiced || levelUp;
+  const isGuideOpen = dismissedGuide !== guideText;
+  const dismissGuide = () => setDismissedGuide(guideText);
   if (outcome === 'lost')
     return (
       <section className="first-fight-result">
@@ -240,41 +266,36 @@ function LessonFight({
       data-lesson={lesson.id}
       data-level-guide={levelUp ? (spent ? 'close' : 'spend') : undefined}
     >
-      <header className="first-fight-guide">
-        <div>
-          <strong>{lesson.title}</strong>
-          <small>
-            {step &&
-              !levelUp &&
-              ' Step ' + (stepIndex + 1) + ' of ' + lesson.steps.length}
-          </small>
-          <p aria-live="polite">
-            {levelUp
-              ? spent
-                ? 'Point spent. Close the sheet to finish.'
-                : sheetOpen
-                  ? 'Tap the starting star on the Traits page to preview. Tap it again to spend the point.'
-                  : 'You reached level ' +
-                    character.level +
-                    '. Tap your highlighted portrait to spend a trait point, or finish here.'
-              : (step?.tip ??
-                (lesson.id === 'piles'
-                  ? 'You played Backhand twice. The reshuffle returned it to your hand, Hold kept Ruin in hand, and Blood Pact stayed removed.'
-                  : lesson.id === 'rows'
-                    ? `You opened the ${ROW_LABEL.front} with Back Step, closed the gap with Charge, and spent Momentum on a melee hit.`
-                    : 'You applied Poison and watched it trigger before the enemy acted.'))}
-          </p>
-        </div>
-        {practiced || levelUp ? (
-          <Button variant="menu" onClick={() => complete(lesson.id)}>
-            Finish lesson
-          </Button>
-        ) : (
-          <Button variant="menu" onClick={leave}>
-            Lessons
-          </Button>
-        )}
-      </header>
+      {isGuideOpen ? (
+        <ModalDialog
+          title={lesson.title}
+          subtitle={stepCount}
+          onDismiss={dismissGuide}
+          actions={<>
+            {step ? (
+              <Button variant="menu" onClick={leave}>Lessons</Button>
+            ) : (
+              <Button variant="menu" onClick={dismissGuide}>Close</Button>
+            )}
+            {canFinish ? (
+              <Button variant="menuPrimary" onClick={() => complete(lesson.id)} autoFocus>Finish lesson</Button>
+            ) : (
+              <Button variant="menuPrimary" onClick={dismissGuide} autoFocus>Got it</Button>
+            )}
+          </>}
+        >
+          <p aria-live="polite">{guideText}</p>
+        </ModalDialog>
+      ) : (
+        <button
+          type="button"
+          className="first-fight-reopen"
+          aria-haspopup="dialog"
+          onClick={() => setDismissedGuide(null)}
+        >
+          {stepCount ?? lesson.title}
+        </button>
+      )}
       <div className="relative min-h-0" onClickCapture={inspect}>
         <CombatView
           levelGuide={levelUp ? (spent ? "close" : "spend") : undefined}
