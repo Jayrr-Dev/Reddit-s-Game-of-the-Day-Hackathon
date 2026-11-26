@@ -3,6 +3,7 @@
 // typing in the Create deck search box stays responsive.
 import {
   ALL_CARD_IDS,
+  CARD_POOL_LABELS,
   isCardInPlay,
   getCard,
   isKeywordOn,
@@ -112,6 +113,7 @@ export const SEARCH_INDEX = CATALOG.map((id) => {
     [
       card.name,
       card.type,
+      CARD_POOL_LABELS[card.pool],
       card.element,
       card.edge,
       card.rarity,
@@ -123,7 +125,7 @@ export const SEARCH_INDEX = CATALOG.map((id) => {
       .filter(Boolean)
       .join(' ')
   );
-  return { id, labels, text };
+  return { id, pool: card.pool, labels, text };
 });
 export const KEYWORD_OPTIONS = [
   ...new Set(SEARCH_INDEX.flatMap((card) => [...card.labels])),

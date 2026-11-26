@@ -318,11 +318,15 @@ export type CardType =
   | 'utility'
   | 'movement';
 
+/** Acquisition category, independent of how the card plays. */
+export type CardPool = 'player' | 'neutral' | 'unit';
+
 export type CardDef = {
   costReductionPerKill?: number;
   requiredKillsInOneHit?: number;
   name: string;
   type: CardType;
+  pool: CardPool;
   cost: number;
   rarity: CardRarity;
   effects: readonly CardEffect[];

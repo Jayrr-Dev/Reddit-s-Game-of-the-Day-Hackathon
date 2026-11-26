@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getCard, isKeywordOn, type CardId } from '../../../shared/game/cards';
+import { CARD_POOL_LABELS, getCard, isKeywordOn, type CardId } from '../../../shared/game/cards';
 import { describeCardRules, describeCardUse, GLOSSARY, KEYWORD_INFO } from '../../../shared/game/describe';
 import { CARD_LOOK } from '../../content/visuals';
 import { RichText } from '../ui/RichText';
@@ -49,6 +49,7 @@ const CardInspection = ({ id, onClose }: { id: CardId; onClose: () => void }) =>
           <div>
             <p className="card-inspection-meta">{[card.rarity, CARD_LOOK[card.type].typeName, card.element ?? card.edge].filter(Boolean).join(' · ')}</p>
             <p className="card-inspection-energy stat-ink" data-stat="energy"><Glyph name="bolt" /> {card.cost} energy</p>
+            <p className="card-inspection-meta">Card Pool: {CARD_POOL_LABELS[card.pool]}</p>
             <h3>Effects</h3>
             {lines.map((line, i) => <p key={i} className="card-inspection-effect stat-ink" data-stat={effectTone(line)}>{line}</p>)}
           </div>

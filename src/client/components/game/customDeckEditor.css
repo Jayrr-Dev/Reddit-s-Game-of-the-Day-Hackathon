@@ -248,6 +248,14 @@
   padding: 0.25rem;
   background: var(--cde-paper);
 }
+.cde-card-pool {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+}
 .cde-filter-summary,
 .cde-filter-tags {
   display: flex;

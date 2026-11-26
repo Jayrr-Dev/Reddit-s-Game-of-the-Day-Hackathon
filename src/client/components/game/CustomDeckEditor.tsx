@@ -4,7 +4,8 @@
 // or by a tap / Enter on a card for touch and keyboard players.
 import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
-import { getCard, type CardId } from '../../../shared/game/cards';
+import { CARD_POOL_LABELS, getCard, type CardId } from '../../../shared/game/cards';
+import type { CardPool } from '../../../shared/game/types';
 import {
   addCardBlocker,
   addCardToDeck,
@@ -124,13 +125,17 @@ const DragGhost = ({ drag }: { drag: DeckDrag }) => (
 const CatalogFilters = ({
   query,
   keywords,
+  pool,
   onQuery,
   onKeywords,
+  onPool,
 }: {
   query: string;
   keywords: string[];
+  pool: CardPool | 'all';
   onQuery: (query: string) => void;
   onKeywords: (keywords: string[]) => void;
+  onPool: (pool: CardPool | 'all') => void;
 }) => (
   <>
     <div className="cde-filters">
@@ -159,8 +164,17 @@ const CatalogFilters = ({
           )
         )}
       </select>
+      <label className="cde-card-pool">
+        <span>Card Pool</span>
+        <select value={pool} onChange={(event) => onPool(event.target.value as CardPool | 'all')}>
+          <option value="all">All cards</option>
+          <option value="player">{CARD_POOL_LABELS.player}</option>
+          <option value="neutral">{CARD_POOL_LABELS.neutral}</option>
+          <option value="unit">{CARD_POOL_LABELS.unit}</option>
+        </select>
+      </label>
     </div>
-    {(query || keywords.length > 0) && (
+    {(query || keywords.length > 0 || pool !== 'all') && (
       <div className="cde-filter-summary">
         <div className="cde-filter-tags" aria-label="Applied keyword filters">
           {keywords.map((keyword) => (
@@ -182,6 +196,7 @@ const CatalogFilters = ({
           onClick={() => {
             onQuery('');
             onKeywords([]);
+            onPool('all');
           }}
         >
           Clear filters
@@ -193,10 +208,11 @@ const CatalogFilters = ({
 
 // --- FILTERED CATALOG ---
 /** Cards matching every search word and keyword, grouped by type A to Z. */
-const useCatalogGroups = (query: string, keywords: string[]) => {
+const useCatalogGroups = (query: string, keywords: string[], pool: CardPool | 'all') => {
   const words = normalizeSearch(query).split(' ').filter(Boolean);
   const visible = SEARCH_INDEX.filter(
-    ({ labels, text }) =>
+    ({ labels, text, pool: cardPool }) =>
+      (pool === 'all' || cardPool === pool) &&
       keywords.every((keyword) => labels.has(keyword)) &&
       words.every((word) => text.includes(word))
   ).map((card) => card.id);
@@ -211,8 +227,9 @@ export const CustomDeckEditor = ({ initial, isCardAllowed, onSave, onClose }: Ed
   const [cards, setCards] = useState<CardId[]>(initial?.cards ?? []);
   const [query, setQuery] = useState('');
   const [keywords, setKeywords] = useState<string[]>([]);
+  const [pool, setPool] = useState<CardPool | 'all'>('all');
   const [notice, setNotice] = useState<string | null>(null);
-  const groups = useCatalogGroups(query, keywords);
+  const groups = useCatalogGroups(query, keywords, pool);
   const stacks = stackDeck(cards);
   const isDeckFull = !hasDeckRoom(cards);
   const canSave =
@@ -288,12 +305,16 @@ export const CustomDeckEditor = ({ initial, isCardAllowed, onSave, onClose }: Ed
           <CatalogFilters
             query={query}
             keywords={keywords}
+            pool={pool}
             onQuery={setQuery}
             onKeywords={setKeywords}
+            onPool={setPool}
           />
           <div className="cde-scroll">
             {groups.length === 0 && (
-              <p className="cde-empty">No cards match these filters.</p>
+              <p className="cde-empty">{pool === 'unit' && !SEARCH_INDEX.some(card => card.pool === 'unit')
+                ? 'No Unit Cards yet. This pool is for cards given by or won from units.'
+                : 'No cards match these filters.'}</p>
             )}
             {groups.map((group) => (
               <div key={group.type} className="cde-group">

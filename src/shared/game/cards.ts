@@ -12,6 +12,7 @@ import type {
   CardDef,
   CardEffect,
   CardKeyword,
+  CardPool,
   CardRarity,
   CardType,
   ImbuableEffect,
@@ -114,6 +115,8 @@ const knockback = (rows: number): CardEffect => ({ kind: 'push', rows });
  * (default none) and Target N (default 1).
  */
 type CardTraits = {
+  /** Explicit acquisition category for future neutral and unit reward cards. */
+  pool?: CardPool;
   requiredKillsInOneHit?: number;
   costReductionPerKill?: number;
   keywords?: readonly CardKeyword[];
@@ -158,10 +161,11 @@ const card = (
   cost: number,
   rarity: CardRarity,
   effects: CardEffect[],
-  { keywords = [], targets = 1, element, edge, uses, costReductionPerKill, requiredKillsInOneHit, retired }: CardTraits = {}
+  { keywords = [], targets = 1, pool, element, edge, uses, costReductionPerKill, requiredKillsInOneHit, retired }: CardTraits = {}
 ): CardDef => ({
   name,
   type,
+  pool: type === 'imbue' || effects.some((effect) => effect.kind === 'imbue') ? 'neutral' : pool ?? 'player',
   cost,
   rarity,
   effects,
@@ -646,6 +650,12 @@ export const hitsPerPlay = (cardDef: CardDef): number =>
   );
 
 export const getCard = (id: CardId): CardDef => CARDS[id];
+
+export const CARD_POOL_LABELS: Readonly<Record<CardPool, string>> = {
+  player: 'Player Cards',
+  neutral: 'Neutral Cards',
+  unit: 'Unit Cards',
+};
 
 /** Energy required before resolving the card, using kills this turn. */
 export const cardCost = (id: CardId, killsThisTurn: number, followUpReady = false): number => {
