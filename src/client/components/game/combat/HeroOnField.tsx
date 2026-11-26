@@ -445,7 +445,7 @@ export const HeroOnField = ({
     return isBoss(unit) ? <BossDeath unit={unit} field={field} /> : <DyingHero unit={unit} field={field} />;
   const hero = getHero(unit.heroId);
   const size = drawSizeOf(unit);
-  // The outline only marks a choice: with one hero left there is nothing to pick between.
+  // The glow only marks a choice: with one hero left there is nothing to pick between.
   const isOutlined = isFocused && field.length > 1;
   const bodyStyle = bodyStyleOf(unit, size);
   const secondPhase = unit.phase === 2 && hero.secondPhase?.visual === 'cervielBladeVolley';
@@ -508,7 +508,7 @@ export const HeroOnField = ({
                   <div
                     className={`h-full w-full ${isDeep(unit) || unit.heroId === 'apollyonSeraph' || unit.heroId === 'lightLordMori' || unit.heroId === 'mageBorneAzula' || unit.heroId === 'grandangelCherubiel' || unit.heroId === 'zadkielOfDominations' || unit.heroId === 'mageBorneAstra' || unit.heroId === 'grandangelGeonosis' || unit.heroId === 'grandangelRaziel' || unit.heroId === 'grandangelCerviel' || unit.heroId === 'cervielBow' || (unit.heroId === 'angelArcher' && unit.row === 'back') ? '' : ROW_TINT_CLASS[unit.row]} ${aim === 'legal' ? 'animate-pulse' : ''}`}
                   >
-                    {/* SELECTED: a crisp blue outline (dueling-table.css) on its own
+                    {/* SELECTED: a soft gold glow (dueling-table.css) on its own
                       layer, so its filter never fights the row tint's.
                       Shown only while there is more than one hero. */}
                     <div className={`h-full w-full ${isOutlined ? 'hero-selected' : ''}`}>
