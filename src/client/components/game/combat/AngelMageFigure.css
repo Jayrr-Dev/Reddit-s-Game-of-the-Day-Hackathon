@@ -1,0 +1,23 @@
+/* --- ANGEL MAGE DIVINE CIRCLE --- */
+/* Glow so the circle reads as light, not ink. */
+.angel-mage-circle {
+  filter: drop-shadow(0 0 2px #fff3c4) drop-shadow(0 0 5px #f2cf6e);
+}
+
+/* Both rings spin around the circle's own centre, in opposite directions. */
+.angel-mage-circle-outer,
+.angel-mage-circle-inner {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.angel-mage-circle-outer { animation: angel-mage-spin 6s linear infinite; }
+.angel-mage-circle-inner { animation: angel-mage-spin 4s linear infinite reverse; }
+
+@keyframes angel-mage-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .angel-mage-circle-outer,
+  .angel-mage-circle-inner { animation: none; }
+}

@@ -1,5 +1,6 @@
 // --- ANGEL MAGE FIGURE ---
 import type { HeroMood } from '../../../content/heroLooks';
+import './AngelMageFigure.css';
 
 const IVORY = '#eee2cd';
 const GOLD = '#d1aa51';
@@ -7,6 +8,13 @@ const MAUVE = '#b1a0b6';
 const PURPLE = '#79658c';
 const PLUM = '#473751';
 const INK = '#35283b';
+const HOLY_LIGHT = '#fff6d6';
+
+// --- DIVINE CIRCLE GEOMETRY ---
+/** Centre and radii of the spinning circle of light beside her raised hand. */
+const CIRCLE = { x: 68, y: 51, outer: 9.5, inner: 6.2 } as const;
+/** Eight rune ticks spaced evenly around the outer ring. */
+const RUNE_ANGLES = Array.from({ length: 8 }, (_, index) => index * 45);
 
 /** A long feather wing folds down behind the hooded caster. */
 const Wing = () => (
@@ -17,7 +25,39 @@ const Wing = () => (
   </>
 );
 
-/** The shoulder wings, white hood, staff and visible clock sigil from the reference. */
+/**
+ * A magic circle of divine light: two counter-spinning rings, rune ticks
+ * and a star, all glowing gold-white. The spin lives in AngelMageFigure.css.
+ */
+const DivineCircle = () => (
+  <g className="angel-mage-circle">
+    <circle cx={CIRCLE.x} cy={CIRCLE.y} r={CIRCLE.outer + 1.5} fill={HOLY_LIGHT} opacity=".18" />
+    <g className="angel-mage-circle-outer">
+      <circle cx={CIRCLE.x} cy={CIRCLE.y} r={CIRCLE.outer} fill="none" stroke={GOLD} strokeWidth="1.1" />
+      {RUNE_ANGLES.map((angle) => (
+        <path
+          key={angle}
+          d={`M${CIRCLE.x} ${CIRCLE.y - CIRCLE.outer - 1.2}v2.4`}
+          transform={`rotate(${angle} ${CIRCLE.x} ${CIRCLE.y})`}
+          stroke={HOLY_LIGHT}
+          strokeWidth=".9"
+          strokeLinecap="round"
+        />
+      ))}
+    </g>
+    <g className="angel-mage-circle-inner">
+      <circle cx={CIRCLE.x} cy={CIRCLE.y} r={CIRCLE.inner} fill="none" stroke={HOLY_LIGHT} strokeWidth=".7" strokeDasharray="2 1.2" />
+      <polygon
+        points="68,45.5 69.6,49.4 73.5,51 69.6,52.6 68,56.5 66.4,52.6 62.5,51 66.4,49.4"
+        fill={HOLY_LIGHT}
+        stroke={GOLD}
+        strokeWidth=".4"
+      />
+    </g>
+  </g>
+);
+
+/** The shoulder wings, white hood, staff and a spinning circle of divine light. */
 export const AngelMage = ({ mood }: { mood: HeroMood }) => (
   <>
     <Wing />
@@ -39,10 +79,6 @@ export const AngelMage = ({ mood }: { mood: HeroMood }) => (
     <path d="M13 85 24 66 29 57" fill="none" stroke={GOLD} strokeWidth="2.2" />
     <ellipse cx="12" cy="85" rx="4" ry="2.5" fill="none" stroke={GOLD} strokeWidth="1.1" />
     <polygon points="54,49 60,49 61,59 66,55 69,57 63,66 58,66" fill={MAUVE} />
-    <g className="angel-mage-sigil">
-      <circle cx="68" cy="51" r="9" fill={PLUM} stroke={GOLD} strokeWidth="1.3" />
-      <circle cx="68" cy="51" r="6.4" fill="none" stroke={IVORY} strokeWidth=".7" />
-      <path d="M68 46v5l4 2m-4-10v1m0 14v1m-8-8h1m14 0h1" fill="none" stroke={GOLD} strokeWidth="1.15" strokeLinecap="round" />
-    </g>
+    <DivineCircle />
   </>
 );

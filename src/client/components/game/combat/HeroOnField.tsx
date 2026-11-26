@@ -129,12 +129,13 @@ const marchDelayMs = (unit: HeroUnit): number =>
   unit.col * MARCH_STAGGER_PER_COL_MS + rowDepth(unit.row) * MARCH_ROW_DELAY_MS;
 
 /**
- * How far-off each row looks: the Backline a little dimmed, the Horizon
- * dimmed and faded (it is Out of Range). Filter and opacity only.
+ * How far-off each row looks: the Midline is drawn at full brightness
+ * (Sam found the old 75% dim too dark), the Backline dimmed and faded
+ * (it is Out of Range). Filter and opacity only.
  */
 const ROW_TINT_CLASS: Record<HeroRow, string> = {
   front: '',
-  back: 'brightness-75',
+  back: '',
   horizon: 'brightness-60 opacity-70',
 };
 
