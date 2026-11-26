@@ -9,6 +9,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Button } from '../../ui/Button';
 import { ModalDialog } from '../../ui/ModalDialog';
 import { ImpactOverlay } from '../combat/ImpactOverlay';
+import { cssVars } from '../../../lib/cssVars';
 import { EFFECT_ASSETS, IMAGE_ASSETS, type EffectAsset, type ImageAsset } from '../../../content/assetCatalog';
 
 // --- CONSTANTS ---
@@ -43,6 +44,28 @@ const EffectStage = ({ asset }: { asset: EffectAsset }) => {
   );
 };
 
+/** A sprite strip playing frame by frame (the burn fire, for one). */
+const StripPlayer = ({ asset, strip }: { asset: ImageAsset; strip: NonNullable<ImageAsset['strip']> }) => (
+  <div
+    role="img"
+    aria-label={asset.name}
+    className="asset-strip"
+    style={{
+      ...cssVars({ '--strip-aspect': strip.frameAspect }),
+      backgroundImage: `url("${asset.url}")`,
+      backgroundSize: `${strip.frames * 100}% 100%`,
+      // jump-none shows every frame for the same time, the last one included.
+      animationTimingFunction: `steps(${strip.frames}, jump-none)`,
+    }}
+  />
+);
+
+/** An image at full size, or played when it is a sprite strip. */
+const ImageView = ({ asset }: { asset: ImageAsset }) =>
+  asset.strip
+    ? <StripPlayer asset={asset} strip={asset.strip} />
+    : <img className="asset-full" alt={asset.name} src={asset.url} />;
+
 /** The full-size viewer for the open asset. */
 const AssetViewer = ({ open, onClose }: { open: OpenAsset; onClose: () => void }) => (
   <ModalDialog
@@ -53,7 +76,7 @@ const AssetViewer = ({ open, onClose }: { open: OpenAsset; onClose: () => void }
   >
     {open.kind === 'effect'
       ? <EffectStage asset={open.asset} />
-      : <img className="asset-full" alt={open.asset.name} src={open.asset.url} />}
+      : <ImageView asset={open.asset} />}
   </ModalDialog>
 );
 

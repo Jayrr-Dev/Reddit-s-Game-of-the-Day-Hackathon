@@ -9,6 +9,7 @@
 
 import { STATUS_FX, type FxKind } from './statusFx';
 import { keyLabel } from '../lib/keyLabel';
+import { IMAGE_PLACEHOLDERS } from '../lib/imagePlaceholders.generated';
 import type { PlayerHitPop } from '../hooks/useHitPops';
 
 // --- TYPES ---
@@ -16,7 +17,13 @@ import type { PlayerHitPop } from '../hooks/useHitPops';
 export type EffectAsset = { name: string; pop: PlayerHitPop };
 
 /** One image file: a readable name, its folder and its built URL. */
-export type ImageAsset = { name: string; group: string; url: string };
+export type ImageAsset = {
+  name: string;
+  group: string;
+  url: string;
+  /** Set for a sprite strip: its frame count and one frame's width / height. */
+  strip?: { frames: number; frameAspect: number } | undefined;
+};
 
 // --- EFFECTS ---
 /** A pop of the given shape; amount equals typical, so it draws at normal size. */
@@ -68,14 +75,25 @@ const IMAGE_URLS = import.meta.glob<string>(
   { eager: true, query: '?url', import: 'default' },
 );
 
+/** Sprite strips (frames side by side), so the viewer plays them instead of showing the sheet. */
+const SPRITE_STRIP_FRAMES: Readonly<Record<string, number>> = { 'burn-fire-strip': 16 };
+
+/** A strip's frame count and frame shape, from its stem and the placeholder sizes. */
+const stripOf = (stem: string): ImageAsset['strip'] => {
+  const frames = SPRITE_STRIP_FRAMES[stem];
+  const size = IMAGE_PLACEHOLDERS[stem];
+  return frames && size ? { frames, frameAspect: size.width / frames / size.height } : undefined;
+};
+
 /** "../assets/table/back-step.webp" becomes { group: "Table", name: "Back step" }. */
 const toImageAsset = ([path, url]: [string, string]): ImageAsset => {
   const parts = path.replace('../assets/', '').split('/');
-  const file = parts.pop() ?? path;
+  const stem = (parts.pop() ?? path).replace(/\.\w+$/, '');
   return {
-    name: keyLabel(file.replace(/\.\w+$/, '')),
+    name: keyLabel(stem),
     group: keyLabel(parts[0] ?? 'effects'),
     url,
+    strip: stripOf(stem),
   };
 };
 
