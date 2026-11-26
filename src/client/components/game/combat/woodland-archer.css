@@ -29,6 +29,14 @@
   top: 42%;
 }
 
+/* Inside Cerviel's original SVG art box, so its screen size and hover
+   motion stay aligned with the other Cerviel forms. */
+.woodland-archer[data-archer-sprite='cervielBow'] { aspect-ratio: 156 / 172; }
+.woodland-archer[data-archer-sprite='cervielBow'] .woodland-arrow-origin {
+  left: 41.8%;
+  top: 32.6%;
+}
+
 @keyframes woodland-archer-shot {
   from { background-position-x: 0%; }
   to { background-position-x: 100%; }

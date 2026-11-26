@@ -4,9 +4,10 @@ import { HERO_ATTACK_MS } from '../../../hooks/useHeroTurn';
 import woodland from '../../../assets/heroes/woodland-archers/woodland-archer-strip.webp';
 import crowned from '../../../assets/heroes/woodland-archers/crowned-archer-strip.webp';
 import angel from '../../../assets/heroes/woodland-archers/angel-archer-strip.webp';
+import cerviel from '../../../assets/heroes/woodland-archers/cerviel-bow-strip.webp';
 import './woodland-archer.css';
 
-const atlas = { archer: woodland, lysa: crowned, wingedArcher: angel };
+const atlas = { archer: woodland, lysa: crowned, wingedArcher: angel, cervielBow: cerviel };
 
 export function ArcherSprite({ heroId, action }: {
   heroId: keyof typeof atlas;

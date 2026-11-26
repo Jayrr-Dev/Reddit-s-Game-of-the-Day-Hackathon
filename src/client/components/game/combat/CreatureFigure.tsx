@@ -54,7 +54,7 @@ import cervielStaffArt from '../../../assets/heroes/cerviel-staff.webp';
 import cervielSwordArt from '../../../assets/cerviel/Villain-Run-Cerviel-Six-Swords.webp';
 import cervielOpenArt from '../../../assets/cerviel/Villain-Run-Cerviel-Open-Hands.webp';
 import cervielFistsArt from '../../../assets/cerviel/Villain-Run-Cerviel-Closed-Fists.webp';
-import cervielBowArt from '../../../assets/heroes/cerviel-bow.webp';
+import { ArcherSprite } from './ArcherSprite';
 import cambielArt from '../../../assets/heroes/grandangel-cambiel.webp';
 import geonosisArt from '../../../assets/heroes/grandangel-geonosis.webp';
 import razielArt from '../../../assets/heroes/grandangel-raziel.webp';
@@ -728,8 +728,8 @@ const MageBorneAstra = () => (
   <ProgressiveSvgImage data-mage-borne-astra="" href={astraArt} x={36} y={-15} width={78} height={117} />
 );
 
-const CERVIEL_ART = { staff: cervielStaffArt, sword: cervielSwordArt, bow: cervielBowArt };
-const CervielForm = ({ form, size, action }: { form: keyof typeof CERVIEL_ART; size: HeroSize; action?: HeroAction | null | undefined }) => {
+const CERVIEL_ART = { staff: cervielStaffArt, sword: cervielSwordArt };
+const CervielForm = ({ form, size, action }: { form: keyof typeof CERVIEL_ART | 'bow'; size: HeroSize; action?: HeroAction | null | undefined }) => {
   const half = BODY_WIDTH[size] / 2;
   const isStaff = form === 'staff';
   const width = isStaff || form === 'sword' ? 104 : 87;
@@ -738,8 +738,15 @@ const CervielForm = ({ form, size, action }: { form: keyof typeof CERVIEL_ART; s
   const left = half - width / 2;
   return (
     <g className="angel-hover" data-cerviel-form={form}>
-      <ProgressiveSvgImage href={form === 'sword' && action?.style === 'magic' ? cervielOpenArt : form === 'sword' && action?.style === 'support' ? cervielFistsArt : CERVIEL_ART[form]} x={left} y={y} width={width} height={height} />
-      {form === 'bow' && <circle className="hero-arrow" cx={left + width * .14} cy={y + height * .337} r={1} fill="transparent" />}
+      {form === 'bow' ? (
+        <foreignObject x={left} y={y} width={width} height={height} pointerEvents="none">
+          <div className="relative size-full">
+            <ArcherSprite heroId="cervielBow" action={action ?? null} />
+          </div>
+        </foreignObject>
+      ) : (
+        <ProgressiveSvgImage href={form === 'sword' && action?.style === 'magic' ? cervielOpenArt : form === 'sword' && action?.style === 'support' ? cervielFistsArt : CERVIEL_ART[form]} x={left} y={y} width={width} height={height} />
+      )}
     </g>
   );
 };
@@ -805,7 +812,7 @@ const CREATURE_DRAWINGS: Record<
   zadkielOfDominations: ZadkielOfDominations,
   grandangelCerviel: ({ size }) => <CervielForm form="staff" size={size} />,
   cervielSword: ({ size, action }) => <CervielForm form="sword" size={size} action={action} />,
-  cervielBow: ({ size }) => <CervielForm form="bow" size={size} />,
+  cervielBow: ({ size, action }) => <CervielForm form="bow" size={size} action={action} />,
   grandangelCambiel: GrandangelCambiel,
   grandangelGeonosis: GrandangelGeonosis,
   grandangelRaziel: GrandangelRaziel,
