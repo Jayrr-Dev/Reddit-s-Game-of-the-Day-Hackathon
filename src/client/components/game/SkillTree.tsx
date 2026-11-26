@@ -3,6 +3,7 @@ import { playSound } from '../../lib/gameAudio';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { SkillGlyph } from './SkillGlyph';
 import { RichText } from '../ui/RichText';
+import { Glyph } from '../ui/Glyph';
 import type { CharacterState } from '../../../shared/game/character';
 import {
   branchNames,
@@ -296,6 +297,10 @@ export function SkillTree({
           >
             <div className="cs-skill-badge" aria-hidden="true">
               <svg viewBox="0 0 24 24"><SkillGlyph pick={active} /></svg>
+              {/* LOCK: covers the badge until the circle can be bought; gone once it's available. */}
+              {rank === 0 && skillPurchases(character, active).steps.length === 0 && (
+                <span className="cs-skill-lock"><Glyph name="padlock" /></span>
+              )}
             </div>
             <div className="cs-node-copy">
               <strong>
@@ -306,7 +311,7 @@ export function SkillTree({
                 <small><RichText text={skillEffectOf(active)!.description} /></small>
               )}
               {rank === 0 && (
-                <small>{skillPurchases(character, active).message}</small>
+                <small className="cs-skill-requirement">{skillPurchases(character, active).message}</small>
               )}
               {rank < skillCap(active.tier) && skillPurchases(character, active).steps.length > 0 && (
                 <small>Click again to spend a point</small>

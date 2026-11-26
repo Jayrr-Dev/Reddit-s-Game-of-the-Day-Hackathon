@@ -713,6 +713,19 @@
 }
 .cs-node-copy strong { color: var(--color-accent-hover); }
 .cs-node-copy small { color: var(--color-ink-muted); }
+/* What the circle still needs: larger than the other notes. */
+.cs-node-copy .cs-skill-requirement { color: var(--color-ink); font-size: .9rem; font-weight: 700; }
+.cs-skill-badge { position: relative; }
+.cs-skill-lock {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-surface-sunken) 55%, transparent);
+  color: var(--color-ink);
+}
+.cs-skill-lock svg { width: 50%; height: 50%; }
 .cs-skill-badge {
   display: grid;
   place-items: center;
