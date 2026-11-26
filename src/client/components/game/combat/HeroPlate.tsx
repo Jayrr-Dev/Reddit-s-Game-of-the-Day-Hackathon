@@ -142,7 +142,7 @@ export const HeroPlate = ({ unit, field, player }: HeroPlateProps) => {
               data-hero-tier={tier}
               className={`hero-plate-name w-[128%] self-center px-1 text-center text-balance [overflow-wrap:anywhere] font-display font-bold text-[11px] uppercase leading-tight tracking-wider ${nameClass}`}
             >
-              {name}
+              {name}{unit.phase === 2 && <span className="ml-1 text-[#ebd2ff]">II</span>}
             </span>
             <DrainBar hp={unit.hp} maxHp={unit.maxHp} size="small" />
             <div className="hero-plate-details">

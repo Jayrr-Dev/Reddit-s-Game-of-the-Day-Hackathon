@@ -7,6 +7,7 @@ import { DeathScreen } from './DeathScreen';
 import { CombatView } from './CombatView';
 import { MAP_IMAGES, MAP_NAMES, PRACTICE_TERRAIN_START } from './combat/Backdrop';
 import { SettingsDialog } from './menu/SettingsDialog';
+import { bossArenaOf, type BossArena } from '../../content/bossArenas';
 import { ScenarioPicker } from './ScenarioPicker';
 
 /** Setup uses the same settings as the combat pause menu. */
@@ -22,17 +23,19 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
     customDecks, saveCustomDeck, pickCustomDeck, act, respec, reshuffle, summon, pickDeck,
   } = useSandbox();
   const [selectedMap, setSelectedMap] = useState<number | null>(null);
+  const [arenaOverride, setArenaOverride] = useState<BossArena | null | undefined>(undefined);
+  const arena = arenaOverride !== undefined ? arenaOverride ?? undefined : combat ? bossArenaOf(combat.heroes.map(unit => unit.heroId), combat.fallen.map(unit => unit.heroId)) : undefined;
   const terrainIndex = selectedMap ?? (PRACTICE_TERRAIN_START + round) % MAP_NAMES.length;
 
   const trainingMenu = (resume: (() => void) | undefined, settings: ReactNode) => (
     <section role="dialog" aria-modal="true" aria-label="Illusion Training" className="training-menu">
       <header
         className="training-header flex items-center justify-between gap-2"
-        style={{ backgroundImage: 'linear-gradient(90deg, #21150e 8%, #21150e70), url("' + MAP_IMAGES[terrainIndex] + '")' }}
+        style={{ backgroundImage: 'linear-gradient(90deg, #21150e 8%, #21150e70), url("' + (arena?.image ?? MAP_IMAGES[terrainIndex]) + '")' }}
       >
         <div>
           <h2>Illusion Training</h2>
-          <span>{MAP_NAMES[terrainIndex]}</span>
+          <span>{arena?.name ?? MAP_NAMES[terrainIndex]}</span>
         </div>
         {settings}
       </header>
@@ -46,13 +49,15 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
           </div>
         )}
         terrainIndex={terrainIndex}
-        onPickMap={setSelectedMap}
+        onPickMap={index => { setSelectedMap(index); setArenaOverride(null); }}
+        activeArena={arena}
+        onPickArena={setArenaOverride}
         deckId={deckId}
         customDecks={customDecks}
         activeCustomId={activeCustomId}
         onPickCustom={pickCustomDeck}
         onSaveCustom={saveCustomDeck}
-        onPickScenario={scenario => summon(scenario.heroIds, scenario.startsInPlace)}
+        onPickScenario={scenario => { setArenaOverride(undefined); summon(scenario.heroIds, scenario.startsInPlace); }}
         onPickDeck={pickDeck}
       />
       <footer className="training-footer">
@@ -76,6 +81,7 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
               onRespec={respec}
               deck={deck}
               terrainIndex={terrainIndex}
+              trainingArenaOverride={arenaOverride}
               where="Illusion Training"
               score={0}
               onAction={act}

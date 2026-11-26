@@ -19,6 +19,8 @@ import type {
   SummonId,
 } from './types.ts';
 
+import { cervielSecondPhase, cervielSummonMoves } from './heroPhases.ts';
+
 // --- EFFECT BUILDERS ---
 type HeroAttack = Extract<HeroEffect, { kind: 'attack' }>;
 /** Builds an attack of one type (see HeroAttackType for the reach rules). */
@@ -337,17 +339,18 @@ export const HEROES = {
   ]),
 
   // Cerviel's three bodies are separate units so each can be targeted and defeated.
-  grandangelCerviel: hero('Grandangel Cerviel', 'boss', 205, 50, 6, BACK, [
+  grandangelCerviel: hero('Cerviel · Staff', 'elite', 55, 50, 6, BACK, [
     move('Staff of Accord', guard(10, 'allies'), protect()),
     move('Trinity Pulse', homing(spell(7, 2))),
     move('Seal of Concord', heal(8), cleanse()),
     signature(move('Covenant of Light', homing(spell(16)), dispel())),
   ]),
-  cervielSword: hero('Cerviel • Sword', 'elite', 55, 50, 5, FRONT, [
+  cervielSword: { ...hero('Grandangel Cerviel', 'boss', 205, 50, 5, FRONT, [
+    ...cervielSummonMoves('grandangelCerviel', 'cervielBow'),
     move('Twin Sabre Cuts', strike(6, 2)),
     move('Rending Oath', strike(10), bleed(2)),
     move('Distant Blade Arc', spell(8)),
-  ]),
+  ]), secondPhase: cervielSecondPhase('grandangelCerviel', 'cervielBow') },
   cervielBow: hero('Cerviel • Bow', 'elite', 46, 50, 5, BACK, [
     move('Gilded Volley', shoot(4, 2)),
     move('Pinning Arrow', shoot(9), weaken(1)),
@@ -367,11 +370,11 @@ export const HEROES = {
     signature(move('Sundering Halo', homing(spell(20)), dispel())),
   ]),
 
-  zeruelRedSun: hero('Alpha', 'elite', 48, 4, 5, FRONT, [
+  zeruelRedSun: hero('Alpha', 'elite', 48, 4, 5, BACK, [
     { ...move('Crimson Flare', spell(5), burn(2)), element: 'fire' },
     move('Solar Prominence', guard(7, 'allies')),
   ]),
-  zeruelBlueSun: hero('Omega', 'elite', 48, 212, 5, FRONT, [
+  zeruelBlueSun: hero('Omega', 'elite', 48, 212, 5, BACK, [
     move('Blue Radiance', spell(6)),
     move('Stellar Mantle', guard(7, 'allies')),
   ]),
@@ -442,6 +445,27 @@ export const HEROES = {
    * down its signature Halo of Judgment (which also raises every fallen
    * ally) and roars itself into a Wrath.
    */
+  angelAssassin: hero('Angel Assassin', 'boss', 126, 280, 9, FRONT, [
+    move('Veil', { kind: 'cloak', amount: 2 }),
+    move('Silent Strike', strike(8, 2), bleed(2)),
+    move('Dagger Cast', shoot(8), bleed(1)),
+  ]),
+
+  twinAxeKnight: armored(hero('Twin-Axe Knight', 'boss', 205, 42, 5, FRONT, [
+    move('Twin Cleave', strike(9, 2), bleed(2)),
+    move('Iron Brace', guard(19)),
+    signature(move('Executioner’s Cross', strike(12, 2))),
+  ]), 1),
+  archangelUriel: hero('Archangel Uriel', 'boss', 195, 14, 7, FRONT, [
+    move('Crimson Ward', guard(15), protect('self')),
+    { ...move('Wingfire', spell(13), burn(3)), element: 'fire' },
+    signature({ ...move('Radiant Verdict', spell(8, 3)), element: 'fire' }),
+  ]),
+  zeruelArmored: hero('Archangel Zeruel · Armored', 'boss', 210, 277, 6, FRONT, [
+    move('Ivory Rebuke', strike(11)),
+    move('Eclipse Guard', guard(18), protect('self')),
+    signature(move('Divided Light', spell(7, 3))),
+  ]),
   holyDragon: hero(
     'Holy Dragon Sol',
     'boss',
@@ -486,6 +510,31 @@ export const HEROES = {
     { ...move('Crossed Talon', strike(3, 6)), isTwoHanded: true },
     move('Proud Cry', wrath(2)),
   ]),
+  /**
+   * A storm giant with a dragon's head, on a T like Sol (it fills the
+   * front). Two moves a turn (Vigor). It drives Shock onto the villain
+   * with its spear and wings, sets it off with Thunderhead, and its
+   * signature Sky Breaker brings down one huge lightning strike.
+   */
+  tempestWyrm: hero(
+    'Tempest Wyrm Vael',
+    'boss',
+    600,
+    215,
+    6,
+    BOSS_T,
+    [
+      move('Storm Spear', {
+        ...strike(9, 2),
+        perHit: [{ status: 'shock', amount: 5 }],
+      }),
+      move('Tempest Wings', guard(22), shock(4)),
+      move('Thunderhead', detonate()),
+      signature({ ...move('Sky Breaker', spell(32)), element: 'lightning' }),
+      move('Storm Roar', wrath(3)),
+    ],
+    ['vigor']
+  ),
 } as const satisfies Record<string, HeroDef>;
 
 // --- DERIVED DATA ---

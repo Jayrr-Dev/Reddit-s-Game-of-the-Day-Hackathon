@@ -146,12 +146,17 @@ export const CREATURE_IDS = [
   'zeruelBlueSun',
   'mageBorneAstra',
   'holyDragon',
+  'angelAssassin',
+  'twinAxeKnight',
+  'archangelUriel',
+  'zeruelArmored',
   'angelArcher',
   'grandGriffon',
   'ballista',
   'ivoryWerewolf',
   'wolfCentaur',
   'angelMage',
+  'tempestWyrm',
 ] as const satisfies readonly HeroId[];
 export type CreatureId = (typeof CREATURE_IDS)[number];
 /** Every hero drawn by the shared humanoid figure. */
@@ -170,40 +175,87 @@ export const drawSizeOf = (unit: Pick<HeroUnit, 'heroId'>): HeroSize =>
 
 /**
  * A hero's ground shadow: its half-width as a share of the drawing's
- * width, and how dark it is. Humanoids share one; creatures differ (the
- * angel hovers, so its shadow is small and faint).
+ * width, and how dark it is on the ground. Lifted off the ground (any
+ * reason: Aloft, an entrance, a spell's rise) it shrinks to
+ * `liftedScale` of its size and `liftedFade` of its darkness at a full
+ * flight's height (index.css, UNIT LIFT). Humanoids share one;
+ * creatures differ (the angel hovers, so its shadow is small and faint;
+ * the griffon's stays clear so its landing spot reads).
  */
-export type GroundShadow = { halfWidthShare: number; opacity: number };
-const HUMANOID_SHADOW: GroundShadow = { halfWidthShare: 0.44, opacity: 0.45 };
+export type GroundShadow = {
+  halfWidthShare: number;
+  opacity: number;
+  liftedScale: number;
+  liftedFade: number;
+};
+/** How a shadow responds to lift unless a creature says otherwise. */
+const LIFT_RESPONSE = { liftedScale: 0.4, liftedFade: 0.45 } as const;
+const HUMANOID_SHADOW: GroundShadow = {
+  halfWidthShare: 0.44,
+  opacity: 0.45,
+  ...LIFT_RESPONSE,
+};
 const CREATURE_SHADOW: Record<CreatureId, GroundShadow> = {
-  apollyonSeraph: { halfWidthShare: 0.32, opacity: 0.38 },
-  lightLordMori: { halfWidthShare: 0.23, opacity: 0.3 },
-  mageBorneAzula: { halfWidthShare: 0.27, opacity: 0.32 },
-  grandangelCherubiel: { halfWidthShare: 0.25, opacity: 0.3 },
-  fulgurDragonknight: { halfWidthShare: 0.34, opacity: 0.36 },
-  zadkielOfDominations: { halfWidthShare: 0.28, opacity: 0.3 },
-  grandangelCerviel: { halfWidthShare: 0.24, opacity: 0.28 },
-  cervielSword: { halfWidthShare: 0.22, opacity: 0.26 },
-  cervielBow: { halfWidthShare: 0.22, opacity: 0.26 },
-  grandangelCambiel: { halfWidthShare: 0.27, opacity: 0.31 },
-  grandangelGeonosis: { halfWidthShare: 0.26, opacity: 0.3 },
-  grandangelRaziel: { halfWidthShare: 0.19, opacity: 0.25 },
-  archangelZeruel: { halfWidthShare: 0.28, opacity: 0.32 },
-  zeruelRedSun: { halfWidthShare: 0.23, opacity: 0.19 },
-  zeruelBlueSun: { halfWidthShare: 0.23, opacity: 0.19 },
-  mageBorneAstra: { halfWidthShare: 0.25, opacity: 0.3 },
-  holyDragon: { halfWidthShare: 0.39, opacity: 0.45 },
-  angelArcher: { halfWidthShare: 0.2, opacity: 0.3 },
-  grandGriffon: { halfWidthShare: 0.28, opacity: 0.45 },
-  ballista: { halfWidthShare: 0.55, opacity: 0.45 },
-  ivoryWerewolf: { halfWidthShare: 0.34, opacity: 0.45 },
-  wolfCentaur: { halfWidthShare: 0.46, opacity: 0.45 },
-  angelMage: { halfWidthShare: 0.31, opacity: 0.29 },
+  apollyonSeraph: { halfWidthShare: 0.32, opacity: 0.38, ...LIFT_RESPONSE },
+  lightLordMori: { halfWidthShare: 0.23, opacity: 0.3, ...LIFT_RESPONSE },
+  mageBorneAzula: { halfWidthShare: 0.27, opacity: 0.32, ...LIFT_RESPONSE },
+  grandangelCherubiel: { halfWidthShare: 0.25, opacity: 0.3, ...LIFT_RESPONSE },
+  fulgurDragonknight: { halfWidthShare: 0.34, opacity: 0.36, ...LIFT_RESPONSE },
+  zadkielOfDominations: { halfWidthShare: 0.28, opacity: 0.3, ...LIFT_RESPONSE },
+  grandangelCerviel: { halfWidthShare: 0.24, opacity: 0.28, ...LIFT_RESPONSE },
+  cervielSword: { halfWidthShare: 0.22, opacity: 0.26, ...LIFT_RESPONSE },
+  cervielBow: { halfWidthShare: 0.22, opacity: 0.26, ...LIFT_RESPONSE },
+  grandangelCambiel: { halfWidthShare: 0.27, opacity: 0.31, ...LIFT_RESPONSE },
+  grandangelGeonosis: { halfWidthShare: 0.26, opacity: 0.3, ...LIFT_RESPONSE },
+  grandangelRaziel: { halfWidthShare: 0.19, opacity: 0.25, ...LIFT_RESPONSE },
+  archangelZeruel: { halfWidthShare: 0.28, opacity: 0.32, ...LIFT_RESPONSE },
+  zeruelRedSun: { halfWidthShare: 0.23, opacity: 0.19, ...LIFT_RESPONSE },
+  zeruelBlueSun: { halfWidthShare: 0.23, opacity: 0.19, ...LIFT_RESPONSE },
+  mageBorneAstra: { halfWidthShare: 0.25, opacity: 0.3, ...LIFT_RESPONSE },
+  ivoryWerewolf: { halfWidthShare: 0.34, opacity: 0.45, ...LIFT_RESPONSE },
+  wolfCentaur: { halfWidthShare: 0.46, opacity: 0.45, ...LIFT_RESPONSE },
+  angelMage: { halfWidthShare: 0.31, opacity: 0.29, ...LIFT_RESPONSE },
+  holyDragon: { halfWidthShare: 0.39, opacity: 0.45, ...LIFT_RESPONSE },
+  angelArcher: { halfWidthShare: 0.2, opacity: 0.3, ...LIFT_RESPONSE },
+  grandGriffon: {
+    halfWidthShare: 0.28,
+    opacity: 0.45,
+    liftedScale: 0.6,
+    liftedFade: 0.85,
+  },
+  ballista: { halfWidthShare: 0.55, opacity: 0.45, ...LIFT_RESPONSE },
+  tempestWyrm: { halfWidthShare: 0.46, opacity: 0.5, ...LIFT_RESPONSE },
+  angelAssassin: { halfWidthShare: 0.22, opacity: 0.24, ...LIFT_RESPONSE },
+  twinAxeKnight: { halfWidthShare: 0.39, opacity: 0.46, ...LIFT_RESPONSE },
+  archangelUriel: { halfWidthShare: 0.26, opacity: 0.33, ...LIFT_RESPONSE },
+  zeruelArmored: { halfWidthShare: 0.26, opacity: 0.33, ...LIFT_RESPONSE },
 };
 
 /** The ground shadow a hero casts. */
 export const groundShadowOf = (id: HeroId): GroundShadow =>
   isCreature(id) ? CREATURE_SHADOW[id] : HUMANOID_SHADOW;
+
+/**
+ * How a boss fills a wide (desktop) field. By default a boss is as tall
+ * as its slot allows, which on a wide field leaves it small in the
+ * middle. A staged boss grows instead:
+ *   reach    how tall it may grow, as a share of its slot's height
+ *   forward  the share of that growth that goes down, toward the
+ *            player, rather than up under its name plate (it steps
+ *            closer, its feet behind your hand)
+ * On a narrow (phone) field the field's width stops the growth, so it
+ * looks the same there.
+ */
+export type BossStage = { reach: number; forward: number };
+const BOSS_STAGES: Partial<Record<HeroId, BossStage>> = {
+  // Vael's wings should run out toward the frame, with the thunderhead
+  // rolling in behind your hand.
+  tempestWyrm: { reach: 1.8, forward: 0.9 },
+};
+
+/** How a boss fills a wide field, if it has a stage of its own. */
+export const bossStageOf = (id: HeroId): BossStage | undefined =>
+  BOSS_STAGES[id];
 
 /** True for a hero with a drawing of its own (see CREATURE_IDS). */
 export const isCreature = (id: HeroId): id is CreatureId =>
@@ -460,4 +512,5 @@ export type HeroAction = {
   isSignature: boolean;
   /** A two-handed swipe: the claws cross (Crossed Talon). */
   isTwoHanded: boolean;
+  cervielVolleyKey?: number;
 };

@@ -47,7 +47,7 @@ const BOSS_ENTRANCES: Partial<Record<HeroId, BossEntrance>> = {
     line: 'Hush. The stars are listening.',
     arrival: 'rise',
   },
-  grandangelCerviel: {
+  cervielSword: {
     epithet: 'One Will in Three Forms',
     line: 'One purpose. Three forms. No escape.',
     arrival: 'descend',
@@ -97,7 +97,12 @@ const BOSS_ENTRANCES: Partial<Record<HeroId, BossEntrance>> = {
     line: 'Kneel. The last light does not forgive.',
     arrival: 'descend',
   },
+  angelAssassin: { epithet: 'Blade Behind the Veil', line: 'One shadow is all I need.', arrival: 'descend' },
+  twinAxeKnight: { epithet: 'The Gilded Headsman', line: 'I bring a verdict with both hands.', arrival: 'rise' },
+  archangelUriel: { epithet: 'Warden of the Crimson Gate', line: 'Stand before the flame and be weighed.', arrival: 'descend' },
+  zeruelArmored: { epithet: 'The Ivory Eclipse', line: 'The two suns bear witness.', arrival: 'descend' },
   holyDragon: { epithet: 'Wyrm of the Last Light', line: 'I kept this flame when your kingdom was ash.', arrival: 'descend', durationMs: 9200, landingMs: 2200, voice: { cue: 'bossUncVoice', durationMs: 4330 } },
+  tempestWyrm: { epithet: 'Spear of the Breaking Sky', line: 'The storm bows to no one. Least of all to you.', arrival: 'descend', landingMs: 2200 },
   grandGriffon: {
     epithet: 'Talon of the High Sky',
     line: 'Demon, we meet again. You came for vengeance. So did I. For my master!',

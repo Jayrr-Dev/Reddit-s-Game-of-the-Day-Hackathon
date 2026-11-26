@@ -158,10 +158,6 @@
   width: 20px;
   height: 20px;
 }
-.dueling-table [data-card-size] {
-  border: 2px ridge var(--brass);
-  background-image: linear-gradient(125deg, #fff2, transparent 28%, #1e0d0d70);
-}
 .dueling-table [data-card-size]:disabled {
   opacity: 0.86;
   filter: saturate(0.38) brightness(0.65);
@@ -238,8 +234,9 @@
 .dueling-table [data-card-type='range'] {
   --illustration: url('../../../assets/table/range.webp');
 }
+/* Warmer paper on the table; its texture comes from cardFace.css. */
 .dueling-table .card-rules {
-  background: radial-gradient(ellipse at center, #ffe8b5, #dfb67e);
+  --parchment-fill: radial-gradient(ellipse at center, #ffe8b5, #dfb67e);
   font-family: Georgia, serif;
 }
 .dueling-table [role='meter'] {
@@ -486,7 +483,8 @@
   filter: drop-shadow(0 1px 1px rgb(0 0 0 / 70%));
 }
 /* Extend the action's tap area vertically without moving the HP bar or covering adjacent chips. */
-.hero-plate-details { display:grid; grid-template-columns:repeat(2, minmax(max-content, 1fr)); align-items:start; gap:8px; width:max-content; min-width:125%; align-self:center; transform:scale(.8); transform-origin:top center; }
+/* margin-top: the Guard badge hangs ~5px under the HP bar; keep the chips clear of it. */
+.hero-plate-details { margin-top:5px; display:grid; grid-template-columns:repeat(2, minmax(max-content, 1fr)); align-items:start; gap:8px; width:max-content; min-width:125%; align-self:center; transform:scale(.8); transform-origin:top center; }
 .hero-action-chips { grid-column:1; justify-self:end; zoom:1.5; white-space:nowrap; }
 .hero-plate-details > .enemy-status-grid { grid-column:2; justify-self:start; }
 @container duel (max-width: 470px) {
@@ -602,7 +600,7 @@
 .training-menu {
   --color-edge: #705335;
   --color-surface-raised: #332419;
-  background: #23170f url('../../../assets/table/character-oak-grain.jpg') center / cover;
+  background: #23170f url('../../../assets/table/character-oak-grain.webp') center / cover;
   position: absolute;
   inset: 0;
   z-index: 40;
@@ -744,7 +742,7 @@
 .training-figure ~ .training-figure { left: 23%; bottom: 8px; height: 70%; z-index: 0; }
 .training-figure ~ .training-figure:last-child { left: 77%; }
 .training-deck-art {
-  background: radial-gradient(ellipse at bottom, #aa814c66, transparent 75%), url('../../../assets/table/character-oak-grain.jpg') center / cover;
+  background: radial-gradient(ellipse at bottom, #aa814c66, transparent 75%), url('../../../assets/table/character-oak-grain.webp') center / cover;
   border-bottom: 1px solid #795832;
 }
 .training-card {

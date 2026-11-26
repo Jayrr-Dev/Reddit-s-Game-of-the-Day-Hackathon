@@ -86,14 +86,24 @@ export function SkillTree({
   /** Open details, purchasing the path first when the circle is reachable. */
   function activate(pick: SkillPick, target: SVGGElement) {
     playSound('runeClick', 1, 0.72);
-    const owned = picks.some(
-      (p) =>
-        p.branch === pick.branch && p.tier === pick.tier && p.slot === pick.slot
+    // TWO-CLICK BUY: the first click only selects (shows the tooltip);
+    // clicking the selected circle again spends the point.
+    const isSelected =
+      active?.branch === pick.branch &&
+      active.tier === pick.tier &&
+      active.slot === pick.slot;
+    const ownedRank = skillRank(
+      picks.filter((p) => p.branch === pick.branch),
+      pick.tier,
+      pick.slot
     );
     setDetail({ pick, target });
-    if (!owned) {
+    if (!isSelected) return;
+    if (ownedRank === 0) {
       for (const step of skillPurchases(character, pick).steps)
         onSkill(step, true);
+    } else if (ownedRank < skillCap(pick.tier)) {
+      if (skillPurchases(character, pick).steps.length) onSkill(pick, true);
     }
   }
 
@@ -300,6 +310,9 @@ export function SkillTree({
               )}
               {rank === 0 && (
                 <small>{skillPurchases(character, active).message}</small>
+              )}
+              {rank < skillCap(active.tier) && skillPurchases(character, active).steps.length > 0 && (
+                <small>Click again to spend a point</small>
               )}
               {rank > 0 && rank < skillCap(active.tier) && (
                 <button

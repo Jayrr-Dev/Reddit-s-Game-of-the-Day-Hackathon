@@ -7,6 +7,7 @@
 // card at it when that is a legal target).
 // ===================================================================
 
+import { CervielSecondPhase } from './CervielSecondPhase';
 import { useState, type CSSProperties } from 'react';
 import {
   isAloft,
@@ -31,8 +32,9 @@ import {
 } from '../../../hooks/useCardDrag';
 import type { AimState, PickMarker } from '../../../hooks/useCombatControls';
 import {
+  bossStageOf,
+  type BossStage,
   drawSizeOf,
-  groundShadowOf,
   isBoss,
   type HeroAction,
   type HeroActionStyle,
@@ -41,6 +43,7 @@ import { bossEntranceOf } from '../../../content/bossEntrances';
 import { figureAspect, headTopShare } from '../../../lib/heroFigure';
 import { moodOf } from '../../../lib/heroMood';
 import { seeded } from '../../../lib/seeded';
+import { GroundShadow } from './GroundShadow';
 import { HexAura } from './HexAura';
 import { HeroFigure } from './HeroFigure';
 import { HeroPlate } from './HeroPlate';
@@ -76,6 +79,11 @@ const BOSS_DRAW_COLUMNS = 3;
  * rows' height; only its wingtips spill past the edges.
  */
 const BOSS_OVERSPILL = 1.25;
+/**
+ * A staged boss's drawing may be this wide, as a share of the field (its
+ * wingtips spill a little past the drawing itself).
+ */
+const STAGED_BOSS_SPAN = 0.95;
 
 /**
  * How the whole body moves during each kind of move (the prop's own
@@ -92,8 +100,17 @@ const BODY_ACTION_CLASS: Record<HeroActionStyle, string> = {
   support: 'animate-hero-pulse',
 };
 
+/**
+ * Moves that lift the unit off the ground (index.css, UNIT LIFT): set on
+ * the field box, so the shadow, which sits outside the body, answers it.
+ */
+const LIFT_ACTION_CLASS: Partial<Record<HeroActionStyle, string>> = {
+  magic: 'animate-unit-cast-lift',
+};
+
 /** The body's motion for a move; a forward cut lunges deeper. */
 const bodyActionClass = (action: HeroAction): string =>
+  action.cervielVolleyKey !== undefined ? '' :
   action.style === 'melee' &&
   (action.swing === 'forward' || action.swing === 'forwardRight')
     ? 'animate-hero-lunge-deep'
@@ -155,7 +172,10 @@ const boxStyle = (unit: HeroUnit): CSSProperties => {
   const depthScale = feet / rowPerspective('front').feet;
   const columnCenter = (unit.col + sizeOf(unit) / 2) / BATTLEFIELD_COLUMNS;
   const horizontalSpan = unit.row === 'horizon' ? HORIZON_SLOT_SPAN : feet;
-  const span = unit.heroId === 'angelArcher' ? Math.max(horizontalSpan, 0.96) : horizontalSpan;
+  const span =
+    unit.heroId === 'angelArcher'
+      ? Math.max(horizontalSpan, 0.96)
+      : horizontalSpan;
   const center = 0.5 + (columnCenter - 0.5) * span;
   const columns = oversized ? BOSS_DRAW_COLUMNS : sizeOf(unit);
   const width = (columns / BATTLEFIELD_COLUMNS) * depthScale;
@@ -273,36 +293,6 @@ const DyingHero = ({ unit }: { unit: HeroUnit }) => {
 };
 
 /**
- * The hero's shadow on the ground, under the drawing but outside every
- * animated wrapper (sway, lunge, flinch), so it stays put while the
- * body moves. Same box as the drawing, so it scales with it.
- */
-const GroundShadow = ({
-  unit,
-  style,
-}: {
-  unit: HeroUnit;
-  style: CSSProperties;
-}) => {
-  const { halfWidthShare, opacity } = groundShadowOf(unit.heroId);
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2"
-      style={style}
-    >
-      {/* SHRINKS AND FADES WHILE THE HERO IS ALOFT (index.css, FLIGHT) */}
-      <div className={`hero-flight-shadow absolute inset-0 ${unit.heroId === 'grandGriffon' ? 'griffon-shadow' : ''}`}>
-        <div
-          className="absolute bottom-[1%] left-1/2 h-[6%] -translate-x-1/2 rounded-[50%] bg-black"
-          style={{ width: `${halfWidthShare * 200}%`, opacity }}
-        />
-      </div>
-    </div>
-  );
-};
-
-/**
  * A hero summoned or revived mid-fight arrives in a shaft of holy
  * light: it plays once, when the hero first appears.
  */
@@ -375,8 +365,15 @@ const BossDeath = ({ unit }: { unit: HeroUnit }) => {
 /** Enlarge the foot-anchored figure within its lane, with extra legibility at distance. */
 const bodyStyleOf = (unit: HeroUnit, size: HeroSize): CSSProperties => {
   const rowScale = { front: 1.28, back: 1.45, horizon: 1.65 }[unit.row];
-  const scale = isDeep(unit) ? Math.min(rowScale, 1.2) : isBoss(unit) ? Math.min(rowScale, 1.3) : rowScale;
-  const widthLimit = (isBoss(unit) ? BOSS_OVERSPILL : 1) * 100 / figureAspect(size);
+  const scale = isDeep(unit)
+    ? Math.min(rowScale, 1.2)
+    : isBoss(unit)
+      ? Math.min(rowScale, 1.3)
+      : rowScale;
+  const stage = isBoss(unit) ? bossStageOf(unit.heroId) : undefined;
+  if (stage) return stagedBodyStyle(stage, scale, size);
+  const widthLimit =
+    ((isBoss(unit) ? BOSS_OVERSPILL : 1) * 100) / figureAspect(size);
   return {
     height: unit.heroId === 'fulgurDragonknight'
       ? 'min(149cqh, 61cqw)'
@@ -384,6 +381,27 @@ const bodyStyleOf = (unit: HeroUnit, size: HeroSize): CSSProperties => {
       ? 'min(145cqh, 57cqw)'
       : `min(${100 * scale}cqh, ${widthLimit * scale}cqw)`,
     aspectRatio: figureAspect(size),
+  };
+};
+
+/**
+ * A staged boss (heroLooks, bossStageOf): it grows from its usual height
+ * (`scale`) up to its reach, as far as the field's width allows, and
+ * sinks by its `forward` share of whatever it grew, so it comes toward
+ * the player instead of climbing under its name plate.
+ */
+const stagedBodyStyle = (
+  stage: BossStage,
+  scale: number,
+  size: HeroSize
+): CSSProperties => {
+  const widthLimit = (STAGED_BOSS_SPAN * 100) / figureAspect(size);
+  const height = `min(${100 * stage.reach}cqh, ${widthLimit}cqw)`;
+  const growth = `max(0px, ${height} - ${100 * scale}cqh)`;
+  return {
+    height,
+    aspectRatio: figureAspect(size),
+    bottom: `calc(${growth} * ${-stage.forward})`,
   };
 };
 
@@ -416,6 +434,7 @@ export const HeroOnField = ({
     ? 'drop-shadow-[0_0_10px_var(--color-accent)]'
     : '';
   const bodyStyle = bodyStyleOf(unit, size);
+  const secondPhase = unit.phase === 2 && hero.secondPhase?.visual === 'cervielBladeVolley';
   const mood = moodOf({
     isHurt: lastHitId !== null,
     isActing: action !== null,
@@ -428,59 +447,73 @@ export const HeroOnField = ({
       onClick={() => onTap(unit.uid)}
       {...{ [HERO_UID_ATTR]: unit.uid, [HERO_ROW_ATTR]: unit.row }}
       aria-label={`${hero.name}, ${unit.hp} of ${unit.maxHp} HP, ${rowLabel(unit.row)}`}
-      className={`pointer-events-auto absolute transition-[left,bottom,width,height,scale,opacity,filter] duration-500 ease-in-out motion-reduce:transition-none ${AIM_CLASS[aim]}`}
+      className={`pointer-events-auto absolute transition-[left,bottom,width,height,scale,opacity,filter] duration-500 ease-in-out motion-reduce:transition-none ${AIM_CLASS[aim]} ${action ? (LIFT_ACTION_CLASS[action.style] ?? '') : ''}`}
       style={boxStyle(unit)}
       data-aloft={isAloft(unit) ? '' : undefined}
+      data-cloaked={unit.statuses.cloak > 0 ? '' : undefined}
       data-acting={action ? '' : undefined}
+      data-boss-phase={secondPhase ? '2' : undefined}
     >
-      {/* ENTERS ONCE, WHEN THE HERO FIRST APPEARS: A WAVE MARCHES IN, A
-          BOSS DESCENDS OR RISES (its entrance, see BossEntrance) */}
+      {/* STAGE: holds the unit's lift (index.css, UNIT LIFT), which every
+          reason to leave the ground feeds (Aloft, a boss's entrance, a
+          spell's rise). The shadow and the body both read it: the body
+          climbs, the shadow stays on its spot and shrinks. */}
       <div
-        className={`relative h-full w-full origin-bottom [container-type:size] ${isBoss(unit) ? 'boss-arrive' : 'animate-hero-march'}`}
-        style={
-          isBoss(unit)
-            ? undefined
-            : { animationDelay: `${arrivalDelay}ms` }
-        }
+        className="unit-stage relative h-full w-full [container-type:size]"
         data-arrival={
           isBoss(unit) ? bossEntranceOf(unit.heroId).arrival : undefined
         }
       >
-        {isBoss(unit) && <BossLanding />}
-        <GroundShadow unit={unit} style={bodyStyle} />
+        <GroundShadow
+          unit={unit}
+          restStyle={bodyStyle}
+          marchDelayMs={arrivalDelay}
+        />
+        {/* ENTERS ONCE, WHEN THE HERO FIRST APPEARS: A WAVE MARCHES IN, A
+            BOSS DESCENDS OR RISES (its entrance, see BossEntrance) */}
         <div
-          className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${action ? bodyActionClass(action) : ''}`}
-          style={bodyStyle}
+          className={`absolute inset-0 origin-bottom ${isBoss(unit) ? 'boss-arrive' : 'animate-hero-march'}`}
+          style={
+            isBoss(unit) ? undefined : { animationDelay: `${arrivalDelay}ms` }
+          }
         >
-          <div className="hero-flight relative h-full w-full" {...{ [HERO_ANCHOR_ATTR]: true }}>
-            <div className="hero-step-gait h-full w-full">
-              {/* IDLE SWAY: figure and pick mark rock together */}
-              <div
-                className="relative h-full w-full origin-bottom animate-hero-sway"
-                style={swayStyle(unit)}
-              >
+          {isBoss(unit) && <BossLanding />}
+          <div
+            className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${action ? bodyActionClass(action) : ''}`}
+            style={bodyStyle}
+          >
+            <div
+              className="hero-flight relative h-full w-full"
+              {...{ [HERO_ANCHOR_ATTR]: true }}
+            >
+              <div className="hero-step-gait h-full w-full">
+                {/* IDLE SWAY: figure and pick mark rock together */}
                 <div
-                  className={`h-full w-full ${isDeep(unit) || unit.heroId === 'apollyonSeraph' || unit.heroId === 'lightLordMori' || unit.heroId === 'mageBorneAzula' || unit.heroId === 'grandangelCherubiel' || unit.heroId === 'zadkielOfDominations' || unit.heroId === 'mageBorneAstra' || unit.heroId === 'grandangelGeonosis' || unit.heroId === 'grandangelRaziel' || unit.heroId === 'grandangelCerviel' || unit.heroId === 'cervielBow' || (unit.heroId === 'angelArcher' && unit.row === 'back') ? '' : ROW_TINT_CLASS[unit.row]} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
+                  className="relative h-full w-full origin-bottom animate-hero-sway"
+                  style={swayStyle(unit)}
                 >
-                  {/* FLINCH: re-keyed by each new hit, so it plays once per hit */}
                   <div
-                    key={lastHitId ?? 'steady'}
-                    className={`h-full w-full origin-bottom ${lastHitId === null ? '' : 'animate-flinch'}`}
+                    className={`h-full w-full ${isDeep(unit) || unit.heroId === 'apollyonSeraph' || unit.heroId === 'lightLordMori' || unit.heroId === 'mageBorneAzula' || unit.heroId === 'grandangelCherubiel' || unit.heroId === 'zadkielOfDominations' || unit.heroId === 'mageBorneAstra' || unit.heroId === 'grandangelGeonosis' || unit.heroId === 'grandangelRaziel' || unit.heroId === 'grandangelCerviel' || unit.heroId === 'cervielBow' || (unit.heroId === 'angelArcher' && unit.row === 'back') ? '' : ROW_TINT_CLASS[unit.row]} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
                   >
-                    <HeroFigure
-                      heroId={unit.heroId}
-                      size={size}
-                      action={action}
-                      mood={mood}
-                    />
+                    {/* FLINCH: re-keyed by each new hit, so it plays once per hit */}
+                    <div
+                      key={secondPhase ? 'cerviel-phase-two' : lastHitId ?? 'steady'}
+                      className={`h-full w-full origin-bottom ${lastHitId === null ? '' : 'animate-flinch'} ${unit.statuses.cloak > 0 ? 'opacity-45' : ''}`}
+                    >
+                      {secondPhase ? <CervielSecondPhase action={action} uid={unit.uid} /> : <HeroFigure
+                        heroId={unit.heroId}
+                        size={size}
+                        action={action}
+                        mood={mood}
+                      />}
+                    </div>
                   </div>
+                  <HexAura hex={unit.statuses.hex} />
+                  {pickMarker && <PickMark marker={pickMarker} />}
+                  {unit.joinedMidFight && <ArrivalLight />}
                 </div>
-                <HexAura hex={unit.statuses.hex} />
-                {pickMarker && <PickMark marker={pickMarker} />}
-                {unit.joinedMidFight && <ArrivalLight />}
               </div>
-            </div>
-            {/* PLATE: outside the sway, so its text never tilts (a tilted,
+              {/* PLATE: outside the sway, so its text never tilts (a tilted,
                 scaled-down plate rasterizes blurry) and its chips hold
                 still under the finger. */}
             <div
@@ -488,6 +521,7 @@ export const HeroOnField = ({
               style={unit.heroId === 'holyKing' ? { bottom: 'calc(116% + 4px)' } : unit.heroId === 'lightLordMori' ? { bottom: 'calc(111% + 4px)' } : unit.heroId === 'fulgurDragonknight' ? { bottom: 'calc(107% + 3px)' } : unit.heroId === 'zadkielOfDominations' || unit.heroId === 'mageBorneAstra' || unit.heroId === 'grandangelCerviel' || unit.heroId === 'grandangelGeonosis' || unit.heroId === 'grandangelRaziel' ? { bottom: 'calc(120% + 4px)' } : unit.heroId === 'archangelZeruel' ? { bottom: 'calc(110% + 3px)' } : unit.heroId === 'cervielSword' || unit.heroId === 'cervielBow' ? { bottom: 'calc(98% + 3px)' } : unit.heroId === 'grandangelCherubiel' ? { bottom: 'calc(125% + 4px)' } : unit.heroId === 'mageBorneAzula' ? { bottom: 'calc(113% + 4px)' } : unit.heroId === 'angelArcher' ? { bottom: '82%' } : plateStyle(size)}
             >
               <HeroPlate unit={unit} field={field} player={player} />
+            </div>
             </div>
           </div>
         </div>

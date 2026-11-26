@@ -30,6 +30,7 @@
 // ===================================================================
 
 import { getCard, type CardId } from './cards.ts';
+import { isCloaked } from './combatant.ts';
 import { getHero } from './heroes.ts';
 import {
   BATTLEFIELD_COLUMNS,
@@ -796,6 +797,7 @@ export const targetRuleOf = (cardId: CardId): TargetRule => {
 const SELF_EFFECT_KINDS: ReadonlySet<CardDef['effects'][number]['kind']> =
   new Set([
     'guard',
+    'cloak',
     'wrath',
     'buff',
     'draw',
@@ -836,7 +838,7 @@ export const legalTargets = (
   pushRows = 1,
   meleeDepth = 0
 ): HeroUnit[] => {
-  const reachable = heroes.filter((unit) => canReach(unit, type));
+  const reachable = heroes.filter((unit) => !isCloaked(unit) && canReach(unit, type));
   switch (rule) {
     case 'none':
     case 'any':

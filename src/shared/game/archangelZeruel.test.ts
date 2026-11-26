@@ -9,8 +9,8 @@ void test('Zeruel starts between his two independently targetable suns', () => {
   const fight = createSandboxWith(19, encounter.heroIds, encounter.startsInPlace);
   assert.deepEqual(fight.heroes.map(({ heroId, row, col }) => [heroId, row, col]), [
     ['archangelZeruel', 'front', 1],
-    ['zeruelRedSun', 'front', 0],
-    ['zeruelBlueSun', 'front', 2],
+    ['zeruelRedSun', 'back', 0],
+    ['zeruelBlueSun', 'back', 2],
   ]);
   assert.equal(new Set(fight.heroes.map(({ uid }) => uid)).size, 3);
   assert.deepEqual(fight.heroes.map(({ heroId }) => getHero(heroId).name), ['Archangel Zeruel', 'Alpha', 'Omega']);

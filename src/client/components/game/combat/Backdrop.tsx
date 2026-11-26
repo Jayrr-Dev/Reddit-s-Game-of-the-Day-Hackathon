@@ -3,6 +3,7 @@ import { memo } from 'react';
 import { activeRows } from '../../../../shared/game/battlefield';
 import type { HeroRow } from '../../../../shared/game/types';
 import { depthStyle } from '../../../lib/cssVars';
+import type { BossArena } from '../../../content/bossArenas';
 
 import scene0 from '../../../assets/terrain/village.webp';
 import scene1 from '../../../assets/terrain/kings-road.webp';
@@ -46,15 +47,25 @@ export const MAP_NAMES = scenes.map(([, , , name]) => name);
 /** Start practice in the elven forest so the new maps can be tested together. */
 export const PRACTICE_TERRAIN_START = scenes.findIndex(([image]) => image === elvenForest);
 
+// Slightly soften distant scenery without softening units or the near ground.
+const TERRAIN_BLUR: Record<HeroRow, string> = {
+  horizon: 'blur(0.85px)',
+  back: 'blur(0.45px)',
+  front: 'none',
+};
+
 type BackdropProps = {
   terrainIndex: number;
+  bossArena?: BossArena | undefined;
   depths: Record<HeroRow, number>;
   hasHorizon: boolean;
 };
 
 /** Feather each stretch of ground into the one behind it as the camera moves. */
-export const Backdrop = memo(function Backdrop({ terrainIndex, depths, hasHorizon }: BackdropProps) {
-  const [scene, vanishingX, horizon] = scenes[terrainIndex % scenes.length] ?? scenes[0];
+export const Backdrop = memo(function Backdrop({ terrainIndex, bossArena, depths, hasHorizon }: BackdropProps) {
+  const [scene, vanishingX, horizon] = bossArena
+    ? [bossArena.image, bossArena.vanishingX, bossArena.horizon]
+    : scenes[terrainIndex % scenes.length] ?? scenes[0];
   const rows = activeRows();
   const groundStarts: Record<HeroRow, number> = {
     horizon: 18,
@@ -66,12 +77,13 @@ export const Backdrop = memo(function Backdrop({ terrainIndex, depths, hasHorizo
   const terrainStyle = { backgroundImage, backgroundPositionX: `${(1.2 * vanishingX - 50) / 0.2}%`, backgroundSize: `120% ${8000 / (100 - horizon)}%`, backgroundPositionY: 'bottom' };
   const layer = 'parallax-layer pointer-events-none absolute -inset-x-8 inset-y-0 ';
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className={layer} style={{ ...depthStyle(0.12), ...terrainStyle }} />
+    <div aria-hidden="true" data-boss-arena={bossArena?.name} className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className={layer} style={{ ...depthStyle(0.12), ...terrainStyle, filter: 'blur(1.35px)' }} />
       {[...rows].reverse().map((row) => (
         <div key={row} className={layer} style={{
           ...depthStyle(depths[row]),
           ...terrainStyle,
+          filter: TERRAIN_BLUR[row],
           maskImage: `linear-gradient(transparent ${groundStarts[row]}%, black ${groundStarts[row] + 9}%)`,
         }} />
       ))}

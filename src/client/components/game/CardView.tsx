@@ -46,6 +46,7 @@ import { Glyph, type GlyphName } from '../ui/Glyph';
 import { cardBadgesOf } from '../../content/cardBadges';
 import { Tooltip } from '../ui/Tooltip';
 import { CardBadges } from './CardBadges';
+import './cardFace.css';
 
 // --- TYPES ---
 export type CardViewProps = {
@@ -98,6 +99,12 @@ type SizeLook = {
 };
 
 // --- CONSTANTS ---
+/**
+ * Classes every card face shares (playable cards and movement cards):
+ * the textured, gilt-framed shell from cardFace.css plus layout.
+ */
+const FACE_CLASS =
+  'card-face relative flex shrink-0 flex-col rounded-lg p-[3px] pb-[14px] text-center ring-1 ring-black/60 transition-transform enabled:hover:-translate-y-1';
 /** Fan cards are small (the held one is scaled up by the hand). */
 const SIZE_LOOK: Record<CardSize, SizeLook> = {
   fan: {
@@ -232,7 +239,7 @@ const ArtWindow = ({
   look: SizeLook;
 }) => (
   <span
-    className={`card-window grid ${look.art} w-full shrink-0 place-items-center rounded-t-full bg-surface-sunken ring-1 ring-black/50`}
+    className={`card-window grid ${look.art} w-full shrink-0 place-items-center rounded-t-full bg-surface-sunken`}
     style={{
       backgroundImage: `radial-gradient(circle at 50% 70%, color-mix(in srgb, ${glowVar} 55%, transparent), transparent 70%)`,
     }}
@@ -320,7 +327,7 @@ const NameBanner = ({
   look: SizeLook;
 }) => (
   <span
-    className={`relative -mx-[3px] shrink-0 border-y border-black/50 ${frameClass} font-display font-black uppercase leading-none tracking-tight text-ink [text-shadow:0_1px_1px_rgb(0_0_0/0.8)] ${look.name}`}
+    className={`card-banner relative -mx-[3px] shrink-0 ${frameClass} font-display font-black uppercase leading-none tracking-tight text-ink [text-shadow:0_1px_1px_rgb(0_0_0/0.8)] ${look.name}`}
   >
     {name}
     {gemClass && <RarityGem gemClass={gemClass} sizeClass={look.gem} />}
@@ -345,7 +352,7 @@ export const MovementCard = ({ move, cost, disabled, blockReason, onPlay }: {
   return (
     <button type="button" data-card-type="movement" data-card-size="fan" data-move={move}
       disabled={disabled} onClick={onPlay}
-      className={`relative flex ${look.box} shrink-0 flex-col rounded-lg ${frame.frameClass} p-[3px] pb-[14px] text-center ring-1 ring-black/60 transition-transform enabled:hover:-translate-y-1`}>
+      className={`${FACE_CLASS} ${look.box} ${frame.frameClass}`}>
       <span aria-label={`${cost} energy, ${cost > baseCost ? 'increased' : cost < baseCost ? 'discounted' : 'base'} cost`}
         className={`absolute z-10 flex ${look.orb} items-center justify-center rounded-full bg-energy ${costTone} font-display font-black ring-2 ring-surface-sunken`}>{cost}</span>
       <ArtWindow glyph={action.glyph} glowVar={frame.glowVar} look={look} />
@@ -394,7 +401,7 @@ export const CardView = ({
       data-card-size={size}
       disabled={isDisabled}
       title={disabledReason}
-      className={`relative flex ${look.box} shrink-0 flex-col rounded-lg ${typeLook.frameClass} p-[3px] pb-[14px] text-center ring-1 ring-black/60 transition-transform enabled:hover:-translate-y-1 disabled:opacity-40 disabled:saturate-50 animate-rise ${isFaded ? 'opacity-40 saturate-50' : ''}`}
+      className={`${FACE_CLASS} ${look.box} ${typeLook.frameClass} disabled:opacity-40 disabled:saturate-50 animate-rise ${isFaded ? 'opacity-40 saturate-50' : ''}`}
       style={{ boxShadow: `${glow}, 0 6px 10px rgb(0 0 0 / 0.5)` }}
     >
       <span

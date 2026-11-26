@@ -60,3 +60,4 @@ For all 22 exploration themes, see [Map music credits](MAP_MUSIC_CREDITS.md).
 - Heavenly Dive: the supplied sharp whoosh plays as Rio begins the combat dive, followed by the existing landing impact.
 
 - Conquest victory: creator-supplied ElevenLabs Dark villain victory cue, trimmed and converted to Ogg Vorbis. Plays once after a completed battle.
+- Tempest Wyrm Vael's moves (tempest-spear, tempest-wings, tempest-thunder, tempest-charge, tempest-sky-breaker, tempest-roar): mixed in-house from clips already credited above (the supplied Charge, Chain Lightning, Large Lightning, lightning strike and Griffon flying effects, the boss descent whoosh, the thunder impact, and one unit-death cry dropped an octave for the roar). Pitched, filtered, layered and encoded as Ogg Vorbis. Placeholders that a recorded effect can replace under the same file name.

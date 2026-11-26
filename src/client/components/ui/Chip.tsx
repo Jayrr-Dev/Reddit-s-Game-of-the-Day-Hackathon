@@ -36,22 +36,33 @@ export type ChipProps = {
   extras?: readonly ChipPart[];
   /** A drawing in place of the glyph (e.g. Shock's filling drop). */
   icon?: ReactNode;
-  /** Actual turns left and the duration when this effect is applied. */
-  duration?: TurnDuration | undefined;
+  /** Turns left before this effect wears off, shown as an hourglass and a number. */
+  turnsLeft?: number | undefined;
 };
 
-export type TurnDuration = { left: number; total: number };
+// --- TURNS LEFT ---
+/** Where the countdown sits: inline at a chip's end, or a tile's top-left corner. */
+type TurnsLeftPlacement = 'inline' | 'corner';
 
-export const TurnDrain = ({ left, total, compact = false }: TurnDuration & { compact?: boolean }) => (
-  <span aria-hidden="true" data-turns-left={left}
-    className={'pointer-events-none flex shrink-0 flex-col-reverse ' +
-      (total > 1 ? 'justify-between ' : 'justify-center ') +
-      (compact ? 'absolute left-0.5 top-[calc(50%-2px)] h-4 -translate-y-1/2' : 'mr-0.5 h-3')}>
-    {Array.from({ length: total }, (_, i) => (
-      <span key={i} data-turn-lit={i < left}
-        className="h-[2px] w-[3px] rounded-full bg-current motion-safe:transition-opacity motion-safe:duration-200"
-        style={{ opacity: i < left ? 1 : 0.24 }} />
-    ))}
+/**
+ * PLACEMENT LOOKS: inline sits after a divider inside the chip; the
+ * corner tab mirrors a tile's value tab (bottom-right) so both read as
+ * labels on the tile rather than floating marks.
+ */
+const TURNS_LEFT_CLASS: Record<TurnsLeftPlacement, string> = {
+  inline: 'border-l border-current/30 pl-0.5 text-[10px] opacity-80',
+  corner: 'absolute left-0 top-0 rounded-br-sm bg-black/90 pr-px text-[9px] text-white',
+};
+
+/**
+ * A timed effect's countdown: an hourglass and the turns left, e.g. "⌛2".
+ * It replaced a column of 2px dots that read as a stray minus sign.
+ */
+export const TurnsLeft = ({ turns, placement = 'inline' }: { turns: number; placement?: TurnsLeftPlacement }) => (
+  <span aria-hidden="true" data-turns-left={turns}
+    className={`pointer-events-none inline-flex shrink-0 items-center leading-none font-bold tabular-nums ${TURNS_LEFT_CLASS[placement]}`}>
+    <Glyph name="hourglass" className={placement === 'corner' ? 'size-2' : 'size-2.5'} />
+    {turns}
   </span>
 );
 
@@ -96,6 +107,44 @@ const BadgeContent = ({
   </>
 );
 
+// --- ARROW SEGMENTS ---
+/** Where a segment sits in its arrow; it decides the segment's padding. */
+type SegmentPosition = 'only' | 'first' | 'middle' | 'last';
+
+/**
+ * PADDING PER POSITION: the point side leaves room for the arrowhead,
+ * the flat side closes the badge, and inner edges sit on a divider.
+ */
+const SEGMENT_PADDING: Record<SegmentPosition, string> = {
+  only: 'pl-[8px] pr-1.5',
+  first: 'pl-[8px] pr-1',
+  middle: 'border-l border-black/40 pl-1 pr-1',
+  last: 'border-l border-black/40 pl-1 pr-1.5',
+};
+
+/**
+ * One coloured part of an arrow (its lead effect or a follow-up). Each
+ * segment paints its own padding, right to the badge's edges, so a
+ * part's colour never shows behind another (the lead's blue used to
+ * peek out past a red follow-up on the flat end).
+ */
+const ArrowSegment = ({ fill, position, children }: {
+  fill: string;
+  position: SegmentPosition;
+  children: ReactNode;
+}) => (
+  <span
+    className={`inline-flex items-center gap-0.5 py-px ${SEGMENT_PADDING[position]}`}
+    style={{ backgroundColor: fill }}
+  >
+    {children}
+  </span>
+);
+
+/** The lead segment's colour: the given fill, else the tone's own colour. */
+const leadFillOf = (fill: string | undefined, glyph: GlyphName, toneClass: string): string =>
+  fill ?? toneVarOf({ glyph, toneClass });
+
 /** Renders one badge, with its tooltip when it has `info`. */
 export const Chip = ({ info, ...badge }: ChipProps) =>
   info ? (
@@ -120,34 +169,36 @@ const Badge = ({
   fill,
   extras = [],
   icon,
-  duration,
+  turnsLeft,
 }: Omit<ChipProps, 'info'>) =>
   shape === 'square' ? (
     <span
       className={`inline-flex items-center gap-0.5 rounded-[3px] px-1 py-0.5 text-[11px] font-bold ring-1 ${fill ? 'text-black ring-black' : `bg-surface-sunken ring-edge ${toneClass}`}`}
       style={fill ? { backgroundColor: fill } : undefined}
     >
-      {duration && <TurnDrain {...duration} />}
       <BadgeContent glyph={glyph} text={text} iconClass="" icon={icon} />
+      {turnsLeft !== undefined && <TurnsLeft turns={turnsLeft} />}
     </span>
   ) : (
     <span
       className={`group/intent inline-flex bg-black p-px focus-visible:bg-accent ${ARROW_CLIP}`}
       tabIndex={hoverText || extras.some(part => part.hoverText) ? 0 : undefined}
     >
-      <span
-        className={`inline-flex items-center gap-0.5 py-px pl-[8px] pr-1.5 text-[11px] font-bold text-black ${ARROW_CLIP}`}
-        style={{ backgroundColor: fill ?? toneVarOf({ glyph, toneClass }) }}
-      >
-        <BadgeContent glyph={glyph} text={text} hoverText={hoverText} iconClass="" />
+      <span className={`inline-flex items-stretch text-[11px] font-bold text-black ${ARROW_CLIP}`}>
+        <ArrowSegment
+          fill={leadFillOf(fill, glyph, toneClass)}
+          position={extras.length ? 'first' : 'only'}
+        >
+          <BadgeContent glyph={glyph} text={text} hoverText={hoverText} iconClass="" />
+        </ArrowSegment>
         {extras.map((part, index) => (
-          <span
+          <ArrowSegment
             key={`${part.glyph}-${index}`}
-            style={part.fill ? { backgroundColor: part.fill } : undefined}
-            className="ml-0.5 inline-flex items-center gap-0.5 border-l border-black/40 pl-1"
+            fill={part.fill ?? leadFillOf(fill, glyph, toneClass)}
+            position={index === extras.length - 1 ? 'last' : 'middle'}
           >
             <BadgeContent glyph={part.glyph} text={part.text} hoverText={part.hoverText} iconClass="" />
-          </span>
+          </ArrowSegment>
         ))}
       </span>
     </span>

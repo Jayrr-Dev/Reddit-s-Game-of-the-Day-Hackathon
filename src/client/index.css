@@ -12,7 +12,7 @@
   padding-inline: 1.25rem;
   border: 1px solid #966f40;
   background: linear-gradient(#ae86432c, #170d0770),
-    url('./assets/table/character-oak-grain.jpg') center / cover;
+    url('./assets/table/character-oak-grain.webp') center / cover;
   color: #f7e5c3;
   box-shadow: inset 0 0 0 2px #281b11, inset 0 0 0 3px #8d69435c, 0 2px 4px #0008;
 }
@@ -72,6 +72,8 @@
   --color-edge: #3a2338;
   --color-ink: #f3e9dc;
   --color-ink-muted: #a99aa6;
+  /* The ground shadow a unit casts (GroundShadow). */
+  --color-ground-shadow: #000000;
 
   /* --- BRAND --- */
   --color-accent: #d4a24c;
@@ -135,6 +137,13 @@
   --color-card-movement: #75472c;
   --color-parchment: #dccaa2;
   --color-on-parchment: #2b1b12;
+  /* Card frame metal: the gilt trim around the face, art window and
+     banner (light edge, body, shadowed edge), and the scorched brown
+     that darkens the parchment's edges. */
+  --color-card-trim-light: #f4d58f;
+  --color-card-trim: #c08a3e;
+  --color-card-trim-dark: #4a2c12;
+  --color-parchment-burn: #8a5a2b;
 
   /* --- TYPOGRAPHY --- */
   --font-display:
@@ -154,6 +163,7 @@
   --animate-hero-lunge-deep: hero-lunge-deep 560ms ease-in-out;
   --animate-hero-recoil: hero-recoil 560ms ease-out;
   --animate-hero-cast: hero-cast 560ms ease-in-out;
+  --animate-unit-cast-lift: unit-cast-lift 560ms ease-in-out;
   --animate-hero-pulse: hero-pulse 560ms ease-in-out;
   --animate-hero-shot: hero-shot 220ms cubic-bezier(0.4, 0, 0.9, 0.7) both;
   --animate-hero-sway: hero-sway 4s ease-in-out infinite;
@@ -454,7 +464,7 @@
     }
   }
 
-  /* A spell: the caster rises as the power gathers, then settles. */
+  /* A spell: the caster swells as the power gathers, then settles. */
   @keyframes hero-cast {
     0%,
     100% {
@@ -463,7 +473,18 @@
     }
     50% {
       scale: 1.06;
-      translate: -50% -6%;
+      translate: -50% 0;
+    }
+  }
+  /* ...and rises off the ground with it (a lift, so its shadow shrinks:
+     UNIT LIFT). Played on the field box, its heights of its drawing. */
+  @keyframes unit-cast-lift {
+    0%,
+    100% {
+      --move-lift: 0;
+    }
+    50% {
+      --move-lift: 0.06;
     }
   }
 
@@ -1825,38 +1846,466 @@ textarea,
   animation: wing-crumple-right 1800ms ease-in forwards;
 }
 
+/* --- TEMPEST WYRM ---
+   Wing pivots are set inline in view-box units. One set of keyframes
+   serves both sides: --tempest-side turns a rotation the other way for
+   the right wings (1 left, -1 right).
+     idle         the wings ride the wind, the chest heaves, the near
+                  claw sways, the cloud drifts and flashes, lightning
+                  crawls on the spear and the storm heart pulses
+     every move   all four wings beat once
+     magic        the spear blazes and a bolt drops down it
+     signature    Sky Breaker: the same, longer and brighter
+     death        the wings crumple and the lightning goes out */
+@keyframes tempest-ride {
+  0%,
+  100% {
+    transform: rotate(calc(var(--tempest-side) * -1.2deg));
+  }
+  50% {
+    transform: rotate(calc(var(--tempest-side) * var(--tempest-lift)));
+  }
+}
+
+@keyframes tempest-beat {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(calc(var(--tempest-side) * 20deg));
+  }
+  70% {
+    transform: rotate(calc(var(--tempest-side) * -10deg));
+  }
+}
+
+@keyframes tempest-heave {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.9px);
+  }
+}
+
+@keyframes tempest-sway {
+  0%,
+  100% {
+    transform: rotate(-1.4deg);
+  }
+  50% {
+    transform: rotate(1.8deg);
+  }
+}
+
+@keyframes tempest-drift {
+  0%,
+  100% {
+    transform: translateX(calc(var(--tempest-drift) * -1));
+  }
+  50% {
+    transform: translateX(var(--tempest-drift));
+  }
+}
+
+/* Lightning shows in two short bursts a cycle, dark in between. */
+@keyframes tempest-crackle {
+  0%,
+  9% {
+    opacity: 1;
+  }
+  11%,
+  46% {
+    opacity: 0;
+  }
+  48%,
+  53% {
+    opacity: 0.8;
+  }
+  55%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes tempest-cloud-flash {
+  0%,
+  88%,
+  93%,
+  100% {
+    opacity: 0;
+  }
+  90%,
+  95% {
+    opacity: 1;
+  }
+}
+
+@keyframes tempest-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes tempest-blaze {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  30%,
+  60% {
+    opacity: 1;
+    transform: scale(1.9);
+  }
+}
+
+@keyframes tempest-skybolt {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  12%,
+  30%,
+  46%,
+  70% {
+    opacity: 1;
+  }
+  38% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes tempest-fade {
+  to {
+    opacity: 0;
+  }
+}
+
+.tempest-wing-left {
+  --tempest-side: 1;
+}
+
+.tempest-wing-right {
+  --tempest-side: -1;
+}
+
+.tempest-wing-upper {
+  --tempest-lift: 3deg;
+  transform-box: view-box;
+  animation: tempest-ride 4600ms ease-in-out infinite;
+}
+
+/* The lower pair trails the upper one, so the four never move as one. */
+.tempest-wing-lower {
+  --tempest-lift: 2deg;
+  transform-box: view-box;
+  animation: tempest-ride 4600ms ease-in-out -900ms infinite;
+}
+
+.tempest-body {
+  animation: tempest-heave 4600ms ease-in-out infinite;
+}
+
+.tempest-near-arm {
+  transform-box: view-box;
+  animation: tempest-sway 4600ms ease-in-out -600ms infinite;
+}
+
+.tempest-cloud-back {
+  --tempest-drift: 2.4px;
+  animation: tempest-drift 11s ease-in-out infinite;
+}
+
+.tempest-cloud-mid {
+  --tempest-drift: -3.2px;
+  animation: tempest-drift 8s ease-in-out infinite;
+}
+
+.tempest-cloud-front {
+  --tempest-drift: 4px;
+  animation: tempest-drift 6.5s ease-in-out infinite;
+}
+
+.tempest-arc {
+  animation: tempest-crackle 1700ms linear infinite;
+}
+
+.tempest-cloud-flash {
+  opacity: 0;
+  animation: tempest-cloud-flash 5200ms linear infinite;
+}
+
+.tempest-glow,
+.tempest-heart {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tempest-pulse 2300ms ease-in-out infinite;
+}
+
+.tempest-skybolt {
+  opacity: 0;
+}
+
+[data-action] .tempest-wing-upper,
+[data-action] .tempest-wing-lower {
+  animation: tempest-beat 560ms ease-in-out;
+}
+
+[data-action='magic'] .tempest-glow {
+  animation: tempest-blaze 560ms ease-out;
+}
+
+[data-action='magic'] .tempest-skybolt {
+  animation: tempest-skybolt 560ms linear;
+}
+
+[data-signature] .tempest-glow {
+  animation: tempest-blaze 1100ms ease-out;
+}
+
+[data-signature] .tempest-skybolt {
+  animation: tempest-skybolt 1100ms linear;
+}
+
+[data-dying] .tempest-wing-left {
+  animation: wing-crumple-left 1800ms ease-in forwards;
+}
+
+[data-dying] .tempest-wing-right {
+  animation: wing-crumple-right 1800ms ease-in forwards;
+}
+
+[data-dying] .tempest-arc,
+[data-dying] .tempest-glow,
+[data-dying] .tempest-heart,
+[data-dying] .tempest-eyes {
+  animation: tempest-fade 900ms ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tempest-wing-upper,
+  .tempest-wing-lower,
+  .tempest-body,
+  .tempest-near-arm,
+  .tempest-cloud-back,
+  .tempest-cloud-mid,
+  .tempest-cloud-front,
+  .tempest-arc,
+  .tempest-cloud-flash,
+  .tempest-glow,
+  .tempest-heart {
+    animation: none;
+  }
+}
+
+/* --- FIELD MIST ---
+   Weather over the battlefield (FieldWeather): the fight is up in the
+   clouds. A storm sky hides the map, and banks of cloud roll under and
+   around the heroes. A bank is twice the field's width and its puffs
+   repeat every half, so sliding it left by half its width loops without
+   a seam. Each bank sets where it sits, its colour (--mist), how long a
+   lap takes (--mist-s) and how big its puffs are (--mist-puff, 1 = the
+   pattern as drawn; smaller reads as farther away). */
+@keyframes field-mist-drift {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes field-mist-arrive {
+  from {
+    opacity: 0;
+  }
+}
+
+.field-mist {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* The sky: dark overhead, pale where the cloud floor meets it, then the
+   floor itself, dimmer toward the player. Nearly solid, so the map's
+   buildings and ground do not show through. */
+.field-mist-sky {
+  inset: 0;
+  background: linear-gradient(
+    rgb(46 52 74 / 0.97),
+    rgb(82 92 122 / 0.96) 22%,
+    rgb(176 185 210 / 0.96) 35%,
+    rgb(140 150 180 / 0.96) 46%,
+    rgb(122 132 164 / 0.96) 70%,
+    rgb(104 113 146 / 0.96)
+  );
+  animation: field-mist-arrive 2400ms ease-out backwards;
+}
+
+/* Each puff has a solid heart and a soft rim, so banks read as cloud
+   with body, not as haze. The floor under them is the sky layer's own
+   darker blue, which is what makes the pale puffs stand out. */
+.field-mist-bank {
+  left: 0;
+  width: 200%;
+  background-repeat: repeat-x;
+  background-size: calc(50% * var(--mist-puff, 1)) 100%;
+  background-image:
+    radial-gradient(ellipse 20% 44% at 14% 62%, var(--mist) 38%, transparent 72%),
+    radial-gradient(ellipse 26% 50% at 40% 50%, var(--mist) 38%, transparent 72%),
+    radial-gradient(ellipse 18% 40% at 62% 66%, var(--mist) 38%, transparent 72%),
+    radial-gradient(ellipse 24% 52% at 84% 54%, var(--mist) 38%, transparent 72%);
+  animation:
+    field-mist-drift var(--mist-s) linear infinite,
+    field-mist-arrive 2400ms ease-out backwards;
+}
+
+.field-mist-storm {
+  --mist: rgb(34 38 56 / 0.9);
+  --mist-s: 90s;
+  --mist-puff: 0.5;
+  top: -12%;
+  height: 34%;
+  transform-origin: top;
+  scale: 1 -1;
+}
+
+.field-mist-far {
+  --mist: rgb(236 239 248 / 0.95);
+  --mist-s: 120s;
+  --mist-puff: 0.25;
+  top: 27%;
+  height: 18%;
+}
+
+.field-mist-mid {
+  --mist: rgb(222 227 240 / 0.92);
+  --mist-s: 76s;
+  --mist-puff: 0.5;
+  top: 36%;
+  height: 36%;
+}
+
+.field-mist-floor {
+  --mist: rgb(206 212 229 / 0.9);
+  --mist-s: 52s;
+  top: 52%;
+  height: 62%;
+}
+
+.field-mist-near {
+  --mist: rgb(240 242 250 / 0.5);
+  --mist-s: 34s;
+  bottom: -8%;
+  height: 40%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field-mist-sky,
+  .field-mist-bank {
+    animation: none;
+  }
+}
+
+/* --- UNIT LIFT ---
+   One number, --unit-lift, says how high a unit is above the spot it is
+   stationed on, in heights of its own drawing (0: feet on the ground;
+   below 0: under it, like a boss rising out of the earth). It lives on
+   the unit's stage (.unit-stage, HeroOnField) and adds up every reason
+   to leave the ground:
+     --aloft-progress  Aloft, 0 on the ground to 1 in the sky (FLIGHT)
+     --entrance-lift   a boss dropping in or rising up (BOSS ENTRANCE)
+     --move-lift       a move that lifts, like a spell (unit-cast-lift)
+   The drawing climbs by it (.hero-flight). The ground shadow is drawn
+   apart from the body and never moves with it: it stays on the spot
+   and shrinks and fades by it (.ground-shadow). A new kind of lift only
+   has to drive one of the sources above; the shadow follows for free.
+   Registered so each source can transition and animate. */
+@property --aloft-progress {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --entrance-lift {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --move-lift {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --unit-lift {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+.unit-stage {
+  /* How high Aloft carries a unit (drawing heights): a full flight, and
+     the height at which a shadow has shrunk all it will. */
+  --aloft-height: 0.72;
+  --unit-lift: calc(
+    var(--aloft-progress) * var(--aloft-height) + var(--entrance-lift) +
+      var(--move-lift)
+  );
+}
+
+/* The body rises by the lift (its own height per 1). */
+.hero-flight {
+  transform-origin: 50% 100%;
+  translate: 0 calc(var(--unit-lift) * -100%);
+}
+
+/* The shadow: a soft, blurred-edge pool on the ground. --shadow-rise is
+   the distance off the ground either way, as a share of a full flight;
+   at 1 the shadow is down to --shadow-lifted-scale of its size and
+   --shadow-lifted-fade of its darkness (GroundShadow sets both). */
+.ground-shadow {
+  --shadow-rise: clamp(
+    0,
+    max(var(--unit-lift), -1 * var(--unit-lift)) / var(--aloft-height),
+    1
+  );
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    var(--color-ground-shadow) 0%,
+    color-mix(in srgb, var(--color-ground-shadow) 80%, transparent) 50%,
+    transparent 100%
+  );
+  scale: calc(1 - var(--shadow-rise) * (1 - var(--shadow-lifted-scale, 0.4)));
+  opacity: calc(
+    var(--shadow-opacity, 0.4) *
+      (1 - var(--shadow-rise) * (1 - var(--shadow-lifted-fade, 0.45)))
+  );
+}
+
 /* --- FLIGHT (ALOFT) ---
    A hero Aloft (data-aloft on its field box) rises out of reach: its
-   drawing lifts and shrinks into the sky while its shadow stays on the
-   ground, shrinking and fading. Transitions, so the direction picks the
-   pace: the take-off (rule under [data-aloft]) dips into a crouch, then
+   drawing lifts and shrinks into the sky (a lift, see UNIT LIFT, so its
+   shadow stays on the ground, shrinking and fading). A transition, so
+   the direction picks the pace: the take-off (rule under [data-aloft])
    climbs over a second; the dive (the base rule) drops in a quarter
    second, accelerating, and the field shakes as it lands. */
-.hero-flight,
-.hero-flight-shadow {
-  transform-origin: 50% 100%;
-  transition:
-    transform 260ms cubic-bezier(0.7, 0, 1, 1),
-    opacity 260ms ease-in;
+.unit-stage {
+  transition: --aloft-progress 260ms cubic-bezier(0.7, 0, 1, 1);
+}
+[data-aloft] > .unit-stage {
+  --aloft-progress: 1;
+  transition: --aloft-progress 1100ms cubic-bezier(0.35, 0, 0.25, 1);
 }
 
-[data-aloft] .hero-flight {
-  transform: translateY(-72%) scale(0.42);
-  transition: transform 1100ms cubic-bezier(0.35, 0, 0.25, 1);
-}
-
-[data-aloft] .hero-flight-shadow {
-  transform: scale(0.4);
-  opacity: 0.45;
-  transition:
-    transform 1100ms ease-out,
-    opacity 1100ms ease-out;
-}
-
-/* Keep the landing spot visible under the airborne griffon. */
-[data-aloft] .griffon-shadow {
-  transform: scale(0.5, 0.85);
-  opacity: 0.85;
+/* Aloft also recedes into the sky: the drawing shrinks as it climbs. */
+.hero-flight {
+  scale: calc(1 - var(--aloft-progress) * 0.58);
 }
 
 /* --- POV IMPACT ---
@@ -2532,36 +2981,66 @@ textarea,
 .boss-arrive {
   animation: calc(var(--landing-ms, 1300) * 1ms) cubic-bezier(0.55, 0, 0.75, 0.4) both;
 }
-.boss-arrive[data-arrival='descend'] {
+[data-arrival='descend'] > .boss-arrive {
   animation-name: boss-descend;
 }
-.boss-arrive[data-arrival='rise'] {
+[data-arrival='rise'] > .boss-arrive {
   animation-name: boss-rise;
 }
 @keyframes boss-descend {
   0% {
     opacity: 0;
-    transform: translateY(-75%) scale(1.15);
+    transform: scale(1.15);
   }
   25% {
     opacity: 1;
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: scale(1);
   }
 }
 @keyframes boss-rise {
   0% {
     opacity: 0;
-    transform: translateY(35%) scale(0.85);
+    transform: scale(0.85);
   }
   30% {
     opacity: 1;
   }
   100% {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: scale(1);
+  }
+}
+
+/* The fall or climb itself is a lift (UNIT LIFT), played on the stage
+   with the same timing: the boss comes down from high or up from below
+   ground, and its shadow waits on the landing spot, small and faint,
+   growing to full as the boss touches down. */
+.unit-stage[data-arrival] {
+  animation: calc(var(--landing-ms, 1300) * 1ms) cubic-bezier(0.55, 0, 0.75, 0.4) both;
+}
+.unit-stage[data-arrival='descend'] {
+  animation-name: boss-descend-lift;
+}
+.unit-stage[data-arrival='rise'] {
+  animation-name: boss-rise-lift;
+}
+@keyframes boss-descend-lift {
+  from {
+    --entrance-lift: 0.6;
+  }
+  to {
+    --entrance-lift: 0;
+  }
+}
+@keyframes boss-rise-lift {
+  from {
+    --entrance-lift: -0.28;
+  }
+  to {
+    --entrance-lift: 0;
   }
 }
 
@@ -2623,7 +3102,7 @@ textarea,
 }
 
 /* A tap skips: everything jumps to how it ends. */
-.boss-entrance-skipped :is(.boss-arrive, .boss-flare, .boss-dust),
+.boss-entrance-skipped :is(.boss-arrive, .boss-flare, .boss-dust, .unit-stage[data-arrival]),
 .boss-entrance-skipped .boss-arrive [role='meter'] {
   animation: none;
 }
@@ -2632,6 +3111,9 @@ textarea,
   .boss-arrive {
     animation-name: fx-fade-in !important;
     animation-timing-function: ease-out;
+  }
+  .unit-stage[data-arrival] {
+    animation-name: none;
   }
   .boss-entrance-card,
   .boss-entrance-rule,
@@ -2882,7 +3364,7 @@ textarea,
 
 .first-fight { height:100%; display:grid; grid-template-rows:auto minmax(0,1fr); }
 .first-fight-guide, .first-fight-result {
-  background: #23160f url('./assets/table/character-oak-grain.jpg') center / cover;
+  background: #23160f url('./assets/table/character-oak-grain.webp') center / cover;
   color: #fff0d5;
 }
 .first-fight-guide { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 12px; border-bottom:1px solid #b08a50; }
@@ -2902,12 +3384,12 @@ textarea,
   --color-edge:#775932;
   --color-ink-muted:#cfbfa5;
   color:#f8ecd5;
-  background: #22170f url('./assets/table/character-oak-grain.jpg') center / cover;
+  background: #22170f url('./assets/table/character-oak-grain.webp') center / cover;
 }
 .run-board > header { border-bottom:2px ridge #a27f48; }
 .run-panel, .death-script, .run-results, .run-menu-panel {
   border:8px solid #795733;
-  border-image:url('./assets/table/character-oak-frame.jpg') 34 round;
+  border-image:url('./assets/table/character-oak-frame.webp') 34 round;
 }
 .run-panel, .death-script { padding:clamp(12px,3vw,26px); }
 .run-choice { cursor:pointer; border:1px solid #977446; border-radius:5px; background:linear-gradient(#493321,#2b1e16); }
@@ -2985,7 +3467,7 @@ button[data-card-size]:enabled { cursor:pointer; }
 .rules-reference details { margin:12px 0 0; color:#c8b79d; font-size:11px; }
 .rules-reference summary { cursor:pointer; }
 .player-reddit-name { position:absolute; bottom:calc(100% + 9px); left:0; width:max-content; max-width:115px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#ffedc5; background:#23180fe8; padding:1px 4px; border-radius:3px; font:bold 11px var(--font-display); pointer-events:none; }
-.lesson-book {height:100%;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:14px;padding:16px;background:linear-gradient(#170e0988,#160d08bb),url('./assets/table/character-oak-grain.jpg') center/cover;color:#f5e7c9}
+.lesson-book {height:100%;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:14px;padding:16px;background:linear-gradient(#170e0988,#160d08bb),url('./assets/table/character-oak-grain.webp') center/cover;color:#f5e7c9}
 .lesson-book header,.lesson-book footer {display:flex;align-items:center;justify-content:space-between;gap:12px;width:min(100%,620px)}
 .lesson-book h1 {font: bold 25px var(--font-display);color:#efc379}
 .lesson-book header span,.lesson-caption span {font-size:12px}
@@ -3003,7 +3485,7 @@ button[data-card-size]:enabled { cursor:pointer; }
 .first-fight[data-lesson="rows"] [data-hero-row="front"]::after {content:"Line 1"}
 .first-fight[data-lesson="rows"] [data-hero-row="back"]::after {content:"Line 2"}
 .first-fight[data-lesson="rows"] [data-hero-row="horizon"]::after {content:"Line 3"}
-.profile-view {height:100%;overflow:auto;padding:clamp(12px,3vw,28px);background:linear-gradient(#21140bd9,#160d09ed),url('./assets/table/character-oak-grain.jpg') center/cover;color:#f6e6c8}
+.profile-view {height:100%;overflow:auto;padding:clamp(12px,3vw,28px);background:linear-gradient(#21140bd9,#160d09ed),url('./assets/table/character-oak-grain.webp') center/cover;color:#f6e6c8}
 .profile-view>header,.profile-view>section,.profile-view>footer,.profile-view>p {max-width:640px;margin:0 auto 14px}
 .profile-view header,.profile-view footer,.profile-strip,.profile-classes,.profile-decklist {display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .profile-view header {justify-content:space-between}
@@ -3013,13 +3495,13 @@ button[data-card-size]:enabled { cursor:pointer; }
 .profile-strip>div {display:grid;min-width:65px;flex:1}.profile-view p,.profile-strip span {font-size:12px}.profile-view .oak-menu-button {width:auto;min-width:88px;padding:0 15px}
 .profile-classes,.profile-decklist {margin:10px 0}.profile-decklist span {font-size:12px;border:1px solid #705336;background:#211710;border-radius:4px;padding:3px 7px}.profile-decklist b {color:#f0c077}
 .profile-view footer {justify-content:flex-end}.profile-slots {display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin-top:14px}.profile-slots p {grid-column:1/-1}.profile-slots label {display:grid;font-size:11px}.profile-slots select {color:#f5e7c9;background:#271c16;padding:5px;border:1px solid #937246}
-.starter-picker {position:relative;display:grid;grid-template-rows:auto minmax(0,1fr) auto;align-content:center;gap:12px;height:100%;padding:clamp(10px,3vw,24px);background:linear-gradient(#1b100bba,#17100cef),url('./assets/table/character-oak-grain.jpg') center/cover;color:#f5e5c2}
+.starter-picker {position:relative;display:grid;grid-template-rows:auto minmax(0,1fr) auto;align-content:center;gap:12px;height:100%;padding:clamp(10px,3vw,24px);background:linear-gradient(#1b100bba,#17100cef),url('./assets/table/character-oak-grain.webp') center/cover;color:#f5e5c2}
 .starter-picker h1 {text-align:center;font:bold clamp(19px,3vw,28px) var(--font-display);color:#f3c778}
 .starter-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-content:center;gap:10px;overflow:auto}
 .starter-option {display:flex;flex-direction:column;overflow:hidden;border:1px solid #927047;border-radius:7px;background:#2d2117}
 .starter-option[data-selected=true]{border-color:#ffcf70;box-shadow:inset 0 0 0 1px #ffcf70}
 .starter-select {position:relative;width:100%;cursor:pointer}
-.starter-art {display:block;width:100%;aspect-ratio:1.35;position:relative;overflow:hidden}.starter-art::before{content:"";position:absolute;top:50%;left:0;width:100%;aspect-ratio:1;transform:translateY(-50%);background-size:200% 200%;background-position:inherit;background-image:url('./assets/table/starter-classes.jpg')}
+.starter-art {display:block;width:100%;aspect-ratio:1.35;position:relative;overflow:hidden}.starter-art::before{content:"";position:absolute;top:50%;left:0;width:100%;aspect-ratio:1;transform:translateY(-50%);background-size:200% 200%;background-position:inherit;background-image:url('./assets/table/starter-classes.webp')}
 .starter-art[data-style=Warrior]{background-position:0 0}.starter-art[data-style=Mage]{background-position:100% 0}.starter-art[data-style=Hexer]{background-position:0 100%}.starter-art[data-style=Archer]{background-position:100% 100%}
 .starter-copy {display:grid;padding:5px}.starter-copy strong {color:#f3c778;font: bold 18px var(--font-display)}.starter-copy small {font-size:12px}.starter-option>.oak-menu-button{align-self:center;width:calc(100% - 14px);margin:0 7px 7px}
 .starter-tick {position:absolute;top:4px;right:4px;border-radius:50%;background:#21513a;border:1px solid #b3c88c;width:22px;color:white}

@@ -7,13 +7,13 @@
 // Pure functions like the rest of the engine; never scored or logged.
 // ===================================================================
 
-import { advanceHeroes, cellCountOf, cellsOf } from './battlefield.ts';
+import { advanceHeroes, cellCountOf } from './battlefield.ts';
 import { characterBonuses, syncCharacterCombat, type CharacterState, type Equipment, type TraitNodes, type Traits } from './character.ts';
 import { drawCards, combatOutcome, endTurn, finishPlayerTurn, playCard, startCombat, startPlayerTurn } from './combat.ts';
 import { CHAMPION_IDS, ELITE_IDS, getHero, GRUNT_IDS, type HeroId } from './heroes.ts';
 import { move } from './movement.ts';
 import { nextInt, pickWeighted, type RngState } from './rng.ts';
-import { BATTLEFIELD_COLUMNS, BATTLEFIELD_ROWS, PLAYER_MAX_HP } from './rules.ts';
+import { BATTLEFIELD_ROWS, PLAYER_MAX_HP } from './rules.ts';
 import type { MoveAction, PlayCardAction } from './run.ts';
 import type { CardId } from './cards.ts';
 import { isCustomDeckList, sandboxDeckCards, type SandboxDeckId } from './sandboxDecks.ts';
@@ -73,9 +73,9 @@ export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
   },
   {
     id: 'grandangelCerviel',
-    name: getHero('grandangelCerviel').name,
-    blurb: 'Three bodies fight at once: staff wards from the back, sword guards the front, and bow fires from the flank.',
-    heroIds: ['grandangelCerviel', 'cervielSword', 'cervielBow'],
+    name: getHero('cervielSword').name,
+    blurb: 'Sword stands alone at the front. Staff and Bow answer one summons each, and Sword transforms on the first lethal blow.',
+    heroIds: ['cervielSword'],
     startsInPlace: true,
   },
   {
@@ -187,6 +187,40 @@ export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
     name: 'Grand Griffon Rio',
     blurb: 'A solo boss in the centre that soars out of reach, then dives.',
     heroIds: ['grandGriffon'],
+  },
+  {
+    id: 'tempestWyrm',
+    name: 'Tempest Wyrm Vael',
+    blurb: 'A storm giant filling the front: Shock spears, then Thunderhead.',
+    heroIds: ['tempestWyrm'],
+  },
+  {
+    id: 'angelAssassin',
+    name: getHero('angelAssassin').name,
+    blurb: 'Uses Cloak 2 to avoid being targeted, then reveals herself when she attacks.',
+    heroIds: ['angelAssassin'],
+    startsInPlace: true,
+  },
+  {
+    id: 'twinAxeKnight',
+    name: getHero('twinAxeKnight').name,
+    blurb: 'A heavily armored front-line boss with two axes and a brutal crosscut.',
+    heroIds: ['twinAxeKnight'],
+    startsInPlace: true,
+  },
+  {
+    id: 'archangelUriel',
+    name: getHero('archangelUriel').name,
+    blurb: 'The red-winged archangel alternates holy flame and shield wards.',
+    heroIds: ['archangelUriel'],
+    startsInPlace: true,
+  },
+  {
+    id: 'zeruelArmored',
+    name: getHero('zeruelArmored').name,
+    blurb: 'The alternate armored Zeruel with red Alpha and blue Omega behind him.',
+    heroIds: ['zeruelArmored', 'zeruelRedSun', 'zeruelBlueSun'],
+    startsInPlace: true,
   },
   {
     id: 'mixedRows',
@@ -351,7 +385,7 @@ export const createSandboxWith = (
 ): CombatState => {
   const fresh = startCombat(sandboxSetup(heroIds, seed, deckId, traits, equipment, traitNodes));
   const placed = startsInPlace
-    ? { ...fresh, heroes: spreadCervielForms(walkHome(fresh.heroes)) }
+    ? { ...fresh, heroes: setZeruelFormation(walkHome(fresh.heroes)) }
     : fresh;
   return placed;
 };
@@ -363,16 +397,11 @@ export const createSandboxWith = (
 const walkHome = (heroes: HeroUnit[]): HeroUnit[] =>
   BATTLEFIELD_ROWS.reduce((field) => advanceHeroes(field), heroes);
 
-/** Keep Cerviel's three weapon silhouettes apart in the starting formation. */
-const spreadCervielForms = (heroes: HeroUnit[]): HeroUnit[] => {
-  if (!heroes.some(({ heroId }) => heroId === 'grandangelCerviel')) return heroes;
-  const right = Number(BATTLEFIELD_COLUMNS) - 1;
-  return heroes.map(unit => {
-    if (unit.heroId !== 'cervielSword' || unit.row !== 'front') return unit;
-    const occupied = heroes.some(other => other.uid !== unit.uid &&
-      cellsOf(other).some(cell => cell.row === 'front' && cell.col >= right));
-    return occupied ? unit : { ...unit, col: right };
-  });
+/** Both Zeruel encounters share Alpha and Omega on the back flanks. */
+const setZeruelFormation = (heroes: HeroUnit[]): HeroUnit[] => {
+  if (!heroes.some(({ heroId }) => heroId === 'archangelZeruel' || heroId === 'zeruelArmored')) return heroes;
+  return heroes.map(unit => unit.heroId === 'zeruelRedSun' ? { ...unit, row: 'back', col: 0 }
+    : unit.heroId === 'zeruelBlueSun' ? { ...unit, row: 'back', col: 2 } : unit);
 };
 
 /** Applies one input; brings a new horde when cleared. */

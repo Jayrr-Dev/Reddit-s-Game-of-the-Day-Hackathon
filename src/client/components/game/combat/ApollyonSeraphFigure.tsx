@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import seraphArt from '../../../assets/heroes/apollyon-seraph.png';
+import seraphArt from '../../../assets/heroes/apollyon-seraph.webp';
 import './ApollyonSeraphFigure.css';
 
 const WIDTH = 1536;

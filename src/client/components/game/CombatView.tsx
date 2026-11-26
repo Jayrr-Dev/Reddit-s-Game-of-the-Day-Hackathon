@@ -22,7 +22,8 @@
 import './combat/dueling-table.css';
 import { getVolume, playAfflictionBurst, playCardSound, playCombatImpact, playUnitDeath, playSound, subscribeVolume, usesShockCue } from '../../lib/gameAudio';
 import { useMapAudio } from '../../lib/mapAudio';
-import { isBoss } from '../../content/heroLooks';
+import { bossArenaOf, type BossArena } from '../../content/bossArenas';
+import { isBoss } from "../../content/heroLooks";
 import { fallenWithDeathVoice } from '../../../shared/game/deathVoices';
 import { useEffect, useCallback, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
@@ -44,7 +45,7 @@ import { useAutoEndTurn } from '../../hooks/useAutoEndTurn';
 import { useCombatControls } from '../../hooks/useCombatControls';
 import { useCardFlights } from '../../hooks/useCardFlights';
 import { useCardHits } from '../../hooks/useCardHits';
-import { GRIFFON_DIVE_LAND_MS, HERO_SHOT_FLIGHT_MS, HERO_SHOT_RELEASE_MS, useHeroTurn } from '../../hooks/useHeroTurn';
+import { beatCueOf, GRIFFON_DIVE_LAND_MS, HERO_SHOT_FLIGHT_MS, HERO_SHOT_RELEASE_MS, useHeroTurn } from '../../hooks/useHeroTurn';
 import { useMoveFailPops } from '../../hooks/useMoveFailPops';
 import { useMovementBurst } from '../../hooks/useMovementBurst';
 import {
@@ -110,12 +111,15 @@ export type CombatViewProps = {
   deck: readonly CardId[];
   /** Terrain for this region or practice round. */
   terrainIndex: number;
+  trainingArenaOverride?: BossArena | null | undefined;
   where: string;
   score: number;
   onAction: (action: RunAction) => void;
   /** Extra buttons for the pause menu (e.g. the sandbox's reshuffle). */
   pauseActions?: ReactNode;
   renderTrainingMenu?: (resume: () => void, guides: ReactNode) => ReactNode;
+  /** Open the pause menu on mount (training starts on its Scenarios picker). */
+  startsPaused?: boolean;
 };
 
 // --- HELPERS ---
@@ -236,11 +240,13 @@ export const CombatView = ({
   onRespec,
   deck,
   terrainIndex,
+  trainingArenaOverride,
   where,
   score,
   onAction,
   pauseActions,
   renderTrainingMenu,
+  startsPaused = false,
   manualTurns,
   tutorialCue, levelGuide, onPileClosed, onCharacterOpened, onCharacterClosed, allowCombatAction,
 }: CombatViewProps) => {
@@ -250,7 +256,7 @@ export const CombatView = ({
   const heroTurn = useHeroTurn(realCombat, onAction);
   const cardHits = useCardHits(realCombat, onAction);
   const incomingImpactDelay = heroTurn.arrowStep || heroTurn.lightningStep ? HERO_SHOT_RELEASE_MS + HERO_SHOT_FLIGHT_MS
-    : heroTurn.bossImpact === 'griffonDive' ? GRIFFON_DIVE_LAND_MS : 0;
+    : heroTurn.bossImpact?.sound === 'griffonDive' ? GRIFFON_DIVE_LAND_MS : 0;
   const { endTurn: playHeroTurn } = heroTurn;
   const { playCard: playCardHits } = cardHits;
   const combat = cardHits.isPlaying ? cardHits.shown : heroTurn.shown;
@@ -264,7 +270,20 @@ export const CombatView = ({
   const musicVolume = useSyncExternalStore(subscribeVolume, () => getVolume('music'));
   const sfxVolume = useSyncExternalStore(subscribeVolume, () => getVolume('sfx'));
   const mapName = MAP_NAMES[terrainIndex % MAP_NAMES.length] ?? MAP_NAMES[0] ?? '';
-  useMapAudio({ mapId: mapName, active: realCombat.player.hp > 0, bossActive: hasBoss, alternateBattle: battleMusic === 'orchestral', musicVolume: musicVolume / 100, sfxVolume: sfxVolume / 100 });
+  const bossArena = trainingArenaOverride !== undefined ? trainingArenaOverride ?? undefined : bossArenaOf(
+    realCombat.heroes.map(unit => unit.heroId),
+    realCombat.fallen.map(unit => unit.heroId)
+  );
+  useMapAudio({
+    mapId: mapName,
+    active: realCombat.player.hp > 0,
+    bossActive: hasBoss || trainingArenaOverride != null,
+    bossScoreUrl: bossArena?.scoreUrl,
+    bossAmbience: bossArena?.ambience,
+    alternateBattle: battleMusic === 'orchestral',
+    musicVolume: musicVolume / 100,
+    sfxVolume: sfxVolume / 100,
+  });
   useEffect(() => {
     const pending = incomingAttackTimers.current;
     return () => { pending.forEach(window.clearTimeout); pending.clear(); };
@@ -293,7 +312,6 @@ export const CombatView = ({
       unit.statuses.aloft > 0 && before.heroes.some(old => old.uid === unit.uid && old.statuses.aloft <= 0))) {
       playSound('griffonTakeoff', 1, .95);
     }
-    if (heroTurn.bossImpact === 'griffonDive') playSound('griffonDiveWhoosh', 1, .9);
     if (heroTurn.bladeStep) playSound('blade', 1.12, .82);
     if (heroTurn.arrowStep) {
       const shooter = combat.heroes.find(unit => unit.uid === heroTurn.arrowStep?.actorUid);
@@ -343,7 +361,12 @@ export const CombatView = ({
       playCombatImpact(id === 'reap' ? 'curse' : card?.type, card?.element, card?.edge, card?.type === 'melee' && card.edge !== 'sharp' ? .92 : .76, heavy, light);
     }
     if (combat.heroes.some(unit => !before.heroes.some(old => old.uid === unit.uid))) playSound('move', .85, .65);
-  }, [combat, heroTurn.arrowStep, heroTurn.bladeStep, heroTurn.bossImpact, heroTurn.isPlaying, incomingImpactDelay]);
+  }, [combat, heroTurn.arrowStep, heroTurn.bladeStep, heroTurn.isPlaying, incomingImpactDelay]);
+  // A BOSS MOVE WITH A SOUND OF ITS OWN (content/bossMoveCues) SOUNDS AS ITS BEAT BEGINS
+  useEffect(() => {
+    const cue = beatCueOf(heroTurn.cueBeat);
+    if (cue && !viewRef.current?.closest('[inert]')) playSound(cue.sound, 1, cue.gain);
+  }, [heroTurn.cueBeat]);
   const bossEntrance = useBossEntrance(combat.heroes, bossIntros);
   const isAnimating = heroTurn.isPlaying || cardHits.isPlaying;
   const lethal = useMemo(() => realCombat.player.hp > 0 && endTurn(realCombat).player.hp <= 0, [realCombat]);
@@ -432,7 +455,7 @@ export const CombatView = ({
   const controls = useCombatControls(combat, routeAction);
   const cardFlights = useCardFlights(combat);
   const settings = <SettingsDialog className="self-center">{settingInputs}</SettingsDialog>;
-  const [isPaused, setIsPaused] = useState(false);
+  const [isPaused, setIsPaused] = useState(startsPaused);
   const [showCharacter, setShowCharacter] = useState(false);
   // Out of plays: the turn ends itself after a beat (see useAutoEndTurn).
   useAutoEndTurn(
@@ -505,7 +528,7 @@ export const CombatView = ({
       seen.player = pop.id;
       if (pop.kind === 'hit' && !pop.tick) {
         if (hasBlock(pop)) playBlock(pop.amount > 0);
-        if (pop.bossImpact) playSound(pop.bossImpact, 1, .95);
+        if (pop.bossImpact) playSound(pop.bossImpact.sound, 1, pop.bossImpact.gain);
         else if (pop.amount > 0) {
           playCombatImpact(pop.source, pop.element, pop.edge, .98, pop.edge !== 'sharp' && pop.amount >= 12, pop.amount <= 4);
         }
@@ -533,7 +556,7 @@ export const CombatView = ({
     >
       <div inert={!!bossEntrance.entering} className="table-field-frame relative flex min-h-0 flex-1 flex-col">
         <TopBar
-          location={mapName}
+          location={bossArena?.name ?? mapName}
           where={where}
           score={score}
           onOpenMenu={() => setIsPaused(true)}
@@ -548,6 +571,7 @@ export const CombatView = ({
             player={combat.player}
             travelRows={combat.travelRows ?? 0}
             terrainIndex={terrainIndex}
+            bossArena={bossArena}
             focusUid={controls.focusUid}
             aimOf={controls.aimOf}
             pickMarkerOf={controls.pickMarkerOf}

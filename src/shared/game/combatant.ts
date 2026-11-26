@@ -77,6 +77,7 @@ export const NO_STATUSES: Statuses = {
   hitLimit: 0,
   brace: 0,
   aloft: 0,
+  cloak: 0,
   move: 0,
   rush: 0,
   armor: 0,
@@ -100,6 +101,20 @@ export const createCombatant = (hp: number, maxHp: number): Combatant => ({
 
 // --- QUERIES ---
 export const isDefeated = (combatant: Combatant): boolean => combatant.hp <= 0;
+
+/** Whether a unit is hidden from direct targeting. Older saves have no Cloak. */
+export const isCloaked = (unit: Pick<Combatant, 'statuses'>): boolean =>
+  (unit.statuses.cloak ?? 0) > 0;
+
+/** Clears Cloak when the unit commits an attack, even if the attack misses. */
+export const revealCloak = <T extends Combatant>(unit: T): T =>
+  isCloaked(unit) ? { ...unit, statuses: { ...unit.statuses, cloak: 0 } } : unit;
+
+/** Uses one turn of Cloak after the opposing side's targeting window closes. */
+export const tickCloak = <T extends Combatant>(unit: T): T =>
+  isCloaked(unit)
+    ? { ...unit, statuses: { ...unit.statuses, cloak: unit.statuses.cloak - 1 } }
+    : unit;
 
 /** The buff that powers up a card type's damage, if any. */
 export const damageBuffOf = (type?: CardType): BuffId | undefined =>
@@ -751,7 +766,7 @@ export const addStatus = <T extends Combatant>(
         ? Math.min(TIERED_MAX_TIER, target.statuses.instinct + amount)
         : status === 'reflex' && amount > 0
           ? 1
-          : status === 'malaise' || status === 'hitLimit'
+          : status === 'malaise' || status === 'hitLimit' || status === 'cloak'
             ? Math.max(target.statuses[status] ?? 0, amount)
             : (target.statuses[status] ?? 0) + amount,
   },

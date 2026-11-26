@@ -1,4 +1,4 @@
-import metatronPortrait from '../../../assets/npcs/metatron-the-fallen-angel.png';
+import metatronPortrait from '../../../assets/npcs/metatron-the-fallen-angel.webp';
 import { MenuPanel } from './MenuPanel';
 
 export const MetatronShop = ({ onClose }: { onClose: () => void }) => (
