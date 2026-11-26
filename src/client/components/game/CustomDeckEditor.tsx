@@ -23,8 +23,8 @@ import {
   type DeckDrag,
   type DeckZone,
 } from '../../hooks/useDeckDrag';
-import { Glyph } from '../ui/Glyph';
 import { InspectCardButton } from './CardInspection';
+import { CardView } from './CardView';
 import {
   KEYWORD_OPTIONS,
   normalizeSearch,
@@ -48,7 +48,7 @@ type TileProps = {
 };
 
 // --- CARD TILE ---
-/** One card in either grid: tap or Enter acts on it, a press-and-move drags it. */
+/** One real card in either grid: tap or Enter acts on it, a press-and-move drags it. */
 const DeckCardTile = ({
   id,
   zone,
@@ -57,30 +57,21 @@ const DeckCardTile = ({
   onPress,
   onActivate,
 }: TileProps) => {
-  const card = getCard(id);
-  const look = CARD_LOOK[card.type];
   const action = zone === 'catalog' ? 'Add' : 'Remove one';
   return (
-    <div className="cde-tile" data-card-type={card.type} data-card-id={id}>
-      <button
-        type="button"
-        className="cde-tile-main"
-        aria-label={`${action} ${card.name}`}
-        disabled={disabled}
-        onPointerDown={onPress}
+    <div className="cde-tile" data-card-id={id} onPointerDown={onPress}>
+      <CardView
+        cardId={id}
+        size="fan"
+        label={`${action} ${getCard(id).name}`}
+        isDisabled={disabled ?? false}
         onClick={onActivate}
-      >
-        <span className={'cde-tile-art ' + look.frameClass} aria-hidden="true">
-          <Glyph name={look.glyph} />
-          <span className="cde-tile-cost">{card.cost}</span>
-          {count !== undefined && count > 1 && (
-            <span className="cde-tile-count" aria-label={`${count} copies`}>
-              ×{count}
-            </span>
-          )}
+      />
+      {count !== undefined && count > 1 && (
+        <span className="cde-tile-count" aria-label={`${count} copies`}>
+          ×{count}
         </span>
-        <span className="cde-tile-name">{card.name}</span>
-      </button>
+      )}
       <InspectCardButton id={id} />
     </div>
   );
@@ -88,22 +79,16 @@ const DeckCardTile = ({
 
 // --- DRAG GHOST ---
 /** The card that follows the pointer while it is dragged. */
-const DragGhost = ({ drag }: { drag: DeckDrag }) => {
-  const card = getCard(drag.id);
-  const look = CARD_LOOK[card.type];
-  return (
-    <div
-      className="cde-ghost"
-      aria-hidden="true"
-      style={{ left: drag.x, top: drag.y }}
-    >
-      <span className={'cde-tile-art ' + look.frameClass}>
-        <Glyph name={look.glyph} />
-      </span>
-      <span className="cde-tile-name">{card.name}</span>
-    </div>
-  );
-};
+const DragGhost = ({ drag }: { drag: DeckDrag }) => (
+  <div
+    className="cde-ghost"
+    aria-hidden="true"
+    inert
+    style={{ left: drag.x, top: drag.y }}
+  >
+    <CardView cardId={drag.id} size="fan" />
+  </div>
+);
 
 // --- CATALOG FILTERS ---
 /** Search box, keyword picker and the applied keyword chips. */

@@ -1,5 +1,5 @@
 .custom-deck-editor button.cde-inspect {
-  position: absolute; top: .1rem; right: .1rem; width: 1rem; height: 1rem; min-height: 0;
+  position: absolute; top: .15rem; right: -.2rem; width: 1rem; height: 1rem; min-height: 0;
   padding: 0; border-radius: 50%; display: grid; place-items: center;
   font: italic 700 .62rem/1 var(--font-display); background: var(--cde-paper);
 }

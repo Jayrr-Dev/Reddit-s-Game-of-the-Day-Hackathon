@@ -79,6 +79,8 @@ export type CardViewProps = {
   size?: CardSize;
   onClick?: () => void;
   selected?: boolean;
+  /** Accessible name when the card's click does something its text doesn't say (e.g. "Add Cleave"). */
+  label?: string;
 };
 
 export type CardSize = 'fan' | 'offer';
@@ -384,6 +386,7 @@ export const CardView = ({
   size = 'offer',
   onClick,
   selected,
+  label,
 }: CardViewProps) => {
   const cardDef = getCard(cardId);
   const typeLook = CARD_LOOK[cardDef.type];
@@ -395,6 +398,7 @@ export const CardView = ({
     <button
       type="button"
       onClick={onClick}
+      aria-label={label}
       data-card-type={cardDef.type}
       data-card-id={cardId}
         aria-pressed={selected}
