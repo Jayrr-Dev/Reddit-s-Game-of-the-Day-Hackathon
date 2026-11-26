@@ -134,6 +134,11 @@
   background: url('../../../assets/table/portrait.webp') center / cover;
   outline: 2px ridge var(--brass);
 }
+@media (prefers-reduced-motion: no-preference) {
+  .table-player svg.rounded-full {
+    background-image: url('../../../assets/table/portrait-blink.gif');
+  }
+}
 .table-player svg.rounded-full > * {
   visibility: hidden;
 }
