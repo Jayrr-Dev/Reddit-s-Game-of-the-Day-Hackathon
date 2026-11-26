@@ -278,7 +278,6 @@ export const CombatView = ({
     mapId: mapName,
     active: realCombat.player.hp > 0,
     bossActive: hasBoss || trainingArenaOverride != null,
-    bossScoreUrl: bossArena?.scoreUrl,
     bossAmbience: bossArena?.ambience,
     alternateBattle: battleMusic === 'orchestral',
     musicVolume: musicVolume / 100,
