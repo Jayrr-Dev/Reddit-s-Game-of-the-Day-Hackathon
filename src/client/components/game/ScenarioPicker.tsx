@@ -2,8 +2,9 @@
 // SCENARIO PICKER
 // The target dummies' pause-menu picker, in tabs: Scenarios (preset
 // lineups, SANDBOX_SCENARIOS) and Decks (themed test decks,
-// SANDBOX_DECKS). Tapping a scenario starts a fight against it; tapping
-// a deck deals a fresh fight from it against the same dummies.
+// SANDBOX_DECKS). Tapping a scenario asks first (fight or not), so a
+// stray tap never drops the player into a boss; tapping a deck deals a
+// fresh fight from it against the same dummies.
 // ===================================================================
 
 import { CustomDeckEditor } from './CustomDeckEditor';
@@ -18,6 +19,7 @@ import { FIGURE_BOUNDS, type FigureBounds } from '../../content/figureBounds';
 import { BODY_HEIGHT, BODY_WIDTH } from '../../lib/heroFigure';
 import { cssVars } from '../../lib/cssVars';
 import { Glyph } from '../ui/Glyph';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import {
   SANDBOX_SCENARIOS,
   type SandboxScenario,
@@ -193,6 +195,27 @@ const TabBar = ({
   </div>
 );
 
+/** Asks whether to fight the tapped scenario before it starts. */
+const FightPrompt = ({
+  scenario,
+  onFight,
+  onBack,
+}: {
+  scenario: SandboxScenario;
+  onFight: () => void;
+  onBack: () => void;
+}) => (
+  <ConfirmDialog
+    title={'Fight ' + scenario.name + '?'}
+    confirmLabel="Fight"
+    cancelLabel="Not now"
+    onConfirm={onFight}
+    onCancel={onBack}
+  >
+    {scenario.blurb}
+  </ConfirmDialog>
+);
+
 // --- COMPONENT ---
 /** Renders the tabs and the active tab's entries in a two-column grid. */
 export const ScenarioPicker = ({
@@ -225,12 +248,21 @@ export const ScenarioPicker = ({
 }) => {
   const [tab, setTab] = useState<PickerTab>('scenarios');
   const [editing, setEditing] = useState<string | null>(null);
+  // The scenario waiting on the fight-or-not answer, if any.
+  const [pending, setPending] = useState<SandboxScenario | null>(null);
   const draft = customDecks.find((deck) => deck.id === editing);
   return (
     <>
     {renderHeader(() => { setTab('decks'); setEditing(''); })}
     <section className="training-picker">
       <TabBar tab={tab} onTab={setTab} />
+      {pending && (
+        <FightPrompt
+          scenario={pending}
+          onFight={() => { setPending(null); onPickScenario(pending); }}
+          onBack={() => setPending(null)}
+        />
+      )}
       {editing !== null && (
         <CustomDeckEditor
           initial={draft}
@@ -259,7 +291,7 @@ export const ScenarioPicker = ({
                 />
               }
               isActive={false}
-              onPick={() => onPickScenario(scenario)}
+              onPick={() => setPending(scenario)}
             />
           ))
         ) : tab === 'map' ? (

@@ -1,6 +1,7 @@
 import { useId, useRef, type ReactNode } from 'react';
 import { Glyph } from '../../ui/Glyph';
 import { Button } from '../../ui/Button';
+import { MODAL_DIALOG_CLASSES } from '../../ui/ConfirmDialog';
 
 export function SettingsDialog({ children, className = '' }: { children: ReactNode; className?: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -20,7 +21,7 @@ export function SettingsDialog({ children, className = '' }: { children: ReactNo
     <dialog
       ref={dialog}
       aria-labelledby={titleId}
-      className="fixed inset-0 m-auto max-h-[calc(100%-1.5rem)] w-[min(22rem,calc(100%-1.5rem))] overflow-y-auto overscroll-contain rounded-xl border border-accent/40 bg-surface p-0 text-ink shadow-lg backdrop:bg-black/65"
+      className={MODAL_DIALOG_CLASSES}
       onClick={event => { if (event.target === event.currentTarget) event.currentTarget.close(); }}
     >
       <div className="grid gap-3 p-4">
