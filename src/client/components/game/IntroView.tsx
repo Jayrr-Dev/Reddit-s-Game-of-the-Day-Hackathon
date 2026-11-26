@@ -55,13 +55,13 @@ const SHOW_PRACTICE = true;
 type Sheet = 'profile' | 'none' | 'tutorial' | 'rules' | 'board' | 'shop';
 
 // --- HELPERS ---
-/** Explains whether the next run counts for the leaderboard. */
-const rankedNote = (data: InitResponse, canResume: boolean): string => {
+/** Explains whether the next run counts for the leaderboard; null hides the note. */
+const rankedNote = (data: InitResponse, canResume: boolean): string | null => {
   if (!data.username) return 'Log in to put your conquest on the board.';
   if (canResume)
     return 'Your march was interrupted. Pick up where you left off.';
   return data.hasStartedRankedRun
-    ? "Only your first conquest of the day counts toward the leaderboard."
+    ? null
     : 'Your first run today is ranked. Make it count.';
 };
 
@@ -163,6 +163,7 @@ export const IntroView = ({
   useMapAudio({ mapId: 'Home', active: sheet !== 'tutorial', bossActive: false, musicVolume: musicVolume / 100, sfxVolume: 0 });
   const settings = useGameSettings();
   const closeSheet = () => setSheet('none');
+  const note = rankedNote(data, canResume);
   if (sheet === 'profile') return <ProfileView data={data} rings={profileRings} onClose={closeSheet} />;
   if (sheet === 'tutorial') return <FirstFight accountId={data.accountId} onExit={closeSheet} onRules={() => setSheet('rules')} />;
 
@@ -193,9 +194,11 @@ export const IntroView = ({
               Illusion Training
             </Button>
           )}
-          <p className="text-center text-[10px] leading-tight text-ink-muted">
-            {rankedNote(data, canResume)}
-          </p>
+          {note && (
+            <p className="text-center text-[10px] leading-tight text-ink-muted">
+              {note}
+            </p>
+          )}
         </nav>
       </div>
       {sheet === 'shop' && <MetatronShop onClose={closeSheet} />}
