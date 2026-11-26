@@ -1,5 +1,5 @@
 // Frames and timing for the approved Archangel Uriel animation atlas.
-export const URIEL_ATLAS = { columns: 8, rows: 9, width: 416, height: 270 } as const;
+export const URIEL_ATLAS = { columns: 8, rows: 9, width: 256, height: 166 } as const;
 
 export type UrielPose = 'hover' | 'diagonal' | 'raise' | 'overhead';
 
@@ -17,15 +17,17 @@ export const urielPoseOf = (
   !action || (action.style === 'support' && !action.isSignature) ? 'hover' :
     action.isSignature ? (action.style === 'support' ? 'raise' : 'overhead') : 'diagonal';
 
-/** Loops idle and holds the final frame of an action instead of repeating the attack. */
-export const urielFrameAt = (pose: UrielPose, elapsed: number): number => {
-  const clip = CLIPS[pose];
-  const progress = Math.max(0, elapsed) / clip.ms;
-  return clip.first + Math.min(clip.count - 1, Math.floor((pose === 'hover' ? progress % 1 : progress) * clip.count));
-};
-
-/** Selects one cell of the atlas in a nested SVG viewport. */
-export const urielFrameBox = (index: number): string => {
-  const { columns, width, height } = URIEL_ATLAS;
-  return `${(index % columns) * width} ${Math.floor(index / columns) * height} ${width} ${height}`;
+/** Builds compositor-only, held transform keyframes for one atlas clip. */
+export const urielPlayback = (pose: UrielPose) => {
+  const { columns, rows } = URIEL_ATLAS;
+  const { first, count, ms } = CLIPS[pose];
+  const frames = Array.from({ length: count + 1 }, (_, step) => {
+    const index = first + Math.min(step, count - 1);
+    return {
+      offset: step / count,
+      easing: 'steps(1, end)',
+      transform: `translate3d(${-100 * (index % columns) / columns}%, ${-100 * Math.floor(index / columns) / rows}%, 0)`,
+    };
+  });
+  return { frames, duration: ms, loop: pose === 'hover' };
 };

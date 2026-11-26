@@ -23,7 +23,8 @@ def frame(svg):
   pix=doc[0].get_pixmap(alpha=True)
  # Convert MuPDF premultiplied colors to ordinary straight alpha.
  return Image.frombytes('RGBa',[pix.width,pix.height],pix.samples).convert('RGBA')
-sheet=Image.new('RGBA',(416*8,270*9))
+width,height=256,166
+sheet=Image.new('RGBA',(width*8,height*9))
 process=subprocess.Popen(['node',str(source/'capture-battle.mjs'),'battle'],stdout=subprocess.PIPE,encoding='utf-8')
 n=0
 for line in process.stdout:
@@ -31,12 +32,14 @@ for line in process.stdout:
  assert im.size==(416,270),im.size
  bbox=im.getchannel('A').point(lambda value:255 if value>60 else 0).getbbox()
  assert bbox and bbox[0]>0 and bbox[1]>0 and bbox[2]<416 and bbox[3]<270,(n,bbox)
- sheet.paste(im,((n%8)*416,(n//8)*270))
+ im=im.resize((width,height),Image.Resampling.LANCZOS)
+ if n==0: im.save(asset/'archangels/uriel-motion-still.webp','WEBP',quality=94,method=6,exact=True)
+ sheet.paste(im,((n%8)*width,(n//8)*height))
 
  n+=1
 assert process.wait()==0 and n==72
 target=asset/'archangels/uriel-motion-atlas.webp'
 sheet.save(target,'WEBP',quality=91,method=6,exact=True)
 with Image.open(target) as check:
- assert check.size==(3328,2430) and check.mode=='RGBA'
+ assert check.size==(width*8,height*9) and check.mode=='RGBA'
 print('Uriel motion atlas',n,sheet.size,target.stat().st_size)

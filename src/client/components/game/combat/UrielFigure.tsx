@@ -1,63 +1,64 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import atlas from '../../../assets/heroes/archangels/uriel-motion-atlas.webp';
+import still from '../../../assets/heroes/archangels/uriel-motion-still.webp';
 import type { HeroSize } from '../../../../shared/game/types';
 import type { HeroAction } from '../../../content/heroLooks';
 import { BODY_HEIGHT, BODY_WIDTH } from '../../../lib/heroFigure';
-import { URIEL_ATLAS, urielFrameAt, urielFrameBox, urielPoseOf } from '../../../lib/urielMotion';
-import { ProgressiveSvgImage } from '../../ui/ProgressiveImage';
+import { URIEL_ATLAS, urielPlayback, urielPoseOf } from '../../../lib/urielMotion';
 
 type UrielFigureProps = { size: HeroSize; action?: HeroAction | null | undefined };
 
-/** Plays the approved wing, halo, ribbon and sword rig on the existing combat action cues. */
+/** Moves one clipped image layer; the SVG viewport and battle layout stay fixed. */
 export const UrielFigure = ({ size, action }: UrielFigureProps) => {
-  const viewport = useRef<SVGSVGElement>(null);
+  const sprite = useRef<HTMLImageElement>(null);
+  const [loaded, setLoaded] = useState(false);
   const pose = urielPoseOf(action);
   const { columns, rows, width, height } = URIEL_ATLAS;
-
   const drawHeight = BODY_WIDTH[size] * height / width;
+  // Training portraits use her one-cell size; battlefield props use the boss draw size.
+  const isBattleSize = size === 3;
 
   useEffect(() => {
-    const node = viewport.current;
-    if (!node) return;
+    const image = sprite.current;
+    if (!loaded || !image || typeof image.animate !== 'function') return;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-    let handle = 0;
-    let previous = -1;
-    const update = (index: number) => {
-      if (index !== previous) node.setAttribute('viewBox', urielFrameBox(index));
-      previous = index;
-    };
+    let animation: Animation | undefined;
     const start = () => {
-      window.cancelAnimationFrame(handle);
-      if (reduced.matches) { update(0); return; }
-      const began = performance.now();
-      const tick = (timestamp: number) => {
-        const elapsed = timestamp - began;
-        update(urielFrameAt(pose, elapsed));
-        if (pose === 'hover' || elapsed < 650) handle = window.requestAnimationFrame(tick);
-      };
-      update(urielFrameAt(pose, 0));
-      handle = window.requestAnimationFrame(tick);
+      animation?.cancel();
+      if (reduced.matches) return;
+      const { frames, duration, loop } = urielPlayback(pose);
+      animation = image.animate(frames, {
+        duration,
+        iterations: loop ? Infinity : 1,
+        fill: 'both',
+      });
     };
     start();
     reduced.addEventListener('change', start);
     return () => {
-      window.cancelAnimationFrame(handle);
+      animation?.cancel();
       reduced.removeEventListener('change', start);
     };
-  }, [pose]);
+  }, [isBattleSize, loaded, pose]);
 
+  const y = BODY_HEIGHT - drawHeight;
+  if (!isBattleSize) {
+    return <image href={still} width={BODY_WIDTH[size]} height={drawHeight} y={y} />;
+  }
   return (
-    <svg
-      ref={viewport}
-      width={BODY_WIDTH[size]}
-      y={BODY_HEIGHT - drawHeight}
-      height={drawHeight}
-      viewBox={urielFrameBox(0)}
-      preserveAspectRatio="xMidYMax meet"
-      overflow="hidden"
-      data-uriel-pose={pose}
-    >
-      <ProgressiveSvgImage href={atlas} width={width * columns} height={height * rows} />
-    </svg>
+    <foreignObject width={BODY_WIDTH[size]} height={drawHeight} y={y} data-uriel-pose={pose}>
+      <div className="relative h-full w-full overflow-hidden"
+        style={{ background: loaded ? undefined : 'url("' + still + '") center / 100% 100% no-repeat' }}>
+        <img
+          ref={sprite}
+          src={atlas}
+          onLoad={() => setLoaded(true)}
+          alt=""
+          draggable={false}
+          className="pointer-events-none absolute left-0 top-0 max-w-none motion-safe:will-change-transform"
+          style={{ width: `${columns * 100}%`, height: `${rows * 100}%` }}
+        />
+      </div>
+    </foreignObject>
   );
 };
