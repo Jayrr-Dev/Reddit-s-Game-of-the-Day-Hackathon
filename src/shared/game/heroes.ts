@@ -501,7 +501,7 @@ export const HEROES = {
     move('Dagger Cast', shoot(8), bleed(1)),
   ]),
 
-  twinAxeKnight: armored(hero('Twin-Axe Knight', 'boss', 205, 42, 5, FRONT, [
+  twinAxeKnight: armored(hero('General Khan', 'boss', 205, 42, 5, FRONT, [
     move('Twin Cleave', strike(9, 2), bleed(2)),
     move('Iron Brace', guard(19)),
     signature(move('Executioner’s Cross', strike(12, 2))),

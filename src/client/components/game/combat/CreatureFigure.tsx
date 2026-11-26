@@ -60,7 +60,7 @@ import geonosisArt from '../../../assets/heroes/grandangel-geonosis.webp';
 import razielArt from '../../../assets/heroes/grandangel-raziel.webp';
 import zeruelArt from '../../../assets/heroes/archangel-zeruel.webp';
 import astraArt from '../../../assets/heroes/mage-borne-astra.webp';
-import twinAxeArt from '../../../assets/heroes/archangels/twin-axe-knight.webp';
+import twinAxeArt from '../../../assets/heroes/archangels/general-khan.webp';
 import { UrielFigure } from './UrielFigure';
 import zeruelArmoredArt from '../../../assets/heroes/archangels/zeruel-armored.webp';
 import alphaPlasmaArt from '../../../assets/heroes/archangels/alpha-plasma.webp';
