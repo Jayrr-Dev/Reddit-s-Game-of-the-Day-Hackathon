@@ -75,7 +75,7 @@ import { movementCost, offeredMovement } from '../../../shared/game/movement';
 import { MovementCard } from './CardView';
 import { DraggedCard } from './combat/DraggedCard';
 import { EnergyTray } from './combat/EnergyTray';
-import { positionForCard } from '../../../shared/game/combat';
+import { positionForCard, soleTargetFor } from '../../../shared/game/combat';
 import { CardPlayHistory } from './combat/CardPlayHistory';
 import { FanHand } from './combat/FanHand';
 import { HitNumbers } from './combat/HitNumbers';
@@ -363,7 +363,7 @@ export const CombatView = ({
       const heavy = id === 'siegeBlast' || id === 'hurlAside' || !!card?.effects.some(effect => effect.kind === 'damage' && effect.amount >= 12);
       const light = !!card?.effects.some(effect => effect.kind === 'damage' && effect.amount <= 4);
 
-      playCombatImpact(id === 'reap' ? 'curse' : card?.type, card?.element, card?.edge, card?.type === 'melee' && card.edge !== 'sharp' ? .92 : .76, heavy, light);
+      playCombatImpact(card?.type, card?.element, card?.edge, card?.type === 'melee' && card.edge !== 'sharp' ? .92 : .76, heavy, light);
     }
     if (combat.heroes.some(unit => !before.heroes.some(old => old.uid === unit.uid))) playSound('move', .85, .65);
   }, [combat, heroTurn.arrowStep, heroTurn.bladeStep, heroTurn.isPlaying, incomingImpactDelay]);
@@ -645,9 +645,8 @@ export const CombatView = ({
             usesSpent={(draggedCardId && combat.usesSpent[draggedCardId]) ?? 0}
             killsThisTurn={combat.killsThisTurn ?? 0} followUpReady={combat.followUpReady}
             attacker={draggedCardId ? positionForCard(combat, draggedCardId, drag.handIndex).player : combat.player}
-            target={combat.heroes.find(
-              (unit) => unit.uid === controls.hoverUid
-            )}
+            target={combat.heroes.find((unit) => unit.uid === controls.hoverUid) ??
+              (draggedCardId ? soleTargetFor(combat, draggedCardId, drag.handIndex) : undefined)}
             box={drag.card}
             glow={controls.selfGlow}
           >

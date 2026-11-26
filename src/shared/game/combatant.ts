@@ -269,15 +269,17 @@ export const afflictionDamage = (base: number, source?: Combatant): number => {
   return Math.floor((base * (100 + traitPercent + skillPercent)) / 100);
 };
 
-export const reapDamage = (
-  hex: number,
-  multiplier: number,
-  attacker: Combatant,
-  type: CardType
-) =>
+/**
+ * Reap is a Curse card, but its damage still scales like a spell
+ * (Intelligence, Surge), as it did when it was a Magic card (Sam).
+ */
+const REAP_SCALING_TYPE: CardType = 'magic';
+
+/** Reap's damage: the target's Hex times `multiplier`, then spell bonuses. */
+export const reapDamage = (hex: number, multiplier: number, attacker: Combatant) =>
   Math.floor(
-    traitDamage(afflictionDamage(hex * multiplier, attacker), attacker, type, 1)
-  ) + typeBonus(attacker, type);
+    traitDamage(afflictionDamage(hex * multiplier, attacker), attacker, REAP_SCALING_TYPE, 1)
+  ) + typeBonus(attacker, REAP_SCALING_TYPE);
 
 export const buffedAttackDamage = (
   base: number,

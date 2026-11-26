@@ -390,6 +390,18 @@ export const targetsFor = (state: CombatState, cardId: CardId, handIndex?: numbe
   targetsInPosition(positionForCard(state, cardId, handIndex), cardId);
 
 /**
+ * The one hero an aimed card could hit, when there is only one, so the
+ * card can preview its numbers for that hero before it is aimed.
+ */
+export const soleTargetFor = (
+  state: CombatState, cardId: CardId, handIndex?: number
+): HeroUnit | undefined => {
+  if (targetRuleOf(cardId) === 'none') return undefined;
+  const legal = targetsFor(state, cardId, handIndex);
+  return legal.length === 1 ? legal[0] : undefined;
+};
+
+/**
  * True when an untargeted card would be wasted: it only acts on heroes,
  * through area effects, and none of them reach anyone (a front-row
  * sweep like Cleave while the front row stands empty).
@@ -887,7 +899,7 @@ const reapHex = (
     state,
     resolveTargets(state, 'one', targetUid, cardDef.type),
     (unit, factor) =>
-      takeHit(unit, reapDamage(unit.statuses.hex, multiplier, state.player, cardDef.type) * factor, cardDef.type, false, state.player),
+      takeHit(unit, reapDamage(unit.statuses.hex, multiplier, state.player) * factor, cardDef.type, false, state.player),
     cardDef,
     hasLongRange
   );
@@ -922,7 +934,7 @@ const applyOnPortrait = (
     case 'damage':
     case 'reap': {
       const amount = effect.kind === 'reap'
-        ? reapDamage(player.statuses.hex, effect.multiplier, player, cardDef.type)
+        ? reapDamage(player.statuses.hex, effect.multiplier, player)
         : attackDamage(effect.amount, player, cardDef.type, play.isRampage, hitsPerPlay(cardDef), cardDef.edge);
       const criticalChance = critChance(cardDef.type, 1 + accuracyBonusOf(player, cardDef.type));
       const [critical, current] = criticalChance > 0 && criticalChance < 1 ? rollShot(state, criticalChance)

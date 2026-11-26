@@ -305,8 +305,9 @@ export const describeCardEffect = (
     case 'enfeeble':
       return `Enfeeble ${tierNumeral((target?.statuses.enfeeble ?? 0) + (effect.times ?? 1) + (attacker ? scornBonus(attacker, 'enfeeble') : 0))}${areaWord(effect.target)}`;
     case 'reap': {
-      if (!target) return `Damage ${effect.multiplier}× Hex`;
-      const amount = attacker ? reapDamage(target.statuses.hex, effect.multiplier, attacker, cardDef.type) : target.statuses.hex * effect.multiplier;
+      // Unaimed, the damage is unknown: the hint line says what it scales with.
+      if (!target) return 'Damage ?';
+      const amount = attacker ? reapDamage(target.statuses.hex, effect.multiplier, attacker) : target.statuses.hex * effect.multiplier;
       return `Damage ${amount}`;
     }
     case 'guard': {
@@ -748,6 +749,9 @@ const elementLines = (cardDef: CardDef, attacker?: Combatant): string[] => {
   return [`${label} ${onHit.amount + (attacker ? scornBonus(attacker, onHit.status) : 0)} per hit`];
 };
 
+/** Reap's unaimed hint: what its damage scales with. */
+const reapHintLine = (multiplier: number): string => `(${multiplier}x target's Hex)`;
+
 /**
  * A card's rules lines: Target N, then its effects (its type shows
  * reach). Its keywords are left out: on screen they are
@@ -778,6 +782,7 @@ export const describeCardRules = (
       isRampage,
       guardRepeats
     );
+    if (effect.kind === 'reap' && !target) return [line, reapHintLine(effect.multiplier)];
     if (effect.kind === 'disrupt') return [line,
       ...(effect.allAfflictions ? [`Debuffs −${effect.amount}`] : []),
       ...(effect.hitLimitTurns ? [`Max 1 hit for ${effect.hitLimitTurns} ${effect.hitLimitTurns === 1 ? 'turn' : 'turns'}`] : []),

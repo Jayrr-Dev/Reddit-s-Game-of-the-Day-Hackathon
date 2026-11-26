@@ -48,6 +48,7 @@ import {
   startPlayerTurn,
   startCombat,
   targetsFor,
+  soleTargetFor,
   wouldFell,
   autoTargets,
   playDamageFactor,
@@ -2126,7 +2127,7 @@ void test('Piercing can be imbued onto a single-target attack, for the turn', ()
 });
 
 // --- CURSES ---
-void test('Curse cards never deal direct damage, and all of them lay Hex', () => {
+void test('Curse cards never deal direct damage, and all of them lay or reap Hex', () => {
   const curses = ALL_CARD_IDS.filter((id) => getCard(id).type === 'curse');
   for (const id of curses)
     assert.ok(
@@ -2136,7 +2137,7 @@ void test('Curse cards never deal direct damage, and all of them lay Hex', () =>
   // ...and every one of them lays Hex.
   for (const id of curses)
     assert.ok(
-      getCard(id).effects.some((effect) => effect.kind === 'hex'),
+      getCard(id).effects.some((effect) => effect.kind === 'hex' || effect.kind === 'reap'),
       `${id} lays no Hex`
     );
 });
@@ -2882,6 +2883,19 @@ void test('Endurance sets turn energy, retention and the cap on energy gains', (
   assert.equal(finished.reserve, 12);
   assert.equal(startPlayerTurn(finished).energy, 18);
   assert.equal(playCard({ ...fightWith(['bloodPact']), energy: 9 }, 0, -1).energy, 10);
+});
+void test('Reap is a Curse card that reads Damage ? until it is aimed', () => {
+  assert.equal(getCard('reap').type, 'curse');
+  assert.deepEqual(describeCard('reap'), ['Damage ?', "(2x target's Hex)"]);
+  const fight = traitFight('reap', {});
+  const target = addStatus(fight.heroes[0]!, 'hex', 3);
+  assert.deepEqual(describeCard('reap', fight.player, target), ['Damage 6']);
+});
+void test('a card previews its numbers on the only hero it can hit', () => {
+  const alone = fightWith(['reap']);
+  assert.equal(soleTargetFor(alone, 'reap', 0)?.uid, alone.heroes[0]!.uid);
+  assert.equal(soleTargetFor(squireAndArcher(['reap']), 'reap', 0), undefined);
+  assert.equal(soleTargetFor(alone, 'mend'), undefined);
 });
 void test('Reap previews and deals Intelligence-scaled magic damage based on target Hex', () => {
   const fight = traitFight('reap', { intelligence: 64 });

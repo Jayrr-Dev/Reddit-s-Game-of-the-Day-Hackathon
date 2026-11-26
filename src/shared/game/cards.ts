@@ -515,7 +515,7 @@ export const CARDS = {
   eagleEye: card('Eagle Eye', 'imbue', 0, 'uncommon', [
     imbue({ kind: 'keyword', keyword: 'longRange' }),
   ]),
-  reap: card('Reap', 'magic', 1, 'uncommon', [reap(2)]),
+  reap: card('Reap', 'curse', 1, 'uncommon', [reap(2)]),
   seethe: card('Seethe', 'buff', 1, 'uncommon', [wrath(2)], REMOVES),
   impale: card('Impale', 'melee', 2, 'uncommon', [hit(10), bleed(4)], {
     ...PIERCES,
