@@ -15,6 +15,8 @@ export type TopBarProps = {
   onOpenDeck: () => void;
   onOpenCharacter: () => void;
   onOpenMenu: () => void;
+  /** When set, an Exit Battle button sits in the top-left corner. */
+  onExitBattle?: (() => void) | undefined;
 };
 
 // --- COMPONENT ---
@@ -26,8 +28,16 @@ export const TopBar = ({
   onOpenMenu,
   onOpenDeck,
   onOpenCharacter,
+  onExitBattle,
 }: TopBarProps) => (
   <header className="table-header relative z-30 shrink-0">
+    {/* Pinned under the arena plaque so the name keeps its centred plaque. */}
+    {onExitBattle && (
+      <button type="button" className="table-exit" title="Exit Battle" aria-label="Exit Battle" onClick={onExitBattle}>
+        <Glyph name="back" className="size-3" />
+        <span>Exit Battle</span>
+      </button>
+    )}
     <div className="table-brand">
       <strong title={location}>{location}</strong>
     </div>

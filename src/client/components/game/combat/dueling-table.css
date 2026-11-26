@@ -102,6 +102,22 @@
 .table-book svg {
   width: 16px;
 }
+/* Exit Battle: same brass chip as the right-hand tools, pinned to the
+   field's top-left corner just under the arena plaque, so it never covers
+   the plaque art or squeezes the arena name. */
+.table-header button.table-exit {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 10px;
+  height: 20px;
+  z-index: 1;
+  display: flex;
+  gap: 3px;
+  width: auto;
+  padding-inline: 5px;
+  font: bold clamp(9px, 1.4cqw, 12px) / 1 Georgia, serif;
+  color: var(--gold-light);
+}
 
 .table-controls {
   position: relative;

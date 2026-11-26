@@ -122,6 +122,8 @@ export type CombatViewProps = {
   renderTrainingMenu?: (resume: () => void, guides: ReactNode) => ReactNode;
   /** Open the pause menu on mount (training starts on its Scenarios picker). */
   startsPaused?: boolean;
+  /** Shows an Exit Battle button in the top-left corner (Illusion Training). */
+  onExitBattle?: (() => void) | undefined;
 };
 
 // --- HELPERS ---
@@ -250,6 +252,7 @@ export const CombatView = ({
   pauseActions,
   renderTrainingMenu,
   startsPaused = false,
+  onExitBattle,
   manualTurns,
   tutorialCue, levelGuide, onPileClosed, onCharacterOpened, onCharacterClosed, allowCombatAction,
 }: CombatViewProps) => {
@@ -562,6 +565,7 @@ export const CombatView = ({
           where={where}
           score={score}
           onOpenMenu={() => setIsPaused(true)}
+          onExitBattle={onExitBattle}
           onOpenDeck={() => setOpenPile('deck')}
           onOpenCharacter={() => { setShowCharacter(true); onCharacterOpened?.(); }}
         />

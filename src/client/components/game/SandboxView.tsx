@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { useGameSettings } from '../../hooks/useGameSettings';
 import { useSandbox } from '../../hooks/useSandbox';
 import { Button } from '../ui/Button';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { IconButton } from '../ui/IconButton';
 import { DeathScreen } from './DeathScreen';
 import { CombatView } from './CombatView';
@@ -27,6 +28,7 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
   } = useSandbox();
   const [selectedMap, setSelectedMap] = useState<number | null>(null);
   const [arenaOverride, setArenaOverride] = useState<BossArena | null | undefined>(undefined);
+  const [isConfirmingExit, setIsConfirmingExit] = useState(false);
   const arena = arenaOverride !== undefined ? arenaOverride ?? undefined : combat ? bossArenaOf(combat.heroes.map(unit => unit.heroId), combat.fallen.map(unit => unit.heroId)) : undefined;
   const terrainIndex = selectedMap ?? (PRACTICE_TERRAIN_START + round) % MAP_NAMES.length;
   const themePreview = useThemePreview(MAP_NAMES[terrainIndex] ?? '');
@@ -94,8 +96,16 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
               score={0}
               onAction={act}
               renderTrainingMenu={trainingMenu}
+              onExitBattle={() => setIsConfirmingExit(true)}
             />
           </div>
+          {/* A corner tap mid-fight is easy to make by accident, so ask first. */}
+          {isConfirmingExit && (
+            <ConfirmDialog title="Exit battle?" confirmLabel="Exit" cancelLabel="Keep fighting"
+              onConfirm={thenStopPreview(onExit)} onCancel={() => setIsConfirmingExit(false)}>
+              This illusion ends and you return to the menu.
+            </ConfirmDialog>
+          )}
           {combat.player.hp <= 0 && (
             <DeathScreen title="Illusion broken" epitaph="The spell breaks. The wound leaves no mark."
               buttonLabel="Retry training" onContinue={retry} />
