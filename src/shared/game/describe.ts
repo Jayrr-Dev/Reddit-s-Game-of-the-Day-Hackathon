@@ -382,7 +382,7 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
   },
   exhaust: {
     label: 'Use',
-    description: `Play it ${EXHAUST_USES} times in the run\nThen it **Exhausts**: gone for good`,
+    description: 'Limited plays per run\nAfter the last play, this copy **Exhausts**',
   },
   charge: {
     label: 'Charge',
@@ -557,9 +557,27 @@ const KEYWORD_LABEL = (keyword: CardKeyword): string =>
  * An Exhaust card's count, counting up to its last use: "Use 1/3" on
  * a fresh card, "Use 3/3" on its last.
  */
-const useCountLabel = (cardId: CardId, usesSpent: number, bonusUses = 0): string => {
-  const uses = usesOf(cardId, bonusUses) ?? EXHAUST_USES;
+const usesForCard = (cardId: CardId, attacker?: Pick<Combatant, 'skillPicks'>) =>
+  usesOf(cardId, bonusUsesOf(getCard(cardId).type, attacker?.skillPicks));
+
+const useCountLabel = (cardId: CardId, usesSpent: number, attacker?: Combatant): string => {
+  const uses = usesForCard(cardId, attacker) ?? EXHAUST_USES;
   return `${KEYWORD_INFO.exhaust.label} ${Math.min(usesSpent + 1, uses)}/${uses}`;
+};
+
+/** Explains the live remaining plays on this copy, including skill bonuses. */
+export const describeCardUse = (
+  cardId: CardId,
+  usesSpent = 0,
+  attacker?: Pick<Combatant, 'skillPicks'>
+): StatusInfo | null => {
+  const uses = usesForCard(cardId, attacker);
+  if (uses === null) return null;
+  const left = Math.max(0, uses - usesSpent);
+  return {
+    label: KEYWORD_INFO.exhaust.label,
+    description: `**${left}** ${left === 1 ? 'play' : 'plays'} left this run\nAfter the last play, this copy **Exhausts**`,
+  };
 };
 
 /**
@@ -731,7 +749,7 @@ export const describeCard = (
     .filter(isKeywordOn)
     .map((keyword) =>
       keyword === 'exhaust'
-        ? useCountLabel(cardId, usesSpent, bonusUsesOf(cardDef.type, attacker?.skillPicks))
+        ? useCountLabel(cardId, usesSpent, attacker)
         : KEYWORD_LABEL(keyword)
     )
     .join(', ');

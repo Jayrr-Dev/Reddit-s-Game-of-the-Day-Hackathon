@@ -21,7 +21,7 @@ import type { InitResponse, LeaderboardEntry } from '../../../shared/types/api';
 import {
   LOGO_SUBTITLE,
 } from '../../content/lore';
-import { ICON_AUTHORS } from '../../content/gameIcons';
+import { CombatRulesSlides } from './CombatRulesSlides';
 import { LeaderboardList } from '../LeaderboardList';
 import { Button } from '../ui/Button';
 import { Glyph, type GlyphName } from '../ui/Glyph';
@@ -158,16 +158,6 @@ const Hero = ({ data }: { data: InitResponse }) => (
   </div>
 );
 
-const RulesSheet = () => (
-  <div className="rules-reference">
-    <dl>
-      <dt>Play a card</dt><dd>The gold number is its energy cost. Tap an attack, then a glowing enemy.</dd>
-      <dt>Check your reach</dt><dd>Melee hits the front row. Bows and spells can target enemies farther back.</dd>
-      <dt>Prepare for their turn</dt><dd>Read the enemy’s intent. Play Guard to block damage, then press End Turn to draw again.</dd>
-    </dl>
-    <details><summary>Icon credits</summary><p>Icons by {ICON_AUTHORS.join(', ')} from game-icons.net, CC BY 3.0.</p></details>
-  </div>
-);
 // --- COMPONENT ---
 /** Renders the title screen and its two sheets. */
 export const IntroView = ({
@@ -224,8 +214,8 @@ export const IntroView = ({
       </div>
       {sheet === 'shop' && <MetatronShop onClose={closeSheet} />}
       {sheet === 'rules' && (
-        <MenuPanel title="How to play" onClose={closeSheet}>
-          <RulesSheet />
+        <MenuPanel title="Combat Rules" onClose={() => setSheet('tutorial')} wide>
+          <CombatRulesSlides />
         </MenuPanel>
       )}
       {sheet === 'board' && (

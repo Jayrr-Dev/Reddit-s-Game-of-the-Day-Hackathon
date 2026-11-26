@@ -16,11 +16,12 @@ export type MenuPanelProps = {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  wide?: boolean;
 };
 
 // --- COMPONENT ---
 /** Renders the sheet with a title, its content and a close button. */
-export const MenuPanel = ({ title, onClose, children }: MenuPanelProps) => (
+export const MenuPanel = ({ title, onClose, children, wide = false }: MenuPanelProps) => (
   <section
     role="dialog"
     aria-label={title}
@@ -30,8 +31,8 @@ export const MenuPanel = ({ title, onClose, children }: MenuPanelProps) => (
       {title}
     </h2>
     <div
-      className="flex min-h-0 w-full max-w-xs flex-1 flex-col items-center gap-3 overflow-y-auto overscroll-contain px-1 py-3"
-      style={SCROLL_FADE_STYLE}
+      className={`flex min-h-0 w-full flex-1 flex-col items-center gap-3 overflow-y-auto overscroll-contain px-1 py-3 ${wide ? 'max-w-3xl' : 'max-w-xs'}`}
+      style={wide ? undefined : SCROLL_FADE_STYLE}
     >
       {children}
     </div>

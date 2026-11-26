@@ -3591,3 +3591,28 @@ textarea,
   .progressive-image { transition: none; }
   .progressive-fade-in { animation-duration: 1ms; }
 }
+
+/* Combat rules: keep navigation visible while the current slide scrolls. */
+.combat-rules-slides { width:100%; color:var(--color-ink); }
+.combat-rules-nav { position:sticky; top:-1px; z-index:3; display:grid; grid-template-columns:1fr minmax(90px,1.4fr) 1fr; align-items:center; gap:8px; padding:4px 0 9px; background:var(--color-surface); }
+.combat-rules-position { display:grid; justify-items:center; text-align:center; color:var(--color-accent); font-size:13px; line-height:1.25; }
+.combat-rules-position span { font-size:11px; color:var(--color-ink-muted); }
+.combat-rules-slide { display:grid; grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr); align-items:start; gap:16px; }
+.combat-rules-art { min-width:0; position:relative; border-radius:8px; overflow:hidden; min-height:160px; display:grid; place-items:center; isolation:isolate; background:var(--color-surface-sunken); border:1px solid color-mix(in srgb,var(--color-accent) 55%,transparent); }
+.combat-rules-art>img, .combat-rules-art>.progressive-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:-1; }
+.combat-rules-cards { display:flex; justify-content:center; align-items:center; gap:8px; padding:12px; background:#17101480; width:100%; min-height:160px; }
+.combat-rules-copy h3 { margin:0 0 8px; color:var(--color-accent); font:bold 19px var(--font-display); }
+.combat-rules-copy dl { display:grid; gap:7px; margin:0; }
+.combat-rules-copy dt { font-weight:bold; font-size:12px; color:var(--color-accent); }
+.combat-rules-copy dd { margin:2px 0 0; font-size:12px; line-height:1.32; }
+.combat-rules-example { margin:9px 0 0; padding:6px 0 0; border-top:1px solid color-mix(in srgb,var(--color-accent) 35%,transparent); color:var(--color-ink-muted); font-size:11px; line-height:1.35; }
+.combat-rules-credits { margin-top:10px; color:var(--color-ink-muted); font-size:11px; }
+@media (max-width: 520px) {
+  .combat-rules-slide { grid-template-columns:1fr; gap:9px; }
+  .combat-rules-art, .combat-rules-cards { min-height:128px; }
+  .combat-rules-cards { padding:8px; }
+}
+.combat-rules-row-map { list-style:none; display:grid; gap:6px; width:100%; margin:0; padding:12px; text-align:center; color:#f8e0b6; font-weight:bold; font-size:13px; }
+.combat-rules-row-map li { padding:4px 10px; border:1px solid #eaca8d80; background:#19131bbb; }
+.combat-rules-row-map li:first-child { margin-inline:15%; }
+.combat-rules-row-map li:nth-child(2) { margin-inline:8%; }

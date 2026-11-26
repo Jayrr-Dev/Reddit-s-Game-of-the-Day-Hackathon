@@ -22,6 +22,8 @@ import { cardCost, getCard, type CardId } from '../../../shared/game/cards';
 import { MOVEMENTS } from '../../../shared/game/movement';
 import {
   describeCard,
+  describeCardUse,
+  type StatusInfo,
   IMBUE_INFO,
   DURATION_INFO,
   GLOSSARY,
@@ -183,7 +185,7 @@ const glowOf = (
  * same line without the villain's statuses; both come from the same
  * template, so the Nth number of each lines up for the comparison.
  */
-const RulesLine = ({ text, printed }: { text: string; printed: string }) => {
+const RulesLine = ({ text, printed, useInfo = null }: { text: string; printed: string; useInfo?: StatusInfo | null }) => {
   const printedParts = printed.split(KEYWORD_PATTERN);
   return (
     <span className="block">
@@ -194,6 +196,7 @@ const RulesLine = ({ text, printed }: { text: string; printed: string }) => {
             <MarkedPart
               key={index}
               part={part}
+              useInfo={useInfo}
               changeClassName={changeClass(part, printedParts[index])}
             />
           ) : (
@@ -212,13 +215,15 @@ const RulesLine = ({ text, printed }: { text: string; printed: string }) => {
 const MarkedPart = ({
   part,
   changeClassName,
+  useInfo,
 }: {
   part: string;
   changeClassName: string;
+  useInfo: StatusInfo | null;
 }) => {
   if (DURATION_WORDS.includes(part)) return <i>{part}</i>;
   const bold = <b className={`font-black ${changeClassName}`}>{part}</b>;
-  const info = GLOSSARY[part];
+  const info = useInfo?.label === part ? useInfo : GLOSSARY[part];
   if (!info) return bold;
   return (
     <Tooltip
@@ -392,6 +397,7 @@ export const CardView = ({
   const typeLook = CARD_LOOK[cardDef.type];
   // The card as printed (no statuses), to colour numbers that changed.
   const printedLines = describeCard(cardId);
+  const useInfo = describeCardUse(cardId, usesSpent, attacker);
   const look = SIZE_LOOK[size];
   const glow = glowOf(typeLook.glowVar, isSelected, isImbueTarget);
   return (
@@ -440,6 +446,7 @@ export const CardView = ({
               key={line}
               text={line}
               printed={printedLines[index] ?? line}
+              useInfo={useInfo}
             />
           )
         )}

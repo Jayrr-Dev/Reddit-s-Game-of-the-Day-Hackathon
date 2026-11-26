@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getCard, isKeywordOn, type CardId } from '../../../shared/game/cards';
-import { describeCardRules, GLOSSARY, KEYWORD_INFO } from '../../../shared/game/describe';
-import { usesOf } from '../../../shared/game/uses';
+import { describeCardRules, describeCardUse, GLOSSARY, KEYWORD_INFO } from '../../../shared/game/describe';
 import { CARD_LOOK } from '../../content/visuals';
 import { RichText } from '../ui/RichText';
 import { Glyph } from '../ui/Glyph';
@@ -14,7 +13,7 @@ const cardTerms = (id: CardId, lines: readonly string[]) => {
   const printed = ' ' + lines.join(' ').toLowerCase().replace(/[^a-z]+/g, ' ') + ' ';
   const keywords = getCard(id).keywords.filter(isKeywordOn).map(key =>
     key === 'exhaust'
-      ? { label: 'Use', description: `After **${usesOf(id)}** plays this run, this copy **Exhausts** and leaves the deck.` }
+      ? (describeCardUse(id) ?? KEYWORD_INFO.exhaust)
       : KEYWORD_INFO[key]);
   const effects = Object.values(GLOSSARY).filter(info => printed.includes(' ' + info.label.toLowerCase() + ' '));
   return [...new Map([...effects, ...keywords].map(info => [info.label, info])).values()];
