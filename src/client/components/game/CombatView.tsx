@@ -43,7 +43,7 @@ import { useAutoEndTurn } from '../../hooks/useAutoEndTurn';
 import { useCombatControls } from '../../hooks/useCombatControls';
 import { useCardFlights } from '../../hooks/useCardFlights';
 import { useCardHits } from '../../hooks/useCardHits';
-import { GRIFFON_DIVE_LAND_MS, HERO_SHOT_FLIGHT_MS, HERO_SHOT_RELEASE_MS, useHeroTurn } from '../../hooks/useHeroTurn';
+import { beatCueOf, GRIFFON_DIVE_LAND_MS, HERO_SHOT_FLIGHT_MS, HERO_SHOT_RELEASE_MS, useHeroTurn } from '../../hooks/useHeroTurn';
 import { useMoveFailPops } from '../../hooks/useMoveFailPops';
 import { useMovementBurst } from '../../hooks/useMovementBurst';
 import {
@@ -252,7 +252,7 @@ export const CombatView = ({
   const heroTurn = useHeroTurn(realCombat, onAction);
   const cardHits = useCardHits(realCombat, onAction);
   const incomingImpactDelay = heroTurn.arrowStep ? HERO_SHOT_RELEASE_MS + HERO_SHOT_FLIGHT_MS
-    : heroTurn.bossImpact === 'griffonDive' ? GRIFFON_DIVE_LAND_MS : 0;
+    : heroTurn.bossImpact?.sound === 'griffonDive' ? GRIFFON_DIVE_LAND_MS : 0;
   const { endTurn: playHeroTurn } = heroTurn;
   const { playCard: playCardHits } = cardHits;
   const combat = cardHits.isPlaying ? cardHits.shown : heroTurn.shown;
@@ -298,7 +298,6 @@ export const CombatView = ({
       unit.statuses.aloft > 0 && before.heroes.some(old => old.uid === unit.uid && old.statuses.aloft <= 0))) {
       playSound('griffonTakeoff', 1, .95);
     }
-    if (heroTurn.bossImpact === 'griffonDive') playSound('griffonDiveWhoosh', 1, .9);
     if (heroTurn.bladeStep) playSound('blade', 1.12, .82);
     if (heroTurn.arrowStep) {
       const shooter = combat.heroes.find(unit => unit.uid === heroTurn.arrowStep?.actorUid);
@@ -348,7 +347,12 @@ export const CombatView = ({
       playCombatImpact(id === 'reap' ? 'curse' : card?.type, card?.element, card?.edge, card?.type === 'melee' && card.edge !== 'sharp' ? .92 : .76, heavy, light);
     }
     if (combat.heroes.some(unit => !before.heroes.some(old => old.uid === unit.uid))) playSound('move', .85, .65);
-  }, [combat, heroTurn.arrowStep, heroTurn.bladeStep, heroTurn.bossImpact, heroTurn.isPlaying, incomingImpactDelay]);
+  }, [combat, heroTurn.arrowStep, heroTurn.bladeStep, heroTurn.isPlaying, incomingImpactDelay]);
+  // A BOSS MOVE WITH A SOUND OF ITS OWN (content/bossMoveCues) SOUNDS AS ITS BEAT BEGINS
+  useEffect(() => {
+    const cue = beatCueOf(heroTurn.cueBeat);
+    if (cue && !viewRef.current?.closest('[inert]')) playSound(cue.sound, 1, cue.gain);
+  }, [heroTurn.cueBeat]);
   const bossEntrance = useBossEntrance(combat.heroes, bossIntros);
   const isAnimating = heroTurn.isPlaying || cardHits.isPlaying;
   const lethal = useMemo(() => realCombat.player.hp > 0 && endTurn(realCombat).player.hp <= 0, [realCombat]);
@@ -510,7 +514,7 @@ export const CombatView = ({
       seen.player = pop.id;
       if (pop.kind === 'hit' && !pop.tick) {
         if (hasBlock(pop)) playBlock(pop.amount > 0);
-        if (pop.bossImpact) playSound(pop.bossImpact, 1, .95);
+        if (pop.bossImpact) playSound(pop.bossImpact.sound, 1, pop.bossImpact.gain);
         else if (pop.amount > 0) {
           playCombatImpact(pop.source, pop.element, pop.edge, .98, pop.edge !== 'sharp' && pop.amount >= 12, pop.amount <= 4);
         }

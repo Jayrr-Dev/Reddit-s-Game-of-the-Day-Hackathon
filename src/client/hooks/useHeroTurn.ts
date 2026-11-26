@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { endTurnSteps, type TurnStep } from '../../shared/game/combat';
 import type { RunAction } from '../../shared/game/run';
 import type { CombatState, HeroMove } from '../../shared/game/types';
+import { bossMoveCue, type Cue, type MoveMoment } from '../content/bossMoveCues';
 import {
   humanoidLookOf,
   MELEE_SWINGS,
@@ -129,15 +130,26 @@ function isBladeAttack(step: Beat | undefined): boolean {
   return !!unit && BLADE_PROPS.has(humanoidLookOf(unit.heroId)?.prop ?? '');
 }
 
-export type BossImpactCue = 'uncUltimate' | 'griffonDive';
 /** Matches the drop transition in index.css (FLIGHT). */
 export const GRIFFON_DIVE_LAND_MS = 260;
-const bossImpactOf = (step: Beat | undefined): BossImpactCue | undefined => {
-  if (!step || step.isCharge || !step.move?.isSignature || step.actorUid === null) return;
-  const actor = step.state.heroes.find(unit => unit.uid === step.actorUid);
-  if (actor?.heroId === 'holyDragon' && step.move.name === 'Halo of Judgment') return 'uncUltimate';
-  if (actor?.heroId === 'grandGriffon' && step.move.name === 'Heavenly Dive') return 'griffonDive';
+
+/** The sound a beat's move makes at `moment`, if its boss has its own. */
+const moveCueOf = (
+  step: Beat | undefined,
+  moment: MoveMoment
+): Cue | undefined => {
+  if (!step?.move || step.actorUid === null) return;
+  const actor = step.state.heroes.find((unit) => unit.uid === step.actorUid);
+  return actor && bossMoveCue(actor.heroId, step.move.name, moment);
 };
+
+/** The sound to play as a beat begins: a charge-up, or the move itself. */
+export const beatCueOf = (step: Beat | undefined): Cue | undefined =>
+  moveCueOf(step, step?.isCharge ? 'charge' : 'start');
+
+/** The sound a boss's move makes on contact, in place of the usual hit. */
+const bossImpactOf = (step: Beat | undefined): Cue | undefined =>
+  step?.isCharge ? undefined : moveCueOf(step, 'impact');
 
 /** Nobody acting (shared so the empty case keeps one identity). */
 const NOBODY_ACTING: ReadonlyMap<number, HeroAction> = new Map();
@@ -188,6 +200,8 @@ export const useHeroTurn = (
     /** How the attack on screen right now lands (it colours your hits). */
     attackType: step?.attackType ?? null,
     bossImpact: bossImpactOf(step),
+    /** The beat on screen, when its move has a sound of its own to start. */
+    cueBeat: beatCueOf(step) ? step : undefined,
     bladeStep: isBladeAttack(step) ? step : undefined,
     arrowStep: step && !step.isCharge && step.attackType && step.actorUid !== null && actionOf(step, step.actorUid).style === 'range' ? step : undefined,
     element: step?.attackType === 'magic' ? step.move?.element : undefined,

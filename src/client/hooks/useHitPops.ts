@@ -1,4 +1,4 @@
-import type { BossImpactCue } from './useHeroTurn';
+import type { Cue } from '../content/bossMoveCues';
 // ===================================================================
 // USE HIT POPS
 // Watches HP and guard and, whenever someone is hit, adds a "pop" that
@@ -79,7 +79,7 @@ export type Hit = {
   /** For a hit no attack dealt: the status that ticked (its own effect). */
   tick?: TickKind | undefined;
   /** Use the unique boss attack impact instead of a standard hit. */
-  bossImpact?: BossImpactCue;
+  bossImpact?: Cue;
   /** True when only the effect over the character shows (no number). */
   isQuiet?: boolean;
   /** True when this hit took the target from alive to 0 HP. */
@@ -597,7 +597,7 @@ export const usePlayerHits = (
   element?: MagicElement,
   edge?: MeleeEdge,
   impactDelay = 0,
-  bossImpact?: BossImpactCue
+  bossImpact?: Cue
 ): PlayerHitPop[] => {
   const [pops, add] = usePopQueue<Hit>(history);
   const lastRef = useRef({ player, turn });

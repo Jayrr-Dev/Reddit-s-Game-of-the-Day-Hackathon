@@ -54,3 +54,5 @@ For all 22 exploration themes, see [Map music credits](MAP_MUSIC_CREDITS.md).
 - Player character death in combat: user-supplied ElevenLabs effect (player-death-user), trimmed and converted to Ogg Vorbis. This cue is separate from the defeat screen and the human enemy death pool.
 
 - Heavenly Dive: the supplied sharp whoosh plays as Rio begins the combat dive, followed by the existing landing impact.
+
+- Tempest Wyrm Vael's moves (tempest-spear, tempest-wings, tempest-thunder, tempest-charge, tempest-sky-breaker, tempest-roar): mixed in-house from clips already credited above (the supplied Charge, Chain Lightning, Large Lightning, lightning strike and Griffon flying effects, the boss descent whoosh, the thunder impact, and one unit-death cry dropped an octave for the roar). Pitched, filtered, layered and encoded as Ogg Vorbis. Placeholders that a recorded effect can replace under the same file name.
