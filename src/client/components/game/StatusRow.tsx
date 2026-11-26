@@ -61,6 +61,7 @@ import { useFitCount } from '../../hooks/useFitCount';
 import { useShockSplash } from '../../hooks/useShockSplash';
 import { Chip, TurnsLeft, type ChipProps } from '../ui/Chip';
 import { Glyph } from '../ui/Glyph';
+import { TintedText } from '../ui/RichText';
 import { Tooltip } from '../ui/Tooltip';
 import {
   SHOCK_SPLASH,
@@ -359,7 +360,7 @@ const StatusPopover = ({
         </span>
         <p className="text-[11px] leading-snug text-ink-muted">
           <span className="font-semibold text-ink">{chip.title}. </span>
-          {chip.description}
+          <TintedText text={chip.description} />
         </p>
       </div>
     ))}

@@ -32,6 +32,7 @@ import {
   STATUS_LOOK,
   type Look,
 } from './visuals';
+import { AFFLICTION_TONE_CLASS } from './tintedWords';
 
 // --- HELPERS ---
 /** Pairs each entry's printed name with its look, by shared key. */
@@ -50,6 +51,13 @@ const byLabel = <K extends string>(
 const MOVEMENT_TERM_LOOK: Look = {
   glyph: CARD_LOOK.movement.glyph,
   toneClass: 'text-ink',
+};
+
+// --- AFFLICTION TERM ---
+/** A bold "Affliction" wears the Curse purple and skull, like Hex. */
+const AFFLICTION_TERM_LOOK: Look = {
+  glyph: 'skull',
+  toneClass: AFFLICTION_TONE_CLASS,
 };
 
 // --- TABLE ---
@@ -77,6 +85,8 @@ const GLOSSARY_LOOK: ReadonlyMap<string, Look> = new Map([
   [OUT_OF_RANGE_INFO.label, OUT_OF_RANGE_LOOK],
   ['Charge', MOVEMENT_TERM_LOOK],
   ['Back Step', MOVEMENT_TERM_LOOK],
+  ['Affliction', AFFLICTION_TERM_LOOK],
+  ['Afflictions', AFFLICTION_TERM_LOOK],
 ]);
 
 /** The look of a glossary word, if it is one. */

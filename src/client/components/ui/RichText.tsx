@@ -8,10 +8,12 @@
 // key words (dodge, all, hit, turn) and every percentage (green when it is a gain like
 // "+25%", red when a loss like "-25%"), so the numbers that decide a
 // fight stand out without markup in every description.
+// The word affliction wears the Curse purple (TintedText).
 // ===================================================================
 
 import { Fragment } from 'react';
 import { lookOfTerm } from '../../content/glossaryLooks';
+import { splitTintedWords } from '../../content/tintedWords';
 import { Glyph } from './Glyph';
 
 // --- HELPERS ---
@@ -46,6 +48,21 @@ const emphasisToneClass = (text: string): string => {
 };
 
 // --- SUBCOMPONENTS ---
+/** Plain text with its tinted words (like "affliction") coloured. */
+export const TintedText = ({ text }: { text: string }) => (
+  <>
+    {splitTintedWords(text).map((part, index) =>
+      part.toneClass ? (
+        <span key={index} className={part.toneClass}>
+          {part.text}
+        </span>
+      ) : (
+        <Fragment key={index}>{part.text}</Fragment>
+      )
+    )}
+  </>
+);
+
 /** A bold word: coloured and with its icon when it is a glossary word. */
 const BoldTerm = ({ text }: { text: string }) => {
   const look = lookOfTerm(text);
@@ -62,7 +79,10 @@ const BoldTerm = ({ text }: { text: string }) => {
   );
 };
 
-/** Plain text with its percentages and dodges in bold white. */
+/**
+ * Plain text with its percentages and dodges in bold white, and the
+ * rest tinted where it names a tinted word (affliction).
+ */
 const PlainText = ({ text }: { text: string }) => (
   <>
     {emphasisParts(text).map((part, index) =>
@@ -71,7 +91,7 @@ const PlainText = ({ text }: { text: string }) => (
           {part}
         </b>
       ) : (
-        <Fragment key={index}>{part}</Fragment>
+        <TintedText key={index} text={part} />
       )
     )}
   </>
