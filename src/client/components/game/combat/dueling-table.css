@@ -925,3 +925,15 @@
 .asset-full { display: block; max-width: 100%; max-height: 60vh; margin: 0 auto; object-fit: contain; background: repeating-conic-gradient(#2a2420 0 25%, #1c1815 0 50%) 0 0 / 16px 16px; }
 .asset-strip { width: min(16rem, 100%); aspect-ratio: var(--strip-aspect); margin: 0 auto; border-radius: 8px; background-color: #120e0b; background-repeat: no-repeat; animation: asset-strip-play .74s infinite; }
 @keyframes asset-strip-play { from { background-position-x: 0; } to { background-position-x: 100%; } }
+
+/* --- MAGIC CIRCLE LAB (DEV) --- */
+.circle-lab { display: grid; gap: 10px; justify-items: center; }
+.circle-lab-preview { display: grid; place-items: center; width: min(15rem, 100%); aspect-ratio: 1; padding: 12px; border-radius: 8px; background: radial-gradient(circle, #2c2620 0%, #100c09 80%); }
+.circle-lab-controls { display: grid; gap: 6px; width: 100%; max-width: 26rem; font-size: 12px; }
+.circle-lab-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.circle-lab-row > span { min-width: 44px; color: var(--color-ink-muted); text-transform: uppercase; font-weight: bold; font-size: 10px; letter-spacing: .08em; }
+.circle-lab-row button { padding: 3px 10px; border: 1px solid var(--color-edge); border-radius: 999px; background: var(--color-surface-raised); color: var(--color-ink); text-transform: capitalize; }
+.circle-lab-row button[aria-pressed=true] { border-color: var(--color-accent); background: var(--color-accent); color: var(--color-on-accent); }
+.circle-lab-row input[type=color] { width: 36px; height: 26px; padding: 0; border: 1px solid var(--color-edge); border-radius: 4px; background: none; }
+.circle-lab-row input[type=number] { width: 64px; padding: 2px 6px; border: 1px solid var(--color-edge); border-radius: 4px; background: var(--color-surface-raised); color: var(--color-ink); }
+.circle-lab-thumb { width: 26px; flex: none; }
