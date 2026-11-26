@@ -28,6 +28,7 @@ import {
   SHARPSHOOTER_ACCURACY_BONUS,
   SHARPSHOOTER_DAMAGE_FACTOR,
   OUT_OF_RANGE_ROW,
+  ROW_LABEL,
   EXHAUST_USES,
   SHOCK_BURST_FACTOR,
   SHOCK_HITS,
@@ -244,13 +245,13 @@ type AimTarget = 'one' | 'all' | 'random';
 
 /**
  * " ALL" after an area effect's name ("Damage ALL 14", "Hex ALL 4").
- * A melee sweep only reaches the front, so it reads "to Line 1" after
+ * A melee sweep only reaches the front, so it reads "to Frontline" after
  * the number instead (see areaSuffix).
  */
 const areaWord = (target: AimTarget, isMelee = false): string =>
   target === 'all' && !isMelee ? ' ALL' : '';
 
-/** " to Line 1" after a melee sweep's number; nothing otherwise. */
+/** " to Frontline" after a melee sweep's number; nothing otherwise. */
 const areaSuffix = (target: AimTarget, isMelee = false): string => {
   if (target === 'random') return ` ${RANDOMLY_INFO.label}`;
   return target === 'all' && isMelee ? ` to ${rowLabel('front')}` : '';
@@ -397,7 +398,7 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
   },
   longRange: {
     label: 'Longrange',
-    description: 'Ignores **Out of Range**\nNever misses into **Line 3**',
+    description: `Ignores **Out of Range**\nNever misses into **${ROW_LABEL.horizon}**`,
   },
 };
 
@@ -490,26 +491,26 @@ export const CLEANSE_INFO: StatusInfo = {
  * only.
  */
 /**
- * What players call each row (Line 1 is nearest the villain) and what
+ * What players call each row (the Frontline is nearest the villain) and what
  * it means. The engine's names (front, back, horizon) never show.
  */
 export const ROW_INFO: Record<HeroRow, StatusInfo> = {
   front: {
-    label: 'Line 1',
+    label: ROW_LABEL.front,
     description: 'The nearest row\n**Melee** reaches only here',
   },
   back: {
-    label: 'Line 2',
+    label: ROW_LABEL.back,
     description: 'The middle row\nArchers and healers keep here',
   },
   horizon: {
-    label: 'Line 3',
+    label: ROW_LABEL.horizon,
     description:
       'The farthest row\nNew heroes march in from here\nShots from or into it are **Out of Range**',
   },
 };
 
-/** A row's player-facing name: "Line 1", "Line 2", "Line 3". */
+/** A row's player-facing name (see ROW_LABEL in rules.ts). */
 export const rowLabel = (row: HeroRow): string => ROW_INFO[row].label;
 
 /** Where each row sits, in plain words (hero plates and the Units tab). */
@@ -541,7 +542,7 @@ export const GLOSSARY: Readonly<Record<string, StatusInfo>> =
     [
       ...Object.values(STATUS_INFO),
       ...Object.values(KEYWORD_INFO),
-        { label: 'Charge', description: 'Move forward when Line 1 is empty and gain **Momentum**' },
+        { label: 'Charge', description: `Move forward when the ${ROW_LABEL.front} is empty and gain **Momentum**` },
         { label: 'Back Step', description: 'Move back if there is room. Gain **Reflex**.' },
       { label: 'Energy', description: 'Gain this much energy immediately to spend on cards or movement.' },
       IMBUE_INFO,

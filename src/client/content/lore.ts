@@ -5,6 +5,7 @@
 // ===================================================================
 
 import type { StopKind } from '../../shared/game/kingdom';
+import { ROW_LABEL } from '../../shared/game/rules';
 
 // --- STORY ---
 export const STORY_LINES = [
@@ -22,7 +23,7 @@ export const TAGLINE =
 // --- HOW TO PLAY ---
 export const HOW_TO_PLAY = [
   'Tap a card, then tap a glowing hero. 3 energy a turn.',
-  'Melee hits Line 1. Range, Magic and Curse hit anyone.',
+  `Melee hits the ${ROW_LABEL.front}. Range, Magic and Curse hit anyone.`,
   'Pull a hiding healer forward. Every 5th stop is a champion.',
 ] as const;
 

@@ -348,7 +348,7 @@ const longRangeHit = (perHit: number, factor = LONG_RANGE_DAMAGE_FACTOR): number
 
 /**
  * The villain's long-range factor at `unit`: the base bonus, plus
- * SKIRMISHER (skill tree) when the hero stands on Line 2 ('back').
+ * SKIRMISHER (skill tree) when the hero stands on Midline ('back').
  */
 const villainLongRangeFactor = (unit: HeroUnit, picks?: readonly SkillPick[]): number =>
   LONG_RANGE_DAMAGE_FACTOR + (unit.row === 'back' ? lineTwoRangeBonusOf(picks) : 0);
@@ -675,7 +675,7 @@ export const targetDamageFactor = (
  * with Guard or Armor harder; a Sharp one hits a hero with neither harder.
  */
 const skillTargetFactor = (unit: HeroUnit, cardDef: CardDef, picks?: readonly SkillPick[]): number => {
-  // BATTLEMAGE / SNIPER (skill tree): Magic at Line 1, Range past it.
+  // BATTLEMAGE / SNIPER (skill tree): Magic at Frontline, Range past it.
   if (cardDef.type === 'magic' && unit.row === 'front') return 1 + battlemageBonusOf(picks);
   if (cardDef.type === 'range' && unit.row !== 'front') return 1 + sniperBonusOf(picks);
   if (cardDef.type !== 'melee') return 1;

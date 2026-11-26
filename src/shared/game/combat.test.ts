@@ -2427,7 +2427,7 @@ void test('Distance Back Steps on a hit, no kill needed', () => {
 });
 
 void test('Distance does nothing without room to Back Step', () => {
-  // Nobody stands on Line 1: there is no line to fall back from.
+  // Nobody stands on Frontline: there is no line to fall back from.
   const state = squireAndArcher(['retreatingShot']);
   const allBack: CombatState = {
     ...state,

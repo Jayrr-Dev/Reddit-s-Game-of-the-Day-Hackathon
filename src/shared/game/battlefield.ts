@@ -92,7 +92,7 @@ export const rowDepth = (row: HeroRow): number => BATTLEFIELD_ROWS.indexOf(row);
 export const rowShifted = (row: HeroRow, steps: number): HeroRow | null =>
   activeRows()[rowDepth(row) + steps] ?? null;
 
-/** The farthest row's depth (Line 3, or Line 2 with the flag off). */
+/** The farthest row's depth (Backline, or Midline with the flag off). */
 const lastRowDepth = (): number => activeRows().length - 1;
 
 /** How many columns a hero fills. */
@@ -449,7 +449,7 @@ const nearestDepth = (heroes: readonly HeroUnit[]): number =>
  * Who moves when the villain Charges, Back Steps or is knocked back:
  * everyone but the Anchored heroes, who hold their line. When only
  * Anchored heroes are left they move too, so the villain can always
- * close in on the last one (a lone Ballista on Line 3 would otherwise
+ * close in on the last one (a lone Ballista on Backline would otherwise
  * be out of Melee reach for good).
  */
 const fieldMovers = (heroes: readonly HeroUnit[]): HeroUnit[] => {

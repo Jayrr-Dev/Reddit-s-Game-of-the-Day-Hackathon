@@ -100,8 +100,8 @@ export const BATTLEFIELD_COLUMNS = 3;
  */
 export const RESERVE_SPOTS_PER_LINE = 2;
 /**
- * The battlefield's rows, nearest to the villain first: Line 1, Line 2
- * and Line 3 (the Horizon). Every row rule (pulls, pushes, Charge, Back
+ * The battlefield's rows, nearest to the villain first: Frontline,
+ * Midline and Backline (the Horizon). Every row rule (pulls, pushes, Charge, Back
  * Step, Piercing) walks this list (see activeRows in battlefield.ts),
  * so its length is the row count. With the three-row flag off (see
  * features.ts) only the first BASE_ROW_COUNT rows are in play.
@@ -112,6 +112,17 @@ export const BATTLEFIELD_ROWS: readonly HeroRow[] = [
   'horizon',
 ];
 export const BASE_ROW_COUNT = 2;
+/**
+ * ROW LABELS: the one place a row's player-facing name is written.
+ * Every tooltip, help line and tutorial step reads these, so renaming a
+ * line is a one-line change. The engine ids (front, back, horizon) and
+ * save data never change.
+ */
+export const ROW_LABEL: Readonly<Record<HeroRow, string>> = {
+  front: 'Frontline',
+  back: 'Midline',
+  horizon: 'Backline',
+};
 /**
  * OUT OF RANGE: the farthest row. A Range or Magic shot fired from it,
  * or into it, lands only this share of the time (rolled per hit on the

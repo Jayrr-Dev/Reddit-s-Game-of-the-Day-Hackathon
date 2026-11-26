@@ -1,5 +1,6 @@
 import type { CardId } from '../../../shared/game/cards';
 import type { HeroId } from '../../../shared/game/heroes';
+import { ROW_LABEL } from '../../../shared/game/rules';
 import type { MovementId } from '../../../shared/game/types';
 import duelArt from '../../assets/table/melee.webp';
 import pileArt from '../../assets/table/imbue.webp';
@@ -73,7 +74,7 @@ export const lessons: Lesson[] = [
       play(
         'backhand',
         'Play Backhand',
-        'Spend 1 energy on Backhand, then strike the Squire in Line 1.'
+        `Spend 1 energy on Backhand, then strike the Squire on the ${ROW_LABEL.front}.`
       ),
       play(
         'darkCloak',
@@ -157,24 +158,24 @@ export const lessons: Lesson[] = [
     steps: [
       inspect(
         '[data-hero-row="front"]',
-        'Line 1',
-        'Tap the Squire in Line 1. Backhand can hit it here. The Archer starts one line farther away.'
+        ROW_LABEL.front,
+        `Tap the Squire on the ${ROW_LABEL.front}. Backhand can hit it here. The Archer starts one line farther away.`
       ),
       {
         kind: 'move',
         move: 'backStep',
         label: 'Back Step',
-        tip: 'Play Back Step. Watch the Squire move to Line 2 and the Archer to Line 3.',
+        tip: `Play Back Step. Watch the Squire move to the ${ROW_LABEL.back} and the Archer to the ${ROW_LABEL.horizon}.`,
       },
       inspect(
         '[data-hero-row="back"]',
-        'Line 2',
-        'Tap the Squire again. Line 1 is empty, so Backhand has no target.'
+        ROW_LABEL.back,
+        `Tap the Squire again. The ${ROW_LABEL.front} is empty, so Backhand has no target.`
       ),
       inspect(
         '[data-hero-row="horizon"]',
-        'Line 3',
-        'Tap the Archer at the Horizon. Range and Magic shots into or out of Line 3 can miss. Longrange ignores that penalty.'
+        ROW_LABEL.horizon,
+        `Tap the Archer on the ${ROW_LABEL.horizon}. Range and Magic shots into or out of the ${ROW_LABEL.horizon} can miss. Longrange ignores that penalty.`
       ),
       play(
         'bloodPact',
@@ -190,7 +191,7 @@ export const lessons: Lesson[] = [
       play(
         'backhand',
         'Use Momentum',
-        'The Squire is back in Line 1. Strike it with Backhand to use Momentum for extra melee damage.'
+        `The Squire is back on the ${ROW_LABEL.front}. Strike it with Backhand to use Momentum for extra melee damage.`
       ),
     ],
   },

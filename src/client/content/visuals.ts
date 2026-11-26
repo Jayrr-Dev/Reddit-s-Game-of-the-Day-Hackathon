@@ -7,6 +7,7 @@
 
 import type { IntentKind } from '../../shared/game/describe';
 import type { StopKind } from '../../shared/game/kingdom';
+import { ROW_LABEL } from '../../shared/game/rules';
 import type {
   CardKeyword,
   CardRarity,
@@ -86,7 +87,7 @@ export const KEYWORD_LOOK: Record<CardKeyword, Look> = {
 
 // --- OUT OF RANGE ---
 /**
- * The chip on a hero standing in Out of Range (Line 3 without
+ * The chip on a hero standing in Out of Range (Backline without
  * Longrange): its shots, and shots at it, land only some of the time.
  */
 export const OUT_OF_RANGE_LOOK: Look = {
@@ -348,7 +349,7 @@ export const MOVEMENT_LOOK: Record<MovementId, MovementLook> = {
     label: 'Back Step',
     glyph: 'march',
     description:
-      'You move back **1** line\nEvery hero ends up 1 line farther, up to **Line 3**\nOut of **Melee** reach',
+      `You move back **1** line\nEvery hero ends up 1 line farther, up to the **${ROW_LABEL.horizon}**\nOut of **Melee** reach`,
     speedLines: 'out',
     toneClass:
       'bg-surface-raised shadow-[0_0_14px_var(--color-guard)] [&_svg]:rotate-180',

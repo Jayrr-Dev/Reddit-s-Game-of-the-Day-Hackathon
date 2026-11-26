@@ -10,6 +10,7 @@ import {
 } from '../../../shared/game/character';
 import { combatOutcome, endTurn, playCard } from '../../../shared/game/combat';
 import { move } from '../../../shared/game/movement';
+import { ROW_LABEL } from '../../../shared/game/rules';
 import type { RunAction } from '../../../shared/game/run';
 import { createSandboxWith } from '../../../shared/game/sandbox';
 import { Button } from '../ui/Button';
@@ -259,7 +260,7 @@ function LessonFight({
                 (lesson.id === 'piles'
                   ? 'You played Backhand twice. The reshuffle returned it to your hand, Hold kept Ruin in hand, and Blood Pact stayed removed.'
                   : lesson.id === 'rows'
-                    ? 'You opened Line 1 with Back Step, closed the gap with Charge, and spent Momentum on a melee hit.'
+                    ? `You opened the ${ROW_LABEL.front} with Back Step, closed the gap with Charge, and spent Momentum on a melee hit.`
                     : 'You applied Poison and watched it trigger before the enemy acted.'))}
           </p>
         </div>

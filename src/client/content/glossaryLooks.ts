@@ -59,7 +59,7 @@ const GLOSSARY_LOOK: ReadonlyMap<string, Look> = new Map([
   ['Magic', INTENT_LOOK.magic],
   ['Charge', { glyph: 'bolt', toneClass: 'text-energy' }],
   ['Back Step', { glyph: 'march', toneClass: 'text-guard' }],
-  // The rows: Line 1 to Line 3 (Line 3 is Out of Range, faded).
+  // The rows: Frontline to Backline (Backline is Out of Range, faded).
   ...Object.values(ROW_INFO).map((info): [string, Look] => [
     info.label,
     { glyph: 'march', toneClass: 'text-ink-muted' },

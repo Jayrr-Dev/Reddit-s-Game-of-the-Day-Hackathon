@@ -3485,9 +3485,8 @@ button[data-card-size]:enabled { cursor:pointer; }
 .lesson-book footer .oak-menu-button {max-width:150px}
 
 .first-fight[data-lesson="rows"] [data-hero-row]::after {position:absolute;bottom:0;left:50%;translate:-50% 20%;background:#26180f;color:#ffe1a0;padding:1px 5px;border:1px solid #aa824d;border-radius:3px;font:bold 11px var(--font-body);white-space:nowrap}
-.first-fight[data-lesson="rows"] [data-hero-row="front"]::after {content:"Line 1"}
-.first-fight[data-lesson="rows"] [data-hero-row="back"]::after {content:"Line 2"}
-.first-fight[data-lesson="rows"] [data-hero-row="horizon"]::after {content:"Line 3"}
+/* The row name comes from ROW_LABEL (rules.ts) via data-row-label. */
+.first-fight[data-lesson="rows"] [data-hero-row]::after {content:attr(data-row-label)}
 .profile-view {height:100%;overflow:auto;padding:clamp(12px,3vw,28px);background:linear-gradient(#21140bd9,#160d09ed),url('./assets/table/character-oak-grain.webp') center/cover;color:#f6e6c8}
 .profile-view>header,.profile-view>section,.profile-view>footer,.profile-view>p {max-width:640px;margin:0 auto 14px}
 .profile-view header,.profile-view footer,.profile-strip,.profile-classes,.profile-decklist {display:flex;align-items:center;gap:8px;flex-wrap:wrap}

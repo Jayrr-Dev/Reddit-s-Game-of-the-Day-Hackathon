@@ -447,6 +447,7 @@ export const HeroOnField = ({
       type="button"
       onClick={() => onTap(unit.uid)}
       {...{ [HERO_UID_ATTR]: unit.uid, [HERO_ROW_ATTR]: unit.row }}
+      data-row-label={rowLabel(unit.row)}
       aria-label={`${hero.name}, ${unit.hp} of ${unit.maxHp} HP, ${rowLabel(unit.row)}`}
       className={`pointer-events-auto absolute transition-[left,bottom,width,height,scale,opacity,filter] duration-500 ease-in-out motion-reduce:transition-none ${AIM_CLASS[aim]} ${action ? (LIFT_ACTION_CLASS[action.style] ?? '') : ''}`}
       style={boxStyle(unit, field)}

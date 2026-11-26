@@ -117,7 +117,7 @@ void test('Spiked Guard can strike a Paladin backed by Valen', () => {
   );
   assert.equal(after.player.guard, state.player.guard + 5);
   assert.equal(unitAt(after, 1).hp, unitAt(state, 1).hp);
-  // Line 2 is full, so the Knockback puts the Paladin in a reserve spot.
+  // Midline is full, so the Knockback puts the Paladin in a reserve spot.
   assert.equal(unitAt(after, 0).row, 'back');
   assert.equal(unitAt(after, 0).inReserve, true);
 });
@@ -312,7 +312,7 @@ void test('Knockback or Pull into a full line uses a reserve spot', () => {
   ]).heroes;
   const [squire] = heroes;
   assert.ok(squire);
-  // Line 2 is full: the Squire is knocked back into a reserve spot there.
+  // Midline is full: the Squire is knocked back into a reserve spot there.
   const pushed = pushHero(heroes, squire.uid);
   const moved = unitAt({ heroes: pushed } as CombatState, squire.uid);
   assert.equal(moved.row, 'back');
@@ -405,13 +405,13 @@ void test('Back Step always falls back exactly one row', () => {
   assert.deepEqual(placesOf(after.heroes), ['back:0', 'back:2']);
 });
 
-void test('Back Step works with heroes behind Line 1, when there is room', () => {
+void test('Back Step works with heroes behind Frontline, when there is room', () => {
   const state = fightAt([
     ['lysa', 'front', 0],
     ['squire', 'horizon', 1],
   ]);
   assert.ok(canMove(state, 'backStep'));
-  // Lysa falls back to Line 2; the Squire is already on the last line.
+  // Lysa falls back to Midline; the Squire is already on the last line.
   assert.deepEqual(placesOf(move(state, 'backStep').heroes), [
     'back:0',
     'horizon:1',
@@ -429,7 +429,7 @@ void test('Back Step moves everyone back a line where there is room', () => {
   assert.deepEqual(placesOf(after.heroes), ['back:0', 'horizon:2']);
 });
 
-void test('with nobody on Line 1 there is no Back Step (Charge instead)', () => {
+void test('with nobody on Frontline there is no Back Step (Charge instead)', () => {
   const state = fightAt([['squire', 'back', 0]]);
   assert.equal(canMove(state, 'backStep'), false);
   assert.ok(canMove(state, 'charge'));
@@ -525,7 +525,7 @@ void test('Sharpshooter shots into the Horizon never miss', () => {
     assert.ok(!sharpshotsIntoHorizon(cardId, 60).some(Boolean), cardId);
 });
 
-void test("the aim shows a shot's hit chance: 50% into Line 3, 100% with Sharpshooter", () => {
+void test("the aim shows a shot's hit chance: 50% into Backline, 100% with Sharpshooter", () => {
   const state = fightAt([['priest', 'horizon', 1]], ['spiteBolt', 'backhand']);
   const priest = unitAt(state, 0);
   assert.equal(aimHitChance(state, 0, priest), OUT_OF_RANGE_HIT_CHANCE);
@@ -626,7 +626,7 @@ void test('the Ballista fills 1 cell (drawn wider) and has Longrange', () => {
   assert.equal(getHero('ballista').size, 1);
   assert.equal(freeHeroCells(state.heroes), MAX_HERO_CELLS - 1);
   assert.ok(hasLongRangePassive(ballista));
-  // Its bolts land from Line 3, where other shooters miss.
+  // Its bolts land from Backline, where other shooters miss.
   const shots = Array.from({ length: 30 }, (_, index) => {
     const far = fightAt([['ballista', 'horizon', 0]], [], index + 1);
     const steps = endTurnSteps(far);
@@ -695,7 +695,7 @@ void test('Anchored units hold their line on Charge and Back Step; others go aro
   assert.equal(unitAt(knocked, 1).row, 'horizon');
 });
 
-/** A Ballista on Line 3 about to make move `moveIndex`, a Squire on Line 1. */
+/** A Ballista on Backline about to make move `moveIndex`, a Squire on Frontline. */
 const ballistaFight = (moveIndex: number): CombatState => {
   const state = fightAt([
     ['squire', 'front', 0],

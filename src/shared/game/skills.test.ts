@@ -221,7 +221,7 @@ test('Shield Rush and Skirmisher scale per rank', () => {
   assert.equal(lineTwoRangeBonusOf([]), 0);
 });
 
-test('Lunge reaches Line 2; Shockwave Cleaves with Momentum', () => {
+test('Lunge reaches Midline; Shockwave Cleaves with Momentum', () => {
   const setup = {
     hp: 50,
     maxHp: 50,
@@ -258,7 +258,7 @@ test('Lunge reaches Line 2; Shockwave Cleaves with Momentum', () => {
     ).length;
   };
   assert.equal(hurt([]), 1);
-  assert.equal(hurt([shock]), 1, 'Line 2 is out of reach');
+  assert.equal(hurt([shock]), 1, 'Midline is out of reach');
   assert.equal(hurt([shock, lunge]), 2, 'Cleave + Lunge hits both lines');
 });
 

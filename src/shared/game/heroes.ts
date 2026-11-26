@@ -221,7 +221,7 @@ export const HEROES = {
   ]),
 
   // A one-cell siege engine resists forced movement. Its bolts never fall short
-  // (Longrange: it hits from Line 3 too).
+  // (Longrange: it hits from Backline too).
   ballista: hero(
     'Ballista',
     'elite',

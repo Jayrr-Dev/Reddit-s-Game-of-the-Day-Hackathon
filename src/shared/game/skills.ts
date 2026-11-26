@@ -1,6 +1,6 @@
 // --- SKILL POINTS ---
 import type { CharacterState } from './character.ts';
-import { REFLEX_DODGE } from './rules.ts';
+import { REFLEX_DODGE, ROW_LABEL } from './rules.ts';
 import type { CardType, Combatant, MeleeEdge } from './types.ts';
 
 export const branchNames = [
@@ -79,7 +79,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   },
   '0-2-1': {
     name: 'Skirmisher',
-    description: '+5% Range damage per rank at heroes on Line 2 (up to +25%)',
+    description: `+5% Range damage per rank at heroes on the ${ROW_LABEL.back} (up to +25%)`,
   },
   '1-0-0': {
     name: 'Armory',
@@ -147,12 +147,12 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   '2-1-0': {
     name: 'Battlemage',
     description:
-      'Magic cards deal +5% damage per rank to heroes on Line 1 (up to +25%)',
+      `Magic cards deal +5% damage per rank to heroes on the ${ROW_LABEL.front} (up to +25%)`,
   },
   '2-1-1': {
     name: 'Sniper',
     description:
-      'Range cards deal +5% damage per rank to heroes past Line 1 (up to +25%)',
+      `Range cards deal +5% damage per rank to heroes past the ${ROW_LABEL.front} (up to +25%)`,
   },
   '2-2-1': {
     name: 'Steady Aim',
@@ -205,7 +205,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   },
   '1-3-1': {
     name: 'Lunge',
-    description: 'Melee cards can target one line further (Line 2)',
+    description: `Melee cards can target one line further (the ${ROW_LABEL.back})`,
   },
   '0-3-0': {
     name: 'Battle Rush',
@@ -264,9 +264,9 @@ const ranksOf = (
 /** SHIELD RUSH (Charge line, second circle): Guard gained per Charge. */
 export const chargeGuardOf = (picks?: readonly SkillPick[]): number =>
   ranksOf(picks, 2, 0);
-/** SKIRMISHER: Range damage added per rank at a hero on Line 2. */
+/** SKIRMISHER: Range damage added per rank at a hero on Midline. */
 export const SKIRMISHER_PER_RANK = 0.05;
-/** Extra Range damage at Line 2 from Skirmisher (Back Step line, 0 to 0.2). */
+/** Extra Range damage at Midline from Skirmisher (Back Step line, 0 to 0.2). */
 export const lineTwoRangeBonusOf = (picks?: readonly SkillPick[]): number =>
   ranksOf(picks, 2, 1) * SKIRMISHER_PER_RANK;
 /** HEAVY HANDS / KEEN EDGE: damage added per rank to one Melee edge. */
@@ -312,10 +312,10 @@ export const cardChanceBonusOf = (
     ? ENTRY_CARD_CHANCE
     : 0;
 };
-/** BATTLEMAGE (Magic line): extra Magic damage at Line 1, +5% per rank. */
+/** BATTLEMAGE (Magic line): extra Magic damage at Frontline, +5% per rank. */
 export const battlemageBonusOf = (picks?: readonly SkillPick[]): number =>
   ranksIn(picks, 2, 1, 0) * EDGE_DAMAGE_PER_RANK;
-/** SNIPER (Arrows line): extra Range damage past Line 1, +5% per rank. */
+/** SNIPER (Arrows line): extra Range damage past Frontline, +5% per rank. */
 export const sniperBonusOf = (picks?: readonly SkillPick[]): number =>
   ranksIn(picks, 2, 1, 1) * EDGE_DAMAGE_PER_RANK;
 /** STEADY AIM (Arrows line): extra Range accuracy, +5% per rank. */
@@ -414,7 +414,7 @@ export const afflictsThroughBlocksOf = (
 /** SHOCKWAVE (Blunt capstone): Momentum turns Melee strikes into Cleaves. */
 export const hasMomentumCleave = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 1, 3, 0);
-/** LUNGE (Sharp capstone): extra rows Melee reaches past Line 1. */
+/** LUNGE (Sharp capstone): extra rows Melee reaches past Frontline. */
 export const meleeReachOf = (picks?: readonly SkillPick[]): number =>
   hasSkill(picks, 1, 3, 1) ? 1 : 0;
 /** BATTLE RUSH (Charge capstone): energy gained when a play kills. */

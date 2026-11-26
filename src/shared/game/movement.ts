@@ -24,6 +24,7 @@ import {
   CHARGE_COST,
   CHARGE_ROWS,
   MOVEMENT_STREAK_COST,
+  ROW_LABEL,
 } from './rules.ts';
 import type {
   CombatState,
@@ -76,7 +77,7 @@ export const MOVEMENTS: Record<MovementId, MovementDef> = {
     grants: { status: 'momentum', amount: 1 },
   },
   /**
-   * Fall back while anyone stands on Line 1 and someone has room behind:
+   * Fall back while anyone stands on Frontline and someone has room behind:
    * every hero drops BACK_STEP_ROWS row where it can. A boss reaching
    * back still shows it, locked (see movementBlockReason).
    */
@@ -94,7 +95,7 @@ export const MOVEMENTS: Record<MovementId, MovementDef> = {
 /** What a locked move says while a boss reaches into the back row. */
 const BLOCKED_BY_BOSS: Record<MovementId, string> = {
   charge: 'A boss holds the field: there is no line to rush.',
-  backStep: 'A boss holds Line 2 too: there is no room to fall back.',
+  backStep: `A boss holds the ${ROW_LABEL.back} too: there is no room to fall back.`,
 };
 
 /** Every movement id, in the order they are offered. */
