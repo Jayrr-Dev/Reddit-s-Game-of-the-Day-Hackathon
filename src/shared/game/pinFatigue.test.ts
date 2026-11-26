@@ -63,3 +63,11 @@ void test('A fatigued card needs the extra energy, and Fatigue ends with the tur
   const next = endTurn({ ...tired, waveArrival: true });
   assert.ok(next.hand.every((_, index) => fatigueAt(next, index) === 0));
 });
+
+// --- WHO LAYS THEM ---
+void test("Sir Brannoc's Gatebreaker pins you; the Priest's Smite fatigues you", () => {
+  const knight = endTurn(endTurn(createSandboxWith(3, ['brannoc'], true)));
+  assert.equal(knight.player.statuses.pin, 1);
+  const priest = endTurn(createSandboxWith(3, ['priest'], true));
+  assert.equal(priest.hand.filter((_, index) => fatigueAt(priest, index) === 1).length, 1);
+});

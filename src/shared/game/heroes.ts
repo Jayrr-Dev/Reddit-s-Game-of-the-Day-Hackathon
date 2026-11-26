@@ -52,6 +52,10 @@ const dispel = (amount = 1): HeroEffect => ({ kind: 'dispel', amount });
 const weaken = (amount: number): HeroEffect => ({ kind: 'weaken', amount });
 const bleed = (amount: number): HeroEffect => ({ kind: 'bleed', amount });
 const shock = (amount: number): HeroEffect => ({ kind: 'shock', amount });
+/** Pin N: the villain can't move for N turns. */
+const pin = (amount: number): HeroEffect => ({ kind: 'pin', amount });
+/** Fatigue N: N random cards in the villain's next hand cost 1 more. */
+const fatigue = (amount: number): HeroEffect => ({ kind: 'fatigue', amount });
 const guard = (
   amount: number,
   who: 'self' | 'allies' = 'self'
@@ -183,7 +187,7 @@ export const HEROES = {
     move('Aimed Shot', shoot(7)),
   ]),
   priest: hero('Priest', 'grunt', 12, 50, 5, BACK, [
-    move('Smite', spell(4)),
+    move('Smite', spell(4), fatigue(1)),
     move('Mend', heal(5), cleanse()),
   ]),
   shieldmaiden: hero('Shieldmaiden', 'grunt', 18, 190, 3, FRONT, [
@@ -261,7 +265,7 @@ export const HEROES = {
   brannoc: armored(
     hero('Sir Brannoc', 'champion', 70, 220, 3, CHAMPION, [
       move('Iron Wall', guard(15)),
-      move('Gatebreaker', strike(18)),
+      move('Gatebreaker', strike(18), pin(1)),
       move('Hammer Blows', strike(8, 2)),
     ]),
     3
