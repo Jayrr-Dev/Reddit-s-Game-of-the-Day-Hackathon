@@ -9,7 +9,9 @@
 
 import { useReducer, type ReactNode } from 'react';
 import { describeHeroMoveList } from '../../../shared/game/describe';
-import type { HeroId } from '../../../shared/game/heroes';
+import { getHero, type HeroId } from '../../../shared/game/heroes';
+import type { HeroAction } from '../../content/heroLooks';
+import { useMoveShowcase } from '../../hooks/useMoveShowcase';
 import { describeUnitStats } from '../../../shared/game/sandbox';
 import { RichText } from '../ui/RichText';
 import { TabBar } from '../ui/TabBar';
@@ -60,6 +62,24 @@ const UnitStatList = ({ heroId }: { heroId: HeroId }) => (
   </dl>
 );
 
+/** Draws the unit; undefined action keeps it still (non-bosses). */
+type RenderSprite = (action?: HeroAction | null) => ReactNode;
+
+/**
+ * The Sprite tab. A boss loops through its moves with the same
+ * animations it plays in the arena, naming each; anyone else stands still.
+ */
+const UnitSprite = ({ heroId, renderSprite }: { heroId: HeroId; renderSprite: RenderSprite }) => {
+  const isBoss = getHero(heroId).tier === 'boss';
+  const { moveName, action } = useMoveShowcase(heroId, isBoss);
+  return (
+    <div className="unit-sprite">
+      {renderSprite(isBoss ? action : undefined)}
+      {isBoss && <p className="unit-sprite-move" aria-live="polite">{moveName}</p>}
+    </div>
+  );
+};
+
 // --- COMPONENTS ---
 /**
  * The Sprite / Moveset / Stats tabs. The tabs and the view are separate
@@ -70,13 +90,13 @@ export const UnitInfoTabs = ({ tab, onTab }: { tab: UnitInfoTab; onTab: (tab: Un
 );
 
 /** The chosen tab's view (admins also get the stat editor on Stats). */
-export const UnitInfoPanel = ({ heroId, sprite, tab }: { heroId: HeroId; sprite: ReactNode; tab: UnitInfoTab }) => {
+export const UnitInfoPanel = ({ heroId, renderSprite, tab }: { heroId: HeroId; renderSprite: RenderSprite; tab: UnitInfoTab }) => {
   const isAdmin = useIsAdmin();
   // Bumped after an admin save so the stat list re-reads getHero.
   const [, refreshStats] = useReducer((count: number) => count + 1, 0);
   return (
     <div role="tabpanel" aria-label={UNIT_INFO_LABELS[tab]} className="grid gap-2">
-      {tab === 'sprite' && <div className="unit-sprite">{sprite}</div>}
+      {tab === 'sprite' && <UnitSprite heroId={heroId} renderSprite={renderSprite} />}
       {tab === 'moveset' && <UnitMoveList heroId={heroId} />}
       {tab === 'stats' && isAdmin && <UnitStatEditor heroId={heroId} onSaved={refreshStats} />}
       {tab === 'stats' && <UnitStatList heroId={heroId} />}

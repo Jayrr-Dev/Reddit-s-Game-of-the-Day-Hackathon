@@ -15,6 +15,7 @@ import { Fragment, useEffect, useState, type CSSProperties, type ReactNode } fro
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { newestCardIds } from '../../../shared/game/cardReleases';
 import { getHero, type HeroId } from '../../../shared/game/heroes';
+import type { HeroAction } from '../../content/heroLooks';
 import { CARD_LOOK, EDGE_ART, ELEMENT_LOOK, TIER_NAME_CLASS } from '../../content/visuals';
 import { UnitInfoPanel, UnitInfoTabs, type UnitInfoTab } from './UnitInfo';
 import { TabBar } from '../ui/TabBar';
@@ -121,15 +122,20 @@ const portraitStyle = (heroId: HeroId, bounds: FigureBounds): CSSProperties =>
     '--fit-height': bounds.height,
   });
 
-/** One hero in a lineup preview; a measured boss is fitted to the card. */
-const PreviewFigure = ({ heroId, isLead }: { heroId: HeroId; isLead: boolean }) => {
+/**
+ * One hero in a lineup preview; a measured boss is fitted to the card.
+ * Given an action (the unit info showcase), the lead sways like it does
+ * in the arena and plays that move.
+ */
+const PreviewFigure = ({ heroId, isLead, action }: { heroId: HeroId; isLead: boolean; action?: HeroAction | null | undefined }) => {
   const bounds = isLead ? FIGURE_BOUNDS[heroId] : undefined;
+  const figure = <HeroFigure heroId={heroId} size={getHero(heroId).size} action={action ?? null} />;
   return (
     <span
       className={bounds ? 'training-portrait' : 'training-figure'}
       style={bounds && portraitStyle(heroId, bounds)}
     >
-      <HeroFigure heroId={heroId} size={getHero(heroId).size} />
+      {action === undefined ? figure : <span className="block h-full w-full origin-bottom animate-hero-sway">{figure}</span>}
     </span>
   );
 };
@@ -137,15 +143,18 @@ const PreviewFigure = ({ heroId, isLead }: { heroId: HeroId; isLead: boolean }) 
 const ScenarioPreview = ({
   scenario,
   terrain,
+  action,
 }: {
   scenario: SandboxScenario;
   terrain: string | undefined;
+  /** The lead's move playing now (unit info showcase); undefined: still. */
+  action?: HeroAction | null | undefined;
 }) => (
   <span className="training-art training-lineup" aria-hidden="true">
     <ProgressiveImg alt="" src={terrain} />
     {(FEATURED_HEROES[scenario.id] ?? scenario.heroIds.slice(0, 3)).map(
       (heroId, i) => (
-        <PreviewFigure heroId={heroId} isLead={i === 0} key={i} />
+        <PreviewFigure heroId={heroId} isLead={i === 0} action={i === 0 ? action : undefined} key={i} />
       )
     )}
   </span>
@@ -243,7 +252,7 @@ const FightPrompt = ({
       onCancel={onBack}
     >
       {isUnitInfo
-        ? <UnitInfoPanel heroId={heroId} tab={tab} sprite={<ScenarioPreview scenario={scenario} terrain={terrain} />} />
+        ? <UnitInfoPanel heroId={heroId} tab={tab} renderSprite={(action) => <ScenarioPreview scenario={scenario} terrain={terrain} action={action} />} />
         : scenario.blurb}
     </ConfirmDialog>
   );
