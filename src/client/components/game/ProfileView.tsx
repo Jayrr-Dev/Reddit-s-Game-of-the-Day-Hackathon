@@ -116,7 +116,8 @@ export function ProfileView({
       return setError(`Could not use the ${itemName}. Try again.`);
     setBuild((previous) => ({
       ...previous,
-      character: previous.character.filter((a) => a.type !== 'setTraitNode'),
+      // A respec refunds every node and lifts the Save traits lock.
+      character: previous.character.filter((a) => a.type !== 'setTraitNode' && a.type !== 'saveTraits'),
     }));
   }
   /** Destroys a trashed stack: consumables on the server, jewelry through the saved build. */

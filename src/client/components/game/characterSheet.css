@@ -473,7 +473,7 @@
   margin-bottom: .18rem;
 }
 /* A small oak button, like the sheet's other controls. */
-.cs-player-stats .cs-respec {
+:is(.cs-player-stats, .trait-spiral) .cs-respec {
   min-height: 1.4rem;
   padding: .08rem .45rem;
   border: 1px solid #795732;
@@ -482,7 +482,7 @@
   color: #eee0c4;
   font: 700 .68rem/1.2 var(--font-body);
 }
-.cs-player-stats .cs-respec:disabled { opacity: .5; cursor: default; }
+:is(.cs-player-stats, .trait-spiral) .cs-respec:disabled { opacity: .5; cursor: default; }
 /* Keep the node preview in the parchment card without shifting the stat rows. */
 .cs-trait-preview-slot {
   height: 4.25rem;

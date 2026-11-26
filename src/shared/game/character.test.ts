@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  saveTraits,
+  unsavedTraitNodeCount,
   allocateTrait,
   setTraitRank,
   setTraitPathRank,
@@ -357,4 +359,22 @@ void test('arm reward weights run 1-1-1-5 and end on a 10x tip', () => {
   const weights = Array.from({ length: 21 }, (_, i) => armRewardWeight(i, 21));
   assert.deepEqual(weights.slice(0, 8), [1, 1, 1, 5, 1, 1, 1, 5]);
   assert.equal(weights.at(-1), 10);
+});
+
+void test('Save traits locks spent nodes until a respec, and restores', () => {
+  const [first, second] = traitNodeArms('vigor').left;
+  let c: CharacterState = { ...createCharacter(), level: 5 };
+  c = setTraitNode(c, 'vigor', 1, true);
+  c = setTraitNode(c, 'vigor', first!, true);
+  assert.equal(unsavedTraitNodeCount(c), 2);
+  c = saveTraits(c);
+  assert.equal(unsavedTraitNodeCount(c), 0);
+  assert.equal(saveTraits(c), c);
+  // Saved nodes can't be refunded; new picks still can.
+  assert.equal(setTraitNode(c, 'vigor', first!, false), c);
+  const extra = setTraitNode(c, 'vigor', second!, true);
+  assert.equal(extra.traits.vigor, 3);
+  assert.equal(setTraitNode(extra, 'vigor', second!, false).traits.vigor, 2);
+  assert.deepEqual(restoreCharacter(JSON.parse(JSON.stringify(c))).savedTraitNodes, { vigor: [1, first] });
+  assert.ok(isRunAction({ type: 'saveTraits' }));
 });

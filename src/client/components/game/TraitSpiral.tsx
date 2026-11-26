@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { nameTraitNodes } from '../../content/traitNodeNames';
 import { createPortal } from 'react-dom';
-import { characterBonuses, TRAIT_CAP, TRAIT_LABELS, traitNodeIds, traitNodeWeight, traitNodeGains, traitNodeArms, traitPointsAvailable, type CharacterState, type TraitId } from '../../../shared/game/character';
+import { characterBonuses, TRAIT_CAP, TRAIT_LABELS, traitNodeIds, traitNodeWeight, traitNodeGains, traitNodeArms, traitPointsAvailable, isTraitNodeSaved, unsavedTraitNodeCount, type CharacterState, type TraitId } from '../../../shared/game/character';
 import { Glyph, type GlyphName } from '../ui/Glyph';
 import '../../semanticStats.css';
 import './TraitSpiral.css';
@@ -13,6 +13,8 @@ type Props = {
   stats: readonly Stat[];
   previewHost: HTMLDivElement | null;
   onSetNode: (node: number, owned: boolean) => void;
+  /** Locks spent nodes in; hidden when not given (e.g. the first-fight tutorial). */
+  onSaveTraits?: (() => void) | undefined;
 };
 const INKS: Record<Stat['key'], string> = {
   healingPercent: 'heal', cardsPerTurn: 'draw', maxHp: 'hp', shieldPercent: 'guard', shieldFlat: 'guard', meleePercent: 'melee', meleeFlat: 'melee',
@@ -94,12 +96,25 @@ function arrangeRewards(rewards: Reward[], trait: TraitId, diameters: number[]) 
   return { positioned, curves };
 }
 
+// --- SAVE TRAITS BUTTON ---
+/** Top-right of the canvas: locks every spent node in; shows Saved once nothing is new. */
+const SaveTraitsButton = ({ unsaved, onSave }: { unsaved: number; onSave: () => void }) => {
+  const isAllSaved = unsaved === 0;
+  return (
+    <button type="button" className="cs-respec trait-save" disabled={isAllSaved} onClick={onSave}
+      title={isAllSaved ? 'Your traits are saved. Respec to change them.' : 'Lock in ' + unsaved + (unsaved === 1 ? ' point' : ' points') + '. Only a respec can undo this.'}>
+      <Glyph name="padlock" />
+      {isAllSaved ? 'Saved' : 'Save traits'}
+    </button>
+  );
+};
+
 // --- CIRCLE SIZES ---
 /** Diameter by pattern weight (1 small, 5 step, 10 tip); the junction star is its own size. */
 const CIRCLE_DIAMETER: Record<number, number> = { 1: 15, 5: 26, 10: 36 };
 const JUNCTION_DIAMETER = 28;
 
-export const TraitSpiral = ({ trait, character, stats, onSetNode, previewHost }: Props) => {
+export const TraitSpiral = ({ trait, character, stats, onSetNode, onSaveTraits, previewHost }: Props) => {
   const owned = new Set(traitNodeIds(character.traits, character.traitNodes, trait));
 
   const totals = characterBonuses(character.traits, character.equipment, character.traitNodes);
@@ -148,7 +163,10 @@ export const TraitSpiral = ({ trait, character, stats, onSetNode, previewHost }:
     return [1, ...arm.slice(0, arm.indexOf(id) + 1)].filter(step => !owned.has(step));
   };
   const available = traitPointsAvailable(character);
+  // SAVED NODES: locked by Save traits, so they can't be refunded here.
+  const isSaved = (id: number) => owned.has(id) && isTraitNodeSaved(character, trait, id);
   const action = (id: number) => {
+    if (isSaved(id)) return 'Saved. Respec to change';
     const count = planFor(id).length;
     const points = count + (count === 1 ? ' point' : ' points');
     return owned.has(id) ? 'Refund ' + points : count > available ? 'Need ' + count + ' (' + available + ' free)' : 'Spend ' + points;
@@ -179,6 +197,7 @@ export const TraitSpiral = ({ trait, character, stats, onSetNode, previewHost }:
       <strong className="trait-spiral-title" role="status">
         {traitPointsAvailable(character)} {traitPointsAvailable(character) === 1 ? 'point' : 'points'} available
       </strong>
+      {onSaveTraits && <SaveTraitsButton unsaved={unsavedTraitNodeCount(character)} onSave={() => { setPreview(null); onSaveTraits(); setReceipt('Traits saved. Respec to change them.'); }} />}
       <div className="trait-spiral-chart">
         <svg aria-hidden="true" viewBox="0 0 360 360">
           {curves.map(({ arm, path }) => <polyline key={arm} data-arm={arm} points={path} />)}
@@ -188,11 +207,12 @@ export const TraitSpiral = ({ trait, character, stats, onSetNode, previewHost }:
           const gain = node.changes[0];
           const filled = owned.has(node.id);
           const steps = planFor(node.id);
-          const blocked = !filled && steps.length > available;
+          const saved = isSaved(node.id);
+          const blocked = saved || (!filled && steps.length > available);
           const style: CSSProperties = { left: point.x / 3.6 + '%', top: point.y / 3.6 + '%', width: node.hitSize, height: node.hitSize };
           return <button key={node.id} type="button" ref={button => { refs.current[i] = button; }}
             className="trait-spiral-node" style={style} data-node-id={node.id} data-arm={node.arm} data-reward={gain?.key}
-            data-blocked={blocked} data-milestone={Boolean(gain)} data-finale={node.tip} data-next={!filled && !blocked && steps.length === 1} data-earned={filled}
+            data-blocked={blocked} data-milestone={Boolean(gain)} data-finale={node.tip} data-next={!filled && !blocked && steps.length === 1} data-earned={filled} data-saved={saved}
             data-current={preview === i} data-preview={preview === i && !blocked ? (filled ? "refund" : "spend") : undefined} aria-pressed={filled}
             aria-label={[(nodeNames.get(node.id) ?? 'Node ' + node.id) + (node.arm === 'junction' ? ', starting star' : ''), ...node.changes.map(stat => stat.label + ' +' + stat.delta + (stat.percent ? '%' : '')), action(node.id)].join('. ')}
             aria-describedby={preview === i ? detailsId : undefined}
@@ -230,7 +250,7 @@ export const TraitSpiral = ({ trait, character, stats, onSetNode, previewHost }:
           <span><b>{totals[stat.key]}{stat.percent ? '%' : ''}</b> current</span>
         </div>)}
         {!active.changes.length && <span>No stat increase.</span>}
-        {(owned.has(active.id) || planFor(active.id).length <= available) && <span>Click the same node again to {owned.has(active.id) ? "refund" : "confirm"}.</span>}
+        {!isSaved(active.id) && (owned.has(active.id) || planFor(active.id).length <= available) && <span>Click the same node again to {owned.has(active.id) ? "refund" : "confirm"}.</span>}
       </div>, previewHost)}
       <p className="trait-arm-hint" aria-live="polite">{receipt || "Click a node to preview. Click it again to confirm."}</p>
     </section>

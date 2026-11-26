@@ -35,6 +35,8 @@ type SheetProps = {
   character: CharacterState;
   vitals?: SheetVitals | undefined;
   onSetTraitNode: (trait: TraitId, node: number, owned: boolean) => void;
+  /** When given, the trait canvas shows Save traits, which locks spent nodes in. */
+  onSaveTraits?: (() => void) | undefined;
   onRespec?: (() => void) | undefined;
   onEquip: (slot: EquipmentSlot, id: string | null, ringIndex?: number) => void;
   onClose: () => void;
@@ -134,11 +136,12 @@ const Traits = ({
   character,
   vitals,
   onSetTraitNode,
+  onSaveTraits,
   onRespec,
   respecItem,
   trait,
   onSelectTrait,
-}: Pick<SheetProps, 'character' | 'vitals' | 'onSetTraitNode' | 'onRespec' | 'respecItem'> & {
+}: Pick<SheetProps, 'character' | 'vitals' | 'onSetTraitNode' | 'onSaveTraits' | 'onRespec' | 'respecItem'> & {
   trait: TraitId;
   onSelectTrait: (trait: TraitId) => void;
 }) => {
@@ -162,7 +165,7 @@ const Traits = ({
       </div>
       <div className="cs-rank-panel">
         <TraitSpiral key={trait} character={character} trait={trait} stats={STATS} previewHost={previewHost}
-          onSetNode={(node, owned) => onSetTraitNode(trait, node, owned)} />
+          onSetNode={(node, owned) => onSetTraitNode(trait, node, owned)} onSaveTraits={onSaveTraits} />
       </div>
       <PlayerStats character={character} vitals={vitals} previewRef={setPreviewHost} onRespec={onRespec} respecItem={respecItem} />
     </>
@@ -371,6 +374,7 @@ export const CharacterSheet = ({
   character,
   vitals,
   onSetTraitNode,
+  onSaveTraits,
   onRespec,
   onEquip,
   onClose,
@@ -486,6 +490,7 @@ export const CharacterSheet = ({
             respecItem={respecItem}
             onSelectTrait={setTrait}
             onSetTraitNode={onSetTraitNode}
+            onSaveTraits={onSaveTraits}
           />
         ) : page === 'skills' ? (
           <SkillTree character={character} onSkill={onSkill} />

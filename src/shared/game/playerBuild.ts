@@ -21,7 +21,7 @@ export const defaultBuild = (): PlayerBuild => ({
   character: [],
 });
 export const characterEdit = (a: RunAction) =>
-  ['equipItem', 'discardItem', 'setTraitNode', 'skillPath', 'buySkill'].includes(a.type);
+  ['equipItem', 'discardItem', 'setTraitNode', 'saveTraits', 'skillPath', 'buySkill'].includes(a.type);
 export function isPlayerBuild(data: unknown): data is PlayerBuild {
   if (
     !data ||

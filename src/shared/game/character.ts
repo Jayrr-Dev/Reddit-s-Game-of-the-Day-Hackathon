@@ -56,6 +56,8 @@ export type CharacterState = {
   xp: number;
   traits: Traits;
   traitNodes?: TraitNodes;
+  /** Trait nodes locked in by Save traits; only a respec can refund them. */
+  savedTraitNodes?: TraitNodes;
   /** Retained only while replaying historical three-path actions. */
   traitPaths?: TraitPaths;
   highestVigorHp?: number;
@@ -209,11 +211,47 @@ export function normalizeTraitNodeIds(trait: TraitId, ids: readonly number[]): n
   return [1, ...arms.flatMap((arm, i) => arm.slice(0, counts[i]))].sort((a, b) => a - b);
 }
 
-type NodeBlocker = { kind: 'prerequisite' | 'dependent'; node: number } | { kind: 'invalid' | 'points' | 'unchanged' };
+// --- SAVED TRAITS ---
+/** True when Save traits locked this node in. */
+export const isTraitNodeSaved = (character: CharacterState, trait: TraitId, node: number): boolean =>
+  character.savedTraitNodes?.[trait]?.includes(node) ?? false;
+
+/** Nodes spent since the last save (what Save traits would lock in). */
+export const unsavedTraitNodeCount = (character: CharacterState): number =>
+  TRAITS.reduce((sum, trait) => sum + traitNodeIds(character.traits, character.traitNodes, trait)
+    .filter(node => !isTraitNodeSaved(character, trait, node)).length, 0);
+
+/** Locks every spent trait node in; afterwards only a respec refunds them. */
+export function saveTraits(character: CharacterState): CharacterState {
+  if (!unsavedTraitNodeCount(character)) return character;
+  const savedTraitNodes: TraitNodes = {};
+  for (const trait of TRAITS) {
+    const ids = traitNodeIds(character.traits, character.traitNodes, trait);
+    if (ids.length) savedTraitNodes[trait] = [...ids];
+  }
+  return { ...character, savedTraitNodes };
+}
+
+/** Keeps only saved (locked) nodes the restored character still owns. */
+function restoreSavedTraitNodes(saved: unknown, traits: Traits, owned: TraitNodes): TraitNodes | undefined {
+  if (!saved || typeof saved !== 'object') return undefined;
+  const kept: TraitNodes = {};
+  for (const trait of TRAITS) {
+    const ids = (saved as TraitNodes)[trait];
+    if (!Array.isArray(ids)) continue;
+    const have = traitNodeIds(traits, owned, trait);
+    const valid = ids.filter(id => isTraitNode(id) && have.includes(id));
+    if (valid.length) kept[trait] = valid;
+  }
+  return Object.keys(kept).length ? kept : undefined;
+}
+
+type NodeBlocker = { kind: 'prerequisite' | 'dependent'; node: number } | { kind: 'invalid' | 'points' | 'unchanged' | 'saved' };
 export function traitNodeBlocker(character: CharacterState, trait: TraitId, node: number, owned: boolean): NodeBlocker | undefined {
   if (!isTrait(trait) || !isTraitNode(node) || typeof owned !== 'boolean') return { kind: 'invalid' };
   const selected = traitNodeIds(character.traits, character.traitNodes, trait);
   if (selected.includes(node) === owned) return { kind: 'unchanged' };
+  if (!owned && isTraitNodeSaved(character, trait, node)) return { kind: 'saved' };
   if (node === 1) {
     const dependent = selected.find(id => id !== 1);
     if (!owned && dependent !== undefined) return { kind: 'dependent', node: dependent };
@@ -382,7 +420,7 @@ export const restoreCharacter = (value: unknown, training = false): CharacterSta
     bossWins: Number.isSafeInteger(savedProgress.bossWins) ? Math.max(0, savedProgress.bossWins) : 0,
     rareSlots: Array.isArray(savedProgress.rareSlots) ? [...new Set(savedProgress.rareSlots.filter(n => Number.isInteger(n) && n >= 6 && n <= 10))] : [],
   };
-  const { highestVigor, highestVigorHp, traitPaths: savedPaths, traitNodes: savedNodes } = value as Partial<CharacterState>;
+  const { highestVigor, highestVigorHp, traitPaths: savedPaths, traitNodes: savedNodes, savedTraitNodes: lockedNodes } = value as Partial<CharacterState>;
   const traitNodes: TraitNodes = {};
   for (const trait of TRAITS) {
     const nodes = savedNodes?.[trait];
@@ -397,9 +435,11 @@ export const restoreCharacter = (value: unknown, training = false): CharacterSta
     const limited = normalizeTraitNodeIds(trait, (chosen ?? prefixes[traits[trait]]!).slice(0, restoredTraits[trait]));
     if (limited.some((id, index) => id !== index + 1)) traitNodes[trait] = limited;
   }
+  const savedTraitNodes = restoreSavedTraitNodes(lockedNodes, restoredTraits, traitNodes);
   let character: CharacterState = { ...fresh, level: restoredLevel, xp: restoredLevel === LEVEL_CAP ? 0 : xp,
     traits: restoredTraits, inventory, ringProgress,
     ...(Object.keys(traitNodes).length && { traitNodes }),
+    ...(savedTraitNodes && { savedTraitNodes }),
     ...(typeof highestVigorHp === 'number' && Number.isInteger(highestVigorHp) && highestVigorHp >= PLAYER_MAX_HP && highestVigorHp <= PLAYER_HP_CAP && { highestVigorHp }),
     ...((isTraitRank(highestVigor) || restoredTraits.vigor < traits.vigor) &&
       { highestVigor: Math.max(isTraitRank(highestVigor) ? highestVigor : 0, traits.vigor) }) };

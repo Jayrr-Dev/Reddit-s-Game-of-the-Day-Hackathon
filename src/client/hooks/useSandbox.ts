@@ -86,11 +86,12 @@ const reduce = (state: SandboxState, event: SandboxEvent): SandboxState => {
   }
   const credited = character.highestVigor ?? character.traits.vigor;
   if (event.type === 'respec') {
-    const next = { ...character, highestVigor: credited, traits: createCharacter().traits, traitNodes: {} };
+    const { savedTraitNodes: _lifted, ...unlocked } = character; // A respec also lifts the Save traits lock.
+    const next = { ...unlocked, highestVigor: credited, traits: createCharacter().traits, traitNodes: {} };
     return { ...state, character: next, combat: state.combat && syncCharacterCombat(state.combat, next, credited, undefined, character.highestVigorHp) };
   }
   const { action } = event;
-  if (action.type === 'buySkill' || action.type === 'skillPath') {
+  if (action.type === 'buySkill' || action.type === 'skillPath' || action.type === 'saveTraits') {
     const next = applyCharacterAction(character, action);
     return next === character ? state : { ...state, character: next };
   }

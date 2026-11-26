@@ -22,6 +22,7 @@ export const RunCharacterSheet = ({ character, vitals, onAction, onClose, onResp
     onRespec={onRespec}
     character={character} vitals={vitals}
     onSetTraitNode={(trait, node, owned) => onAction({ type: 'setTraitNode', trait, node, owned })}
+    onSaveTraits={() => onAction({ type: 'saveTraits' })}
     onEquip={(slot, itemId, ringIndex) => onAction({ type: 'equipItem', slot, itemId, ...(ringIndex !== undefined && { ringIndex }) })}
     onClose={onClose}
   />
