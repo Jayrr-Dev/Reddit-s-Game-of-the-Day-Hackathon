@@ -33,6 +33,7 @@ import {
   SHOCK_BURST_FACTOR,
   SHOCK_HITS,
   STATUS_IS_AFFLICTION,
+  BANE_AFFLICTIONS,
   TIERED_MAX_TIER,
   MALAISE_TURNS,
   REFLEX_DODGE,
@@ -540,8 +541,36 @@ export const OUT_OF_RANGE_INFO: StatusInfo = {
  */
 export type GlossaryCategory = 'keyword' | 'status' | 'term';
 
-/** A glossary entry tagged with its library tab. */
-export type GlossaryEntry = StatusInfo & { category: GlossaryCategory };
+/**
+ * How the Statuses tab splits: helpful buffs, debuffs that weaken
+ * (Weaken, Vex...), and afflictions that stack up and deal damage
+ * (Hex, Burn, Bleed...).
+ */
+export type StatusGroup = 'buff' | 'debuff' | 'affliction';
+
+/** Group order and headings in the Mechanics library. */
+export const STATUS_GROUPS: readonly StatusGroup[] = ['buff', 'debuff', 'affliction'];
+export const STATUS_GROUP_LABEL: Readonly<Record<StatusGroup, string>> = {
+  buff: 'Buffs',
+  debuff: 'Debuffs',
+  affliction: 'Afflictions',
+};
+
+/**
+ * A status's group, read from the rules tables so it never drifts:
+ * stacking damage afflictions (BANE_AFFLICTIONS), other afflictions
+ * (STATUS_IS_AFFLICTION), and everything else is a buff (Guard too).
+ */
+const statusGroupOf = (id: StatusId | 'guard'): StatusGroup => {
+  if (id === 'guard' || !STATUS_IS_AFFLICTION[id]) return 'buff';
+  return BANE_AFFLICTIONS.has(id) ? 'affliction' : 'debuff';
+};
+
+/** A glossary entry tagged with its library tab (statuses: their group). */
+export type GlossaryEntry = StatusInfo & {
+  category: GlossaryCategory;
+  group?: StatusGroup;
+};
 
 /** Tags a list of entries with one category. */
 const inCategory = (
@@ -554,7 +583,13 @@ export const GLOSSARY: Readonly<Record<string, GlossaryEntry>> =
   // keyword Charge, as before.
   Object.fromEntries(
     [
-      ...inCategory('status', Object.values(STATUS_INFO)),
+      ...(Object.keys(STATUS_INFO) as (StatusId | 'guard')[]).map(
+        (id): GlossaryEntry => ({
+          ...STATUS_INFO[id],
+          category: 'status',
+          group: statusGroupOf(id),
+        })
+      ),
       ...inCategory('keyword', [
         ...Object.values(KEYWORD_INFO),
         { label: 'Charge', description: `Move forward when the ${ROW_LABEL.front} is empty and gain **Momentum**` },

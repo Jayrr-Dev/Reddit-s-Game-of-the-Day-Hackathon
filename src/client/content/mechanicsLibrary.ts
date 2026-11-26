@@ -8,9 +8,15 @@
 
 import {
   GLOSSARY,
+  STATUS_GROUP_LABEL,
+  STATUS_GROUPS,
   type GlossaryCategory,
   type GlossaryEntry,
 } from '../../shared/game/describe';
+
+// --- TYPES ---
+/** A run of entries under an optional heading ("Buffs"). */
+export type MechanicsSection = { heading?: string; entries: GlossaryEntry[] };
 
 // --- TABS ---
 export const MECHANICS_TABS: readonly GlossaryCategory[] = ['keyword', 'status', 'term'];
@@ -28,9 +34,16 @@ const entriesIn = (category: GlossaryCategory): GlossaryEntry[] =>
     .filter((entry) => entry.category === category)
     .sort((a, b) => a.label.localeCompare(b.label));
 
-/** Each tab's entries, A to Z. */
-export const MECHANICS_LIBRARY: Readonly<Record<GlossaryCategory, GlossaryEntry[]>> = {
-  keyword: entriesIn('keyword'),
-  status: entriesIn('status'),
-  term: entriesIn('term'),
+/** The Statuses tab, split into Buffs, Debuffs and Afflictions. */
+const statusSections = (): MechanicsSection[] =>
+  STATUS_GROUPS.map((group) => ({
+    heading: STATUS_GROUP_LABEL[group],
+    entries: entriesIn('status').filter((entry) => entry.group === group),
+  }));
+
+/** Each tab's sections; Keywords and Other are one A to Z list. */
+export const MECHANICS_LIBRARY: Readonly<Record<GlossaryCategory, MechanicsSection[]>> = {
+  keyword: [{ entries: entriesIn('keyword') }],
+  status: statusSections(),
+  term: [{ entries: entriesIn('term') }],
 };
