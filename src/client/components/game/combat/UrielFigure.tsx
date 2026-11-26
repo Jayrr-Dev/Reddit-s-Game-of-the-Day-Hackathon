@@ -4,6 +4,7 @@ import type { HeroSize } from '../../../../shared/game/types';
 import type { HeroAction } from '../../../content/heroLooks';
 import { BODY_HEIGHT, BODY_WIDTH } from '../../../lib/heroFigure';
 import { URIEL_ATLAS, urielFrameAt, urielFrameBox, urielPoseOf } from '../../../lib/urielMotion';
+import { ProgressiveSvgImage } from '../../ui/ProgressiveImage';
 
 type UrielFigureProps = { size: HeroSize; action?: HeroAction | null | undefined };
 
@@ -56,7 +57,7 @@ export const UrielFigure = ({ size, action }: UrielFigureProps) => {
       overflow="hidden"
       data-uriel-pose={pose}
     >
-      <image href={atlas} width={width * columns} height={height * rows} />
+      <ProgressiveSvgImage href={atlas} width={width * columns} height={height * rows} />
     </svg>
   );
 };
