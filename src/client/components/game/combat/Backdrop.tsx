@@ -47,12 +47,15 @@ export const MAP_NAMES = scenes.map(([, , , name]) => name);
 /** Start practice in the elven forest so the new maps can be tested together. */
 export const PRACTICE_TERRAIN_START = scenes.findIndex(([image]) => image === elvenForest);
 
-// Slightly soften distant scenery without softening units or the near ground.
-const TERRAIN_BLUR: Record<HeroRow, string> = {
-  horizon: 'blur(0.85px)',
-  back: 'blur(0.45px)',
-  front: 'none',
-};
+// --- TERRAIN BLUR ---
+// Depth-of-field: soften distant scenery a touch so units stand out, never the
+// near ground. One table so the whole backdrop's softness is tuned in one place
+// (lowered 2026-11-26 so the background reads clearer).
+const TERRAIN_BLUR_PX = { sky: 0.6, horizon: 0.35, back: 0.15, front: 0 } as const satisfies Record<HeroRow | 'sky', number>;
+
+/** CSS filter for one terrain layer; 0 px skips the filter entirely. */
+const terrainBlur = (layer: keyof typeof TERRAIN_BLUR_PX): string =>
+  TERRAIN_BLUR_PX[layer] > 0 ? `blur(${TERRAIN_BLUR_PX[layer]}px)` : 'none';
 
 type BackdropProps = {
   terrainIndex: number;
@@ -78,12 +81,12 @@ export const Backdrop = memo(function Backdrop({ terrainIndex, bossArena, depths
   const layer = 'parallax-layer pointer-events-none absolute -inset-x-8 inset-y-0 ';
   return (
     <div aria-hidden="true" data-boss-arena={bossArena?.name} className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className={layer} style={{ ...depthStyle(0.12), ...terrainStyle, filter: 'blur(1.35px)' }} />
+      <div className={layer} style={{ ...depthStyle(0.12), ...terrainStyle, filter: terrainBlur('sky') }} />
       {[...rows].reverse().map((row) => (
         <div key={row} className={layer} style={{
           ...depthStyle(depths[row]),
           ...terrainStyle,
-          filter: TERRAIN_BLUR[row],
+          filter: terrainBlur(row),
           maskImage: `linear-gradient(transparent ${groundStarts[row]}%, black ${groundStarts[row] + 9}%)`,
         }} />
       ))}
