@@ -48,7 +48,8 @@ export type GlyphName =
   | 'breastplate'
   | 'dagger'
   | 'hammer'
-  | 'dodging';
+  | 'dodging'
+  | 'back';
 
 export type GlyphProps = {
   name: GlyphName;
