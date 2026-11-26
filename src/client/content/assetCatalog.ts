@@ -11,6 +11,7 @@ import { STATUS_FX, type FxKind } from './statusFx';
 import { keyLabel } from '../lib/keyLabel';
 import { IMAGE_PLACEHOLDERS } from '../lib/imagePlaceholders.generated';
 import type { PlayerHitPop } from '../hooks/useHitPops';
+import type { MagicCircleComplexity } from '../../shared/fx/magicCircle';
 import { SKILL_ICONS } from './skillIcons';
 import { SKILL_EFFECTS } from '../../shared/game/skills';
 
@@ -63,6 +64,21 @@ const STATUS_EFFECTS: readonly EffectAsset[] = Object.keys(STATUS_FX)
   .map((kind) => ({ name: keyLabel(kind), pop: pop({ kind }) }));
 
 export const EFFECT_ASSETS: readonly EffectAsset[] = [...HIT_EFFECTS, ...STATUS_EFFECTS];
+
+// --- MAGIC CIRCLES ---
+/** One generator preset shown in the Assets tab (see shared/fx/magicCircle.ts). */
+export type CircleAsset = { name: string; complexity: MagicCircleComplexity; seed: number; color: string };
+
+/** A sample of the generator: each complexity, in several colours and seeds. */
+export const CIRCLE_ASSETS: readonly CircleAsset[] = [
+  { name: 'Small (gold)', complexity: 'small', seed: 2, color: '#f2c35b' },
+  { name: 'Small (green)', complexity: 'small', seed: 52, color: '#4dff5a' },
+  { name: 'Large (cyan)', complexity: 'large', seed: 5, color: '#3fe0ff' },
+  { name: 'Large (rose)', complexity: 'large', seed: 65, color: '#ff6a8a' },
+  { name: 'Complex (green)', complexity: 'complex', seed: 11, color: '#4dff5a' },
+  { name: 'Complex (purple)', complexity: 'complex', seed: 42, color: '#c56bff' },
+  { name: 'Complex (ember)', complexity: 'complex', seed: 9, color: '#ff5a3c' },
+];
 
 // --- IMAGES ---
 /** Effect and icon image files (no sprites, no map backdrops). */

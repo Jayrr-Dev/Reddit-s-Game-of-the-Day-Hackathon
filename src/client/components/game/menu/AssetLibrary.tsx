@@ -10,7 +10,8 @@ import { Button } from '../../ui/Button';
 import { ModalDialog } from '../../ui/ModalDialog';
 import { ImpactOverlay } from '../combat/ImpactOverlay';
 import { cssVars } from '../../../lib/cssVars';
-import { EFFECT_ASSETS, IMAGE_ASSETS, type EffectAsset, type ImageAsset } from '../../../content/assetCatalog';
+import { CIRCLE_ASSETS, EFFECT_ASSETS, IMAGE_ASSETS, type CircleAsset, type EffectAsset, type ImageAsset } from '../../../content/assetCatalog';
+import { MagicCircle } from '../fx/MagicCircle';
 
 // --- CONSTANTS ---
 /** How often an open effect replays (ms): just past the longest (Burn, 1.32 s), so the stage is never blank for long. */
@@ -18,7 +19,10 @@ const EFFECT_REPLAY_MS = 1400;
 
 // --- TYPES ---
 /** The asset open in the viewer, if any. */
-type OpenAsset = { kind: 'effect'; asset: EffectAsset } | { kind: 'image'; asset: ImageAsset };
+type OpenAsset =
+  | { kind: 'effect'; asset: EffectAsset }
+  | { kind: 'image'; asset: ImageAsset }
+  | { kind: 'circle'; asset: CircleAsset };
 
 // --- HOOKS ---
 /** A counter that ticks every `ms`, used to remount (replay) an effect. */
@@ -66,19 +70,34 @@ const ImageView = ({ asset }: { asset: ImageAsset }) =>
     ? <StripPlayer asset={asset} strip={asset.strip} />
     : <img className="asset-full" alt={asset.name} src={asset.url} />;
 
-/** The full-size viewer for the open asset. */
-const AssetViewer = ({ open, onClose }: { open: OpenAsset; onClose: () => void }) => (
-  <ModalDialog
-    title={open.asset.name}
-    subtitle={open.kind === 'image' ? open.asset.group : 'Effect'}
-    onDismiss={onClose}
-    actions={<Button variant="menuPrimary" onClick={onClose} autoFocus>Close</Button>}
-  >
-    {open.kind === 'effect'
-      ? <EffectStage asset={open.asset} />
-      : <ImageView asset={open.asset} />}
-  </ModalDialog>
+/** A generated magic circle, spinning, facing the viewer. */
+const CircleView = ({ asset }: { asset: CircleAsset }) => (
+  <div className="asset-stage grid place-items-center p-4">
+    <MagicCircle complexity={asset.complexity} seed={asset.seed} color={asset.color} />
+  </div>
 );
+
+/** The open asset's subtitle and full-size view. */
+const viewOf = (open: OpenAsset): { subtitle: string; body: ReactNode } => {
+  if (open.kind === 'effect') return { subtitle: 'Effect', body: <EffectStage asset={open.asset} /> };
+  if (open.kind === 'circle') return { subtitle: 'Magic circle', body: <CircleView asset={open.asset} /> };
+  return { subtitle: open.asset.group, body: <ImageView asset={open.asset} /> };
+};
+
+/** The full-size viewer for the open asset. */
+const AssetViewer = ({ open, onClose }: { open: OpenAsset; onClose: () => void }) => {
+  const { subtitle, body } = viewOf(open);
+  return (
+    <ModalDialog
+      title={open.asset.name}
+      subtitle={subtitle}
+      onDismiss={onClose}
+      actions={<Button variant="menuPrimary" onClick={onClose} autoFocus>Close</Button>}
+    >
+      {body}
+    </ModalDialog>
+  );
+};
 
 /** One tile in the grid; images show a thumbnail. */
 const AssetTile = ({ name, thumb, onOpen }: { name: string; thumb?: string; onOpen: () => void }) => (
@@ -97,6 +116,10 @@ export const AssetLibrary = ({ renderHeading }: { renderHeading: (label: string)
       {renderHeading('Effects (' + EFFECT_ASSETS.length + ')')}
       {EFFECT_ASSETS.map((asset) => (
         <AssetTile key={asset.name} name={asset.name} onOpen={() => setOpen({ kind: 'effect', asset })} />
+      ))}
+      {renderHeading('Magic circles (' + CIRCLE_ASSETS.length + ')')}
+      {CIRCLE_ASSETS.map((asset) => (
+        <AssetTile key={asset.name} name={asset.name} onOpen={() => setOpen({ kind: 'circle', asset })} />
       ))}
       {renderHeading('Images (' + IMAGE_ASSETS.length + ')')}
       {IMAGE_ASSETS.map((asset) => (

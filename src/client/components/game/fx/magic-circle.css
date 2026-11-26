@@ -1,0 +1,36 @@
+/* --- MAGIC CIRCLE --- */
+/* The wrapper fills its parent's width; placement tilts it into the scene. */
+.magic-circle { position: relative; width: 100%; aspect-ratio: 1; pointer-events: none; }
+.magic-circle-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  /* Two glows: a tight bright edge and a wide soft bloom in the circle's colour. */
+  filter: drop-shadow(0 0 1.5px currentColor) drop-shadow(0 0 6px currentColor);
+}
+/* Rings turn about the centre (the viewBox origin). */
+.magic-circle-spin { transform-origin: 0 0; animation: magic-circle-spin linear infinite; }
+@keyframes magic-circle-spin { to { transform: rotate(360deg); } }
+
+/* Ground and overhead: the same tilt, laid flat away from the viewer.
+   rotateX keeps true perspective (the far edge is narrower) instead of
+   a plain vertical squash. */
+.magic-circle[data-placement='ground'],
+.magic-circle[data-placement='overhead'] {
+  transform: perspective(900px) rotateX(68deg);
+  transform-origin: 50% 50%;
+}
+.magic-circle[data-placement='overhead'] { opacity: .92; }
+
+@media (prefers-reduced-motion: reduce) {
+  .magic-circle-spin { animation: none; }
+}
+
+/* --- STAGE (CIRCLE UNDER OR OVER UNITS) --- */
+.magic-circle-stage { position: relative; display: inline-flex; align-items: flex-end; isolation: isolate; }
+.magic-circle-anchor { position: absolute; left: 50%; pointer-events: none; }
+/* Ground: centred on the feet line, behind the units. */
+.magic-circle-stage[data-placement='ground'] > .magic-circle-anchor { bottom: 0; transform: translate(-50%, 50%); z-index: -1; }
+/* Overhead: floating clear above the head, in front. */
+.magic-circle-stage[data-placement='overhead'] > .magic-circle-anchor { top: 0; transform: translate(-50%, -78%); z-index: 1; }
