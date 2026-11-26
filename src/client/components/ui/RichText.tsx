@@ -4,7 +4,9 @@
 // one bullet per line ("\n"; a single line stays a plain sentence) and
 // **bold** for key words and numbers. A bold glossary word wears its
 // own colour with its icon before it (lookOfTerm), so "**Frost**"
-// reads like the Frost chip.
+// reads like the Frost chip. Plain text also picks out, in bold white,
+// every percentage ("+25%") and the word dodge, so the numbers that
+// decide a fight stand out without markup in every description.
 // ===================================================================
 
 import { Fragment } from 'react';
@@ -14,6 +16,14 @@ import { Glyph } from './Glyph';
 // --- HELPERS ---
 /** Splits a line into plain and **bold** parts (odd parts are bold). */
 const boldParts = (line: string): string[] => line.split('**');
+
+/**
+ * Emphasised spans inside plain text: percentages and the word dodge
+ * (dodge, dodges, dodged). The capture group keeps the matches, so
+ * odd parts of the split are the emphasised ones.
+ */
+const AUTO_EMPHASIS = /([+-]?\d+%|\bdodge[sd]?\b)/i;
+const emphasisParts = (text: string): string[] => text.split(AUTO_EMPHASIS);
 
 // --- SUBCOMPONENTS ---
 /** A bold word: coloured and with its icon when it is a glossary word. */
@@ -31,12 +41,27 @@ const BoldTerm = ({ text }: { text: string }) => {
   );
 };
 
+/** Plain text with its percentages and dodges in bold white. */
+const PlainText = ({ text }: { text: string }) => (
+  <>
+    {emphasisParts(text).map((part, index) =>
+      index % 2 === 1 ? (
+        <b key={index} className="font-bold text-ink">
+          {part}
+        </b>
+      ) : (
+        <Fragment key={index}>{part}</Fragment>
+      )
+    )}
+  </>
+);
+
 /** One line of markup. */
 const Line = ({ line }: { line: string }) => (
   <>
     {boldParts(line).map((part, index) => (
       <Fragment key={index}>
-        {index % 2 === 1 ? <BoldTerm text={part} /> : part}
+        {index % 2 === 1 ? <BoldTerm text={part} /> : <PlainText text={part} />}
       </Fragment>
     ))}
   </>
