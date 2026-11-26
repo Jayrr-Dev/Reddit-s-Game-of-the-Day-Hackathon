@@ -1,11 +1,8 @@
-import { TRAINING_JEWELRY } from '../../../shared/game/trainingJewelry';
 // --- CHARACTER SHEET ---
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { playSound } from '../../lib/gameAudio';
 import {
   characterBonuses,
-  IRON_RING_RESERVE,
-  TRAVELERS_AMULET_DRAW,
   ringSlotAccepts,
   ringSlotUnlocked,
   TRAITS,
@@ -22,6 +19,9 @@ import type { SkillPick } from '../../../shared/game/skills';
 import { SkillTree } from './SkillTree';
 import { TraitSpiral } from './TraitSpiral';
 import { TutorialSpotlight } from './combat/TutorialSpotlight';
+import { ItemEffect, JewelryIcon } from './jewelry';
+import { itemBonusSummary, itemFlavor, itemInk } from './jewelryCopy';
+import { RespecDialog, type RespecItem } from './RespecDialog';
 import './characterSheet.css';
 
 // --- TYPES AND PRESENTATION ---
@@ -37,8 +37,12 @@ type SheetProps = {
   onClose: () => void;
   /** When given, a Profile tab comes first and the sheet opens on it. */
   profile?: ReactNode;
+  /** When given with a profile, an Inventory tab follows the Profile tab. */
+  inventory?: ReactNode;
+  /** When given, Respec asks first and shows the item it spends. */
+  respecItem?: RespecItem | undefined;
 };
-type SheetPage = 'profile' | 'traits' | 'equipment' | 'skills';
+type SheetPage = 'profile' | 'inventory' | 'traits' | 'equipment' | 'skills';
 type Stat = keyof ReturnType<typeof characterBonuses>;
 const TRAIT_ICONS: Record<TraitId, GlyphName> = {
   vigor: 'heart',
@@ -67,10 +71,13 @@ const STATS: ReadonlyArray<{ key: Stat; label: string; percent?: boolean }> = [
   { key: 'maxEnergy', label: 'Max energy' },
 ];
 
-function PlayerStats({ character, vitals, previewRef, onRespec }: Pick<SheetProps, 'character' | 'vitals' | 'onRespec'> & {
+function PlayerStats({ character, vitals, previewRef, onRespec, respecItem }: Pick<SheetProps, 'character' | 'vitals' | 'onRespec' | 'respecItem'> & {
   previewRef: (element: HTMLDivElement | null) => void;
 }) {
   const stats = characterBonuses(character.traits, character.equipment, character.traitNodes);
+  const [isAskingRespec, setIsAskingRespec] = useState(false);
+  /** Refunds every trait point with the paper sound. */
+  const respec = () => { playSound('respec', 1, .72); onRespec?.(); };
   const flatAndPercent = (flat: number, percent: number) => '+' + flat + ' / +' + percent + '%';
   const rows: { label: string; ink: string; icon: GlyphName; value: string }[] = [
     { label: vitals ? 'HP' : 'Max HP', icon: 'heart', ink: 'hp', value: vitals ? vitals.hp + ' / ' + vitals.maxHp : String(stats.maxHp) },
@@ -93,8 +100,11 @@ function PlayerStats({ character, vitals, previewRef, onRespec }: Pick<SheetProp
       <div className="cs-player-stats-head">
         <h3>Player stats</h3>
         {/* RESPEC: refunds every trait point; sits beside the stats it resets. */}
-        {onRespec && <button type="button" className="cs-respec" data-own-sound onClick={() => { playSound('respec', 1, .72); onRespec(); }}
+        {onRespec && <button type="button" className="cs-respec" data-own-sound onClick={() => respecItem ? setIsAskingRespec(true) : respec()}
           disabled={!TRAITS.some(id => character.traits[id] > 0)}>Respec all</button>}
+        {isAskingRespec && respecItem && <RespecDialog item={respecItem}
+          onCancel={() => setIsAskingRespec(false)}
+          onConfirm={() => { setIsAskingRespec(false); respec(); }} />}
       </div>
       <div className="cs-trait-preview-slot" ref={previewRef} />
       <div className="cs-player-stats-list" role="region" aria-label="Stat values" tabIndex={0}>
@@ -114,9 +124,10 @@ const Traits = ({
   vitals,
   onSetTraitNode,
   onRespec,
+  respecItem,
   trait,
   onSelectTrait,
-}: Pick<SheetProps, 'character' | 'vitals' | 'onSetTraitNode' | 'onRespec'> & {
+}: Pick<SheetProps, 'character' | 'vitals' | 'onSetTraitNode' | 'onRespec' | 'respecItem'> & {
   trait: TraitId;
   onSelectTrait: (trait: TraitId) => void;
 }) => {
@@ -142,38 +153,11 @@ const Traits = ({
         <TraitSpiral key={trait} character={character} trait={trait} stats={STATS} previewHost={previewHost}
           onSetNode={(node, owned) => onSetTraitNode(trait, node, owned)} />
       </div>
-      <PlayerStats character={character} vitals={vitals} previewRef={setPreviewHost} onRespec={onRespec} />
+      <PlayerStats character={character} vitals={vitals} previewRef={setPreviewHost} onRespec={onRespec} respecItem={respecItem} />
     </>
   );
 };
 
-/** Ink silhouettes distinguish a band and a pendant at slot size. */
-const JewelryIcon = ({ slot }: { slot: EquipmentSlot }) => (
-  <svg
-    className="cs-jewelry"
-    viewBox="0 0 40 40"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.6"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    {slot === 'ring' ? (
-      <>
-        <path d="M13.4 13.6C7 17.2 5.2 25.3 9.2 31.1c4 6 12.8 6.2 18.3 1.3 5.9-5.2 6-13.5-.1-18.1" />
-        <path d="M15.2 16.3c-5 3.4-5.8 9-3 13 3.1 4.6 9.2 4.5 13.3.9 4.3-3.7 4.2-9.7.3-13.4" />
-        <path d="m12.2 10.2 3.6-4.4h8.4l3.6 4.4-7.8 8.4zM12.2 10.2h15.6m-7.8 8.4-3.4-8.4L20 5.8l3.4 4.4z" />
-      </>
-    ) : (
-      <>
-        <path d="M4.8 4.2c2.8 7.9 6.9 12.4 14.1 15.2m16.3-15.2c-2.9 8-7.1 12.5-14.1 15.2M6.6 4.4c3.1 6.6 6.9 10.8 12.5 13.3m14.3-13.3c-3.1 6.6-6.9 10.8-12.5 13.3" />
-        <circle cx="20" cy="18.8" r="2" />
-        <path d="m20 20.9 6.3 6.5-6.3 8.9-6.3-8.9zM20 23.6l3.5 4-3.5 5.2-3.5-5.2z" />
-      </>
-    )}
-  </svg>
-);
 
 /** Describes the campaign milestone or post-run drop for a locked ring slot. */
 const ringRequirement = (character: CharacterState, index: number) => {
@@ -181,32 +165,6 @@ const ringRequirement = (character: CharacterState, index: number) => {
   return `Defeat ${number} story region ${number === 1 ? 'champion' : 'champions'} (${character.ringProgress.bossWins}/${number}).`;
 };
 
-const itemFlavor: Record<string, string> = {
-  ...Object.fromEntries(TRAINING_JEWELRY.map(item => [item.id, item.flavor])),
-  'iron-ring': 'The smith left a single hammer mark inside the band.',
-  'travelers-amulet': 'The clasp is worn smooth where a traveler rubbed it at every crossroads.',
-};
-
-/** Short ledger copy uses the same item values as the detailed effect. */
-const itemBonusSummary = (id: string) => {
-  if (id === 'iron-ring') return '+' + IRON_RING_RESERVE + ' reserve energy';
-  if (id === 'travelers-amulet') return '+' + TRAVELERS_AMULET_DRAW + ' card per turn';
-  return 'Cosmetic';
-};
-
-/** Display the same effect icon and ink in the inventory and item details. */
-const itemInk = (id: string) => id === 'travelers-amulet' ? 'draw' : id === 'iron-ring' ? 'energy' : undefined;
-/** Displays the same quantities applied by the combat engine. */
-const ItemEffect = ({ id }: { id: string }) => {
-  if (id === 'iron-ring') return (
-    <p className="cs-real-effect stat-ink" data-stat="energy"><Glyph name="bolt" /><strong>+{IRON_RING_RESERVE} Reserve Energy capacity.</strong></p>
-  );
-  if (id === 'travelers-amulet') return (
-    <p className="cs-real-effect stat-ink" data-stat="draw"><Glyph name="cards" /><strong>Draw {TRAVELERS_AMULET_DRAW} extra {TRAVELERS_AMULET_DRAW === 1 ? 'card' : 'cards'} at the start of your turn.</strong></p>
-  );
-  if (TRAINING_JEWELRY.some(item => item.id === id)) return <p className="cs-real-effect"><strong>Training replica. Cosmetic only.</strong></p>;
-  return null;
-};
 
 /** Keeps worn jewelry and unworn inventory in separate compartments. */
 const Equipment = ({
@@ -400,6 +358,8 @@ export const CharacterSheet = ({
   onEquip,
   onClose,
   profile,
+  inventory,
+  respecItem,
 }: SheetProps) => {
   const dialog = useRef<HTMLDialogElement>(null);
   const [page, setPage] = useState<SheetPage>(profile ? 'profile' : 'traits');
@@ -482,6 +442,15 @@ export const CharacterSheet = ({
             Profile
           </button>
         )}
+        {inventory && (
+          <button
+            type="button"
+            aria-pressed={page === 'inventory'}
+            onClick={() => setPage('inventory')}
+          >
+            Inventory
+          </button>
+        )}
         <button
           type="button"
           aria-pressed={page === 'traits'}
@@ -507,12 +476,15 @@ export const CharacterSheet = ({
       <div className="cs-body" key={page} data-page={page}>
         {page === 'profile' ? (
           <div className="cs-profile">{profile}</div>
+        ) : page === 'inventory' ? (
+          inventory
         ) : page === 'traits' ? (
           <Traits
             character={character}
             vitals={vitals}
             trait={trait}
             onRespec={onRespec}
+            respecItem={respecItem}
             onSelectTrait={setTrait}
             onSetTraitNode={onSetTraitNode}
           />

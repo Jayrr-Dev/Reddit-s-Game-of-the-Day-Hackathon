@@ -17,10 +17,13 @@ import {
   validStarter,
 } from '../../../shared/game/starters';
 import type { InitResponse } from '../../../shared/types/api';
+import { getItem, itemQuantity, RESPEC_ITEM } from '../../../shared/game/items';
+import { usePlayerItems } from '../../hooks/usePlayerItems';
 import { apiClient } from '../../lib/apiClient';
 import { localBuild, storeBuild } from '../../lib/playerBuild';
 import { Button } from '../ui/Button';
 import { CardView } from './CardView';
+import { InventoryPanel } from './inventory/InventoryPanel';
 import { RunCharacterSheet } from './RunCharacterSheet';
 
 export function ProfileView({
@@ -41,6 +44,7 @@ export function ProfileView({
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState(false);
   const [retry, setRetry] = useState(0);
+  const { items, setItems, spend } = usePlayerItems(data.accountId);
   useEffect(() => {
     if (!data.accountId) return;
     let live = true;
@@ -53,6 +57,7 @@ export function ProfileView({
         if (live) {
           setBuild(result.build);
           setWins(result.wins);
+          setItems(result.items);
         }
       })
       .catch(() => {
@@ -67,7 +72,7 @@ export function ProfileView({
     return () => {
       live = false;
     };
-  }, [data.accountId, retry]);
+  }, [data.accountId, retry, setItems]);
   const run = build.character.reduce(
     runReducer,
     createRun(data.dailyKey, rings, 0, wins)
@@ -105,6 +110,24 @@ export function ProfileView({
         : { ...previous, character: [...previous.character, action] };
     });
   }
+  /** Spends a Tome of Regret (free for admins, checked by the server), then refunds every trait node. */
+  async function respec() {
+    setError('');
+    if (!(await spend(RESPEC_ITEM)))
+      return setError(`Could not use the ${itemName}. Try again.`);
+    setBuild((previous) => ({
+      ...previous,
+      character: previous.character.filter((a) => a.type !== 'setTraitNode'),
+    }));
+  }
+  const { name: itemName, pluralName, icon } = getItem(RESPEC_ITEM);
+  const respecItem = {
+    name: itemName,
+    pluralName,
+    icon,
+    owned: itemQuantity(items, RESPEC_ITEM),
+    isFree: data.isAdmin,
+  };
   /** Saves the build when it is valid, then leaves; a failed save keeps the sheet open. */
   async function leave() {
     if (!valid || !decksValid) return onClose();
@@ -139,12 +162,9 @@ export function ProfileView({
     <RunCharacterSheet
       character={character}
       onAction={changeCharacter}
-      onRespec={() =>
-        setBuild({
-          ...build,
-          character: build.character.filter((a) => a.type !== 'setTraitNode'),
-        })
-      }
+      onRespec={() => void respec()}
+      respecItem={respecItem}
+      inventory={<InventoryPanel owner={{ character, deck: cards, bag: items }} />}
       onClose={() => void leave()}
       profile={
         <>

@@ -1,0 +1,113 @@
+/* ===================================================================
+   INVENTORY PANEL
+   Parchment bags of square slots, reusing the Equipment ledger paper.
+   =================================================================== */
+
+/* --- LAYOUT: bags above details on phones, side by side when wide --- */
+.inv-panel {
+  display: grid;
+  gap: 0.5rem;
+  color: var(--color-on-parchment);
+  font-family: var(--font-display);
+}
+.inv-bags {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+@container character-frame (min-width: 34rem) {
+  .inv-panel {
+    grid-template-columns: minmax(0, 1fr) 12rem;
+    align-items: start;
+  }
+}
+
+/* --- SLOT GRID --- */
+.inv-grid {
+  --inv-slot: 3.2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, var(--inv-slot));
+  justify-content: start;
+  gap: 0.3rem;
+}
+.inv-cell {
+  position: relative;
+  width: var(--inv-slot);
+  height: var(--inv-slot);
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+  background: color-mix(in srgb, var(--paper-shadow) 42%, transparent);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.35);
+}
+.inv-empty {
+  opacity: 0.55;
+}
+.inv-art {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.inv-cell[data-kind='jewelry'] .cs-jewelry {
+  color: var(--color-card-melee);
+  fill: color-mix(in srgb, var(--color-accent) 48%, transparent);
+}
+/* A fan card shrunk to fit the slot, keeping its frame colour and art. */
+.inv-cell[data-kind='card'] .inv-art > * {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  scale: 0.42;
+}
+.inv-slot {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.inv-slot[aria-pressed='true'] {
+  outline: 2px solid var(--color-on-parchment);
+  outline-offset: 1px;
+}
+
+/* --- BADGES --- */
+.inv-qty,
+.inv-worn {
+  position: absolute;
+  padding: 0 0.25rem;
+  border: 1px solid var(--color-accent);
+  border-radius: 0.5rem;
+  background: var(--color-surface-sunken);
+  color: var(--color-accent);
+  font: 800 0.62rem/1.35 var(--font-display);
+}
+.inv-qty {
+  right: -0.2rem;
+  bottom: -0.2rem;
+}
+.inv-worn {
+  top: -0.2rem;
+  left: -0.2rem;
+}
+
+/* --- DETAILS --- */
+.inv-subtitle {
+  margin: 0 0 0.4rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--faded-ink);
+}
+.inv-detail-body {
+  display: grid;
+  justify-items: center;
+}
+.inv-detail-body > p {
+  justify-self: stretch;
+}
+.inv-glyph {
+  width: 2rem;
+  height: 2rem;
+  color: var(--color-blood);
+}

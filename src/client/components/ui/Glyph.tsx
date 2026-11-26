@@ -51,7 +51,8 @@ export type GlyphName =
   | 'dodging'
   | 'back'
   | 'speaker'
-  | 'close';
+  | 'close'
+  | 'book';
 
 export type GlyphProps = {
   name: GlyphName;

@@ -9,6 +9,9 @@ import type {
   FinishRunRequest,
   FinishRunResponse,
   InitResponse,
+  ProfileResponse,
+  UseItemRequest,
+  UseItemResponse,
   LeaderboardResponse,
   SaveUnitStatsRequest,
   SaveUnitStatsResponse,
@@ -50,8 +53,9 @@ const postJson = <TResponse>(path: string, payload?: unknown) =>
 
 // --- ROUTES ---
 export const apiClient = {
-  profile: () => request<{ build: import('../../shared/game/playerBuild').PlayerBuild; wins:number }>('/api/profile'),
+  profile: () => request<ProfileResponse>('/api/profile'),
   saveProfile: (build: import('../../shared/game/playerBuild').PlayerBuild) => postJson<{saved:boolean}>('/api/profile',build),
+  useItem: (payload: UseItemRequest) => postJson<UseItemResponse>('/api/profile/use-item', payload),
   init: () => request<InitResponse>('/api/init'),
   leaderboard: () => request<LeaderboardResponse>('/api/leaderboard'),
   startRun: () => postJson<StartRunResponse>('/api/run/start'),

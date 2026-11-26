@@ -52,6 +52,23 @@ export type SaveUnitStatsResponse = {
   unitOverrides: UnitStatOverrides;
 };
 
+// --- GET /api/profile ---
+// The player's saved build, wins, and item bag.
+export type ProfileResponse = {
+  build: import('../game/playerBuild.ts').PlayerBuild;
+  wins: number;
+  items: import('../game/items.ts').ItemBag;
+};
+
+// --- POST /api/profile/use-item ---
+// Spends one item from the player's bag. Admins use items for free.
+export type UseItemRequest = { itemId: string };
+export type UseItemResponse = {
+  items: import('../game/items.ts').ItemBag;
+  /** False when an admin used the item without spending it. */
+  spent: boolean;
+};
+
 // --- POST /api/run/start ---
 // Called when the player begins a run. The first run of the day is the
 // ranked one; any later run is practice and never touches the board.

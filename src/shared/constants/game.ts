@@ -17,3 +17,7 @@ export const LEADERBOARD_PREVIEW_ROWS = 3;
 // --- REDIS RETENTION ---
 /** Daily keys expire after this many days so Redis storage stays bounded. */
 export const DAILY_DATA_TTL_DAYS = 30;
+
+// --- PLAYER INVENTORY ---
+/** Each inventory section shows at least this many slots, empty ones included, like an RPG bag. */
+export const INVENTORY_MIN_SLOTS = 8;

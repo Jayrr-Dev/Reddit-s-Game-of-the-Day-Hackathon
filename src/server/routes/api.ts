@@ -7,6 +7,8 @@
 import { defaultBuild, isPlayerBuild } from '../../shared/game/playerBuild';
 import { randomUUID } from 'node:crypto';
 import { redisKeys } from '../core/redisKeys';
+import { getItems, spendPlayerItem } from '../core/playerItems';
+import { isItemId } from '../../shared/game/items';
 import { Hono } from 'hono';
 import { context, reddit, redis } from '@devvit/web/server';
 import { replayForScore } from '../../shared/game/replayForScore';
@@ -21,9 +23,12 @@ import type {
   FinishRunResponse,
   InitResponse,
   LeaderboardResponse,
+  ProfileResponse,
   SaveUnitStatsRequest,
   SaveUnitStatsResponse,
   StartRunResponse,
+  UseItemRequest,
+  UseItemResponse,
 } from '../../shared/types/api';
 import { getDailyKey } from '../../shared/utils/dailyKey';
 import { getCurrentPostDailyKey } from '../core/dailyPost';
@@ -84,25 +89,35 @@ const recordRankedScore = async (
   return { bestScoreToday, rank };
 };
 
-const buildKey = (id:string) => 'profile:build:v1:' + id;
 async function getBuild(id:string) {
-  const raw = await redis.get(buildKey(id));
+  const raw = await redis.get(redisKeys.playerBuild(id));
   const data:unknown = raw ? JSON.parse(raw) : null;
   return isPlayerBuild(data) ? data : defaultBuild();
 }
 api.get('/profile',async c => {
   const id=context.userId;
   if(!id)return jsonError(c,401,'Sign in to load your profile');
-  const [build,wins]=await Promise.all([getBuild(id),redis.zCard(redisKeys.victories(id))]);
-  return c.json({build,wins});
+  const [build,wins,items]=await Promise.all([getBuild(id),redis.zCard(redisKeys.victories(id)),getItems(id)]);
+  return c.json<ProfileResponse>({build,wins,items});
 });
 api.post('/profile',async c => {
   const id=context.userId;
   if(!id)return jsonError(c,401,'Sign in to save your profile');
   const build:unknown=await c.req.json();
   if(!isPlayerBuild(build))return jsonError(c,400,'Invalid character or starter deck');
-  await redis.set(buildKey(id),JSON.stringify(build));
+  await redis.set(redisKeys.playerBuild(id),JSON.stringify(build));
   return c.json({saved:true});
+});
+// --- POST /api/profile/use-item ---
+// Spends one item from the player's bag; admins (checked here) spend none.
+api.post('/profile/use-item', async (c) => {
+  const id = context.userId;
+  if (!id) return jsonError(c, 401, 'Sign in to use items');
+  const { itemId } = await c.req.json<Partial<UseItemRequest>>();
+  if (!isItemId(itemId)) return jsonError(c, 400, 'Unknown item');
+  const result = await spendPlayerItem(id, itemId, await isCurrentUserAdmin());
+  if (!result) return jsonError(c, 400, 'You have none of that item');
+  return c.json<UseItemResponse>(result);
 });
 // --- GET /api/init ---
 // Everything the game needs on first paint: day, player, best score, streak.
