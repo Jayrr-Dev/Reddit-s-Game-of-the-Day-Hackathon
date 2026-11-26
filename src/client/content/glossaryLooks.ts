@@ -24,6 +24,7 @@ import {
   STATUS_INFO,
 } from '../../shared/game/describe';
 import {
+  CARD_LOOK,
   INTENT_LOOK,
   KEYWORD_LOOK,
   OUT_OF_RANGE_LOOK,
@@ -40,6 +41,17 @@ const byLabel = <K extends string>(
 ): [string, Look][] =>
   (Object.keys(infos) as K[]).map((key) => [infos[key].label, looks[key]]);
 
+// --- MOVEMENT TERMS ---
+/**
+ * Charge and Back Step read white with the Movement card type's foot
+ * icon, so they read as movements. Listed after the keywords so they
+ * win over the Charge keyword's own look.
+ */
+const MOVEMENT_TERM_LOOK: Look = {
+  glyph: CARD_LOOK.movement.glyph,
+  toneClass: 'text-ink',
+};
+
 // --- TABLE ---
 const GLOSSARY_LOOK: ReadonlyMap<string, Look> = new Map([
   ...byLabel(STATUS_INFO, STATUS_LOOK),
@@ -53,8 +65,7 @@ const GLOSSARY_LOOK: ReadonlyMap<string, Look> = new Map([
   [KNOCKBACK_INFO.label, { glyph: 'march', toneClass: 'text-guard' }],
   [HOMING_INFO.label, { glyph: 'targeting', toneClass: 'text-magic' }],
   [RANDOMLY_INFO.label, { glyph: 'targeting', toneClass: 'text-energy' }],
-  // Card types tooltips mention. Charge and Back Step are left out on
-  // purpose: Sam wants them plain bold white wherever they are named.
+  // Card types and movements tooltips mention.
   ['Melee', INTENT_LOOK.attack],
   ['Range', INTENT_LOOK.range],
   ['Magic', INTENT_LOOK.magic],
@@ -64,6 +75,8 @@ const GLOSSARY_LOOK: ReadonlyMap<string, Look> = new Map([
     { glyph: 'march', toneClass: 'text-ink-muted' },
   ]),
   [OUT_OF_RANGE_INFO.label, OUT_OF_RANGE_LOOK],
+  ['Charge', MOVEMENT_TERM_LOOK],
+  ['Back Step', MOVEMENT_TERM_LOOK],
 ]);
 
 /** The look of a glossary word, if it is one. */
