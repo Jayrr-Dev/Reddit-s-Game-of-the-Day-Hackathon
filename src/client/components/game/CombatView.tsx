@@ -76,6 +76,7 @@ import { MovementCard } from './CardView';
 import { DraggedCard } from './combat/DraggedCard';
 import { EnergyTray } from './combat/EnergyTray';
 import { fatigueAt, positionForCard, soleTargetFor } from '../../../shared/game/combat';
+import { ScrambleNotice } from './combat/ScrambleNotice';
 import { CardPlayHistory } from './combat/CardPlayHistory';
 import { FanHand } from './combat/FanHand';
 import { HitNumbers } from './combat/HitNumbers';
@@ -571,6 +572,7 @@ export const CombatView = ({
         />
         {/* BATTLEFIELD (fills the space between the plate and the band) */}
         <div className="relative flex min-h-0 flex-1 flex-col">
+          <ScrambleNotice combat={combat} />
           <BattlefieldView
             bossEntrance={bossEntrance}
             heroes={combat.heroes}

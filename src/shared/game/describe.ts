@@ -228,6 +228,11 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
     description:
       'Next turn, this many random cards in your hand cost **1** more energy. Then it clears.',
   },
+  scramble: {
+    label: 'Scramble',
+    description:
+      'Lasts this many turns.\nOn an enemy: its next move becomes a **random** one from its moveset.\nOn you: a random playable card in your hand plays itself at the start of your turn.',
+  },
   fatigueAll: {
     label: 'Fatigue ALL',
     description:
@@ -320,6 +325,8 @@ export const describeCardEffect = (
       return `Malaise ${effect.amount}${areaWord(effect.target)}`;
     case 'pin':
       return `Pin ${effect.amount}${areaWord(effect.target)}`;
+    case 'scramble':
+      return `Scramble ${effect.amount}${areaWord(effect.target)}`;
     case 'cloak':
       return `Cloak ${effect.amount}`;
     case 'enfeeble':
@@ -732,6 +739,8 @@ export const imbueTag = (gift: ImbueGift): string => {
       return `Malaise ${effect.amount}`;
     case 'pin':
       return `Pin ${effect.amount}`;
+    case 'scramble':
+      return `Scramble ${effect.amount}`;
     case 'cloak':
       return `Cloak ${effect.amount}`;
     case 'enfeeble':
@@ -896,6 +905,7 @@ export type IntentKind =
   | 'malaise'
   | 'pin'
   | 'fatigue'
+  | 'scramble'
   | 'cloak'
   | 'guard'
   | 'buff'
@@ -986,7 +996,8 @@ const describeHeroEffect = (
     case 'malaise':
       return { kind: 'malaise', text: String(effect.amount), label: `Malaise ${effect.amount}\n${STATUS_INFO.malaise.description}` };
     case 'pin':
-      return { kind: 'pin', text: String(effect.amount), label: `Pin ${effect.amount}\n${STATUS_INFO.pin.description}` };
+    case 'scramble':
+      return { kind: effect.kind, text: String(effect.amount), label: `${STATUS_INFO[effect.kind].label} ${effect.amount}\n${STATUS_INFO[effect.kind].description}` };
     case 'fatigue': {
       const info = STATUS_INFO[effect.all ? 'fatigueAll' : 'fatigue'];
       return { kind: 'fatigue', text: effect.all ? `${effect.amount} ALL` : String(effect.amount), label: `${fatigueName(effect)}\n${info.description}` };

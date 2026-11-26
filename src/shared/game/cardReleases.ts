@@ -122,6 +122,7 @@ export const CARD_RELEASE_ORDER = [
   'rushPotion',
   'dispel',
   'massDisrupt',
+  'scramble',
 ] as const satisfies readonly CardId[];
 
 // --- PUBLIC API ---

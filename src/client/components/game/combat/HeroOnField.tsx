@@ -46,6 +46,7 @@ import { moodOf } from '../../../lib/heroMood';
 import { seeded } from '../../../lib/seeded';
 import { GroundShadow } from './GroundShadow';
 import { HexAura } from './HexAura';
+import { ScrambleScribble } from './ScrambleScribble';
 import { HeroFigure } from './HeroFigure';
 import { HeroPlate } from './HeroPlate';
 import { PickMark } from './PickMark';
@@ -522,6 +523,7 @@ export const HeroOnField = ({
                     </div>
                   </div>
                   <HexAura hex={unit.statuses.hex} />
+                  {unit.statuses.scramble > 0 && <ScrambleScribble />}
                   {pickMarker && <PickMark marker={pickMarker} />}
                   {unit.joinedMidFight && <ArrivalLight />}
                 </div>

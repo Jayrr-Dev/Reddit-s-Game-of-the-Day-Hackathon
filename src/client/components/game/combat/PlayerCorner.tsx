@@ -15,6 +15,7 @@ import type { PlayerHitPop } from '../../../hooks/useHitPops';
 import { VILLAIN_ANCHOR_ATTR } from '../../../hooks/useCardDrag';
 import { HitStack } from './HitNumbers';
 import { HexAura } from './HexAura';
+import { ScrambleScribble } from './ScrambleScribble';
 import { ImpactOverlay } from './ImpactOverlay';
 import { Glyph } from '../../ui/Glyph';
 
@@ -83,6 +84,7 @@ export const PlayerCorner = ({
         <span className="portrait-level">Lv {level}</span>
         {/* THE HEX SIGIL TURNS OVER YOU WHILE YOU ARE HEXED */}
         <HexAura hex={player.statuses.hex} />
+        {player.statuses.scramble > 0 && <ScrambleScribble className="left-1/2 -top-[10%] w-[90%]" />}
         {/* HIT MARKS, ARROWS AND GLOWS OVER THE PORTRAIT */}
         <ImpactOverlay pops={hits.filter((hit) => hit.kind !== 'hit')} />
         <button

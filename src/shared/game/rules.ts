@@ -237,6 +237,7 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   pin: true,
   fatigue: true,
   fatigueAll: true,
+  scramble: true,
 };
 
 /**

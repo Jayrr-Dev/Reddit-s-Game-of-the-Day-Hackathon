@@ -462,6 +462,8 @@ export const CARDS = {
   // Move a hero two lines while cursing it.
   forcePull: card('Force Pull', 'curse', 1, 'uncommon', [pull(2), hex(2)]),
   forcePush: card('Force Push', 'curse', 1, 'uncommon', [knockback(2), hex(2)]),
+  // Throws a hero off its plan: its next move becomes a random one.
+  scramble: card('Scramble', 'curse', 1, 'uncommon', [{ kind: 'scramble', amount: 1, target: 'one' }, hex(1)]),
   sharpshooter: card(
     'Sharpshooter',
     'buff',

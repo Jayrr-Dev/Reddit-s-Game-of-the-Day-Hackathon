@@ -73,6 +73,7 @@ export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
   pin: { glyph: 'anchor', toneClass: 'text-vex' },
   fatigue: { glyph: 'hourglass', toneClass: 'text-energy' },
   fatigueAll: { glyph: 'hourglass', toneClass: 'text-energy' },
+  scramble: { glyph: 'swirl', toneClass: 'text-hex' },
 };
 
 // --- KEYWORDS ---
@@ -124,6 +125,7 @@ export const INTENT_LOOK: Record<IntentKind, Look> = {
   malaise: STATUS_LOOK.malaise,
   pin: STATUS_LOOK.pin,
   fatigue: STATUS_LOOK.fatigue,
+  scramble: STATUS_LOOK.scramble,
   cloak: STATUS_LOOK.cloak,
   guard: { glyph: 'shield', toneClass: 'text-guard' },
   buff: STATUS_LOOK.wrath,

@@ -1006,6 +1006,7 @@ void test('afflictions are the harmful statuses, flagged in one table', () => {
     'malaise',
     'pin',
     'poison',
+    'scramble',
     'shock',
     'vex',
     'weaken',

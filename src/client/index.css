@@ -3633,3 +3633,32 @@ textarea,
 @container (max-width: 520px) {
   .combat-rules-reference { grid-template-columns:1fr; }
 }
+
+/* -------------------------------------------------------------------
+   SCRAMBLE (ScrambleScribble.tsx, ScrambleNotice.tsx): a pen scribble
+   that keeps redrawing over a Scrambled unit, and a short notice when
+   Scramble auto-plays your card. Dash offset and opacity only.
+   ------------------------------------------------------------------- */
+.scramble-scribble {
+  transform: translateX(-50%);
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.6));
+}
+.scramble-scribble path {
+  stroke-dasharray: 1;
+  animation: scramble-draw 1.6s ease-in-out infinite alternate;
+}
+@keyframes scramble-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+.scramble-notice {
+  animation: scramble-notice 2.2s ease-out forwards;
+}
+@keyframes scramble-notice {
+  0% { opacity: 0; transform: scale(0.9); }
+  12%, 75% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scramble-scribble path { animation: none; stroke-dashoffset: 0; }
+}

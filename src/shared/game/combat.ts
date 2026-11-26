@@ -340,6 +340,41 @@ export const plannedHeroMoves = (
   return planned;
 };
 
+// --- SCRAMBLE ---
+/**
+ * SCRAMBLE on a hero: its next move becomes a random other move from
+ * its moveset (seeded rng, so replays match). A hero with one move
+ * keeps it.
+ */
+export const scrambleHero = (state: CombatState, uid: number): CombatState => {
+  const unit = state.heroes.find((hero) => hero.uid === uid);
+  if (!unit) return state;
+  const count = movesForHeroPhase(unit, getHero(unit.heroId)).length;
+  if (count < 2) return state;
+  const current = (plannedHeroMove(unit, state.heroes)?.index ?? unit.moveIndex) % count;
+  const others = Array.from({ length: count }, (_, index) => index).filter((index) => index !== current);
+  const [moveIndex, rng] = pickOne(state.rng, others);
+  return { ...updateHeroes(state, [uid], (hero) => ({ ...hero, moveIndex })), rng };
+};
+
+/**
+ * SCRAMBLE on the villain: at its turn start, one random playable card
+ * in hand plays itself, at its usual target (Imbue cards sit out: they
+ * need a card to pick). The view shows a scramble first (scrambledPlay).
+ */
+const autoPlayScrambled = (state: CombatState): CombatState => {
+  if (state.player.statuses.scramble <= 0) return state;
+  const playable = state.hand
+    .map((cardId, index) => ({ cardId, index }))
+    .filter(({ cardId, index }) => !imbueEffectOf(cardId) && canPlayCard(state, index));
+  if (playable.length === 0) return state;
+  const [{ cardId, index }, rng] = pickOne(state.rng, playable);
+  const picked = { ...state, rng };
+  const targets = targetRuleOf(cardId) === 'none' ? [] : autoTargets(picked, index);
+  const played = playCard(picked, index, targets[0] ?? -1, targets.length > 0 ? targets : undefined);
+  return { ...played, scrambledPlay: { cardId, turn: played.turn } };
+};
+
 /**
  * A Range hit at its proper range. Rounded (not floored) so even small
  * hits feel the bonus: 2 -> 3, 6 -> 8.
@@ -1007,6 +1042,8 @@ const applyOnPortrait = (
       return { ...state, player: addStatus(player, 'malaise', effect.amount) };
     case 'pin':
       return { ...state, player: addStatus(player, 'pin', effect.amount) };
+    case 'scramble':
+      return { ...state, player: addStatus(player, 'scramble', effect.amount) };
     case 'enfeeble':
       return { ...state, player: enfeebleTimes(player, (effect.times ?? 1) + scornBonus(player, 'enfeeble')) };
     case 'dispel': {
@@ -1074,6 +1111,11 @@ const applyCardEffect = (
         resolveTargets(state, effect.target, targetUid, cardDef.type),
         (unit) => addStatus(unit, 'pin', effect.amount)
       );
+    case 'scramble': {
+      const targets = resolveTargets(state, effect.target, targetUid, cardDef.type);
+      const scrambled = updateHeroes(state, targets, (unit) => addStatus(unit, 'scramble', effect.amount));
+      return targets.reduce(scrambleHero, scrambled);
+    }
     case 'enfeeble':
       return updateHeroes(
         state,
@@ -1866,7 +1908,8 @@ const applyHeroEffect = (
     case 'malaise':
       return afflictVillain(state, 'malaise', effect.amount, accuracyBonusOf(actor, 'magic'));
     case 'pin':
-      return afflictVillain(state, 'pin', effect.amount, accuracyBonusOf(actor, 'magic'));
+    case 'scramble':
+      return afflictVillain(state, effect.kind, effect.amount, accuracyBonusOf(actor, 'magic'));
     case 'fatigue': {
       if (!effect.all) return afflictVillain(state, 'fatigue', effect.amount, accuracyBonusOf(actor, 'magic'));
       // FATIGUE ALL: the newest one sets which card type it raises.
@@ -2094,7 +2137,9 @@ const heroActs = (
       moveIndex: planned ? planned.index + 1 : unit.moveIndex,
     };
   });
-  return removeFallen(settled);
+  // SCRAMBLE 2+: still scrambled after its turn, so its next move re-rolls too.
+  const stillScrambled = (settled.heroes.find((unit) => unit.uid === uid)?.statuses.scramble ?? 0) > 0;
+  return removeFallen(stillScrambled ? scrambleHero(settled, uid) : settled);
 };
 
 /** Hero effects that land on the villain (afflictions, Knockback). */
@@ -2109,6 +2154,7 @@ const VILLAIN_EFFECT_KINDS: ReadonlySet<HeroEffect['kind']> = new Set([
   'malaise',
   'pin',
   'fatigue',
+  'scramble',
   'knockBack',
   'detonate',
 ]);
@@ -2144,7 +2190,7 @@ export const heroTurnOrder = (heroes: readonly HeroUnit[]): HeroUnit[] =>
  */
 export const startPlayerTurn = (state: CombatState): CombatState => {
   const { startingEnergy, maxEnergy, cardsPerTurn } = combatantBonuses(state.player);
-  return applyFatigueAll(applyFatigue(drawCards(
+  return autoPlayScrambled(applyFatigueAll(applyFatigue(drawCards(
     {
       ...state,
       // Hex and Poison run before the villain's action (its turn).
@@ -2156,7 +2202,7 @@ export const startPlayerTurn = (state: CombatState): CombatState => {
       followUpReady: false,
     },
     cardsPerTurn
-  )));
+  ))));
 };
 
 /** Closes the player turn, including discards, reserve and status upkeep. */

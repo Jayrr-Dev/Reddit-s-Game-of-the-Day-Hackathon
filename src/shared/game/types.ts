@@ -96,6 +96,8 @@ export type StatusId =
   | 'fatigue'
   /** Fatigue ALL: at the villain's turn start, every card (of fatigueAllType, if set) costs this much more this turn. */
   | 'fatigueAll'
+  /** Scramble N, for N of its turns: an enemy makes a random move; the villain auto-plays a random card at turn start. */
+  | 'scramble'
   | BuffId;
 export type Statuses = Record<StatusId, number>;
 /**
@@ -194,6 +196,8 @@ export type BaseCardEffect =
   | { kind: 'malaise'; amount: number; target: CardTarget }
   /** Pin N: the target can't move for N of its turns. */
   | { kind: 'pin'; amount: number; target: CardTarget }
+  /** Scramble N: the hero's next move becomes a random one, for N turns. */
+  | { kind: 'scramble'; amount: number; target: CardTarget }
   /** Enfeebles the target: one tier up when reapplied turn after turn. */
   /** Enfeeble ×N: cast `times` times (default 1), a tier each, to IV. */
   | { kind: 'enfeeble'; target: CardTarget; times?: number }
@@ -395,6 +399,8 @@ export type HeroEffect =
   | { kind: 'malaise'; amount: number }
   /** Pin N on the villain: no Charge, Back Step or forced movement for N turns. */
   | { kind: 'pin'; amount: number }
+  /** Scramble N on the villain: a random playable card auto-plays at its turn start, for N turns. */
+  | { kind: 'scramble'; amount: number }
   /**
    * Fatigue N on the villain: N random cards in its next hand cost 1
    * more. With `all`, every card in that hand costs N more instead
@@ -592,6 +598,8 @@ export type CombatState = {
   handFatigue?: number[];
   /** Extra energy Charge and Back Step cost this turn (Fatigue ALL on Movement). */
   movementFatigue?: number;
+  /** The card Scramble auto-played at the start of this turn (the view shows a scramble first). */
+  scrambledPlay?: { cardId: CardId; turn: number };
   /**
    * Battle imbues of cards that left the hand for the piles. Copies of a
    * card can't be told apart there, so the next copy drawn takes them.

@@ -44,5 +44,5 @@ void test('a retired card leaves the pool and New cards fills its slot', () => {
   const newest = newestCardIds(NEW_CARDS_COUNT);
   assert.equal(newest.length, NEW_CARDS_COUNT);
   assert.ok(!newest.includes('killingSpree'));
-  assert.ok(newest.includes('retreat'));
+  assert.ok(newest.includes('evasiveStep'));
 });
