@@ -11,6 +11,15 @@ export const TRAITS = [
   'endurance',
 ] as const;
 export type TraitId = (typeof TRAITS)[number];
+/** The name players see for each trait. Ids stay fixed because saves store them. */
+export const TRAIT_LABELS: Record<TraitId, string> = {
+  vigor: 'Vigor',
+  strength: 'Strength',
+  dexterity: 'Dexterity',
+  intelligence: 'Intelligence',
+  scorn: 'Malevolence',
+  endurance: 'Endurance',
+};
 export type Traits = Record<TraitId, number>;
 export type TraitPath = 'left' | 'hybrid' | 'right';
 type PathRanks = Record<TraitPath, number>;

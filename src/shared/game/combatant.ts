@@ -257,7 +257,7 @@ export const damageFactorOf = (
  * the attacker (Weaken) and anything about the target apply only once
  * it is aimed (attackDamage, then cardHitOn).
  */
-/** A damaging affliction resolves once with its source's Scorn bonus. */
+/** A damaging affliction resolves once with its source's Malevolence bonus. */
 export const afflictionDamage = (base: number, source?: Combatant): number => {
   const traitPercent = source?.traits
     ? combatantBonuses(source).afflictionDamagePercent
@@ -521,7 +521,7 @@ export const protectedAmount = (target: Combatant, amount: number): number =>
       )
     : Math.round(amount);
 
-/** Afflictions benefit from source Scorn and target Protection but still bypass Armor and Guard. */
+/** Afflictions benefit from source Malevolence and target Protection but still bypass Armor and Guard. */
 export const incomingAfflictionDamage = (
   target: Combatant,
   amount: number,

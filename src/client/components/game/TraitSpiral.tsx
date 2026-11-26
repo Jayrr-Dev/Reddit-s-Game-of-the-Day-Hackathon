@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { nameTraitNodes } from '../../content/traitNodeNames';
 import { createPortal } from 'react-dom';
-import { characterBonuses, TRAIT_CAP, traitNodeIds, traitRewardShare, traitNodeGains, traitNodeArms, traitPointsAvailable, type CharacterState, type TraitId } from '../../../shared/game/character';
+import { characterBonuses, TRAIT_CAP, TRAIT_LABELS, traitNodeIds, traitRewardShare, traitNodeGains, traitNodeArms, traitPointsAvailable, type CharacterState, type TraitId } from '../../../shared/game/character';
 import { Glyph, type GlyphName } from '../ui/Glyph';
 import '../../semanticStats.css';
 import './TraitSpiral.css';
@@ -171,7 +171,7 @@ export const TraitSpiral = ({ trait, character, stats, onSetNode, previewHost }:
     refs.current[Math.max(0, Math.min(TRAIT_CAP - 1, target))]?.focus();
   }
   return (
-    <section ref={spiral} className="trait-spiral" aria-label={trait + ' rewards'}>
+    <section ref={spiral} className="trait-spiral" aria-label={TRAIT_LABELS[trait] + ' rewards'}>
       {/* POINTS LEFT: the canvas title, like the skill tree's points line. */}
       <strong className="trait-spiral-title" role="status">
         {traitPointsAvailable(character)} {traitPointsAvailable(character) === 1 ? 'point' : 'points'} available

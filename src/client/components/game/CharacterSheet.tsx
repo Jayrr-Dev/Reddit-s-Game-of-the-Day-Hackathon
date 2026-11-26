@@ -6,6 +6,7 @@ import {
   ringSlotAccepts,
   ringSlotUnlocked,
   TRAITS,
+  TRAIT_LABELS,
   TRAIT_CAP,
   xpToNextLevel,
   type CharacterState,
@@ -140,11 +141,11 @@ const Traits = ({
             key={id}
             type="button"
             aria-pressed={trait === id}
-            aria-label={`${id}, ${character.traits[id]} of ${TRAIT_CAP} nodes`}
+            aria-label={`${TRAIT_LABELS[id]}, ${character.traits[id]} of ${TRAIT_CAP} nodes`}
             onClick={() => onSelectTrait(id)}
           >
             <Glyph name={TRAIT_ICONS[id]} />
-            <span className="cs-name">{id}</span>
+            <span className="cs-name">{TRAIT_LABELS[id]}</span>
             <strong>{character.traits[id]}</strong>
           </button>
         ))}
@@ -426,7 +427,7 @@ export const CharacterSheet = ({
       </div>
       {page === 'traits' && (
         <div className="cs-trait-summary">
-          <h3><span className="cs-name">{trait}</span> {character.traits[trait]}/{TRAIT_CAP}</h3>
+          <h3><span className="cs-name">{TRAIT_LABELS[trait]}</span> {character.traits[trait]}/{TRAIT_CAP}</h3>
         </div>
       )}
       </header>
