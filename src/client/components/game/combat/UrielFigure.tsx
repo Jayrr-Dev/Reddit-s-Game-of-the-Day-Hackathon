@@ -5,6 +5,7 @@ import type { HeroSize } from '../../../../shared/game/types';
 import type { HeroAction } from '../../../content/heroLooks';
 import { BODY_HEIGHT, BODY_WIDTH } from '../../../lib/heroFigure';
 import { URIEL_ATLAS, urielPlayback, urielPoseOf } from '../../../lib/urielMotion';
+import { ProgressiveSvgImage } from '../../ui/ProgressiveImage';
 
 type UrielFigureProps = { size: HeroSize; action?: HeroAction | null | undefined };
 
@@ -43,7 +44,7 @@ export const UrielFigure = ({ size, action }: UrielFigureProps) => {
 
   const y = BODY_HEIGHT - drawHeight;
   if (!isBattleSize) {
-    return <image href={still} width={BODY_WIDTH[size]} height={drawHeight} y={y} />;
+    return <ProgressiveSvgImage href={still} width={BODY_WIDTH[size]} height={drawHeight} y={y} />;
   }
   return (
     <foreignObject width={BODY_WIDTH[size]} height={drawHeight} y={y} data-uriel-pose={pose}>
