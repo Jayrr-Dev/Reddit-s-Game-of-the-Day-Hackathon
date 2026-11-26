@@ -3,7 +3,7 @@
 // Asks before a respec, showing the item it costs and how many the
 // player owns. Admins see the same dialog but may confirm for free.
 // ===================================================================
-import { useLayoutEffect, useRef } from 'react';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { Glyph, type GlyphName } from '../ui/Glyph';
 
 // --- TYPES ---
@@ -18,44 +18,26 @@ export type RespecItem = {
 };
 
 // --- DIALOG ---
-/** A modal confirm; Cancel or Escape closes it without spending anything. */
+/** The shared confirm dialog, worded for spending a respec item. */
 export const RespecDialog = ({ item, onConfirm, onCancel }: {
   item: RespecItem;
   onConfirm: () => void;
   onCancel: () => void;
 }) => {
-  const dialog = useRef<HTMLDialogElement>(null);
   const canConfirm = item.isFree || item.owned > 0;
-  // Open as a modal on mount so it sits above the character sheet.
-  useLayoutEffect(() => {
-    const node = dialog.current;
-    node?.showModal();
-    return () => node?.close();
-  }, []);
   return (
-    <dialog
-      ref={dialog}
-      className="respec-dialog"
-      aria-labelledby="respec-dialog-title"
-      onCancel={(event) => {
-        event.preventDefault();
-        onCancel();
-      }}
+    <ConfirmDialog
+      title={`Use a ${item.name}?`}
+      confirmLabel={`Use ${item.name}`}
+      cancelLabel="Cancel"
+      isConfirmDisabled={!canConfirm}
+      onConfirm={onConfirm}
+      onCancel={onCancel}
     >
-      <Glyph name={item.icon} className="respec-dialog-icon" />
-      <h3 id="respec-dialog-title">Use a {item.name}?</h3>
-      <p>Respec returns every trait point so you can spend them again.</p>
-      <p className="respec-dialog-owned">
-        You have <b>{item.owned}</b> {item.owned === 1 ? item.name : item.pluralName}.
+      <p className="flex items-center justify-center gap-1.5">
+        <Glyph name={item.icon} className="size-5 text-blood" />
+        Refunds all trait points. <b className="text-ink">{item.owned}</b> left.
       </p>
-      {item.isFree && <p className="respec-dialog-note">Admin: this respec is free.</p>}
-      {!canConfirm && <p className="respec-dialog-note">You need a {item.name} to respec.</p>}
-      <div className="respec-dialog-actions">
-        <button type="button" onClick={onCancel}>Cancel</button>
-        <button type="button" data-own-sound disabled={!canConfirm} onClick={onConfirm}>
-          Use {item.name}
-        </button>
-      </div>
-    </dialog>
+    </ConfirmDialog>
   );
 };

@@ -18,6 +18,8 @@ type ConfirmDialogProps = {
   children?: ReactNode;
   confirmLabel: string;
   cancelLabel: string;
+  /** Greys out the confirm button (e.g. the player can't afford it). */
+  isConfirmDisabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -30,6 +32,7 @@ export const ConfirmDialog = ({
   children,
   confirmLabel,
   cancelLabel,
+  isConfirmDisabled = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) => (
@@ -39,7 +42,7 @@ export const ConfirmDialog = ({
     onDismiss={onCancel}
     actions={<>
       <Button variant="menu" onClick={onCancel}>{cancelLabel}</Button>
-      <Button variant="menuPrimary" onClick={onConfirm} autoFocus>{confirmLabel}</Button>
+      <Button variant="menuPrimary" onClick={onConfirm} disabled={isConfirmDisabled} autoFocus>{confirmLabel}</Button>
     </>}
   >
     {children}

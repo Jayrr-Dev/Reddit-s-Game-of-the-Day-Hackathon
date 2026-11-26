@@ -762,34 +762,3 @@
   background: transparent;
   border-color: transparent;
 }
-
-
-/* --- RESPEC DIALOG: parchment confirm above the sheet --- */
-.respec-dialog {
-  width: min(19rem, calc(100vw - 2rem));
-  margin: auto;
-  padding: 0.9rem 1rem;
-  border: 3px double #795732;
-  border-radius: 0.4rem;
-  background: var(--color-parchment);
-  color: var(--color-on-parchment);
-  font-family: var(--font-display);
-  text-align: center;
-}
-.respec-dialog::backdrop { background: rgb(0 0 0 / 0.55); }
-.respec-dialog-icon { width: 2.6rem; height: 2.6rem; margin: 0 auto 0.3rem; color: var(--color-blood); }
-.respec-dialog h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 0.3rem; }
-.respec-dialog p { font-size: 0.8rem; margin-bottom: 0.35rem; }
-.respec-dialog-note { font-style: italic; }
-.respec-dialog-actions { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.6rem; }
-.respec-dialog-actions button {
-  min-height: 2rem;
-  padding: 0.2rem 0.8rem;
-  border: 1px solid #795732;
-  border-radius: 0.3rem;
-  font-weight: 700;
-  background: linear-gradient(#60401f55, #160d08aa), url('../../assets/table/character-oak-grain.webp') center / cover;
-  color: #eee0c4;
-}
-.respec-dialog-actions button:last-child { background: linear-gradient(#e4b661, #c58e40); color: var(--color-on-accent); border-color: #edc984; }
-.respec-dialog-actions button:disabled { opacity: 0.5; cursor: default; }
