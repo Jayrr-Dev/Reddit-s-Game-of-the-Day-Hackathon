@@ -39,16 +39,14 @@ import { IvoryWerewolf, WolfCentaur } from './WolfSpriteFigure';
 import { AngelMage } from './AngelMageFigure';
 import { WingedArcher } from './WingedArcherFigure';
 import { ApollyonSeraph } from './ApollyonSeraphFigure';
-import slothArt from '../../../assets/heroes/sloth.webp';
-import prideArt from '../../../assets/heroes/pride.webp';
 import lustArt from '../../../assets/heroes/lust.webp';
 import gluttonyArt from '../../../assets/heroes/gluttony.webp';
 import greedArt from '../../../assets/heroes/greed.webp';
-import envyArt from '../../../assets/heroes/envy.webp';
 import moriArt from '../../../assets/heroes/light-lord-mori.webp';
 import azulaArt from '../../../assets/heroes/mage-borne-azula.webp';
 import fulgurArt from '../../../assets/heroes/fulgur-dragonknight-idle.webp';
 import { RazielRigFigure } from './RazielRigFigure';
+import { SlothMotionFigure, PrideMotionFigure, EnvyMotionFigure } from './SinBossMotionFigure';
 import { CambielRigFigure, CherubielRigFigure } from './CambielCherubielRig';
 import { CervielRigFigure } from './CervielRigFigure';
 import { GeonosisRigFigure, ZadkielRigFigure } from './GrandangelGzFigures';
@@ -721,12 +719,12 @@ const CREATURE_DRAWINGS: Record<
   CreatureId,
   (props: { mood: HeroMood; size: HeroSize; action?: HeroAction | null }) => JSX.Element
 > = {
-  sloth: ({ size }) => <BossSprite size={size} art={slothArt} inset={10} />,
-  pride: ({ size }) => <BossSprite size={size} art={prideArt} inset={2} />,
+  sloth: SlothMotionFigure,
+  pride: PrideMotionFigure,
   lust: ({ size }) => <BossSprite size={size} art={lustArt} inset={1} hover />,
   gluttony: ({ size }) => <BossSprite size={size} art={gluttonyArt} inset={9} />,
   greed: ({ size }) => <BossSprite size={size} art={greedArt} inset={2} />,
-  envy: ({ size }) => <BossSprite size={size} art={envyArt} inset={10} />,
+  envy: EnvyMotionFigure,
   holyDragon: HolyDragon,
   angelAssassin: AngelAssassinRigFigure,
   twinAxeKnight: GeneralKhanFigure,

@@ -17,10 +17,13 @@ const roster = [
   ['grandangelCerviel', 'Cerviel · Staff'],
   ['cervielBow', 'Cerviel · Bow'],
   ['angelAssassin', 'Angel Assassin · Wings'],
+  ['pride', 'Pride'],
+  ['sloth', 'Sloth'],
+  ['envy', 'Envy'],
 ] as const satisfies readonly (readonly [CreatureId, string])[];
 
 type Motion = 'idle' | 'primary' | 'guard' | 'signature';
-const melee = new Set<CreatureId>(['grandangelCambiel', 'archangelZeruel', 'zeruelArmored', 'archangelUriel', 'cervielSword']);
+const melee = new Set<CreatureId>(['grandangelCambiel', 'archangelZeruel', 'zeruelArmored', 'archangelUriel', 'cervielSword', 'pride', 'sloth']);
 function Angel({ heroId, label, motion, charging, small }: {
   heroId: CreatureId; label: string; motion: Motion; charging: boolean; small: boolean;
 }) {
@@ -62,7 +65,7 @@ function Preview() {
     setMotion(next);
   }
   return <main data-day={day} data-hold={hold && motion !== 'idle' && !charging}>
-    <header><h1>Angel Rig Review</h1><p>Original rig reference, idle, and combat poses. No game state changes.</p>
+    <header><h1>Boss Rig Review</h1><p>Original rig reference, idle, and combat poses. No game state changes.</p>
       <div className="controls">
         <label>Character <select value={selected} onChange={e => setSelected(roster.find(([id]) => id === e.target.value)?.[0] ?? 'all')}>
           <option value="all">All</option>{roster.map(([id, label]) => <option key={id} value={id}>{label}</option>)}

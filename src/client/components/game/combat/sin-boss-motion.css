@@ -1,0 +1,63 @@
+[data-sin-motion] :is(.sin-pride-wing, .sin-sloth-body, .sin-envy-body, .sin-envy-splash, .sin-sloth-impact) {
+  transform-box: view-box;
+}
+.sin-pride-still { display: none; }
+.sin-pride-wing.left { transform-origin: 155px 153px; --wing-sense: 1; }
+.sin-pride-wing.right { transform-origin: 242px 153px; --wing-sense: -1; }
+.sin-sloth-body { transform-origin: 480px 626px; }
+.sin-envy-body, .sin-envy-splash { transform-origin: 425px 531px; }
+.sin-sloth-impact { transform-origin: 480px 623px; }
+.sin-envy-splash, .sin-sloth-impact { opacity: 0; pointer-events: none; }
+
+.sin-boss-live[data-sin-pose="idle"] .sin-pride-wing { animation: sin-wing-idle 4.8s ease-in-out infinite; }
+.sin-boss-live[data-sin-pose="idle"] .sin-sloth-body { animation: sin-sloth-idle 5.2s ease-in-out infinite; }
+.sin-boss-live[data-sin-pose="idle"] .sin-envy-body { animation: sin-envy-idle 2.8s ease-in-out infinite; }
+.sin-boss-live[data-sin-pose="guard"] .sin-pride-wing { animation: sin-wing-guard .62s ease-in-out both; }
+.sin-boss-live[data-sin-pose="guard"] .sin-sloth-body { animation: sin-sloth-brace .62s ease-in-out both; }
+.sin-boss-live[data-sin-pose="guard"] .sin-envy-body { animation: sin-envy-brace .62s ease-in-out both; }
+.sin-boss-live[data-sin-pose="charge"] .sin-pride-wing { animation: sin-wing-charge .9s ease-out both; }
+.sin-boss-live[data-sin-pose="charge"] .sin-sloth-body { animation: sin-sloth-charge .9s ease-out both; }
+.sin-boss-live[data-sin-pose="charge"] .sin-envy-body { animation: sin-envy-charge .9s ease-out both; }
+.sin-boss-live:is([data-sin-pose="attack"],[data-sin-pose="strike"],[data-sin-pose="signature"]) .sin-pride-wing { animation: sin-wing-strike .56s ease-out both; }
+.sin-boss-live:is([data-sin-pose="attack"],[data-sin-pose="strike"],[data-sin-pose="signature"]) .sin-sloth-body { animation: sin-sloth-strike .56s ease-out both; }
+.sin-boss-live:is([data-sin-pose="attack"],[data-sin-pose="strike"],[data-sin-pose="signature"]) .sin-envy-body { animation: sin-envy-strike .56s ease-out both; }
+.sin-boss-live:is([data-sin-pose="attack"],[data-sin-pose="strike"],[data-sin-pose="signature"]) :is(.sin-envy-splash,.sin-sloth-impact) {
+  animation: sin-impact .56s ease-out both;
+}
+
+@keyframes sin-wing-idle { 50% { rotate: calc(var(--wing-sense) * -2deg); } }
+@keyframes sin-wing-guard { 50% { rotate: calc(var(--wing-sense) * 4deg); } }
+@keyframes sin-wing-charge { to { rotate: calc(var(--wing-sense) * 5deg); } }
+@keyframes sin-wing-strike {
+  0% { rotate: calc(var(--wing-sense) * 4deg); }
+  28% { rotate: calc(var(--wing-sense) * -7deg); }
+  100% { rotate: 0deg; }
+}
+@keyframes sin-sloth-idle { 50% { scale: 1.006 1.016; } }
+@keyframes sin-sloth-brace { 45%, 70% { scale: 1.019 .966; } }
+@keyframes sin-sloth-charge { to { scale: .987 1.045; } }
+@keyframes sin-sloth-strike {
+  0% { scale: .987 1.045; }
+  29% { scale: 1.032 .94; }
+  65% { scale: 1.005 1.013; }
+  100% { scale: 1; }
+}
+@keyframes sin-envy-idle { 50% { scale: 1.023 .968; } }
+@keyframes sin-envy-brace { 46%, 69% { scale: 1.09 .88; } }
+@keyframes sin-envy-charge { to { scale: 1.115 .84; } }
+@keyframes sin-envy-strike {
+  0% { scale: 1.115 .84; }
+  33% { scale: .975 1.12; }
+  60% { scale: 1.055 .942; }
+  100% { scale: 1; }
+}
+@keyframes sin-impact {
+  0%, 19% { opacity: 0; scale: .78; }
+  33% { opacity: .74; }
+  100% { opacity: 0; scale: 1.08; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sin-boss-live * { animation: none !important; }
+  .sin-pride-still { display: inline; }
+  .sin-pride-layers { display: none; }
+}
