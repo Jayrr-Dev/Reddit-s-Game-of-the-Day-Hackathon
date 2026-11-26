@@ -4,9 +4,15 @@
    Equipment ledger paper.
    =================================================================== */
 
-/* --- SIZES: smaller squares when the sheet is narrow (phones) --- */
+/* --- SIZES: a square is as big as the sheet allows, so the whole bag
+   (backpack rows + belt row) fits without scrolling (Sam).
+   --inv-fit = (sheet height - header, tabs, titles, buttons) / rows - gap.
+   The sheet is min(32rem, 100cqh - .85rem) tall (see characterSheet.css);
+   --inv-rows is set by InventoryPanel from the backpack size. --- */
 .inv-panel {
-  --inv-slot: 3.2rem;
+  --inv-chrome: 14.6rem;
+  --inv-fit: calc((min(32rem, 100cqh - 0.85rem) - var(--inv-chrome)) / var(--inv-rows, 5) - 0.3rem);
+  --inv-slot: clamp(2rem, var(--inv-fit), 3.2rem);
   display: grid;
   gap: 0.5rem;
   color: var(--color-on-parchment);
@@ -14,24 +20,15 @@
 }
 @container character-frame (max-width: 30rem) {
   .inv-panel {
-    --inv-slot: 2.6rem;
+    --inv-slot: clamp(2rem, var(--inv-fit), 2.6rem);
   }
 }
-/* Wide sheets: the backpack takes two thirds and its squares stretch
-   to fill it, so the details column never crowds the bag (Sam). */
+/* Wide sheets: bag beside the details, squares grow up to the height limit. */
 @container character-frame (min-width: 40rem) {
   .inv-panel {
-    --inv-col: minmax(0, 1fr);
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    --inv-slot: clamp(2rem, min(var(--inv-fit), 14cqw), 7rem);
+    grid-template-columns: auto minmax(0, 1fr);
     align-items: start;
-  }
-  .inv-panel .inv-bag {
-    width: auto;
-  }
-  .inv-layout .inv-cell {
-    width: auto;
-    height: auto;
-    aspect-ratio: 1;
   }
 }
 
@@ -43,7 +40,7 @@
 }
 .inv-layout {
   display: grid;
-  grid-template-columns: repeat(4, var(--inv-col, var(--inv-slot)));
+  grid-template-columns: repeat(4, var(--inv-slot));
   gap: 0.3rem;
 }
 .inv-backpack,
@@ -54,11 +51,11 @@
 }
 .inv-backpack {
   grid-column: 1 / -1;
-  grid-template-columns: repeat(4, var(--inv-col, var(--inv-slot)));
+  grid-template-columns: repeat(4, var(--inv-slot));
 }
 .inv-belt {
   grid-column: 1 / -1;
-  grid-template-columns: repeat(4, var(--inv-col, var(--inv-slot)));
+  grid-template-columns: repeat(4, var(--inv-slot));
   margin-top: 0.25rem;
   padding-top: 0.45rem;
   border-top: 1px solid var(--line);

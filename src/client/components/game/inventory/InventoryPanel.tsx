@@ -5,7 +5,7 @@
 // Drag a stack where it should go (mouse or finger), or tap it and
 // then tap the destination. The details of the selected stack show alongside.
 // ===================================================================
-import { useState, type PointerEvent, type ReactNode } from 'react';
+import { useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import { stackKey, type InventoryOwner, type InventorySlot } from '../../../../shared/game/inventory';
 import type { BagArea } from '../../../../shared/game/bagLayout';
 import { ConfirmDialog } from '../../ui/ConfirmDialog';
@@ -13,6 +13,7 @@ import { SlotShell, TrashSlot } from './BagSlots';
 import { slotLook } from './slotLooks';
 import { usePointerDrag } from '../../../hooks/usePointerDrag';
 import { BAG_ZONE_ATTRIBUTE, targetOf, useBagActions, zoneOf, type BagHandlers, type BagTarget } from './useBagActions';
+import { BACKPACK_COLUMNS } from '../../../../shared/constants/game';
 import './inventory.css';
 
 // --- TYPES ---
@@ -96,8 +97,10 @@ export const InventoryPanel = ({ owner, ...handlers }: PanelProps) => {
     onTap: (tap) => () => { if (!consumeDrag()) tap(); },
   };
   const dragged = drag && actions.stackOf(drag.item);
+  /** Backpack rows plus the belt row; the CSS sizes squares so they all fit. */
+  const bagRows = Math.ceil(actions.bag.backpack.length / BACKPACK_COLUMNS) + 1;
   return (
-    <div className="inv-panel">
+    <div className="inv-panel" style={{ '--inv-rows': bagRows } as CSSProperties}>
       <section className="cs-paper inv-bag" aria-label="Backpack">
         <h3>Backpack <span className="cs-inventory-count">{used}/{actions.bag.backpack.length}</span></h3>
         <div className="cs-compartment inv-layout">
