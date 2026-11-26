@@ -1,5 +1,5 @@
 import { useId, useRef, type ReactNode } from 'react';
-import { Glyph } from '../../ui/Glyph';
+import { IconButton } from '../../ui/IconButton';
 import { Button } from '../../ui/Button';
 import { MODAL_DIALOG_CLASSES } from '../../ui/ConfirmDialog';
 
@@ -8,16 +8,13 @@ export function SettingsDialog({ children, className = '' }: { children: ReactNo
   const titleId = useId();
 
   return <>
-    <button
-      type="button"
-      className={'grid size-10 place-items-center rounded-full border border-accent/35 bg-surface-sunken/85 text-accent hover:border-accent focus-visible:outline-2 focus-visible:outline-accent ' + className}
-      aria-label="Settings"
+    <IconButton
+      icon="cog"
+      label="Settings"
       aria-haspopup="dialog"
-      title="Settings"
+      className={className}
       onClick={() => dialog.current?.showModal()}
-    >
-      <Glyph name="cog" className="size-5" />
-    </button>
+    />
     <dialog
       ref={dialog}
       aria-labelledby={titleId}

@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { useGameSettings } from '../../hooks/useGameSettings';
 import { useSandbox } from '../../hooks/useSandbox';
 import { Button } from '../ui/Button';
+import { IconButton } from '../ui/IconButton';
 import { DeathScreen } from './DeathScreen';
 import { CombatView } from './CombatView';
 import { MAP_IMAGES, MAP_NAMES, PRACTICE_TERRAIN_START } from './combat/Backdrop';
@@ -35,7 +36,8 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
             className="training-header"
             style={{ backgroundImage: 'linear-gradient(90deg, #21150e 8%, #21150e70), url("' + (arena?.image ?? MAP_IMAGES[terrainIndex]) + '")' }}
           >
-            <div className="min-w-0">
+            <IconButton icon="back" label="Back to menu" onClick={onExit} />
+            <div className="min-w-0 mr-auto">
               <h2>Illusion Training</h2>
               <span>{arena?.name ?? MAP_NAMES[terrainIndex]}</span>
             </div>
