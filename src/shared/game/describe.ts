@@ -811,6 +811,19 @@ const elementLines = (cardDef: CardDef, attacker?: Combatant): string[] => {
   return [`${label} ${onHit.amount + (attacker ? scornBonus(attacker, onHit.status) : 0)} per hit`];
 };
 
+/** True when the effect gives another card a keyword (Last Rites' Remove). */
+const isKeywordGift = (effect: CardEffect): boolean =>
+  effect.kind === 'imbue' && effect.gift.kind === 'keyword';
+
+/**
+ * Effects in reading order: a keyword an Imbue card gives reads last
+ * (Sam), under the card's own actions, like a printed keyword would.
+ */
+const actionOrder = (effects: readonly CardEffect[]): CardEffect[] => [
+  ...effects.filter((effect) => !isKeywordGift(effect)),
+  ...effects.filter(isKeywordGift),
+];
+
 /** Reap's unaimed hint: what its damage scales with. */
 const reapHintLine = (multiplier: number): string => `(${multiplier}x target's Hex)`;
 
@@ -835,7 +848,7 @@ export const describeCardRules = (
     (effect) => effect.kind === 'damage' && effect.hits > 1
   );
   const isRampage = cardHasKeyword(cardId, imbues, 'rampage');
-  const lines = own.flatMap((effect) => {
+  const lines = actionOrder(own).flatMap((effect) => {
     const line = describeCardEffect(
       attacker && attacker.statuses.hitLimit > 0 && effect.kind === 'damage' ? { ...effect, hits: 1 } : effect,
       cardDef,
