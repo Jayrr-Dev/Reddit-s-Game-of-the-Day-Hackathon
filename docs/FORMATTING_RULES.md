@@ -26,6 +26,7 @@ red, gains are green, and losses are red.
 | I, II, III (capitals only) | Grey (`--color-tier-numeral`) | `TIER_NUMERALS` in `RichText.tsx` |
 | IV | Gold (`--color-tier-top`) | `TIER_NUMERALS` in `RichText.tsx` |
 | affliction(s) | Curse purple (`--color-hex`) | [`tintedWords.ts`](../src/client/content/tintedWords.ts) |
+| One rule per line (`\n` in the text) | A bullet list; a single line stays a plain sentence. Keep each bullet to one short rule (see Shock in `describe.ts`) | `RichText` in `RichText.tsx` |
 | `**bold**` markup | Bold white, or the term's colour and icon when it's a keyword | `BoldTerm` in `RichText.tsx` |
 
 Colours are theme tokens in [`index.css`](../src/client/index.css) (`@theme`).
