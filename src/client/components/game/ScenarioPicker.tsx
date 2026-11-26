@@ -25,7 +25,7 @@ import { cssVars } from '../../lib/cssVars';
 import { Glyph } from '../ui/Glyph';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { ThemeSpeaker } from './ThemeSpeaker';
-import { ArenaDialog } from './ArenaDialog';
+import { MapViewDialog, type MapView } from './MapViewDialog';
 import { SoundLibrary } from './menu/SoundLibrary';
 import type { ThemePreviewControls } from '../../hooks/useThemePreview';
 import {
@@ -278,6 +278,20 @@ const FightPrompt = ({
   );
 };
 
+/** A boss arena in the map viewer: its backdrop and the boss theme. */
+const arenaView = (arena: BossArena): MapView => ({
+  name: arena.name,
+  image: arena.image,
+  theme: { key: 'arena:' + arena.name, isBoss: true, arena },
+});
+
+/** A region map in the map viewer: its backdrop and its own score. */
+const regionView = (name: string, index: number): MapView => ({
+  name,
+  image: MAP_IMAGES[index],
+  theme: { key: 'region:' + name, isBoss: false, mapId: name },
+});
+
 /** The round "i" that opens a unit's attacks, over the corner of its card. */
 const InfoButton = ({ name, onInfo, label = 'Attacks' }: { name: string; onInfo: () => void; label?: string }) => (
   <button type="button" className="training-info" aria-label={label + ' of ' + name} title={label} onClick={onInfo}>
@@ -346,7 +360,7 @@ const ScenarioEntry = ({
     <>
       {card}
       <ThemeSpeaker
-        preview={{ key: 'scenario:' + scenario.id, arena }}
+        preview={{ key: 'scenario:' + scenario.id, isBoss: true, arena }}
         name={scenario.name}
         controls={themePreview}
       />
@@ -392,7 +406,7 @@ export const ScenarioPicker = ({
   // The scenario waiting on the fight-or-not answer, if any.
   const [pending, setPending] = useState<SandboxScenario | null>(null);
   // The boss arena shown full size in its info dialog, if any.
-  const [viewedArena, setViewedArena] = useState<BossArena | null>(null);
+  const [viewedMap, setViewedMap] = useState<MapView | null>(null);
   // True when the prompt was opened from a unit's info icon (lists its attacks).
   const [isShowingMoves, setShowingMoves] = useState(false);
   const askToFight = (scenario: SandboxScenario, showMoves: boolean) => {
@@ -416,8 +430,8 @@ export const ScenarioPicker = ({
           onBack={() => setPending(null)}
         />
       )}
-      {viewedArena && (
-        <ArenaDialog arena={viewedArena} themePreview={themePreview} onClose={() => setViewedArena(null)} />
+      {viewedMap && (
+        <MapViewDialog view={viewedMap} themePreview={themePreview} onClose={() => setViewedMap(null)} />
       )}
       {editing !== null && (
         <CustomDeckEditor
@@ -455,21 +469,23 @@ export const ScenarioPicker = ({
                 <img alt="" loading="lazy" src={arena.image} />
                 <span>{arena.name}</span>
               </button>
-              <InfoButton name={arena.name} label="View" onInfo={() => setViewedArena(arena)} />
+              <InfoButton name={arena.name} label="View" onInfo={() => setViewedMap(arenaView(arena))} />
             </div>
           ))}
           <SectionHeading>Region maps</SectionHeading>
           {MAP_NAMES.map((name, index) => (
-            <button
-              key={name}
-              type="button"
-              className="training-map"
-              aria-pressed={!activeArena && index === terrainIndex}
-              onClick={() => onPickMap(index)}
-            >
-              <img alt="" loading="lazy" src={MAP_IMAGES[index]} />
-              <span>{name}</span>
-            </button>
+            <div key={name} className="training-custom-tile">
+              <button
+                type="button"
+                className="training-map"
+                aria-pressed={!activeArena && index === terrainIndex}
+                onClick={() => onPickMap(index)}
+              >
+                <img alt="" loading="lazy" src={MAP_IMAGES[index]} />
+                <span>{name}</span>
+              </button>
+              <InfoButton name={name} label="View" onInfo={() => setViewedMap(regionView(name, index))} />
+            </div>
           ))}
           </>
         ) : (
