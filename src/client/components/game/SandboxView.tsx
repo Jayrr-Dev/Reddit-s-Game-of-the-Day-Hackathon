@@ -24,7 +24,7 @@ const SetupSettings = () => {
 /** Opens configuration before a scenario or random fight is chosen. */
 export const SandboxView = ({ onExit }: { onExit: () => void }) => {
   const {
-    combat, character, round, retry, retries, deckId, deck, activeCustomId,
+    combat, character, round, retry, leaveFight, retries, deckId, deck, activeCustomId,
     customDecks, saveCustomDeck, pickCustomDeck, act, respec, reshuffle, summon, pickDeck,
   } = useSandbox();
   const [selectedMap, setSelectedMap] = useState<number | null>(null);
@@ -104,8 +104,9 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
           {/* A corner tap mid-fight is easy to make by accident, so ask first. */}
           {isConfirmingExit && (
             <ConfirmDialog title="Exit battle?" confirmLabel="Exit" cancelLabel="Keep fighting"
-              onConfirm={thenStopPreview(onExit)} onCancel={() => setIsConfirmingExit(false)}>
-              This illusion ends and you return to the menu.
+              onConfirm={thenStopPreview(() => { setIsConfirmingExit(false); leaveFight(); })}
+              onCancel={() => setIsConfirmingExit(false)}>
+              This illusion ends and you return to the training scenarios.
             </ConfirmDialog>
           )}
           {combat.player.hp <= 0 && (

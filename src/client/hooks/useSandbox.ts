@@ -39,6 +39,7 @@ type SandboxEvent =
   | { type: 'custom'; id: string; seed: number }
   | { type: 'saveDeck'; id: string; name: string; cards: readonly CardId[]; editing: boolean; seed: number }
   | { type: 'retry' }
+  | { type: 'leaveFight' }
   | { type: 'respec' }
   | { type: 'reshuffle'; seed: number }
   | {
@@ -63,6 +64,8 @@ const reduce = (state: SandboxState, event: SandboxEvent): SandboxState => {
     const combat = retryTrainingFight(state.opening, character);
     return { ...state, combat, retries: state.retries + 1 };
   }
+  // Dropping the fight sends the view back to the scenario picker.
+  if (event.type === 'leaveFight') return { ...state, combat: null, opening: null };
   if (event.type === 'reshuffle' || event.type === 'summon') {
     const combat = event.type === 'reshuffle' ? createSandbox(event.seed, source, character.traits, character.equipment, character.traitNodes)
       : createSandboxWith(event.seed, event.heroIds, event.startsInPlace, source, character.traits, character.equipment, character.traitNodes);
@@ -182,7 +185,9 @@ export const useSandbox = () => {
   const saveCustomDeck = useCallback((name: string, cards: readonly CardId[], id?: string) =>
     send({ type: 'saveDeck', name, cards: [...cards], id: id ?? crypto.randomUUID(), editing: id !== undefined, seed: freshSeed() }), []);
   const retry = useCallback(() => send({type: 'retry'}), []);
+  /** Ends the current fight and returns to the scenario picker. */
+  const leaveFight = useCallback(() => send({ type: 'leaveFight' }), []);
   const respec = useCallback(() => send({ type: 'respec' }), []);
-  return { ...state, retry, respec, act, reshuffle, summon, pickDeck, pickCustomDeck, saveCustomDeck } as const;
+  return { ...state, retry, leaveFight, respec, act, reshuffle, summon, pickDeck, pickCustomDeck, saveCustomDeck } as const;
 };
 
