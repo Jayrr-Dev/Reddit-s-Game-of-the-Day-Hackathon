@@ -35,7 +35,7 @@ import {
   SHOCK_HITS,
   STATUS_IS_AFFLICTION,
   BANE_AFFLICTIONS,
-  BOSS_ONLY_STATUSES,
+  UNIT_ONLY_STATUSES,
   TIERED_MAX_TIER,
   MALAISE_TURNS,
   REFLEX_DODGE,
@@ -217,6 +217,16 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
       'Reduces each Melee or Range hit taken. Lasts the fight.',
   },
   move: { label: 'Move', description: 'Your next **Charge** or **Back Step** travels up to this many extra rows.' },
+  pin: {
+    label: 'Pin',
+    description:
+      "Can't move for this many of its turns: no **Charge**, **Back Step**, **Pull** or **Knockback**.",
+  },
+  fatigue: {
+    label: 'Fatigue',
+    description:
+      'Next turn, this many random cards in your hand cost **1** more energy. Then it clears.',
+  },
   rush: {
     label: 'Rush',
     description:
@@ -302,6 +312,8 @@ export const describeCardEffect = (
       return describeStatusLine(effect, attacker, target);
     case 'malaise':
       return `Malaise ${effect.amount}${areaWord(effect.target)}`;
+    case 'pin':
+      return `Pin ${effect.amount}${areaWord(effect.target)}`;
     case 'cloak':
       return `Cloak ${effect.amount}`;
     case 'enfeeble':
@@ -559,26 +571,26 @@ export type GlossaryCategory = 'keyword' | 'status' | 'term';
 /**
  * How the Statuses tab splits: helpful buffs, debuffs that weaken
  * (Weaken, Vex...), and afflictions that stack up and deal damage
- * (Hex, Burn, Bleed...), plus what only bosses carry (Aloft, passives).
+ * (Hex, Burn, Bleed...), plus what only enemy units use (Aloft, Fatigue, passives).
  */
-export type StatusGroup = 'buff' | 'debuff' | 'affliction' | 'boss';
+export type StatusGroup = 'buff' | 'debuff' | 'affliction' | 'unit';
 
 /** Group order and headings in the Mechanics library. */
-export const STATUS_GROUPS: readonly StatusGroup[] = ['buff', 'debuff', 'affliction', 'boss'];
+export const STATUS_GROUPS: readonly StatusGroup[] = ['buff', 'debuff', 'affliction', 'unit'];
 export const STATUS_GROUP_LABEL: Readonly<Record<StatusGroup, string>> = {
   buff: 'Buffs',
   debuff: 'Debuffs',
   affliction: 'Afflictions',
-  boss: 'Boss Statuses',
+  unit: 'Unit Statuses',
 };
 
 /**
  * A status's group, read from the rules tables so it never drifts:
  * stacking damage afflictions (BANE_AFFLICTIONS), other afflictions
- * (STATUS_IS_AFFLICTION), boss-only ones (BOSS_ONLY_STATUSES), and everything else is a buff (Guard too).
+ * (STATUS_IS_AFFLICTION), unit-only ones (UNIT_ONLY_STATUSES), and everything else is a buff (Guard too).
  */
 const statusGroupOf = (id: StatusId | 'guard'): StatusGroup => {
-  if (id !== 'guard' && BOSS_ONLY_STATUSES.has(id)) return 'boss';
+  if (id !== 'guard' && UNIT_ONLY_STATUSES.has(id)) return 'unit';
   if (id === 'guard' || !STATUS_IS_AFFLICTION[id]) return 'buff';
   return BANE_AFFLICTIONS.has(id) ? 'affliction' : 'debuff';
 };
@@ -600,10 +612,10 @@ export const GLOSSARY: Readonly<Record<string, GlossaryEntry>> =
   // keyword Charge, as before.
   Object.fromEntries(
     [
-      // Boss passives (Vigor, Anchored) sit with Boss Statuses. Listed
+      // Boss passives (Vigor, Anchored) sit with Unit Statuses. Listed
       // first, so a keyword of the same name (Longrange) wins its label.
       ...Object.values(PASSIVE_INFO).map(
-        (info): GlossaryEntry => ({ ...info, category: 'status', group: 'boss' })
+        (info): GlossaryEntry => ({ ...info, category: 'status', group: 'unit' })
       ),
       ...(Object.keys(STATUS_INFO) as (StatusId | 'guard')[]).map(
         (id): GlossaryEntry => ({
@@ -700,6 +712,8 @@ export const imbueTag = (gift: ImbueGift): string => {
       return `${STATUS_INFO[effect.buff].label}${buffAmountText(effect)}`;
     case 'malaise':
       return `Malaise ${effect.amount}`;
+    case 'pin':
+      return `Pin ${effect.amount}`;
     case 'cloak':
       return `Cloak ${effect.amount}`;
     case 'enfeeble':
@@ -862,6 +876,8 @@ export type IntentKind =
   | 'bleed'
   | 'weaken'
   | 'malaise'
+  | 'pin'
+  | 'fatigue'
   | 'cloak'
   | 'guard'
   | 'buff'
@@ -951,6 +967,9 @@ const describeHeroEffect = (
       };
     case 'malaise':
       return { kind: 'malaise', text: String(effect.amount), label: `Malaise ${effect.amount}\n${STATUS_INFO.malaise.description}` };
+    case 'pin':
+    case 'fatigue':
+      return { kind: effect.kind, text: String(effect.amount), label: `${STATUS_INFO[effect.kind].label} ${effect.amount}\n${STATUS_INFO[effect.kind].description}` };
     case 'cloak':
       return { kind: 'cloak', text: String(effect.amount), label: `Cloak ${effect.amount}\n${STATUS_INFO.cloak.description}` };
     case 'guard': {

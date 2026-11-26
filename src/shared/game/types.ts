@@ -90,6 +90,10 @@ export type StatusId =
   | 'move'
   | 'rush'
   | 'armor'
+  /** Pin: this unit can't move (Charge, Back Step, Pull, Knockback, march) for this many of its turns. */
+  | 'pin'
+  /** Fatigue: at the villain's turn start, this many random cards in hand cost 1 more this turn. */
+  | 'fatigue'
   | BuffId;
 export type Statuses = Record<StatusId, number>;
 /**
@@ -184,6 +188,8 @@ export type BaseCardEffect =
   | { kind: 'weaken'; amount: number; target: CardTarget }
   /** Locks the target's buffs for this many turns. */
   | { kind: 'malaise'; amount: number; target: CardTarget }
+  /** Pin N: the target can't move for N of its turns. */
+  | { kind: 'pin'; amount: number; target: CardTarget }
   /** Enfeebles the target: one tier up when reapplied turn after turn. */
   /** Enfeeble ×N: cast `times` times (default 1), a tier each, to IV. */
   | { kind: 'enfeeble'; target: CardTarget; times?: number }
@@ -383,6 +389,10 @@ export type HeroEffect =
   | { kind: 'weaken'; amount: number }
   /** Locks the villain's Buff cards for this many turns. */
   | { kind: 'malaise'; amount: number }
+  /** Pin N on the villain: no Charge, Back Step or forced movement for N turns. */
+  | { kind: 'pin'; amount: number }
+  /** Fatigue N on the villain: N random cards in its next hand cost 1 more. */
+  | { kind: 'fatigue'; amount: number }
   | { kind: 'guard'; amount: number; who: 'self' | 'allies' }
   /** Hide the acting hero from direct targeting until this duration or their next attack. */
   | { kind: 'cloak'; amount: number }
@@ -570,6 +580,8 @@ export type CombatState = {
   usesSpent: UsesSpent;
   /** What each card in hand is imbued with, slot for slot with `hand`. */
   handImbues: Imbue[][];
+  /** Extra energy each hand slot costs this turn (Fatigue); slot for slot with hand. */
+  handFatigue?: number[];
   /**
    * Battle imbues of cards that left the hand for the piles. Copies of a
    * card can't be told apart there, so the next copy drawn takes them.

@@ -70,6 +70,8 @@ export const STATUS_LOOK: Record<StatusId | 'guard', Look> = {
   move: { glyph: 'heartbeat', toneClass: 'text-energy' },
   rush: { glyph: 'heartbeat', toneClass: 'text-energy' },
   armor: { glyph: 'breastplate', toneClass: 'text-guard' },
+  pin: { glyph: 'anchor', toneClass: 'text-vex' },
+  fatigue: { glyph: 'hourglass', toneClass: 'text-energy' },
 };
 
 // --- KEYWORDS ---
@@ -119,6 +121,8 @@ export const INTENT_LOOK: Record<IntentKind, Look> = {
   bleed: STATUS_LOOK.bleed,
   weaken: STATUS_LOOK.weaken,
   malaise: STATUS_LOOK.malaise,
+  pin: STATUS_LOOK.pin,
+  fatigue: STATUS_LOOK.fatigue,
   cloak: STATUS_LOOK.cloak,
   guard: { glyph: 'shield', toneClass: 'text-guard' },
   buff: STATUS_LOOK.wrath,

@@ -126,6 +126,7 @@ import {
   PHYSICAL_TYPES,
   PIERCE_DAMAGE_FACTOR,
   STATUS_IS_AFFLICTION,
+  FATIGUE_COST_PER_STACK,
 } from './rules.ts';
 import type {
   CardDef,
@@ -426,6 +427,36 @@ export const buffLockedByMalaise = (state: CombatState, cardId: CardId): boolean
 /** Explicit player portrait target. Enemy UIDs are nonnegative. */
 export const SELF_TARGET_UID = -2;
 
+// --- FATIGUE ---
+/** Extra energy Fatigue puts on the card in hand slot `index` this turn. */
+export const fatigueAt = (state: CombatState, index: number): number =>
+  state.handFatigue?.[index] ?? 0;
+
+/** What the card in hand slot `index` costs right now (kills, Follow Up, Fatigue). */
+export const handCardCost = (state: CombatState, index: number): number => {
+  const cardId = state.hand[index];
+  if (cardId === undefined) return 0;
+  return cardCost(cardId, state.killsThisTurn ?? 0, state.followUpReady) + fatigueAt(state, index);
+};
+
+/**
+ * FATIGUE N: once the new hand is drawn, N different random cards in it
+ * cost FATIGUE_COST_PER_STACK more this turn, then Fatigue clears.
+ * Seeded rng, so the server's replay picks the same cards.
+ */
+const applyFatigue = (state: CombatState): CombatState => {
+  const stacks = state.player.statuses.fatigue;
+  if (stacks <= 0) return state;
+  const [order, rng] = shuffle(state.rng, state.hand.map((_, index) => index));
+  const tired = new Set(order.slice(0, stacks));
+  return {
+    ...state,
+    rng,
+    handFatigue: state.hand.map((_, index) => (tired.has(index) ? FATIGUE_COST_PER_STACK : 0)),
+    player: { ...state.player, statuses: { ...state.player.statuses, fatigue: 0 } },
+  };
+};
+
 const canSpendCard = (state: CombatState, handIndex: number): boolean => {
   const cardId = state.hand[handIndex];
   if (cardId === undefined || combatOutcome(state) !== 'ongoing' || buffLockedByMalaise(state, cardId)) return false;
@@ -433,7 +464,7 @@ const canSpendCard = (state: CombatState, handIndex: number): boolean => {
   if ((state.mostKillsInOneHit ?? 0) < (card.requiredKillsInOneHit ?? 0)) return false;
   const movement = card.effects.find(effect => effect.kind === 'charge' || effect.kind === 'backStep');
   if (movement && (movement.kind === 'charge' || movement.kind === 'backStep') && !hasRoomFor(state, movement.kind)) return false;
-  return cardCost(cardId, state.killsThisTurn ?? 0, state.followUpReady) <= state.energy;
+  return handCardCost(state, handIndex) <= state.energy;
 };
 
 /** Only curse cards can be deliberately aimed at the player portrait. */
@@ -956,6 +987,8 @@ const applyOnPortrait = (
       return { ...state, player: addStatus(player, effect.kind, afflictionAmount(effect.amount, player, effect.kind, player)) };
     case 'malaise':
       return { ...state, player: addStatus(player, 'malaise', effect.amount) };
+    case 'pin':
+      return { ...state, player: addStatus(player, 'pin', effect.amount) };
     case 'enfeeble':
       return { ...state, player: enfeebleTimes(player, (effect.times ?? 1) + scornBonus(player, 'enfeeble')) };
     case 'dispel': {
@@ -1016,6 +1049,12 @@ const applyCardEffect = (
         state,
         resolveTargets(state, effect.target, targetUid, cardDef.type),
         (unit) => addStatus(unit, 'malaise', effect.amount)
+      );
+    case 'pin':
+      return updateHeroes(
+        state,
+        resolveTargets(state, effect.target, targetUid, cardDef.type),
+        (unit) => addStatus(unit, 'pin', effect.amount)
       );
     case 'enfeeble':
       return updateHeroes(
@@ -1174,7 +1213,7 @@ const spendMomentum = (state: CombatState, cardDef: CardDef): CombatState =>
  */
 const payForCard = (state: CombatState, handIndex: number): CombatState => {
   const cardId = state.hand[handIndex];
-  const cost = cardId === undefined ? 0 : cardCost(cardId, state.killsThisTurn ?? 0, state.followUpReady);
+  const cost = handCardCost(state, handIndex);
   const attacking = cardId !== undefined &&
     [...getCard(cardId).effects, ...imbuedEffects(imbuesAt(state, handIndex))]
       .some(effect => effect.kind === 'damage' || effect.kind === 'reap');
@@ -1808,6 +1847,9 @@ const applyHeroEffect = (
       return afflictVillain(state, 'weaken', effect.amount, accuracyBonusOf(actor, 'magic'));
     case 'malaise':
       return afflictVillain(state, 'malaise', effect.amount, accuracyBonusOf(actor, 'magic'));
+    case 'pin':
+    case 'fatigue':
+      return afflictVillain(state, effect.kind, effect.amount, accuracyBonusOf(actor, 'magic'));
     case 'guard':
       return updateHeroes(
         state,
@@ -1865,6 +1907,8 @@ const applyHeroEffect = (
 
 /** Forced movement changes the shared relative formation and grants no movement buffs. */
 const forcePlayerMovement = (state: CombatState, pulling: boolean, lines: number): CombatState => {
+  // PIN: a pinned villain holds its ground against forced movement too.
+  if (state.player.statuses.pin > 0) return state;
   const heroes = pulling ? stepForward(state.heroes, lines) : fallBack(state.heroes, lines);
   const distance = Math.max(0, ...heroes.map((unit, i) => Math.abs(rowDepth(unit.row) - rowDepth(state.heroes[i]!.row))));
   return {
@@ -2038,6 +2082,8 @@ const VILLAIN_EFFECT_KINDS: ReadonlySet<HeroEffect['kind']> = new Set([
   'shock',
   'weaken',
   'malaise',
+  'pin',
+  'fatigue',
   'knockBack',
   'detonate',
 ]);
@@ -2073,7 +2119,7 @@ export const heroTurnOrder = (heroes: readonly HeroUnit[]): HeroUnit[] =>
  */
 export const startPlayerTurn = (state: CombatState): CombatState => {
   const { startingEnergy, maxEnergy, cardsPerTurn } = combatantBonuses(state.player);
-  return drawCards(
+  return applyFatigue(drawCards(
     {
       ...state,
       // Hex and Poison run before the villain's action (its turn).
@@ -2085,7 +2131,7 @@ export const startPlayerTurn = (state: CombatState): CombatState => {
       followUpReady: false,
     },
     cardsPerTurn
-  );
+  ));
 };
 
 /** Closes the player turn, including discards, reserve and status upkeep. */

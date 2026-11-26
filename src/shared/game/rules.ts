@@ -192,10 +192,13 @@ export const SHOCK_BURST_FACTOR = 2;
 /** Each stack of Frost takes this much off every hit its bearer deals. */
 export const FROST_DAMAGE_PER_STACK = 1;
 /**
- * Statuses only bosses carry (the Grand Griffon's Aloft). The Mechanics
- * library lists them under Boss Statuses.
+ * Statuses only enemy units deal in or carry: the Grand Griffon's Aloft,
+ * and Fatigue (only units lay it, on the villain's cards). The Mechanics
+ * library lists them under Unit Statuses.
  */
-export const BOSS_ONLY_STATUSES: ReadonlySet<StatusId> = new Set(['aloft']);
+export const UNIT_ONLY_STATUSES: ReadonlySet<StatusId> = new Set(['aloft', 'fatigue']);
+/** Fatigue: each stack makes one random card in hand cost this much more. */
+export const FATIGUE_COST_PER_STACK = 1;
 /**
  * Which statuses are AFFLICTIONS (harmful to whoever carries them).
  * Cleanse removes one of these at random; every status must say.
@@ -231,6 +234,8 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   move: false,
   rush: false,
   armor: false,
+  pin: true,
+  fatigue: true,
 };
 
 /**

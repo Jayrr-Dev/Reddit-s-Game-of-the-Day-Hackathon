@@ -98,6 +98,9 @@ const BLOCKED_BY_BOSS: Record<MovementId, string> = {
   backStep: `A boss holds the ${ROW_LABEL.back} too: there is no room to fall back.`,
 };
 
+/** Why the villain can't move while Pinned. */
+const PINNED_REASON = "You're Pinned: you can't move this turn.";
+
 /** Every movement id, in the order they are offered. */
 export const MOVEMENT_IDS = Object.keys(MOVEMENTS) as MovementId[];
 
@@ -158,6 +161,8 @@ export const movementBlockReason = (
   state: CombatState,
   move: MovementId
 ): string | null => {
+  // PIN: a pinned villain can't move at all.
+  if (state.player.statuses.pin > 0) return PINNED_REASON;
   const isBossHere = state.heroes.some(isDeep);
   const reshaped = MOVEMENTS[move].reshape(state.heroes);
   const isStuck = reshaped.every(

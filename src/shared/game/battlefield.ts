@@ -126,8 +126,12 @@ export const isDeep = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
  * Charge and Back Step move the whole field, bosses included (a deep
  * one keeps its place); Anchored heroes hold their line.
  */
-export const isImmovable = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
-  isDeep(unit) || getHero(unit.heroId).tier === 'boss' || isAnchored(unit);
+export const isImmovable = (unit: Pick<HeroUnit, 'heroId'> & { statuses?: Pick<HeroUnit['statuses'], 'pin'> }): boolean =>
+  isDeep(unit) || getHero(unit.heroId).tier === 'boss' || isAnchored(unit) || isPinned(unit);
+
+/** True for a hero under Pin: it holds its line like an Anchored hero. */
+export const isPinned = (unit: { statuses?: Pick<HeroUnit['statuses'], 'pin'> }): boolean =>
+  (unit.statuses?.pin ?? 0) > 0;
 
 /**
  * True for an Anchored hero (the Ballista): no
@@ -453,7 +457,7 @@ const nearestDepth = (heroes: readonly HeroUnit[]): number =>
  * be out of Melee reach for good).
  */
 const fieldMovers = (heroes: readonly HeroUnit[]): HeroUnit[] => {
-  const unanchored = heroes.filter((unit) => !isAnchored(unit));
+  const unanchored = heroes.filter((unit) => !isAnchored(unit) && !isPinned(unit));
   return unanchored.length > 0 ? unanchored : [...heroes];
 };
 
@@ -770,7 +774,7 @@ export const pushHero = (
 export const advanceHeroes = (heroes: HeroUnit[]): HeroUnit[] => {
   let field = heroes;
   for (const unit of heroes) {
-    if (isAnchored(unit)) continue;
+    if (isAnchored(unit) || isPinned(unit)) continue;
     const direction = -Math.sign(rowsBehindHome(unit));
     if (!direction) continue;
     field = isDeep(unit)

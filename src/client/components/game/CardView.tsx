@@ -53,6 +53,8 @@ import './cardFace.css';
 // --- TYPES ---
 export type CardViewProps = {
   paidCost?: number | undefined;
+  /** Extra energy Fatigue puts on this card in hand this turn. */
+  fatigue?: number;
   killsThisTurn?: number;
   followUpReady?: boolean | undefined;
   cardId: CardId;
@@ -377,6 +379,7 @@ export const CardView = ({
   cardId,
   killsThisTurn = 0,
   paidCost,
+  fatigue = 0,
   followUpReady,
   attacker,
   target,
@@ -415,9 +418,9 @@ export const CardView = ({
       style={{ boxShadow: `${glow}, 0 6px 10px rgb(0 0 0 / 0.5)` }}
     >
       <span
-        className={`absolute z-10 flex ${look.orb} items-center justify-center rounded-full bg-energy font-display font-black text-on-accent ring-2 ring-surface-sunken shadow-[inset_0_-2px_3px_rgb(0_0_0/0.35)]`}
+        className={`absolute z-10 flex ${look.orb} items-center justify-center rounded-full bg-energy font-display font-black ${fatigue > 0 ? 'text-red-900' : 'text-on-accent'} ring-2 ring-surface-sunken shadow-[inset_0_-2px_3px_rgb(0_0_0/0.35)]`}
       >
-        <span className="num-center">{paidCost ?? cardCost(cardId, killsThisTurn, followUpReady)}</span>
+        <span className="num-center">{paidCost ?? cardCost(cardId, killsThisTurn, followUpReady) + fatigue}</span>
       </span>
       <ArtWindow
         glyph={(cardDef.edge && EDGE_ART[cardDef.edge]) ?? typeLook.glyph}

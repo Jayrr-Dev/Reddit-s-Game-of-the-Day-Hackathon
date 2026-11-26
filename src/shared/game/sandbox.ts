@@ -616,7 +616,7 @@ export const retryTrainingFight = (opening: CombatState, character: CharacterSta
   const { startingEnergy, cardsPerTurn } = characterBonuses(character.traits, character.equipment, character.traitNodes);
   if (combat.hand.length > cardsPerTurn) {
     // Opening cards have no imbues yet. Put excess cards back in their original order.
-    combat = { ...combat, hand: combat.hand.slice(0, cardsPerTurn), handImbues: combat.handImbues.slice(0, cardsPerTurn),
+    combat = { ...combat, hand: combat.hand.slice(0, cardsPerTurn), handImbues: combat.handImbues.slice(0, cardsPerTurn), handFatigue: [],
       drawPile: [...combat.hand.slice(cardsPerTurn), ...combat.drawPile] };
   } else if (combat.hand.length < cardsPerTurn && combat.drawPile.length) {
     combat = drawCards(combat, Math.min(cardsPerTurn - combat.hand.length, combat.drawPile.length));

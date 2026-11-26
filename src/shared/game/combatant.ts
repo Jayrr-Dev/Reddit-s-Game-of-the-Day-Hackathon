@@ -81,6 +81,8 @@ export const NO_STATUSES: Statuses = {
   move: 0,
   rush: 0,
   armor: 0,
+  pin: 0,
+  fatigue: 0,
 };
 
 /** Which buff powers up each card type's damage (curses and buffs: none). */
@@ -803,7 +805,7 @@ export const addStatus = <T extends Combatant>(
         ? Math.min(TIERED_MAX_TIER, target.statuses.instinct + amount)
         : status === 'reflex' && amount > 0
           ? 1
-          : status === 'malaise' || status === 'hitLimit' || status === 'cloak'
+          : status === 'malaise' || status === 'hitLimit' || status === 'cloak' || status === 'pin'
             ? Math.max(target.statuses[status] ?? 0, amount)
             : (target.statuses[status] ?? 0) + amount,
   },
@@ -965,6 +967,8 @@ export const endOfTurnUpkeep = <T extends Combatant>(target: T): T => {
       sharpshooter: Math.max(0, target.statuses.sharpshooter - 1),
       malaise: Math.max(0, (target.statuses.malaise ?? 0) - 1),
       hitLimit: Math.max(0, (target.statuses.hitLimit ?? 0) - 1),
+      // PIN N holds its bearer for N of its own turns.
+      pin: Math.max(0, (target.statuses.pin ?? 0) - 1),
       momentum: 0,
       rush: 0,
       // Card Protection has a separate countdown through the enemy turns.

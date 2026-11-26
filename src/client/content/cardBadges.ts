@@ -71,6 +71,7 @@ const effectBadgeOf = (effect: ImbuableEffect): BadgeLook => {
     case 'vex':
     case 'weaken':
     case 'malaise':
+    case 'pin':
     case 'cloak':
     case 'guard':
     case 'wrath':

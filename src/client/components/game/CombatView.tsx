@@ -75,7 +75,7 @@ import { movementCost, offeredMovement } from '../../../shared/game/movement';
 import { MovementCard } from './CardView';
 import { DraggedCard } from './combat/DraggedCard';
 import { EnergyTray } from './combat/EnergyTray';
-import { positionForCard, soleTargetFor } from '../../../shared/game/combat';
+import { fatigueAt, positionForCard, soleTargetFor } from '../../../shared/game/combat';
 import { CardPlayHistory } from './combat/CardPlayHistory';
 import { FanHand } from './combat/FanHand';
 import { HitNumbers } from './combat/HitNumbers';
@@ -643,6 +643,7 @@ export const CombatView = ({
           <DraggedCard
             cardId={draggedCardId}
             usesSpent={(draggedCardId && combat.usesSpent[draggedCardId]) ?? 0}
+            fatigue={draggedCardId ? fatigueAt(combat, drag.handIndex) : 0}
             killsThisTurn={combat.killsThisTurn ?? 0} followUpReady={combat.followUpReady}
             attacker={draggedCardId ? positionForCard(combat, draggedCardId, drag.handIndex).player : combat.player}
             target={combat.heroes.find((unit) => unit.uid === controls.hoverUid) ??

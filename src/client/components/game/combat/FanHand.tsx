@@ -20,7 +20,7 @@ import {
 } from '../../../hooks/useCardFlights';
 import { useDrawOrder } from '../../../hooks/useDrawOrder';
 import { prefersReducedMotion } from '../../../lib/motion';
-import { buffLockedByMalaise, canPlayCard, canPlayCardOnSelf, positionForCard, soleTargetFor } from '../../../../shared/game/combat';
+import { buffLockedByMalaise, canPlayCard, fatigueAt, canPlayCardOnSelf, positionForCard, soleTargetFor } from '../../../../shared/game/combat';
 import { cardImbuesAt } from '../../../../shared/game/imbue';
 import { canMove, movementBlockReason, movementCost, offeredMovement } from '../../../../shared/game/movement';
 import type { CombatState } from '../../../../shared/game/types';
@@ -271,6 +271,7 @@ export const FanHand = ({
           >
             <CardView
               cardId={cardId}
+              fatigue={fatigueAt(combat, index)}
               killsThisTurn={combat.killsThisTurn ?? 0} followUpReady={combat.followUpReady}
               attacker={positionForCard(combat, cardId, index).player}
               target={soleTargetFor(combat, cardId, index)}

@@ -169,6 +169,7 @@ const EFFECT_STACKS: Record<ImbuableEffect['kind'], boolean> = {
   armor: true,
   enfeeble: false,
   malaise: false,
+  pin: false,
   cloak: false,
   protect: false,
   cleanse: false,
@@ -302,6 +303,10 @@ export const removeFromHand = (
   handImbues: state.hand
     .map((__, slot) => imbuesAt(state, slot))
     .filter((_, slot) => slot !== index),
+  // FATIGUE surcharges stay with their cards as the slots close up.
+  ...(state.handFatigue && {
+    handFatigue: state.handFatigue.filter((_, slot) => slot !== index),
+  }),
 });
 
 /** Puts a card in hand; a copy drawn takes back its stowed battle imbues. */
@@ -351,6 +356,8 @@ export const discardHand = (state: CombatState): CombatState => {
     ...state,
     hand: kept.map((slot) => slot.cardId),
     handImbues: kept.map((slot) => slot.imbues),
+    // FATIGUE lasts one turn: held cards go back to their usual cost.
+    handFatigue: [],
     discardPile: [...state.discardPile, ...dropped.map((slot) => slot.cardId)],
   };
   return dropped.reduce(

@@ -28,7 +28,7 @@ const status = (...ids: BadgeId[]): ReferenceEntry[] => ids.map((id) => ({
 /** Every active status, plus battlefield passives and ways effects are changed. */
 export const COMBAT_STATUS_SECTIONS: readonly ReferenceSection[] = [
   { title: 'Damage afflictions', headline: 'When damage triggers', entries: status('hex', 'poison', 'burn', 'bleed', 'shock') },
-  { title: 'Control afflictions', headline: 'What a debuff takes away', entries: status('frost', 'weaken', 'enfeeble', 'vex', 'malaise', 'hitLimit') },
+  { title: 'Control afflictions', headline: 'What a debuff takes away', entries: status('frost', 'weaken', 'enfeeble', 'vex', 'malaise', 'hitLimit', 'pin', 'fatigue') },
   { title: 'Defense effects', headline: 'Block or reduce the damage', entries: status('guard', 'armor', 'protection', 'brace', 'reinforce', 'invincible') },
   { title: 'Evasion', headline: 'Dodge hits or prevent targeting', entries: status('instinct', 'reflex', 'cloak', 'aloft') },
   { title: 'Offense buffs', headline: 'Which attacks improve', entries: status('wrath', 'might', 'surge', 'hone', 'bane', 'sharpshooter', 'berserker') },
