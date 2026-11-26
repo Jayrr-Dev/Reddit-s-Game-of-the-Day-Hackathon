@@ -152,3 +152,25 @@
   position: relative; width: 40%; height: 40%; color: var(--stat-ink);
 }
 .trait-spiral-node[data-arm=junction]:focus-visible { outline: 2px solid #4c2726; }
+
+/* HYBRID CIRCLE: two stat inks split down the middle, one icon across both halves. */
+.trait-spiral-disc[data-hybrid] { position: relative; overflow: hidden; background: none; }
+.trait-hybrid-half {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: color-mix(in srgb, var(--stat-ink) 16%, #ffefcf);
+}
+.trait-hybrid-half[data-side=left] { clip-path: inset(0 50% 0 0); }
+.trait-hybrid-half[data-side=right] { clip-path: inset(0 0 0 50%); }
+/* The dividing line. */
+.trait-spiral-disc[data-hybrid]::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 calc(50% - .5px);
+  width: 1px;
+  background: #75451e;
+}
+.trait-spiral-disc[data-hybrid] > .trait-owned-check { position: relative; z-index: 1; }
