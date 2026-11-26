@@ -273,7 +273,7 @@ function LessonFight({
           onDismiss={dismissGuide}
           actions={<>
             {step ? (
-              <Button variant="menu" onClick={leave}>Lessons</Button>
+              <Button variant="menu" onClick={leave}>Return</Button>
             ) : (
               <Button variant="menu" onClick={dismissGuide}>Close</Button>
             )}
