@@ -51,7 +51,7 @@ import cherubielArt from '../../../assets/heroes/grandangel-cherubiel.webp';
 import fulgurArt from '../../../assets/heroes/fulgur-dragonknight-idle.webp';
 import zadkielArt from '../../../assets/heroes/zadkiel-of-dominations.webp';
 import cervielStaffArt from '../../../assets/heroes/cerviel-staff.webp';
-import cervielSwordArt from '../../../assets/cerviel/Villain-Run-Cerviel-Six-Swords.webp';
+import cervielSwordArt from '../../../assets/cerviel/Villain-Run-Cerviel-Sword-Grips.webp';
 import cervielOpenArt from '../../../assets/cerviel/Villain-Run-Cerviel-Open-Hands.webp';
 import cervielFistsArt from '../../../assets/cerviel/Villain-Run-Cerviel-Closed-Fists.webp';
 import { ArcherSprite } from './ArcherSprite';
