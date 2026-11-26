@@ -5,8 +5,9 @@
 // **bold** for key words and numbers. A bold glossary word wears its
 // own colour with its icon before it (lookOfTerm), so "**Frost**"
 // reads like the Frost chip. Plain text also picks out, in bold white,
-// every percentage ("+25%") and the word dodge, so the numbers that
-// decide a fight stand out without markup in every description.
+// the word dodge and every percentage (green when it is a gain like
+// "+25%", red when a loss like "-25%"), so the numbers that decide a
+// fight stand out without markup in every description.
 // ===================================================================
 
 import { Fragment } from 'react';
@@ -22,14 +23,25 @@ const boldParts = (line: string): string[] => line.split('**');
  * (dodge, dodges, dodged). The capture group keeps the matches, so
  * odd parts of the split are the emphasised ones.
  */
-const AUTO_EMPHASIS = /([+-]?\d+%|\bdodge[sd]?\b)/i;
+const AUTO_EMPHASIS = /([+−-]?\d+%|\bdodge[sd]?\b)/i;
 const emphasisParts = (text: string): string[] => text.split(AUTO_EMPHASIS);
+
+/**
+ * The colour of an emphasised span: a gain ("+25%") is heal green, a
+ * loss ("-25%") is HP red, anything else (dodge, 50%) is white.
+ */
+const emphasisToneClass = (text: string): string => {
+  if (/^\+\d+%$/.test(text)) return 'text-heal';
+  if (/^[-−]\d+%$/.test(text)) return 'text-hp';
+  return 'text-ink';
+};
 
 // --- SUBCOMPONENTS ---
 /** A bold word: coloured and with its icon when it is a glossary word. */
 const BoldTerm = ({ text }: { text: string }) => {
   const look = lookOfTerm(text);
-  if (!look) return <b className="font-bold text-ink">{text}</b>;
+  if (!look)
+    return <b className={`font-bold ${emphasisToneClass(text)}`}>{text}</b>;
   return (
     <b className={`font-bold ${look.toneClass}`}>
       <Glyph
@@ -46,7 +58,7 @@ const PlainText = ({ text }: { text: string }) => (
   <>
     {emphasisParts(text).map((part, index) =>
       index % 2 === 1 ? (
-        <b key={index} className="font-bold text-ink">
+        <b key={index} className={`font-bold ${emphasisToneClass(part)}`}>
           {part}
         </b>
       ) : (
