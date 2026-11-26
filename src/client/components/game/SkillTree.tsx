@@ -2,7 +2,7 @@ import { playSound } from '../../lib/gameAudio';
 // --- SKILL TREE ---
 import { useLayoutEffect, useRef, useState } from 'react';
 import { SkillGlyph } from './SkillGlyph';
-import { TintedText } from '../ui/RichText';
+import { RichText } from '../ui/RichText';
 import type { CharacterState } from '../../../shared/game/character';
 import {
   branchNames,
@@ -305,7 +305,7 @@ export function SkillTree({
                 {rank}/{skillCap(active.tier)}
               </strong>
               {skillEffectOf(active) && (
-                <small><TintedText text={skillEffectOf(active)!.description} /></small>
+                <small><RichText text={skillEffectOf(active)!.description} /></small>
               )}
               {rank === 0 && (
                 <small>{skillPurchases(character, active).message}</small>
