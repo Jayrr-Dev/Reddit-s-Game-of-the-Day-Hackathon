@@ -100,11 +100,17 @@ export function SkillTree({
     );
     setDetail({ pick, target });
     if (!isSelected) return;
+    const canRankUp = skillPurchases(character, pick).steps.length > 0;
     if (ownedRank === 0) {
       for (const step of skillPurchases(character, pick).steps)
         onSkill(step, true);
-    } else if (ownedRank < skillCap(pick.tier)) {
-      if (skillPurchases(character, pick).steps.length) onSkill(pick, true);
+    } else if (ownedRank < skillCap(pick.tier) && canRankUp) {
+      onSkill(pick, true);
+    } else {
+      // DOUBLE-CLICK REFUND: an owned circle that can't rank up refunds on
+      // the second click, same as its Refund button.
+      onSkill(pick);
+      setDetail(null);
     }
   }
 
@@ -313,8 +319,10 @@ export function SkillTree({
               {rank === 0 && (
                 <small className="cs-skill-requirement">{skillPurchases(character, active).message}</small>
               )}
-              {rank < skillCap(active.tier) && skillPurchases(character, active).steps.length > 0 && (
+              {rank < skillCap(active.tier) && skillPurchases(character, active).steps.length > 0 ? (
                 <small>Click again to spend a point</small>
+              ) : rank > 0 && (
+                <small>Click again to refund</small>
               )}
               {/* ACTIONS: small text buttons in one row; full wording lives in the tooltip/label. */}
               {rank > 0 && (
