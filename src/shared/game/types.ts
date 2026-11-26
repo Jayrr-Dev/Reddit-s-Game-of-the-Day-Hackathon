@@ -246,7 +246,8 @@ export type CardKeyword =
   | 'exhaust'
   | 'rampage'
   | 'distance'
-  | 'longRange';
+  | 'longRange'
+  | 'unique';
 /**
  * Effects an imbue may grant. Pull and Push are left out: they change
  * who a card may aim at, and an imbue never changes a card's aim.

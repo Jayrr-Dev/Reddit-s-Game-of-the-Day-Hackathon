@@ -10,6 +10,7 @@
 import { newestCardIds } from './cardReleases.ts';
 import { ALL_CARD_IDS, getCard, isCardId, isCardInPlay, type CardId } from './cards.ts';
 import type { CardDef, CardEffect } from './types.ts';
+import { isUniqueCard, keepsUniqueLimit, withoutExtraUniques } from './unique.ts';
 
 // --- TYPES ---
 export type SandboxDeckId =
@@ -217,9 +218,10 @@ const deckOf = (id: SandboxDeckId): SandboxDeck =>
 export const sandboxDeckCards = (id: SandboxDeckId): CardId[] => {
   const deck = deckOf(id);
   const copies = deck.copies ?? (deck.id === 'all' ? 1 : DECK_COPIES);
+  // A Unique card gets one copy whatever the deck's copy count.
   return ALL_CARD_IDS.filter(isCardInPlay)
     .filter((cardId) => deck.fits(getCard(cardId), cardId))
-    .flatMap((cardId) => Array.from({ length: copies }, () => cardId));
+    .flatMap((cardId) => Array.from({ length: isUniqueCard(cardId) ? 1 : copies }, () => cardId));
 };
 
 export const CUSTOM_DECK_LIMIT = 100;
@@ -230,9 +232,10 @@ export type TrainingDeckSelection = {
   customDecks: CustomTrainingDeck[];
 };
 
+/** True for a saved custom deck: 1 to CUSTOM_DECK_LIMIT real cards, one copy of each Unique card. */
 export const isCustomDeckList = (cards: unknown): cards is CardId[] =>
   Array.isArray(cards) && cards.length > 0 && cards.length <= CUSTOM_DECK_LIMIT &&
-  Array.from(cards).every(isCardId);
+  Array.from(cards).every(isCardId) && keepsUniqueLimit(cards);
 
 export const activeTrainingCards = (selection: TrainingDeckSelection): CardId[] =>
   selection.customDecks.find(deck => deck.id === selection.activeCustomId)?.cards ??
@@ -246,8 +249,11 @@ export const restoreTrainingDecks = (saved: unknown): TrainingDeckSelection => {
     for (const value of saved.customDecks) {
       if (!value || typeof value.id !== 'string' || !value.id.trim() ||
           initial.customDecks.some(deck => deck.id === value.id) || typeof value.name !== 'string' ||
-          !value.name.trim() || !isCustomDeckList(value.cards)) continue;
-      initial.customDecks.push({ id: value.id, name: value.name.trim(), cards: [...value.cards] });
+          !value.name.trim()) continue;
+      // A card made Unique after the deck was saved keeps one copy instead of losing the deck.
+      const cards = Array.isArray(value.cards) && value.cards.every(isCardId) ? withoutExtraUniques(value.cards) : null;
+      if (!isCustomDeckList(cards)) continue;
+      initial.customDecks.push({ id: value.id, name: value.name.trim(), cards });
     }
   }
   if ('activeCustomId' in saved)

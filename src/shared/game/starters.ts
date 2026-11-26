@@ -1,4 +1,5 @@
 import { STARTER_DECK, type CardId } from './cards.ts';
+import { keepsUniqueLimit } from './unique.ts';
 
 export const starterNames = ['Warrior', 'Mage', 'Hexer', 'Archer'] as const;
 export type StarterName = (typeof starterNames)[number];
@@ -45,6 +46,7 @@ export function validStarter(
     cards.length === STARTER_DECK.length &&
     cards.every((id) => starterPool(name).includes(id)) &&
     cards.filter((id) => id === signatures[name]).length >= 3 &&
-    cards.filter((id) => id === 'healingPotion').length <= 1
+    cards.filter((id) => id === 'healingPotion').length <= 1 &&
+    keepsUniqueLimit(cards)
   );
 }

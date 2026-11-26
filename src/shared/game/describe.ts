@@ -400,6 +400,10 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
     label: 'Longrange',
     description: `Ignores **Out of Range**\nNever misses into **${ROW_LABEL.horizon}**`,
   },
+  unique: {
+    label: 'Unique',
+    description: 'Only one copy can be in your deck',
+  },
 };
 
 // --- DURATIONS ---

@@ -210,7 +210,8 @@ const firesShots = (cardId: CardId): boolean =>
  * Hold and Remove on any card, Piercing on a card that hits one hero,
  * the free moves (Rampage on kill, Distance on hit) on any card that
  * deals damage,
- * Longrange on a card that fires Range or Magic damage.
+ * Longrange on a card that fires Range or Magic damage. Exhaust and
+ * Unique are printed only.
  */
 const KEYWORD_FITS: Record<CardKeyword, (cardId: CardId) => boolean> = {
   hold: () => true,
@@ -222,6 +223,8 @@ const KEYWORD_FITS: Record<CardKeyword, (cardId: CardId) => boolean> = {
   rampage: dealsDamage,
   distance: dealsDamage,
   longRange: firesShots,
+  // Unique is a deck-building rule, printed only: no imbue grants it.
+  unique: () => false,
 };
 
 /**

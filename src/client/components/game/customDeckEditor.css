@@ -212,6 +212,20 @@
   color: var(--cde-paper);
   font: 800 0.68rem/1.3 var(--font-display);
 }
+.cde-tile-note {
+  position: absolute;
+  z-index: 11;
+  inset: auto 0.1rem 1.1rem;
+  padding: 0.05rem 0.2rem;
+  border-radius: 0.3rem;
+  background: var(--color-on-parchment);
+  color: var(--cde-paper);
+  font: 700 0.55rem/1.2 var(--font-display);
+  text-align: center;
+}
+.cde-notice {
+  color: var(--color-hp);
+}
 .custom-deck-editor .cde-tile button.cde-inspect {
   z-index: 11;
 }

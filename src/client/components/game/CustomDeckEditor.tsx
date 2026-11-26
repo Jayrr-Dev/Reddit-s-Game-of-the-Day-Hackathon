@@ -6,12 +6,15 @@ import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import {
+  addCardBlocker,
   addCardToDeck,
   groupCardsByType,
   hasDeckRoom,
   removeCardFromDeck,
   stackDeck,
+  type AddCardBlocker,
 } from '../../../shared/game/deckBuilder';
+import { KEYWORD_INFO } from '../../../shared/game/describe';
 import {
   CUSTOM_DECK_LIMIT,
   type CustomTrainingDeck,
@@ -43,8 +46,17 @@ type TileProps = {
   zone: DeckZone;
   count?: number;
   disabled?: boolean;
+  /** Why the card can't be added (shown on the tile and as its tooltip). */
+  blockedNote?: string | undefined;
   onPress: (event: ReactPointerEvent) => void;
   onActivate: () => void;
+};
+
+// --- BLOCKED ADD MESSAGES ---
+/** What the player reads when a card can't go in the deck. */
+const BLOCKED_ADD_TEXT: Record<AddCardBlocker, string> = {
+  unique: `${KEYWORD_INFO.unique.label}: ${KEYWORD_INFO.unique.description.toLowerCase()}`,
+  full: `The deck is full (${CUSTOM_DECK_LIMIT} cards)`,
 };
 
 // --- CARD TILE ---
@@ -54,12 +66,18 @@ const DeckCardTile = ({
   zone,
   count,
   disabled,
+  blockedNote,
   onPress,
   onActivate,
 }: TileProps) => {
   const action = zone === 'catalog' ? 'Add' : 'Remove one';
   return (
-    <div className="cde-tile" data-card-id={id} onPointerDown={onPress}>
+    <div
+      className="cde-tile"
+      data-card-id={id}
+      title={blockedNote}
+      onPointerDown={onPress}
+    >
       <CardView
         cardId={id}
         size="fan"
@@ -70,6 +88,11 @@ const DeckCardTile = ({
       {count !== undefined && count > 1 && (
         <span className="cde-tile-count" aria-label={`${count} copies`}>
           ×{count}
+        </span>
+      )}
+      {blockedNote && (
+        <span className="cde-tile-note" role="note">
+          {blockedNote}
         </span>
       )}
       <InspectCardButton id={id} />
@@ -182,6 +205,7 @@ export const CustomDeckEditor = ({ initial, onSave, onClose }: EditorProps) => {
   const [cards, setCards] = useState<CardId[]>(initial?.cards ?? []);
   const [query, setQuery] = useState('');
   const [keywords, setKeywords] = useState<string[]>([]);
+  const [notice, setNotice] = useState<string | null>(null);
   const groups = useCatalogGroups(query, keywords);
   const stacks = stackDeck(cards);
   const isDeckFull = !hasDeckRoom(cards);
@@ -191,10 +215,20 @@ export const CustomDeckEditor = ({ initial, onSave, onClose }: EditorProps) => {
     cards.length <= CUSTOM_DECK_LIMIT;
 
   // --- DECK EDITS ---
-  const add = (id: CardId) =>
+  /** Why a catalog card can't be added right now, as player text. */
+  const blockedNoteOf = (id: CardId): string | undefined => {
+    const blocker = addCardBlocker(cards, id);
+    return blocker ? BLOCKED_ADD_TEXT[blocker] : undefined;
+  };
+  /** Adds one copy, or explains in the footer why it can't. */
+  const add = (id: CardId) => {
+    setNotice(blockedNoteOf(id) ?? null);
     setCards((previous) => addCardToDeck(previous, id));
-  const remove = (id: CardId) =>
+  };
+  const remove = (id: CardId) => {
+    setNotice(null);
     setCards((previous) => removeCardFromDeck(previous, id));
+  };
   /** Catalog → deck adds a copy; deck → anywhere outside the deck removes one. */
   const { drag, startPress, consumeDrag } = useDeckDrag((id, from, to) => {
     if (from === 'catalog' && to === 'deck') add(id);
@@ -263,7 +297,8 @@ export const CustomDeckEditor = ({ initial, onSave, onClose }: EditorProps) => {
                       key={id}
                       id={id}
                       zone="catalog"
-                      disabled={isDeckFull}
+                      disabled={isDeckFull || blockedNoteOf(id) !== undefined}
+                      blockedNote={isDeckFull ? undefined : blockedNoteOf(id)}
                       onPress={startPress(id, 'catalog')}
                       onActivate={tap(() => add(id))}
                     />
@@ -306,6 +341,7 @@ export const CustomDeckEditor = ({ initial, onSave, onClose }: EditorProps) => {
       <footer className="cde-foot">
         <span aria-live="polite">
           <b>{cards.length}</b> / {CUSTOM_DECK_LIMIT} cards
+          {notice && <span className="cde-notice"> · {notice}</span>}
         </span>
         <button
           type="button"

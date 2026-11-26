@@ -83,6 +83,7 @@ export const KEYWORD_LOOK: Record<CardKeyword, Look> = {
   rampage: { glyph: 'battleAxe', toneClass: 'text-hp' },
   distance: { glyph: 'sprint', toneClass: 'text-range' },
   longRange: { glyph: 'eye', toneClass: 'text-range' },
+  unique: { glyph: 'crown', toneClass: 'text-accent' },
 };
 
 // --- OUT OF RANGE ---

@@ -9,6 +9,7 @@ import { signatures, type StarterName } from './starters.ts';
 import type { StopKind } from './kingdom.ts';
 import { pickOne, pickWeighted, type RngResult, type RngState } from './rng.ts';
 import { OFFER_SIZE, STATUS_IS_AFFLICTION } from './rules.ts';
+import { isUniqueCard, type UniqueCheck } from './unique.ts';
 import { afflictionChanceBonusOf, cardChanceBonusOf, type SkillPick } from './skills.ts';
 import type { CardRarity, StatusId } from './types.ts';
 
@@ -59,16 +60,23 @@ const offerBonusOf = (cardId: CardId, picks: readonly SkillPick[]): number => {
 
 // --- ROLLS ---
 
-/** Rolls one card not already offered (falls back to any card of the rarity). */
+/**
+ * Rolls one card not already offered (falls back to any card of the
+ * rarity). Cards in `barred` (Unique cards the deck already holds) are
+ * never offered, unless they are the whole pool.
+ */
 const rollOneOffer = (
   state: RngState,
   source: Exclude<StopKind, 'grave'>,
   taken: readonly CardId[],
   starter?: StarterName,
-  skillPicks: readonly SkillPick[] = []
+  skillPicks: readonly SkillPick[] = [],
+  barred: readonly CardId[] = []
 ): RngResult<CardId> => {
   const [rarity, afterRarity] = pickWeighted(state, RARITY_ODDS[source]);
-  const pool = cardsOfRarity(rarity);
+  const fullPool = cardsOfRarity(rarity);
+  const allowed = fullPool.filter((id) => !barred.includes(id));
+  const pool = allowed.length ? allowed : fullPool;
   const fresh = pool.filter((id) => !taken.includes(id));
   const candidates = fresh.length ? fresh : pool;
   const preferredType = starter ? getCard(signatures[starter]).type : undefined;
@@ -82,18 +90,24 @@ const rollOneOffer = (
   return pickWeighted(afterRarity, candidates.map((item) => ({ item, weight: weightOf(item) })));
 };
 
-/** Rolls OFFER_SIZE distinct card offers for a stop. */
+/**
+ * Rolls OFFER_SIZE distinct card offers for a stop. A Unique card
+ * already in `deck` is never offered (see unique.ts).
+ */
 export const rollOffers = (
   seed: RngState,
   source: Exclude<StopKind, 'grave'>,
   exclude: readonly CardId[] = [],
   starter?: StarterName,
-  skillPicks: readonly SkillPick[] = []
+  skillPicks: readonly SkillPick[] = [],
+  deck: readonly CardId[] = [],
+  isUnique: UniqueCheck = isUniqueCard
 ): CardId[] => {
   const offers: CardId[] = [];
+  const barred = deck.filter(isUnique);
   let current = seed;
   for (let slot = 0; slot < OFFER_SIZE; slot += 1) {
-    const [cardId, next] = rollOneOffer(current, source, [...exclude, ...offers], starter, skillPicks);
+    const [cardId, next] = rollOneOffer(current, source, [...exclude, ...offers], starter, skillPicks, barred);
     offers.push(cardId);
     current = next;
   }

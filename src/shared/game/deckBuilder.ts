@@ -9,10 +9,13 @@
 import { getCard, type CardId } from './cards.ts';
 import { CUSTOM_DECK_LIMIT } from './sandboxDecks.ts';
 import type { CardType } from './types.ts';
+import { isUniqueCard, isUniqueInDeck, type UniqueCheck } from './unique.ts';
 
 // --- TYPES ---
 export type CardTypeGroup = { type: CardType; cards: CardId[] };
 export type DeckStack = { id: CardId; count: number };
+/** Why a card can't go in the deck: the deck is full, or it's Unique and already in. */
+export type AddCardBlocker = 'full' | 'unique';
 
 // --- GROUP ORDER ---
 /** Attack types first, then cards that act on the villain, then the rest. */
@@ -45,9 +48,24 @@ export const groupCardsByType = (ids: readonly CardId[]): CardTypeGroup[] =>
 export const hasDeckRoom = (deck: readonly CardId[]) =>
   deck.length < CUSTOM_DECK_LIMIT;
 
-/** Appends one copy, or returns the same deck when it is already full. */
-export const addCardToDeck = (deck: readonly CardId[], id: CardId): CardId[] =>
-  hasDeckRoom(deck) ? [...deck, id] : [...deck];
+/** Why one more copy of `id` can't be added, or null when it can. */
+export const addCardBlocker = (
+  deck: readonly CardId[],
+  id: CardId,
+  isUnique: UniqueCheck = isUniqueCard
+): AddCardBlocker | null => {
+  if (!hasDeckRoom(deck)) return 'full';
+  if (isUniqueInDeck(deck, id, isUnique)) return 'unique';
+  return null;
+};
+
+/** Appends one copy, or returns the same deck when the card can't be added. */
+export const addCardToDeck = (
+  deck: readonly CardId[],
+  id: CardId,
+  isUnique: UniqueCheck = isUniqueCard
+): CardId[] =>
+  addCardBlocker(deck, id, isUnique) ? [...deck] : [...deck, id];
 
 /** Removes the last copy of a card, leaving the others in their order. */
 export const removeCardFromDeck = (

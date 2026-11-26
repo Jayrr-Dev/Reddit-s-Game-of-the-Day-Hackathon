@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ENERGY_PER_TURN, CARDS_PER_TURN, ROW_LABEL, OUT_OF_RANGE_HIT_CHANCE, REFLEX_DODGE } from '../../../shared/game/rules';
+import { KEYWORD_INFO } from '../../../shared/game/describe';
 import { COMBAT_STATUS_SECTIONS, type ReferenceEntry } from '../../../shared/game/combatStatusReference';
 import { STATUS_LOOK } from '../../content/visuals';
 import { Glyph } from '../ui/Glyph';
@@ -77,6 +78,7 @@ const SLIDES: readonly Lesson[] = [
       ['Discard', 'Most played cards and leftover hand cards go here. When Draw runs out, Discard is shuffled back in.'],
       ['Hold', 'A card with Hold stays in hand when you end your turn.'],
       ['Remove vs. Exhaust', 'Remove lasts for the fight. Exhaust uses a per-run counter; when the last use is spent, that copy leaves the run deck.'],
+      [KEYWORD_INFO.unique.label, `${KEYWORD_INFO.unique.description}. Card rewards skip a Unique card you already own, and the deck builder won't add a second copy.`],
     ],
     example: 'Blood Pact goes to Remove; an ordinary Backhand can return after reshuffling.',
     cards: ['bloodPact','ruin'],

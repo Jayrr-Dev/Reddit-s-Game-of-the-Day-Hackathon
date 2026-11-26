@@ -41,3 +41,21 @@ Never use a raw hex value.
 - **The unit info window and intent popovers:** their effect headlines keep the
   effect colour ([`MoveEffect.tsx`](../src/client/components/game/MoveEffect.tsx)).
   The rules text underneath goes through `RichText`.
+
+## Card keywords
+
+Each keyword's words live in `KEYWORD_INFO` in
+[`describe.ts`](../src/shared/game/describe.ts) and its icon in `KEYWORD_LOOK`
+in [`visuals.ts`](../src/client/content/visuals.ts).
+
+| Keyword | Icon and colour | Rule |
+| --- | --- | --- |
+| Hold | Padlock, accent | Stays in your hand at the end of the turn |
+| Piercing | Arrowhead, accent | Hits a whole column; ignores Armor, Protection and Guard |
+| Remove | Burning card, muted | Out for the rest of the fight once played |
+| Use N/3 (Exhaust) | Ghost, muted | Limited plays per run, then the copy Exhausts |
+| Charge | Sword, Movement | Moves forward before attacking and gains Momentum |
+| Rampage | Battle axe, HP red | Charge on kill; Momentum bonus doubled |
+| Distance | Sprint, Range | Free Back Step on hit |
+| Longrange | Eye, Range | Ignores Out of Range |
+| Unique | Crown, accent | Only one copy can be in your deck. The rule lives in [`unique.ts`](../src/shared/game/unique.ts): the deck builder, saved decks, starter decks and card rewards all check it there. No imbue grants it. |

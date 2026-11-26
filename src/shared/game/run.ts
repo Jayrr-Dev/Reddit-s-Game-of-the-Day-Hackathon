@@ -22,6 +22,7 @@ import { combatOutcome, endTurn, playCard, startCombat, SELF_TARGET_UID } from '
 import { mightAt, routeOptions, stopSeed, type Stop } from './kingdom.ts';
 import { isMovementId, move } from './movement.ts';
 import { rollOffers } from './rewards.ts';
+import { isUniqueInDeck } from './unique.ts';
 import {
   CHAMPION_VICTORY_HEAL,
   GRAVE_HEAL_FRACTION,
@@ -164,7 +165,8 @@ const enterStop = (state: RunState, stop: Stop): RunState => {
       'altar',
       [],
       undefined,
-      state.character.skillPicks
+      state.character.skillPicks,
+      state.deck
     );
     return { ...state, phase: { kind: 'altar', offers } };
   }
@@ -227,30 +229,35 @@ const settleCombat = (
   const isChampion = stop.kind === 'champion';
   const bossWins = character.ringProgress.bossWins + (isChampion ? 1 : 0);
   const victoryHeal = stop.kind === 'champion' ? CHAMPION_VICTORY_HEAL : 0;
+  const deck = deckWithout(state.deck, combat.exhausted);
   const offers = rollOffers(
     stopSeed(state.dailyKey, 'reward', state.stop),
-    rewardSourceOf(stop), [], state.rewardStarter, state.character.skillPicks
+    rewardSourceOf(stop), [], state.rewardStarter, state.character.skillPicks, deck
   );
   return {
     ...state,
     hp: Math.min(state.maxHp, combat.player.hp + healingAmount(victoryHeal, character)),
     character: { ...character, ringProgress: { ...character.ringProgress, bossWins } },
     storyRingUnlocked: isChampion && bossWins <= 5 ? bossWins : undefined,
-    deck: deckWithout(state.deck, combat.exhausted),
+    deck,
     usesSpent: combat.usesSpent,
     stats,
     phase: { kind: 'reward', offers, source: rewardSourceOf(stop), leveledUp: character.level > state.character.level },
   };
 };
 
-/** Adds the picked offer (if any) to the deck and moves on. */
+/**
+ * Adds the picked offer (if any) to the deck and moves on. A second
+ * copy of a Unique card is never added.
+ */
 const takeOffer = (
   state: RunState,
   offers: CardId[],
   offerIndex: number | null
 ): RunState => {
   const picked = offerIndex === null ? undefined : offers[offerIndex];
-  const deck = picked ? [...state.deck, picked] : state.deck;
+  const canAdd = picked !== undefined && !isUniqueInDeck(state.deck, picked);
+  const deck = canAdd ? [...state.deck, picked] : state.deck;
   return advanceToNextStop({ ...state, deck });
 };
 
@@ -348,7 +355,7 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
         : state;
     case 'rerollReward': {
       if (phase.kind !== 'reward' || phase.rerolled) return state;
-      const offers = rollOffers(stopSeed(state.dailyKey, 'reward-reroll', state.stop), phase.source ?? 'horde', phase.offers, state.rewardStarter, state.character.skillPicks);
+      const offers = rollOffers(stopSeed(state.dailyKey, 'reward-reroll', state.stop), phase.source ?? 'horde', phase.offers, state.rewardStarter, state.character.skillPicks, state.deck);
       return { ...state, phase: { ...phase, offers, rerolled: true } };
     }
     case 'pickCard':
