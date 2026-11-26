@@ -13,6 +13,7 @@ import { createPortal } from 'react-dom';
 import { useLayoutEffect, useRef, useState } from 'react';
 import {
   describeHeroIntent,
+  ROW_POSITION,
   type MoveIntent,
   type IntentKind,
 } from '../../../../shared/game/describe';
@@ -67,7 +68,7 @@ const MoveArrow = ({ move, unit }: { move: MoveIntent; unit: HeroUnit }) => {
   const [lead, ...rest] = move.intents;
   if (!lead) return null;
   const home = preferredRow(unit);
-  const position = { front: 'front', back: 'middle', horizon: 'rear' }[home];
+  const position = ROW_POSITION[home];
   const direction = rowDepth(unit.row) > rowDepth(home) ? 'advance' : 'retreat';
   const positioning = isAnchored(unit) ? 'Holds position.' : unit.row === home
     ? `Holding preferred position (${position}).`

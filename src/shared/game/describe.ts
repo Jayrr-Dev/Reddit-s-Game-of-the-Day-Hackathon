@@ -6,7 +6,7 @@
 // ===================================================================
 
 import { healingAmount } from './character.ts';
-import { targetRuleOf } from './battlefield.ts';
+import { preferredRow, targetRuleOf } from './battlefield.ts';
 import { bonusUsesOf, volleyHitsOf } from './skills.ts';
 import { getCard, hitsPerPlay, isKeywordOn, type CardId } from './cards.ts';
 import {
@@ -511,6 +511,22 @@ export const ROW_INFO: Record<HeroRow, StatusInfo> = {
 
 /** A row's player-facing name: "Line 1", "Line 2", "Line 3". */
 export const rowLabel = (row: HeroRow): string => ROW_INFO[row].label;
+
+/** Where each row sits, in plain words (hero plates and the Units tab). */
+export const ROW_POSITION: Readonly<Record<HeroRow, string>> = {
+  front: 'front',
+  back: 'middle',
+  horizon: 'rear',
+};
+
+/**
+ * The line a hero prefers to fight from, e.g. "Line 2 (middle)": its
+ * catalog row, fitted to the rows in play (preferredRow).
+ */
+export const preferredPositionLabel = (heroId: HeroId): string => {
+  const row = preferredRow({ heroId });
+  return rowLabel(row) + ' (' + ROW_POSITION[row] + ')';
+};
 
 /** Shots from or into the Horizon may miss (see OUT_OF_RANGE_HIT_CHANCE). */
 export const OUT_OF_RANGE_INFO: StatusInfo = {

@@ -14,6 +14,7 @@ import { CHAMPION_IDS, ELITE_IDS, getHero, GRUNT_IDS, HEROES, UNIT_TYPE_LABELS, 
 import { move } from './movement.ts';
 import { nextInt, pickWeighted, type RngState } from './rng.ts';
 import { BATTLEFIELD_ROWS, PLAYER_MAX_HP } from './rules.ts';
+import { preferredPositionLabel } from './describe.ts';
 import type { MoveAction, PlayCardAction } from './run.ts';
 import type { CardId } from './cards.ts';
 import { isCustomDeckList, sandboxDeckCards, type SandboxDeckId } from './sandboxDecks.ts';
@@ -372,14 +373,15 @@ export const groupUnitsByUnitType = (heroIds: readonly HeroId[] = ALL_HERO_IDS):
 /**
  * A one-on-one fight against a single unit, as a scenario so it runs
  * through the same fight prompt and summon flow as the preset lineups.
- * It starts in its home line, like the scenarios do.
+ * It starts in its home line, like the scenarios do; the blurb names
+ * that line so the Units tab shows where each unit prefers to fight.
  */
 export const soloUnitScenario = (heroId: HeroId): SandboxScenario => {
   const hero = getHero(heroId);
   return {
     id: 'unit:' + heroId,
     name: hero.name,
-    blurb: TIER_LABELS[hero.tier] + ' · ' + hero.maxHp + ' HP',
+    blurb: TIER_LABELS[hero.tier] + ' · ' + hero.maxHp + ' HP · ' + preferredPositionLabel(heroId),
     heroIds: [heroId],
     startsInPlace: true,
   };
