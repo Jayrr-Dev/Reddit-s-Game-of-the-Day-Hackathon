@@ -643,10 +643,10 @@ void test('the Ballista is Anchored: nothing pushes it, but you can close in', (
   const ballista = unitAt(state, 1);
   assert.equal(canPull(state.heroes, ballista), false);
   assert.equal(canPush(state.heroes, ballista), false);
-  // You step back: it ends up a line farther, like everyone.
+  // You step back: it holds its line, the others fall back around it.
   assert.deepEqual(placesOf(move(state, 'backStep').heroes), [
     'back:0',
-    'horizon:1',
+    'back:1',
   ]);
   // Alone, you can Charge up to it and hit it in Melee.
   const lone = fightAt([['ballista', 'back', 1]]);
@@ -668,6 +668,31 @@ void test('the Ballista is Anchored: nothing pushes it, but you can close in', (
   assert.equal(fresh.heroes[0]?.row, 'horizon', 'starts farthest back');
   const far = fightAt([['ballista', 'horizon', 1]]);
   assert.equal(advanceHeroes(far.heroes)[0]?.row, 'horizon');
+});
+
+void test('Anchored units hold their line on Charge and Back Step; others go around', () => {
+  // Charge: the Shieldmaiden behind the Ballista slides beside it.
+  const charging = fightAt([
+    ['ballista', 'back', 1],
+    ['shieldmaiden', 'horizon', 1],
+  ]);
+  const charged = move(charging, 'charge').heroes;
+  assert.equal(unitAt({ ...charging, heroes: charged }, 0).row, 'back');
+  assert.equal(unitAt({ ...charging, heroes: charged }, 0).col, 1);
+  const maiden = unitAt({ ...charging, heroes: charged }, 1);
+  assert.equal(maiden.row, 'back', 'the Shieldmaiden still closes in');
+  assert.notEqual(maiden.col, 1, 'beside the Ballista, not on it');
+  // Back Step: the Shieldmaiden in front falls back beside it.
+  const stepping = fightAt([
+    ['shieldmaiden', 'front', 1],
+    ['ballista', 'back', 1],
+  ]);
+  const stepped = move(stepping, 'backStep').heroes;
+  assert.equal(unitAt({ ...stepping, heroes: stepped }, 1).row, 'back');
+  assert.equal(unitAt({ ...stepping, heroes: stepped }, 0).row, 'back');
+  // A Ballista knockback moves the field, not the Ballista itself.
+  const knocked = endTurn(ballistaFight(0));
+  assert.equal(unitAt(knocked, 1).row, 'horizon');
 });
 
 /** A Ballista on Line 3 about to make move `moveIndex`, a Squire on Line 1. */
@@ -881,7 +906,7 @@ void test('a hero attack fully stopped by Armor lays none of its on-hit effects'
   assert.equal(after.player.statuses.burn, 0, 'so it sets no Burn');
 });
 
-test('terrain travel follows successful row movement and reverses on retreat', () => {
+void test('terrain travel follows successful row movement and reverses on retreat', () => {
   const start = fightAt([['squire', 'horizon', 0]]);
   const first = move(start, 'charge');
   const second = move(first, 'charge');

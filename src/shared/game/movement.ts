@@ -67,7 +67,7 @@ export const MOVEMENTS: Record<MovementId, MovementDef> = {
    */
   charge: {
     baseCost: CHARGE_COST,
-    // Only when it would close in on someone (an Anchored hero stays).
+    // Only when it would close in on someone (Anchored heroes hold their line).
     fitsFormation: (heroes) =>
       heroes.every((unit) => unit.row !== 'front') &&
       changesRows(heroes, stepForward(heroes, CHARGE_ROWS)),

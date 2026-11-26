@@ -232,7 +232,7 @@ export const PASSIVE_INFO: Record<PassiveId, StatusInfo> = {
   anchored: {
     label: 'Anchored',
     description:
-      "Immune to Pull and Knockback.",
+      'Immune to Pull and Knockback. Holds its line when you Charge or Back Step.',
   },
 };
 

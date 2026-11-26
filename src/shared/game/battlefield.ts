@@ -110,16 +110,16 @@ export const isDeep = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
 /**
  * True for a hero no pull or push can move: a boss, or a deep hero.
  * Charge and Back Step move the whole field, bosses included (a deep
- * one keeps its place).
+ * one keeps its place); Anchored heroes hold their line.
  */
 export const isImmovable = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
   isDeep(unit) || getHero(unit.heroId).tier === 'boss' || isAnchored(unit);
 
 /**
- * True for an Anchored hero (the Ballista): no pull or push moves it
- * against its will. Lines are distance from the villain,
- * so when the villain Charges or Back Steps it still ends up nearer or
- * farther, like everyone.
+ * True for an Anchored hero (the Ballista, the Horned Sentinel): no
+ * pull or push moves it, and it holds its line when the villain
+ * Charges, Back Steps or is knocked back. The rest of the field moves
+ * around it (see fieldMovers).
  */
 export const isAnchored = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
   getHero(unit.heroId).passives?.includes('anchored') ?? false;
@@ -432,16 +432,60 @@ const nearestDepth = (heroes: readonly HeroUnit[]): number =>
   Math.min(...heroes.map((unit) => rowDepth(unit.row)));
 
 /**
- * Charge: when the front row is empty, the whole field closes in by up
- * to `maxRows` rows, stopping once someone stands in the front row (a
+ * Who moves when the villain Charges, Back Steps or is knocked back:
+ * everyone but the Anchored heroes, who hold their line. When only
+ * Anchored heroes are left they move too, so the villain can always
+ * close in on the last one (a lone Ballista on Line 3 would otherwise
+ * be out of Melee reach for good).
+ */
+const fieldMovers = (heroes: readonly HeroUnit[]): HeroUnit[] => {
+  const unanchored = heroes.filter((unit) => !isAnchored(unit));
+  return unanchored.length > 0 ? unanchored : [...heroes];
+};
+
+/**
+ * One hero moves `steps` rows with the field, going around whoever
+ * holds its spot: it keeps its columns when they are free, else slides
+ * in beside them (that row shifts over to make room), else moves fewer
+ * rows, else stays. Imperative: tries the nearest fit first.
+ */
+const shiftAround = (
+  heroes: HeroUnit[],
+  uid: number,
+  steps: number
+): HeroUnit[] => {
+  for (let rows = Math.abs(steps); rows > 0; rows -= 1) {
+    const delta = Math.sign(steps) * rows;
+    const kept = shiftWhole(heroes, uid, delta);
+    if (kept !== heroes) return kept;
+    const slid = moveRows(heroes, uid, delta, true);
+    if (slid !== heroes) return slid;
+  }
+  return heroes;
+};
+
+/**
+ * Charge: when the front row is empty, the field closes in by up to
+ * `maxRows` rows, stopping once someone stands in the front row (a
  * field on the Horizon only, with maxRows 2, lands in the front row).
+ * Anchored heroes hold their line and the rest go around them,
+ * nearest first so each row ahead is already clear.
  */
 export const stepForward = (
   heroes: readonly HeroUnit[],
   maxRows: number
 ): HeroUnit[] => {
   if (heroes.length === 0) return [...heroes];
-  return shiftField(heroes, -Math.min(maxRows, nearestDepth(heroes)));
+  const movers = fieldMovers(heroes);
+  const steps = -Math.min(maxRows, nearestDepth(movers));
+  if (movers.length === heroes.length) return shiftField(heroes, steps);
+  const nearestFirst = movers.toSorted(
+    (a, b) => rowDepth(a.row) - rowDepth(b.row)
+  );
+  return nearestFirst.reduce(
+    (field, unit) => shiftAround(field, unit.uid, steps),
+    [...heroes]
+  );
 };
 
 // --- SUMMONS ---
@@ -725,7 +769,8 @@ export const advanceHeroes = (heroes: HeroUnit[]): HeroUnit[] => {
 /**
  * Back Step: every hero falls back `rows` rows where there is room
  * behind it. Heroes on the last row stay, and so does anyone whose
- * row behind is full. The farthest heroes move first, so they make
+ * row behind is full, and so do Anchored heroes (see fieldMovers).
+ * The farthest heroes move first, so they make
  * room for the ones in front of them. Imperative: each step changes
  * the room left for the next.
  */
@@ -743,9 +788,11 @@ export const fallBack = (
     return field;
   }
   for (let step = 0; step < rows; step += 1) {
-    const farthestFirst = [...field].sort(
-      (a, b) => rowDepth(b.row) - rowDepth(a.row)
-    );
+    // Anchored heroes hold their line; the rest slide around them.
+    const movers = new Set(fieldMovers(field).map((unit) => unit.uid));
+    const farthestFirst = field
+      .filter((unit) => movers.has(unit.uid))
+      .sort((a, b) => rowDepth(b.row) - rowDepth(a.row));
     for (const unit of farthestFirst) {
       field = isImmovable(unit)
         ? shiftWhole(field, unit.uid, 1)
