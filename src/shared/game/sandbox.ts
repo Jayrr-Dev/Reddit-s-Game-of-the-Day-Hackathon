@@ -320,7 +320,7 @@ export const groupScenariosByUnitType = (
 // --- UNITS ---
 /**
  * A Units tab section: a unit type, or Stationary for anchored heroes
- * (the Ballista, the Horned Sentinel), which never leave their line.
+ * (the Ballista), which never leave their line.
  */
 export type UnitSectionId = UnitType | 'stationary';
 

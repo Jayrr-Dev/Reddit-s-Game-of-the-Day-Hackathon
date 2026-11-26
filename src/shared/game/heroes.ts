@@ -293,7 +293,7 @@ export const HEROES = {
       move('Plant the Hammer', guard(10)),
       move('Gate Slam', strike(11), knockBack(1)),
       move('Groundbreaker', strike(8), { kind: 'frost', amount: 2 }),
-    ], ['anchored']),
+    ]),
     2
   ),
   stormLancer: hero('Storm Lancer', 'elite', 34, 47, 7, FRONT, [

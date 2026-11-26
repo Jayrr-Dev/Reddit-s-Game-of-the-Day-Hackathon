@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { canPush, cellsOf } from './battlefield.ts';
+import { cellsOf, isAnchored } from './battlefield.ts';
 import { endTurnSteps, plannedHeroMoves } from './combat.ts';
 import { ELITE_IDS, GRUNT_IDS, getHero } from './heroes.ts';
 import { createSandboxWith, SANDBOX_SCENARIOS } from './sandbox.ts';
@@ -18,7 +18,7 @@ void test('Ivory Host adds five independent enemies without changing ranked pool
   }
   const sentinel = fight.heroes.find(({ heroId }) => heroId === 'hornedSentinel')!;
   assert.equal(getHero(sentinel.heroId).armor, 2);
-  assert.equal(canPush(fight.heroes, sentinel), false);
+  assert.equal(isAnchored(sentinel), false);
   assert.deepEqual(fight.heroes.map(hero => plannedHeroMoves(hero, fight.heroes)[0]?.move.name).sort(),
     ['Absolution', 'Conducting Thrust', 'Heartpiercer', 'Plant the Hammer', 'Unravel']);
 });

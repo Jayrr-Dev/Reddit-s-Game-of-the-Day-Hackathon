@@ -130,7 +130,7 @@ export const isImmovable = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
   isDeep(unit) || getHero(unit.heroId).tier === 'boss' || isAnchored(unit);
 
 /**
- * True for an Anchored hero (the Ballista, the Horned Sentinel): no
+ * True for an Anchored hero (the Ballista): no
  * pull or push moves it, and it holds its line when the villain
  * Charges, Back Steps or is knocked back. The rest of the field moves
  * around it (see fieldMovers).
