@@ -2888,7 +2888,7 @@ void test('Endurance sets turn energy, retention and the cap on energy gains', (
   assert.equal(startPlayerTurn(finished).energy, 18);
   assert.equal(playCard({ ...fightWith(['bloodPact']), energy: 9 }, 0, -1).energy, 10);
 });
-void test('a keyword an Imbue card gives reads under its other actions', () => {
+void test('whatever an Imbue card gives reads under its other actions', () => {
   assert.deepEqual(describeCard('lastRites').slice(0, 2), ['Draw 1', 'Remove']);
 });
 void test('Reap is a Curse card that reads Damage ? until it is aimed', () => {

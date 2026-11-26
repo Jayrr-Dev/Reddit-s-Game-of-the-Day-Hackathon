@@ -811,17 +811,16 @@ const elementLines = (cardDef: CardDef, attacker?: Combatant): string[] => {
   return [`${label} ${onHit.amount + (attacker ? scornBonus(attacker, onHit.status) : 0)} per hit`];
 };
 
-/** True when the effect gives another card a keyword (Last Rites' Remove). */
-const isKeywordGift = (effect: CardEffect): boolean =>
-  effect.kind === 'imbue' && effect.gift.kind === 'keyword';
+/** True when the effect is given to another card (Last Rites' Remove). */
+const isGift = (effect: CardEffect): boolean => effect.kind === 'imbue';
 
 /**
- * Effects in reading order: a keyword an Imbue card gives reads last
- * (Sam), under the card's own actions, like a printed keyword would.
+ * Effects in reading order: whatever an Imbue card gives another card
+ * reads last (Sam), under the card's own actions.
  */
 const actionOrder = (effects: readonly CardEffect[]): CardEffect[] => [
-  ...effects.filter((effect) => !isKeywordGift(effect)),
-  ...effects.filter(isKeywordGift),
+  ...effects.filter((effect) => !isGift(effect)),
+  ...effects.filter(isGift),
 ];
 
 /** Reap's unaimed hint: what its damage scales with. */
