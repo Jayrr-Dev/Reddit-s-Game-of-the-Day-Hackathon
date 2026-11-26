@@ -27,7 +27,8 @@ Use this workflow for new units and animation updates in Villain Run. The delive
 ## 5. Interpolate motion before export
 
 - Keep an untouched copy of the aligned keyframes. Run motion interpolation between clean poses to generate in-between frames. Try 24–30 fps for review while keeping the original move duration and release or impact timing.
-- Check the actual generated frames, not just the preview at normal speed. Look for ghosting, doubled weapons, melted hands, warped faces, shifting feet, and flickering transparency. Compare the smoothed pass to the original keyframes.
+- Replay the result at game speed. If anything looks off, step through the generated frames and compare them to the original keyframes. Look for unwanted ghosting, doubled weapons, warped grips, shifting feet, and flickering transparency.
+- On fast swings and spins, add directional smears to the in-between frames. Keep the held poses, weapon release, and impact sharp so the move still reads clearly.
 - Replace bad in-betweens with clean drawn poses or keep a sharp transition where a hit or abrupt turn needs it. Do not blend across a cut, a deliberate impact hold, or mismatched silhouettes just to increase frame rate.
 
 ## 6. Preview the GIF and export WebP
