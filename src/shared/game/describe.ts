@@ -17,7 +17,7 @@ import {
   guardAmount,
   reapDamage,
 } from './combatant.ts';
-import { foldPerHitAfflictions, getHero } from './heroes.ts';
+import { foldPerHitAfflictions, getHero, type HeroId } from './heroes.ts';
 import { cardHasKeyword, foldImbuedDamage, guardApplications, imbuedEffects } from './imbue.ts';
 import {
   ELEMENT_ON_HIT,
@@ -39,6 +39,7 @@ import {
 import { usesOf } from './uses.ts';
 import {
   cardHitOn,
+  createHeroUnit,
   heroAttackOf,
   plannedHeroMoves,
   scaleByMight,
@@ -995,4 +996,25 @@ export const describeHeroIntent = (
     moves,
     intents: moves.flatMap((move) => move.intents),
   };
+};
+
+// --- UNIT MOVE LIST ---
+/** Prefix on a boss's second-phase moves in the unit move list. */
+const SECOND_PHASE_PREFIX = 'Phase 2 · ';
+
+/**
+ * Every move a hero can make, in the order it cycles them, at base
+ * strength (no might, no buffs), then its second-phase moves. Built from
+ * the same describeMove as the battlefield chips, so the Units tab's
+ * info can never disagree with a fight.
+ */
+export const describeHeroMoveList = (heroId: HeroId): MoveIntent[] => {
+  const hero = getHero(heroId);
+  const unit: HeroUnit = { ...createHeroUnit(heroId, 0, 1), row: hero.row, col: 0 };
+  const firstPhase = hero.moves.map((heroMove) => describeMove(unit, heroMove));
+  const secondPhase = (hero.secondPhase?.moves ?? []).map((heroMove) => {
+    const move = describeMove({ ...unit, phase: 2 }, heroMove);
+    return { ...move, name: SECOND_PHASE_PREFIX + move.name };
+  });
+  return [...firstPhase, ...secondPhase];
 };

@@ -7,7 +7,7 @@
 // Pure functions like the rest of the engine; never scored or logged.
 // ===================================================================
 
-import { advanceHeroes, cellCountOf } from './battlefield.ts';
+import { advanceHeroes, cellCountOf, isAnchored } from './battlefield.ts';
 import { characterBonuses, syncCharacterCombat, type CharacterState, type Equipment, type TraitNodes, type Traits } from './character.ts';
 import { drawCards, combatOutcome, endTurn, finishPlayerTurn, playCard, startCombat, startPlayerTurn } from './combat.ts';
 import { CHAMPION_IDS, ELITE_IDS, getHero, GRUNT_IDS, HEROES, UNIT_TYPE_LABELS, UNIT_TYPES, unitTypeOf, type HeroId } from './heroes.ts';
@@ -317,12 +317,21 @@ export const groupScenariosByUnitType = (
     .filter((group) => group.scenarios.length > 0);
 
 // --- UNITS ---
-/** One unit type's heading and every hero of that kind, weakest rank first. */
+/**
+ * A Units tab section: a unit type, or Stationary for anchored heroes
+ * (the Ballista, the Horned Sentinel), which never leave their line.
+ */
+export type UnitSectionId = UnitType | 'stationary';
+
+/** One section's heading and its heroes, weakest rank first. */
 export type UnitGroup = {
-  unitType: UnitType;
+  id: UnitSectionId;
   label: string;
   heroIds: readonly HeroId[];
 };
+
+/** Heading of the section for anchored heroes, listed last. */
+const STATIONARY_LABEL = 'Stationary';
 
 /** Rank order for the Units list: the horde first, bosses last. */
 const TIER_ORDER: readonly HeroTier[] = ['grunt', 'elite', 'champion', 'boss'];
@@ -340,18 +349,22 @@ export const ALL_HERO_IDS: readonly HeroId[] = Object.keys(HEROES).filter(
   (id): id is HeroId => id in HEROES
 );
 
+/** The Units tab section a hero is filed under: Stationary wins over its unit type. */
+const unitSectionOf = (heroId: HeroId): UnitSectionId =>
+  isAnchored({ heroId }) ? 'stationary' : unitTypeOf(heroId);
+
 /**
- * Heroes split into unit type sections (same order as the Scenarios tab),
- * sorted by rank inside each (stable, so catalog order breaks ties) and
- * dropping empty sections.
+ * Heroes split into unit type sections (same order as the Scenarios tab)
+ * plus Stationary last, sorted by rank inside each (stable, so catalog
+ * order breaks ties) and dropping empty sections.
  */
 export const groupUnitsByUnitType = (heroIds: readonly HeroId[] = ALL_HERO_IDS): UnitGroup[] =>
-  UNIT_TYPES
-    .map((unitType) => ({
-      unitType,
-      label: UNIT_TYPE_LABELS[unitType],
+  [...UNIT_TYPES, 'stationary' as const]
+    .map((id) => ({
+      id,
+      label: id === 'stationary' ? STATIONARY_LABEL : UNIT_TYPE_LABELS[id],
       heroIds: heroIds
-        .filter((id) => unitTypeOf(id) === unitType)
+        .filter((heroId) => unitSectionOf(heroId) === id)
         .toSorted((a, b) => TIER_ORDER.indexOf(getHero(a).tier) - TIER_ORDER.indexOf(getHero(b).tier)),
     }))
     .filter((group) => group.heroIds.length > 0);

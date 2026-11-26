@@ -174,7 +174,7 @@ export const scaleByMight = (amount: number, might: number): number =>
   Math.round(amount * might);
 
 /** Creates one hero; formUp() then gives it a place on the field. */
-const createHeroUnit = (
+export const createHeroUnit = (
   heroId: HeroId,
   uid: number,
   might: number

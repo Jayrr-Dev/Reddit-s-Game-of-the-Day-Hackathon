@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { FEATURES } from './features.ts';
 import { characterBonuses, createCharacter } from './character.ts';
-import { canPush, cellsOf, fallBack, sizeOf } from './battlefield.ts';
+import { canPush, cellsOf, fallBack, isAnchored, sizeOf } from './battlefield.ts';
 import {
   SANDBOX_SCENARIOS,
   createSandbox,
@@ -24,6 +24,7 @@ import {
   soloUnitScenario,
 } from './sandbox.ts';
 import { getHero, unitTypeOf } from './heroes.ts';
+import { describeHeroMoveList } from './describe.ts';
 import { CARDS_PER_TURN, ENERGY_PER_TURN } from './rules.ts';
 import { getCard, isCardInPlay, type CardId } from './cards.ts';
 import { SANDBOX_DECKS, sandboxDeckCards, activeTrainingCards, restoreTrainingDecks, saveTrainingDeck } from './sandboxDecks.ts';
@@ -358,11 +359,18 @@ void test('scenario tier follows its lead hero, so boss and elite names can be c
 
 void test('the Units tab lists every hero once, in unit type sections, weakest rank first', () => {
   const groups = groupUnitsByUnitType();
-  assert.deepEqual(groups.map((group) => group.label), ['Angels', 'Dragons', 'Beasts', 'Humans', 'Demi-humans']);
-  // Every hero in the catalog lands in exactly one section, in its own unit type.
+  assert.deepEqual(groups.map((group) => group.label), ['Angels', 'Dragons', 'Beasts', 'Humans', 'Demi-humans', 'Stationary']);
+  // Every hero in the catalog lands in exactly one section: Stationary if anchored, else its unit type.
   const listed = groups.flatMap((group) => group.heroIds);
   assert.deepEqual([...listed].sort(), [...ALL_HERO_IDS].sort());
-  assert.ok(groups.every((group) => group.heroIds.every((id) => unitTypeOf(id) === group.unitType)));
+  for (const group of groups) {
+    for (const heroId of group.heroIds) {
+      assert.equal(group.id, isAnchored({ heroId }) ? 'stationary' : unitTypeOf(heroId), heroId);
+    }
+  }
+  const stationary = groups.find((group) => group.label === 'Stationary')?.heroIds ?? [];
+  assert.ok(stationary.includes('ballista'));
+  assert.ok(!groups.find((group) => group.label === 'Humans')?.heroIds.includes('ballista'));
   // Ranks never go backwards inside a section (grunts, elites, champions, bosses).
   const rank = ['grunt', 'elite', 'champion', 'boss'];
   for (const group of groups) {
@@ -380,4 +388,18 @@ void test('a solo unit fight puts just that unit on the field', () => {
     const fight = createSandboxWith(1, scenario.heroIds, scenario.startsInPlace);
     assert.deepEqual(fight.heroes.map((unit) => unit.heroId), [heroId], heroId);
   }
+});
+
+void test('a unit info lists every move it cycles, then its second phase', () => {
+  for (const heroId of ALL_HERO_IDS) {
+    const hero = getHero(heroId);
+    const moves = describeHeroMoveList(heroId);
+    assert.equal(moves.length, hero.moves.length + (hero.secondPhase?.moves.length ?? 0), heroId);
+    assert.ok(moves.every((move) => move.intents.length > 0), heroId);
+  }
+  assert.deepEqual(describeHeroMoveList('squire').map((move) => [move.name, move.intents.map((intent) => intent.text)]), [
+    ['Swing', ['5']],
+    ['Raise Shield', ['4', '3']],
+  ]);
+  assert.ok(describeHeroMoveList('cervielSword').some((move) => move.name.startsWith('Phase 2 · ')));
 });

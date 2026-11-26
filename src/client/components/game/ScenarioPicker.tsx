@@ -15,6 +15,7 @@ import { Fragment, useState, type CSSProperties, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { newestCardIds } from '../../../shared/game/cardReleases';
 import { getHero, type HeroId } from '../../../shared/game/heroes';
+import { describeHeroMoveList } from '../../../shared/game/describe';
 import { CARD_LOOK, EDGE_ART, ELEMENT_LOOK, TIER_NAME_CLASS } from '../../content/visuals';
 import { HeroFigure } from './combat/HeroFigure';
 import { FIGURE_BOUNDS, type FigureBounds } from '../../content/figureBounds';
@@ -28,7 +29,6 @@ import {
   scenarioTier,
   soloUnitScenario,
   type SandboxScenario,
-  type ScenarioGroup,
 } from '../../../shared/game/sandbox';
 import {
   SANDBOX_DECKS,
@@ -42,6 +42,9 @@ type PickerTab = 'scenarios' | 'units' | 'decks' | 'map';
 /** One entry in either tab; nameClass colours the name (scenario tier). */
 type PickerEntry = { id: string; name: string; blurb?: string; nameClass?: string };
 
+/** One headed section of either tab: a unit type, or Stationary on Units. */
+type PickerSection = { id: string; label: string; scenarios: readonly SandboxScenario[] };
+
 // --- CONSTANTS ---
 const TAB_LABELS: Record<PickerTab, string> = {
   scenarios: 'Scenarios',
@@ -51,9 +54,12 @@ const TAB_LABELS: Record<PickerTab, string> = {
 };
 
 /** Scenarios in unit type sections; the catalog is static, so group once. */
-const SCENARIO_GROUPS = groupScenariosByUnitType();
+const SCENARIO_GROUPS: readonly PickerSection[] = groupScenariosByUnitType().map((group) => ({
+  ...group,
+  id: group.unitType,
+}));
 /** Every unit as a one-on-one scenario, in the same unit type sections. */
-const UNIT_GROUPS = groupUnitsByUnitType().map((group) => ({
+const UNIT_GROUPS: readonly PickerSection[] = groupUnitsByUnitType().map((group) => ({
   ...group,
   scenarios: group.heroIds.map(soloUnitScenario),
 }));
@@ -218,25 +224,53 @@ const TabBar = ({
   </div>
 );
 
-/** Asks whether to fight the tapped scenario before it starts. */
+/** One unit's moves, in the order it cycles them, each with its effects. */
+const UnitMoveList = ({ heroId }: { heroId: HeroId }) => (
+  <ol className="unit-move-list">
+    {describeHeroMoveList(heroId).map((move, index) => (
+      <li key={index}>
+        <span className={move.isSignature ? 'text-accent' : 'text-ink'}>{move.name}</span>
+        {move.intents.map((intent, i) => <span key={i}>{intent.label}</span>)}
+      </li>
+    ))}
+  </ol>
+);
+
+/**
+ * Asks whether to fight the tapped scenario before it starts. With
+ * showMoves (a unit's info icon), it also lists that unit's attacks.
+ */
 const FightPrompt = ({
   scenario,
+  showMoves,
   onFight,
   onBack,
 }: {
   scenario: SandboxScenario;
+  showMoves: boolean;
   onFight: () => void;
   onBack: () => void;
-}) => (
-  <ConfirmDialog
-    title={'Fight ' + scenario.name + '?'}
-    confirmLabel="Fight"
-    cancelLabel="Not now"
-    onConfirm={onFight}
-    onCancel={onBack}
-  >
-    {scenario.blurb}
-  </ConfirmDialog>
+}) => {
+  const [heroId] = scenario.heroIds;
+  return (
+    <ConfirmDialog
+      title={(showMoves ? '' : 'Fight ') + scenario.name + (showMoves ? '' : '?')}
+      confirmLabel="Fight"
+      cancelLabel={showMoves ? 'Close' : 'Not now'}
+      onConfirm={onFight}
+      onCancel={onBack}
+    >
+      {scenario.blurb}
+      {showMoves && heroId && <UnitMoveList heroId={heroId} />}
+    </ConfirmDialog>
+  );
+};
+
+/** The round "i" that opens a unit's attacks, over the corner of its card. */
+const InfoButton = ({ name, onInfo }: { name: string; onInfo: () => void }) => (
+  <button type="button" className="training-info" aria-label={'Attacks of ' + name} title="Attacks" onClick={onInfo}>
+    i
+  </button>
 );
 
 /** Scenarios under unit type headings; a tap asks to fight first. */
@@ -244,17 +278,20 @@ const ScenarioSections = ({
   groups,
   terrainIndex,
   onPick,
+  onInfo,
 }: {
-  groups: readonly ScenarioGroup[];
+  groups: readonly PickerSection[];
   terrainIndex: number;
   onPick: (scenario: SandboxScenario) => void;
+  /** Set on the Units tab: each card gets an info icon for its attacks. */
+  onInfo?: ((scenario: SandboxScenario) => void) | undefined;
 }) =>
   groups.map((group) => (
-    <Fragment key={group.unitType}>
+    <Fragment key={group.id}>
       <SectionHeading>{group.label}</SectionHeading>
       {group.scenarios.map((scenario) => (
+        <div className="training-custom-tile" key={scenario.id}>
         <EntryButton
-          key={scenario.id}
           entry={{ ...scenario, nameClass: TIER_NAME_CLASS[scenarioTier(scenario)] }}
           preview={
             <ScenarioPreview
@@ -265,6 +302,8 @@ const ScenarioSections = ({
           isActive={false}
           onPick={() => onPick(scenario)}
         />
+        {onInfo && <InfoButton name={scenario.name} onInfo={() => onInfo(scenario)} />}
+        </div>
       ))}
     </Fragment>
   ));
@@ -303,6 +342,12 @@ export const ScenarioPicker = ({
   const [editing, setEditing] = useState<string | null>(null);
   // The scenario waiting on the fight-or-not answer, if any.
   const [pending, setPending] = useState<SandboxScenario | null>(null);
+  // True when the prompt was opened from a unit's info icon (lists its attacks).
+  const [isShowingMoves, setShowingMoves] = useState(false);
+  const askToFight = (scenario: SandboxScenario, showMoves: boolean) => {
+    setShowingMoves(showMoves);
+    setPending(scenario);
+  };
   const draft = customDecks.find((deck) => deck.id === editing);
   return (
     <>
@@ -312,6 +357,7 @@ export const ScenarioPicker = ({
       {pending && (
         <FightPrompt
           scenario={pending}
+          showMoves={isShowingMoves}
           onFight={() => { setPending(null); onPickScenario(pending); }}
           onBack={() => setPending(null)}
         />
@@ -336,7 +382,8 @@ export const ScenarioPicker = ({
           <ScenarioSections
             groups={tab === 'units' ? UNIT_GROUPS : SCENARIO_GROUPS}
             terrainIndex={terrainIndex}
-            onPick={setPending}
+            onPick={(scenario) => askToFight(scenario, false)}
+            onInfo={tab === 'units' ? (scenario) => askToFight(scenario, true) : undefined}
           />
         ) : tab === 'map' ? (
           <>
