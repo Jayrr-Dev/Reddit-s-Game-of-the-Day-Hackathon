@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getCard } from '../../../shared/game/cards';
 import { stackDeck } from '../../../shared/game/deckBuilder';
-import {
-  xpToNextLevel,
-  type RingProgress,
-} from '../../../shared/game/character';
+import { type RingProgress } from '../../../shared/game/character';
 import {
   characterEdit,
   type PlayerBuild,
@@ -44,7 +41,6 @@ export function ProfileView({
   const [error, setError] = useState('');
   const [loadError, setLoadError] = useState(false);
   const [retry, setRetry] = useState(0);
-  const [sheet, openSheet] = useState(false);
   useEffect(() => {
     if (!data.accountId) return;
     let live = true;
@@ -80,6 +76,9 @@ export function ProfileView({
   const name = build.selected;
   const cards = build.decks[name] ?? starterDeck(name);
   const valid = validStarter(name, cards);
+  const decksValid = Object.entries(build.decks).every(([key, deck]) =>
+    starterNames.some((style) => style === key && validStarter(style, deck))
+  );
   async function save() {
     if (!valid || saving) return;
     setSaving(true);
@@ -106,31 +105,55 @@ export function ProfileView({
         : { ...previous, character: [...previous.character, action] };
     });
   }
+  /** Saves the build when it is valid, then leaves; a failed save keeps the sheet open. */
+  async function leave() {
+    if (!valid || !decksValid) return onClose();
+    await save();
+  }
+
+  // --- LOADING AND LOAD ERRORS ---
+  if (loading || loadError)
+    return (
+      <main className="profile-view">
+        <header>
+          <h1>Profile</h1>
+        </header>
+        {loading ? (
+          <p>Loading character…</p>
+        ) : (
+          <Button variant="menu" onClick={() => setRetry(retry + 1)}>
+            Retry
+          </Button>
+        )}
+        {error && <p role="alert">{error}</p>}
+        <footer>
+          <Button variant="menu" onClick={onClose}>
+            Back
+          </Button>
+        </footer>
+      </main>
+    );
+
+  // --- CHARACTER SHEET, OPENING ON THE PROFILE TAB ---
   return (
-    <main className="profile-view">
-      <header>
-        <h1>Profile</h1>
-        <span>{data.username ? 'u/' + data.username : 'Local player'}</span>
-      </header>
-      {loading ? (
-        <p>Loading character…</p>
-      ) : loadError ? (
-        <Button variant="menu" onClick={() => setRetry(retry + 1)}>
-          Retry
-        </Button>
-      ) : (
+    <RunCharacterSheet
+      character={character}
+      onAction={changeCharacter}
+      onRespec={() =>
+        setBuild({
+          ...build,
+          character: build.character.filter((a) => a.type !== 'setTraitNode'),
+        })
+      }
+      onClose={() => void leave()}
+      profile={
         <>
           <section className="profile-strip">
             <div>
-              <strong>Level {character.level}</strong>
-              <span>
-                {xpToNextLevel(character.level)
-                  ? character.xp +
-                    ' / ' +
-                    xpToNextLevel(character.level) +
-                    ' XP'
-                  : 'Max level'}
-              </span>
+              <strong>
+                {data.username ? 'u/' + data.username : 'Local player'}
+              </strong>
+              <span>Player</span>
             </div>
             <div>
               <strong>{wins}</strong>
@@ -140,25 +163,7 @@ export function ProfileView({
               <strong>{data.bestScoreToday ?? 0}</strong>
               <span>Daily best</span>
             </div>
-            <Button variant="menu" onClick={() => openSheet(true)}>
-              Manage character
-            </Button>
           </section>
-          {sheet && (
-            <RunCharacterSheet
-              character={character}
-              onAction={changeCharacter}
-              onRespec={() =>
-                setBuild({
-                  ...build,
-                  character: build.character.filter(
-                    (a) => a.type !== 'setTraitNode'
-                  ),
-                })
-              }
-              onClose={() => openSheet(false)}
-            />
-          )}
           <section className="profile-decks">
             <h2>Starter deck</h2>
             <p>Choose the deck for your next conquest.</p>
@@ -185,37 +190,15 @@ export function ProfileView({
                   <div inert aria-hidden="true">
                     <CardView cardId={id} size="fan" />
                   </div>
-                  <b>x{count}</b>
+                  <b className="profile-deck-count">x{count}</b>
                 </div>
               ))}
             </div>
           </section>
+          {saving && <p role="status">Saving…</p>}
+          {error && <p role="alert">{error}</p>}
         </>
-      )}
-      {error && <p role="alert">{error}</p>}
-      <footer>
-        <Button variant="menu" disabled={saving} onClick={onClose}>
-          Cancel
-        </Button>
-        {!loading && !loadError && (
-          <Button
-            variant="menuPrimary"
-            disabled={
-              !valid ||
-              saving ||
-              Object.entries(build.decks).some(
-                ([key, deck]) =>
-                  !starterNames.some(
-                    (style) => style === key && validStarter(style, deck)
-                  )
-              )
-            }
-            onClick={() => void save()}
-          >
-            {saving ? 'Saving…' : 'Save profile'}
-          </Button>
-        )}
-      </footer>
-    </main>
+      }
+    />
   );
 }

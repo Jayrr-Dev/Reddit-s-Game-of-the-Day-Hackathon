@@ -1,6 +1,6 @@
 import { TRAINING_JEWELRY } from '../../../shared/game/trainingJewelry';
 // --- CHARACTER SHEET ---
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { playSound } from '../../lib/gameAudio';
 import {
   characterBonuses,
@@ -17,6 +17,7 @@ import {
   type TraitId,
 } from '../../../shared/game/character';
 import { Glyph, type GlyphName } from '../ui/Glyph';
+import { IconButton } from '../ui/IconButton';
 import type { SkillPick } from '../../../shared/game/skills';
 import { SkillTree } from './SkillTree';
 import { TraitSpiral } from './TraitSpiral';
@@ -34,7 +35,10 @@ type SheetProps = {
   onRespec?: (() => void) | undefined;
   onEquip: (slot: EquipmentSlot, id: string | null, ringIndex?: number) => void;
   onClose: () => void;
+  /** When given, a Profile tab comes first and the sheet opens on it. */
+  profile?: ReactNode;
 };
+type SheetPage = 'profile' | 'traits' | 'equipment' | 'skills';
 type Stat = keyof ReturnType<typeof characterBonuses>;
 const TRAIT_ICONS: Record<TraitId, GlyphName> = {
   vigor: 'heart',
@@ -389,9 +393,10 @@ export const CharacterSheet = ({
   onRespec,
   onEquip,
   onClose,
+  profile,
 }: SheetProps) => {
   const dialog = useRef<HTMLDialogElement>(null);
-  const [page, setPage] = useState<'traits' | 'equipment' | 'skills'>('traits');
+  const [page, setPage] = useState<SheetPage>(profile ? 'profile' : 'traits');
   const [trait, setTrait] = useState<TraitId>('vigor');
   const points = traitPointsAvailable(character);
   const needed = xpToNextLevel(character.level);
@@ -411,7 +416,7 @@ export const CharacterSheet = ({
     };
     fitFrame();
     node.showModal();
-    node.querySelector<HTMLButtonElement>('.cs-close')?.focus();
+    node.querySelector<HTMLButtonElement>('.cs-back')?.focus();
     const observer = new ResizeObserver(fitFrame);
     observer.observe(frame);
     window.addEventListener('resize', fitFrame);
@@ -435,6 +440,7 @@ export const CharacterSheet = ({
     >
       <div className="character-sheet">
       <header className="cs-topline">
+      <IconButton icon="back" label="Back" className="cs-back" onClick={onClose} />
       <h2>Character</h2>
       <div className="cs-level">
         <strong>Level {character.level}</strong>
@@ -461,16 +467,17 @@ export const CharacterSheet = ({
           <strong className="cs-trait-points" role="status">{points} {points === 1 ? 'point' : 'points'} available</strong>
         </div>
       )}
-        <button
-          type="button"
-          className="cs-close"
-          onClick={onClose}
-          aria-label="Close character sheet"
-        >
-          Close
-        </button>
       </header>
       <div className="cs-pages" aria-label="Character views">
+        {profile && (
+          <button
+            type="button"
+            aria-pressed={page === 'profile'}
+            onClick={() => setPage('profile')}
+          >
+            Profile
+          </button>
+        )}
         <button
           type="button"
           aria-pressed={page === 'traits'}
@@ -494,7 +501,9 @@ export const CharacterSheet = ({
         </button>
       </div>
       <div className="cs-body" key={page} data-page={page}>
-        {page === 'traits' ? (
+        {page === 'profile' ? (
+          <div className="cs-profile">{profile}</div>
+        ) : page === 'traits' ? (
           <Traits
             character={character}
             vitals={vitals}
@@ -510,8 +519,8 @@ export const CharacterSheet = ({
       </div>
       </div>
       {levelGuide && <TutorialSpotlight
-        selector={levelGuide === 'close' ? '.cs-close' : page === 'traits' ? '.trait-spiral-node[data-arm="junction"]' : '.cs-pages button:first-child'}
-        label={levelGuide === 'close' ? 'Close' : page === 'traits' ? 'Tap the star' : 'Open Traits'}
+        selector={levelGuide === 'close' ? '.cs-back' : page === 'traits' ? '.trait-spiral-node[data-arm="junction"]' : '.cs-pages button:first-child'}
+        label={levelGuide === 'close' ? 'Back' : page === 'traits' ? 'Tap the star' : 'Open Traits'}
       />}
     </dialog>
   );

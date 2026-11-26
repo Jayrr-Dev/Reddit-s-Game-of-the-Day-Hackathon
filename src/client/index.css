@@ -3532,15 +3532,15 @@ textarea,
 .profile-view>header,.profile-view>section,.profile-view>footer,.profile-view>p {max-width:640px;margin:0 auto 14px}
 .profile-view header,.profile-view footer,.profile-strip,.profile-classes,.profile-decklist {display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .profile-view header {justify-content:space-between}
-.profile-view h1,.profile-view h2,.profile-strip strong {color:#f4c579;font-family:var(--font-display);font-weight:bold}
-.profile-view h1 {font-size:26px}.profile-view h2 {font-size:19px}
+.profile-view h1,:is(.profile-view,.cs-profile) h2,.profile-strip strong {color:#f4c579;font-family:var(--font-display);font-weight:bold}
+.profile-view h1 {font-size:26px}:is(.profile-view,.cs-profile) h2 {font-size:19px}
 .profile-strip,.profile-decks {padding:12px;border:1px solid #8a673b;border-radius:6px;background:#2d2019e8}
-.profile-strip>div {display:grid;min-width:65px;flex:1}.profile-view p,.profile-strip span {font-size:12px}.profile-view .oak-menu-button {width:auto;min-width:88px;padding:0 15px}
+.profile-strip>div {display:grid;min-width:65px;flex:1}:is(.profile-view,.cs-profile) p,.profile-strip span {font-size:12px}:is(.profile-view,.cs-profile) .oak-menu-button {width:auto;min-width:88px;padding:0 15px}
 .profile-classes,.profile-decklist {margin:10px 0}
 /* Starter deck: the real cards, each with its copy count in the top-right corner. */
 .profile-decklist {align-items:flex-start;padding:6px 0 0 6px}
 .profile-deck-card {position:relative}
-.profile-deck-card b {position:absolute;z-index:11;top:-6px;right:-6px;padding:0 5px;border-radius:9px;background:#211710;border:1px solid #f0c077;color:#f0c077;font:800 12px/1.4 var(--font-display)}
+.profile-deck-count {position:absolute;z-index:11;top:-10px;right:-8px;padding:0 5px;border-radius:9px;background:#211710;border:1px solid #f0c077;color:#f0c077;font:800 12px/1.4 var(--font-display)}
 .profile-view footer {justify-content:flex-end}.profile-slots {display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin-top:14px}.profile-slots p {grid-column:1/-1}.profile-slots label {display:grid;font-size:11px}.profile-slots select {color:#f5e7c9;background:#271c16;padding:5px;border:1px solid #937246}
 .starter-picker {position:relative;display:grid;grid-template-rows:auto minmax(0,1fr) auto;align-content:center;gap:12px;height:100%;padding:clamp(10px,3vw,24px);background:linear-gradient(#1b100bba,#17100cef),url('./assets/table/character-oak-grain.webp') center/cover;color:#f5e5c2}
 .starter-picker h1 {text-align:center;font:bold clamp(19px,3vw,28px) var(--font-display);color:#f3c778}

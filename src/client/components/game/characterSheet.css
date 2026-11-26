@@ -57,7 +57,6 @@
 .cs-section-title h3 {
   font-size: 1rem;
 }
-.cs-close,
 .cs-action,
 .cs-pages button,
 .cs-trait-grid button {
@@ -65,7 +64,6 @@
   border-radius: 0.35rem;
   background: var(--color-surface-raised);
 }
-.cs-close,
 .cs-action {
   min-height: 2rem;
   padding: 0.25rem 0.65rem;
@@ -115,7 +113,6 @@
   border-color: #edc984;
   color: var(--color-on-accent);
 }
-.cs-close,
 .cs-pages button:not([aria-pressed='true']),
 .cs-trait-grid button,
 .cs-trait-summary .cs-action {
@@ -540,19 +537,19 @@
 }
 .cs-topline {
   display: grid;
-  grid-template-columns: auto minmax(0,1fr) auto;
-  grid-template-areas: "title level close";
+  grid-template-columns: auto auto minmax(0,1fr);
+  grid-template-areas: "back title level";
   align-items: center;
   gap: clamp(.35rem, 1.6cqw, .85rem);
 }
 .cs-topline:has(.cs-trait-summary) {
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
-  grid-template-areas: "title level traits close";
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  grid-template-areas: "back title level traits";
 }
 @container character-frame (max-width: 36rem) {
   .cs-topline:has(.cs-trait-summary) {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas: "title level close" "traits traits traits";
+    grid-template-columns: auto auto minmax(0, 1fr);
+    grid-template-areas: "back title level" "traits traits traits";
   }
   .cs-topline .cs-trait-summary {
     width: 100%;
@@ -562,7 +559,9 @@
   }
 }
 .cs-topline h2 { grid-area: title; }
-.cs-topline .cs-close { grid-area: close; }
+.cs-topline .cs-back { grid-area: back; }
+/* The Profile tab hosts the profile page's own sections. */
+.cs-profile { display: grid; gap: .6rem; }
 .cs-topline .cs-level { grid-area: level; }
 @container character-frame (max-width: 23rem) {
   .cs-topline h2 { font-size: 1.12rem; }
