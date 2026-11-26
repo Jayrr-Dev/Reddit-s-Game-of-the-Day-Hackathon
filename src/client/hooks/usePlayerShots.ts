@@ -37,6 +37,7 @@ import { bodyPointOf } from './useHitPops';
 /** What a played Melee card swings: at whom, how many times. */
 export type SweepPlan = {
   cardId: CardId;
+  blunt: boolean;
   targetUids: number[];
   hits: number;
 };
@@ -100,7 +101,7 @@ export const sweepPlanOf = (
 ): SweepPlan | null => {
   const cardId = combat.hand[action.handIndex];
   if (cardId === undefined) return null;
-  const { type, effects } = getCard(cardId);
+  const { type, effects, edge } = getCard(cardId);
   const damage = effects.find((effect) => effect.kind === 'damage');
   if (!damage || type !== 'melee') return null;
   const cleave = cleaveTargetsOf(combat, cardId);
@@ -110,7 +111,7 @@ export const sweepPlanOf = (
       : cleave
         ? cleave.map((unit) => unit.uid)
         : (action.targetUids ?? [action.targetUid ?? -1]);
-  return { cardId, targetUids, hits: damage.hits };
+  return { cardId, targetUids, hits: damage.hits, blunt: edge === 'blunt' };
 };
 
 /**
@@ -161,6 +162,8 @@ export const usePlayerShots = () => {
    */
   const swing = useCallback(
     (plan: SweepPlan): boolean => {
+      // Keep the existing timing without drawing a sword swing for a blunt blow.
+      if (plan.blunt) return plan.targetUids.some(uid => bodyPointOf(uid) !== null);
       let placed = false;
       Array.from({ length: plan.hits }, (_, hitIndex) => {
         const points = plan.targetUids.map(uid => bodyPointOf(uid, hitIndex)).filter((point): point is Point => point !== null);

@@ -7,6 +7,7 @@
 import type { SweepFlight } from '../../../lib/meleeSweep';
 import { MeleeSweep } from './MeleeSweep';
 import { Projectile, type ProjectileFlight } from './Projectile';
+import { CombatFxPreload } from './CombatFx';
 
 // --- COMPONENT ---
 /** Renders every shot of yours in flight and every swing. */
@@ -18,6 +19,7 @@ export const PlayerShots = ({
   sweeps: readonly SweepFlight[];
 }) => (
   <div className="pointer-events-none fixed inset-0 z-40" aria-hidden="true">
+    <CombatFxPreload />
     {sweeps.map((sweep) => (
       <MeleeSweep key={sweep.id} sweep={sweep} />
     ))}

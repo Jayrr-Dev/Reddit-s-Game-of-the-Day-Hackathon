@@ -35,6 +35,8 @@ import { ELEMENT_LOOK } from '../../../content/visuals';
 import { MagicBurst } from './MagicBurst';
 import { Puncture } from './Puncture';
 import { Slice } from './Slice';
+import { CombatFx } from './CombatFx';
+import { physicalImpactOf } from '../../../lib/combatFx';
 
 // --- CONSTANTS ---
 /** Marks the layer: hero shots aim at its centre. */
@@ -148,7 +150,13 @@ const Mark = ({ pop }: { pop: PlayerHitPop }) => {
         <MagicBurst id={seed} element={pop.element} />
       </span>
     );
-  // MELEE: A LONG SLASH ACROSS THE VIEW
+  const physical = physicalImpactOf(pop);
+  if (physical === 'ground-slam') return (
+    <span className="absolute left-1/2 top-[66%] w-[54%] max-w-[330px] -translate-1/2">
+      <CombatFx kind={physical} />
+    </span>
+  );
+  // Incoming blade hits keep the red slash across the view.
   const angle = SLASH_ANGLES[seed % SLASH_ANGLES.length] ?? 0;
   return (
     <span

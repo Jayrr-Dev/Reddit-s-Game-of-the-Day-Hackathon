@@ -29,6 +29,8 @@ import { Slice } from './Slice';
 import { StatusFx } from './StatusFx';
 import { Thud } from './Thud';
 import type { PlayerHitPop } from '../../../hooks/useHitPops';
+import { CombatFx } from './CombatFx';
+import { physicalImpactOf } from '../../../lib/combatFx';
 
 // --- CONSTANTS ---
 const CURSE_GLOW = 'var(--color-hex)';
@@ -134,6 +136,23 @@ const HitMark = ({ pop }: { pop: PlayerHitPop }) => {
   if (pop.source === 'range') return <Hole id={pop.id} />;
   if (pop.source === 'magic') return <Burst pop={pop} />;
   if (pop.source === 'curse') return <Glow tone={CURSE_GLOW} />;
+  const physical = physicalImpactOf(pop);
+  if (physical === 'ground-slam') return (
+    <>
+      <span className="absolute left-1/2 top-[63%] w-[142%] -translate-x-1/2 -translate-y-1/2">
+        <CombatFx kind={physical} />
+      </span>
+      <span className="combat-fx-fallback"><Crush id={pop.id} /></span>
+    </>
+  );
+  if (physical === 'weapon-impact') return (
+    <>
+      <span className="absolute w-[116%]" style={placeAt(pop.id, 0, 22)}>
+        <CombatFx kind={physical} />
+      </span>
+      <span className="combat-fx-fallback"><Slash pop={pop} /></span>
+    </>
+  );
   if (pop.edge === 'blunt') return <Crush id={pop.id} />;
   return <Slash pop={pop} />;
 };

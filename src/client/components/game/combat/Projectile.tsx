@@ -11,6 +11,7 @@ import type { CSSProperties } from 'react';
 import type { MagicElement } from '../../../../shared/game/types';
 import { ELEMENT_LOOK } from '../../../content/visuals';
 import type { Point } from '../../../hooks/useCardDrag';
+import { CombatFx } from './CombatFx';
 
 // --- TYPES ---
 export type ProjectileKind = 'arrow' | 'bolt' | 'lightning';
@@ -113,6 +114,7 @@ export const Projectile = ({
     data-projectile-kind={flight.kind}
     style={flightStyle(flight)}
   >
+    {flight.kind === 'arrow' && <CombatFx kind="projectile-speed" delayMs={flight.delayMs} />}
     {flight.kind === 'arrow' ? <Arrow /> : flight.kind === 'lightning' ? <Lightning /> : <Bolt element={flight.element} />}
   </div>
 );

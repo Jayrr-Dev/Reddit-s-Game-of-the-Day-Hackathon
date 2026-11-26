@@ -39,8 +39,8 @@ const pop = (hit: Partial<PlayerHitPop> & Pick<PlayerHitPop, 'kind'>): PlayerHit
 
 /** The hit marks, one per attack look (ImpactOverlay's HitMark branches). */
 const HIT_EFFECTS: readonly EffectAsset[] = [
-  { name: 'Melee slash', pop: pop({ kind: 'hit', source: 'melee', edge: 'sharp' }) },
-  { name: 'Blunt thud', pop: pop({ kind: 'hit', source: 'melee', edge: 'blunt' }) },
+  { name: 'Weapon impact', pop: pop({ kind: 'hit', source: 'melee', edge: 'sharp' }) },
+  { name: 'Ground slam', pop: pop({ kind: 'hit', source: 'melee', edge: 'blunt' }) },
   { name: 'Arrow hole', pop: pop({ kind: 'hit', source: 'range' }) },
   { name: 'Magic burst (arcane)', pop: pop({ kind: 'hit', source: 'magic' }) },
   { name: 'Magic burst (fire)', pop: pop({ kind: 'hit', source: 'magic', element: 'fire' }) },
@@ -71,6 +71,7 @@ const IMAGE_URLS = import.meta.glob<string>(
     '../assets/*.{webp,png,svg}',
     '../assets/table/*.{webp,png,svg}',
     '../assets/cerviel/phase-two-seal.webp',
+    '../assets/combat-fx/*-strip.webp',
   ],
   { eager: true, query: '?url', import: 'default' },
 );
@@ -80,6 +81,9 @@ const SPRITE_STRIP_FRAMES: Readonly<Record<string, number>> = { 'burn-fire-strip
 
 /** A strip's frame count and frame shape, from its stem and the placeholder sizes. */
 const stripOf = (stem: string): ImageAsset['strip'] => {
+  if (['ground-slam', 'projectile-speed', 'silver-slash', 'weapon-impact'].some(kind => stem === kind + '-strip')) {
+    return { frames: 16, frameAspect: 6 / 5 };
+  }
   const frames = SPRITE_STRIP_FRAMES[stem];
   const size = IMAGE_PLACEHOLDERS[stem];
   return frames && size ? { frames, frameAspect: size.width / frames / size.height } : undefined;

@@ -1,0 +1,29 @@
+.combat-fx {
+  display: block;
+  width: 100%;
+  aspect-ratio: 6 / 5;
+  background: 0 0 / 1600% 100% no-repeat;
+  pointer-events: none;
+  animation: combat-fx-frames var(--fx-duration, 440ms) steps(15, end) both;
+}
+.combat-fx[data-combat-fx='silver-slash'] { --fx-duration: 340ms; }
+.combat-fx[data-combat-fx='ground-slam'] { --fx-duration: 570ms; }
+.combat-fx[data-combat-fx='projectile-speed'] {
+  --fx-duration: 220ms;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 118px;
+  opacity: .68;
+  transform-origin: 100% 50%;
+  transform: translate(-100%, -50%) rotate(var(--shot-angle));
+}
+@keyframes combat-fx-frames {
+  from { background-position-x: 0%; }
+  to { background-position-x: 100%; }
+}
+.combat-fx-fallback { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .combat-fx { display: none; }
+  .combat-fx-fallback { display: contents; }
+}

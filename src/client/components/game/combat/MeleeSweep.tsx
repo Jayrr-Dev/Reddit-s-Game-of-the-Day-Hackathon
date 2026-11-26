@@ -17,6 +17,7 @@ import {
   type SweepStyle,
 } from '../../../content/meleeSweeps';
 import type { SweepFlight } from '../../../lib/meleeSweep';
+import { CombatFx } from './CombatFx';
 
 // --- CONSTANTS ---
 /** Height of each shape, as a share of the swing's width. */
@@ -80,25 +81,38 @@ const Stroke = ({
   sweep: SweepFlight;
   stroke: SweepStroke;
   shape: SweepStyle['shape'];
-}) => (
-  <span
-    className="absolute block"
-    style={{
-      left: sweep.centre.x,
-      top: sweep.centre.y,
-      width: sweep.width,
-      height: sweep.width * SHAPE_HEIGHT[shape],
-      transform: `translate(-50%, -50%) rotate(${stroke.rotateDeg}deg) scaleX(${stroke.isFlipped ? -1 : 1})`,
-    }}
-  >
-    <span
-      className="melee-sweep block size-full"
-      style={{ animationDelay: `${stroke.delayMs}ms` } as CSSProperties}
-    >
-      {shape === 'thrust' ? <Thrust /> : <Crescent />}
-    </span>
-  </span>
-);
+}) => {
+  const { rotateDeg, isFlipped, delayMs } = stroke;
+  const pose = {
+    left: sweep.centre.x,
+    top: sweep.centre.y,
+    transform: `translate(-50%, -50%) rotate(${rotateDeg}deg) scaleX(${isFlipped ? -1 : 1})`,
+  };
+  return (
+    <>
+      {shape === 'crescent' && (
+        <span className="absolute block" style={{
+          ...pose,
+          width: sweep.width * 1.18,
+          transform: pose.transform.replace('-50%, -50%', '-50%, -38%'),
+        }}>
+          <CombatFx kind="silver-slash" delayMs={delayMs} />
+        </span>
+      )}
+      <span className={shape === 'crescent' ? 'combat-fx-fallback' : 'contents'}>
+        <span className="absolute block" style={{
+          ...pose,
+          width: sweep.width,
+          height: sweep.width * SHAPE_HEIGHT[shape],
+        }}>
+          <span className="melee-sweep block size-full" style={{ animationDelay: `${delayMs}ms` } as CSSProperties}>
+            {shape === 'thrust' ? <Thrust /> : <Crescent />}
+          </span>
+        </span>
+      </span>
+    </>
+  );
+};
 
 // --- COMPONENT ---
 /** Renders one swing (place it on a fixed, full-screen layer). */
