@@ -67,7 +67,7 @@ const STATS: ReadonlyArray<{ key: Stat; label: string; percent?: boolean }> = [
   { key: 'maxEnergy', label: 'Max energy' },
 ];
 
-function PlayerStats({ character, vitals, previewRef }: Pick<SheetProps, 'character' | 'vitals'> & {
+function PlayerStats({ character, vitals, previewRef, onRespec }: Pick<SheetProps, 'character' | 'vitals' | 'onRespec'> & {
   previewRef: (element: HTMLDivElement | null) => void;
 }) {
   const stats = characterBonuses(character.traits, character.equipment, character.traitNodes);
@@ -90,7 +90,12 @@ function PlayerStats({ character, vitals, previewRef }: Pick<SheetProps, 'charac
   if (vitals?.guard !== undefined) rows.push({ label: 'Guard', icon: 'shield', ink: 'guard', value: String(vitals.guard) });
   return (
     <section className="cs-player-stats" aria-label="Player stats">
-      <h3>Player stats</h3>
+      <div className="cs-player-stats-head">
+        <h3>Player stats</h3>
+        {/* RESPEC: refunds every trait point; sits beside the stats it resets. */}
+        {onRespec && <button type="button" className="cs-respec" data-own-sound onClick={() => { playSound('respec', 1, .72); onRespec(); }}
+          disabled={!TRAITS.some(id => character.traits[id] > 0)}>Respec all</button>}
+      </div>
       <div className="cs-trait-preview-slot" ref={previewRef} />
       <div className="cs-player-stats-list" role="region" aria-label="Stat values" tabIndex={0}>
         <dl>{rows.map(({ label, ink, icon, value }) => (
@@ -108,9 +113,10 @@ const Traits = ({
   character,
   vitals,
   onSetTraitNode,
+  onRespec,
   trait,
   onSelectTrait,
-}: Pick<SheetProps, 'character' | 'vitals' | 'onSetTraitNode'> & {
+}: Pick<SheetProps, 'character' | 'vitals' | 'onSetTraitNode' | 'onRespec'> & {
   trait: TraitId;
   onSelectTrait: (trait: TraitId) => void;
 }) => {
@@ -136,7 +142,7 @@ const Traits = ({
         <TraitSpiral key={trait} character={character} trait={trait} stats={STATS} previewHost={previewHost}
           onSetNode={(node, owned) => onSetTraitNode(trait, node, owned)} />
       </div>
-      <PlayerStats character={character} vitals={vitals} previewRef={setPreviewHost} />
+      <PlayerStats character={character} vitals={vitals} previewRef={setPreviewHost} onRespec={onRespec} />
     </>
   );
 };
@@ -462,8 +468,6 @@ export const CharacterSheet = ({
       {page === 'traits' && (
         <div className="cs-trait-summary">
           <h3><span className="cs-name">{trait}</span> {character.traits[trait]}/{TRAIT_CAP}</h3>
-          {onRespec && <button type="button" className="cs-action" data-own-sound onClick={() => { playSound('respec', 1, .72); onRespec(); }}
-            disabled={!TRAITS.some(id => character.traits[id] > 0)}>Respec all</button>}
           <strong className="cs-trait-points" role="status">{points} {points === 1 ? 'point' : 'points'} available</strong>
         </div>
       )}
@@ -508,6 +512,7 @@ export const CharacterSheet = ({
             character={character}
             vitals={vitals}
             trait={trait}
+            onRespec={onRespec}
             onSelectTrait={setTrait}
             onSetTraitNode={onSetTraitNode}
           />

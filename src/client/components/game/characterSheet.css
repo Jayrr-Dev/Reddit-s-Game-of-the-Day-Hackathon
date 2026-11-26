@@ -463,8 +463,26 @@
 }
 .cs-player-stats h3 {
   font: 700 .87rem/1.2 var(--font-display);
-  margin: 0 0 .18rem;
+  margin: 0;
 }
+.cs-player-stats-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .4rem;
+  margin-bottom: .18rem;
+}
+/* A small oak button, like the sheet's other controls. */
+.cs-player-stats .cs-respec {
+  min-height: 1.4rem;
+  padding: .08rem .45rem;
+  border: 1px solid #795732;
+  border-radius: .3rem;
+  background: linear-gradient(#60401f55, #160d08aa), url('../../assets/table/character-oak-grain.webp') center / cover;
+  color: #eee0c4;
+  font: 700 .68rem/1.2 var(--font-body);
+}
+.cs-player-stats .cs-respec:disabled { opacity: .5; cursor: default; }
 /* Keep the node preview in the parchment card without shifting the stat rows. */
 .cs-trait-preview-slot {
   height: 4.25rem;
@@ -685,12 +703,16 @@
   box-sizing: border-box;
   width: var(--tip-width);
   padding: .5rem;
-  border: 1px solid var(--line);
+  /* Dark like the shared game tooltip, so RichText's white words and
+     green/red numbers (docs/FORMATTING_RULES.md) stay readable. */
+  border: 1px solid var(--color-edge);
   border-radius: .45rem;
-  background: var(--paper);
-  color: var(--color-on-parchment);
-  box-shadow: 0 3px 10px #26180c38;
+  background: var(--color-surface-raised);
+  color: var(--color-ink);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.5);
 }
+.cs-node-copy strong { color: var(--color-accent-hover); }
+.cs-node-copy small { color: var(--color-ink-muted); }
 .cs-skill-badge {
   display: grid;
   place-items: center;
