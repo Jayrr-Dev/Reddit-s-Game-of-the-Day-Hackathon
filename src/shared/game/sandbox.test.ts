@@ -406,6 +406,6 @@ void test('a unit info lists every move it cycles, then its second phase', () =>
 
 void test('a solo unit names the line it prefers to fight from', () => {
   // FEATURES.threeRowField is off in this file, so rows fold onto two lines.
-  assert.match(soloUnitScenario('squire').blurb, /Line 1 \(front\)$/);
-  assert.match(soloUnitScenario('archer').blurb, /Line 2 \(middle\)$/);
+  assert.match(soloUnitScenario('squire').blurb, /Frontline$/);
+  assert.match(soloUnitScenario('archer').blurb, /Midline$/);
 });
