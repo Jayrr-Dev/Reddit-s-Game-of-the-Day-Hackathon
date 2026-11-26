@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { ENERGY_PER_TURN, CARDS_PER_TURN, ROW_LABEL, OUT_OF_RANGE_HIT_CHANCE, REFLEX_DODGE } from '../../../shared/game/rules';
+import { COMBAT_STATUS_SECTIONS, type ReferenceEntry } from '../../../shared/game/combatStatusReference';
+import { STATUS_LOOK } from '../../content/visuals';
+import { Glyph } from '../ui/Glyph';
+import { RichText } from '../ui/RichText';
 import type { CardId } from '../../../shared/game/cards';
 import duelArt from '../../assets/table/melee.webp';
 import targetArt from '../../assets/table/range.webp';
@@ -19,6 +23,7 @@ type Lesson = {
   labels: readonly (readonly [string, string])[];
   example: string;
   cards?: readonly CardId[];
+  reference?: readonly ReferenceEntry[];
 };
 
 const SLIDES: readonly Lesson[] = [
@@ -87,17 +92,13 @@ const SLIDES: readonly Lesson[] = [
     example: '5 Guard can absorb a single 5-damage attack, before other damage or rule modifiers.',
     cards: ['darkCloak'],
   },
-  {
-    title: 'Statuses', headline: 'Read the badge and its timing', art: targetArt,
-    labels: [
-      ['Poison', 'Deals damage before an action, then loses one stack.'],
-      ['Burn and Frost', 'Burn deals damage after actions; Frost lowers outgoing damage per hit. Each halves after an action.'],
-      ['Shock', 'Bursts on the fourth hit in a turn for twice its stacks, then clears.'],
-      ['Cleanse, Dispel, Disrupt', 'Cleanse removes a harmful status. Dispel removes a buff. Disrupt lowers status values rather than clearing every effect outright.'],
-    ],
-    example: 'Tap a badge by a health bar to see what it does and when it changes.',
-    cards: ['venomDart','massDisrupt'],
-  },
+  ...COMBAT_STATUS_SECTIONS.map(section => ({
+    ...section,
+    art: targetArt,
+    labels: [],
+    example: '',
+    reference: section.entries,
+  })),
   {
     title: 'Play the turn', headline: 'Inspect, position, play, defend', art: duelArt,
     labels: [
@@ -128,7 +129,17 @@ export const CombatRulesSlides = () => {
         </div>
         <Button variant="menu" onClick={() => go(1)} disabled={index === SLIDES.length - 1}>Next</Button>
       </nav>
-      <article key={index} className="combat-rules-slide" aria-label={slide.headline}>
+      <article key={index} className="combat-rules-slide" data-reference={slide.reference ? '' : undefined} aria-label={slide.headline}>
+        {slide.reference ? <div className="combat-rules-copy">
+          <h3>{slide.headline}</h3>
+          <dl className="combat-rules-reference">{slide.reference.map(entry => {
+            const look = entry.badge ? STATUS_LOOK[entry.badge] : undefined;
+            return <div className="combat-rules-entry" key={entry.label}>
+              <dt>{look && <Glyph name={look.glyph} className={'size-4 ' + look.toneClass} />} {entry.label}</dt>
+              <dd><RichText text={entry.description} /></dd>
+            </div>;
+          })}</dl>
+        </div> : <>
         <div className="combat-rules-art">
           <ProgressiveImg src={slide.art} alt="" aria-hidden="true" />
           {slide.title === 'Targeting' && <ol className="combat-rules-row-map" aria-label="Battlefield rows, farthest to nearest"><li>{ROW_LABEL.horizon}</li><li>{ROW_LABEL.back}</li><li>{ROW_LABEL.front}</li></ol>}
@@ -143,6 +154,7 @@ export const CombatRulesSlides = () => {
           ))}</dl>
           <p className="combat-rules-example">{slide.example}</p>
         </div>
+        </>}
       </article>
       {index === SLIDES.length - 1 && <details className="combat-rules-credits">
         <summary>Icon credits</summary><p>Icons by {ICON_AUTHORS.join(', ')} from game-icons.net, CC BY 3.0.</p>

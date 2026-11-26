@@ -3616,3 +3616,13 @@ textarea,
 .combat-rules-row-map li { padding:4px 10px; border:1px solid #eaca8d80; background:#19131bbb; }
 .combat-rules-row-map li:first-child { margin-inline:15%; }
 .combat-rules-row-map li:nth-child(2) { margin-inline:8%; }
+
+/* Full status reference: real game glyphs, with two columns only when they fit. */
+.combat-rules-slide[data-reference] { display:block; }
+.combat-rules-reference { grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:14px !important; }
+.combat-rules-entry { padding:6px 8px; border-left:1px solid color-mix(in srgb,var(--color-accent) 35%,transparent); }
+.combat-rules-entry dt { display:flex; align-items:center; gap:6px; }
+.combat-rules-entry dd { font-size:12px; }
+@container (max-width: 520px) {
+  .combat-rules-reference { grid-template-columns:1fr; }
+}
