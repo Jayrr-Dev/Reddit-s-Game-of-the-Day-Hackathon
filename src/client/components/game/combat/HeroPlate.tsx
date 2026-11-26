@@ -51,10 +51,9 @@ function intentFill(kind: IntentKind, signature: boolean) {
  * window). The positioning note was dropped: Sam found it noise.
  */
 const IntentPopoverBody = ({ move }: { move: MoveIntent }) => (
-  <div className="intent-popover">
-    {move.isSignature && <span className="unit-move-tag">Signature</span>}
-    <ul>{move.intents.map((intent, index) => <MoveEffect key={index} intent={intent} />)}</ul>
-  </div>
+  <ul className="intent-popover">
+    {move.intents.map((intent, index) => <MoveEffect key={index} intent={intent} />)}
+  </ul>
 );
 
 /**

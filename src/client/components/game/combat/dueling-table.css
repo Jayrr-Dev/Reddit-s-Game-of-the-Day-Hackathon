@@ -865,8 +865,6 @@
 .unit-move-number { color: var(--color-ink); font-size: 13px; font-weight: 900; }
 /* INTENT POPOVER: the unit info styling, sized for reading at a glance */
 .intent-popover { display: grid; gap: 6px; }
-.intent-popover ul { display: grid; gap: 6px; }
-.intent-popover .unit-move-tag { justify-self: start; margin-left: 0; }
 .intent-popover .unit-move-effect { font-size: 13px; line-height: 1.25; }
 .intent-popover .unit-move-number { font-size: 14px; }
 .intent-popover .unit-move-detail { color: var(--color-ink); opacity: 0.75; font-size: 11px; }
