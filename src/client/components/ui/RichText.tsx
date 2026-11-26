@@ -8,11 +8,12 @@
 // key words (dodge, all, hit, turn) and every percentage (green when it is a gain like
 // "+25%", red when a loss like "-25%"), so the numbers that decide a
 // fight stand out without markup in every description.
-// The word affliction wears the Curse purple (TintedText).
+// The word affliction wears the Curse purple (TintedText). Glossary
+// words keep their colour and icon even when the text doesn't bold them.
 // ===================================================================
 
 import { Fragment } from 'react';
-import { lookOfTerm } from '../../content/glossaryLooks';
+import { lookOfTerm, splitGlossaryTerms } from '../../content/glossaryLooks';
 import { splitTintedWords } from '../../content/tintedWords';
 import { Glyph } from './Glyph';
 
@@ -80,10 +81,10 @@ const BoldTerm = ({ text }: { text: string }) => {
 };
 
 /**
- * Plain text with its percentages and dodges in bold white, and the
- * rest tinted where it names a tinted word (affliction).
+ * Text between glossary words: percentages and key words in bold
+ * white, the rest tinted where it names a tinted word (affliction).
  */
-const PlainText = ({ text }: { text: string }) => (
+const EmphasisedText = ({ text }: { text: string }) => (
   <>
     {emphasisParts(text).map((part, index) =>
       index % 2 === 1 ? (
@@ -92,6 +93,22 @@ const PlainText = ({ text }: { text: string }) => (
         </b>
       ) : (
         <TintedText key={index} text={part} />
+      )
+    )}
+  </>
+);
+
+/**
+ * Plain text: every glossary word it names (Shock, Frost, Melee) in its
+ * own colour with its icon, like a bolded one, and the rest emphasised.
+ */
+const PlainText = ({ text }: { text: string }) => (
+  <>
+    {splitGlossaryTerms(text).map((part, index) =>
+      index % 2 === 1 ? (
+        <BoldTerm key={index} text={part} />
+      ) : (
+        <EmphasisedText key={index} text={part} />
       )
     )}
   </>

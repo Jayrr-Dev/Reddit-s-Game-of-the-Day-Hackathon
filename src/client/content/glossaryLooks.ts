@@ -92,3 +92,39 @@ const GLOSSARY_LOOK: ReadonlyMap<string, Look> = new Map([
 /** The look of a glossary word, if it is one. */
 export const lookOfTerm = (term: string): Look | undefined =>
   GLOSSARY_LOOK.get(term);
+
+// --- TERMS IN PLAIN TEXT ---
+/**
+ * Glossary words that are also everyday verbs ("Move 1 line", "Use it
+ * twice"), so they are only coloured when the text bolds them.
+ */
+const VERB_TERMS: ReadonlySet<string> = new Set([
+  'Use',
+  'Move',
+  'Hold',
+  'Remove',
+]);
+
+/** Escapes a term for use inside a regular expression. */
+const escapeRegExp = (text: string): string =>
+  text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Every glossary word as a whole word, case-sensitive (terms are
+ * capitalised, so "frost" in a sentence stays plain). Longest first,
+ * so "Out of Range" wins over "Range".
+ */
+const TERM_PATTERN = new RegExp(
+  `\\b(${[...GLOSSARY_LOOK.keys()]
+    .filter((term) => !VERB_TERMS.has(term))
+    .sort((a, b) => b.length - a.length)
+    .map(escapeRegExp)
+    .join('|')})\\b`
+);
+
+/**
+ * Splits plain text around the glossary words it names, so each can
+ * wear its colour and icon (odd parts are terms).
+ */
+export const splitGlossaryTerms = (text: string): string[] =>
+  text.split(TERM_PATTERN);
