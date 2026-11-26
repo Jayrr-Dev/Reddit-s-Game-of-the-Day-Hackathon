@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore, type ReactNode } from 'react';
 import { MapSoundtrackCredits } from '../components/game/menu/MapSoundtrackCredits';
 import { getVolume, setVolume, subscribeVolume, playDraw, type AudioChannel } from '../lib/gameAudio';
 
@@ -11,6 +11,14 @@ function VolumeControl({channel, label}: {channel: AudioChannel; label: string})
       onChange={event => setVolume(channel, event.currentTarget.valueAsNumber)} />
     <output>{volume}%</output>
   </label>;
+}
+
+// SETTINGS SECTION: a titled group set apart from the rest of the panel by a divider.
+function SettingsSection({title, children}: {title: string; children: ReactNode}) {
+  return <section className="grid gap-1.5 border-t border-accent/25 pt-2">
+    <h3 className="font-display text-xs font-black uppercase tracking-wider text-accent">{title}</h3>
+    {children}
+  </section>;
 }
 
 const preferences = [
@@ -62,15 +70,14 @@ export function useGameSettings() {
   ));
   const controls = <>{toggles}<div className="grid w-full gap-2">
     <VolumeControl channel="music" label="Music" />
-    <label className="flex items-center justify-between gap-2 text-xs text-ink">
-      Battle music
-      <select value={battleMusic} onChange={e => selectBattleMusic(e.target.value === 'orchestral' ? 'orchestral' : 'map')}
-        className="rounded border border-accent/35 bg-surface-sunken px-2 py-1 text-ink">
+    <VolumeControl channel="sfx" label="SFX" />
+    <SettingsSection title="Battle music">
+      <select aria-label="Battle music" value={battleMusic} onChange={e => selectBattleMusic(e.target.value === 'orchestral' ? 'orchestral' : 'map')}
+        className="w-full rounded border border-accent/35 bg-surface-sunken px-2 py-1 text-xs text-ink">
         <option value="map">Map themes</option>
         <option value="orchestral">Epic orchestral</option>
       </select>
-    </label>
-    <VolumeControl channel="sfx" label="SFX" />
+    </SettingsSection>
     <details className="text-xs text-ink-muted">
       <summary className="cursor-pointer">Music credits</summary>
       <MapSoundtrackCredits />
