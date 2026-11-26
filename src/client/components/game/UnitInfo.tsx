@@ -7,7 +7,7 @@
 // Admins also get stat fields on the Stats tab (UnitStatEditor).
 // ===================================================================
 
-import { useReducer, useState, type ReactNode } from 'react';
+import { useReducer, type ReactNode } from 'react';
 import { describeHeroMoveList } from '../../../shared/game/describe';
 import type { HeroId } from '../../../shared/game/heroes';
 import { describeUnitStats } from '../../../shared/game/sandbox';
@@ -18,7 +18,7 @@ import { MoveEffect } from './MoveEffect';
 import { UnitStatEditor } from './UnitStatEditor';
 
 // --- TYPES ---
-type UnitInfoTab = 'sprite' | 'moveset' | 'stats';
+export type UnitInfoTab = 'sprite' | 'moveset' | 'stats';
 
 // --- CONSTANTS ---
 const UNIT_INFO_TABS: readonly UnitInfoTab[] = ['sprite', 'moveset', 'stats'];
@@ -60,22 +60,26 @@ const UnitStatList = ({ heroId }: { heroId: HeroId }) => (
   </dl>
 );
 
-// --- COMPONENT ---
-/** The tabs and the chosen tab's view; Sprite opens first. */
-export const UnitInfo = ({ heroId, sprite }: { heroId: HeroId; sprite: ReactNode }) => {
-  const [tab, setTab] = useState<UnitInfoTab>('sprite');
+// --- COMPONENTS ---
+/**
+ * The Sprite / Moveset / Stats tabs. The tabs and the view are separate
+ * pieces so the window can pin the tabs and scroll only the view.
+ */
+export const UnitInfoTabs = ({ tab, onTab }: { tab: UnitInfoTab; onTab: (tab: UnitInfoTab) => void }) => (
+  <TabBar ids={UNIT_INFO_TABS} labels={UNIT_INFO_LABELS} tab={tab} onTab={onTab} className="mt-2" />
+);
+
+/** The chosen tab's view (admins also get the stat editor on Stats). */
+export const UnitInfoPanel = ({ heroId, sprite, tab }: { heroId: HeroId; sprite: ReactNode; tab: UnitInfoTab }) => {
   const isAdmin = useIsAdmin();
   // Bumped after an admin save so the stat list re-reads getHero.
   const [, refreshStats] = useReducer((count: number) => count + 1, 0);
   return (
-    <div className="unit-info">
-      <TabBar ids={UNIT_INFO_TABS} labels={UNIT_INFO_LABELS} tab={tab} onTab={setTab} />
-      <div role="tabpanel" aria-label={UNIT_INFO_LABELS[tab]}>
-        {tab === 'sprite' && <div className="unit-sprite">{sprite}</div>}
-        {tab === 'moveset' && <UnitMoveList heroId={heroId} />}
-        {tab === 'stats' && isAdmin && <UnitStatEditor heroId={heroId} onSaved={refreshStats} />}
-        {tab === 'stats' && <UnitStatList heroId={heroId} />}
-      </div>
+    <div role="tabpanel" aria-label={UNIT_INFO_LABELS[tab]} className="grid gap-2">
+      {tab === 'sprite' && <div className="unit-sprite">{sprite}</div>}
+      {tab === 'moveset' && <UnitMoveList heroId={heroId} />}
+      {tab === 'stats' && isAdmin && <UnitStatEditor heroId={heroId} onSaved={refreshStats} />}
+      {tab === 'stats' && <UnitStatList heroId={heroId} />}
     </div>
   );
 };

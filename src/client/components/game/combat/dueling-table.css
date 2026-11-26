@@ -838,7 +838,6 @@
 .training-deck-edit { position: absolute; right: 4px; top: 4px; padding: 2px 5px; font-size: 11px; }
 .training-info { position: absolute; right: 6px; top: 6px; display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid var(--color-edge); border-radius: 50%; background: var(--color-surface-raised); color: var(--color-accent); font-family: var(--font-display); font-weight: 900; font-style: italic; font-size: 14px; line-height: 1; }
 .training-info:hover, .training-info:focus-visible { border-color: var(--color-accent); }
-.unit-info { display: grid; gap: 8px; margin-top: 10px; }
 .unit-sprite .training-art { height: 200px; border: 1px solid var(--color-edge); border-radius: 6px; }
 .unit-stat-list { display: grid; gap: 4px; text-align: left; }
 .unit-stat-list > div { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; padding: 5px 8px; border: 1px solid var(--color-edge); border-radius: 6px; background: var(--color-surface-sunken); }

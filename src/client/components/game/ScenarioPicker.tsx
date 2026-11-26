@@ -16,7 +16,7 @@ import { getCard, type CardId } from '../../../shared/game/cards';
 import { newestCardIds } from '../../../shared/game/cardReleases';
 import { getHero, type HeroId } from '../../../shared/game/heroes';
 import { CARD_LOOK, EDGE_ART, ELEMENT_LOOK, TIER_NAME_CLASS } from '../../content/visuals';
-import { UnitInfo } from './UnitInfo';
+import { UnitInfoPanel, UnitInfoTabs, type UnitInfoTab } from './UnitInfo';
 import { TabBar } from '../ui/TabBar';
 import { HeroFigure } from './combat/HeroFigure';
 import { FIGURE_BOUNDS, type FigureBounds } from '../../content/figureBounds';
@@ -229,18 +229,22 @@ const FightPrompt = ({
   onBack: () => void;
 }) => {
   const [heroId] = scenario.heroIds;
+  // Sprite opens first.
+  const [tab, setTab] = useState<UnitInfoTab>('sprite');
+  const isUnitInfo = showMoves && heroId !== undefined;
+  // A unit's info pins its blurb and tabs on top; only the tab's view scrolls.
   return (
     <ConfirmDialog
       title={(showMoves ? '' : 'Fight ') + scenario.name + (showMoves ? '' : '?')}
+      header={isUnitInfo && <>{scenario.blurb}<UnitInfoTabs tab={tab} onTab={setTab} /></>}
       confirmLabel="Fight"
       cancelLabel={showMoves ? 'Close' : 'Not now'}
       onConfirm={onFight}
       onCancel={onBack}
     >
-      {scenario.blurb}
-      {showMoves && heroId && (
-        <UnitInfo heroId={heroId} sprite={<ScenarioPreview scenario={scenario} terrain={terrain} />} />
-      )}
+      {isUnitInfo
+        ? <UnitInfoPanel heroId={heroId} tab={tab} sprite={<ScenarioPreview scenario={scenario} terrain={terrain} />} />
+        : scenario.blurb}
     </ConfirmDialog>
   );
 };
