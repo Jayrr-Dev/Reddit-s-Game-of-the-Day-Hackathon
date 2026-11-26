@@ -3,13 +3,16 @@
 // One effect of a hero's move, drawn the same way everywhere it is
 // explained (the unit info window and the intent chip popovers): the
 // effect's battlefield icon and colour (INTENT_LOOK), its headline with
-// the numbers bold and bright, and any rules text muted underneath.
+// the numbers bold and bright, and any rules text muted underneath,
+// with the tooltips' formatting (RichText: keyword colours and icons,
+// white key words, coloured percentages and tier numerals).
 // ===================================================================
 
 import type { Intent } from '../../../shared/game/describe';
 import { INTENT_LOOK } from '../../content/visuals';
 import { splitNumbers } from '../../../shared/utils/numberParts';
 import { Glyph } from '../ui/Glyph';
+import { RichText } from '../ui/RichText';
 
 // --- SUBCOMPONENTS ---
 /** One line of text with its numbers in bold, bright figures. */
@@ -27,7 +30,7 @@ export const MoveEffect = ({ intent }: { intent: Intent }) => {
     <li className="unit-move-effect">
       <Glyph name={glyph} className={'size-4 ' + toneClass} />
       <span className={'font-semibold ' + toneClass}><WithNumbers text={headline} /></span>
-      {details.length > 0 && <span className="unit-move-detail">{details.join(' ')}</span>}
+      {details.length > 0 && <span className="unit-move-detail"><RichText text={details.join(' ')} /></span>}
     </li>
   );
 };
