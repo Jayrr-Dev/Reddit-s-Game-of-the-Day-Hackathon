@@ -9,6 +9,7 @@ import { FEATURES } from './features.ts';
 import {
   advanceHeroes,
   cellsOf,
+  drawColumnOf,
   canPull,
   legalTargets,
   sizeOf,
@@ -30,7 +31,7 @@ import {
   startCombat,
 } from './combat.ts';
 import { canMove, move } from './movement.ts';
-import { CHARGE_COST } from './rules.ts';
+import { BATTLEFIELD_COLUMNS, CHARGE_COST } from './rules.ts';
 import type { HeroId } from './heroes.ts';
 import { ELITE_IDS, GRUNT_IDS } from './heroes.ts';
 import type { CombatState, HeroUnit } from './types.ts';
@@ -314,4 +315,14 @@ void test('two large heroes share a row and each fills exactly half', () => {
     assert.ok(heroes.every(unit => sizeOf(unit) === 1.5 && unit.row === heroes[0]?.row));
     assert.deepEqual(heroes.map(unit => unit.col).sort(), [0, 1.5]);
   }
+});
+
+// --- DRAW COLUMN ---
+void test('a unit alone in its line is drawn centred; with company it keeps its column', () => {
+  type Spot = Pick<HeroUnit, 'uid' | 'row' | 'col' | 'heroId'>;
+  const solo: Spot = { uid: 1, row: 'front', col: 0, heroId: 'archer' };
+  const mate: Spot = { uid: 2, row: 'front', col: 2, heroId: 'archer' };
+  const farther: Spot = { uid: 3, row: 'back', col: 2, heroId: 'archer' };
+  assert.equal(drawColumnOf(solo, [solo, farther]), (BATTLEFIELD_COLUMNS - sizeOf(solo)) / 2);
+  assert.equal(drawColumnOf(solo, [solo, mate, farther]), 0);
 });

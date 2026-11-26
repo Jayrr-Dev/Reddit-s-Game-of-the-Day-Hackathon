@@ -99,6 +99,20 @@ const lastRowDepth = (): number => activeRows().length - 1;
 export const sizeOf = (unit: Pick<HeroUnit, 'heroId'>): HeroSize =>
   getHero(unit.heroId).size;
 
+/**
+ * The column a unit is DRAWN from. A unit alone in its line is drawn
+ * centred in that line, so a lone boss or hero doesn't hug one side;
+ * with company, every unit keeps its own column. Drawing only: the
+ * unit's real cells (targeting, movement) never change.
+ */
+export const drawColumnOf = (
+  unit: Pick<HeroUnit, 'uid' | 'row' | 'col' | 'heroId'>,
+  field: readonly Pick<HeroUnit, 'uid' | 'row'>[]
+): number => {
+  const hasCompany = field.some((other) => other.uid !== unit.uid && other.row === unit.row);
+  return hasCompany ? unit.col : (BATTLEFIELD_COLUMNS - sizeOf(unit)) / 2;
+};
+
 /** The back-row columns (offsets from its own) a front hero also fills. */
 const backColsOf = (unit: Pick<HeroUnit, 'heroId'>): readonly number[] =>
   getHero(unit.heroId).backCols ?? [];

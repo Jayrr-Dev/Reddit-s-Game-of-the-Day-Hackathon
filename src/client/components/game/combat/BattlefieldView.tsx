@@ -11,7 +11,7 @@
 
 import { BOSS_ENTRANCE_MS, BOSS_LANDING_MS, bossEntranceOf } from '../../../content/bossEntrances';
 import { useRef, type ReactNode } from 'react';
-import { activeRows, rowDepth, sizeOf } from '../../../../shared/game/battlefield';
+import { activeRows, drawColumnOf, rowDepth, sizeOf } from '../../../../shared/game/battlefield';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
 import type { Combatant, HeroRow, HeroUnit } from '../../../../shared/game/types';
 import { weatherOf } from '../../../content/fieldWeather';
@@ -60,9 +60,9 @@ const ROW_DEPTH: Record<HeroRow, number> = {
 
 // --- HELPERS ---
 /** Camera offset (px) that leans toward the focused hero. */
-const cameraFor = (focused: HeroUnit | undefined): number => {
+const cameraFor = (focused: HeroUnit | undefined, field: readonly HeroUnit[]): number => {
   if (!focused) return 0;
-  const centre = focused.col + sizeOf(focused) / 2;
+  const centre = drawColumnOf(focused, field) + sizeOf(focused) / 2;
   return -(centre - BATTLEFIELD_COLUMNS / 2) * CAMERA_LEAN_PX;
 };
 
@@ -126,7 +126,7 @@ export const BattlefieldView = ({
       ref={fieldRef}
       className={`parallax-stage relative min-h-0 flex-1 overflow-hidden ${skipClass}`}
       {...{ [FIELD_ATTR]: true }}
-      style={cssVars({ '--cam': cameraFor(focused), '--intro-ms': entrance?.durationMs ?? BOSS_ENTRANCE_MS, '--landing-ms': entrance?.landingMs ?? BOSS_LANDING_MS })}
+      style={cssVars({ '--cam': cameraFor(focused, heroes), '--intro-ms': entrance?.durationMs ?? BOSS_ENTRANCE_MS, '--landing-ms': entrance?.landingMs ?? BOSS_LANDING_MS })}
     >
       <div className={`absolute isolate inset-0 ${shakeClass}`}>
         <div className="field-camera pointer-events-none absolute inset-0" style={{ ...cssVars({ '--travel-rows': travelRows }), transformOrigin: '50% var(--horizon)' }}>

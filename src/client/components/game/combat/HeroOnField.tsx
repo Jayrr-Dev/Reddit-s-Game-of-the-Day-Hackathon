@@ -10,6 +10,7 @@
 import { CervielSecondPhase } from './CervielSecondPhase';
 import { useState, type CSSProperties } from 'react';
 import {
+  drawColumnOf,
   isAloft,
   isDeep,
   rowDepth,
@@ -166,11 +167,11 @@ const AIM_CLASS: Record<AimState, string> = {
 
 // --- HELPERS ---
 /** Absolute box for a hero from its row, column and size. */
-const boxStyle = (unit: HeroUnit): CSSProperties => {
+const boxStyle = (unit: HeroUnit, field: readonly HeroUnit[]): CSSProperties => {
   const { feet } = rowPerspective(unit.row);
   const oversized = isBoss(unit) || unit.heroId === 'apollyonSeraph';
   const depthScale = feet / rowPerspective('front').feet;
-  const columnCenter = (unit.col + sizeOf(unit) / 2) / BATTLEFIELD_COLUMNS;
+  const columnCenter = (drawColumnOf(unit, field) + sizeOf(unit) / 2) / BATTLEFIELD_COLUMNS;
   const horizontalSpan = unit.row === 'horizon' ? HORIZON_SLOT_SPAN : feet;
   const span =
     unit.heroId === 'angelArcher'
@@ -261,12 +262,12 @@ const EMBERS: readonly (readonly [number, number, number])[] = [
  * then it slumps and burns away while embers rise. No uid, so nothing
  * can target or tap it.
  */
-const DyingHero = ({ unit }: { unit: HeroUnit }) => {
+const DyingHero = ({ unit, field }: { unit: HeroUnit; field: readonly HeroUnit[] }) => {
   const size = drawSizeOf(unit);
   return (
     <div
       className="pointer-events-none absolute"
-      style={boxStyle(unit)}
+      style={boxStyle(unit, field)}
       aria-hidden="true"
     >
       <div className="relative h-full w-full [container-type:size]">
@@ -329,12 +330,12 @@ const BOSS_MOTES: readonly (readonly [number, number, number, number])[] = [
  * play their share through [data-dying] (index.css, "BOSS DEATH"); the
  * field flashes and shakes too (BattlefieldView).
  */
-const BossDeath = ({ unit }: { unit: HeroUnit }) => {
+const BossDeath = ({ unit, field }: { unit: HeroUnit; field: readonly HeroUnit[] }) => {
   const size = drawSizeOf(unit);
   return (
     <div
       className="pointer-events-none absolute"
-      style={boxStyle(unit)}
+      style={boxStyle(unit, field)}
       aria-hidden="true"
       data-dying=""
     >
@@ -427,7 +428,7 @@ export const HeroOnField = ({
 }: HeroOnFieldProps) => {
   const [arrivalDelay] = useState(() => marchDelayMs(unit));
   if (isDying)
-    return isBoss(unit) ? <BossDeath unit={unit} /> : <DyingHero unit={unit} />;
+    return isBoss(unit) ? <BossDeath unit={unit} field={field} /> : <DyingHero unit={unit} field={field} />;
   const hero = getHero(unit.heroId);
   const size = drawSizeOf(unit);
   const focusClass = isFocused
@@ -448,7 +449,7 @@ export const HeroOnField = ({
       {...{ [HERO_UID_ATTR]: unit.uid, [HERO_ROW_ATTR]: unit.row }}
       aria-label={`${hero.name}, ${unit.hp} of ${unit.maxHp} HP, ${rowLabel(unit.row)}`}
       className={`pointer-events-auto absolute transition-[left,bottom,width,height,scale,opacity,filter] duration-500 ease-in-out motion-reduce:transition-none ${AIM_CLASS[aim]} ${action ? (LIFT_ACTION_CLASS[action.style] ?? '') : ''}`}
-      style={boxStyle(unit)}
+      style={boxStyle(unit, field)}
       data-aloft={isAloft(unit) ? '' : undefined}
       data-cloaked={unit.statuses.cloak > 0 ? '' : undefined}
       data-acting={action ? '' : undefined}
