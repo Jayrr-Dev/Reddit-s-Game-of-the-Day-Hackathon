@@ -9,4 +9,4 @@ Start each solo fight from **Illusion Training → Scenarios → Seven Sins**. T
 | Lust | Midline | Beckon: spell and Hex | Velvet Thrall: spell and Malaise 1 | Save Cleanse for the affliction that will cost you more next turn. |
 | Gluttony | Frontline | Ravenous Lash: two melee hits | Devour: melee hit and self-heal | Time your burst around the heal and keep enough defense for the wind-up. |
 
-Greed and Envy keep their existing fights. See [Boss Workflow](BOSS_WORKFLOW.md) for the integration and test checklist.
+Greed and Envy keep their existing fights. See [Unit Creation & Animation](BOSS_WORKFLOW.md) for the integration and test checklist.

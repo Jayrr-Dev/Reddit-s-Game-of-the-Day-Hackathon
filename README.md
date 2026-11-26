@@ -1,7 +1,7 @@
 # Villain Run
 
 The [art style guide](ART_STYLE.md) covers card illustrations, battlefield art, units, and frame assets.
-The [boss workflow](docs/BOSS_WORKFLOW.md) covers art approval, encounter setup, and playtest checks.
+The [Unit Creation & Animation workflow](docs/BOSS_WORKFLOW.md) covers art approval, motion interpolation, WebP export, encounter setup, and playtest checks.
 
 An entry for **[Reddit's Game of the Day Hackathon](https://redditgameofday2026.devpost.com/)**: a daily game that runs inside a Reddit post, built on Reddit's Developer Platform ([Devvit Web](https://developers.reddit.com/docs/capabilities/devvit-web/devvit_web_overview)).
 

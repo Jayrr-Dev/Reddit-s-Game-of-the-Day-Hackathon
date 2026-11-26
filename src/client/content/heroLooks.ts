@@ -521,4 +521,5 @@ export type HeroAction = {
   /** A two-handed swipe: the claws cross (Crossed Talon). */
   isTwoHanded: boolean;
   cervielVolleyKey?: number;
+  khanAttackPhase?: 'cleave' | 'charge' | 'slam' | 'signature-preview';
 };

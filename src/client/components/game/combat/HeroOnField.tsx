@@ -112,7 +112,7 @@ const LIFT_ACTION_CLASS: Partial<Record<HeroActionStyle, string>> = {
 
 /** The body's motion for a move; a forward cut lunges deeper. */
 const bodyActionClass = (action: HeroAction): string =>
-  action.cervielVolleyKey !== undefined ? '' :
+  action.cervielVolleyKey !== undefined || action.khanAttackPhase ? '' :
   action.style === 'melee' &&
   (action.swing === 'forward' || action.swing === 'forwardRight')
     ? 'animate-hero-lunge-deep'

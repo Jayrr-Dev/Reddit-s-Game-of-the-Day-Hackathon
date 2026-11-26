@@ -1,0 +1,49 @@
+.khan-idle-during-attack {
+  visibility: hidden;
+}
+
+.khan-strip-gate, .khan-strip {
+  width: 100%;
+  height: 100%;
+}
+
+.khan-strip {
+  background-repeat: no-repeat;
+  background-size: var(--khan-atlas-width) 100%;
+  animation: khan-atlas var(--khan-duration) steps(var(--khan-frames), jump-none) forwards;
+}
+
+@keyframes khan-atlas {
+  from { background-position: 0 0; }
+  to { background-position: 100% 0; }
+}
+
+.khan-strip-gate[data-khan-preview] {
+  position: absolute;
+  inset: 0;
+}
+
+.khan-strip-gate[data-khan-preview="charge"] {
+  animation: khan-preview-hide var(--khan-preview-windup) step-end forwards;
+}
+
+.khan-strip-gate[data-khan-preview="slam"] {
+  visibility: hidden;
+  animation: khan-preview-show 1ms step-end var(--khan-preview-windup) forwards;
+}
+.khan-strip-gate[data-khan-preview="slam"] .khan-strip {
+  animation-delay: var(--khan-preview-windup);
+}
+
+@keyframes khan-preview-hide {
+  from { visibility: visible; }
+  to { visibility: hidden; }
+}
+@keyframes khan-preview-show {
+  to { visibility: visible; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .khan-idle-during-attack { visibility: visible; }
+  .khan-sprite { display: none; }
+}

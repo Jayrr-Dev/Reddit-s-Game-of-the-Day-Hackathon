@@ -53,5 +53,10 @@ export const useMoveShowcase = (heroId: HeroId, isPlaying: boolean): ShowcaseBea
   }, [isPlaying, isActing, step, moves.length]);
 
   if (!isPlaying || !move) return { moveName: '', action: null };
-  return { moveName: move.name, action: isActing ? showcaseActionOf(move) : null };
+  if (!isActing) return { moveName: move.name, action: null };
+  const action = showcaseActionOf(move);
+  if (heroId === 'twinAxeKnight' && action.style === 'melee') {
+    action.khanAttackPhase = action.isSignature ? 'signature-preview' : 'cleave';
+  }
+  return { moveName: move.name, action };
 };

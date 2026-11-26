@@ -60,7 +60,7 @@ import geonosisArt from '../../../assets/heroes/grandangel-geonosis.webp';
 import razielArt from '../../../assets/heroes/grandangel-raziel.webp';
 import zeruelArt from '../../../assets/heroes/archangel-zeruel.webp';
 import astraArt from '../../../assets/heroes/mage-borne-astra.webp';
-import twinAxeArt from '../../../assets/heroes/archangels/general-khan.webp';
+import { GeneralKhanFigure } from './GeneralKhanFigure';
 import { UrielFigure } from './UrielFigure';
 import zeruelArmoredArt from '../../../assets/heroes/archangels/zeruel-armored.webp';
 import alphaPlasmaArt from '../../../assets/heroes/archangels/alpha-plasma.webp';
@@ -794,7 +794,7 @@ const CREATURE_DRAWINGS: Record<
   envy: ({ size }) => <BossSprite size={size} art={envyArt} inset={10} />,
   holyDragon: HolyDragon,
   angelAssassin: ({ size }) => <BossSprite size={size} art={angelAssassinArt} hover />,
-  twinAxeKnight: ({ size }) => <BossSprite size={size} art={twinAxeArt} />,
+  twinAxeKnight: GeneralKhanFigure,
   archangelUriel: UrielFigure,
   zeruelArmored: ({ size }) => <BossSprite size={size} art={zeruelArmoredArt} hover />,
   angelArcher: AngelArcher,

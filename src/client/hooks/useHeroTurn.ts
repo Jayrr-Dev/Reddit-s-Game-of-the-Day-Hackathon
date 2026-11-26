@@ -70,12 +70,18 @@ const actionOf = (step: Beat, uid: number): HeroAction => {
   const unit = step.state.heroes.find((hero) => hero.uid === uid);
   const isBowman = unit && humanoidLookOf(unit.heroId)?.prop === 'longbow';
   const style = step.attackType ?? 'support';
+  let khanAttackPhase: HeroAction['khanAttackPhase'];
+  if (unit?.heroId === 'twinAxeKnight') {
+    if (step.move?.isSignature) khanAttackPhase = step.isCharge ? 'charge' : 'slam';
+    else if (style === 'melee') khanAttackPhase = 'cleave';
+  }
   return {
     style: isBowman && style === 'melee' ? 'range' : style,
     swing:
       MELEE_SWINGS[(uid + step.state.turn) % MELEE_SWINGS.length] ?? 'slash',
     isSignature: step.move?.isSignature ?? false,
     isTwoHanded: step.move?.isTwoHanded ?? false,
+    ...(khanAttackPhase === undefined ? {} : { khanAttackPhase }),
     ...(step.cervielVolleyKey === undefined ? {} : { cervielVolleyKey: step.cervielVolleyKey }),
   };
 };
