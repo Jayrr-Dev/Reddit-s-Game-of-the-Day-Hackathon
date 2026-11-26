@@ -62,18 +62,15 @@ const CardInspection = ({ id, onClose }: { id: CardId; onClose: () => void }) =>
   );
 };
 
-/** A sibling of the quantity control, so inspecting a card leaves the deck untouched. */
+/** A small "i" beside a deck builder card, so inspecting a card leaves the deck untouched. */
 export const InspectCardButton = ({ id }: { id: CardId }) => {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const card = getCard(id);
-  const look = CARD_LOOK[card.type];
   return <>
     <button type="button" className="cde-inspect" ref={trigger} aria-haspopup="dialog"
       aria-label={'Inspect ' + card.name} onClick={() => setOpen(true)}>
-      <span className={'cde-art ' + look.frameClass} aria-hidden="true"><Glyph name={look.glyph} /></span>
-      <span className="cde-card-name"><b>{card.name}</b><small>{look.typeName} · {card.cost} energy</small></span>
-      <span className="cde-inspect-mark" aria-hidden="true">›</span>
+      <span aria-hidden="true">i</span>
     </button>
     {open && createPortal(<CardInspection id={id} onClose={() => {
       setOpen(false);
