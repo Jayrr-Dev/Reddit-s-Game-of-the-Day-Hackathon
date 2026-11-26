@@ -61,7 +61,7 @@ const POPOVER_MIN_ROOM_ABOVE = 150;
 
 // --- SUBCOMPONENTS ---
 /** The bold title, in its term's colour with its icon when it has one. */
-const TooltipTitle = ({
+export const TooltipTitle = ({
   title,
   look,
 }: {

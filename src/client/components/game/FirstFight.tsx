@@ -16,6 +16,7 @@ import { createSandboxWith } from '../../../shared/game/sandbox';
 import { Button } from '../ui/Button';
 import { ModalDialog } from '../ui/ModalDialog';
 import { CombatView } from './CombatView';
+import { MechanicsLibrary } from './MechanicsLibrary';
 import { lessons, portrait } from './tutorialLessons';
 import { ProgressiveImg } from '../ui/ProgressiveImage';
 
@@ -41,6 +42,7 @@ export function FirstFight({
   const key = 'villain-run:tutorial:v2:' + (accountId ?? 'guest');
   const [done, setDone] = useState(() => completedLessons(key));
   const [index, select] = useState<number | null>(null);
+  const [isLibraryOpen, setLibraryOpen] = useState(false);
   function complete(id: string) {
     const next = [...new Set([...completedLessons(key), ...done, id])];
     try {
@@ -102,10 +104,14 @@ export function FirstFight({
         <Button variant="menu" onClick={onExit}>
           Main menu
         </Button>
+        <Button variant="menu" onClick={() => setLibraryOpen(true)}>
+          Mechanics
+        </Button>
         <Button variant="menu" onClick={onRules}>
           Combat rules
         </Button>
       </footer>
+      {isLibraryOpen && <MechanicsLibrary onClose={() => setLibraryOpen(false)} />}
     </main>
   );
 }
