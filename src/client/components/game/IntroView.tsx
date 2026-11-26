@@ -34,6 +34,7 @@ import { MetatronShop } from './menu/MetatronShop';
 import { ProfileView } from './ProfileView';
 import type { RingProgress } from '../../../shared/game/character';
 import { FirstFight } from './FirstFight';
+import { useIsAdmin } from '../../lib/adminRole';
 
 // --- TYPES ---
 export type IntroViewProps = {
@@ -172,6 +173,7 @@ export const IntroView = ({
   const [sheet, setSheet] = useState<Sheet>('none');
   const musicVolume = useSyncExternalStore(subscribeVolume, () => getVolume('music'));
   useMapAudio({ mapId: 'Home', active: sheet !== 'tutorial', bossActive: false, musicVolume: musicVolume / 100, sfxVolume: 0 });
+  const isAdmin = useIsAdmin();
   const settings = useGameSettings();
   const closeSheet = () => setSheet('none');
   const note = rankedNote(data, canResume);
@@ -203,6 +205,12 @@ export const IntroView = ({
           {SHOW_PRACTICE && (
             <Button variant="menu" onClick={onPractice}>
               Illusion Training
+            </Button>
+          )}
+          {/* DEV: admin-only placeholder; no action yet */}
+          {isAdmin && (
+            <Button variant="menu" title="Dev tools (placeholder)">
+              Dev
             </Button>
           )}
           {note && (
