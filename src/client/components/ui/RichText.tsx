@@ -4,7 +4,8 @@
 // one bullet per line ("\n"; a single line stays a plain sentence) and
 // **bold** for key words and numbers. A bold glossary word wears its
 // own colour with its icon before it (lookOfTerm), so "**Frost**"
-// reads like the Frost chip.
+// reads like the Frost chip. Plain text (isPlain) skips that: every
+// bold word is plain white, like the intent popovers' numbers.
 // ===================================================================
 
 import { Fragment } from 'react';
@@ -17,8 +18,8 @@ const boldParts = (line: string): string[] => line.split('**');
 
 // --- SUBCOMPONENTS ---
 /** A bold word: coloured and with its icon when it is a glossary word. */
-const BoldTerm = ({ text }: { text: string }) => {
-  const look = lookOfTerm(text);
+const BoldTerm = ({ text, isPlain }: { text: string; isPlain: boolean }) => {
+  const look = isPlain ? undefined : lookOfTerm(text);
   if (!look) return <b className="font-bold text-ink">{text}</b>;
   return (
     <b className={`font-bold ${look.toneClass}`}>
@@ -32,11 +33,11 @@ const BoldTerm = ({ text }: { text: string }) => {
 };
 
 /** One line of markup. */
-const Line = ({ line }: { line: string }) => (
+const Line = ({ line, isPlain }: { line: string; isPlain: boolean }) => (
   <>
     {boldParts(line).map((part, index) => (
       <Fragment key={index}>
-        {index % 2 === 1 ? <BoldTerm text={part} /> : part}
+        {index % 2 === 1 ? <BoldTerm text={part} isPlain={isPlain} /> : part}
       </Fragment>
     ))}
   </>
@@ -44,9 +45,17 @@ const Line = ({ line }: { line: string }) => (
 
 // --- COMPONENT ---
 /** Glossary markup as a sentence, or as bullets when it has lines. */
-export const RichText = ({ text }: { text: string }) => {
+export const RichText = ({
+  text,
+  isPlain = false,
+}: {
+  text: string;
+  /** True: no glossary colours or icons, bold words stay white. */
+  isPlain?: boolean;
+}) => {
   const lines = text.split('\n').filter(Boolean);
-  if (lines.length === 1) return <Line line={lines[0] ?? ''} />;
+  if (lines.length === 1)
+    return <Line line={lines[0] ?? ''} isPlain={isPlain} />;
   return (
     <ul className="flex flex-col gap-0.5">
       {lines.map((line) => (
@@ -55,7 +64,7 @@ export const RichText = ({ text }: { text: string }) => {
             •
           </span>
           <span>
-            <Line line={line} />
+            <Line line={line} isPlain={isPlain} />
           </span>
         </li>
       ))}

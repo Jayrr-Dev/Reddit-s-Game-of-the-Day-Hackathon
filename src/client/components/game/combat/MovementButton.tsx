@@ -37,6 +37,7 @@ export const MovementButton = ({
       content={{
         title: blockReason ? `${look.label} (locked)` : look.label,
         description: blockReason ?? look.description,
+        isPlain: true,
       }}
     >
       <button
