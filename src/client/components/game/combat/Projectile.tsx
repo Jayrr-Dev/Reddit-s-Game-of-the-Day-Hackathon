@@ -13,7 +13,7 @@ import { ELEMENT_LOOK } from '../../../content/visuals';
 import type { Point } from '../../../hooks/useCardDrag';
 
 // --- TYPES ---
-export type ProjectileKind = 'arrow' | 'bolt';
+export type ProjectileKind = 'arrow' | 'bolt' | 'lightning';
 
 export type ProjectileFlight = {
   id: number;
@@ -87,6 +87,17 @@ const Bolt = ({ element }: { element?: MagicElement | undefined }) => {
   );
 };
 
+
+/** A jagged gold bolt, pointing right like the other projectile shapes. */
+const Lightning = () => (
+  <svg viewBox="0 0 92 32" aria-hidden="true"
+    className="h-8 w-[92px] -translate-x-full -translate-y-1/2 [transform-origin:100%_50%] [rotate:var(--shot-angle)]">
+    <path d="M4 23L31 9 37 18 57 6 60 16 91 16 64 25 58 20 35 30 29 21Z" fill="#eca91c" />
+    <path d="M19 21L31 14 36 22 58 11 61 19 89 16 63 22 58 17 36 27 30 19Z" fill="#fff8cd" />
+    <path d="M31 10L27 3M55 21L49 31M65 16L74 7" stroke="#ffdc54" strokeWidth="2" fill="none" />
+  </svg>
+);
+
 // --- COMPONENT ---
 /** Renders one shot in flight (place it on a fixed, full-screen layer). */
 export const Projectile = ({
@@ -99,8 +110,9 @@ export const Projectile = ({
 }) => (
   <div
     className={`absolute ${className} ${flight.kind === 'bolt' ? 'magic-flight' : ''}`}
+    data-projectile-kind={flight.kind}
     style={flightStyle(flight)}
   >
-    {flight.kind === 'arrow' ? <Arrow /> : <Bolt element={flight.element} />}
+    {flight.kind === 'arrow' ? <Arrow /> : flight.kind === 'lightning' ? <Lightning /> : <Bolt element={flight.element} />}
   </div>
 );

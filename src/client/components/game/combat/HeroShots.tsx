@@ -19,12 +19,11 @@ import { POV_ANCHOR_ATTR } from './PovImpact';
 import { Projectile, type ProjectileFlight } from './Projectile';
 
 // --- TYPES ---
-type Shot = { id: number; from: Point; to: Point };
+type Shot = { id: number; from: Point; to: Point; kind: 'arrow' | 'lightning' };
 
 /** A hero's shot as a projectile: an arrow, loosed at the release. */
 const asFlight = (shot: Shot): ProjectileFlight => ({
   ...shot,
-  kind: 'arrow',
   delayMs: SHOT_RELEASE_MS,
 });
 
@@ -45,16 +44,17 @@ const AIM_SCATTER_PX = 60;
  */
 const shotPath = (
   uid: number,
-  seed: number
+  seed: number,
+  kind: Shot['kind']
 ): { from: Point; to: Point } | null => {
   const hero = document.querySelector(`[${HERO_UID_ATTR}="${uid}"]`);
   const from =
-    centreOf(hero?.querySelector('.hero-arrow') ?? null) ?? centreOf(hero);
+    centreOf(hero?.querySelector(kind === 'lightning' ? '[data-fulgur-cast-origin]' : '.hero-arrow') ?? null) ?? centreOf(hero);
   const centre = centreOf(document.querySelector(`[${POV_ANCHOR_ATTR}]`));
   if (!from || !centre) return null;
   const to = {
-    x: centre.x + spread(seed, 1) * AIM_SCATTER_PX,
-    y: centre.y + spread(seed, 2) * AIM_SCATTER_PX,
+    x: centre.x + spread(seed, 1) * (kind === 'lightning' ? 10 : AIM_SCATTER_PX),
+    y: centre.y + spread(seed, 2) * (kind === 'lightning' ? 10 : AIM_SCATTER_PX),
   };
   return { from, to };
 };
@@ -72,19 +72,22 @@ const useShots = (acting: ReadonlyMap<number, HeroAction>): Shot[] => {
 
   // NEW RANGE MOVES -> NEW SHOTS
   useEffect(() => {
-    const shooting = new Set(
-      [...acting].flatMap(([uid, action]) =>
-        action.style === 'range' ? [uid] : []
-      )
-    );
+    const shooting = new Map<number, Shot['kind']>();
+    for (const [uid, action] of acting) {
+      if (action.style === 'range') shooting.set(uid, 'arrow');
+      else if (action.style === 'magic' &&
+        document.querySelector('[' + HERO_UID_ATTR + '="' + uid + '"] [data-fulgur-cast-origin]')) {
+        shooting.set(uid, 'lightning');
+      }
+    }
     const fresh = [...shooting]
-      .filter((uid) => !shootingRef.current.has(uid))
-      .flatMap((uid) => {
+      .filter(([uid]) => !shootingRef.current.has(uid))
+      .flatMap(([uid, kind]) => {
         const id = nextIdRef.current++;
-        const path = shotPath(uid, id);
-        return path ? [{ id, ...path }] : [];
+        const path = shotPath(uid, id, kind);
+        return path ? [{ id, kind, ...path }] : [];
       });
-    shootingRef.current = shooting;
+    shootingRef.current = new Set(shooting.keys());
     if (fresh.length === 0) return;
     setShots((current) => [...current, ...fresh]);
     const ids = fresh.map((shot) => shot.id);

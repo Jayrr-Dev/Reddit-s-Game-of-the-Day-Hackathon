@@ -66,7 +66,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     description: 'Charge and Back Step cost 1 less energy',
   },
   '0-1-0': {
-    name: 'Bull Rush',
+    name: 'Impact',
     description: '+5% Momentum bonus per rank (up to +25%)',
   },
   '0-1-1': {
@@ -74,7 +74,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     description: '+5% Reflex dodge per rank (up to +25%)',
   },
   '0-2-0': {
-    name: 'Shield Rush',
+    name: 'Tank',
     description: 'Each Charge gives +1 Guard per rank (up to +5)',
   },
   '0-2-1': {
@@ -213,7 +213,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
     description: 'After a kill with Momentum, gain 1 energy',
   },
   '0-3-1': {
-    name: 'Invincibility Frames',
+    name: 'Dodge Roll',
     description:
       'Each Back Step adds 1 Invincible (stacks): each stack blocks one hit of damage',
   },

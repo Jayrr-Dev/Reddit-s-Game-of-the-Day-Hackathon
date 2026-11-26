@@ -129,10 +129,29 @@ export const MAIL = {
  * drawing of their own instead of the shared humanoid figure.
  */
 export const CREATURE_IDS = [
+  'apollyonSeraph',
+  'lightLordMori',
+  'mageBorneAzula',
+  'grandangelCherubiel',
+  'fulgurDragonknight',
+  'zadkielOfDominations',
+  'grandangelCerviel',
+  'cervielSword',
+  'cervielBow',
+  'grandangelCambiel',
+  'grandangelGeonosis',
+  'grandangelRaziel',
+  'archangelZeruel',
+  'zeruelRedSun',
+  'zeruelBlueSun',
+  'mageBorneAstra',
   'holyDragon',
   'angelArcher',
   'grandGriffon',
   'ballista',
+  'ivoryWerewolf',
+  'wolfCentaur',
+  'angelMage',
 ] as const satisfies readonly HeroId[];
 export type CreatureId = (typeof CREATURE_IDS)[number];
 /** Every hero drawn by the shared humanoid figure. */
@@ -147,7 +166,7 @@ export const isBoss = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
  * (and gets a plate) as big as a champion even on a single slot.
  */
 export const drawSizeOf = (unit: Pick<HeroUnit, 'heroId'>): HeroSize =>
-  isBoss(unit) ? 3 : sizeOf(unit);
+  isBoss(unit) || unit.heroId === 'apollyonSeraph' ? 3 : sizeOf(unit);
 
 /**
  * A hero's ground shadow: its half-width as a share of the drawing's
@@ -157,10 +176,29 @@ export const drawSizeOf = (unit: Pick<HeroUnit, 'heroId'>): HeroSize =>
 export type GroundShadow = { halfWidthShare: number; opacity: number };
 const HUMANOID_SHADOW: GroundShadow = { halfWidthShare: 0.44, opacity: 0.45 };
 const CREATURE_SHADOW: Record<CreatureId, GroundShadow> = {
+  apollyonSeraph: { halfWidthShare: 0.32, opacity: 0.38 },
+  lightLordMori: { halfWidthShare: 0.23, opacity: 0.3 },
+  mageBorneAzula: { halfWidthShare: 0.27, opacity: 0.32 },
+  grandangelCherubiel: { halfWidthShare: 0.25, opacity: 0.3 },
+  fulgurDragonknight: { halfWidthShare: 0.34, opacity: 0.36 },
+  zadkielOfDominations: { halfWidthShare: 0.28, opacity: 0.3 },
+  grandangelCerviel: { halfWidthShare: 0.24, opacity: 0.28 },
+  cervielSword: { halfWidthShare: 0.22, opacity: 0.26 },
+  cervielBow: { halfWidthShare: 0.22, opacity: 0.26 },
+  grandangelCambiel: { halfWidthShare: 0.27, opacity: 0.31 },
+  grandangelGeonosis: { halfWidthShare: 0.26, opacity: 0.3 },
+  grandangelRaziel: { halfWidthShare: 0.19, opacity: 0.25 },
+  archangelZeruel: { halfWidthShare: 0.28, opacity: 0.32 },
+  zeruelRedSun: { halfWidthShare: 0.23, opacity: 0.19 },
+  zeruelBlueSun: { halfWidthShare: 0.23, opacity: 0.19 },
+  mageBorneAstra: { halfWidthShare: 0.25, opacity: 0.3 },
   holyDragon: { halfWidthShare: 0.39, opacity: 0.45 },
   angelArcher: { halfWidthShare: 0.2, opacity: 0.3 },
   grandGriffon: { halfWidthShare: 0.28, opacity: 0.45 },
   ballista: { halfWidthShare: 0.55, opacity: 0.45 },
+  ivoryWerewolf: { halfWidthShare: 0.34, opacity: 0.45 },
+  wolfCentaur: { halfWidthShare: 0.46, opacity: 0.45 },
+  angelMage: { halfWidthShare: 0.31, opacity: 0.29 },
 };
 
 /** The ground shadow a hero casts. */
@@ -177,6 +215,43 @@ export const humanoidLookOf = (id: HeroId): HeroLook | null =>
 
 // --- CATALOG (HUMANOIDS) ---
 export const HERO_LOOKS: Record<HumanoidId, HeroLook> = {
+  // IVORY HOST
+  purpleCupid: {
+    headgear: 'leafCirclet', prop: 'longbow', face: 'bare',
+    skin: PARCHMENT, robe: tone('#826c96', '#5c456d'), gear: PARCHMENT,
+    accent: '#d2a64c', armor: 'cloth', cape: tone('#655174', '#44324f'),
+    features: { eyes: 'sharp', brow: 'arched', mouth: 'smirk' },
+  },
+  swordPrelate: {
+    headgear: 'mitre', prop: 'sword', face: 'bare',
+    skin: SKIN_WARM, robe: tone('#786487', '#55425e'), gear: PARCHMENT,
+    accent: '#d2a64c', armor: 'mail', cape: tone('#55425e', '#37293f'),
+    features: { eyes: 'narrow', brow: 'stern', mouth: 'frown' },
+  },
+  hornedSentinel: {
+    headgear: 'hornedHelm', prop: 'warhammer', face: 'helm',
+    skin: tone('#826c96', '#5c456d'), robe: tone('#5e4a69', '#382940'),
+    gear: PARCHMENT, accent: '#d2a64c', armor: 'plate',
+    cape: tone('#766185', '#4a3954'), isTwoHanded: true,
+  },
+  stormLancer: {
+    headgear: 'combHelm', prop: 'halberd', face: 'helm',
+    skin: tone('#715b7d', '#47344e'), robe: tone('#826c96', '#5c456d'),
+    gear: GOLD, accent: '#e2be61', armor: 'plate', isTwoHanded: true,
+  },
+  sevenEyedOracle: {
+    headgear: 'veilHalo', prop: 'orbStaff', face: 'bare',
+    skin: PARCHMENT, robe: tone('#836996', '#5e4868'), gear: PARCHMENT,
+    accent: '#e2be61', armor: 'cloth', cape: tone('#5e4868', '#392b44'),
+    features: { eyes: 'hooded', brow: 'arched', mouth: 'small' },
+  },
+  holyKing: {
+    headgear: 'sunCrown', prop: 'greatsword', face: 'bare',
+    skin: SKIN_FAIR, robe: PARCHMENT, gear: GOLD, accent: '#fff0b0',
+    armor: 'plate', cape: tone('#826c96', '#50395f'), isTwoHanded: true,
+    features: { eyes: 'narrow', brow: 'stern', mouth: 'line' },
+  },
+
   // GRUNTS
   squire: {
     headgear: 'kettleHelm',

@@ -22,7 +22,8 @@
 import './combat/dueling-table.css';
 import { getVolume, playAfflictionBurst, playCardSound, playCombatImpact, playUnitDeath, playSound, subscribeVolume, usesShockCue } from '../../lib/gameAudio';
 import { useMapAudio } from '../../lib/mapAudio';
-import { isBoss, isCreature } from "../../content/heroLooks";
+import { isBoss } from '../../content/heroLooks';
+import { fallenWithDeathVoice } from '../../../shared/game/deathVoices';
 import { useEffect, useCallback, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { rowDepth } from '../../../shared/game/battlefield';
@@ -248,7 +249,7 @@ export const CombatView = ({
   // Likewise a multi-hit card shows each hit before it is committed.
   const heroTurn = useHeroTurn(realCombat, onAction);
   const cardHits = useCardHits(realCombat, onAction);
-  const incomingImpactDelay = heroTurn.arrowStep ? HERO_SHOT_RELEASE_MS + HERO_SHOT_FLIGHT_MS
+  const incomingImpactDelay = heroTurn.arrowStep || heroTurn.lightningStep ? HERO_SHOT_RELEASE_MS + HERO_SHOT_FLIGHT_MS
     : heroTurn.bossImpact === 'griffonDive' ? GRIFFON_DIVE_LAND_MS : 0;
   const { endTurn: playHeroTurn } = heroTurn;
   const { playCard: playCardHits } = cardHits;
@@ -277,14 +278,11 @@ export const CombatView = ({
       const timer = window.setTimeout(() => { pending.delete(timer); cue(); }, delay);
       pending.add(timer);
     };
-    // Ignore spawns/new waves. Only a living human combatant becoming fallen
-    // triggers the sound, even if the playback state is later committed.
-    const deaths = before.heroes.filter(old => old.hp > 0 && !isCreature(old.heroId) &&
-      (combat.heroes.find(unit => unit.uid === old.uid)?.hp ?? 0) <= 0).length;
-    for (let i = 0; i < deaths; i++) {
-      if (i === 0) playUnitDeath();
-      else after(i * 105, playUnitDeath);
-    }
+    // Stagger simultaneous defeat cues instead of stacking all voices at once.
+    fallenWithDeathVoice(before.heroes, combat.heroes).forEach(({ heroId }, index) => {
+      if (index === 0) playUnitDeath(heroId);
+      else after(index * 105, () => playUnitDeath(heroId));
+    });
     if (before.player.hp > 0 && combat.player.hp <= 0) {
       const playPlayerDeath = () => playSound('playerDeath', 1, .96);
       // Follow the lethal projectile or dive to its on-screen contact.

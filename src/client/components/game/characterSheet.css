@@ -78,8 +78,7 @@
 }
 .cs-level span,
 .cs-section-title > span,
-.cs-empty,
-.cs-trait-summary > span {
+.cs-empty {
   color: var(--color-ink-muted);
   font-size: 0.75rem;
 }
@@ -427,7 +426,15 @@
   }
 }
 .cs-trait-summary { grid-area: traits; justify-content: flex-end; flex-wrap: wrap; }
-.cs-trait-summary h3, .cs-trait-summary > span, .cs-trait-summary button { white-space: nowrap; }
+.cs-trait-summary h3, .cs-trait-points, .cs-trait-summary button { white-space: nowrap; }
+.cs-trait-points {
+  font-size: .78rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: right;
+  color: var(--color-accent-hover);
+}
 
 /* --- LOCKED RING SLOTS --- */
 .cs-slot[data-locked='true'] {
@@ -545,7 +552,13 @@
 @container character-frame (max-width: 36rem) {
   .cs-topline:has(.cs-trait-summary) {
     grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas: "title level level" "traits traits close";
+    grid-template-areas: "title level close" "traits traits traits";
+  }
+  .cs-topline .cs-trait-summary {
+    width: 100%;
+  }
+  .cs-topline .cs-trait-summary h3 {
+    margin-right: auto;
   }
 }
 .cs-topline h2 { grid-area: title; }
@@ -633,6 +646,7 @@
 
 /* --- DIRECT SKILL PATH CONTROLS --- */
 .cs-skill-chart {position:relative;}
+.cs-skill-chart[data-detail-open=true] { min-height: max(10rem, var(--skill-detail-height, 0px)); }
 .cs-skill-chart path {opacity:.45;}
 .cs-skill-chart path[data-lit='true'] {opacity:1;stroke-width:3px;}
 .cs-click-node {cursor:pointer;}
@@ -644,11 +658,16 @@
   stroke-dasharray: 2 1;
 }
 .cs-node-detail {
-  --tip-width: min(10rem, 100%);
+  --tip-width: min(17rem, 100%);
+  --skill-accent: var(--color-card-movement);
   position: absolute;
   z-index: 2;
+  top: 0;
+  left: 0;
   display: grid;
-  gap: .32rem;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  align-items: start;
+  gap: .55rem;
   box-sizing: border-box;
   width: var(--tip-width);
   padding: .5rem;
@@ -658,7 +677,44 @@
   color: var(--color-on-parchment);
   box-shadow: 0 3px 10px #26180c38;
 }
-.cs-node-detail strong { padding-right: 1.35rem; }
+.cs-node-detail[data-branch='1'] { --skill-accent: var(--color-card-melee); }
+.cs-node-detail[data-branch='2'] { --skill-accent: var(--color-card-range); }
+.cs-node-detail[data-branch='3'] { --skill-accent: var(--color-card-utility); }
+.cs-node-detail[data-branch='4'] { --skill-accent: var(--color-card-curse); }
+.cs-skill-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 2 / 3;
+  border: 1px solid var(--line);
+  border-radius: .25rem;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at center, color-mix(in srgb, var(--skill-accent) 55%, var(--paper)) 0 20%, transparent 72%),
+    linear-gradient(135deg, var(--paper-shadow), var(--color-ink));
+}
+.cs-skill-art::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid color-mix(in srgb, var(--paper) 52%, transparent);
+  border-radius: .12rem;
+  pointer-events: none;
+}
+.cs-skill-art img {
+  display: block;
+  width: 96%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 5px #130e1480);
+}
+.cs-node-copy {
+  display: grid;
+  min-width: 0;
+  gap: .32rem;
+  line-height: 1.2;
+}
+.cs-node-detail strong { padding-right: 1.1rem; }
 .cs-node-detail button {
   border: 1px solid var(--line);
   border-radius: .3rem;

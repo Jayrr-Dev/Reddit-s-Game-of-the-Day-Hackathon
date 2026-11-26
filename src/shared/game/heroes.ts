@@ -274,7 +274,165 @@ export const HEROES = {
     move('Final Verdict', strike(25)),
   ]),
 
+  // IVORY HOST (PRACTICE ROSTER; NOT PART OF THE RANKED ROUTE POOLS)
+  purpleCupid: hero('Purple Cupid', 'grunt', 14, 290, 8, BACK, [
+    move('Heartpiercer', shoot(5), { kind: 'frost', amount: 2 }),
+    move('Misdirect', { kind: 'pullPlayer', lines: 1 }),
+    move('Barbed Heart', shoot(4), bleed(2)),
+  ]),
+  swordPrelate: hero('Sword Prelate', 'elite', 34, 55, 5, BACK, [
+    move('Absolution', cleanse(), guard(4, 'allies')),
+    move('Oathbreaker', spell(6), dispel()),
+    move('Penance', spell(8), hex(2)),
+  ]),
+  hornedSentinel: armored(
+    hero('Horned Sentinel', 'elite', 43, 268, 3, WIDE_FRONT, [
+      move('Plant the Hammer', guard(10)),
+      move('Gate Slam', strike(11), knockBack(1)),
+      move('Groundbreaker', strike(8), { kind: 'frost', amount: 2 }),
+    ], ['anchored']),
+    2
+  ),
+  stormLancer: hero('Storm Lancer', 'elite', 34, 47, 7, FRONT, [
+    move('Conducting Thrust', strike(7), shock(3)),
+    move('Forked Javelin', shoot(3, 2), shock(1)),
+    move('Thunderclap', detonate()),
+  ]),
+  sevenEyedOracle: hero('Seven-Eyed Oracle', 'elite', 27, 278, 6, BACK, [
+    move('Unravel', { kind: 'disrupt', amount: 2 }),
+    move('Foreseen Wound', homing(spell(7)), hex(2)),
+    move('Edict of Silence', { kind: 'malaise', amount: 1 }),
+  ]),
+  holyKing: hero('Holy King', 'boss', 165, 48, 5, BOSS_COLUMN, [
+    move('Royal Aegis', guard(14), protect('self')),
+    move('Crownfall', strike(18), knockBack(1)),
+    move('King\'s Decree', { kind: 'malaise', amount: 1 }, guard(6)),
+    move('Draw Near', { kind: 'pullPlayer', lines: 1 }, wrath(1)),
+    move('Oath of Judgment', strike(16), dispel()),
+  ]),
+
+  ivoryWerewolf: hero('Ivory Werewolf', 'elite', 34, 268, 8, WIDE_FRONT, [
+    move('Rend', strike(4, 2), bleed(2)),
+    move('Blood Scent', wrath(2), guard(5)),
+    move('Savage Bite', strike(10), bleed(3)),
+  ]),
+  wolfCentaur: hero('Wolf-Centaur', 'elite', 43, 260, 6, WIDE_FRONT, [
+    move('Hunting Call', { kind: 'pullPlayer', lines: 1 }),
+    move('Pounce', strike(12), weaken(1)),
+    move('Pack Howl', wrath(1, 'allies')),
+  ]),
+
+  angelMage: hero('Angel Mage', 'elite', 37, 55, 6, WIDE_BACK, [
+    move('Borrowed Time', protect(), guard(5, 'allies')),
+    { ...move('Stasis Pulse', spell(6), { kind: 'frost', amount: 3 }), element: 'ice' },
+    move('Reverse Time', heal(10, 'self'), cleanse('self')),
+    move('Clockhand Barrage', spell(4, 3)),
+  ]),
+
+  mageBorneAstra: hero('Mage Borne Astra', 'boss', 205, 50, 6, BACK, [
+    move('Vow of Silence', guard(12), { kind: 'malaise', amount: 1 }),
+    move('Astral Echo', homing(spell(6, 3))),
+    move('Quiet Covenant', heal(10, 'self'), cleanse('self')),
+    signature(move('The Last Word', homing(spell(16)), weaken(1))),
+  ]),
+
+  // Cerviel's three bodies are separate units so each can be targeted and defeated.
+  grandangelCerviel: hero('Grandangel Cerviel', 'boss', 205, 50, 6, BACK, [
+    move('Staff of Accord', guard(10, 'allies'), protect()),
+    move('Trinity Pulse', homing(spell(7, 2))),
+    move('Seal of Concord', heal(8), cleanse()),
+    signature(move('Covenant of Light', homing(spell(16)), dispel())),
+  ]),
+  cervielSword: hero('Cerviel • Sword', 'elite', 55, 50, 5, FRONT, [
+    move('Twin Sabre Cuts', strike(6, 2)),
+    move('Rending Oath', strike(10), bleed(2)),
+    move('Distant Blade Arc', spell(8)),
+  ]),
+  cervielBow: hero('Cerviel • Bow', 'elite', 46, 50, 5, BACK, [
+    move('Gilded Volley', shoot(4, 2)),
+    move('Pinning Arrow', shoot(9), weaken(1)),
+  ]),
+
+  grandangelCambiel: hero('Grandangel Cambiel', 'boss', 230, 58, 6, FRONT, [
+    move('Gilded Veil', guard(13), hex(3)),
+    move('Crescent Cut', strike(10, 2)),
+    move('Shadowbind', homing(spell(8)), weaken(1)),
+    signature(move('Eclipse', homing(spell(16)), hex(5))),
+  ]),
+
+  archangelZeruel: hero('Archangel Zeruel', 'boss', 280, 64, 7, FRONT, [
+    move('Halo of Resolve', guard(16), wrath(2)),
+    move('Twin Halo Strike', strike(8, 2)),
+    move('Violet Judgment', homing(spell(9, 2)), weaken(1)),
+    signature(move('Sundering Halo', homing(spell(20)), dispel())),
+  ]),
+
+  zeruelRedSun: hero('Alpha', 'elite', 48, 4, 5, FRONT, [
+    { ...move('Crimson Flare', spell(5), burn(2)), element: 'fire' },
+    move('Solar Prominence', guard(7, 'allies')),
+  ]),
+  zeruelBlueSun: hero('Omega', 'elite', 48, 212, 5, FRONT, [
+    move('Blue Radiance', spell(6)),
+    move('Stellar Mantle', guard(7, 'allies')),
+  ]),
+
+  grandangelRaziel: hero('Grandangel Raziel', 'boss', 240, 53, 6, BACK, [
+    move('Seal of Secrets', guard(14), protect('self')),
+    move('Hidden Word', homing(spell(9, 2)), dispel()),
+    move('Radiant Accord', guard(10), cleanse('self')),
+    signature(move('Eightfold Revelation', homing(spell(3, 8)))),
+  ]),
+
+  grandangelGeonosis: hero('Grandangel Geonosis', 'boss', 245, 54, 6, BACK, [
+    move('Glacial Mantle', guard(16), protect('self')),
+    { ...move('Whitefall', homing(spell(7, 2))), element: 'ice' },
+    move('Cold Silence', guard(10), weaken(2)),
+    { ...signature(move('Absolute Winter', homing(spell(16)), dispel())), element: 'ice' },
+  ]),
+
+  zadkielOfDominations: hero('Grandangel Zadkiel', 'boss', 260, 56, 6, BACK, [
+    move('Edict of Dominion', guard(16), protect('self')),
+    move('Sovereign Gaze', homing(spell(8, 2)), weaken(1)),
+    move('Mercy of the Host', heal(12, 'self'), cleanse('self')),
+    signature(move('Final Edict', homing(spell(18)), dispel())),
+  ]),
+
+  fulgurDragonknight: hero('Fulgur Dragonknight', 'boss', 305, 66, 7, FRONT, [
+    move('Gather the Storm', guard(14), shock(4)),
+    move('Thunderclaw', strike(12), knockBack(1)),
+    move('Forked Lightning', homing(spell(7, 3)), shock(2)),
+    signature(move('Skybreaker', homing(spell(18)), detonate())),
+  ]),
+
+  grandangelCherubiel: hero('Grandangel Cherubiel', 'boss', 245, 52, 6, BACK, [
+    move('Shattered Halo', guard(14), shock(3)),
+    move('Seraphic Volley', spell(6, 3)),
+    move('Sacred Aegis', guard(16), protect('self')),
+    signature(move('Judgment of the Halo', homing(spell(14)), detonate())),
+  ]),
+
+  mageBorneAzula: hero('Mage Borne Azula', 'boss', 190, 49, 6, BACK, [
+    move('Sevenfold Ward', guard(12), protect('self')),
+    move('Oracle’s Hex', spell(7, 2), hex(3)),
+    move('Unravel', homing(spell(10)), dispel()),
+    signature(move('The Seventh Eye', homing(spell(15)), hex(5))),
+  ]),
+
+  lightLordMori: hero('Light Lord Mori', 'boss', 235, 42, 6, BACK, [
+    move('Benediction', guard(8, 'allies'), protect()),
+    move('Pale Radiance', spell(6, 2)),
+    move('Restoration', heal(8), cleanse()),
+    signature(move('Last Light', homing(spell(16)), dispel())),
+  ]),
+
   // BOSSES (TARGET DUMMY SCENARIOS ONLY UNTIL THEY JOIN A REGION)
+  apollyonSeraph: hero('Apollyon Seraph', 'elite', 220, 47, 5, FRONT, [
+    move('Seal of the Host', guard(10), protect('self')),
+    move('Radiant Gaze', spell(7, 2)),
+    move('The Last Trumpet', homing(spell(14)), { kind: 'malaise', amount: 1 }),
+    move('Scour the Unworthy', spell(10), dispel()),
+  ]),
+
   /**
    * A great ivory dragon boss in a T: the whole front row and the back
    * row's centre. Its Vigor (a boss passive) gives it

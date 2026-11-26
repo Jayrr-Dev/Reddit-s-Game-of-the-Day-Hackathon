@@ -30,6 +30,7 @@ import { KeyArt } from './menu/KeyArt';
 import { useGameSettings } from '../../hooks/useGameSettings';
 import { SettingsDialog } from './menu/SettingsDialog';
 import { MenuPanel } from './menu/MenuPanel';
+import { MetatronShop } from './menu/MetatronShop';
 import { ProfileView } from './ProfileView';
 import type { RingProgress } from '../../../shared/game/character';
 import { FirstFight } from './FirstFight';
@@ -51,7 +52,7 @@ export type IntroViewProps = {
 const SHOW_PRACTICE = true;
 
 /** Which sheet (if any) covers the menu. */
-type Sheet = 'profile' | 'none' | 'tutorial' | 'rules' | 'board';
+type Sheet = 'profile' | 'none' | 'tutorial' | 'rules' | 'board' | 'shop';
 
 // --- HELPERS ---
 /** Explains whether the next run counts for the leaderboard. */
@@ -177,7 +178,10 @@ export const IntroView = ({
           <Button variant="menuPrimary" onClick={onStart} disabled={isStarting} data-own-sound={!canResume ? true : undefined}>
             {canResume ? 'Resume the march' : 'Begin the conquest'}
           </Button>
-          <Button variant="menu" onClick={() => setSheet('profile')}>Profile</Button>
+          <div className="grid w-full grid-cols-2 gap-2">
+            <Button variant="menu" onClick={() => setSheet('profile')}>Profile</Button>
+            <Button variant="menu" onClick={() => setSheet('shop')}>Shop</Button>
+          </div>
           <Button variant="menu" onClick={() => setSheet('board')}>
             Today's tyrants
           </Button>
@@ -194,6 +198,7 @@ export const IntroView = ({
           </p>
         </nav>
       </div>
+      {sheet === 'shop' && <MetatronShop onClose={closeSheet} />}
       {sheet === 'rules' && (
         <MenuPanel title="How to play" onClose={closeSheet}>
           <RulesSheet />

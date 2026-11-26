@@ -109,7 +109,7 @@ export const IntentChips = ({
 };
 
 // --- COMPONENT ---
-/** Renders one hero's plate, with gold lettering for bosses. */
+/** Renders one hero's plate, with color-coded names for elites and bosses. */
 export const HeroPlate = ({ unit, field, player }: HeroPlateProps) => {
   const anchorRef = useRef<HTMLDivElement>(null);
   const [layer, setLayer] = useState<HTMLElement | null>(null);
@@ -120,8 +120,8 @@ export const HeroPlate = ({ unit, field, player }: HeroPlateProps) => {
         ?.querySelector('.hero-plate-layer') ?? null
     );
   }, []);
-  const isBoss = getHero(unit.heroId).tier === 'boss';
-  const nameClass = isBoss ? 'text-accent' : 'text-ink';
+  const { tier, name } = getHero(unit.heroId);
+  const nameClass = tier === 'boss' ? 'text-accent' : tier === 'elite' ? 'text-[#8bc8ff]' : 'text-ink';
   return (
     <>
       <div
@@ -135,12 +135,14 @@ export const HeroPlate = ({ unit, field, player }: HeroPlateProps) => {
           <div
             {...{ [FLOATING_UID_ATTR]: unit.uid }}
             onClick={(event) => event.stopPropagation()}
+            data-hero-kind={unit.heroId}
             className={`hero-plate pointer-events-none absolute invisible flex origin-bottom flex-col gap-1.5`}
           >
             <span
+              data-hero-tier={tier}
               className={`hero-plate-name w-[128%] self-center px-1 text-center text-balance [overflow-wrap:anywhere] font-display font-bold text-[11px] uppercase leading-tight tracking-wider ${nameClass}`}
             >
-              {getHero(unit.heroId).name}
+              {name}
             </span>
             <DrainBar hp={unit.hp} maxHp={unit.maxHp} size="small" />
             <div className="hero-plate-details">

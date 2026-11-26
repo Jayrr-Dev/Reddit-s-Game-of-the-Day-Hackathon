@@ -1,114 +1,94 @@
-// ===================================================================
-// SANDBOX VIEW (TARGET DUMMIES)
-// A practice fight for testing cards: random heroes in random spots,
-// every card, standard turn energy. The pause menu rolls new dummies, picks
-// a preset scenario or a themed test deck, or leaves. Practice progression is local.
-// ===================================================================
-
-import { useState } from 'react';
+// --- ILLUSION TRAINING ---
+import { useState, type ReactNode } from 'react';
+import { useGameSettings } from '../../hooks/useGameSettings';
 import { useSandbox } from '../../hooks/useSandbox';
 import { Button } from '../ui/Button';
 import { DeathScreen } from './DeathScreen';
 import { CombatView } from './CombatView';
-import {
-  MAP_IMAGES,
-  MAP_NAMES,
-  PRACTICE_TERRAIN_START,
-} from './combat/Backdrop';
+import { MAP_IMAGES, MAP_NAMES, PRACTICE_TERRAIN_START } from './combat/Backdrop';
+import { SettingsDialog } from './menu/SettingsDialog';
 import { ScenarioPicker } from './ScenarioPicker';
 
-// --- COMPONENT ---
-/** Renders the practice fight with reshuffle and leave in its pause menu. */
+/** Setup uses the same settings as the combat pause menu. */
+const SetupSettings = () => {
+  const { controls } = useGameSettings();
+  return <SettingsDialog className="self-center">{controls}</SettingsDialog>;
+};
+
+/** Opens configuration before a scenario or random fight is chosen. */
 export const SandboxView = ({ onExit }: { onExit: () => void }) => {
   const {
-    combat,
-    character,
-    round, retry, retries,
-    deckId,
-    deck,
-    activeCustomId,
-    customDecks,
-    saveCustomDeck,
-    pickCustomDeck,
-    act,
-    respec,
-    reshuffle,
-    summon,
-    pickDeck,
+    combat, character, round, retry, retries, deckId, deck, activeCustomId,
+    customDecks, saveCustomDeck, pickCustomDeck, act, respec, reshuffle, summon, pickDeck,
   } = useSandbox();
   const [selectedMap, setSelectedMap] = useState<number | null>(null);
-  const terrainIndex =
-    selectedMap ?? (PRACTICE_TERRAIN_START + round) % MAP_NAMES.length;
+  const terrainIndex = selectedMap ?? (PRACTICE_TERRAIN_START + round) % MAP_NAMES.length;
+
+  const trainingMenu = (resume: (() => void) | undefined, settings: ReactNode) => (
+    <section role="dialog" aria-modal="true" aria-label="Illusion Training" className="training-menu">
+      <header
+        className="training-header flex items-center justify-between gap-2"
+        style={{ backgroundImage: 'linear-gradient(90deg, #21150e 8%, #21150e70), url("' + MAP_IMAGES[terrainIndex] + '")' }}
+      >
+        <div>
+          <h2>Illusion Training</h2>
+          <span>{MAP_NAMES[terrainIndex]}</span>
+        </div>
+        {settings}
+      </header>
+      <ScenarioPicker
+        renderTools={openDeck => (
+          <div className="training-tools">
+            <div className="training-actions">
+              <Button variant="menu" onClick={openDeck}>Custom deck</Button>
+              {resume && <Button variant="menu" onClick={reshuffle}>New opponents</Button>}
+            </div>
+          </div>
+        )}
+        terrainIndex={terrainIndex}
+        onPickMap={setSelectedMap}
+        deckId={deckId}
+        customDecks={customDecks}
+        activeCustomId={activeCustomId}
+        onPickCustom={pickCustomDeck}
+        onSaveCustom={saveCustomDeck}
+        onPickScenario={scenario => summon(scenario.heroIds, scenario.startsInPlace)}
+        onPickDeck={pickDeck}
+      />
+      <footer className="training-footer">
+        <Button variant="menu" onClick={onExit}>Leave training</Button>
+        <Button variant="menuPrimary" onClick={resume ?? reshuffle}>
+          {resume ? 'Resume' : 'Start random fight'}
+        </Button>
+      </footer>
+    </section>
+  );
+
   return (
     <div className="relative h-full w-full overflow-hidden">
-      <div className="h-full" inert={combat.player.hp <= 0}>
-      <CombatView
-        key={`${round}:${retries}`}
-        combat={combat}
-        character={character}
-        onRespec={respec}
-        deck={deck}
-        terrainIndex={terrainIndex}
-        where="Illusion Training"
-        score={0}
-        onAction={act}
-        renderTrainingMenu={(resume, settings) => (
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-label="Illusion Training"
-            className="training-menu"
-          >
-            <header
-              className="training-header flex items-center justify-between gap-2"
-              style={{
-                backgroundImage: `linear-gradient(90deg, #21150e 8%, #21150e70), url("${MAP_IMAGES[terrainIndex]}")`,
-              }}
-            >
-              <div>
-                <h2>Illusion Training</h2>
-                <span>{MAP_NAMES[terrainIndex]}</span>
-              </div>
-              {settings}
-            </header>
-            <ScenarioPicker
-              renderTools={openDeck => (
-                <div className="training-tools">
-                  <div className="training-actions">
-                    <Button variant="menu" onClick={openDeck}>Custom deck</Button>
-                    <Button variant="menu" onClick={reshuffle}>New opponents</Button>
-                  </div>
-                </div>
-              )}
+      {!combat ? trainingMenu(undefined, <SetupSettings />) : (
+        <>
+          <div className="h-full" inert={combat.player.hp <= 0}>
+            <CombatView
+              key={round + ':' + retries}
+              combat={combat}
+              character={character}
+              onRespec={respec}
+              deck={deck}
               terrainIndex={terrainIndex}
-              onPickMap={setSelectedMap}
-              deckId={deckId}
-              customDecks={customDecks}
-              activeCustomId={activeCustomId}
-              onPickCustom={pickCustomDeck}
-              onSaveCustom={saveCustomDeck}
-              onPickScenario={(scenario) =>
-                summon(scenario.heroIds, scenario.startsInPlace)
-              }
-              onPickDeck={pickDeck}
+              where="Illusion Training"
+              score={0}
+              onAction={act}
+              renderTrainingMenu={trainingMenu}
             />
-            <footer className="training-footer">
-              <Button variant="menu" onClick={onExit}>
-                Leave training
-              </Button>
-              <Button
-                variant="menuPrimary"
-                
-                onClick={resume}
-              >
-                Resume
-              </Button>
-            </footer>
-          </section>
-        )}
-      />
-      </div>
-      {combat.player.hp <= 0 && <DeathScreen title="Illusion broken" epitaph="The spell breaks. The wound leaves no mark." buttonLabel="Retry training" onContinue={retry} />}
+          </div>
+          {combat.player.hp <= 0 && (
+            <DeathScreen title="Illusion broken" epitaph="The spell breaks. The wound leaves no mark."
+              buttonLabel="Retry training" onContinue={retry} />
+          )}
+        </>
+      )}
     </div>
   );
 };
+

@@ -785,3 +785,36 @@
 .training-deck-edit { position: absolute; right: 4px; top: 4px; padding: 2px 5px; font-size: 11px; }
 
 .history-thumbnail[data-event=death]{color:#ff9393}.history-thumbnail[data-event=heal]{color:#8fe09c}.history-thumbnail[data-event=guard]{color:#93caff}.history-thumbnail[data-event=status]{color:#eac478}
+ 
+/* Keep the portrait clear when this oversized dragon fills the center lane. */
+@container duel (min-width: 600px) {
+  .hero-plate[data-hero-kind="fulgurDragonknight"] > .hero-plate-details {
+    position: absolute;
+    top: 0;
+    left: calc(100% + 16px);
+    min-width: 0;
+    transform-origin: top left;
+  }
+}
+.fulgur-hand-charge { opacity: 0; }
+[data-action="magic"] > .fulgur-throw-pose {
+  transform-origin: 75px 98px;
+  animation: fulgur-throw-pose 560ms ease-out both;
+}
+[data-action="magic"] .fulgur-hand-charge {
+  animation: fulgur-hand-charge 340ms ease-out both;
+}
+@keyframes fulgur-throw-pose {
+  0%, 100% { transform: none; }
+  35% { transform: rotate(3deg) translate(1px, -2px); }
+  58% { transform: rotate(-2deg) translate(-3px, 1px); }
+  77% { transform: rotate(-1deg); }
+}
+@keyframes fulgur-hand-charge {
+  0%, 100% { opacity: 0; }
+  45%, 78% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-action="magic"] > .fulgur-throw-pose { animation: none; }
+  [data-action="magic"] .fulgur-hand-charge { animation: none; opacity: 1; }
+}

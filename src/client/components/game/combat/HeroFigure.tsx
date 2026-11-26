@@ -41,6 +41,7 @@ import {
 } from '../../../lib/heroFigure';
 import { CreatureFigure } from './CreatureFigure';
 import { HeroFace } from './HeroFace';
+import { HolyKingFigure } from './HolyKingFigure';
 
 // --- TYPES ---
 export type HeroFigureProps = {
@@ -1550,6 +1551,7 @@ const HumanoidFigure = ({
  */
 export const HeroFigure = (props: HeroFigureProps) => {
   const { heroId } = props;
+  if (heroId === 'holyKing') return <HolyKingFigure {...props} />;
   return isCreature(heroId) ? (
     <CreatureFigure {...props} heroId={heroId} />
   ) : (

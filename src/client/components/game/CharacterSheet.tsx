@@ -456,9 +456,9 @@ export const CharacterSheet = ({
       {page === 'traits' && (
         <div className="cs-trait-summary">
           <h3><span className="cs-name">{trait}</span> {character.traits[trait]}/{TRAIT_CAP}</h3>
-          <span role="status">{points} {points === 1 ? 'point' : 'points'} available</span>
           {onRespec && <button type="button" className="cs-action" data-own-sound onClick={() => { playSound('respec', 1, .72); onRespec(); }}
             disabled={!TRAITS.some(id => character.traits[id] > 0)}>Respec all</button>}
+          <strong className="cs-trait-points" role="status">{points} {points === 1 ? 'point' : 'points'} available</strong>
         </div>
       )}
         <button

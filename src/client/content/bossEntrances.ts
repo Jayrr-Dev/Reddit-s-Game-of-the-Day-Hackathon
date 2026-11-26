@@ -42,6 +42,61 @@ const DEFAULT_ENTRANCE: BossEntrance = {
 };
 
 const BOSS_ENTRANCES: Partial<Record<HeroId, BossEntrance>> = {
+  mageBorneAstra: {
+    epithet: 'Oracle of the Silent Choir',
+    line: 'Hush. The stars are listening.',
+    arrival: 'rise',
+  },
+  grandangelCerviel: {
+    epithet: 'One Will in Three Forms',
+    line: 'One purpose. Three forms. No escape.',
+    arrival: 'descend',
+  },
+  grandangelCambiel: {
+    epithet: 'The Gilded Shade',
+    line: 'Even gold casts a shadow.',
+    arrival: 'rise',
+  },
+  archangelZeruel: {
+    epithet: 'Bearer of the Violet Halos',
+    line: 'I did not descend to bargain.',
+    arrival: 'descend',
+  },
+  grandangelRaziel: {
+    epithet: 'Keeper of the Unspoken',
+    line: 'What you hide has always been known to me.',
+    arrival: 'descend',
+  },
+  grandangelGeonosis: {
+    epithet: 'Harbinger of Whitefall',
+    line: 'The silence comes first. Then the frost.',
+    arrival: 'descend',
+  },
+  zadkielOfDominations: {
+    epithet: 'Voice of the Divine Edict',
+    line: 'In this court, the last word is mine.',
+    arrival: 'descend',
+  },
+  fulgurDragonknight: {
+    epithet: 'The Storm Made Flesh',
+    line: 'The sky has already chosen where you fall.',
+    arrival: 'descend',
+  },
+  grandangelCherubiel: {
+    epithet: 'Warden of the Broken Halo',
+    line: 'My halo was broken. My judgment was not.',
+    arrival: 'descend',
+  },
+  mageBorneAzula: {
+    epithet: 'The Sevenfold Oracle',
+    line: 'Seven eyes. Every possible future ends here.',
+    arrival: 'rise',
+  },
+  lightLordMori: {
+    epithet: 'Keeper of the Last Light',
+    line: 'Kneel. The last light does not forgive.',
+    arrival: 'descend',
+  },
   holyDragon: { epithet: 'Wyrm of the Last Light', line: 'I kept this flame when your kingdom was ash.', arrival: 'descend', durationMs: 9200, landingMs: 2200, voice: { cue: 'bossUncVoice', durationMs: 4330 } },
   grandGriffon: {
     epithet: 'Talon of the High Sky',

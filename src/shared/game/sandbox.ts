@@ -7,13 +7,13 @@
 // Pure functions like the rest of the engine; never scored or logged.
 // ===================================================================
 
-import { advanceHeroes, cellCountOf } from './battlefield.ts';
+import { advanceHeroes, cellCountOf, cellsOf } from './battlefield.ts';
 import { characterBonuses, syncCharacterCombat, type CharacterState, type Equipment, type TraitNodes, type Traits } from './character.ts';
 import { drawCards, combatOutcome, endTurn, finishPlayerTurn, playCard, startCombat, startPlayerTurn } from './combat.ts';
 import { CHAMPION_IDS, ELITE_IDS, getHero, GRUNT_IDS, type HeroId } from './heroes.ts';
 import { move } from './movement.ts';
 import { nextInt, pickWeighted, type RngState } from './rng.ts';
-import { BATTLEFIELD_ROWS, PLAYER_MAX_HP } from './rules.ts';
+import { BATTLEFIELD_COLUMNS, BATTLEFIELD_ROWS, PLAYER_MAX_HP } from './rules.ts';
 import type { MoveAction, PlayCardAction } from './run.ts';
 import type { CardId } from './cards.ts';
 import { isCustomDeckList, sandboxDeckCards, type SandboxDeckId } from './sandboxDecks.ts';
@@ -64,6 +64,118 @@ export type SandboxScenario = {
  * Add a scenario by adding an entry here.
  */
 export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
+  {
+    id: 'mageBorneAstra',
+    name: getHero('mageBorneAstra').name,
+    blurb: 'A silent oracle who shuts down buffs and counters with astral magic.',
+    heroIds: ['mageBorneAstra'],
+    startsInPlace: true,
+  },
+  {
+    id: 'grandangelCerviel',
+    name: getHero('grandangelCerviel').name,
+    blurb: 'Three bodies fight at once: staff wards from the back, sword guards the front, and bow fires from the flank.',
+    heroIds: ['grandangelCerviel', 'cervielSword', 'cervielBow'],
+    startsInPlace: true,
+  },
+  {
+    id: 'grandangelCambiel',
+    name: getHero('grandangelCambiel').name,
+    blurb: 'A gilded shade who fights from the front and builds Hex.',
+    heroIds: ['grandangelCambiel'],
+    startsInPlace: true,
+  },
+  {
+    id: 'archangelZeruel',
+    name: getHero('archangelZeruel').name,
+    blurb: 'Twin halo strikes and violet magic, flanked by Alpha (red) and Omega (blue).',
+    heroIds: ['archangelZeruel', 'zeruelRedSun', 'zeruelBlueSun'],
+    startsInPlace: true,
+  },
+  {
+    id: 'grandangelRaziel',
+    name: getHero('grandangelRaziel').name,
+    blurb: 'An eight-armed angel who dispels buffs and builds to an eight-hit spell.',
+    heroIds: ['grandangelRaziel'],
+    startsInPlace: true,
+  },
+  {
+    id: 'grandangelGeonosis',
+    name: getHero('grandangelGeonosis').name,
+    blurb: 'A hooded angel who wards himself and unleashes ice magic.',
+    heroIds: ['grandangelGeonosis'],
+    startsInPlace: true,
+  },
+  {
+    id: 'zadkielOfDominations',
+    name: getHero('zadkielOfDominations').name,
+    blurb: 'A six-winged ruler who wards himself, then weakens and dispels his foe.',
+    heroIds: ['zadkielOfDominations'],
+    startsInPlace: true,
+  },
+  {
+    id: 'fulgurDragonknight',
+    name: getHero('fulgurDragonknight').name,
+    blurb: 'An enormous dragon who drives you back, then detonates built-up Shock.',
+    heroIds: ['fulgurDragonknight'],
+    startsInPlace: true,
+  },
+  {
+    id: 'grandangelCherubiel',
+    name: getHero('grandangelCherubiel').name,
+    blurb: 'A many-eyed angel who builds Shock behind a shield, then detonates it.',
+    heroIds: ['grandangelCherubiel'],
+    startsInPlace: true,
+  },
+  {
+    id: 'mageBorneAzula',
+    name: getHero('mageBorneAzula').name,
+    blurb: 'A seven-eyed mage who wards herself, applies Hex, and strips away buffs.',
+    heroIds: ['mageBorneAzula'],
+    startsInPlace: true,
+  },
+  {
+    id: 'lightLordMori',
+    name: getHero('lightLordMori').name,
+    blurb: 'A light wielding boss shields two Elite Knights who hold the entire front line.',
+    heroIds: ['lightLordMori', 'paladin', 'hornedSentinel'],
+    startsInPlace: true,
+  },
+  {
+    id: 'apollyonSeraph',
+    name: getHero('apollyonSeraph').name,
+    blurb: 'A seraph leads from the front, with two Biblical Angels behind it.',
+    heroIds: ['apollyonSeraph', 'angelArcher', 'angelArcher'],
+    startsInPlace: true,
+  },
+  {
+    id: 'ivoryHost',
+    name: 'Ivory Host',
+    blurb: 'Five new enemies: forced movement, Shock combos, and Buff disruption.',
+    heroIds: ['hornedSentinel', 'stormLancer', 'swordPrelate', 'purpleCupid', 'sevenEyedOracle'],
+    startsInPlace: true,
+  },
+  {
+    id: 'holyKing',
+    name: 'Holy King',
+    blurb: 'A solo boss who alternates Protection, forced movement, and sword attacks.',
+    heroIds: ['holyKing'],
+    startsInPlace: true,
+  },
+  {
+    id: 'wolfPack',
+    name: 'Wolf Pack',
+    blurb: 'An Ivory Werewolf stacks Bleed while a Wolf-Centaur pulls you in.',
+    heroIds: ['ivoryWerewolf', 'wolfCentaur'],
+    startsInPlace: true,
+  },
+  {
+    id: 'angelMage',
+    name: 'Angel Mage',
+    blurb: 'A winged time mage shields a prelate and sentinel, then casts Frost.',
+    heroIds: ['hornedSentinel', 'swordPrelate', 'angelMage'],
+    startsInPlace: true,
+  },
   {
     id: 'holyDragon',
     name: getHero('holyDragon').name,
@@ -239,7 +351,7 @@ export const createSandboxWith = (
 ): CombatState => {
   const fresh = startCombat(sandboxSetup(heroIds, seed, deckId, traits, equipment, traitNodes));
   const placed = startsInPlace
-    ? { ...fresh, heroes: walkHome(fresh.heroes) }
+    ? { ...fresh, heroes: spreadCervielForms(walkHome(fresh.heroes)) }
     : fresh;
   return placed;
 };
@@ -250,6 +362,18 @@ export const createSandboxWith = (
  */
 const walkHome = (heroes: HeroUnit[]): HeroUnit[] =>
   BATTLEFIELD_ROWS.reduce((field) => advanceHeroes(field), heroes);
+
+/** Keep Cerviel's three weapon silhouettes apart in the starting formation. */
+const spreadCervielForms = (heroes: HeroUnit[]): HeroUnit[] => {
+  if (!heroes.some(({ heroId }) => heroId === 'grandangelCerviel')) return heroes;
+  const right = Number(BATTLEFIELD_COLUMNS) - 1;
+  return heroes.map(unit => {
+    if (unit.heroId !== 'cervielSword' || unit.row !== 'front') return unit;
+    const occupied = heroes.some(other => other.uid !== unit.uid &&
+      cellsOf(other).some(cell => cell.row === 'front' && cell.col >= right));
+    return occupied ? unit : { ...unit, col: right };
+  });
+};
 
 /** Applies one input; brings a new horde when cleared. */
 export const stepSandbox = (

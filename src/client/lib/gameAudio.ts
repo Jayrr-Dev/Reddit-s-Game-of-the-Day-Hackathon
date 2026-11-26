@@ -8,17 +8,24 @@ import griffonTakeoffUrl from '../assets/audio/griffon-takeoff-user.ogg';
 import uncUltimateUrl from '../assets/audio/unc-ultimate-user.ogg';
 import bossDescentUrl from '../assets/audio/boss-descent-whoosh.ogg';
 import bossTouchdownUrl from '../assets/audio/boss-touchdown-user.ogg';
-import death6Url from '../assets/audio/unit-death-6.ogg';
-import death5Url from '../assets/audio/unit-death-5.ogg';
-import death4Url from '../assets/audio/unit-death-4.ogg';
-import death3Url from '../assets/audio/unit-death-3.ogg';
-import death2Url from '../assets/audio/unit-death-2.ogg';
-import death1Url from '../assets/audio/unit-death-1.ogg';
+import { deathVoiceCues, deathVoiceOf } from '../../shared/game/deathVoices';
+import deathHumanLowA from '../assets/audio/death-human-low-a.ogg';
+import deathHumanLowB from '../assets/audio/death-human-low-b.ogg';
+import deathHumanMidA from '../assets/audio/death-human-mid-a.ogg';
+import deathHumanMidB from '../assets/audio/death-human-mid-b.ogg';
+import deathHumanGritA from '../assets/audio/death-human-grit-a.ogg';
+import deathHumanGritB from '../assets/audio/death-human-grit-b.ogg';
+import deathHumanBreathA from '../assets/audio/death-human-breath-a.ogg';
+import deathHumanBreathB from '../assets/audio/death-human-breath-b.ogg';
+import deathBossSol from '../assets/audio/death-boss-sol.ogg';
+import deathBossRio from '../assets/audio/death-boss-rio.ogg';
+import type { HeroId } from '../../shared/game/heroes';
 import drawUrl from '../assets/audio/card-draw.ogg';
 import discardUrl from '../assets/audio/paper-discard-slide.ogg';
 
 import menuUrl from '../assets/audio/paper-menu-tap.ogg';
-import levelUpUrl from '../assets/audio/level-up-dark.ogg';
+import levelUpUrl from '../assets/audio/level-up-user.ogg';
+import victoryUrl from '../assets/audio/victory-user.ogg';
 import runeClickUrl from '../assets/audio/paper-page-tick.ogg';
 import equipUrl from '../assets/audio/equip.ogg';
 import unequipUrl from '../assets/audio/unequip.ogg';
@@ -59,7 +66,7 @@ import magicLightningUrl from '../assets/audio/spell-thunder-crack.ogg';
 import shockUrl from '../assets/audio/shock-cast-chain-user.ogg';
 import shockBurstUrl from '../assets/audio/shock-burst-large-user.ogg';
 import magicLightningHitUrl from '../assets/audio/lightning-strike-user.ogg';
-import magicArcaneHitUrl from '../assets/audio/spell-arcane-burst.ogg';
+import magicArcaneHitUrl from '../assets/audio/magic-impact-user.ogg';
 import rushUrl from '../assets/audio/rush-user.ogg';
 import chargeUrl from '../assets/audio/charge-user.ogg';
 import backstepUrl from '../assets/audio/backstep.ogg';
@@ -84,14 +91,21 @@ for (const channel of ['music', 'sfx'] as const) {
       volumes[channel] = Math.max(0, Math.min(100, Number(saved)));
   } catch { /* Session values work without storage. */ }
 }
-const sounds = { draw: drawUrl, discard: discardUrl, menu: menuUrl, conquestOpen: conquestOpenUrl, conquestStart: conquestStartUrl, levelUp: levelUpUrl, runeClick: runeClickUrl, equip: equipUrl, unequip: unequipUrl, blunt: bluntUrl, blade: bladeUrl, arrow: arrowUrl, siegeArrow: siegeArrowUrl, respec: respecUrl, swiftArrow: swiftArrowUrl, cardClick: cardClickUrl, hoverTick: hoverTickUrl, cardHover: cardHoverUrl, turnEnd: turnEndUrl, bluntImpact: bluntImpactUrl, guardSet: guardUrl, armorUp: armorUpUrl, heal: healUrl, buffMinor: buffMinorUrl, buffMajor: buffMajorUrl, utilityCue: utilityCueUrl, arcane: arcaneUrl, curse: curseUrl, hexTrigger: hexTriggerUrl, guard: blockThudUrl, move: moveUrl, potion: potionUrl, imbue: buffMinorUrl, grave: graveUrl, knockback: knockbackUrl, enemyKnockback: enemyKnockbackUrl, shuffle: shuffleUrl, remove: removeUrl, reward: rewardUrl, bladeHit: bladeHitUrl, arrowHit: arrowHitUrl, shotMiss: shotMissUrl, poison: poisonUrl, bleedBite: bleedBiteUrl, magicFire: magicFireUrl, magicFireHit: magicFireHitUrl, magicIce: magicIceUrl, magicIceHit: magicIceHitUrl, magicLightning: magicLightningUrl, magicLightningHit: magicLightningHitUrl, shock: shockUrl, shockBurst: shockBurstUrl, magicArcaneHit: magicArcaneHitUrl, charge: chargeUrl, rush: rushUrl, backstep: backstepUrl, enemyStep: backstepUrl, bossDescent: bossDescentUrl, bossTouchdown: bossTouchdownUrl, bossUncVoice: bossUncVoiceUrl, bossRioVoice: bossRioVoiceUrl, deathScreen: deathScreenUrl, playerDeath: playerDeathUrl, uncUltimate: uncUltimateUrl, griffonTakeoff: griffonTakeoffUrl, griffonDive: griffonDiveUrl, griffonDiveWhoosh: griffonDiveWhooshUrl, death1: death1Url, death2: death2Url, death3: death3Url, death4: death4Url, death5: death5Url, death6: death6Url };
+const sounds = { draw: drawUrl, discard: discardUrl, menu: menuUrl, conquestOpen: conquestOpenUrl, conquestStart: conquestStartUrl, levelUp: levelUpUrl, victory: victoryUrl, runeClick: runeClickUrl, equip: equipUrl, unequip: unequipUrl, blunt: bluntUrl, blade: bladeUrl, arrow: arrowUrl, siegeArrow: siegeArrowUrl, respec: respecUrl, swiftArrow: swiftArrowUrl, cardClick: cardClickUrl, hoverTick: hoverTickUrl, cardHover: cardHoverUrl, turnEnd: turnEndUrl, bluntImpact: bluntImpactUrl, guardSet: guardUrl, armorUp: armorUpUrl, heal: healUrl, buffMinor: buffMinorUrl, buffMajor: buffMajorUrl, utilityCue: utilityCueUrl, arcane: arcaneUrl, curse: curseUrl, hexTrigger: hexTriggerUrl, guard: blockThudUrl, move: moveUrl, potion: potionUrl, imbue: buffMinorUrl, grave: graveUrl, knockback: knockbackUrl, enemyKnockback: enemyKnockbackUrl, shuffle: shuffleUrl, remove: removeUrl, reward: rewardUrl, bladeHit: bladeHitUrl, arrowHit: arrowHitUrl, shotMiss: shotMissUrl, poison: poisonUrl, bleedBite: bleedBiteUrl, magicFire: magicFireUrl, magicFireHit: magicFireHitUrl, magicIce: magicIceUrl, magicIceHit: magicIceHitUrl, magicLightning: magicLightningUrl, magicLightningHit: magicLightningHitUrl, shock: shockUrl, shockBurst: shockBurstUrl, magicArcaneHit: magicArcaneHitUrl, charge: chargeUrl, rush: rushUrl, backstep: backstepUrl, enemyStep: backstepUrl, bossDescent: bossDescentUrl, bossTouchdown: bossTouchdownUrl, bossUncVoice: bossUncVoiceUrl, bossRioVoice: bossRioVoiceUrl, deathScreen: deathScreenUrl, playerDeath: playerDeathUrl, uncUltimate: uncUltimateUrl, griffonTakeoff: griffonTakeoffUrl, griffonDive: griffonDiveUrl, griffonDiveWhoosh: griffonDiveWhooshUrl, deathHumanLowA, deathHumanLowB, deathHumanMidA, deathHumanMidB, deathHumanGritA, deathHumanGritB, deathHumanBreathA, deathHumanBreathB, deathBossSol, deathBossRio };
 type Sound = keyof typeof sounds;
-const deathCues = ['death1', 'death2', 'death3', 'death4', 'death5', 'death6'] as const;
-let nextDeath = 0;
-export const playUnitDeath = () => {
-  const cue = deathCues[nextDeath % deathCues.length]!;
-  nextDeath++;
-  playSound(cue, 1, .79);
+const deathCues = Object.values(deathVoiceCues).flat();
+const nextDeathByVoice = new Map<keyof typeof deathVoiceCues, number>();
+
+/** Rotates the takes within a character's voice family. */
+export const playUnitDeath = (heroId: HeroId) => {
+  const voice = deathVoiceOf(heroId);
+  if (!voice) return;
+  const cues = deathVoiceCues[voice];
+  const index = nextDeathByVoice.get(voice) ?? 0;
+  const cue = cues[index % cues.length];
+  if (!cue) return;
+  nextDeathByVoice.set(voice, index + 1);
+  playSound(cue, 1, voice === 'sol' || voice === 'rio' ? .96 : .82);
 };
 const voices = new Map<HTMLAudioElement, number>();
 const preloaded = new Map<Sound, HTMLAudioElement>();
@@ -107,7 +121,7 @@ export const subscribeVolume = (listener: () => void) => {
 
 /** Bind once at app startup, outside React's replayable render lifecycle. */
 export function installGameAudio(root: HTMLElement) {
-  for (const name of ['blade', 'bladeHit', 'arrow', 'swiftArrow', 'siegeArrow', 'respec', 'arcane', 'magicFire', 'magicIce', 'magicLightning', 'cardClick', 'discard', 'shuffle', 'blunt', 'guard', 'charge', 'rush', 'backstep', 'enemyStep', 'bossDescent', 'bossTouchdown', 'bossUncVoice', 'bossRioVoice', 'deathScreen', 'playerDeath', 'uncUltimate', 'griffonTakeoff', 'griffonDive', 'griffonDiveWhoosh', 'curse', 'hexTrigger', 'arrowHit', 'shotMiss', 'poison', 'bleedBite', 'magicFireHit', 'magicIceHit', 'magicLightningHit', 'shock', 'shockBurst', 'runeClick', 'levelUp', 'equip', 'unequip', 'imbue', 'knockback', 'enemyKnockback', 'potion', 'hoverTick', 'cardHover', 'turnEnd', 'conquestOpen', 'conquestStart', 'bluntImpact', 'guardSet', 'armorUp', 'heal', 'buffMinor', 'buffMajor', 'utilityCue', ...deathCues] as const) {
+  for (const name of ['blade', 'bladeHit', 'arrow', 'swiftArrow', 'siegeArrow', 'respec', 'arcane', 'magicFire', 'magicIce', 'magicLightning', 'cardClick', 'discard', 'shuffle', 'blunt', 'guard', 'charge', 'rush', 'backstep', 'enemyStep', 'bossDescent', 'bossTouchdown', 'bossUncVoice', 'bossRioVoice', 'deathScreen', 'playerDeath', 'uncUltimate', 'griffonTakeoff', 'griffonDive', 'griffonDiveWhoosh', 'curse', 'hexTrigger', 'arrowHit', 'shotMiss', 'poison', 'bleedBite', 'magicFireHit', 'magicIceHit', 'magicLightningHit', 'magicArcaneHit', 'shock', 'shockBurst', 'runeClick', 'victory', 'levelUp', 'equip', 'unequip', 'imbue', 'knockback', 'enemyKnockback', 'potion', 'hoverTick', 'cardHover', 'turnEnd', 'conquestOpen', 'conquestStart', 'bluntImpact', 'guardSet', 'armorUp', 'heal', 'buffMinor', 'buffMajor', 'utilityCue', ...deathCues] as const) {
     if (preloaded.has(name)) continue;
     const cue = new Audio();
     cue.preload = 'auto';

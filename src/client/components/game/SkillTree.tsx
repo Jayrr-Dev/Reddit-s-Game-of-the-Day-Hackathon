@@ -1,6 +1,7 @@
 import { playSound } from '../../lib/gameAudio';
 // --- SKILL TREE ---
-import { useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { skillArtworkFor } from './skillArtwork';
 import type { CharacterState } from '../../../shared/game/character';
 import {
   branchNames,
@@ -19,9 +20,7 @@ const overviewHeights = [-104, -144, -171, -201];
 const focusedHeights = [-18, -94, -170, -246];
 type Detail = {
   pick: SkillPick;
-  x: number;
-  y: number;
-  above: boolean;
+  target: SVGGElement;
 };
 
 /** Activate circles directly, with rank details in a small popover. */
@@ -35,28 +34,63 @@ export function SkillTree({
   const [branch, setBranch] = useState<number | null>(null);
   const [detail, setDetail] = useState<Detail | null>(null);
   const chart = useRef<HTMLDivElement>(null);
+  const popover = useRef<HTMLDivElement>(null);
   const heights = branch === null ? overviewHeights : focusedHeights;
   const picks = character.skillPicks ?? [];
   const active = detail?.pick;
   const local = picks.filter((p) => p.branch === active?.branch);
   const rank = active ? skillRank(local, active.tier, active.slot) : 0;
 
-  /** Keep the popover inside the chart and off the clicked circle. */
+  const activeArt = active ? skillArtworkFor(active) : undefined;
+
+  useLayoutEffect(() => {
+    const box = chart.current;
+    const tip = popover.current;
+    if (!detail || !box || !tip) return;
+    const { target } = detail;
+
+    /** Prefer a free side of the node, then clamp the portrait panel inside the chart. */
+    function place() {
+      if (!box || !tip) return;
+      const gap = 8;
+      const width = tip.offsetWidth;
+      const height = tip.offsetHeight;
+      box.style.setProperty('--skill-detail-height', Math.ceil(tip.getBoundingClientRect().height) + 'px');
+      const area = box.getBoundingClientRect();
+      const node = target.getBoundingClientRect();
+      const before = node.left - area.left - gap - width;
+      const after = node.right - area.left + gap;
+      const above = node.top - area.top - gap - height;
+      const below = node.bottom - area.top + gap;
+      const cx = (node.left + node.right) / 2 - area.left;
+      const cy = (node.top + node.bottom) / 2 - area.top;
+      const side = after + width <= area.width ? after : before >= 0 ? before : null;
+      const left = side ?? cx - width / 2;
+      const top = side !== null
+        ? cy - height / 2
+        : below + height <= area.height ? below : above;
+      tip.style.left = Math.max(0, Math.min(area.width - width, left)) + 'px';
+      tip.style.top = Math.max(0, Math.min(area.height - height, top)) + 'px';
+    }
+
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(box);
+    observer.observe(tip);
+    return () => {
+      observer.disconnect();
+      box.style.removeProperty('--skill-detail-height');
+    };
+  }, [detail]);
+
+  /** Open details, purchasing the path first when the circle is reachable. */
   function activate(pick: SkillPick, target: SVGGElement) {
     playSound('runeClick', 1, 0.72);
-    const bounds = chart.current!.getBoundingClientRect();
-    const rect = target.getBoundingClientRect();
-    const y = rect.top + rect.height / 2 - bounds.top;
     const owned = picks.some(
       (p) =>
         p.branch === pick.branch && p.tier === pick.tier && p.slot === pick.slot
     );
-    setDetail({
-      pick,
-      x: rect.left + rect.width / 2 - bounds.left,
-      y,
-      above: y > bounds.height / 2,
-    });
+    setDetail({ pick, target });
     if (!owned) {
       for (const step of skillPurchases(character, pick).steps)
         onSkill(step, true);
@@ -98,7 +132,7 @@ export function SkillTree({
       </div>
       <div
         ref={chart}
-        className="cs-skill-chart"
+        className="cs-skill-chart" data-detail-open={!!detail}
         onBlur={(e) => {
           if (!e.currentTarget.contains(e.relatedTarget)) setDetail(null);
         }}
@@ -121,13 +155,12 @@ export function SkillTree({
             if (branch !== null && branch !== b) return null;
             const owned = picks.filter((p) => p.branch === b);
             const color = 'var(--color-card-' + colors[b] + ')';
+            const rotation = branch === null ? (b - 2) * 38 : 90;
             return (
               <g
                 key={name}
                 stroke={color}
-                transform={
-                  'rotate(' + (branch === null ? (b - 2) * 38 : 90) + ')'
-                }
+                transform={`rotate(${rotation})`}
               >
                 <path d={'M0 0 V' + heights[0]} data-lit={owned.length > 0} />
                 {tiers.map((row, t) =>
@@ -152,9 +185,14 @@ export function SkillTree({
                   row.map((node, s) => {
                     const r = skillRank(owned, t, s);
                     const pick = { branch: b, tier: t, slot: s };
+                    const effect = skillEffectOf(pick);
+                    const icon = skillArtworkFor(pick);
+                    const radius = branch !== null
+                      ? skillCap(t) === 1 ? 13 : 10.5
+                      : skillCap(t) === 1 ? 10 : 5.5;
                     const plan = skillPurchases(character, pick);
                     const label =
-                      name +
+                      (effect ? `${effect.name}. ${effect.description}. ${name}` : name) +
                       ', step ' +
                       (t + 1) +
                       ', circle ' +
@@ -194,17 +232,21 @@ export function SkillTree({
                         <circle
                           cx={node.x}
                           cy={heights[t]}
-                          r={
-                            branch !== null
-                              ? skillCap(t) === 1
-                                ? 13
-                                : 10.5
-                              : skillCap(t) === 1
-                                ? 10
-                                : 5.5
-                          }
+                          r={radius}
                           style={r ? { fill: color } : undefined}
                         />
+                        {icon && (
+                          <image
+                            href={icon}
+                            x={node.x - radius * 0.88}
+                            y={heights[t]! - radius * 0.88}
+                            width={radius * 1.76}
+                            height={radius * 1.76}
+                            transform={`rotate(${-rotation} ${node.x} ${heights[t]})`}
+                            pointerEvents="none"
+                            aria-hidden="true"
+                          />
+                        )}
                         {branch !== null && (
                           <text
                             // RANK UNDER THE CIRCLE: the path is turned 90°,
@@ -237,50 +279,51 @@ export function SkillTree({
         </svg>
         {detail && active && (
           <div
+            ref={popover}
             className="cs-node-detail"
             role="group"
             aria-label="Circle details"
-            style={{
-              left:
-                'clamp(0px, calc(' +
-                detail.x +
-                'px + 22px), calc(100% - var(--tip-width)))',
-              top: detail.above ? detail.y - 16 : detail.y + 16,
-              transform: detail.above ? 'translateY(-100%)' : undefined,
-            }}
+            data-branch={active.branch}
           >
-            <strong>
-              {skillEffectOf(active)?.name ?? branchNames[active.branch]} ·{' '}
-              {rank}/{skillCap(active.tier)}
-            </strong>
-            {skillEffectOf(active) && (
-              <small>{skillEffectOf(active)!.description}</small>
+            {activeArt && (
+              <div className="cs-skill-art" aria-hidden="true">
+                <img src={activeArt} alt="" draggable={false} />
+              </div>
             )}
-            {rank === 0 && (
-              <small>{skillPurchases(character, active).message}</small>
-            )}
-            {rank > 0 && rank < skillCap(active.tier) && (
-              <button
-                className="cs-rank-up"
-                type="button"
-                disabled={!skillPurchases(character, active).steps.length}
-                onClick={() => onSkill(active, true)}
-              >
-                Rank up to {rank + 1}/{skillCap(active.tier)}
-              </button>
-            )}
-            {rank > 0 && (
-              <button
-                className="cs-refund"
-                type="button"
-                onClick={() => {
-                  onSkill(active);
-                  setDetail(null);
-                }}
-              >
-                {planSkillPath(character, active).message}
-              </button>
-            )}
+            <div className="cs-node-copy">
+              <strong>
+                {skillEffectOf(active)?.name ?? branchNames[active.branch]} ·{' '}
+                {rank}/{skillCap(active.tier)}
+              </strong>
+              {skillEffectOf(active) && (
+                <small>{skillEffectOf(active)!.description}</small>
+              )}
+              {rank === 0 && (
+                <small>{skillPurchases(character, active).message}</small>
+              )}
+              {rank > 0 && rank < skillCap(active.tier) && (
+                <button
+                  className="cs-rank-up"
+                  type="button"
+                  disabled={!skillPurchases(character, active).steps.length}
+                  onClick={() => onSkill(active, true)}
+                >
+                  Rank up to {rank + 1}/{skillCap(active.tier)}
+                </button>
+              )}
+              {rank > 0 && (
+                <button
+                  className="cs-refund"
+                  type="button"
+                  onClick={() => {
+                    onSkill(active);
+                    setDetail(null);
+                  }}
+                >
+                  {planSkillPath(character, active).message}
+                </button>
+              )}
+            </div>
             <button
               className="cs-tip-close"
               type="button"

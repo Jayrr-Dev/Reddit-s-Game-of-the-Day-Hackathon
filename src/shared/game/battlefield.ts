@@ -257,9 +257,15 @@ const firstOpenColumn = (
   heroes: readonly HeroUnit[],
   row: HeroRow,
   size: HeroSize,
-  backCols: readonly number[] = []
-): number | null =>
-  PREFERRED_COLUMNS[row][size].find(
+  backCols: readonly number[] = [],
+  centerBoss = false
+): number | null => {
+  const preferred = PREFERRED_COLUMNS[row][size];
+  const center = (BATTLEFIELD_COLUMNS - size) / 2;
+  const columns = centerBoss && preferred.includes(center)
+    ? [center, ...preferred.filter((col) => col !== center)]
+    : preferred;
+  return columns.find(
     (col) =>
       col + size <= BATTLEFIELD_COLUMNS &&
       isSpanOpen(heroes, row, spanOf(col, size)) &&
@@ -269,6 +275,7 @@ const firstOpenColumn = (
         backCols.flatMap((offset) => spanOf(col + offset, 1))
       )
   ) ?? null;
+};
 
 // --- FORMATION ---
 
@@ -278,14 +285,14 @@ const placeHero = (
   unit: UnplacedHero,
   entryRows?: readonly HeroRow[]
 ): HeroUnit => {
-  const { row, size, backCols } = getHero(unit.heroId);
+  const { row, size, backCols, tier } = getHero(unit.heroId);
   // A deep hero only ever stands in the front row (reaching back too).
   if (backCols?.length) {
     const col = firstOpenColumn(placed, 'front', size, backCols);
     return { ...unit, row: 'front', col: col ?? 0 };
   }
   for (const candidate of entryRows ?? rowsByNearnessTo(row)) {
-    const col = firstOpenColumn(placed, candidate, size);
+    const col = firstOpenColumn(placed, candidate, size, undefined, tier === 'boss');
     if (col !== null) return { ...unit, row: candidate, col };
   }
   // Hordes are sized to fit, so this only guards against a bad catalog.

@@ -1,0 +1,27 @@
+.apollyon-seraph-feathers {
+  filter: drop-shadow(0 0 11px #eacb8550) drop-shadow(0 0 23px #8b5bb543);
+}
+
+.apollyon-seraph-wing {
+  --wing-angle: 8deg;
+  --wing-back-angle: -6deg;
+  --wing-duration: 3s;
+  --wing-delay: 0s;
+  animation: apollyon-seraph-flap var(--wing-duration) ease-in-out var(--wing-delay) infinite;
+  transform-box: view-box;
+}
+
+.apollyon-seraph-wing--middle { --wing-angle: 10deg; --wing-back-angle: -5deg; --wing-delay: -.19s; }
+.apollyon-seraph-wing--lower { --wing-angle: 6deg; --wing-back-angle: -5deg; --wing-delay: -.4s; }
+.apollyon-seraph-wing-right { --wing-direction: -1; }
+
+@keyframes apollyon-seraph-flap {
+  0%, 100% { transform: rotate(0) scaleX(1); }
+  26% { transform: rotate(calc(var(--wing-back-angle) * var(--wing-direction, 1))) scaleX(.96); }
+  54% { transform: rotate(calc(var(--wing-angle) * var(--wing-direction, 1))) scaleX(.81); }
+  79% { transform: rotate(calc(var(--wing-back-angle) * var(--wing-direction, 1) * .45)) scaleX(.95); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apollyon-seraph-wing { animation: none; }
+}

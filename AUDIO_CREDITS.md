@@ -9,7 +9,8 @@
 - Paper UI: [BookPageShuffle by Tomoyo Ichijouji](https://freesound.org/people/Tomoyo%20Ichijouji/sounds/172304/), [Paper Shuffle and Stack by moose13088](https://freesound.org/people/moose13088/sounds/182889/), and [Paper Scrawling by jackyyang09](https://freesound.org/people/jackyyang09/sounds/476840/), CC0. Isolated and levelled for hover, buttons, card selection, skill-tree taps, and discards.
 - Ballista-style snap: [Crossbow Shot by LeMudCrab](https://freesound.org/people/LeMudCrab/sounds/163453/), CC0. Shortened and layered with the bow recording; bolt contact is a separate cue.
 - Previous Bleed bite: [Knife Stab.wav by Mixedupmoviestuff](https://freesound.org/people/Mixedupmoviestuff/sounds/179222/), CC0. Isolated the initial cabbage puncture and filtered out the low thud and tail.
-- Level-up swell: [Solaris Cinematic Texture by deadrobotmusic](https://freesound.org/people/deadrobotmusic/sounds/624698/), CC0. Shortened and filtered for the game.
+- Current level-up cue: creator-supplied level-up recording, with trailing silence trimmed and encoded as Ogg Vorbis.
+- Previous level-up swell: [Solaris Cinematic Texture by deadrobotmusic](https://freesound.org/people/deadrobotmusic/sounds/624698/), CC0. Shortened and filtered for the game.
 - Grounded contact: [Punch by danlucaz](https://freesound.org/people/danlucaz/sounds/517744/), CC0. Edited to a short, dry impact.
 - Spell blasts: [Fire Spell by qubodup](https://freesound.org/people/qubodup/sounds/442871/), [Ice Magic Arrow by lotteria001](https://freesound.org/people/lotteria001/sounds/709888/), [Thunder, Close by Fission9](https://freesound.org/people/Fission9/sounds/505113/) and rafaelzimrp's [projectile travel](https://freesound.org/people/rafaelzimrp/sounds/570854/) and [impact](https://freesound.org/people/rafaelzimrp/sounds/570855/), all CC0. Edited and levelled as separate flight and impact cues.
 - Previous Imbue shimmer: [Magic Enchantment by GammaGool](https://freesound.org/people/GammaGool/sounds/739444/), CC0. Shortened and levelled.
@@ -22,6 +23,7 @@ For all 22 exploration themes, see [Map music credits](MAP_MUSIC_CREDITS.md).
 - Current arrow impact: creator-supplied ElevenLabs clip. Trimmed leading and trailing silence, level-matched, and encoded as Ogg Vorbis.
 - Guard gain: creator-supplied ElevenLabs clip. Trimmed leading and trailing silence, level-matched, and encoded as Ogg Vorbis.
 - Armor gain: creator-supplied ElevenLabs clip. Trimmed trailing silence and encoded as Ogg Vorbis.
+- Arcane combat impact: creator-supplied ElevenLabs Magical impact, with silence trimmed and encoded as Ogg Vorbis.
 - Arcane blast, Imbue, and both buff tiers: creator-supplied Magic Blast, Buff, and buff2 clips. Trimmed silence, level-matched the buffs, and encoded as Ogg Vorbis.
 - Blunt weapon impacts: creator-supplied Heavy Blow clip. Trimmed and level-matched, with three playback rates for light, normal, and heavy impacts.
 - Lightning contact: creator-supplied lightning clip. Trimmed and level-matched for the strike; cast remains separate.
@@ -37,7 +39,9 @@ For all 22 exploration themes, see [Map music credits](MAP_MUSIC_CREDITS.md).
 - Enemy knockback against the player: creator-supplied ElevenLabs clip, trimmed and encoded as Ogg Vorbis.
 - Healing: creator-supplied ElevenLabs clip for restored HP. Trimmed, level-matched, and encoded as Ogg Vorbis.
 
-- Unit deaths: six user-supplied ElevenLabs effects, trimmed and converted to Ogg Vorbis (unit-death-1 through unit-death-6). Enemy movement uses a lower-pitched variant of the existing Backstep cue.
+- Human enemy defeat voices: [Grunts of Male Death and Pain by thebardofblasphemy](https://opengameart.org/content/grunts-male-death-and-pain) and [Female Hurt Grunts & Groans by AuraVoice](https://opengameart.org/content/female-hurt-grunts-groans), both CC0. Eight selected takes were trimmed, level-matched, and encoded as Ogg Vorbis. The six previous creator-supplied effects are retained as source assets.
+- Boss defeat voices: Holy Dragon Sol uses a slowed and filtered cue from [Monster Sound Effects Pack by Ogrebane](https://opengameart.org/content/monster-sound-effects-pack) (CC0). Grand Griffon Rio uses a shortened and pitch-lowered adaptation of the creator-supplied eagle screech, without the intro dialogue. Both are separate from their intro and landing cues.
+- Enemy movement uses a lower-pitched variant of the existing Backstep cue.
 
 - Flying boss introductions: the descent whoosh is adapted from the supplied Charge effect. Boss touchdown uses the supplied Heavy Blow clip, trimmed and converted to Ogg Vorbis (boss-touchdown-user).
 
@@ -54,3 +58,5 @@ For all 22 exploration themes, see [Map music credits](MAP_MUSIC_CREDITS.md).
 - Player character death in combat: user-supplied ElevenLabs effect (player-death-user), trimmed and converted to Ogg Vorbis. This cue is separate from the defeat screen and the human enemy death pool.
 
 - Heavenly Dive: the supplied sharp whoosh plays as Rio begins the combat dive, followed by the existing landing impact.
+
+- Conquest victory: creator-supplied ElevenLabs Dark villain victory cue, trimmed and converted to Ogg Vorbis. Plays once after a completed battle.

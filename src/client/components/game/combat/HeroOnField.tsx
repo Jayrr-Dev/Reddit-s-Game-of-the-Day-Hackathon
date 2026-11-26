@@ -151,15 +151,15 @@ const AIM_CLASS: Record<AimState, string> = {
 /** Absolute box for a hero from its row, column and size. */
 const boxStyle = (unit: HeroUnit): CSSProperties => {
   const { feet } = rowPerspective(unit.row);
-  const boss = isBoss(unit);
+  const oversized = isBoss(unit) || unit.heroId === 'apollyonSeraph';
   const depthScale = feet / rowPerspective('front').feet;
   const columnCenter = (unit.col + sizeOf(unit) / 2) / BATTLEFIELD_COLUMNS;
   const horizontalSpan = unit.row === 'horizon' ? HORIZON_SLOT_SPAN : feet;
   const span = unit.heroId === 'angelArcher' ? Math.max(horizontalSpan, 0.96) : horizontalSpan;
   const center = 0.5 + (columnCenter - 0.5) * span;
-  const columns = boss ? BOSS_DRAW_COLUMNS : sizeOf(unit);
+  const columns = oversized ? BOSS_DRAW_COLUMNS : sizeOf(unit);
   const width = (columns / BATTLEFIELD_COLUMNS) * depthScale;
-  const heightAtFeet = isDeep(unit) ? 0.82 : boss ? 0.76 : 0.58;
+  const heightAtFeet = isDeep(unit) ? 0.82 : oversized ? 0.76 : 0.58;
   return {
     left: `${100 * (center - width / 2)}%`,
     width: `${100 * width}%`,
@@ -378,7 +378,11 @@ const bodyStyleOf = (unit: HeroUnit, size: HeroSize): CSSProperties => {
   const scale = isDeep(unit) ? Math.min(rowScale, 1.2) : isBoss(unit) ? Math.min(rowScale, 1.3) : rowScale;
   const widthLimit = (isBoss(unit) ? BOSS_OVERSPILL : 1) * 100 / figureAspect(size);
   return {
-    height: `min(${100 * scale}cqh, ${widthLimit * scale}cqw)`,
+    height: unit.heroId === 'fulgurDragonknight'
+      ? 'min(149cqh, 61cqw)'
+      : unit.heroId === 'apollyonSeraph'
+      ? 'min(145cqh, 57cqw)'
+      : `min(${100 * scale}cqh, ${widthLimit * scale}cqw)`,
     aspectRatio: figureAspect(size),
   };
 };
@@ -456,7 +460,7 @@ export const HeroOnField = ({
                 style={swayStyle(unit)}
               >
                 <div
-                  className={`h-full w-full ${isDeep(unit) ? '' : ROW_TINT_CLASS[unit.row]} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
+                  className={`h-full w-full ${isDeep(unit) || unit.heroId === 'apollyonSeraph' || unit.heroId === 'lightLordMori' || unit.heroId === 'mageBorneAzula' || unit.heroId === 'grandangelCherubiel' || unit.heroId === 'zadkielOfDominations' || unit.heroId === 'mageBorneAstra' || unit.heroId === 'grandangelGeonosis' || unit.heroId === 'grandangelRaziel' || unit.heroId === 'grandangelCerviel' || unit.heroId === 'cervielBow' || (unit.heroId === 'angelArcher' && unit.row === 'back') ? '' : ROW_TINT_CLASS[unit.row]} ${focusClass} ${aim === 'legal' ? 'animate-pulse' : ''}`}
                 >
                   {/* FLINCH: re-keyed by each new hit, so it plays once per hit */}
                   <div
@@ -481,7 +485,7 @@ export const HeroOnField = ({
                 still under the finger. */}
             <div
               className="absolute inset-x-0 flex justify-center"
-              style={unit.heroId === 'angelArcher' ? { bottom: '82%' } : plateStyle(size)}
+              style={unit.heroId === 'holyKing' ? { bottom: 'calc(116% + 4px)' } : unit.heroId === 'lightLordMori' ? { bottom: 'calc(111% + 4px)' } : unit.heroId === 'fulgurDragonknight' ? { bottom: 'calc(107% + 3px)' } : unit.heroId === 'zadkielOfDominations' || unit.heroId === 'mageBorneAstra' || unit.heroId === 'grandangelCerviel' || unit.heroId === 'grandangelGeonosis' || unit.heroId === 'grandangelRaziel' ? { bottom: 'calc(120% + 4px)' } : unit.heroId === 'archangelZeruel' ? { bottom: 'calc(110% + 3px)' } : unit.heroId === 'cervielSword' || unit.heroId === 'cervielBow' ? { bottom: 'calc(98% + 3px)' } : unit.heroId === 'grandangelCherubiel' ? { bottom: 'calc(125% + 4px)' } : unit.heroId === 'mageBorneAzula' ? { bottom: 'calc(113% + 4px)' } : unit.heroId === 'angelArcher' ? { bottom: '82%' } : plateStyle(size)}
             >
               <HeroPlate unit={unit} field={field} player={player} />
             </div>

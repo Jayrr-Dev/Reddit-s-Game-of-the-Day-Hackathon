@@ -189,6 +189,9 @@ export const useHeroTurn = (
     attackType: step?.attackType ?? null,
     bossImpact: bossImpactOf(step),
     bladeStep: isBladeAttack(step) ? step : undefined,
+    lightningStep: step && !step.isCharge && step.attackType === 'magic' &&
+      step.state.heroes.some(unit => unit.uid === step.actorUid && unit.heroId === 'fulgurDragonknight')
+      ? step : undefined,
     arrowStep: step && !step.isCharge && step.attackType && step.actorUid !== null && actionOf(step, step.actorUid).style === 'range' ? step : undefined,
     element: step?.attackType === 'magic' ? step.move?.element : undefined,
     /** How many blows the attack on screen right now strikes (0: none). */

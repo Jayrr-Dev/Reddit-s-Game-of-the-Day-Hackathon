@@ -3031,3 +3031,13 @@ button[data-card-size]:enabled { cursor:pointer; }
 .tutorial-spotlight[data-side=above] span { top:calc(var(--y) - 34px); }
 .tutorial-spotlight[data-side=below] span { top:calc(var(--y) + var(--h) + 33px); }
 .tutorial-spotlight span::after { display:none; }
+
+.zeruel-sun[data-zeruel-sun='blue'] {
+  animation-delay: -1.3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zeruel-sun {
+    animation: none;
+  }
+}

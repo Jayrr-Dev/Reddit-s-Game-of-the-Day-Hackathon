@@ -29,6 +29,11 @@ export type VillainRunGameProps = {
   onAction: (action: RunAction) => void;
 };
 
+// --- AUDIO AND PACING ---
+const NEXT_WAVE_PAUSE_MS = 2000;
+// The victory clip is 3.32 s. Let it finish before an earned level-up cue.
+const LEVEL_UP_AFTER_VICTORY_MS = 3350;
+
 // --- SUBCOMPONENTS ---
 /** The body for the current phase. */
 const PhaseBody = ({ run, onAction }: VillainRunGameProps) => {
@@ -98,16 +103,39 @@ export const StoryDefeat = ({ run, onContinue }: { run: RunState; onContinue: ()
  */
 export const VillainRunGame = ({ run, onAction }: VillainRunGameProps) => {
   const [showCharacter, setShowCharacter] = useState(false);
+  const [readyWave, setReadyWave] = useState(run.stop);
   const lastPhase = useRef(run.phase.kind);
   const leveledAtReward = run.phase.kind === 'reward' && run.phase.leveledUp;
+  const startingNextWave = run.phase.kind === 'combat' && readyWave !== run.stop;
+
   useEffect(() => {
-    if (lastPhase.current !== run.phase.kind) {
-      if (run.phase.kind === 'reward') playSound(leveledAtReward ? 'levelUp' : 'reward');
-      if (run.phase.kind === 'altar') playSound('curse', .7, .6);
-      if (run.phase.kind === 'grave') playSound('grave', .62, .6);
-    }
+    const previousPhase = lastPhase.current;
     lastPhase.current = run.phase.kind;
+    if (previousPhase === run.phase.kind) return;
+    if (previousPhase === 'combat' && run.phase.kind === 'reward') {
+      playSound('victory', 1, .94);
+      if (leveledAtReward) {
+        const timer = window.setTimeout(() => playSound('levelUp'), LEVEL_UP_AFTER_VICTORY_MS);
+        return () => window.clearTimeout(timer);
+      }
+    }
+    if (run.phase.kind === 'altar') playSound('curse', .7, .6);
+    if (run.phase.kind === 'grave') playSound('grave', .62, .6);
   }, [run.phase.kind, leveledAtReward]);
+
+  useEffect(() => {
+    if (!startingNextWave) return;
+    const timer = window.setTimeout(() => setReadyWave(run.stop), NEXT_WAVE_PAUSE_MS);
+    return () => window.clearTimeout(timer);
+  }, [startingNextWave, run.stop]);
+
+  if (startingNextWave)
+    return (
+      <div className="run-board flex h-full flex-col items-center justify-center gap-2 text-center" role="status">
+        <strong>Wave {run.stop}</strong>
+        <span>{regionName(regionIndexOf(run.stop))}</span>
+      </div>
+    );
   if (run.phase.kind === 'combat')
     return (
       <div className="h-full w-full overflow-hidden">

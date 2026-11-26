@@ -35,7 +35,24 @@
 // ===================================================================
 
 import type { JSX } from 'react';
+import { IvoryWerewolf, WolfCentaur } from './WolfFigures';
+import { AngelMage } from './AngelMageFigure';
+import { ZeruelSunFigure } from './ZeruelSunFigure';
+import { ApollyonSeraph } from './ApollyonSeraphFigure';
 import ballistaArt from '../../../assets/heroes/ballista.png';
+import moriArt from '../../../assets/heroes/light-lord-mori.png';
+import azulaArt from '../../../assets/heroes/mage-borne-azula.png';
+import cherubielArt from '../../../assets/heroes/grandangel-cherubiel.png';
+import fulgurArt from '../../../assets/heroes/fulgur-dragonknight-idle.png';
+import zadkielArt from '../../../assets/heroes/zadkiel-of-dominations.png';
+import cervielStaffArt from '../../../assets/heroes/cerviel-staff.png';
+import cervielSwordArt from '../../../assets/heroes/cerviel-sword.png';
+import cervielBowArt from '../../../assets/heroes/cerviel-bow.png';
+import cambielArt from '../../../assets/heroes/grandangel-cambiel.png';
+import geonosisArt from '../../../assets/heroes/grandangel-geonosis.png';
+import razielArt from '../../../assets/heroes/grandangel-raziel.png';
+import zeruelArt from '../../../assets/heroes/archangel-zeruel.png';
+import astraArt from '../../../assets/heroes/mage-borne-astra.png';
 import type {
   CreatureId,
   HeroAction,
@@ -455,7 +472,7 @@ const ANGEL_SCLERA_RADIUS = 6;
 const ANGEL_IRIS_RADIUS = 3.6;
 const ANGEL_PUPIL_RADIUS = 1.7;
 const ANGEL_GOLD = { lit: '#d9b45a', shade: '#a88536' };
-const ANGEL_FEATHER = { lit: '#efe6cf', shade: '#c9bb98' };
+const ANGEL_FEATHER = { lit: '#fffdf8', shade: '#d8deea' };
 const ANGEL_IRIS = '#4f8fd6';
 const ANGEL_PUPIL = '#14202e';
 /**
@@ -652,16 +669,116 @@ const Ballista = () => {
   );
 };
 
+/** The original Penitent concept art, positioned to show its halo and keep the robe above the shadow. */
+const LightLordMori = () => (
+  <g className="angel-hover" data-light-lord-mori="">
+    <image href={moriArt} x={21} y={-11} width={108} height={108} />
+  </g>
+);
+
+/** The original Seven-Eyed Oracle art, positioned with the robe at the shared baseline. */
+const MageBorneAzula = () => (
+  <g data-mage-borne-azula="">
+    <image href={azulaArt} x={37} y={-12} width={76} height={114} />
+  </g>
+);
+
+/** The original many-eyed angel art, kept centered above its battlefield shadow. */
+const GrandangelCherubiel = () => (
+  <g className="angel-hover" data-grandangel-cherubiel="">
+    <image href={cherubielArt} x={15} y={-24} width={120} height={120} />
+  </g>
+);
+
+const FulgurDragonknight = () => (
+  <g className="fulgur-throw-pose">
+    <image data-fulgur-dragonknight="" href={fulgurArt} x={1} y={0} width={148} height={99} />
+    <circle data-fulgur-cast-origin="" cx={99} cy={17} r={1} fill="transparent" />
+    <g className="fulgur-hand-charge" fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M94 13 97 17 101 15 104 19 107 16 M96 21 99 19 102 23 106 21 M100 11l2 4"
+        stroke="#ffc440" strokeWidth="2" />
+      <path d="M94 13 97 17 101 15 104 19 107 16" stroke="#fff5c5" strokeWidth=".8" />
+    </g>
+  </g>
+);
+
+const ZadkielOfDominations = () => (
+  <g className="angel-hover" data-zadkiel-of-dominations="">
+    <image href={zadkielArt} x={-4} y={-14} width={158} height={111} />
+  </g>
+);
+
+const MageBorneAstra = () => (
+  <image data-mage-borne-astra="" href={astraArt} x={36} y={-15} width={78} height={117} />
+);
+
+const CERVIEL_ART = { staff: cervielStaffArt, sword: cervielSwordArt, bow: cervielBowArt };
+const CervielForm = ({ form, size }: { form: keyof typeof CERVIEL_ART; size: HeroSize }) => {
+  const half = BODY_WIDTH[size] / 2;
+  const isStaff = form === 'staff';
+  const width = isStaff ? 104 : 87;
+  const height = width * 1316 / 1195;
+  const y = 97 - height;
+  const left = half - width / 2;
+  return (
+    <g className="angel-hover" data-cerviel-form={form}>
+      <image href={CERVIEL_ART[form]} x={left} y={y} width={width} height={height} />
+      {form === 'bow' && <circle className="hero-arrow" cx={left + width * .14} cy={y + height * .337} r={1} fill="transparent" />}
+    </g>
+  );
+};
+
+const GrandangelCambiel = () => (
+  <g className="angel-hover" data-grandangel-cambiel="">
+    <image href={cambielArt} x={24} y={-7} width={102} height={103} />
+  </g>
+);
+
+const GrandangelGeonosis = () => (
+  <g className="angel-hover" data-grandangel-geonosis="">
+    <image href={geonosisArt} x={17} y={-19} width={116} height={116} />
+  </g>
+);
+
+const GrandangelRaziel = () => (
+  <g className="angel-hover" data-grandangel-raziel="">
+    <image href={razielArt} x={28} y={-20} width={94} height={117} />
+  </g>
+);
+
+const ArchangelZeruel = () => (
+  <image data-archangel-zeruel="" href={zeruelArt} x={24} y={-8} width={102} height={109} />
+);
+
 // --- CATALOG ---
 /** Each creature's drawing. */
 const CREATURE_DRAWINGS: Record<
   CreatureId,
-  (props: { mood: HeroMood }) => JSX.Element
+  (props: { mood: HeroMood; size: HeroSize }) => JSX.Element
 > = {
   holyDragon: HolyDragon,
   angelArcher: AngelArcher,
   grandGriffon: GrandGriffon,
   ballista: Ballista,
+  ivoryWerewolf: IvoryWerewolf,
+  wolfCentaur: WolfCentaur,
+  angelMage: AngelMage,
+  apollyonSeraph: ApollyonSeraph,
+  lightLordMori: LightLordMori,
+  mageBorneAzula: MageBorneAzula,
+  grandangelCherubiel: GrandangelCherubiel,
+  fulgurDragonknight: FulgurDragonknight,
+  zadkielOfDominations: ZadkielOfDominations,
+  grandangelCerviel: ({ size }) => <CervielForm form="staff" size={size} />,
+  cervielSword: ({ size }) => <CervielForm form="sword" size={size} />,
+  cervielBow: ({ size }) => <CervielForm form="bow" size={size} />,
+  grandangelCambiel: GrandangelCambiel,
+  grandangelGeonosis: GrandangelGeonosis,
+  grandangelRaziel: GrandangelRaziel,
+  archangelZeruel: ArchangelZeruel,
+  zeruelRedSun: () => <ZeruelSunFigure color="red" />,
+  zeruelBlueSun: () => <ZeruelSunFigure color="blue" />,
+  mageBorneAstra: MageBorneAstra,
 };
 
 // --- COMPONENT ---
@@ -682,7 +799,7 @@ export const CreatureFigure = ({
       data-two-handed={action?.isTwoHanded ? '' : undefined}
       aria-hidden="true"
     >
-      <Drawing mood={mood} />
+      <Drawing mood={mood} size={size} />
     </svg>
   );
 };

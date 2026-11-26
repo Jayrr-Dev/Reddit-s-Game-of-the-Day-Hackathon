@@ -1,6 +1,6 @@
 // ===================================================================
 // USE SANDBOX
-// The practice character is saved locally. Each visit starts a fresh fight.
+// The practice character is saved locally. Start a fight only after setup.
 // ===================================================================
 
 import { stockTrainingInventory } from '../../shared/game/trainingJewelry';
@@ -27,8 +27,8 @@ import type { CombatState } from '../../shared/game/types';
  */
 type SandboxState = TrainingDeckSelection & {
   character: CharacterState;
-  combat: CombatState;
-  opening: CombatState;
+  combat: CombatState | null;
+  opening: CombatState | null;
   retries: number;
   round: number;
   deck: CardId[];
@@ -59,14 +59,14 @@ const reduce = (state: SandboxState, event: SandboxEvent): SandboxState => {
   const { character, round } = state;
   const source = state.activeCustomId ? state.deck : state.deckId;
   if (event.type === 'retry') {
-    if (state.combat.player.hp > 0) return state;
+    if (!state.combat || !state.opening || state.combat.player.hp > 0) return state;
     const combat = retryTrainingFight(state.opening, character);
     return { ...state, combat, retries: state.retries + 1 };
   }
   if (event.type === 'reshuffle' || event.type === 'summon') {
     const combat = event.type === 'reshuffle' ? createSandbox(event.seed, source, character.traits, character.equipment, character.traitNodes)
       : createSandboxWith(event.seed, event.heroIds, event.startsInPlace, source, character.traits, character.equipment, character.traitNodes);
-    return { ...state, combat, opening: combat, round: round + 1 };
+    return { ...state, combat, opening: combat, round: state.combat ? round + 1 : round };
   }
   if (event.type === 'deck' || event.type === 'custom' || event.type === 'saveDeck') {
     let selection: TrainingDeckSelection;
@@ -79,6 +79,7 @@ const reduce = (state: SandboxState, event: SandboxEvent): SandboxState => {
       if (selection === state) return state;
     }
     const chosen = activeTrainingCards(selection);
+    if (!state.combat) return { ...state, ...selection, deck: chosen };
     const heroes = state.combat.heroes.map(unit => unit.heroId);
     const combat = createSandboxWith(event.seed, heroes, false, selection.activeCustomId ? chosen : selection.deckId, character.traits, character.equipment, character.traitNodes);
     return { ...state, ...selection, deck: chosen, combat, opening: combat, round: round + 1 };
@@ -86,7 +87,7 @@ const reduce = (state: SandboxState, event: SandboxEvent): SandboxState => {
   const credited = character.highestVigor ?? character.traits.vigor;
   if (event.type === 'respec') {
     const next = { ...character, highestVigor: credited, traits: createCharacter().traits, traitNodes: {} };
-    return { ...state, character: next, combat: syncCharacterCombat(state.combat, next, credited, undefined, character.highestVigorHp) };
+    return { ...state, character: next, combat: state.combat && syncCharacterCombat(state.combat, next, credited, undefined, character.highestVigorHp) };
   }
   const { action } = event;
   if (action.type === 'buySkill' || action.type === 'skillPath') {
@@ -98,14 +99,14 @@ const reduce = (state: SandboxState, event: SandboxEvent): SandboxState => {
     const next = applyCharacterAction(character, action);
     return next === character ? state : {
       ...state, character: next,
-      combat: syncCharacterCombat(state.combat, next, credited, undefined, character.highestVigorHp),
+      combat: state.combat && syncCharacterCombat(state.combat, next, credited, undefined, character.highestVigorHp),
     };
   }
   const isCombatInput =
     action.type === 'playCard' ||
     action.type === 'endTurn' ||
     action.type === 'move';
-  if (!isCombatInput) return state;
+  if (!isCombatInput || !state.combat) return state;
   const { combat } = stepSandbox(state.combat, action);
   return combat === state.combat ? state : { ...state, combat };
 };
@@ -127,8 +128,7 @@ const startPractice = (): SandboxState => {
   try { selection = restoreTrainingDecks(JSON.parse(localStorage.getItem(DECK_SAVE_KEY) ?? 'null')); }
   catch { /* Practice also works without browser storage. */ }
   const deck = activeTrainingCards(selection);
-  const combat = createSandbox(freshSeed(), selection.activeCustomId ? deck : selection.deckId, character.traits, character.equipment, character.traitNodes);
-  return { ...selection, character, deck, combat, opening: combat, round: 0, retries: 0 };
+  return { ...selection, character, deck, combat: null, opening: null, round: 0, retries: 0 };
 };
 
 // --- HOOK ---
