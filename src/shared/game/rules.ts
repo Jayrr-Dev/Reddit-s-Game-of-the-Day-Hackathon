@@ -14,7 +14,7 @@ import type {
 } from './types.ts';
 
 // --- THE VILLAIN ---
-export const PLAYER_MAX_HP = 66;
+export const PLAYER_MAX_HP = 333;
 export const PLAYER_HP_CAP = 666;
 export const ENERGY_PER_TURN = 3;
 /**

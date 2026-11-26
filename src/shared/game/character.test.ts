@@ -23,6 +23,7 @@ import {
 } from './character.ts';
 import { createSandbox } from './sandbox.ts';
 import { createRun, isRunAction, replayRun, runReducer } from './run.ts';
+import { PLAYER_MAX_HP } from './rules.ts';
 
 void test('70 levels fund 210 points while each of six traits caps at 64', () => {
   let character = createCharacter();
@@ -312,10 +313,10 @@ void test('refunding a chosen HP node and purchasing it again does not heal woun
   const start = createRun('nonlinear-hp');
   const purchase = { type: 'setTraitNode' as const, trait: 'vigor' as const, node: 1, owned: true };
   const trained = runReducer(start, purchase);
-  const max = 66 + (traitNodeGains('vigor', 1).maxHp ?? 0);
+  const max = PLAYER_MAX_HP + (traitNodeGains('vigor', 1).maxHp ?? 0);
   assert.equal(trained.maxHp, max);
   const refunded = runReducer({ ...trained, hp: 1 }, { ...purchase, owned: false });
-  assert.equal(refunded.maxHp, 66);
+  assert.equal(refunded.maxHp, PLAYER_MAX_HP);
   const rebuilt = runReducer(refunded, purchase);
   assert.equal(rebuilt.hp, 1);
   assert.equal(rebuilt.maxHp, max);
