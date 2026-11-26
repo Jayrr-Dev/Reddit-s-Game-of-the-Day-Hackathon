@@ -96,6 +96,44 @@ const BadgeContent = ({
   </>
 );
 
+// --- ARROW SEGMENTS ---
+/** Where a segment sits in its arrow; it decides the segment's padding. */
+type SegmentPosition = 'only' | 'first' | 'middle' | 'last';
+
+/**
+ * PADDING PER POSITION: the point side leaves room for the arrowhead,
+ * the flat side closes the badge, and inner edges sit on a divider.
+ */
+const SEGMENT_PADDING: Record<SegmentPosition, string> = {
+  only: 'pl-[8px] pr-1.5',
+  first: 'pl-[8px] pr-1',
+  middle: 'border-l border-black/40 pl-1 pr-1',
+  last: 'border-l border-black/40 pl-1 pr-1.5',
+};
+
+/**
+ * One coloured part of an arrow (its lead effect or a follow-up). Each
+ * segment paints its own padding, right to the badge's edges, so a
+ * part's colour never shows behind another (the lead's blue used to
+ * peek out past a red follow-up on the flat end).
+ */
+const ArrowSegment = ({ fill, position, children }: {
+  fill: string;
+  position: SegmentPosition;
+  children: ReactNode;
+}) => (
+  <span
+    className={`inline-flex items-center gap-0.5 py-px ${SEGMENT_PADDING[position]}`}
+    style={{ backgroundColor: fill }}
+  >
+    {children}
+  </span>
+);
+
+/** The lead segment's colour: the given fill, else the tone's own colour. */
+const leadFillOf = (fill: string | undefined, glyph: GlyphName, toneClass: string): string =>
+  fill ?? toneVarOf({ glyph, toneClass });
+
 /** Renders one badge, with its tooltip when it has `info`. */
 export const Chip = ({ info, ...badge }: ChipProps) =>
   info ? (
@@ -135,19 +173,21 @@ const Badge = ({
       className={`group/intent inline-flex bg-black p-px focus-visible:bg-accent ${ARROW_CLIP}`}
       tabIndex={hoverText || extras.some(part => part.hoverText) ? 0 : undefined}
     >
-      <span
-        className={`inline-flex items-center gap-0.5 py-px pl-[8px] pr-1.5 text-[11px] font-bold text-black ${ARROW_CLIP}`}
-        style={{ backgroundColor: fill ?? toneVarOf({ glyph, toneClass }) }}
-      >
-        <BadgeContent glyph={glyph} text={text} hoverText={hoverText} iconClass="" />
+      <span className={`inline-flex items-stretch text-[11px] font-bold text-black ${ARROW_CLIP}`}>
+        <ArrowSegment
+          fill={leadFillOf(fill, glyph, toneClass)}
+          position={extras.length ? 'first' : 'only'}
+        >
+          <BadgeContent glyph={glyph} text={text} hoverText={hoverText} iconClass="" />
+        </ArrowSegment>
         {extras.map((part, index) => (
-          <span
+          <ArrowSegment
             key={`${part.glyph}-${index}`}
-            style={part.fill ? { backgroundColor: part.fill } : undefined}
-            className="ml-0.5 inline-flex items-center gap-0.5 border-l border-black/40 pl-1"
+            fill={part.fill ?? leadFillOf(fill, glyph, toneClass)}
+            position={index === extras.length - 1 ? 'last' : 'middle'}
           >
             <BadgeContent glyph={part.glyph} text={part.text} hoverText={part.hoverText} iconClass="" />
-          </span>
+          </ArrowSegment>
         ))}
       </span>
     </span>
