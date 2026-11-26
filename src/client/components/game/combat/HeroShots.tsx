@@ -49,7 +49,7 @@ const shotPath = (
 ): { from: Point; to: Point } | null => {
   const hero = document.querySelector(`[${HERO_UID_ATTR}="${uid}"]`);
   const from =
-    centreOf(hero?.querySelector(kind === 'lightning' ? '[data-fulgur-cast-origin]' : '[data-woodland-arrow-origin], .hero-arrow') ?? null) ?? centreOf(hero);
+    centreOf(hero?.querySelector(kind === 'lightning' ? '[data-fulgur-cast-origin]' : '[data-archer-arrow-origin], .hero-arrow') ?? null) ?? centreOf(hero);
   const centre = centreOf(document.querySelector(`[${POV_ANCHOR_ATTR}]`));
   if (!from || !centre) return null;
   const to = {

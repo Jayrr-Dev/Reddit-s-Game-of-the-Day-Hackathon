@@ -23,6 +23,12 @@
   top: 32%;
 }
 
+.woodland-archer[data-archer-sprite='wingedArcher'] { aspect-ratio: 132 / 146; }
+.woodland-archer[data-archer-sprite='wingedArcher'] .woodland-arrow-origin {
+  left: 45%;
+  top: 42%;
+}
+
 @keyframes woodland-archer-shot {
   from { background-position-x: 0%; }
   to { background-position-x: 100%; }

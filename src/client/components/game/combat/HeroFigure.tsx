@@ -42,7 +42,7 @@ import {
 import { CreatureFigure } from './CreatureFigure';
 import { HeroFace } from './HeroFace';
 import { HolyKingFigure } from './HolyKingFigure';
-import { WoodlandArcherFigure } from './WoodlandArcherFigure';
+import { ArcherSprite } from './ArcherSprite';
 
 // --- TYPES ---
 export type HeroFigureProps = {
@@ -1552,8 +1552,8 @@ const HumanoidFigure = ({
  */
 export const HeroFigure = (props: HeroFigureProps) => {
   const { heroId } = props;
-  if (heroId === 'archer' || heroId === 'lysa') {
-    return <div className="relative size-full"><WoodlandArcherFigure crownedArcher={heroId === 'lysa'} action={props.action ?? null} /></div>;
+  if (heroId === 'archer' || heroId === 'lysa' || heroId === 'wingedArcher') {
+    return <div className="relative size-full"><ArcherSprite heroId={heroId} action={props.action ?? null} /></div>;
   }
   if (heroId === 'holyKing') return <HolyKingFigure {...props} />;
   return isCreature(heroId) ? (
