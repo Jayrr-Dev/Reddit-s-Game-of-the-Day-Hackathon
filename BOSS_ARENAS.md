@@ -1,22 +1,22 @@
 # Villain Run boss arenas
 
-A listed encounter loads its arena and bespoke score by boss ID. Unlisted encounters retain their existing regional map and boss music. The arena stays in place if support enemies outlive the boss.
+A listed encounter loads its arena by boss ID. Unlisted encounters retain their existing regional map. Every boss fight plays the original boss theme, Army of Minotaur (see AUDIO_CREDITS.md). The arena stays in place if support enemies outlive the boss.
 
-| Encounter ID | Arena | Battle theme |
-|---|---|---|
-| archangelZeruel | Twin Eclipse Citadel | Twin Eclipse |
-| fulgurDragonknight | Thunderbreak Roost | Storm-Roost Ascendant |
-| grandangelCerviel | Threefold Sanctum | Threefold Sanctum |
-| lightLordMori | Penitent Court | Gilded Rampart |
-| mageBorneAzula | Astral Archive | Azure Crucible |
-| grandangelCherubiel | Constellation Vault | Wheels of Fire |
-| zadkielOfDominations | Dominion Hall | Ivory Tribunal |
-| mageBorneAstra | Silent Cloister | Silent Orrery |
-| grandangelCambiel | Gilded Eclipse | Gloam Vault |
-| grandangelGeonosis | Glacier Chapel | Whitefall |
-| grandangelRaziel | Veiled Scriptorium | Eightfold Revelation |
-| holyDragon | Sunspire Aerie | Sanctuary Wings |
-| tempestWyrm | Thunder Gorge | Thunderhead |
-| holyKing | Crown Basilica | The Last Crown |
+| Encounter ID | Arena |
+|---|---|
+| archangelZeruel | Twin Eclipse Citadel |
+| fulgurDragonknight | Thunderbreak Roost |
+| grandangelCerviel | Threefold Sanctum |
+| lightLordMori | Penitent Court |
+| mageBorneAzula | Astral Archive |
+| grandangelCherubiel | Constellation Vault |
+| zadkielOfDominations | Dominion Hall |
+| mageBorneAstra | Silent Cloister |
+| grandangelCambiel | Gilded Eclipse |
+| grandangelGeonosis | Glacier Chapel |
+| grandangelRaziel | Veiled Scriptorium |
+| holyDragon | Sunspire Aerie |
+| tempestWyrm | Thunder Gorge |
+| holyKing | Crown Basilica |
 
-The Villain Run Original Score tracks are synthesized original compositions with no external samples. They are gapless looping stereo Ogg Vorbis; map ambience and music volume are controlled separately.
+Map ambience and music volume are controlled separately.

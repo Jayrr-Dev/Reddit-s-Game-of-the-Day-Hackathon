@@ -40,7 +40,6 @@ export type MapAudioOptions = {
   mapId: string;
   active: boolean;
   bossActive: boolean;
-  bossScoreUrl?: string | undefined;
   bossAmbience?: BossArenaAmbience | undefined;
   alternateBattle?: boolean;
   musicVolume: number;
@@ -195,7 +194,7 @@ function syncLayer(layer: Layer, url: string, level: number, currentLevel: () =>
 const volume = (value: number) => Math.max(0, Math.min(1, value)) ** 2;
 
 export function useMapAudio(options: MapAudioOptions) {
-  const { mapId, active, bossActive, bossScoreUrl, bossAmbience, alternateBattle = false, musicVolume, sfxVolume } = options;
+  const { mapId, active, bossActive, bossAmbience, alternateBattle = false, musicVolume, sfxVolume } = options;
   const latest = useRef(options);
   const layers = useRef<{ ambience: Layer; music: Layer }>({ ambience: { fading: new Set() }, music: { fading: new Set() } });
   const syncRef = useRef<() => void>(() => {});
@@ -214,9 +213,8 @@ export function useMapAudio(options: MapAudioOptions) {
       const [mapAmbience, mapScore] = scenes[opts.mapId] ?? [wild, wander];
       const ambienceUrl = opts.bossAmbience ? bossAmbiences[opts.bossAmbience] : mapAmbience;
       syncLayer(ambience, ambienceUrl, level('ambience'), () => level('ambience'));
-      const score = opts.bossActive
-        ? opts.bossScoreUrl ?? boss
-        : opts.alternateBattle ? battleOrchestral : mapScore;
+      // Every boss shares the original boss theme (Army of Minotaur).
+      const score = opts.bossActive ? boss : opts.alternateBattle ? battleOrchestral : mapScore;
       syncLayer(music, score, level('music'), () => level('music'));
     };
     syncRef.current = sync;
@@ -233,7 +231,7 @@ export function useMapAudio(options: MapAudioOptions) {
   }, []);
 
   useEffect(() => {
-    latest.current = { mapId, active, bossActive, bossScoreUrl, bossAmbience, alternateBattle, musicVolume, sfxVolume };
+    latest.current = { mapId, active, bossActive, bossAmbience, alternateBattle, musicVolume, sfxVolume };
     syncRef.current();
-  }, [mapId, active, bossActive, bossScoreUrl, bossAmbience, alternateBattle, musicVolume, sfxVolume]);
+  }, [mapId, active, bossActive, bossAmbience, alternateBattle, musicVolume, sfxVolume]);
 }
