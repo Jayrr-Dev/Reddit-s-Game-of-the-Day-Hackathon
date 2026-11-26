@@ -310,27 +310,32 @@ export function SkillTree({
               {rank < skillCap(active.tier) && skillPurchases(character, active).steps.length > 0 && (
                 <small>Click again to spend a point</small>
               )}
-              {rank > 0 && rank < skillCap(active.tier) && (
-                <button
-                  className="cs-rank-up"
-                  type="button"
-                  disabled={!skillPurchases(character, active).steps.length}
-                  onClick={() => onSkill(active, true)}
-                >
-                  Rank up to {rank + 1}/{skillCap(active.tier)}
-                </button>
-              )}
+              {/* ACTIONS: small text buttons in one row; full wording lives in the tooltip/label. */}
               {rank > 0 && (
-                <button
-                  className="cs-refund"
-                  type="button"
-                  onClick={() => {
-                    onSkill(active);
-                    setDetail(null);
-                  }}
-                >
-                  {planSkillPath(character, active).message}
-                </button>
+                <div className="cs-node-actions">
+                  {rank < skillCap(active.tier) && skillPurchases(character, active).steps.length > 0 && (
+                    <button
+                      className="cs-rank-up"
+                      type="button"
+                      title={`Rank up to ${rank + 1}/${skillCap(active.tier)}`}
+                      onClick={() => onSkill(active, true)}
+                    >
+                      Rank up
+                    </button>
+                  )}
+                  <button
+                    className="cs-refund"
+                    type="button"
+                    title={planSkillPath(character, active).message}
+                    aria-label={planSkillPath(character, active).message}
+                    onClick={() => {
+                      onSkill(active);
+                      setDetail(null);
+                    }}
+                  >
+                    Refund
+                  </button>
+                </div>
               )}
             </div>
             <button
