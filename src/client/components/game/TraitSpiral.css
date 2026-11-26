@@ -13,11 +13,7 @@
   top: 8px;
   right: 10px;
   z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  gap: .25rem;
 }
-.trait-save svg { width: .8rem; height: .8rem; }
 /* SAVED NODES: a darker gold ring marks circles only a respec can refund. */
 .trait-spiral-node[data-saved='true'] .trait-spiral-disc { box-shadow: 0 0 0 2px #7a5420; }
 .trait-spiral-title {

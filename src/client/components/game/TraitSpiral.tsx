@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type K
 import { nameTraitNodes } from '../../content/traitNodeNames';
 import { createPortal } from 'react-dom';
 import { characterBonuses, TRAIT_CAP, TRAIT_LABELS, traitNodeIds, traitNodeWeight, traitNodeGains, traitNodeArms, traitPointsAvailable, isTraitNodeSaved, unsavedTraitNodeCount, type CharacterState, type TraitId } from '../../../shared/game/character';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { Glyph, type GlyphName } from '../ui/Glyph';
 import '../../semanticStats.css';
 import './TraitSpiral.css';
@@ -97,15 +98,23 @@ function arrangeRewards(rewards: Reward[], trait: TraitId, diameters: number[]) 
 }
 
 // --- SAVE TRAITS BUTTON ---
-/** Top-right of the canvas: locks every spent node in; shows Saved once nothing is new. */
+/** Top-right of the canvas: asks first, then locks every spent node in; shows Saved once nothing is new. */
 const SaveTraitsButton = ({ unsaved, onSave }: { unsaved: number; onSave: () => void }) => {
+  const [isConfirming, setIsConfirming] = useState(false);
   const isAllSaved = unsaved === 0;
+  const points = unsaved + (unsaved === 1 ? ' point' : ' points');
   return (
-    <button type="button" className="cs-respec trait-save" disabled={isAllSaved} onClick={onSave}
-      title={isAllSaved ? 'Your traits are saved. Respec to change them.' : 'Lock in ' + unsaved + (unsaved === 1 ? ' point' : ' points') + '. Only a respec can undo this.'}>
-      <Glyph name="padlock" />
-      {isAllSaved ? 'Saved' : 'Save traits'}
-    </button>
+    <>
+      <button type="button" className="cs-respec trait-save" disabled={isAllSaved} onClick={() => setIsConfirming(true)}>
+        {isAllSaved ? 'Saved' : 'Save'}
+      </button>
+      {isConfirming && (
+        <ConfirmDialog title="Save traits?" confirmLabel="Save" cancelLabel="Cancel"
+          onConfirm={() => { setIsConfirming(false); onSave(); }} onCancel={() => setIsConfirming(false)}>
+          This locks in {points}. You can only change saved traits with a respec.
+        </ConfirmDialog>
+      )}
+    </>
   );
 };
 
