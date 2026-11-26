@@ -85,7 +85,7 @@ const BOSS_ENTRANCES: Partial<Record<HeroId, BossEntrance>> = {
   angelAssassin: { epithet: 'Blade Behind the Veil', line: 'One shadow is all I need.' },
   twinAxeKnight: { epithet: 'The Gilded Headsman', line: 'I bring a verdict with both hands.' },
   archangelUriel: { epithet: 'Warden of the Crimson Gate', line: 'Stand before the flame and be weighed.' },
-  zeruelArmored: { epithet: 'The Ivory Eclipse', line: 'The two suns bear witness.' },
+  zeruelArmored: { epithet: 'The Ivory Eclipse', line: 'The eclipse needs no witness.' },
   sloth: { epithet: 'The Unmoving', line: 'All your fury, and the mountain has not moved.' },
   pride: { epithet: 'The Fallen Sovereign', line: 'Look up. You stand before a sovereign.' },
   lust: { epithet: 'The Veiled Apparition', line: 'Tell me what you want. Leave out the lies.' },

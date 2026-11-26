@@ -12,9 +12,6 @@ void test('The four approved boss designs are selectable in Training', () => {
     const boss = field.heroes.find(unit => unit.heroId === id);
     assert.ok(boss);
     assert.deepEqual([boss.row,boss.col],['front',1]);
-    if (id === 'zeruelArmored') {
-      assert.deepEqual(field.heroes.slice(1).map(unit => [getHero(unit.heroId).name,unit.row,unit.col]),
-        [['Alpha','back',0],['Omega','back',2]]);
-    }
+    if (id === 'zeruelArmored') assert.equal(field.heroes.length, 1, 'Armored Zeruel fights alone');
   }
 });

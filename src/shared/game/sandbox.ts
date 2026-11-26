@@ -274,8 +274,8 @@ export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
   {
     id: 'zeruelArmored',
     name: getHero('zeruelArmored').name,
-    blurb: 'The alternate armored Zeruel with red Alpha and blue Omega behind him.',
-    heroIds: ['zeruelArmored', 'zeruelRedSun', 'zeruelBlueSun'],
+    blurb: 'The alternate armored Zeruel, fought alone.',
+    heroIds: ['zeruelArmored'],
     startsInPlace: true,
   },
   {
@@ -588,9 +588,9 @@ export const createSandboxWith = (
 const walkHome = (heroes: HeroUnit[]): HeroUnit[] =>
   BATTLEFIELD_ROWS.reduce((field) => advanceHeroes(field), heroes);
 
-/** Both Zeruel encounters share Alpha and Omega on the back flanks. */
+/** Archangel Zeruel keeps Alpha and Omega on the back flanks. */
 const setZeruelFormation = (heroes: HeroUnit[]): HeroUnit[] => {
-  if (!heroes.some(({ heroId }) => heroId === 'archangelZeruel' || heroId === 'zeruelArmored')) return heroes;
+  if (!heroes.some(({ heroId }) => heroId === 'archangelZeruel')) return heroes;
   return heroes.map(unit => unit.heroId === 'zeruelRedSun' ? { ...unit, row: 'back', col: 0 }
     : unit.heroId === 'zeruelBlueSun' ? { ...unit, row: 'back', col: 2 } : unit);
 };
