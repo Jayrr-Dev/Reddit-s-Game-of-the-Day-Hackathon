@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { getHero } from '../../../../shared/game/heroes';
 import type { HeroUnit } from '../../../../shared/game/types';
 import { BOSS_ENTRANCE_MS, BOSS_LANDING_MS, bossEntranceOf } from '../../../content/bossEntrances';
+import { bossIntroOf } from '../../../content/bossIntros';
 
 import { playSound } from '../../../lib/gameAudio';
 
@@ -17,7 +18,8 @@ export const BossEntrance = ({
   boss: HeroUnit;
   onSkip: () => void;
 }) => {
-  const { epithet, line, arrival, voice, durationMs = BOSS_ENTRANCE_MS, landingMs = BOSS_LANDING_MS } = bossEntranceOf(boss.heroId);
+  const { hasFallSounds } = bossIntroOf(boss.heroId);
+  const { epithet, line, voice, durationMs = BOSS_ENTRANCE_MS, landingMs = BOSS_LANDING_MS } = bossEntranceOf(boss.heroId);
   const voiceStartMs = landingMs + VOICE_AFTER_LANDING_MS;
   const introRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -34,7 +36,7 @@ export const BossEntrance = ({
     };
   }, [boss.uid, voice, voiceStartMs]);
   useEffect(() => {
-    if (arrival !== 'descend') return;
+    if (!hasFallSounds) return;
     const cue = (name: 'bossDescent' | 'bossTouchdown', gain: number) => {
       if (introRef.current && !introRef.current.closest('[inert]')) playSound(name, 1, gain);
     };
@@ -59,7 +61,7 @@ export const BossEntrance = ({
       window.clearTimeout(whoosh);
       window.clearTimeout(fallback);
     };
-  }, [arrival, boss.uid, landingMs]);
+  }, [hasFallSounds, boss.uid, landingMs]);
   return (
     <button
       ref={introRef}

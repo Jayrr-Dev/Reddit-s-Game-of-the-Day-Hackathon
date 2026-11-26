@@ -40,7 +40,7 @@ import {
   type HeroAction,
   type HeroActionStyle,
 } from '../../../content/heroLooks';
-import { bossEntranceOf } from '../../../content/bossEntrances';
+import { bossIntroIdOf } from '../../../content/bossIntros';
 import { figureAspect, headTopShare } from '../../../lib/heroFigure';
 import { moodOf } from '../../../lib/heroMood';
 import { seeded } from '../../../lib/seeded';
@@ -475,9 +475,7 @@ export const HeroOnField = ({
           climbs, the shadow stays on its spot and shrinks. */}
       <div
         className="unit-stage relative h-full w-full [container-type:size]"
-        data-arrival={
-          isBoss(unit) ? bossEntranceOf(unit.heroId).arrival : undefined
-        }
+        data-boss-intro={isBoss(unit) ? bossIntroIdOf(unit.heroId) : undefined}
       >
         <GroundShadow
           unit={unit}
