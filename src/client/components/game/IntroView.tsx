@@ -54,6 +54,25 @@ const SHOW_PRACTICE = true;
 /** Which sheet (if any) covers the menu. */
 type Sheet = 'profile' | 'none' | 'tutorial' | 'rules' | 'board' | 'shop';
 
+/**
+ * HOME BADGE TOOLTIPS: what each corner counter means, in plain words,
+ * shown on hover (or a long press on a phone).
+ */
+const STAT_BADGE_INFO = {
+  bestStreak: {
+    title: 'Best streak',
+    description: 'Your longest run of days in a row with a finished run.',
+  },
+  streak: {
+    title: 'Streak',
+    description: 'Days in a row you have finished a run. Finish one tomorrow to keep it going.',
+  },
+  todaysBest: {
+    title: "Today's best",
+    description: 'Your best score today. You score for every wave cleared, hero slain and region conquered.',
+  },
+} as const satisfies Record<string, { title: string; description: string }>;
+
 // --- HELPERS ---
 /** Explains whether the next run counts for the leaderboard; null hides the note. */
 const rankedNote = (data: InitResponse, canResume: boolean): string | null => {
@@ -66,19 +85,19 @@ const rankedNote = (data: InitResponse, canResume: boolean): string | null => {
 };
 
 // --- SUBCOMPONENTS ---
-/** A round stat badge: an icon with a number, for the corners and rail. */
+/** A round stat badge: an icon with a number, explained on hover. */
 const StatBadge = ({
   glyph,
   value,
-  label,
+  info,
 }: {
   glyph: GlyphName;
   value: string | number;
-  label: string;
+  info: { title: string; description: string };
 }) => (
-  <Tooltip content={{ title: label }}>
+  <Tooltip content={info}>
     <div
-      aria-label={`${label}: ${value}`}
+      aria-label={`${info.title}: ${value}`}
       className="flex items-center gap-1 rounded-full bg-surface-sunken/85 py-1 pl-1.5 pr-2.5 text-xs font-bold text-ink ring-1 ring-accent/50"
     >
       <Glyph name={glyph} className="size-4 text-accent" />
@@ -118,20 +137,22 @@ const Hero = ({ data }: { data: InitResponse }) => (
       <p className="pl-1 text-[10px] font-semibold text-ink-muted">
         {formatDailyKey(data.dailyKey)}
       </p>
-      <StatBadge glyph="crown" value={data.streak.best} label="Best streak" />
+      <StatBadge glyph="crown" value={data.streak.best} info={STAT_BADGE_INFO.bestStreak} />
     </div>
     <div className="absolute right-2 top-2 flex flex-col items-end gap-1.5">
-      <StatBadge glyph="flame" value={data.streak.current} label="Streak" />
+      <StatBadge glyph="flame" value={data.streak.current} info={STAT_BADGE_INFO.streak} />
       <StatBadge
         glyph="skull"
         value={data.bestScoreToday ?? '–'}
-        label="Today's best"
+        info={STAT_BADGE_INFO.todaysBest}
       />
     </div>
     {/* LOGO: centred in the sky, above the villain on the ridge. A wide
         post crops the sky, which lifts the villain, so the logo rides
-        higher there (@xl) to keep the tagline off his hood. */}
-    <div className="absolute inset-x-0 top-[12%] bottom-[45%] flex @xl:top-[3%] @xl:bottom-[54%] items-center justify-center">
+        higher there (@xl) to keep the tagline off his hood. The layer
+        ignores the pointer: it spans the full width and used to sit over
+        the corner badges, so their tooltips never opened. */}
+    <div className="pointer-events-none absolute inset-x-0 top-[12%] bottom-[45%] flex @xl:top-[3%] @xl:bottom-[54%] items-center justify-center">
       <Logo />
     </div>
   </div>
