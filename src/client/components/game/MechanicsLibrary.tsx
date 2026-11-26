@@ -28,6 +28,7 @@ export const MechanicsLibrary = ({ onClose }: { onClose: () => void }) => {
   return (
     <ModalDialog
       title="Mechanics"
+      isWide
       header={<TabBar ids={MECHANICS_TABS} labels={MECHANICS_TAB_LABEL} tab={tab} onTab={setTab} />}
       onDismiss={onClose}
       actions={

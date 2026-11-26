@@ -26,11 +26,17 @@ type ModalDialogProps = {
   /** The button row under the body. */
   actions: ReactNode;
   onDismiss: () => void;
+  /** A wider sheet for reading lists (the Mechanics library). */
+  isWide?: boolean;
 };
+
+// The standard and wide sheet widths (both keep a gutter on phones).
+const WIDTH_CLASS = 'w-[min(22rem,calc(100%-1.5rem))]';
+const WIDE_WIDTH_CLASS = 'w-[min(40rem,calc(100%-1.5rem))]';
 
 // --- COMPONENT ---
 /** Renders an open modal with a title, a body and a row of actions. */
-export const ModalDialog = ({ title, subtitle, header, children, actions, onDismiss }: ModalDialogProps) => {
+export const ModalDialog = ({ title, subtitle, header, children, actions, onDismiss, isWide = false }: ModalDialogProps) => {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -45,7 +51,7 @@ export const ModalDialog = ({ title, subtitle, header, children, actions, onDism
     <dialog
       ref={dialog}
       aria-labelledby={titleId}
-      className={MODAL_DIALOG_CLASSES + ' open:flex open:flex-col'}
+      className={(isWide ? MODAL_DIALOG_CLASSES.replace(WIDTH_CLASS, WIDE_WIDTH_CLASS) : MODAL_DIALOG_CLASSES) + ' open:flex open:flex-col'}
       onCancel={event => { event.preventDefault(); onDismiss(); }}
       onClick={event => { if (event.target === event.currentTarget) onDismiss(); }}
     >

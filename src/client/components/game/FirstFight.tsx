@@ -62,57 +62,63 @@ export function FirstFight({
         complete={complete}
       />
     );
+  // The library renders beside <main>, not inside it, so the
+  // .lesson-book header/footer rules can't restyle the dialog's own.
   return (
-    <main className="lesson-book">
-      <header>
-        <h1>How to play</h1>
-        <span>
-          {done.length} / {lessons.length} complete
-        </span>
-      </header>
-      <section className="lesson-grid" aria-label="Training lessons">
-        {lessons.map((lesson, i) => {
-          const checked = done.includes(lesson.id);
-          return (
-            <button
-              key={lesson.id}
-              className="lesson-card"
-              type="button"
-              onClick={() => select(i)}
-              aria-label={
-                lesson.title +
-                (checked ? ', completed. Replay lesson' : ', start lesson')
-              }
-            >
-              <div className="lesson-art">
-                <ProgressiveImg src={lesson.art} alt="" />
-                {checked && (
-                  <span className="lesson-check" aria-hidden="true">
-                    &#10003;
-                  </span>
-                )}
-              </div>
-              <div className="lesson-caption">
-                <strong>{lesson.title}</strong>
-                <span>{lesson.summary}</span>
-              </div>
-            </button>
-          );
-        })}
-      </section>
-      <footer>
-        <Button variant="menu" onClick={onExit}>
-          Main menu
-        </Button>
-        <Button variant="menu" onClick={() => setLibraryOpen(true)}>
-          Mechanics
-        </Button>
-        <Button variant="menu" onClick={onRules}>
-          Combat rules
-        </Button>
-      </footer>
-      {isLibraryOpen && <MechanicsLibrary onClose={() => setLibraryOpen(false)} />}
-    </main>
+    <>
+      <main className="lesson-book">
+        <header>
+          <h1>How to play</h1>
+          <span>
+            {done.length} / {lessons.length} complete
+          </span>
+        </header>
+        <section className="lesson-grid" aria-label="Training lessons">
+          {lessons.map((lesson, i) => {
+            const checked = done.includes(lesson.id);
+            return (
+              <button
+                key={lesson.id}
+                className="lesson-card"
+                type="button"
+                onClick={() => select(i)}
+                aria-label={
+                  lesson.title +
+                  (checked ? ', completed. Replay lesson' : ', start lesson')
+                }
+              >
+                <div className="lesson-art">
+                  <ProgressiveImg src={lesson.art} alt="" />
+                  {checked && (
+                    <span className="lesson-check" aria-hidden="true">
+                      &#10003;
+                    </span>
+                  )}
+                </div>
+                <div className="lesson-caption">
+                  <strong>{lesson.title}</strong>
+                  <span>{lesson.summary}</span>
+                </div>
+              </button>
+            );
+          })}
+        </section>
+        <footer>
+          <Button variant="menu" onClick={onExit}>
+            Main menu
+          </Button>
+          <Button variant="menu" onClick={() => setLibraryOpen(true)}>
+            Mechanics
+          </Button>
+          <Button variant="menu" onClick={onRules}>
+            Combat rules
+          </Button>
+        </footer>
+      </main>
+      {isLibraryOpen && (
+        <MechanicsLibrary onClose={() => setLibraryOpen(false)} />
+      )}
+    </>
   );
 }
 function LessonFight({
@@ -154,7 +160,9 @@ function LessonFight({
   const step = lesson.steps[stepIndex];
   const outcome = combatOutcome(combat);
   const levelUp = index === 0 && outcome === 'won';
-  useEffect(() => { if (levelUp) playSound('levelUp'); }, [levelUp]);
+  useEffect(() => {
+    if (levelUp) playSound('levelUp');
+  }, [levelUp]);
   const [budgetAtLevel, setBudgetAtLevel] = useState(0);
   const spent = traitPointsAvailable(character) < budgetAtLevel;
   function allowed(action: RunAction) {
@@ -277,18 +285,32 @@ function LessonFight({
           title={lesson.title}
           subtitle={stepCount}
           onDismiss={dismissGuide}
-          actions={<>
-            {step ? (
-              <Button variant="menu" onClick={leave}>Return</Button>
-            ) : (
-              <Button variant="menu" onClick={dismissGuide}>Close</Button>
-            )}
-            {canFinish ? (
-              <Button variant="menuPrimary" onClick={() => complete(lesson.id)} autoFocus>Finish lesson</Button>
-            ) : (
-              <Button variant="menuPrimary" onClick={dismissGuide} autoFocus>Got it</Button>
-            )}
-          </>}
+          actions={
+            <>
+              {step ? (
+                <Button variant="menu" onClick={leave}>
+                  Return
+                </Button>
+              ) : (
+                <Button variant="menu" onClick={dismissGuide}>
+                  Close
+                </Button>
+              )}
+              {canFinish ? (
+                <Button
+                  variant="menuPrimary"
+                  onClick={() => complete(lesson.id)}
+                  autoFocus
+                >
+                  Finish lesson
+                </Button>
+              ) : (
+                <Button variant="menuPrimary" onClick={dismissGuide} autoFocus>
+                  Got it
+                </Button>
+              )}
+            </>
+          }
         >
           <p aria-live="polite">{guideText}</p>
         </ModalDialog>
@@ -304,7 +326,7 @@ function LessonFight({
       )}
       <div className="relative min-h-0" onClickCapture={inspect}>
         <CombatView
-          levelGuide={levelUp ? (spent ? "close" : "spend") : undefined}
+          levelGuide={levelUp ? (spent ? 'close' : 'spend') : undefined}
           manualTurns
           allowCombatAction={allowed}
           {...(cue && { tutorialCue: cue })}
