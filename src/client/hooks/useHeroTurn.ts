@@ -10,6 +10,7 @@
 // ===================================================================
 
 import { useCallback, useEffect, useState } from 'react';
+import { ATTACK_MS, SWORD_FIRST_IMPACT_MS, TRANSFORMATION_MS } from '../content/cervielBladePoses';
 import { endTurnSteps, type TurnStep } from '../../shared/game/combat';
 import type { RunAction } from '../../shared/game/run';
 import type { CombatState, HeroMove } from '../../shared/game/types';
@@ -22,7 +23,7 @@ import {
 
 // --- TYPES ---
 /** One beat of playback: an engine step, or a signature's charge-up. */
-type Beat = TurnStep & { isCharge?: boolean };
+type Beat = TurnStep & { isCharge?: boolean; cervielVolleyKey?: number };
 type Playback = { steps: Beat[]; index: number };
 
 // --- CONSTANTS ---
@@ -48,8 +49,13 @@ const QUIET_BEAT_MS = 150;
 const beatMs = (steps: readonly Beat[], index: number): number => {
   const step = steps[index];
   const next = steps[index + 1];
+  const before = steps[index - 1];
+  if (before && step?.state.heroes.some(hero => hero.phase === 2 &&
+    before.state.heroes.some(unit => unit.uid === hero.uid && unit.phase !== 2))) return TRANSFORMATION_MS;
   if (step && !next && (step.state.heroes.length === 0 || step.state.player.hp <= 0)) return 1400;
   if (!step || step.actorUid === null) return QUIET_BEAT_MS;
+  if (step.cervielVolleyKey !== undefined)
+    return step.isCharge ? SWORD_FIRST_IMPACT_MS : ATTACK_MS - SWORD_FIRST_IMPACT_MS;
   if (step.isCharge) return SIGNATURE_CHARGE_MS;
   return next && next.actorUid !== null ? HERO_STAGGER_MS : HERO_ATTACK_MS;
 };
@@ -60,7 +66,7 @@ const beatMs = (steps: readonly Beat[], index: number): number => {
  * and neighbours swinging together differ. An archer forced into Melee
  * (a Range attack made up close) still looks like it shoots point-blank.
  */
-const actionOf = (step: TurnStep, uid: number): HeroAction => {
+const actionOf = (step: Beat, uid: number): HeroAction => {
   const unit = step.state.heroes.find((hero) => hero.uid === uid);
   const isBowman = unit && humanoidLookOf(unit.heroId)?.prop === 'longbow';
   const style = step.attackType ?? 'support';
@@ -70,6 +76,7 @@ const actionOf = (step: TurnStep, uid: number): HeroAction => {
       MELEE_SWINGS[(uid + step.state.turn) % MELEE_SWINGS.length] ?? 'slash',
     isSignature: step.move?.isSignature ?? false,
     isTwoHanded: step.move?.isTwoHanded ?? false,
+    ...(step.cervielVolleyKey === undefined ? {} : { cervielVolleyKey: step.cervielVolleyKey }),
   };
 };
 
@@ -79,7 +86,7 @@ const actionOf = (step: TurnStep, uid: number): HeroAction => {
  * with no attack (Guard, heal, Wrath, debuffs).
  */
 const actingAt = (
-  steps: readonly TurnStep[],
+  steps: readonly Beat[],
   index: number
 ): ReadonlyMap<number, HeroAction> => {
   const overlap = Math.ceil(HERO_ATTACK_MS / HERO_STAGGER_MS);
@@ -102,7 +109,12 @@ const actingAt = (
 const withSignatureCharges = (steps: readonly TurnStep[]): Beat[] =>
   steps.flatMap((step, index): Beat[] => {
     const before = steps[index - 1];
-    if (!step.move?.isSignature || !before) return [step];
+    if (!before) return [step];
+    if (step.move?.visual === 'cervielBladeVolley') {
+      const volley = { ...step, cervielVolleyKey: index };
+      return [{ ...volley, attackType: null, state: before.state, isCharge: true }, volley];
+    }
+    if (!step.move?.isSignature) return [step];
     const charge: Beat = {
       ...step,
       attackType: null,

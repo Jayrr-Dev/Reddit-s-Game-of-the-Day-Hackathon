@@ -284,6 +284,34 @@ export const HEROES = {
    * down its signature Halo of Judgment (which also raises every fallen
    * ally) and roars itself into a Wrath.
    */
+  angelAssassin: hero('Angel Assassin', 'boss', 126, 280, 9, FRONT, [
+    move('Veil', { kind: 'cloak', amount: 2 }),
+    move('Silent Strike', strike(8, 2), bleed(2)),
+    move('Dagger Cast', shoot(8), bleed(1)),
+  ]),
+
+  twinAxeKnight: armored(hero('Twin-Axe Knight', 'boss', 205, 42, 5, FRONT, [
+    move('Twin Cleave', strike(9, 2), bleed(2)),
+    move('Iron Brace', guard(19)),
+    signature(move('Executioner’s Cross', strike(12, 2))),
+  ]), 1),
+  archangelUriel: hero('Archangel Uriel', 'boss', 195, 14, 7, FRONT, [
+    move('Crimson Ward', guard(15), protect('self')),
+    { ...move('Wingfire', spell(13), burn(3)), element: 'fire' },
+    signature({ ...move('Radiant Verdict', spell(8, 3)), element: 'fire' }),
+  ]),
+  zeruelArmored: hero('Archangel Zeruel · Armored', 'boss', 210, 277, 6, FRONT, [
+    move('Ivory Rebuke', strike(11)),
+    move('Eclipse Guard', guard(18), protect('self')),
+    signature(move('Divided Light', spell(7, 3))),
+  ]),
+  eclipseAlphaTraining: hero('Alpha', 'elite', 48, 18, 5, BACK, [
+    { ...move('Solar Flare', spell(7), burn(2)), element: 'fire' },
+  ]),
+  eclipseOmegaTraining: hero('Omega', 'elite', 48, 212, 5, BACK, [
+    { ...move('Blue Flare', spell(7), { kind: 'frost', amount: 2 }), element: 'ice' },
+  ]),
+
   holyDragon: hero(
     'Holy Dragon Sol',
     'boss',

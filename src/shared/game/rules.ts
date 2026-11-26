@@ -209,6 +209,7 @@ export const STATUS_IS_AFFLICTION: Record<StatusId, boolean> = {
   momentum: false,
   protection: false,
   aloft: false,
+  cloak: false,
   move: false,
   rush: false,
   armor: false,

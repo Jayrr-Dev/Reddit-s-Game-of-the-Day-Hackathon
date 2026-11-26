@@ -600,7 +600,7 @@
 .training-menu {
   --color-edge: #705335;
   --color-surface-raised: #332419;
-  background: #23170f url('../../../assets/table/character-oak-grain.jpg') center / cover;
+  background: #23170f url('../../../assets/table/character-oak-grain.webp') center / cover;
   position: absolute;
   inset: 0;
   z-index: 40;
@@ -742,7 +742,7 @@
 .training-figure ~ .training-figure { left: 23%; bottom: 8px; height: 70%; z-index: 0; }
 .training-figure ~ .training-figure:last-child { left: 77%; }
 .training-deck-art {
-  background: radial-gradient(ellipse at bottom, #aa814c66, transparent 75%), url('../../../assets/table/character-oak-grain.jpg') center / cover;
+  background: radial-gradient(ellipse at bottom, #aa814c66, transparent 75%), url('../../../assets/table/character-oak-grain.webp') center / cover;
   border-bottom: 1px solid #795832;
 }
 .training-card {

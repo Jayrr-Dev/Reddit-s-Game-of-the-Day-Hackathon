@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { readAudioAsset } from './apiClient';
 import type { MAP_NAMES } from '../components/game/combat/Backdrop';
+import type { BossArenaAmbience } from '../content/bossArenas';
 
 import wild from '../assets/audio/ambience-wild.ogg';
 import civic from '../assets/audio/ambience-civic.ogg';
@@ -39,10 +40,14 @@ export type MapAudioOptions = {
   mapId: string;
   active: boolean;
   bossActive: boolean;
+  bossScoreUrl?: string | undefined;
+  bossAmbience?: BossArenaAmbience | undefined;
   alternateBattle?: boolean;
   musicVolume: number;
   sfxVolume: number;
 };
+
+const bossAmbiences: Record<BossArenaAmbience, string> = { stone, highland, civic };
 
 const scenes: Record<string, readonly [ambience: string, score: string]> = {
   Home: [wild, home],
@@ -190,7 +195,7 @@ function syncLayer(layer: Layer, url: string, level: number, currentLevel: () =>
 const volume = (value: number) => Math.max(0, Math.min(1, value)) ** 2;
 
 export function useMapAudio(options: MapAudioOptions) {
-  const { mapId, active, bossActive, alternateBattle = false, musicVolume, sfxVolume } = options;
+  const { mapId, active, bossActive, bossScoreUrl, bossAmbience, alternateBattle = false, musicVolume, sfxVolume } = options;
   const latest = useRef(options);
   const layers = useRef<{ ambience: Layer; music: Layer }>({ ambience: { fading: new Set() }, music: { fading: new Set() } });
   const syncRef = useRef<() => void>(() => {});
@@ -205,10 +210,13 @@ export function useMapAudio(options: MapAudioOptions) {
         : volume(opts.sfxVolume) * (opts.bossActive ? 0.34 : 0.5);
     };
     const sync = () => {
-      const [ambienceUrl, musicUrl] = scenes[latest.current.mapId] ?? [wild, wander];
-      syncLayer(ambience, ambienceUrl, level('ambience'), () => level('ambience'));
       const opts = latest.current;
-      const score = opts.bossActive ? boss : opts.alternateBattle ? battleOrchestral : musicUrl;
+      const [mapAmbience, mapScore] = scenes[opts.mapId] ?? [wild, wander];
+      const ambienceUrl = opts.bossAmbience ? bossAmbiences[opts.bossAmbience] : mapAmbience;
+      syncLayer(ambience, ambienceUrl, level('ambience'), () => level('ambience'));
+      const score = opts.bossActive
+        ? opts.bossScoreUrl ?? boss
+        : opts.alternateBattle ? battleOrchestral : mapScore;
       syncLayer(music, score, level('music'), () => level('music'));
     };
     syncRef.current = sync;
@@ -225,7 +233,7 @@ export function useMapAudio(options: MapAudioOptions) {
   }, []);
 
   useEffect(() => {
-    latest.current = { mapId, active, bossActive, alternateBattle, musicVolume, sfxVolume };
+    latest.current = { mapId, active, bossActive, bossScoreUrl, bossAmbience, alternateBattle, musicVolume, sfxVolume };
     syncRef.current();
-  }, [mapId, active, bossActive, alternateBattle, musicVolume, sfxVolume]);
+  }, [mapId, active, bossActive, bossScoreUrl, bossAmbience, alternateBattle, musicVolume, sfxVolume]);
 }

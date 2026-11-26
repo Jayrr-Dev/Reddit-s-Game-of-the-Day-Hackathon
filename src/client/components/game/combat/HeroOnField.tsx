@@ -7,6 +7,7 @@
 // card at it when that is a legal target).
 // ===================================================================
 
+import { CervielSecondPhase } from './CervielSecondPhase';
 import { useState, type CSSProperties } from 'react';
 import {
   isAloft,
@@ -109,6 +110,7 @@ const LIFT_ACTION_CLASS: Partial<Record<HeroActionStyle, string>> = {
 
 /** The body's motion for a move; a forward cut lunges deeper. */
 const bodyActionClass = (action: HeroAction): string =>
+  action.cervielVolleyKey !== undefined ? '' :
   action.style === 'melee' &&
   (action.swing === 'forward' || action.swing === 'forwardRight')
     ? 'animate-hero-lunge-deep'
@@ -428,6 +430,7 @@ export const HeroOnField = ({
     ? 'drop-shadow-[0_0_10px_var(--color-accent)]'
     : '';
   const bodyStyle = bodyStyleOf(unit, size);
+  const secondPhase = unit.phase === 2 && hero.secondPhase?.visual === 'cervielBladeVolley';
   const mood = moodOf({
     isHurt: lastHitId !== null,
     isActing: action !== null,
@@ -443,7 +446,9 @@ export const HeroOnField = ({
       className={`pointer-events-auto absolute transition-[left,bottom,width,height,scale,opacity,filter] duration-500 ease-in-out motion-reduce:transition-none ${AIM_CLASS[aim]} ${action ? (LIFT_ACTION_CLASS[action.style] ?? '') : ''}`}
       style={boxStyle(unit)}
       data-aloft={isAloft(unit) ? '' : undefined}
+      data-cloaked={unit.statuses.cloak > 0 ? '' : undefined}
       data-acting={action ? '' : undefined}
+      data-boss-phase={secondPhase ? '2' : undefined}
     >
       {/* STAGE: holds the unit's lift (index.css, UNIT LIFT), which every
           reason to leave the ground feeds (Aloft, a boss's entrance, a
@@ -488,15 +493,15 @@ export const HeroOnField = ({
                   >
                     {/* FLINCH: re-keyed by each new hit, so it plays once per hit */}
                     <div
-                      key={lastHitId ?? 'steady'}
-                      className={`h-full w-full origin-bottom ${lastHitId === null ? '' : 'animate-flinch'}`}
+                      key={secondPhase ? 'cerviel-phase-two' : lastHitId ?? 'steady'}
+                      className={`h-full w-full origin-bottom ${lastHitId === null ? '' : 'animate-flinch'} ${unit.statuses.cloak > 0 ? 'opacity-45' : ''}`}
                     >
-                      <HeroFigure
+                      {secondPhase ? <CervielSecondPhase action={action} uid={unit.uid} /> : <HeroFigure
                         heroId={unit.heroId}
                         size={size}
                         action={action}
                         mood={mood}
-                      />
+                      />}
                     </div>
                   </div>
                   <HexAura hex={unit.statuses.hex} />

@@ -102,6 +102,7 @@ const STATUS_ORDER: readonly StatusId[] = [
   'protection',
   'reinforce',
   'brace',
+  'cloak',
   // ATTACK
   'wrath',
   'might',
@@ -299,6 +300,8 @@ const statusChipsOf = (
           ].join('\n')
         : id === 'malaise'
           ? `Cannot use Buff cards or buff moves for ${total} more ${total === 1 ? 'turn' : 'turns'}.`
+          : id === 'cloak'
+          ? `Untargetable for ${total} more enemy ${total === 1 ? 'turn' : 'turns'} or until attacking. Area effects and existing afflictions still apply.`
           : STATUS_INFO[id].description + (group === 'hand' && !handModifier ? ' Expires after your next card.' : ''),
       ...(id === 'hex' ? hexChipOf(total, combatant, source) : {}),
       ...(id === 'shock' ? shockChipOf(combatant, source) : {}),

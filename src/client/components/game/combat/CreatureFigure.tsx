@@ -29,13 +29,19 @@
 //   of light (the eye flares as it fires) and its eye takes the moods.
 //
 // BALLISTA
-//   Sam's painted art (assets/heroes/ballista.png, its backdrop keyed
+//   Sam's painted art (assets/heroes/ballista.webp, its backdrop keyed
 //   out), standing on the bottom edge, 1.5 cells wide. A machine:
 //   no face, so it takes no moods.
 // ===================================================================
 
 import type { JSX } from 'react';
-import ballistaArt from '../../../assets/heroes/ballista.png';
+import twinAxeArt from '../../../assets/heroes/archangels/twin-axe-knight.webp';
+import urielArt from '../../../assets/heroes/archangels/uriel.webp';
+import zeruelArmoredArt from '../../../assets/heroes/archangels/zeruel-armored.webp';
+import alphaPlasmaArt from '../../../assets/heroes/archangels/alpha-plasma.webp';
+import omegaPlasmaArt from '../../../assets/heroes/archangels/omega-plasma.webp';
+import angelAssassinArt from '../../../assets/heroes/angel-assassin.webp';
+import ballistaArt from '../../../assets/heroes/ballista.webp';
 import type {
   CreatureId,
   HeroAction,
@@ -653,13 +659,26 @@ const Ballista = () => {
   );
 };
 
+const BossSprite = ({ size, art, hover, inset = 0 }: {
+  size: HeroSize; art: string; hover?: boolean; inset?: number;
+}) => (
+  <image href={art} x={0} y={inset / 2} width={BODY_WIDTH[size]} height={BODY_HEIGHT - inset}
+    preserveAspectRatio="xMidYMax meet" className={hover ? 'angel-hover' : undefined} />
+);
+
 // --- CATALOG ---
 /** Each creature's drawing. */
 const CREATURE_DRAWINGS: Record<
   CreatureId,
-  (props: { mood: HeroMood }) => JSX.Element
+  (props: { mood: HeroMood; size: HeroSize }) => JSX.Element
 > = {
   holyDragon: HolyDragon,
+  angelAssassin: ({ size }) => <BossSprite size={size} art={angelAssassinArt} hover />,
+  twinAxeKnight: ({ size }) => <BossSprite size={size} art={twinAxeArt} />,
+  archangelUriel: ({ size }) => <BossSprite size={size} art={urielArt} hover />,
+  zeruelArmored: ({ size }) => <BossSprite size={size} art={zeruelArmoredArt} hover />,
+  eclipseAlphaTraining: ({ size }) => <BossSprite size={size} art={alphaPlasmaArt} hover inset={14} />,
+  eclipseOmegaTraining: ({ size }) => <BossSprite size={size} art={omegaPlasmaArt} hover inset={14} />,
   angelArcher: AngelArcher,
   grandGriffon: GrandGriffon,
   ballista: Ballista,
@@ -684,7 +703,7 @@ export const CreatureFigure = ({
       data-two-handed={action?.isTwoHanded ? '' : undefined}
       aria-hidden="true"
     >
-      <Drawing mood={mood} />
+      <Drawing mood={mood} size={size} />
     </svg>
   );
 };

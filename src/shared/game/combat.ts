@@ -16,6 +16,7 @@
 //                burns, refill energy, draw).
 // ===================================================================
 
+import { enterHeroSecondPhase, movesForHeroPhase } from './heroPhases.ts';
 import { afflictsThroughBlocksOf, bonusUsesOf, debuffPowerOf, stackedBuffTurnsOf, empoweredStacks, handSizeBonusOf, battlemageBonusOf, isSpellpierceOn, volleyHitsOf, fleshWoundBonusOf, magicAccuracyBonusOf, rangeAccuracyBonusOf, sniperBonusOf, guardBreakBonusOf, hasMomentumCleave, meleeReachOf, lineTwoRangeBonusOf, rageEnergyOf, reflexDodgeOf, type SkillPick } from './skills.ts';
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
@@ -78,6 +79,9 @@ import {
   hasMomentumFor,
   heal,
   isDefeated,
+  isCloaked,
+  revealCloak,
+  tickCloak,
   dodge,
   missShot,
   takeHit,
@@ -105,6 +109,7 @@ import {
 } from './imbue.ts';
 import { nextFloat, pickOne, shuffle, type RngState } from './rng.ts';
 import {
+  BATTLEFIELD_COLUMNS,
   ELEMENT_ON_HIT,
   ON_OFF_BUFFS,
   LONG_RANGE_DAMAGE_FACTOR,
@@ -225,13 +230,18 @@ export const combatOutcome = (state: CombatState): CombatOutcome => {
 export type PlannedMove = { move: HeroMove; index: number };
 
 /** True when a summon has room for at least one of its heroes. */
-const hasRoomToSummon = (
+const summonSpots = (
   heroes: readonly HeroUnit[],
   unit: HeroUnit,
   effect: Extract<HeroEffect, { kind: 'summon' }>
-): boolean =>
-  summonSeats(heroes, unit, getHero(effect.heroId).size, effect.count).length >
-  0;
+) => {
+  const { heroId, onceAt } = effect;
+  if (!onceAt) return summonSeats(heroes, unit, getHero(heroId).size, effect.count);
+  if (unit.summonedOnceIds?.includes(heroId)) return [];
+  const cells = cellsOf({ ...onceAt, heroId });
+  return cells.length <= freeHeroCells(heroes) &&
+    cells.every(cell => cell.col >= 0 && cell.col < BATTLEFIELD_COLUMNS && isCellOpen(heroes, cell)) ? [onceAt] : [];
+};
 
 /**
  * True when a hero can make a move where it stands: Melee needs the
@@ -245,7 +255,7 @@ const canMakeMove = (
   heroes: readonly HeroUnit[]
 ): boolean =>
   heroMove.effects.every((effect) => {
-    if (effect.kind === 'summon') return hasRoomToSummon(heroes, unit, effect);
+    if (effect.kind === 'summon') return summonSpots(heroes, unit, effect).length > 0;
     return (
       unit.row === 'front' ||
       isAloft(unit) ||
@@ -265,7 +275,8 @@ export const plannedHeroMove = (
   unit: HeroUnit,
   heroes: readonly HeroUnit[]
 ): PlannedMove | null => {
-  const { moves } = getHero(unit.heroId);
+  const definition = getHero(unit.heroId);
+  const moves = movesForHeroPhase(unit, definition);
   return (
     moves
       .map((_, step) => {
@@ -496,12 +507,15 @@ const withoutOrphans = (heroes: HeroUnit[]): HeroUnit[] => {
  * until the villain Charges.
  */
 const removeFallen = (state: CombatState): CombatState => {
-  const standing = withoutOrphans(
-    state.heroes.filter((unit) => !isDefeated(unit))
-  );
-  const fallen = state.heroes.filter((unit) => !standing.includes(unit));
+  // Transform as we settle a defeat, after any hits in that beat.
+  // Phase one is never credited as a kill and the boss keeps its uid.
+  const phases = state.heroes.map(unit => isDefeated(unit)
+    ? enterHeroSecondPhase(unit, getHero(unit.heroId))
+    : unit);
+  const standing = withoutOrphans(phases.filter(unit => !isDefeated(unit)));
+  const fallen = phases.filter(unit => !standing.includes(unit));
   return fallen.length === 0
-    ? state
+    ? phases.some((unit, index) => unit !== state.heroes[index]) ? { ...state, heroes: phases } : state
     : {
         ...state,
         heroes: standing,
@@ -533,7 +547,7 @@ const resolveTargets = (
   const pool = isFollowThrough ? state.heroes : living;
   // A hero Aloft is out of reach of a Melee card (see canReach).
   const aimed = pool.find((unit) => unit.uid === targetUid);
-  return aimed && canReach(aimed, type) ? [targetUid] : [];
+  return aimed && !isCloaked(aimed) && canReach(aimed, type) ? [targetUid] : [];
 };
 
 // --- CARD EFFECTS ---
@@ -799,7 +813,8 @@ const randomAim = (
   type: CardType
 ): [{ target: CardTarget; uid: number }, CombatState] => {
   const living = state.heroes.filter((unit) => !isDefeated(unit));
-  const pool = areaTargets(living, isMelee, type, meleeReachOf(state.player.skillPicks));
+  const pool = areaTargets(living, isMelee, type, meleeReachOf(state.player.skillPicks))
+    .filter(unit => !isCloaked(unit));
   if (pool.length === 0) return [{ target: 'one', uid: -1 }, state];
   const [picked, rng] = pickOne(state.rng, pool);
   return [
@@ -1009,6 +1024,8 @@ const applyCardEffect = (
     }
     case 'protect':
       return { ...state, player: castCardProtection(state.player) };
+    case 'cloak':
+      return { ...state, player: addStatus(state.player, 'cloak', effect.amount) };
     case 'charge':
     case 'backStep':
       return moveFromCard(state, effect.kind);
@@ -1145,7 +1162,11 @@ const spendMomentum = (state: CombatState, cardDef: CardDef): CombatState =>
 const payForCard = (state: CombatState, handIndex: number): CombatState => {
   const cardId = state.hand[handIndex];
   const cost = cardId === undefined ? 0 : cardCost(cardId, state.killsThisTurn ?? 0, state.followUpReady);
-  return removeFromHand({ ...state, energy: state.energy - cost, ...(cardId === 'followUp' && { followUpReady: false }) }, handIndex);
+  const attacking = cardId !== undefined &&
+    [...getCard(cardId).effects, ...imbuedEffects(imbuesAt(state, handIndex))]
+      .some(effect => effect.kind === 'damage' || effect.kind === 'reap');
+  const player = attacking ? revealCloak(state.player) : state.player;
+  return removeFromHand({ ...state, player, energy: state.energy - cost, ...(cardId === 'followUp' && { followUpReady: false }) }, handIndex);
 };
 
 // --- TIMED BUFFS ---
@@ -1419,13 +1440,17 @@ const planPlay = (
   const self = targetUid === SELF_TARGET_UID;
   if (cardId === undefined || (self ? !canPlayCardOnSelf(state, handIndex) : !canPlayCard(state, handIndex))) return null;
   if (targetUids?.some(uid => (uid === SELF_TARGET_UID) !== self)) return null;
+  const picks = self ? [SELF_TARGET_UID] : requestedPicks(getCard(cardId), targetUid, targetUids);
+  // Reject an explicit click on a cloaked unit instead of spending the card on a different one.
+  if (!self && targetRuleOf(cardId) !== 'none' &&
+      state.heroes.some(unit => isCloaked(unit) && picks.includes(unit.uid))) return null;
   const isImbue = imbueEffectOf(cardId) !== undefined;
   if (isImbue && !imbueSlotsFor(state, handIndex).includes(imbueIndex ?? -1))
     return null;
   // The played card leaves the hand first, so later slots shift down.
   const asked = imbueIndex ?? -1;
   return {
-    picks: self ? [SELF_TARGET_UID] : requestedPicks(getCard(cardId), targetUid, targetUids),
+    picks,
     imbued: imbuedEffects(imbuesAt(state, handIndex)),
     slot: asked > handIndex ? asked - 1 : asked,
     isPiercing: isPlayWith(state, handIndex, 'piercing'),
@@ -1689,18 +1714,22 @@ const summonHeroes = (
   summoner: HeroUnit,
   effect: Extract<HeroEffect, { kind: 'summon' }>
 ): CombatState => {
-  const { size } = getHero(effect.heroId);
-  const seats = summonSeats(state.heroes, summoner, size, effect.count);
+  const seats = summonSpots(state.heroes, summoner, effect);
+  if (seats.length === 0) return state;
+  const marked = effect.onceAt ? updateHeroes(state, [summoner.uid], unit => ({
+    ...unit, summonedOnceIds: [...(unit.summonedOnceIds ?? []), effect.heroId],
+  })) : state;
   const summoned = seats.map(({ row, col }, index): HeroUnit => ({
     ...createHeroUnit(effect.heroId, state.nextUid + index, summoner.might),
     row,
     col,
     summonerUid: summoner.uid,
     joinedMidFight: true,
+    ...(effect.onceAt ? { onceSummoned: true as const } : {}),
   }));
   return {
     ...state,
-    heroes: [...state.heroes, ...summoned],
+    heroes: [...marked.heroes, ...summoned],
     nextUid: state.nextUid + summoned.length,
   };
 };
@@ -1716,6 +1745,7 @@ const reviveFallen = (state: CombatState): CombatState => {
   let nextUid = state.nextUid;
   const stillFallen: HeroUnit[] = [];
   for (const ghost of state.fallen) {
+    if (ghost.onceSummoned || ghost.phase === 2) { stillFallen.push(ghost); continue; }
     const isFull = cellCountOf(ghost) > freeHeroCells(heroes);
     if (isFull || !cellsOf(ghost).every((cell) => isCellOpen(heroes, cell))) {
       stillFallen.push(ghost);
@@ -1802,6 +1832,8 @@ const applyHeroEffect = (
       return summonHeroes(state, actor, effect);
     case 'revive':
       return reviveFallen(state);
+    case 'cloak':
+      return updateHeroes(state, [actor.uid], (unit) => addStatus(unit, 'cloak', effect.amount));
     case 'soar':
       return updateHeroes(state, [actor.uid], (unit) => withAloft(unit, 1));
     case 'knockBack':
@@ -1956,13 +1988,14 @@ const heroActs = (
   const acted = effects.reduce<CombatState>((current, effect) => {
     const freshActor = current.heroes.find((unit) => unit.uid === uid) ?? actor;
     if (isDefeated(current.player)) return current;
+    if (isCloaked(current.player) && isDirectHeroTarget(effect)) return current;
     const isSkipped = hasAttack && !hasLanded && isOnVillain(effect);
     if (isSkipped) return current;
     const next = applyHeroEffect(current, freshActor, effect);
     if (effect.kind === 'attack')
       hasLanded ||= villainWasHit(current.player, next.player);
     return next;
-  }, state);
+  }, hasAttack ? updateHeroes(state, [uid], revealCloak) : state);
 
   const isDiving = planned !== null && isAloft(actor);
   const settled = updateHeroes(acted, [uid], (unit) => {
@@ -1994,6 +2027,11 @@ const VILLAIN_EFFECT_KINDS: ReadonlySet<HeroEffect['kind']> = new Set([
 const isOnVillain = (effect: HeroEffect): boolean =>
   VILLAIN_EFFECT_KINDS.has(effect.kind);
 
+/** Cloak prevents aiming at the villain, not an existing Shock from detonating. */
+const isDirectHeroTarget = (effect: HeroEffect): boolean =>
+  effect.kind === 'attack' || effect.kind === 'dispel' || effect.kind === 'disrupt' ||
+  effect.kind === 'pullPlayer' || (effect.kind !== 'detonate' && isOnVillain(effect));
+
 /** True when the villain lost HP or Guard between two looks. */
 const villainWasHit = (before: Combatant, after: Combatant): boolean =>
   after.damageTaken > before.damageTaken || after.guard < before.guard;
@@ -2020,7 +2058,7 @@ export const startPlayerTurn = (state: CombatState): CombatState => {
     {
       ...state,
       // Hex and Poison run before the villain's action (its turn).
-      player: poisonTick(hexBurn(dropRoundBuffs(expireGuard(state.player)))),
+      player: poisonTick(hexBurn(dropRoundBuffs(expireGuard(tickCloak(state.player))))),
       energy: Math.min(maxEnergy, startingEnergy + state.reserve),
       reserve: 0,
       turn: state.turn + 1,
@@ -2118,7 +2156,7 @@ const resolveTurnSteps = (state: CombatState): TurnStep[] => {
     ...finishPlayerTurn(state),
     // Hero-cast Protection still expires when its owner's next turn starts.
     heroes: state.heroes.map((unit) => {
-      const guarded = expireGuard(unit);
+      const guarded = expireGuard(tickCloak(unit));
       if (state.waveArrival) return guarded;
       const active = dropRoundBuffs(guarded);
       return unit.statuses.protection === TIERED_MAX_TIER && !active.statuses.protection
