@@ -103,12 +103,14 @@ export const sizeOf = (unit: Pick<HeroUnit, 'heroId'>): HeroSize =>
  * The column a unit is DRAWN from. A unit alone in its line is drawn
  * centred in that line, so a lone boss or hero doesn't hug one side;
  * with company, every unit keeps its own column. Drawing only: the
- * unit's real cells (targeting, movement) never change.
+ * unit's real cells (targeting, movement) never change. Anchored units
+ * are drawn at their actual column, even after a neighbor leaves.
  */
 export const drawColumnOf = (
   unit: Pick<HeroUnit, 'uid' | 'row' | 'col' | 'heroId'>,
   field: readonly Pick<HeroUnit, 'uid' | 'row'>[]
 ): number => {
+  if (isAnchored(unit)) return unit.col;
   const hasCompany = field.some((other) => other.uid !== unit.uid && other.row === unit.row);
   return hasCompany ? unit.col : (BATTLEFIELD_COLUMNS - sizeOf(unit)) / 2;
 };

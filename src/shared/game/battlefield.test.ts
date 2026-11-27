@@ -326,3 +326,10 @@ void test('a unit alone in its line is drawn centred; with company it keeps its 
   assert.equal(drawColumnOf(solo, [solo, farther]), (BATTLEFIELD_COLUMNS - sizeOf(solo)) / 2);
   assert.equal(drawColumnOf(solo, [solo, mate, farther]), 0);
 });
+
+void test('an Anchored Ballista is drawn in the same column with or without a neighbor', () => {
+  const ballista = { uid: 1, row: 'back', col: 0, heroId: 'ballista' } as const;
+  const neighbor = { uid: 2, row: 'back' } as const;
+  assert.equal(drawColumnOf(ballista, [ballista]), 0);
+  assert.equal(drawColumnOf(ballista, [ballista, neighbor]), 0);
+});

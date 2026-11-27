@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, type RefObject } from 'react';
-import { rowDepth } from '../../shared/game/battlefield';
+import { isAnchored, rowDepth } from '../../shared/game/battlefield';
 import { prefersReducedMotion } from '../lib/motion';
 import type { HeroUnit } from '../../shared/game/types';
 import { isBoss } from '../content/heroLooks';
@@ -157,7 +157,7 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
         // Leave the nearer row a separate label band when the far row is populated.
         const naturalTop = crowdedHorizon ? Math.min(head - height, frame.top) : head - height;
         const natural = { width: footprint, height, left: center + leftFromCenter, top: naturalTop };
-        const relief = { body: bodyLane, feet, row, movable: !isBoss(unit) };
+        const relief = { body: bodyLane, feet, row, movable: !isBoss(unit) && !isAnchored(unit) };
         return { width, silhouette, relief, ground, center, scaleX, scaleY, naturalTop, natural };
       });
       const key = [frame.width, frame.height, top, ...measures.flatMap(({width, natural, silhouette, relief, ground}) =>
