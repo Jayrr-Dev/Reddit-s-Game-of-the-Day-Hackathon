@@ -822,6 +822,20 @@
 .training-card-name { text-align: center; font: bold 8px/1.2 var(--font-display); }
 
 .training-entries { grid-auto-rows: max-content; min-height: 0; }
+/* Blur the locked contents, not the tile outline. The overlay does not change grid sizing. */
+.training-entries > .locked-preview:has(.training-entry) {
+  border-radius: 7px;
+  overflow: clip;
+}
+.training-entries > .locked-preview:has(.training-entry)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--color-edge);
+  border-radius: inherit;
+  pointer-events: none;
+}
+.training-entries > .locked-preview .training-entry { border-color: transparent; }
 .training-entry-copy { flex: none; width: 100%; }
 /* No colour here: the name's tier class (TIER_NAME_CLASS) sets it. */
 .training-entry-copy > span:first-child { line-height: 1.15; overflow-wrap: anywhere; }
