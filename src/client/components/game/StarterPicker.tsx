@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { PANDORA_RUN_COPY, type PandoraRunEffect } from '../../../shared/game/pandora';
-import type { CarryCard } from '../../../shared/game/carryCards';
+import { MAX_CARRY_CARDS, type CarryCard } from '../../../shared/game/carryCards';
 import { isUniqueInDeck } from '../../../shared/game/unique';
 import { getCard } from '../../../shared/game/cards';
 import { createCombatant } from '../../../shared/game/combatant';
@@ -24,7 +24,7 @@ const STARTER_THEMES = {
 } satisfies Record<StarterName, (typeof MAP_NAMES)[number]>;
 
 export function StarterPicker({ accountId, starting, onBack, onConfirm, loadTestShop }: {
-  accountId?: string | undefined; starting: boolean; onBack:()=>void; onConfirm:(build:PlayerBuild, carryId?: string)=>void; loadTestShop?: () => Promise<RingShopResponse>;
+  accountId?: string | undefined; starting: boolean; onBack:()=>void; onConfirm:(build:PlayerBuild, carryIds?: string[])=>void; loadTestShop?: () => Promise<RingShopResponse>;
 }) {
   const [build,setBuild]=useState(()=>localBuild(accountId));
   const [inspect,setInspect]=useState<StarterName|null>(null);
@@ -32,12 +32,22 @@ export function StarterPicker({ accountId, starting, onBack, onConfirm, loadTest
   const [error,setError]=useState(false);
   const [retry,setRetry]=useState(0);
   const [carry, setCarry] = useState<CarryCard[]>([]);
-  const [queued, setQueued] = useState<{ real?: PandoraRunEffect | undefined; test?: PandoraRunEffect | undefined; testCards?: CarryCard[] }>({});
-  const [carryId, setCarryId] = useState('');
+  const [queued, setQueued] = useState<{ real?: PandoraRunEffect | undefined; test?: PandoraRunEffect | undefined }>({});
+  const [carryIds, setCarryIds] = useState<string[]>([]);
   const [showBag, setShowBag] = useState(false);
   const starter = build.decks[build.selected] ?? starterDeck(build.selected);
-  const selectedCarry = carry.find(card => card.id === carryId && !isUniqueInDeck(starter, card.cardId));
-  const pending = selectedCarry ? (queued.testCards?.some(card => card.id === selectedCarry.id) ? queued.test : queued.real) : queued.test ?? queued.real;
+  const selectedCarry: CarryCard[] = [];
+  for (const id of carryIds) {
+    const card = carry.find(candidate => candidate.id === id);
+    if (card && !isUniqueInDeck([...starter, ...selectedCarry.map(entry => entry.cardId)], card.cardId)) selectedCarry.push(card);
+  }
+  function pack(id: string) {
+    const card = carry.find(entry => entry.id === id);
+    if (selectedCarry.length >= MAX_CARRY_CARDS || !card || selectedCarry.some(entry => entry.id === id) ||
+      isUniqueInDeck([...starter, ...selectedCarry.map(entry => entry.cardId)], card.cardId)) return;
+    setCarryIds([...selectedCarry.map(entry => entry.id), id]);
+  }
+  const pending = selectedCarry.length ? (selectedCarry.some(card => card.source === 'test') ? queued.test : queued.real) : queued.test ?? queued.real;
   const cursed = pending && pending !== 'lasting-vigor';
   const [attacker]=useState(()=>createCombatant(66, 66));
   const musicVolume = useSyncExternalStore(subscribeVolume, () => getVolume('music'));
@@ -48,7 +58,7 @@ export function StarterPicker({ accountId, starting, onBack, onConfirm, loadTest
     Promise.all([apiClient.profile(), loadTestShop?.().catch(() => undefined)]).then(([result, test]) => {
       if (!live) return;
       setBuild(result.build);
-      setQueued({ real: result.nextEffect, test: test?.nextEffect, ...(test?.carryCards && { testCards: test.carryCards }) });
+      setQueued({ real: result.nextEffect, test: test?.nextEffect });
       setCarry([...new Map([...(result.carryCards ?? []), ...(test?.carryCards ?? [])].map(card => [card.id, card])).values()]);
     })
       .catch(()=>{if(live)setError(true);}).finally(()=>{if(live)setLoading(false);});
@@ -71,11 +81,11 @@ export function StarterPicker({ accountId, starting, onBack, onConfirm, loadTest
     })}</div>}
     <footer className="starter-footer">
       <Button variant="menu" disabled={loading || error || starting} aria-haspopup="dialog" onClick={() => setShowBag(true)}>Bring a Card</Button>
-      {selectedCarry && <small>In bag: {getCard(selectedCarry.cardId).name} · Unranked run</small>}
+      {selectedCarry.length > 0 && <small>In bag: {selectedCarry.length}/{MAX_CARRY_CARDS} · Unranked run</small>}
       <div><Button variant="menu" disabled={starting} onClick={onBack}>Back</Button>
-      <Button variant="menuPrimary" disabled={loading||error||starting} onClick={()=>onConfirm(build, selectedCarry?.id)}>{starting?'Starting.':'Begin'}</Button></div>
+      <Button variant="menuPrimary" disabled={loading||error||starting} onClick={()=>onConfirm(build, selectedCarry.map(card => card.id))}>{starting?'Starting.':'Begin'}</Button></div>
     </footer>
-    {showBag && <CarryBagDialog cards={carry} starter={starter} selected={selectedCarry} onPick={setCarryId} onClose={() => setShowBag(false)} />}
+    {showBag && <CarryBagDialog cards={carry} starter={starter} selected={selectedCarry} onPack={pack} onRemove={id => setCarryIds(current => current.filter(entry => entry !== id))} onClose={() => setShowBag(false)} />}
     {inspect && <PileDialog pile="deck" titleOverride={inspect+' starter deck'} cards={build.decks[inspect]??starterDeck(inspect)} attacker={attacker} killsThisTurn={0} usesSpent={{}} onClose={()=>setInspect(null)}/>}
   </main>;
 }

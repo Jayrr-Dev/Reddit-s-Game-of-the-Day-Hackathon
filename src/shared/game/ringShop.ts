@@ -1,9 +1,9 @@
-import { availableCarryCards, IMBUE_CARDS, IMBUE_PRICE, isShopStockKey, readCarryCards, SHOP_IMBUE_ID, type CarryCards } from './carryCards.ts';
+import { availableCarryCards, isCarrySelection, IMBUE_CARDS, IMBUE_PRICE, isShopStockKey, readCarryCards, SHOP_IMBUE_ID, type CarryCards } from './carryCards.ts';
 import { cardsOfRarity, getCard, type CardId } from './cards.ts';
 import { hashSeed, nextInt, pickDistinct, pickOne } from './rng.ts';
 import { TRAINING_JEWELRY } from './trainingJewelry.ts';
 import { shopAmuletSummary, type ShopAmuletId } from './amuletBonuses.ts';
-import { drawPandoraEvent, readPandoraEvent, PANDORA_CURSE_BOUNTY, type PandoraEvent, type PandoraRunEffect } from './pandora.ts';
+import { drawPandoraEvent, readPandoraEvent, PANDORA_CURSE_BOUNTY, PANDORA_DUPLICATE_GOLD, type PandoraEvent, type PandoraRunEffect } from './pandora.ts';
 import type { EquipmentSlot } from './character.ts';
 import { isItemBag, itemQuantity, REALM_APPLE, SHOP_APPLE, spendItem, type ItemBag, type ShopApple } from './items.ts';
 
@@ -252,22 +252,25 @@ export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: Sho
   if (openedShopBoxes(day, wallet).length) return { status: 'owned' } as const;
   if (balance < offer.price) return { status: 'short' } as const;
 
-  const unowned = SHOP_IDS.filter(id => wallet.items[id] === undefined);
+
   const seed = (label: string) => hashSeed('metatron:box:' + entropy + ':' + receipt + ':' + label);
-  if (allShopJewelryOwned(wallet.items) || nextInt(seed('kind'), 100)[0] < 50) {
+  if (nextInt(seed('kind'), 100)[0] < 50) {
     const event = drawPandoraEvent(nextInt(seed('event'), 100)[0], balance - offer.price);
     return { status: 'buy', reward: event, next: { ...wallet, events: { ...wallet.events, [receipt]: event } } } as const;
   }
   const [tier] = nextInt(seed('tier'), 100);
   const desired = tier < 5 ? AMULET_IDS : tier < 6 ? TEMP_RING_IDS.slice(8) :
     tier < 11 ? TEMP_RING_IDS.slice(6, 8) : tier < 30 ? TEMP_RING_IDS.slice(4, 6) : TEMP_RING_IDS.slice(0, 4);
-  const rolled = desired.filter(id => unowned.includes(id));
-  const plain = unowned.filter(id => everydayRings.some(ring => ring.id === id));
-  const [id] = pickOne(seed('reward'), rolled.length ? rolled : plain.length ? plain : unowned);
+  const [id] = pickOne(seed('reward'), desired);
+  const rarity = shopRarity(id);
+  if (wallet.items[id] !== undefined) {
+    const reward = { kind: 'gold', change: PANDORA_DUPLICATE_GOLD[rarity], duplicateRarity: rarity } as const;
+    return { status: 'buy', reward, next: { ...wallet, events: { ...wallet.events, [receipt]: reward } } } as const;
+  }
   const item = catalog.get(id)!;
   return {
     status: 'buy',
-    reward: { kind: 'jewelry', id, name: item.name, slot: item.slot, rarity: shopRarity(id) },
+    reward: { kind: 'jewelry', id, name: item.name, slot: item.slot, rarity },
     next: { ...wallet, items: { ...wallet.items, [id]: offer.price }, boxes: { ...wallet.boxes, [receipt]: id } },
   } as const;
 }
@@ -281,6 +284,20 @@ function shopRarity(id: ShopRingId): RingRarity {
 export function takeCarryCard(wallet: ShopWallet, receipt: string | undefined, runId: string) {
   const card = availableCarryCards(wallet.carry).find(candidate => candidate.id === receipt);
   return card && { card, wallet: { ...wallet, carry: { ...wallet.carry, [card.id]: { ...card, spent: runId } } } };
+}
+
+/** Spend a whole selection or none. The caller commits the returned wallet. */
+export function takeCarryCards(wallet: ShopWallet, receipts: readonly string[], runId: string) {
+  if (!isCarrySelection(receipts)) return undefined;
+  const carry = { ...wallet.carry };
+  const cards: CardId[] = [];
+  for (const receipt of receipts) {
+    const card = carry[receipt];
+    if (!card || card.spent) return undefined;
+    cards.push(card.cardId);
+    carry[receipt] = { ...card, spent: runId };
+  }
+  return { cards, wallet: { ...wallet, carry } };
 }
 
 /** Put a surrendered card into Inventory after a verified death, once per run. */

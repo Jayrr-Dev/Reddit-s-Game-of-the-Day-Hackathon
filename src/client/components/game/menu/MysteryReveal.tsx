@@ -98,7 +98,7 @@ export function MysteryReveal({ reward, onClose }: { reward: ShopReward; onClose
   const dialog = useRef<HTMLDialogElement>(null);
   const sounded = useRef(false);
   const continueButton = useRef<HTMLButtonElement>(null);
-  const rarity = reward.kind === 'jewelry' ? reward.rarity : reward.kind === 'gold' && reward.change > 0 ? 'Legendary' : 'Rare';
+  const rarity = reward.kind === 'jewelry' ? reward.rarity : reward.kind === 'gold' && reward.change > 0 ? reward.duplicateRarity ?? 'Legendary' : 'Rare';
   const bad = reward.kind === 'gold' ? reward.change <= 0 : reward.kind === 'run' && reward.effect !== 'lasting-vigor';
   const [shown, setShown] = useState(false);
 
@@ -113,7 +113,7 @@ export function MysteryReveal({ reward, onClose }: { reward: ShopReward; onClose
       continueButton.current?.focus();
       if (!sounded.current) {
         sounded.current = true;
-        playSound(bad ? 'curse' : 'reward', rarity === 'Legendary' ? 0.9 : 1, 0.72);
+        playSound(bad ? 'pandoraCurse' : 'pandoraReward', 1, rarity === 'Legendary' ? .88 : .72);
       }
       return;
     }
@@ -138,7 +138,7 @@ export function MysteryReveal({ reward, onClose }: { reward: ShopReward; onClose
           </> : reward.kind === 'gold' ? <>
             <div className="shop-reward-sigil"><GoldCoins /></div>
             <strong>{reward.change > 0 ? '+' : ''}{reward.change} Gold</strong>
-            <span>{reward.change > 0 ? 'A purse left for the next hand.' : reward.change < 0 ? 'The box took more than its price.' : 'No Gold left for the box to take.'}</span>
+            <span>{reward.duplicateRarity ? 'Already owned: ' + reward.duplicateRarity + ' jewelry exchanged for Gold.' : reward.change > 0 ? 'A purse left for the next hand.' : reward.change < 0 ? 'The box took more than its price.' : 'No Gold left for the box to take.'}</span>
           </> : <>
             <div className="shop-reward-sigil"><MysteryChest /></div>
             <strong>{PANDORA_RUN_COPY[reward.effect].title}</strong>

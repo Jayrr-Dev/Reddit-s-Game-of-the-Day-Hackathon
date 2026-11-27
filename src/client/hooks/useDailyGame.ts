@@ -52,8 +52,8 @@ export const useDailyGame = () => {
   }, []);
 
   /** Claims a run with the server; returns true when it is the ranked run. */
-  const startRun = useCallback(async (testVisit?: string, bringCard?: string) => {
-    const response = await apiClient.startRun(testVisit, bringCard);
+  const startRun = useCallback(async (testVisit?: string, bringCards?: string[], starter?: import('../../shared/game/starters').StarterName) => {
+    const response = await apiClient.startRun(testVisit, bringCards, starter);
     setState((previous) =>
       previous.status === 'ready' && response.isRanked
         ? {

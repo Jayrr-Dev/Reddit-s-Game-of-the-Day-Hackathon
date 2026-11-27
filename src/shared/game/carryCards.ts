@@ -1,7 +1,9 @@
+import { isUniqueInDeck } from './unique.ts';
 import { ALL_CARD_IDS, getCard, isCardId, isCardInPlay, type CardId } from './cards.ts';
 
 export const SHOP_IMBUE_ID = 'imbue-card';
 export const IMBUE_PRICE = 85;
+export const MAX_CARRY_CARDS = 4;
 export const IMBUE_CARDS = ALL_CARD_IDS.filter(id => getCard(id).type === 'imbue' && isCardInPlay(id));
 export type CarryCard = { id: string; cardId: CardId; source: 'shop' | 'ferryman' | 'test'; spent?: string };
 export type CarryCards = Partial<Record<string, CarryCard>>;
@@ -27,6 +29,19 @@ export const shopStockKey = (time: Date, bossRuns: number): string =>
 
 export const isCarryCardId = (value: unknown): value is string =>
   typeof value === 'string' && (value.startsWith('shop:') ? isShopStockKey(value.slice(5)) : (/^hell:[a-f0-9-]{36}$/.test(value) || /^test:[0-3]$/.test(value)));
+
+/** Validate the selected inventory receipts, not client-supplied catalog IDs. */
+export const isCarrySelection = (value: unknown): value is string[] => Array.isArray(value) &&
+  value.length <= MAX_CARRY_CARDS && value.every(isCarryCardId) && new Set(value).size === value.length;
+
+export const isCarriedDeck = (value: unknown): value is CardId[] => Array.isArray(value) &&
+  value.length > 0 && value.length <= MAX_CARRY_CARDS && value.every(isCardId);
+
+export function appendCarriedCards(starter: readonly CardId[], carried: readonly CardId[]) {
+  const deck = [...starter];
+  for (const id of carried) if (!isUniqueInDeck(deck, id)) deck.push(id);
+  return deck;
+}
 
 /** Restore paid and recovered cards without trusting an arbitrary catalog key. */
 export function readCarryCards(value: unknown): CarryCards {

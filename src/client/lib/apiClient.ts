@@ -67,7 +67,7 @@ export const apiClient = {
   discardItem: (payload: UseItemRequest) => postJson<DiscardItemResponse>('/api/profile/discard-item', payload),
   init: () => request<InitResponse>('/api/init'),
   leaderboard: () => request<LeaderboardResponse>('/api/leaderboard'),
-  startRun: (testVisit?: string, bringCard?: string) => postJson<StartRunResponse>('/api/run/start', { testVisit, bringCard }),
+  startRun: (testVisit?: string, bringCards?: string[], starter?: import('../../shared/game/starters').StarterName) => postJson<StartRunResponse>('/api/run/start', { testVisit, bringCards, starter }),
   progress: (payload: FinishRunRequest) => postJson<{saved: boolean}>('/api/run/progress', payload),
   finishRun: (payload: FinishRunRequest) =>
     postJson<FinishRunResponse>('/api/run/finish', payload),

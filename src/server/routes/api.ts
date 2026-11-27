@@ -14,7 +14,8 @@ import { context, reddit, redis } from '@devvit/web/server';
 import { replayForScore, replayForScoreAndUnlocks } from '../../shared/game/replayForScore';
 import { getUnlocks, recordUnlocks } from '../core/playerUnlocks';
 import { isCardId } from '../../shared/game/cards';
-import { isCarryCardId, isShopStockKey } from '../../shared/game/carryCards';
+import { isStarterName, starterDeck } from '../../shared/game/starters';
+import { isCarrySelection, isCarriedDeck, isShopStockKey } from '../../shared/game/carryCards';
 import { bankHellCard, bindRunItems, creditPandoraBounty, currentShopStock, recordShopBossClear, buyRing, getAdminRingShop, getRingShop, offerAdminShopFruit, openAdminRingShop, readPlayerProgress, recordVictories } from '../core/playerRingShop';
 import { isPandoraRunEffect } from '../../shared/game/pandora';
 import { isShopOfferId, shopRingIds } from '../../shared/game/ringShop';
@@ -232,13 +233,17 @@ api.post('/run/start', async (c) => {
     const testVisit = isShopVisitId(candidate) && await isCurrentUserAdmin() ? candidate : undefined;
     const day = getCurrentPostDailyKey();
     const [{ wins, shopRings }, build] = await Promise.all([readPlayerProgress(userId), getBuild(userId)]);
-    const requested = body && typeof body === 'object' && 'bringCard' in body ? body.bringCard : undefined;
-    if (requested !== undefined && !isCarryCardId(requested)) return jsonError(c, 400, 'Invalid card selection');
+    const record = body && typeof body === 'object' ? body as Record<string, unknown> : {};
+    const requested = record.bringCards ?? (record.bringCard === undefined ? [] : [record.bringCard]);
+    if (!isCarrySelection(requested)) return jsonError(c, 400, 'Invalid card selection');
+    if (record.starter !== undefined && !isStarterName(record.starter)) return jsonError(c, 400, 'Invalid starter deck');
+    const starter = isStarterName(record.starter) ? record.starter : build.selected;
+    const deck = build.decks[starter] ?? starterDeck(starter);
     const profile = { id: randomUUID(), wins, shopRings, cardRules: 1 as const };
-    const withItems = (testVisit && await bindRunItems(userId, day, profile, testVisit, requested))
-      || await bindRunItems(userId, day, profile, undefined, requested);
+    const withItems = await bindRunItems(userId, day, profile, testVisit, requested, deck)
+      ?? (testVisit && !requested.length ? await bindRunItems(userId, day, profile, undefined, requested, deck) : undefined);
     if (withItems) return c.json<StartRunResponse>({ type: 'runStart', isRanked: false, profile: withItems, build });
-    if (requested) return jsonError(c, 400, 'That card is no longer available. Pick again.');
+    if (requested.length) return jsonError(c, 400, 'One or more packed cards are unavailable or do not fit this deck. Pick again.');
     const isRanked = await beginRun(day, userId);
     await redis.set(redisKeys.runBaseline(userId, day, profile.id), JSON.stringify(profile));
     return c.json<StartRunResponse>({ type: 'runStart', isRanked, profile, build });
@@ -261,7 +266,7 @@ async function verifyProgress(day: string, body: FinishRunRequest, userId: strin
   const effect = saved && typeof saved === 'object' && 'pandoraEffect' in saved && isPandoraRunEffect(saved.pandoraEffect) ? saved.pandoraEffect : undefined;
   const testVisit = saved && typeof saved === 'object' && 'testVisit' in saved && isShopVisitId(saved.testVisit) ? saved.testVisit : undefined;
   const cardRules = saved && typeof saved === 'object' && 'cardRules' in saved && saved.cardRules === 1 ? 1 as const : undefined;
-  const carried = saved && typeof saved === 'object' && 'carriedCard' in saved && isCardId(saved.carriedCard) ? saved.carriedCard : undefined;
+  const carried = saved && typeof saved === 'object' && 'carriedCards' in saved && isCarriedDeck(saved.carriedCards) ? saved.carriedCards : saved && typeof saved === 'object' && 'carriedCard' in saved && isCardId(saved.carriedCard) ? saved.carriedCard : undefined;
   const { state: run, unlocks } = replayForScoreAndUnlocks(day, body.actions, wins, shopRings, effect, cardRules, carried);
   if (run.phase.kind === 'fallen' && run.phase.battlefield && run.promisedToGreed) await bankHellCard(userId, body.runId, run.promisedToGreed, testVisit);
   if (effect === 'half-life' && run.goldVictories.length > 0) await creditPandoraBounty(userId, body.runId, testVisit);
@@ -305,7 +310,7 @@ api.post('/run/finish', async (c) => {
     if (body.runId && finalState.goldVictories.some(win => win.encounter === 'champion'))
       await recordShopBossClear(userId, body.runId);
 
-    const isRanked = !finalState.pandoraEffect && !finalState.carriedCard && await completeRun(dailyKey, userId);
+    const isRanked = !finalState.pandoraEffect && !finalState.carriedCards?.length && await completeRun(dailyKey, userId);
     const [board, streak] = await Promise.all([
       isRanked
         ? recordRankedScore(dailyKey, username, score)

@@ -15,5 +15,5 @@ export const replayForScore = (day: string, actions: readonly RunAction[], wins 
   replayRun(day, actions, trainingRingProgress(), 0, wins);
 
 /** The same verified replay as replayForScore, plus what the run unlocked. */
-export const replayForScoreAndUnlocks = (day: string, actions: readonly RunAction[], wins = 0, shopRings: readonly ShopRingId[] = [], effect?: PandoraRunEffect, cardRules?: 1, carried?: CardId) =>
+export const replayForScoreAndUnlocks = (day: string, actions: readonly RunAction[], wins = 0, shopRings: readonly ShopRingId[] = [], effect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[]) =>
   replayWithUnlocks(createRun(day, trainingRingProgress(), 0, wins, shopRings, effect, cardRules, carried), actions);

@@ -1,8 +1,10 @@
 // --- PANDORA OUTCOMES ---
+export const PANDORA_DUPLICATE_GOLD = { Common: 35, Uncommon: 65, Rare: 110, Epic: 175, Legendary: 275 } as const;
+export type PandoraDuplicateRarity = keyof typeof PANDORA_DUPLICATE_GOLD;
 export const PANDORA_RUN_EFFECTS = ['lasting-vigor', 'brittle-blood', 'half-life', 'half-life-double-gold'] as const;
 export type PandoraRunEffect = (typeof PANDORA_RUN_EFFECTS)[number];
 export type PandoraEvent =
-  | { kind: 'gold'; change: number }
+  | { kind: 'gold'; change: number; duplicateRarity?: PandoraDuplicateRarity }
   | { kind: 'run'; effect: PandoraRunEffect; runId?: string; claimed?: boolean };
 
 export const PANDORA_MAX_HP_GAIN = 12;
@@ -25,6 +27,12 @@ export const isPandoraRunEffect = (value: unknown): value is PandoraRunEffect =>
 /** Read an outcome stored alongside the box's receipt. */
 export function readPandoraEvent(value: unknown): PandoraEvent {
   if (!value || typeof value !== 'object' || !('kind' in value)) throw new Error('Invalid Pandora event');
+  if (value.kind === 'gold' && 'duplicateRarity' in value) {
+    const rarity = value.duplicateRarity;
+    if (typeof rarity !== 'string' || !Object.hasOwn(PANDORA_DUPLICATE_GOLD, rarity) ||
+      !('change' in value) || value.change !== PANDORA_DUPLICATE_GOLD[rarity as PandoraDuplicateRarity]) throw new Error('Invalid Pandora duplicate payout');
+    return { kind: 'gold', change: PANDORA_DUPLICATE_GOLD[rarity as PandoraDuplicateRarity], duplicateRarity: rarity as PandoraDuplicateRarity };
+  }
   if (value.kind === 'gold' && 'change' in value && typeof value.change === 'number' &&
     Number.isSafeInteger(value.change) && (value.change === PANDORA_GOLD_REWARD || (value.change <= 0 && value.change >= -PANDORA_GOLD_LOSS_CAP)))
     return { kind: 'gold', change: value.change };

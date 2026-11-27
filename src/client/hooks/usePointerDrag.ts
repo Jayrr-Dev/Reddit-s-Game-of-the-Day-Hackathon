@@ -21,7 +21,7 @@ const zoneAt = (attribute: string, x: number, y: number): string | null =>
 /** Tracks one drag and reports the zone it was dropped on. */
 export const usePointerDrag = <T>(
   zoneAttribute: string,
-  onDrop: (item: T, zone: string | null) => void
+  onDrop: (item: T, zone: string | null, point: { x: number; y: number }) => void
 ) => {
   const [drag, setDrag] = useState<PointerDrag<T> | null>(null);
   const press = useRef<Press<T> | null>(null);
@@ -57,8 +57,9 @@ export const usePointerDrag = <T>(
       const start = press.current;
       press.current = null;
       setDrag(null);
+      const { clientX: x, clientY: y } = event;
       if (start && dragged.current)
-        dropRef.current(start.item, zoneAt(zoneAttribute, event.clientX, event.clientY));
+        dropRef.current(start.item, zoneAt(zoneAttribute, x, y), { x, y });
     };
     const cancel = () => {
       press.current = null;

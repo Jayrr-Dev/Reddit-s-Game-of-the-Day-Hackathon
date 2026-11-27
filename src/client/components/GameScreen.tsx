@@ -32,7 +32,7 @@ import { Screen } from './ui/Screen';
 // --- TYPES ---
 type SessionProps = {
   data: InitResponse;
-  startRun: (testVisit?: string, bringCard?: string) => Promise<StartRunResponse>;
+  startRun: (testVisit?: string, bringCards?: string[], starter?: import('../../shared/game/starters').StarterName) => Promise<StartRunResponse>;
   finishRun: (actions: RunAction[], runId?: string) => Promise<FinishRunResponse>;
 };
 
@@ -83,7 +83,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
   useRunJourney(run, isPlaying);
 
   /** Claims the run with the server (ranked or practice), then plays. */
-  const handleStart = async (build?: PlayerBuild, bringCard?: string) => {
+  const handleStart = async (build?: PlayerBuild, bringCards?: string[]) => {
     if (!canResume && !build) {
       playSound('conquestOpen', 1, .8);
       setChoosing(true);
@@ -93,7 +93,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
     setViewedDefeat(false);
     try {
       if (!canResume) {
-        const started = await startRun(shopTestVisit.current, bringCard);
+        const started = await startRun(shopTestVisit.current, bringCards, build?.selected);
         restart(started.profile, build ?? started.build);
         playSound('conquestStart', 1, .7);
         reset();

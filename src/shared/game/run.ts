@@ -24,7 +24,7 @@ import { isMovementId, move } from './movement.ts';
 import type { GoldVictory } from './gold.ts';
 import { PANDORA_MAX_HP_GAIN, PANDORA_MAX_HP_LOSS, type PandoraRunEffect } from './pandora.ts';
 import { ringInventory, type ShopRingId } from './ringShop.ts';
-import { IMBUE_CARDS } from './carryCards.ts';
+import { appendCarriedCards, IMBUE_CARDS } from './carryCards.ts';
 import { nextInt, pickOne } from './rng.ts';
 import { rollOffers } from './rewards.ts';
 import { isUniqueInDeck } from './unique.ts';
@@ -65,7 +65,7 @@ export type RunState = {
   baseMaxHp?: number;
   pandoraEffect?: PandoraRunEffect;
   deckImbues?: CopyImbues;
-  carriedCard?: CardId;
+  carriedCards?: CardId[];
   promisedToGreed?: CardId;
   storyRingUnlocked?: number | undefined;
   character: CharacterState;
@@ -153,7 +153,8 @@ const initialCharacter = (ringProgress: RingProgress | undefined, wins: number, 
 
 /** The start of the day's run: full HP, starter deck, first crossroads. */
 export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt = 0, wins = 0,
-  shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carriedCard?: CardId): RunState => {
+  shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[]): RunState => {
+  const carriedCards = typeof carried === 'string' ? [carried] : carried ? [...carried] : [];
   const maxHp = PLAYER_MAX_HP + (pandoraEffect === 'lasting-vigor' ? PANDORA_MAX_HP_GAIN : pandoraEffect === 'brittle-blood' ? -PANDORA_MAX_HP_LOSS : 0);
   return {
   attempt,
@@ -163,9 +164,9 @@ export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt
   character: initialCharacter(ringProgress, wins, shopRings),
   hp: (pandoraEffect === 'half-life' || pandoraEffect === 'half-life-double-gold') ? Math.ceil(maxHp / 2) : maxHp,
   maxHp,
-  deck: [...STARTER_DECK, ...(carriedCard ? [carriedCard] : [])],
+  deck: appendCarriedCards(STARTER_DECK, carriedCards),
   ...(cardRules && { deckImbues: {} }),
-  ...(carriedCard && { carriedCard }),
+  ...(carriedCards.length && { carriedCards }),
   usesSpent: {},
   stats: EMPTY_STATS,
   goldVictories: [],
@@ -327,7 +328,7 @@ function remapImbues(imbues: CopyImbues, kept: readonly number[]): CopyImbues {
 export function greedCanTake(state: RunState, index: number): boolean {
   const card = state.deck[index];
   return state.phase.kind === 'greed-bargain' && !state.promisedToGreed && !!card &&
-    state.deck.length > 1 && card !== state.carriedCard;
+    state.deck.length > 1 && !state.carriedCards?.includes(card);
 }
 
 // --- REDUCER ---
@@ -356,7 +357,7 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
   switch (action.type) {
     case 'starterDeck':
       return state.stop === 1 && phase.kind === 'route' && validStarter(action.name, action.cards)
-        ? { ...state, ...(action.favorStarter && {rewardStarter: action.name}), deck: [...action.cards, ...(state.carriedCard && !isUniqueInDeck(action.cards, state.carriedCard) ? [state.carriedCard] : [])] } : state;
+        ? { ...state, ...(action.favorStarter && {rewardStarter: action.name}), deck: appendCarriedCards(action.cards, state.carriedCards ?? []) } : state;
     case 'skillPath':
     case 'buySkill':
     case 'saveTraits': {
@@ -442,8 +443,8 @@ export const replayRun = (
   dailyKey: string,
   actions: readonly RunAction[],
   ringProgress?: RingProgress,
-  attempt = 0, wins = 0, shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carriedCard?: CardId
-): RunState => actions.reduce(runReducer, createRun(dailyKey, ringProgress, attempt, wins, shopRings, pandoraEffect, cardRules, carriedCard));
+  attempt = 0, wins = 0, shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[]
+): RunState => actions.reduce(runReducer, createRun(dailyKey, ringProgress, attempt, wins, shopRings, pandoraEffect, cardRules, carried));
 
 /** True once the heroes have stopped the villain. */
 export const isRunOver = (state: RunState): boolean =>

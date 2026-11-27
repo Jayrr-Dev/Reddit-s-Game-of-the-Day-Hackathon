@@ -1,10 +1,10 @@
-import { availableCarryCards, seededAdminCarryCards, shopStockKey } from '../../shared/game/carryCards';
+import { appendCarriedCards, availableCarryCards, seededAdminCarryCards, shopStockKey } from '../../shared/game/carryCards';
 import type { ShopApple } from '../../shared/game/items';
 import type { CardId } from '../../shared/game/cards';
 import { randomUUID } from 'node:crypto';
 import { redis } from '@devvit/web/server';
 import { goldFromVictoryScore } from '../../shared/game/gold';
-import { ADMIN_SHOP_GOLD, allShopJewelryOwned, assignPandoraEffect, claimPandoraBounty, openedShopBoxes, pendingPandoraEffect, shopGoldBalance, quoteShopPurchase, recoverCardFromHell, takeCarryCard, readShopWallet, shopOffers, shopRingIds, offerTestShopFruit, testShopFruit, testShopStockKey, type ShopWallet, type ShopOfferId } from '../../shared/game/ringShop';
+import { ADMIN_SHOP_GOLD, allShopJewelryOwned, assignPandoraEffect, claimPandoraBounty, openedShopBoxes, pendingPandoraEffect, shopGoldBalance, quoteShopPurchase, recoverCardFromHell, takeCarryCards, readShopWallet, shopOffers, shopRingIds, offerTestShopFruit, testShopFruit, testShopStockKey, type ShopWallet, type ShopOfferId } from '../../shared/game/ringShop';
 import type { RingShopResponse, RunProfile } from '../../shared/types/api';
 import { redisKeys } from './redisKeys';
 
@@ -144,30 +144,42 @@ export async function buyRing(id: string, day: string, offerDay: string, ringId:
   return { status: 'retry', shop: await readCheckout() } as const;
 }
 
-/** Bind a queued effect and selected carry card to the run and its replay baseline in one transaction. */
-export async function bindRunItems(id: string, day: string, profile: RunProfile, testVisit?: string, bringCard?: string) {
-  if (bringCard?.startsWith('test:') && !testVisit) return undefined;
-  const key = testVisit ? redisKeys.adminShopVisit(id, testVisit) : redisKeys.ringPurchases(id);
+/** Bind inventory debits, the queued effect, and the replay baseline atomically. */
+export async function bindRunItems(id: string, day: string, profile: RunProfile, testVisit: string | undefined, receipts: readonly string[], starter: readonly CardId[]) {
+  const testIds = receipts.filter(receipt => receipt.startsWith('test:'));
+  const realIds = receipts.filter(receipt => !receipt.startsWith('test:'));
+  if (testIds.length && !testVisit) return undefined;
+  const testKey = testVisit && (testIds.length || !receipts.length) ? redisKeys.adminShopVisit(id, testVisit) : undefined;
+  const realKey = redisKeys.ringPurchases(id);
+  const keys = testKey ? realIds.length ? [testKey, realKey] : [testKey] : [realKey];
   for (let i = 0; i < 6; i++) {
-    const transaction = await redis.watch(key);
+    const transaction = await redis.watch(keys[0]!, ...keys.slice(1));
     let inMulti = false;
     let completed = false;
     try {
-      const previous = readShopWallet(await redis.get(key));
-      const carried = takeCarryCard(previous, bringCard, profile.id);
-      if (bringCard && !carried) return undefined;
-      const assigned = assignPandoraEffect(carried?.wallet ?? previous, profile.id);
-      if (!assigned && !carried) return undefined;
-      const next: RunProfile = { ...profile, ...(assigned && { pandoraEffect: assigned.effect }), ...(carried && { carriedCard: carried.card.cardId }) };
+      const [testRaw, realRaw] = await Promise.all([
+        testKey ? redis.get(testKey) : Promise.resolve(undefined),
+        keys.includes(realKey) ? redis.get(realKey) : Promise.resolve(undefined),
+      ]);
+      if (testKey && !testRaw) return undefined;
+      const testWallet = readShopWallet(testRaw ?? undefined);
+      const realWallet = readShopWallet(realRaw ?? undefined);
+      const test = takeCarryCards(testWallet, testIds, profile.id);
+      const real = takeCarryCards(realWallet, realIds, profile.id);
+      if (!test || !real) return undefined;
+      const carriedCards = receipts.map(receipt => (receipt.startsWith('test:') ? test.wallet : real.wallet).carry![receipt]!.cardId);
+      if (appendCarriedCards(starter, carriedCards).length !== starter.length + carriedCards.length) return undefined;
+      const assigned = assignPandoraEffect(testKey ? test.wallet : real.wallet, profile.id);
+      if (!assigned && !carriedCards.length) return undefined;
+      const next: RunProfile = { ...profile, ...(assigned && { pandoraEffect: assigned.effect }), ...(carriedCards.length && { carriedCards }), ...(carriedCards.length === 1 && { carriedCard: carriedCards[0]! }) };
       await transaction.multi();
       inMulti = true;
-      const wallet = JSON.stringify(assigned?.wallet ?? carried?.wallet);
-      if (testVisit) await transaction.set(key, wallet, { expiration: testExpiry() });
-      else await transaction.set(key, wallet);
-      await transaction.set(redisKeys.runBaseline(id, day, profile.id), JSON.stringify({ ...next, ...(testVisit && { testVisit }) }));
+      if (testKey) await transaction.set(testKey, JSON.stringify(assigned?.wallet ?? test.wallet), { expiration: testExpiry() });
+      if (!testKey || realIds.length) await transaction.set(realKey, JSON.stringify((!testKey && assigned?.wallet) || real.wallet));
+      await transaction.set(redisKeys.runBaseline(id, day, profile.id), JSON.stringify({ ...next, ...(testKey && { testVisit }) }));
       const result = await transaction.exec();
       completed = true;
-      if (result[0] === 'OK' && result[1] === 'OK') return next;
+      if (result.length === keys.length + 1 && result.every(entry => entry === 'OK')) return next;
     } finally {
       if (!completed) {
         if (inMulti) await transaction.discard().catch(() => {});
@@ -175,7 +187,7 @@ export async function bindRunItems(id: string, day: string, profile: RunProfile,
       }
     }
   }
-  throw new Error('Could not attach the Pandora effect. Try starting again.');
+  throw new Error('Could not start the run with these items. Try again.');
 }
 
 /** A verified first battle credits the bound curse run, at most once. */

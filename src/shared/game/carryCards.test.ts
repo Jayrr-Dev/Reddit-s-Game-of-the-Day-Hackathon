@@ -1,13 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isCarryCardId, shopStockKey } from './carryCards.ts';
+import { isCarryCardId, isCarrySelection, seededAdminCarryCards, shopStockKey } from './carryCards.ts';
 import { appleAtVictory } from './gold.ts';
+import { PANDORA_DUPLICATE_GOLD } from './pandora.ts';
+import { replayForScoreAndUnlocks } from './replayForScore.ts';
+import { restoreLoggedRun, saveLoggedRun } from './runSave.ts';
+import { starterDeck } from './starters.ts';
 import { getCard, type CardId } from './cards.ts';
 import { startCombat } from './combat.ts';
 import { createRun, runReducer, greedCanTake, type RunState } from './run.ts';
 import { routeOptions } from './kingdom.ts';
 import { rollOffers } from './rewards.ts';
-import { openedShopBoxes, quoteShopPurchase, recoverCardFromHell, readShopWallet, shopGoldBalance, shopOffers, takeCarryCard } from './ringShop.ts';
+import { openedShopBoxes, quoteShopPurchase, recoverCardFromHell, readShopWallet, shopGoldBalance, shopOffers, takeCarryCard, takeCarryCards } from './ringShop.ts';
 
 const day = '2026-11-27';
 const firstId = 'b4879658-3fed-485f-8039-600f1045a9f8';
@@ -82,6 +86,54 @@ test('new markets reroll hourly and after a boss without admitting Imbues to reg
   assert.equal(routeOptions(day, 5, true)[0]?.kind, 'champion');
   assert.equal(appleAtVictory(firstId, 5, 'champion'), undefined);
   assert.ok(Array.from({ length: 100 }, (_, stop) => appleAtVictory(firstId, stop, 'horde')).some(Boolean));
+});
+
+test('all four bag cards are spent together and survive starter selection, save restore, and score replay', () => {
+  const wallet = { ...readShopWallet(), carry: seededAdminCarryCards() };
+  const ids = ['test:2', 'test:0', 'test:1', 'test:3'];
+  assert.equal(isCarrySelection([...ids, ids[0]]), false);
+  assert.equal(takeCarryCards(wallet, ['test:0', 'shop:2026-11-27'], firstId), undefined);
+  assert.equal(wallet.carry['test:0']?.spent, undefined);
+  const issued = takeCarryCards(wallet, ids, firstId);
+  assert.ok(issued);
+  assert.equal(takeCarryCards(issued.wallet, ids, nextId), undefined);
+  assert.ok(ids.every(id => issued.wallet.carry[id]?.spent === firstId));
+  const starter = starterDeck('Mage');
+  const action = { type: 'starterDeck', name: 'Mage', cards: starter } as const;
+  const base = createRun(day, undefined, 0, 0, [], undefined, 1, issued.cards);
+  const run = runReducer(base, action);
+  assert.deepEqual(run.deck, [...starter, ...issued.cards]);
+  assert.deepEqual(replayForScoreAndUnlocks(day, [action], 0, [], undefined, 1, issued.cards).state.deck, run.deck);
+  let snapshot: string | null = null;
+  const storage = { length: 0, key: () => null, getItem: () => snapshot, setItem: (_key: string, value: string) => { snapshot = value; } };
+  const blank = restoreLoggedRun(day);
+  saveLoggedRun({ ...blank, run, actions: [action], profile: { id: firstId, wins: 0, cardRules: 1, carriedCards: issued.cards } }, storage);
+  assert.deepEqual(restoreLoggedRun(day, storage).run.deck, run.deck);
+});
+
+test('a duplicate Pandora jewelry roll pays its rarity in Gold without adding another copy', () => {
+  const stock = shopStockKey(new Date('2026-11-27T03:00:00Z'), 0);
+  const box = shopOffers(stock, true).find(offer => offer.slot === 'box');
+  assert.ok(box);
+  const seen = new Set();
+  for (let i = 0; i < 1500 && seen.size < 6; i++) {
+    const make = readShopWallet();
+    const draw = quoteShopPurchase(1000, make, box, stock, String(i));
+    if (draw.status !== 'buy' || !('reward' in draw) || draw.reward.kind !== 'jewelry') continue;
+    const { rarity, slot } = draw.reward;
+    const wallet = { ...make, items: draw.next.items };
+    const duplicate = quoteShopPurchase(1000, wallet, box, stock, String(i));
+    if (duplicate.status !== 'buy' || !('reward' in duplicate)) throw new Error('Missing duplicate payout');
+    const amt = PANDORA_DUPLICATE_GOLD[rarity];
+    assert.deepEqual(duplicate.reward, { kind: 'gold', change: amt, duplicateRarity: rarity });
+    assert.deepEqual(duplicate.next.items, wallet.items);
+    const restored = readShopWallet(JSON.stringify(duplicate.next));
+    assert.equal(shopGoldBalance(1000, restored), shopGoldBalance(1000, wallet) - box.price + amt);
+    assert.equal(quoteShopPurchase(1000, restored, box, stock, 'retry').status, 'owned');
+    seen.add(rarity);
+    if (slot === 'amulet') seen.add('amulet');
+  }
+  assert.deepEqual(seen, new Set([...Object.keys(PANDORA_DUPLICATE_GOLD), 'amulet']));
 });
 
 test('Realm Apple stock guarantees a unique Legendary even during admin visits', () => {
