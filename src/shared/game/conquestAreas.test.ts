@@ -2,18 +2,19 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { activeRows, formUp } from './battlefield.ts';
 import { createHeroUnit } from './combat.ts';
-import { ARCHANGEL_BOSSES, AREA_BOSSES, areaCounts, areaRoomEvent, buildAreaBattles, CAMPAIGN_LENGTH, conquestStops, GRANDANGEL_BOSSES, LOCATION_BOSSES, MAX_WAVE_SIZE } from './conquestAreas.ts';
+import { ARCHANGEL_BOSSES, AREA_BOSSES, areaCounts, areaRoomEvent, buildAreaBattles, CAMPAIGN_LENGTH, CONQUEST_VERSION, conquestStops, GRANDANGEL_BOSSES, LOCATION_BOSSES, MAX_WAVE_SIZE } from './conquestAreas.ts';
 import { CONQUEST_SCENARIOS } from './conquestScenarios.ts';
 import { CHAMPION_IDS, getHero } from './heroes.ts';
 import { canChooseRegion } from './regionRoutes.ts';
 import { PLAYER_HP_CAP, STOPS_PER_REGION } from './rules.ts';
-import { createRun, isRunOver, runReducer, type RunState } from './run.ts';
+import { createRun, isRunOver, optionsFor, runReducer, type RunState } from './run.ts';
 import { groupUnitsByUnitType, unitRankGroups, unitRankLabel } from './sandbox.ts';
+import { replayForScoreAndUnlocks } from './replayForScore.ts';
 import { restoreLoggedRun, saveLoggedRun } from './runSave.ts';
 
 const DAY = 'campaign-test';
 function campaign() {
-  return createRun(DAY, undefined, 0, 0, [], undefined, undefined, undefined, false, 1);
+  return createRun(DAY, undefined, 0, 0, [], undefined, undefined, undefined, false, CONQUEST_VERSION);
 }
 
 function routeAt(stop: number): RunState {
@@ -164,6 +165,27 @@ void test('City Bosses, optional dragon Area Bosses, and hidden room outcomes ar
   assert.deepEqual([...seen].sort(), [...LOCATION_BOSSES].sort());
 });
 
+void test('both roads in every region have a distinct guarded city before the capital', () => {
+  for (let region = 0; region < CAMPAIGN_LENGTH; region++) {
+    const capital = (region + 1) * STOPS_PER_REGION;
+    const stop = capital - 1;
+    for (const route of [0, 1] as const) {
+      const cities = conquestStops(DAY, stop, route);
+      assert.equal(cities.length, 2);
+      assert.notEqual(cities[0]?.site?.name, cities[1]?.site?.name);
+      assert.notEqual(cities[0]?.site?.cityBoss, cities[1]?.site?.cityBoss);
+      for (const [option, city] of cities.entries()) {
+        assert.equal(city.site?.kind, 'city');
+        assert.ok(city.site?.cityBoss);
+        const battle = buildAreaBattles(city.site, DAY, stop, option).at(-1);
+        assert.equal(battle?.finish, 'location-boss');
+        assert.equal(battle?.waves.at(-1)?.heroIds[0], city.site.cityBoss);
+      }
+      assert.equal(conquestStops(DAY, capital, route)[0]?.site?.kind, 'capital');
+    }
+  }
+});
+
 void test('Light Lord Mori closes Penitent Court with both retainers', () => {
   const stop = 6 * STOPS_PER_REGION + 4;
   const site = conquestStops(DAY, stop)[1]?.site;
@@ -193,15 +215,35 @@ void test('the Training roster exposes two grouping layers and late-game HP and 
   }
 });
 
-void test('campaign saves retain their version and old starts keep the old route', () => {
+void test('v1 action logs and v2 profiles replay with their own immutable route options', () => {
+  const originalGuardians = ['holyKing', 'grandGriffon', 'mageBorneAzula', 'twinAxeKnight', 'mageBorneAstra', 'holyDragon', 'lightLordMori'];
   const actions = [{ type: 'chooseStop', option: 0 }] as const;
   const map = new Map<string, string>();
   const storage = { get length() { return map.size; }, key: (i: number) => [...map.keys()][i] ?? null,
     getItem: (key: string) => map.get(key) ?? null, setItem: (key: string, value: string) => { map.set(key, value); } };
-  const profile = { id: 'new', wins: 0, cardRules: 1, progressionVersion: 2, conquestVersion: 1, xpStartWins: 0 } as const;
-  const fresh = createRun(DAY, undefined, 0, 0, [], undefined, 1, undefined, false, profile.conquestVersion, profile.xpStartWins);
-  const run = runReducer(fresh, actions[0]);
-  saveLoggedRun({ run, actions: [...actions], attempt: 0, initialRings: fresh.character.ringProgress, profile }, storage);
-  assert.deepEqual(restoreLoggedRun(DAY, storage).run, run);
+  for (const conquestVersion of [1, CONQUEST_VERSION] as const) {
+    const profile = { id: 'version-' + conquestVersion, wins: 0, cardRules: 1, progressionVersion: 2, conquestVersion, xpStartWins: 0 } as const;
+    const fresh = createRun(DAY, undefined, 0, 0, [], undefined, 1, undefined, false, conquestVersion, 0);
+    const run = runReducer(fresh, actions[0]);
+    for (const savedProfile of [undefined, profile]) {
+      saveLoggedRun({ run, actions: [...actions], attempt: 0, initialRings: fresh.character.ringProgress, ...(savedProfile && { profile: savedProfile }) }, storage);
+      const restored = restoreLoggedRun(DAY, storage);
+      assert.deepEqual(restored.run, run);
+      assert.equal(restored.profile?.conquestVersion, savedProfile?.conquestVersion);
+    }
+    const ranked = replayForScoreAndUnlocks(DAY, actions, 0, [], undefined, 1, undefined, false, conquestVersion, 0).state;
+    assert.equal(ranked.conquestVersion, conquestVersion);
+    for (let region = 0; region < CAMPAIGN_LENGTH; region++) {
+      const stop = (region + 1) * STOPS_PER_REGION - 1;
+      const [left, right] = optionsFor(ranked, stop);
+      if (conquestVersion === 1) {
+        assert.equal(left?.site?.cityBoss, undefined);
+        assert.equal(right?.site?.cityBoss, originalGuardians[region]);
+      } else {
+        assert.ok(left?.site?.cityBoss);
+        assert.ok(right?.site?.cityBoss);
+      }
+    }
+  }
   assert.equal(runReducer(createRun(DAY), actions[0]).area, undefined);
 });

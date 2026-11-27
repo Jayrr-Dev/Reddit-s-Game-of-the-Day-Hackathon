@@ -239,7 +239,14 @@
 .atlas-destination-popover[data-side="left"]::after {
   left: auto; right: -.32rem; border-right: 1px solid #9e8059; border-top: 1px solid #9e8059;
 }
-.atlas-popover-content { position: relative; max-height: 162px; overflow: auto; box-sizing: border-box; padding: .55rem .66rem .62rem; }
+.atlas-popover-content { position: relative; max-height: 251px; overflow: auto; box-sizing: border-box; padding: .55rem .66rem .62rem; }
+.atlas-inspectable { cursor: pointer; touch-action: manipulation; border-radius: .3rem; }
+.atlas-inspectable:hover .atlas-landmark, .atlas-inspectable[aria-expanded="true"] .atlas-landmark { opacity: 1; }
+.atlas-inspectable:focus-visible { outline: 2px solid #562a1c; outline-offset: 3px; }
+.atlas-popover-art { display: block; width: 100%; height: clamp(2.8rem, 12cqw, 4.5rem); margin-bottom: .4rem;
+  object-fit: cover; object-position: center 43%; border: 1px solid #ae89586e; border-radius: .25rem; }
+.atlas-popover-content:has(.atlas-popover-art) > .atlas-popover-close { background: #251b26de; z-index: 1; }
+.atlas-location-state { display: block; margin-top: .35rem; color: #c7aa8e; }
 .atlas-popover-content strong { display: block; padding-right: 1.6rem; font: 800 1.05rem/1.14 var(--font-display, Georgia, serif); }
 .atlas-popover-kind { display: block; margin-bottom: .2rem; color: #d9ad69; text-transform: uppercase; font-size: .61rem; font-weight: 750; letter-spacing: .1em; }
 .atlas-popover-content p { margin: .22rem 0 .35rem; color: #ded1d6; font-style: italic; line-height: 1.25; }

@@ -1,4 +1,5 @@
 import { regionIndexOf, regionName } from './kingdom.ts';
+import type { ConquestVersion } from './conquestAreas.ts';
 import { STOPS_PER_REGION } from './rules.ts';
 
 export type RegionChoice = 0 | 1;
@@ -23,7 +24,7 @@ export const regionChoices = (index: number, conquest = false) =>
   REGIONS[index - 1] ?? (conquest ? LATE_REGIONS[index - 6] : undefined) ?? UPRISING;
 export const isRegionChoice = (value: unknown): value is RegionChoice => value === 0 || value === 1;
 
-type RegionState = { stop: number; phase: { kind: string }; stats: { regionsConquered: number }; conquestVersion?: 1; regionPath?: Partial<Record<number, RegionChoice>> };
+type RegionState = { stop: number; phase: { kind: string }; stats: { regionsConquered: number }; conquestVersion?: ConquestVersion; regionPath?: Partial<Record<number, RegionChoice>> };
 export const chosenRegion = (run: Pick<RegionState, 'stop' | 'regionPath'>) =>
   run.regionPath?.[regionIndexOf(run.stop)];
 

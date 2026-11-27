@@ -21,7 +21,7 @@ import { getCard, STARTER_DECK, type CardId } from './cards.ts';
 import { HELL_ARTIFACTS, isHellArtifact, type HellArtifactId } from './hellArtifacts.ts';
 import { combatOutcome, createHeroUnit, endTurn, playCard, startCombat, SELF_TARGET_UID } from './combat.ts';
 import { formUp } from './battlefield.ts';
-import { areaRoomEvent, buildAreaBattles, conquestMightAt, conquestStops, isLastRegion, REST_FRACTION, type AreaBattle, type AreaSite, type RoomEvent } from './conquestAreas.ts';
+import { areaRoomEvent, buildAreaBattles, conquestMightAt, conquestStops, isLastRegion, REST_FRACTION, type AreaBattle, type AreaSite, type ConquestVersion, type RoomEvent } from './conquestAreas.ts';
 import { canChooseRegion, isRegionChoice, type RegionChoice } from './regionRoutes.ts';
 import { regionIndexOf, mightAt, routeOptions, stopSeed, type Stop } from './kingdom.ts';
 import { isMovementId, move } from './movement.ts';
@@ -68,7 +68,7 @@ export type RunPhase =
 type AreaProgress = { site: AreaSite; stop: Stop; battles: AreaBattle[]; battle: number; wave: number; wavePending?: boolean };
 
 export type RunState = {
-  conquestVersion?: 1;
+  conquestVersion?: ConquestVersion;
   area?: AreaProgress | undefined;
   regionPath?: Partial<Record<number, RegionChoice>>;
   attempt: number;
@@ -169,7 +169,7 @@ const initialCharacter = (ringProgress: RingProgress | undefined, wins: number, 
 
 /** The start of the day's run: full HP, starter deck, first crossroads. */
 export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt = 0, wins = 0,
-  shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[], legacyProgression = false, conquestVersion?: 1, xpStartWins?: number): RunState => {
+  shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[], legacyProgression = false, conquestVersion?: ConquestVersion, xpStartWins?: number): RunState => {
   const carriedCards = typeof carried === 'string' ? [carried] : carried ? [...carried] : [];
   const maxHp = PLAYER_MAX_HP + (pandoraEffect === 'lasting-vigor' ? PANDORA_MAX_HP_GAIN : pandoraEffect === 'brittle-blood' ? -PANDORA_MAX_HP_LOSS : 0);
   return {
@@ -187,7 +187,7 @@ export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt
   usesSpent: {},
   stats: EMPTY_STATS,
   goldVictories: [],
-  phase: { kind: 'route', options: conquestVersion ? conquestStops(dailyKey, 1) : routeOptions(dailyKey, 1, cardRules === 1) },
+  phase: { kind: 'route', options: conquestVersion ? conquestStops(dailyKey, 1, undefined, conquestVersion) : routeOptions(dailyKey, 1, cardRules === 1) },
   };
 };
 
@@ -203,7 +203,7 @@ function regionRouteKey(state: RunState, stop: number) {
 /** Only new runs use the expanded campaign. The earlier route is replayed unchanged. */
 export function optionsFor(state: RunState, stop: number): Stop[] {
   const key = regionRouteKey(state, stop);
-  return state.conquestVersion ? conquestStops(key, stop, state.regionPath?.[regionIndexOf(stop)])
+  return state.conquestVersion ? conquestStops(key, stop, state.regionPath?.[regionIndexOf(stop)], state.conquestVersion)
     : routeOptions(key, stop, !!state.deckImbues && !state.promisedToGreed);
 }
 
@@ -582,7 +582,7 @@ export const replayRun = (
   dailyKey: string,
   actions: readonly RunAction[],
   ringProgress?: RingProgress,
-  attempt = 0, wins = 0, shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[], legacyProgression = false, conquestVersion?: 1, xpStartWins?: number
+  attempt = 0, wins = 0, shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[], legacyProgression = false, conquestVersion?: ConquestVersion, xpStartWins?: number
 ): RunState => actions.reduce(runReducer, createRun(dailyKey, ringProgress, attempt, wins, shopRings, pandoraEffect, cardRules, carried, legacyProgression, conquestVersion, xpStartWins));
 
 /** True once the heroes have stopped the villain. */

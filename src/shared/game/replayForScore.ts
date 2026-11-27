@@ -1,3 +1,4 @@
+import type { ConquestVersion } from './conquestAreas.ts';
 import type { CardId } from './cards.ts';
 import type { PandoraRunEffect } from './pandora.ts';
 import type { ShopRingId } from './ringShop.ts';
@@ -15,5 +16,5 @@ export const replayForScore = (day: string, actions: readonly RunAction[], wins 
   replayRun(day, actions, trainingRingProgress(), 0, wins);
 
 /** The same verified replay as replayForScore, plus what the run unlocked. */
-export const replayForScoreAndUnlocks = (day: string, actions: readonly RunAction[], wins = 0, shopRings: readonly ShopRingId[] = [], effect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[], legacyProgression = false, conquestVersion?: 1, xpStartWins?: number) =>
+export const replayForScoreAndUnlocks = (day: string, actions: readonly RunAction[], wins = 0, shopRings: readonly ShopRingId[] = [], effect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[], legacyProgression = false, conquestVersion?: ConquestVersion, xpStartWins?: number) =>
   replayWithUnlocks(createRun(day, trainingRingProgress(), 0, wins, shopRings, effect, cardRules, carried, legacyProgression, conquestVersion, xpStartWins), actions);

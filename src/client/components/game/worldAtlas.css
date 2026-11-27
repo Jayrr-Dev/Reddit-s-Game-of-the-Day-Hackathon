@@ -1,0 +1,70 @@
+.world-atlas {
+  position: absolute; inset: 0; z-index: 8; isolation: isolate; overflow: hidden;
+  background: #919c85; color: #fff3d8;
+}
+.world-atlas-ink { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.world-atlas-back {
+  position: absolute; top: .6rem; left: .65rem; z-index: 2; min-height: 2.2rem;
+  padding: .35rem .68rem; border: 1px solid #b68d52; border-radius: .3rem;
+  color: #fff1d6; background: #2e231c; font: 700 .74rem var(--font-display, Georgia, serif); cursor: pointer;
+}
+.world-node {
+  position: absolute; transform: translate(-50%, -40%); width: min(29%, 11rem);
+  min-height: 44px; padding: 0; border: 0; background: none; color: #fff1d5;
+  display: grid; justify-items: center; align-content: start; text-align: center;
+  cursor: pointer; touch-action: manipulation;
+}
+.world-node-seal {
+  position: relative; display: grid; place-items: center;
+  width: clamp(2rem, 9cqw, 3.25rem); aspect-ratio: 1; border-radius: 50%;
+  border: 1px solid var(--world-ink); background: var(--world-seal); box-shadow: 0 2px 3px #492d1a60;
+}
+.world-node-seal svg { width: 100%; height: 100%; }
+.world-node-seal b {
+  position: absolute; left: -.22rem; bottom: -.12rem; border-radius: 50%;
+  width: .95rem; aspect-ratio: 1; display: grid; place-items: center;
+  font: 750 .62rem/1 system-ui; border: 1px solid #e1c99a; background: #39281d;
+}
+.world-node[aria-current] .world-node-seal, .world-node:hover .world-node-seal,
+.world-node[aria-expanded="true"] .world-node-seal {
+  outline: 2px solid #f9e0a7; box-shadow: 0 0 0 3px #563924;
+}
+.world-node strong, .world-node small {
+  -webkit-text-stroke: 2px #140e0b; paint-order: stroke fill;
+  text-shadow: 0 1px 2px #140e0b;
+}
+.world-node strong {
+  margin-top: .16rem; font: 780 clamp(.66rem, 2.2cqw, 1.09rem)/1.06 var(--font-display, Georgia, serif);
+}
+.world-node small { margin-top: .15rem; font-size: clamp(.56rem, 1.5cqw, .73rem); color: #ffe0a0; }
+.world-region-details {
+  position: absolute; z-index: 3; left: clamp(8rem, var(--region-x), calc(100% - 8rem));
+  top: calc(var(--region-y) + 2.4rem); transform: translateX(-50%);
+  width: min(15rem, calc(100% - 1.2rem)); padding: .6rem .78rem; border: 1px solid #ae8958;
+  border-radius: .47rem; background: #281c2b; color: #fff0d8; box-shadow: 0 .2rem .9rem #1b0e1ab0;
+}
+.world-region-details[data-above] { top: calc(var(--region-y) - 1.5rem); transform: translate(-50%, -100%); }
+.world-region-details strong { display: block; font: 800 1rem/1.13 var(--font-display, Georgia, serif); }
+.world-region-details small { color: #e4b978; font-size: .68rem; }
+.world-region-details p { margin: .2rem 0 0; font-size: .74rem; line-height: 1.25; }
+.world-region-details > button {
+  position: absolute; top: .17rem; right: .22rem; width: 1.8rem; height: 1.8rem; cursor: pointer;
+}
+
+.world-region-art { width: 100%; height: 3.05rem; object-fit: cover; object-position: 50% 42%; border-radius: .22rem; margin-bottom: .24rem; }
+.world-region-details:has(.world-region-art) > button { z-index: 1; background: #281c2be6; border-radius: .25rem; }
+
+.world-atlas { background: #415c5a; }
+.world-atlas-compass {
+  position: absolute; bottom: 6%; left: 3.5%; width: clamp(1.45rem, 6.4cqw, 3.7rem);
+  color: #eed4a0; display: grid; justify-items: center; pointer-events: none;
+  font: 700 clamp(.59rem, 1.55cqw, .84rem)/1 Georgia, serif;
+}
+.world-atlas-compass svg { width: 100%; stroke: currentColor; stroke-width: .9; }
+.world-node { width: min(28%, 10.5rem); }
+.world-node-seal { width: clamp(1.8rem, 6.35cqw, 2.65rem); box-shadow: 0 2px 4px #3022178a; }
+.world-node strong {
+  -webkit-text-stroke-width: 2.5px;
+  text-shadow: 0 2px 2px #140e0b, 1px 1px 0 #140e0b, -1px 1px 0 #140e0b;
+}
+.world-node[aria-current] .world-node-seal { outline-color: #ffe3a1; }

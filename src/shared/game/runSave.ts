@@ -15,6 +15,7 @@ import {
   type TraitId,
 } from './character.ts';
 
+import { isConquestVersion, type ConquestVersion } from './conquestAreas.ts';
 import type { RunProfile } from '../types/api.ts';
 import { isCarriedDeck } from './carryCards.ts';
 import { isCardId } from './cards.ts';
@@ -110,18 +111,18 @@ const restoreActions = (
   attempt: number,
   connected: boolean,
   legacyProgression: boolean,
-  conquestVersion?: 1,
+  conquestVersion?: ConquestVersion,
   xpStartWins?: number
 ): LoggedRun => {
   const valid = raw.filter(isRunAction);
   if (connected || !valid.some((action) => action.type === 'setTraitNode'))
     return {
-      run: replayRun(day, valid, initialRings, attempt, 0, [], undefined, conquestVersion, undefined, legacyProgression, conquestVersion, xpStartWins),
+      run: replayRun(day, valid, initialRings, attempt, 0, [], undefined, conquestVersion !== undefined ? 1 : undefined, undefined, legacyProgression, conquestVersion, xpStartWins),
       actions: valid,
       initialRings,
       attempt,
     };
-  let run = createRun(day, initialRings, attempt, 0, [], undefined, conquestVersion, undefined, legacyProgression, conquestVersion, xpStartWins);
+  let run = createRun(day, initialRings, attempt, 0, [], undefined, conquestVersion !== undefined ? 1 : undefined, undefined, legacyProgression, conquestVersion, xpStartWins);
   const actions: RunAction[] = [];
   const previousIds = new Map<TraitId, readonly number[]>();
   for (const action of valid) {
@@ -217,7 +218,7 @@ export const restoreLoggedRun = (
             ...('pandoraEffect' in saved.profile && isPandoraRunEffect(saved.profile.pandoraEffect) && { pandoraEffect: saved.profile.pandoraEffect }),
             ...('progressionVersion' in saved.profile && saved.profile.progressionVersion === 2 && { progressionVersion: 2 as const }),
             ...('xpStartWins' in saved.profile && isWinBaseline(saved.profile.xpStartWins) && { xpStartWins: saved.profile.xpStartWins }),
-            ...('conquestVersion' in saved.profile && saved.profile.conquestVersion === 1 && { conquestVersion: 1 as const }),
+            ...('conquestVersion' in saved.profile && isConquestVersion(saved.profile.conquestVersion) && { conquestVersion: saved.profile.conquestVersion }),
             ...('cardRules' in saved.profile && saved.profile.cardRules === 1 && { cardRules: 1 as const }),
             ...('carriedCards' in saved.profile && isCarriedDeck(saved.profile.carriedCards) && { carriedCards: saved.profile.carriedCards }),
             ...('carriedCard' in saved.profile && isCardId(saved.profile.carriedCard) && { carriedCard: saved.profile.carriedCard }) };
@@ -231,7 +232,7 @@ export const restoreLoggedRun = (
           saved.attempt,
           'traitRuleVersion' in saved && saved.traitRuleVersion === 5,
           !('progressionVersion' in saved && saved.progressionVersion === 2),
-          'conquestVersion' in saved && saved.conquestVersion === 1 ? 1 : undefined,
+          'conquestVersion' in saved && isConquestVersion(saved.conquestVersion) ? saved.conquestVersion : undefined,
           'xpStartWins' in saved && isWinBaseline(saved.xpStartWins) ? saved.xpStartWins : undefined
         );
       }

@@ -5,6 +5,7 @@
 // both sides instead of failing at runtime.
 // ===================================================================
 
+import type { ConquestVersion } from '../game/conquestAreas.ts';
 import type { CardId } from '../game/cards.ts';
 import type { CarryCard } from '../game/carryCards.ts';
 import type { PandoraRunEffect } from '../game/pandora.ts';
@@ -106,7 +107,7 @@ export type RingShopResponse = {
 export type BuyRingRequest = { ringId: ShopOfferId; offerDay: string; testVisit?: string };
 export type { ShopReward } from '../game/ringShop.ts';
 export type BuyRingResponse = { status: 'bought' | 'owned' | 'short' | 'stale' | 'retry'; shop: RingShopResponse; reward?: ShopReward };
-export type RunProfile = { id: string; wins: number; shopRings?: ShopRingId[]; pandoraEffect?: PandoraRunEffect; cardRules?: 1; progressionVersion?: 2; conquestVersion?: 1; xpStartWins?: number; carriedCard?: CardId; carriedCards?: CardId[] };
+export type RunProfile = { id: string; wins: number; shopRings?: ShopRingId[]; pandoraEffect?: PandoraRunEffect; cardRules?: 1; progressionVersion?: 2; conquestVersion?: ConquestVersion; xpStartWins?: number; carriedCard?: CardId; carriedCards?: CardId[] };
 export type StartRunResponse = {
   build?: import('../game/playerBuild.ts').PlayerBuild;
   profile?: RunProfile;

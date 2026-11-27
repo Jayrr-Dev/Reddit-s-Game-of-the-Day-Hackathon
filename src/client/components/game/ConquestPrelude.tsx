@@ -20,6 +20,8 @@ import lust from '../../assets/npcs/sin-lair-lust.webp';
 import pride from '../../assets/npcs/sin-lair-pride.webp';
 import { AtlasInk, AtlasLandmark, landmarkOf, ATLAS_HEIGHT, ATLAS_WIDTH, type AtlasLink, type AtlasPoint } from './KingdomAtlas';
 import { ATLAS_REGIONS } from './AtlasRegions';
+import { WorldAtlas } from './WorldAtlas';
+import { bossArenaOf } from '../../content/bossArenas';
 import { SinLairMotion } from './SinLairMotion';
 import './conquestPrelude.css';
 
@@ -72,7 +74,7 @@ export function ConquestMap({
     const margin = 8;
     const gap = 10;
     const width = Math.min(252, container.width - margin * 2);
-    const height = Math.min(164, container.height - margin * 2);
+    const height = Math.min(253, container.height - margin * 2);
     const within = (n: number, max: number) => Math.max(margin, Math.min(n, max - margin));
     const midpoint = icon.left + icon.width / 2 - container.left;
     const iconY = icon.top + icon.height / 2 - container.top;
@@ -97,8 +99,9 @@ export function ConquestMap({
     setPopover(previous => previous?.left === next.left && previous.edge === next.edge &&
       previous.side === next.side && previous.caret === next.caret ? previous : next);
   }, []);
-  const [selected, setSelected] = useState<number>();
-  const [showAscent, setShowAscent] = useState(false);
+  const [selected, setSelected] = useState<{at: number; option: number}>();
+  const [showWorld, setShowWorld] = useState(false);
+  const worldTrigger = useRef<HTMLButtonElement>(null);
   const regionIndex = regionIndexOf(stop);
   const firstStop = regionIndex * STOPS_PER_REGION + 1;
   const isCampaign = options.some(option => option.site);
@@ -136,7 +139,11 @@ export function ConquestMap({
     ];
     return previous.flatMap(from => row.nodes.map(({point:to}) => ({from,to,state})));
   });
-  const active = rows[stop - firstStop]?.nodes.find(node => node.option === selected);
+  const active = selected ? rows[selected.at - firstStop]?.nodes.find(node => node.option === selected.option) : undefined;
+  const canTravel = selected?.at === stop;
+  const arena = active?.node.site?.kind === 'capital' ? bossArenaOf(active.node.heroIds) : undefined;
+  const terrainName = active?.node.site?.map ?? active?.location.name;
+  const locationArt = arena?.image ?? MAP_IMAGES[MAP_NAMES.findIndex(name => name === terrainName)];
   const counts = active?.node.site ? areaCounts(active.node.site) : undefined;
   const typeLabel = (node: Stop) => node.site?.kind === 'capital'
     ? regionIndex >= GRANDANGEL_BOSSES.length ? 'Final Boss' : 'Region Boss'
@@ -173,47 +180,48 @@ export function ConquestMap({
   const position = ({x,y}: AtlasPoint) => ({ left: (100 * x / ATLAS_WIDTH) + '%', top: (100 * y / ATLAS_HEIGHT) + '%' });
   return <section className="conquest-map map-fullbleed prelude-enter" aria-label={region ? region + ' map' : 'Conquest map'}
     onPointerDownCapture={event => {
-      if (active && event.target instanceof Element && !event.target.closest('.atlas-destination-popover, .atlas-destination')) setSelected(undefined);
+      if (active && event.target instanceof Element && !event.target.closest('.atlas-destination-popover, .atlas-destination, .atlas-inspectable')) setSelected(undefined);
     }}
     onKeyDown={event => {
-      if (event.key === 'Escape' && showAscent) setShowAscent(false);
-      else if (event.key === 'Escape' && selected !== undefined) {
+      if (event.key === 'Escape' && selected !== undefined) {
         setSelected(undefined);
         selectedMarker.current?.focus({ preventScroll: true });
       }
     }}>
-    {isCampaign && <div className="atlas-ascent">
-      <button type="button" aria-expanded={showAscent} onClick={() => setShowAscent(value => !value)}>World ascent</button>
-      {showAscent && <ol reversed aria-label="Conquest regions">
-        {[...ATLAS_REGIONS].reverse().map((entry, i) => {
-          const rank = ATLAS_REGIONS.length - 1 - i;
-          return <li key={entry.angel} aria-current={rank === regionIndex ? 'step' : undefined} data-state={rank < regionIndex ? 'past' : rank > regionIndex ? 'future' : 'current'}>
-            <strong>{entry.name}</strong><small>{entry.angel}</small>
-          </li>;
-        })}
-      </ol>}
+    {isCampaign && <div className="atlas-ascent" hidden={showWorld}>
+      <button ref={worldTrigger} type="button" aria-controls="full-world-atlas" onClick={() => {
+        setSelected(undefined);
+        setShowWorld(true);
+      }}>World map</button>
     </div>}
-    <div className="conquest-map-scroll atlas-scrollbar-hidden" ref={map} tabIndex={0} aria-label="Scrollable kingdom map">
+    {showWorld && <WorldAtlas current={regionIndex} onBack={() => {
+      setShowWorld(false);
+      requestAnimationFrame(() => worldTrigger.current?.focus({ preventScroll: true }));
+    }} />}
+    <div className="conquest-map-scroll atlas-scrollbar-hidden" ref={map} tabIndex={showWorld ? -1 : 0} inert={showWorld} aria-hidden={showWorld || undefined} aria-label="Scrollable kingdom map">
       <div className="conquest-map-atlas">
-        <AtlasInk seed={atlasSeed} links={links} selected={active?.point} regionIndex={regionIndex} />
+        <AtlasInk seed={atlasSeed} links={links} selected={canTravel ? active?.point : undefined} regionIndex={regionIndex} />
         {isCampaign && !isSummit && <div className="atlas-regional-note" style={position({x: 421, y: 44})}><strong>{theme.name}</strong><small>{theme.landmark}</small></div>}
         {isSummit && <div className="atlas-city atlas-gateway" style={position(summitGate)}>
           <AtlasLandmark mark="crossing" /><strong>Gate to Purgatory</strong><small>World Summit</small>
         </div>}
         {rows.map(row => row.nodes.map(({ node, option, location, point, mark }) => {
           const name = isSummit && node.site?.kind === 'capital' ? 'The Last Citadel' : location.name;
-          const content = <><AtlasLandmark mark={mark} /><strong>{name}</strong>
-            {typeLabel(node) && <small>{typeLabel(node)}</small>}</>;
-          return row.at === stop
-            ? <button type="button" key={row.at + ':' + option} className="atlas-destination" aria-pressed={selected === option}
-                aria-label={name} aria-expanded={selected === option} ref={option === 0 ? activeMarker : undefined} style={position(point)}
-                onClick={event => {
-                  selectedMarker.current = event.currentTarget;
-                  positionPopover(event.currentTarget);
-                  setSelected(current => current === option ? undefined : option);
-                }}>{content}</button>
-            : <div key={row.at + ':' + option} className="atlas-city" data-state={row.at < stop ? 'past' : 'future'}
-                style={position(point)}>{content}</div>;
+          const available = row.at === stop;
+          const inspected = selected?.at === row.at && selected.option === option;
+          return <button type="button" key={row.at + ':' + option}
+            className={available ? 'atlas-destination' : 'atlas-city atlas-inspectable'}
+            data-state={available ? 'open' : row.at < stop ? 'past' : 'future'}
+            aria-label={name} aria-expanded={inspected} aria-pressed={inspected}
+            ref={available && option === 0 ? activeMarker : undefined} style={position(point)}
+            onClick={event => {
+              selectedMarker.current = event.currentTarget;
+              positionPopover(event.currentTarget);
+              setSelected(current => current?.at === row.at && current.option === option ? undefined : {at: row.at, option});
+            }}>
+            <AtlasLandmark mark={mark} /><strong>{name}</strong>
+            {typeLabel(node) && <small>{typeLabel(node)}</small>}
+          </button>;
         }))}
         <div className="atlas-origin" style={position(origin)}>
           <AtlasLandmark mark="crossing"/><strong>{firstStop === 1 ? 'The Crossing' : 'Into the region'}</strong>
@@ -229,11 +237,13 @@ export function ConquestMap({
           setSelected(undefined);
           selectedMarker.current?.focus({ preventScroll: true });
         }}>×</button>
+        {locationArt && <ProgressiveImg className="atlas-popover-art" src={locationArt} alt="" />}
         <span className="atlas-popover-kind">{typeLabel(active.node) ?? 'Battle route'}</span>
         <strong>{isSummit && active.node.site?.kind === 'capital' ? 'The Last Citadel' : active.location.name}</strong>
         <p>{isSummit && active.node.site?.kind === 'capital' ? 'Beyond the summit gate, Archangel Mikhael awaits in Purgatory.' : active.location.flavour}</p>
         {counts && <small>{counts.battles} {counts.battles === 1 ? 'battle' : 'battles'} · {counts.rooms} {counts.rooms === 1 ? 'room' : 'rooms'}</small>}
-        <Button variant="menuPrimary" onClick={() => onChoose(active.option)}>Travel here</Button>
+        {canTravel ? <Button variant="menuPrimary" onClick={() => onChoose(active.option)}>Travel here</Button>
+          : <span className="atlas-location-state">{selected && selected.at < stop ? 'Already passed' : 'Not yet reachable'}</span>}
       </div>
     </div>}
   </section>;

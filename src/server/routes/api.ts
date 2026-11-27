@@ -5,6 +5,7 @@
 // ===================================================================
 
 import { defaultBuild, isPlayerBuild } from '../../shared/game/playerBuild';
+import { CONQUEST_VERSION, isConquestVersion } from '../../shared/game/conquestAreas';
 import { randomUUID } from 'node:crypto';
 import { redisKeys } from '../core/redisKeys';
 import { discardPlayerItem, getItems, offerApple, recordAppleFinds, spendPlayerItem } from '../core/playerItems';
@@ -37,6 +38,7 @@ import type {
   SaveUnitStatsRequest,
   SaveUnitStatsResponse,
   StartRunResponse,
+  RunProfile,
   UseItemRequest,
   UseItemResponse,
   DiscardItemResponse,
@@ -239,7 +241,7 @@ api.post('/run/start', async (c) => {
     if (record.starter !== undefined && !isStarterName(record.starter)) return jsonError(c, 400, 'Invalid starter deck');
     const starter = isStarterName(record.starter) ? record.starter : build.selected;
     const deck = build.decks[starter] ?? starterDeck(starter);
-    const profile = { id: randomUUID(), wins, xpStartWins, shopRings, cardRules: 1 as const, progressionVersion: 2 as const, conquestVersion: 1 as const };
+    const profile: RunProfile = { id: randomUUID(), wins, xpStartWins, shopRings, cardRules: 1, progressionVersion: 2, conquestVersion: CONQUEST_VERSION };
     const withItems = await bindRunItems(userId, day, profile, testVisit, requested, deck)
       ?? (testVisit && !requested.length ? await bindRunItems(userId, day, profile, undefined, requested, deck) : undefined);
     if (withItems) return c.json<StartRunResponse>({ type: 'runStart', isRanked: false, profile: withItems, build });
@@ -268,7 +270,7 @@ async function verifyProgress(day: string, body: FinishRunRequest, userId: strin
   const cardRules = saved && typeof saved === 'object' && 'cardRules' in saved && saved.cardRules === 1 ? 1 as const : undefined;
   const carried = saved && typeof saved === 'object' && 'carriedCards' in saved && isCarriedDeck(saved.carriedCards) ? saved.carriedCards : saved && typeof saved === 'object' && 'carriedCard' in saved && isCardId(saved.carriedCard) ? saved.carriedCard : undefined;
   const legacyProgression = !(saved && typeof saved === 'object' && 'progressionVersion' in saved && saved.progressionVersion === 2);
-  const conquestVersion = saved && typeof saved === 'object' && 'conquestVersion' in saved && saved.conquestVersion === 1 ? 1 : undefined;
+  const conquestVersion = saved && typeof saved === 'object' && 'conquestVersion' in saved && isConquestVersion(saved.conquestVersion) ? saved.conquestVersion : undefined;
   const xpStartWins = saved && typeof saved === 'object' && 'xpStartWins' in saved &&
     typeof saved.xpStartWins === 'number' && Number.isSafeInteger(saved.xpStartWins) && saved.xpStartWins >= 0 ? saved.xpStartWins : undefined;
   const { state: run, unlocks } = replayForScoreAndUnlocks(day, body.actions, wins, shopRings, effect, cardRules, carried, legacyProgression, conquestVersion, xpStartWins);

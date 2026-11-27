@@ -6,7 +6,13 @@ import { CONQUEST_SCENARIOS } from './conquestScenarios.ts';
 import { CHAMPION_IDS, type HeroId } from './heroes.ts';
 import { STOPS_PER_REGION } from './rules.ts';
 
-export const CONQUEST_VERSION = 1;
+export const CONQUEST_VERSION = 2;
+export type ConquestVersion = 1 | typeof CONQUEST_VERSION;
+
+/** Old issued runs retain their original encounter generation. */
+export function isConquestVersion(value: unknown): value is ConquestVersion {
+  return value === 1 || value === CONQUEST_VERSION;
+}
 export const MAX_WAVE_SIZE = 6;
 export const REST_FRACTION = 0.25;
 
@@ -88,18 +94,32 @@ function dragonSite(key: string, stop: number): AreaSite | undefined {
   return { ...pickOne(next, DRAGON_SITES)[0], kind: 'dragon', flavour: 'An optional battle against a dragon. The road to the capital remains open.' };
 }
 
+type GuardedCity = { name: string; map: string; cityBoss: typeof LOCATION_BOSSES[number] };
+
+/** Both roads meet a city guardian before the capital; the original right-hand cities stay in place. */
 const BOSS_LOCATIONS = [
-  { name: 'Basilica Ward', map: 'City Square', cityBoss: 'holyKing' },
-  { name: 'Griffon’s Watch', map: 'Deep Forest', cityBoss: 'grandGriffon' },
-  { name: 'The Sable Vault', map: 'Dungeon', cityBoss: 'mageBorneAzula' },
-  { name: 'Khan’s Bastion', map: 'Fallen City', cityBoss: 'twinAxeKnight' },
-  { name: 'The Astral Sanctum', map: 'Ancient Ruins', cityBoss: 'mageBorneAstra' },
-  { name: 'Sunward City', map: 'City Square', cityBoss: 'holyDragon' },
-  { name: 'Penitent Court', map: 'Royal Court', cityBoss: 'lightLordMori' },
-] as const satisfies readonly { name: string; map: string; cityBoss: typeof LOCATION_BOSSES[number] }[];
+  [{ name: 'Giltgate', map: 'Castle Gates', cityBoss: 'twinAxeKnight' },
+    { name: 'Basilica Ward', map: 'City Square', cityBoss: 'holyKing' }],
+  [{ name: 'Frostwatch', map: 'Mountain Pass', cityBoss: 'mageBorneAstra' },
+    { name: "Griffon's Watch", map: 'Deep Forest', cityBoss: 'grandGriffon' }],
+  [{ name: 'Veilcross', map: 'Elven Forest', cityBoss: 'grandGriffon' },
+    { name: 'The Sable Vault', map: 'Dungeon', cityBoss: 'mageBorneAzula' }],
+  [{ name: 'Threebell Keep', map: 'Castle Gates', cityBoss: 'holyKing' },
+    { name: "Khan's Bastion", map: 'Fallen City', cityBoss: 'twinAxeKnight' }],
+  [{ name: 'Redstone Gate', map: 'Volcanic Pass', cityBoss: 'twinAxeKnight' },
+    { name: 'The Astral Sanctum', map: 'Ancient Ruins', cityBoss: 'mageBorneAstra' }],
+  [{ name: 'Starvault', map: 'Ancient Ruins', cityBoss: 'mageBorneAzula' },
+    { name: 'Sunward City', map: 'City Square', cityBoss: 'holyDragon' }],
+  [{ name: 'Embercrest', map: 'Dune Sea', cityBoss: 'holyDragon' },
+    { name: 'Penitent Court', map: 'Royal Court', cityBoss: 'lightLordMori' }],
+  [{ name: 'Vesper Gate', map: 'Fallen City', cityBoss: 'mageBorneAzula' },
+    { name: 'Two-Sun Keep', map: 'Mountain Pass', cityBoss: 'holyDragon' }],
+  [{ name: "Pilgrim's Crown", map: 'Mountain Pass', cityBoss: 'lightLordMori' },
+    { name: 'High Vigil', map: 'Castle Gates', cityBoss: 'holyKing' }],
+] as const satisfies readonly (readonly [GuardedCity, GuardedCity])[];
 
 /** New routes converge at the capital. Legacy runs retain the old route roll. */
-export function conquestStops(key: string, stop: number, region?: RegionChoice): Stop[] {
+export function conquestStops(key: string, stop: number, region?: RegionChoice, version: ConquestVersion = CONQUEST_VERSION): Stop[] {
   const index = regionIndexOf(stop);
   if (isChampionStop(stop)) {
     const name = CAPITAL_NAMES[index]?.[region ?? 0] ?? 'The Last Citadel';
@@ -113,7 +133,8 @@ export function conquestStops(key: string, stop: number, region?: RegionChoice):
     const location = stopLocation(stop, option, 'horde', region);
     const extraMaps = ['River Bridge', 'Castle Gates', 'City Square', 'Fallen City', 'Royal Court'];
     const lateMap = index >= 6 ? regionChoices(index, true)[region ?? 0].map : undefined;
-    const bossSite = stop % STOPS_PER_REGION === 4 && option === 1 ? BOSS_LOCATIONS[index] : undefined;
+    const hasGuardedCity = version === CONQUEST_VERSION || (index < 7 && option === 1);
+    const bossSite = hasGuardedCity && stop % STOPS_PER_REGION === STOPS_PER_REGION - 1 ? BOSS_LOCATIONS[index]?.[option] : undefined;
     if (bossSite) return { kind: 'horde', heroIds: [], site: { ...bossSite, kind: 'city',
       flavour: 'A named guardian holds this location.' } };
     const map = lateMap
