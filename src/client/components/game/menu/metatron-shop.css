@@ -2,7 +2,7 @@
 .metatron-idle-head, .metatron-idle-feathers { transform-box: view-box; }
 .metatron-idle-head {
   transform-origin: 600px 224px;
-  animation: metatron-head-breath 7.2s ease-in-out infinite;
+  animation: metatron-greet-nod 820ms ease-in-out, metatron-head-breath 7.2s 820ms ease-in-out infinite;
 }
 .metatron-idle-feathers {
   transform-origin: 600px 373px;
@@ -19,7 +19,59 @@
   50% { transform: translateY(-2.8px) scaleX(1.009); }
 }
 
+/* Match the contained painting, including the letterbox area on mobile. */
+.metatron-dialogue-layer {
+  position: absolute;
+  inset: 0;
+  container-type: size;
+  pointer-events: none;
+}
+.metatron-dialogue-frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(100cqw, calc(100cqh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  transform: translate(-50%, -50%);
+}
+.metatron-greeting {
+  position: absolute;
+  top: 41%;
+  left: 66%;
+  margin: 0;
+  padding: .28rem .62rem;
+  border: 1px solid #b58d59;
+  border-radius: .4rem;
+  background: #211727f2;
+  box-shadow: 0 2px 7px #140c17a0;
+  color: #fff0d0;
+  font: 600 clamp(.70rem, 1.55cqw, .88rem)/1.2 var(--font-display, Georgia, serif);
+  animation: metatron-greeting-in 380ms 170ms ease-out both;
+}
+.metatron-greeting::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: .4rem;
+  height: .4rem;
+  border-left: 1px solid #b58d59;
+  border-bottom: 1px solid #b58d59;
+  background: #211727;
+  transform: translate(-60%, -50%) rotate(45deg);
+}
+
+@keyframes metatron-greeting-in {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes metatron-greet-nod {
+  0%, 12%, 100% { transform: none; }
+  43% { transform: translateY(7px) scaleY(.979); }
+  74% { transform: translateY(-.7px); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .metatron-idle { display: none; }
-  .metatron-idle-head, .metatron-idle-feathers { animation: none; }
+  .metatron-idle-head, .metatron-idle-feathers, .metatron-greeting { animation: none; }
 }

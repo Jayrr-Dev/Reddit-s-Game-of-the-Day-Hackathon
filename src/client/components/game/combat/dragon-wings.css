@@ -1,0 +1,49 @@
+/* DRAGON WINGS
+ * Each original wing is anchored to its shoulder in figure coordinates.
+ * Left and right use opposite angles, with a slight offset on the glide.
+ */
+.wyvern-wing {
+  --wing-direction: 1;
+  transform-box: view-box;
+  animation: wyvern-wing-idle 3.6s ease-in-out infinite;
+}
+
+.wyvern-wing-right {
+  --wing-direction: -1;
+  animation-delay: -110ms;
+}
+
+/* A shallower stroke keeps the seams of the original Fulgur art tucked in. */
+.fulgur-wing {
+  --wing-lift: 6deg;
+  --wing-fall: -3deg;
+}
+
+@keyframes wyvern-wing-idle {
+  0%, 100% { transform: none; }
+  36% { transform: rotate(calc(var(--wing-direction) * var(--wing-lift, 9deg))); }
+  64% { transform: rotate(calc(var(--wing-direction) * var(--wing-fall, -4deg))); }
+}
+
+[data-action] .fulgur-wing.wyvern-wing {
+  animation: wyvern-wing-cast 560ms ease-in-out;
+}
+
+[data-dying] .fulgur-wing.wyvern-wing {
+  animation: none;
+}
+
+@keyframes wyvern-wing-cast {
+  0%, 100% { transform: none; }
+  35% { transform: rotate(calc(var(--wing-direction) * 9deg)); }
+  60% { transform: rotate(calc(var(--wing-direction) * -5deg)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wyvern-wing,
+  [data-action] .wyvern-wing:is(.dragon-wing-left, .dragon-wing-right),
+  [data-action] .fulgur-wing.wyvern-wing,
+  [data-dying] .wyvern-wing:is(.dragon-wing-left, .dragon-wing-right) {
+    animation: none;
+  }
+}

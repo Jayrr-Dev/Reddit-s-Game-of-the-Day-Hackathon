@@ -44,7 +44,8 @@ import { GluttonyRigFigure } from './GluttonyRigFigure';
 import greedArt from '../../../assets/heroes/greed.webp';
 import moriArt from '../../../assets/heroes/light-lord-mori.webp';
 import azulaArt from '../../../assets/heroes/mage-borne-azula.webp';
-import fulgurArt from '../../../assets/heroes/fulgur-dragonknight-idle.webp';
+import { FulgurWingArt } from './FulgurWingArt';
+import './dragon-wings.css';
 import { RazielRigFigure } from './RazielRigFigure';
 import { SlothMotionFigure, PrideMotionFigure, EnvyMotionFigure } from './SinBossMotionFigure';
 import { CambielRigFigure, CherubielRigFigure } from './CambielCherubielRig';
@@ -264,12 +265,12 @@ const Pair = ({
 /** Both wings, each beating around its root. */
 const Wings = () => (
   <>
-    <g className="dragon-wing-left" style={originAt(WING_ROOT)}>
+    <g className="dragon-wing-left wyvern-wing wyvern-wing-left" style={originAt(WING_ROOT)}>
       <polygon points={pts(WING_OUTER)} fill={WING.outerLit} />
       <polygon points={pts(WING_INNER)} fill={WING.innerLit} />
     </g>
     <g
-      className="dragon-wing-right"
+      className="dragon-wing-right wyvern-wing wyvern-wing-right"
       style={originAt([ART_WIDTH - WING_ROOT[0], WING_ROOT[1]])}
     >
       <polygon points={pts(mirrored(WING_OUTER))} fill={WING.outerShade} />
@@ -692,7 +693,7 @@ const MageBorneAzula = () => (
 
 const FulgurDragonknight = () => (
   <g className="fulgur-throw-pose">
-    <ProgressiveSvgImage data-fulgur-dragonknight="" href={fulgurArt} x={1} y={0} width={148} height={99} />
+    <FulgurWingArt />
     <circle data-fulgur-cast-origin="" cx={99} cy={17} r={1} fill="transparent" />
     <g className="fulgur-hand-charge" fill="none" strokeLinecap="round" strokeLinejoin="round">
       <path d="M94 13 97 17 101 15 104 19 107 16 M96 21 99 19 102 23 106 21 M100 11l2 4"

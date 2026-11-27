@@ -43,7 +43,7 @@ export const MetatronShop = ({ onClose }: { onClose: () => void }) => (
   <section
     role="dialog"
     aria-label="Shop"
-    className="absolute inset-0 z-40 isolate flex flex-col justify-between overflow-hidden bg-[#211826] p-3 animate-rise sm:p-4"
+    className="absolute inset-0 z-40 isolate flex flex-col justify-between overflow-hidden bg-[#211826] p-3 animate-rise motion-reduce:animate-none sm:p-4"
   >
     <ProgressiveImg
       src={shopFrame}
@@ -63,6 +63,12 @@ export const MetatronShop = ({ onClose }: { onClose: () => void }) => (
       height={675}
       className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-contain motion-reduce:hidden"
     />
+
+    <div className="metatron-dialogue-layer">
+      <div className="metatron-dialogue-frame">
+        <p className="metatron-greeting">Greetings.</p>
+      </div>
+    </div>
 
     <header className="w-fit max-w-[90%] rounded-md bg-[#17111d]/90 px-3 py-2">
       <h2 className="font-display text-sm font-black uppercase tracking-widest text-accent">
