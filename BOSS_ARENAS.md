@@ -4,6 +4,7 @@ A listed encounter loads its arena by boss ID. Unlisted encounters retain their 
 
 | Encounter ID | Arena |
 |---|---|
+| archangelMikhael | The Last Citadel |
 | archangelZeruel | Twin Eclipse Citadel |
 | fulgurDragonknight | Thunderbreak Roost |
 | grandangelCerviel | Threefold Sanctum |
@@ -18,5 +19,7 @@ A listed encounter loads its arena by boss ID. Unlisted encounters retain their 
 | holyDragon | Sunspire Aerie |
 | tempestWyrm | Thunder Gorge |
 | holyKing | Crown Basilica |
+
+Conquest normally keeps the location terrain for the whole battle. The Last Citadel is set at the start of Mikhael's final battle, then kept through both phases and the sealing scene. Only it has dedicated animated cloud, angel, smoke, and ash layers; reduced-motion mode keeps them still.
 
 Map ambience and music volume are controlled separately.

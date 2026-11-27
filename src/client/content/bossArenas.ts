@@ -15,7 +15,7 @@ import scene10 from '../assets/terrain/boss/raziel-veiled-scriptorium.webp';
 import scene11 from '../assets/terrain/boss/holy-dragon-sunspire-aerie.webp';
 import scene12 from '../assets/terrain/boss/vael-thunder-gorge-cloud-floor.webp';
 import scene13 from '../assets/terrain/boss/holy-king-crown-basilica.webp';
-import taxiarchArena from '../assets/terrain/boss/mikhael-final-arena.webp';
+import taxiarchArena from '../assets/terrain/boss/mikhael-ruined-citadel.webp';
 
 import slothArena from '../assets/terrain/cave.webp';
 import prideArena from '../assets/terrain/royal-court.webp';
@@ -37,7 +37,7 @@ export const BOSS_ARENAS: Readonly<Partial<Record<string, BossArena>>> = {
   pride: { name: 'Hall of Mirrors', image: prideArena, ambience: 'stone', vanishingX: 50, horizon: 38 },
   lust: { name: 'The Veiled Sanctuary', image: lustArena, ambience: 'stone', vanishingX: 50, horizon: 38 },
   gluttony: { name: 'The Hollow Maw', image: gluttonyArena, ambience: 'stone', vanishingX: 50, horizon: 38 },
-  archangelMikhael: { name: 'The Last Citadel', image: taxiarchArena, ambience: 'stone', vanishingX: 50, horizon: 42, motion: 'taxiarch' },
+  archangelMikhael: { name: 'The Last Citadel', image: taxiarchArena, ambience: 'stone', vanishingX: 50, horizon: 51, motion: 'taxiarch' },
   archangelZeruel: { name: 'Twin Eclipse Citadel', image: scene0, ambience: 'stone', vanishingX: 50, horizon: 38 },
   fulgurDragonknight: { name: 'Thunderbreak Roost', image: scene1, ambience: 'highland', vanishingX: 50, horizon: 33 },
   cervielSword: { name: 'Threefold Sanctum', image: scene2, ambience: 'stone', vanishingX: 50, horizon: 37 },

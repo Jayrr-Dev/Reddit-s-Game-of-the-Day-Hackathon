@@ -11,7 +11,7 @@ New runs have nine regions: six Grandangels guard the capitals first, followed b
 
 ## Final Boss: Archangel Mikhael
 
-Mikhael commands God's army as its Taxiarch. He has 2,000 HP and switches at 1,000. In the frontline sword phase he wards, knocks Wraith back, and deals melee damage. In the Midline spear phase he pins or knocks Wraith back and can only throw from the first two lanes. If forced to the Horizon, his attacks are out of reach until he advances. The Last Citadel has independent layers for golden shafts of light, drifting clouds, a hovering angel host, and near motes. His light, force, and sealing powers take inspiration from [Apocalypse World Michael](https://supernatural.fandom.com/wiki/Michael_(Apocalypse_World)/Abilities_and_Weaknesses); the moves and story are original to Villain Run.
+Mikhael commands God's army as its Taxiarch. He has 2,000 HP and switches at 1,000. In the frontline sword phase he wards, knocks Wraith back, and deals melee damage. In the Midline spear phase he pins or knocks Wraith back and can only throw from the first two lanes. If forced to the Horizon, his attacks are out of reach until he advances. The Last Citadel is a ruined stone battlefield. Separate layers carry storm light, cloud-buried angel watchers, drifting smoke above the rubble, and near ash. His light, force, and sealing powers take inspiration from [Apocalypse World Michael](https://supernatural.fandom.com/wiki/Michael_(Apocalypse_World)/Abilities_and_Weaknesses); the moves and story are original to Villain Run.
 
 ## Experience
 

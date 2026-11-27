@@ -1,13 +1,12 @@
 import './mikhaelArenaMotion.css';
 
 // --- DEPTH MARKERS ---
-const WATCHERS = [[10, 22, .7], [23, 29, .43], [31, 17, .5], [69, 17, .5], [77, 29, .43], [90, 22, .7]] as const;
+const WATCHERS = [[14, 16, .53], [23, 24, .37], [32, 15, .41], [68, 19, .39], [78, 23, .43], [88, 15, .52]] as const;
 
 /** The Host hovers on either side. Only the Taxiarch's arena owns this layer. */
 export function MikhaelArenaMotion() {
   return <div className="taxiarch-skies" aria-hidden="true">
     <div className="taxiarch-sky-rays" />
-    <div className="taxiarch-clouds" />
     <svg className="taxiarch-watch" viewBox="0 0 100 100" preserveAspectRatio="none">
       {WATCHERS.map(([x, y, scale], i) => <g key={x} transform={'translate(' + x + ' ' + y + ') scale(' + scale + ')'}>
         <g className="taxiarch-watch-float" style={{ animationDelay: -i * .73 + 's' }}>
@@ -16,6 +15,8 @@ export function MikhaelArenaMotion() {
         </g>
       </g>)}
     </svg>
+    <div className="taxiarch-clouds" />
+    <div className="taxiarch-floor-smoke" />
     <div className="taxiarch-near-motes" />
   </div>;
 }

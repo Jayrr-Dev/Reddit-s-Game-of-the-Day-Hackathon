@@ -1,6 +1,6 @@
 /* THE TAXIARCH'S LAST SEAL */
 .mikhael-ending { position:relative; isolation:isolate; height:100%; width:100%; overflow:hidden; background:var(--color-surface-sunken); color:var(--color-ink); text-align:center; }
-.mikhael-ending-backdrop { position:absolute; z-index:-2; inset:0; width:100%; height:100%; object-fit:cover; opacity:.38; }
+.mikhael-ending-backdrop { position:absolute; z-index:-2; inset:0; width:100%; height:100%; object-fit:cover; opacity:.63; }
 .mikhael-ending-stage { position:absolute; inset:0 0 21%; display:grid; place-items:center; overflow:hidden; }
 .mikhael-ending-mikhael { height:92%; width:min(100%,36rem); position:absolute; opacity:.9; filter:drop-shadow(0 0 1.15rem var(--color-edge)); }
 .mikhael-ending-seal { position:absolute; width:min(82%, 21rem); color:var(--color-accent-hover); filter:drop-shadow(0 0 .6rem currentColor); transform:scale(.08); opacity:0; animation:mikhael-seal-close 2.8s .26s ease-in-out both; }

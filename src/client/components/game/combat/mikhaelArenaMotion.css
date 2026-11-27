@@ -1,13 +1,38 @@
-/* LAYERS: far sunbeams, cloud band, middle Host, near drifting sparks. */
+/* LAYERS: distant rift light, the half-seen Host, passing clouds, then ash and dust. */
 .taxiarch-skies { position:absolute; inset:0; overflow:hidden; pointer-events:none; isolation:isolate; }
 .taxiarch-skies > * { position:absolute; inset:0; pointer-events:none; }
-.taxiarch-sky-rays { background:conic-gradient(from 151deg at 50% -10%,transparent 0deg, var(--color-accent-hover) 5deg,transparent 12deg 26deg,var(--color-accent-hover) 31deg,transparent 38deg 360deg); mask-image:linear-gradient(black,transparent 62%); mix-blend-mode:screen; animation:taxiarch-rays 12s ease-in-out infinite alternate; }
-.taxiarch-clouds { inset:-14% -16% 30%; background:radial-gradient(ellipse at 8% 47%,var(--color-ink),transparent 27%),radial-gradient(ellipse at 86% 22%,var(--color-ink),transparent 30%); filter:blur(14px); opacity:.13; animation:taxiarch-clouds 27s linear infinite alternate; }
-.taxiarch-watch { width:100%; height:100%; color:var(--color-accent-hover); opacity:.38; filter:drop-shadow(0 0 2px currentColor); }
-.taxiarch-watch-float { animation:taxiarch-hover 5s ease-in-out infinite alternate; }
-.taxiarch-near-motes { background:radial-gradient(circle at 14% 78%,var(--color-accent-hover),transparent 1.1px),radial-gradient(circle at 83% 71%,var(--color-ink),transparent 1.4px),radial-gradient(circle at 31% 86%,var(--color-accent-hover),transparent 1.2px),radial-gradient(circle at 70% 89%,var(--color-ink),transparent 1px); animation:taxiarch-motes 11s ease-in-out infinite; }
-@keyframes taxiarch-rays { from {opacity:.05;transform:rotate(-3deg)} to {opacity:.16;transform:rotate(3deg)} }
-@keyframes taxiarch-clouds { from {transform:translateX(-7%)} to {transform:translateX(7%)} }
-@keyframes taxiarch-hover { from {transform:translateY(-1px)} to {transform:translateY(1.9px)} }
-@keyframes taxiarch-motes { from {opacity:0;transform:translateY(6%)} 45% {opacity:.7} to {opacity:0;transform:translateY(-16%)} }
-@media (prefers-reduced-motion:reduce) { .taxiarch-skies *, .taxiarch-skies { animation:none!important; } .taxiarch-sky-rays { opacity:.09; } }
+.taxiarch-sky-rays {
+  inset:-12% -12% 32%; background:radial-gradient(ellipse 33% 60% at 48% 4%,var(--color-accent-hover),transparent 88%);
+  mask-image:linear-gradient(black,transparent 78%); mix-blend-mode:screen; animation:taxiarch-rays 15s ease-in-out infinite alternate;
+}
+.taxiarch-watch {
+  width:100%; height:100%; color:var(--color-ink-muted); opacity:.12;
+  mask-image:linear-gradient(transparent 3%,black 12%,black 22%,transparent 32%); filter:blur(1.05px);
+}
+.taxiarch-watch-float { animation:taxiarch-hover 7s ease-in-out infinite alternate; }
+.taxiarch-clouds {
+  inset:-12% -15% 52%; background:radial-gradient(ellipse at 12% 40%,var(--color-edge),transparent 37%),
+    radial-gradient(ellipse at 84% 24%,var(--color-surface-raised),transparent 46%);
+  filter:blur(16px); opacity:.61; animation:taxiarch-clouds 27s linear infinite alternate;
+}
+.taxiarch-floor-smoke {
+  inset:23% -18% 23%; background:radial-gradient(ellipse 40% 13% at 18% 48%,var(--color-ink-muted),transparent 85%),
+    radial-gradient(ellipse 34% 11% at 78% 56%,var(--color-ink-muted),transparent 93%);
+  filter:blur(11px); opacity:.14; animation:taxiarch-dust 19s ease-in-out infinite alternate;
+}
+.taxiarch-near-motes {
+  background:radial-gradient(circle at 14% 78%,var(--color-ink-muted),transparent 1.1px),
+    radial-gradient(circle at 83% 71%,var(--color-ink-muted),transparent 1.4px),
+    radial-gradient(circle at 31% 86%,var(--color-accent),transparent 1.2px),
+    radial-gradient(circle at 70% 89%,var(--color-ink-muted),transparent 1px);
+  animation:taxiarch-motes 13s ease-in-out infinite;
+}
+@keyframes taxiarch-rays { from {opacity:.03;transform:rotate(-3deg)} to {opacity:.11;transform:rotate(3deg)} }
+@keyframes taxiarch-clouds { from {transform:translateX(-8%)} to {transform:translateX(8%)} }
+@keyframes taxiarch-dust { from {transform:translateX(5%)} to {transform:translateX(-9%)} }
+@keyframes taxiarch-hover { from {transform:translateY(-.8px)} to {transform:translateY(1.35px)} }
+@keyframes taxiarch-motes { from {opacity:0;transform:translate(2%,3%)} 45% {opacity:.6} to {opacity:0;transform:translate(-7%,-10%)} }
+@media (prefers-reduced-motion:reduce) {
+  .taxiarch-skies *, .taxiarch-skies { animation:none!important; }
+  .taxiarch-sky-rays { opacity:.06; }
+}
