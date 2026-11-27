@@ -77,6 +77,7 @@ import {
   expireGuard,
   createCombatant,
   afterAction,
+  burnTick,
   endOfTurnUpkeep,
   hexBurn,
   poisonTick,
@@ -2281,12 +2282,22 @@ export const startPlayerTurn = (state: CombatState): CombatState => {
   ))));
 };
 
+/** Expire temporary buffs before end-of-turn afflictions tick. */
+const playerAfterTimedBuffs = (state: Pick<CombatState, 'player' | 'timedBuffs'>) =>
+  takeBackBuffs(state.player, state.timedBuffs);
+
+/** HP the player's active Burn will cost at the end of this turn. */
+export function pendingPlayerBurnDamage(state: Pick<CombatState, 'player' | 'timedBuffs'>): number {
+  if (state.player.hp <= 0 || state.player.statuses.burn <= 0) return 0;
+  return state.player.hp - burnTick(playerAfterTimedBuffs(state)).hp;
+}
+
 /** Closes the player turn, including discards, reserve and status upkeep. */
 export const finishPlayerTurn = (state: CombatState): CombatState => {
   // Timed buffs ("this turn", "this action") lapse first.
   const lapsed: CombatState = {
     ...state,
-    player: takeBackBuffs(state.player, state.timedBuffs),
+    player: playerAfterTimedBuffs(state),
     timedBuffs: [],
   };
   return {

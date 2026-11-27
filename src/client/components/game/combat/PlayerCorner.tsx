@@ -1,7 +1,7 @@
 // ===================================================================
 // PLAYER CORNER
 // The bottom-left corner: the villain's hooded portrait inside a ring
-// that drains with HP, with a skull warning before a lethal turn. Hits
+// that drains with HP. Hits
 // from the heroes shake the portrait, make the villain flinch and stack
 // up above it; their marks land on the whole screen (see PovImpact),
 // while gains and debuffs glow on the portrait (ImpactOverlay). The red
@@ -17,10 +17,9 @@ import { HitStack } from './HitNumbers';
 import { HexAura } from './HexAura';
 import { ScrambleScribble } from './ScrambleScribble';
 import { ImpactOverlay } from './ImpactOverlay';
-import { Glyph } from '../../ui/Glyph';
 
 // --- COMPONENT ---
-/** Renders the portrait and its lethal-turn warning. */
+/** Renders the portrait, health ring, and effects. */
 export const PlayerCorner = ({
   player,
   level,
@@ -103,9 +102,6 @@ export const PlayerCorner = ({
           />
         </div>
       </div>
-      {lethal && <span className="player-lethal-badge pointer-events-none absolute -bottom-1 -right-2" aria-hidden="true">
-        <Glyph name="skull" className="size-4" />
-      </span>}
     </div>
   );
 };

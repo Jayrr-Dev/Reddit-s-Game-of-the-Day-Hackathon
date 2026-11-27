@@ -29,7 +29,7 @@ import { fallenWithDeathVoice } from '../../../shared/game/deathVoices';
 import { useEffect, useCallback, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { rowDepth } from '../../../shared/game/battlefield';
-import { endTurn, movementFailsOn, pendingPlayerHexDamage, potentialEnemyHpLoss, SELF_TARGET_UID } from '../../../shared/game/combat';
+import { endTurn, movementFailsOn, pendingPlayerBurnDamage, pendingPlayerHexDamage, potentialEnemyHpLoss, SELF_TARGET_UID } from '../../../shared/game/combat';
 import type { RunAction } from '../../../shared/game/run';
 import type { CharacterState } from '../../../shared/game/character';
 import { BattleCharacterSheet } from './BattleCharacterSheet';
@@ -173,6 +173,7 @@ const PlayerBar = ({
   combat,
   health,
   incomingDamage,
+  burnDamage,
   level,
   lethal,
   hits,
@@ -185,6 +186,7 @@ const PlayerBar = ({
   combat: CombatState;
   health: Health;
   incomingDamage: number;
+  burnDamage: number;
   level: number;
   lethal: boolean;
   hits: readonly PlayerHitPop[];
@@ -226,7 +228,7 @@ const PlayerBar = ({
           <StatusRow combatant={combat.player} timedBuffs={combat.timedBuffs} rows={2} />
         </div>
         <GuardGainPops guard={combat.player.guard} />
-        <PlayerHealthBar {...health} incomingDamage={incomingDamage} hexDamage={pendingPlayerHexDamage({ ...combat, player: { ...combat.player, hp: health.hp } })} />
+        <PlayerHealthBar {...health} incomingDamage={incomingDamage} burnDamage={burnDamage} lethal={lethal} hexDamage={pendingPlayerHexDamage({ ...combat, player: { ...combat.player, hp: health.hp } })} />
       </div>
       <div className="table-turn justify-self-end">
         <TurnCorner
@@ -620,6 +622,7 @@ export const CombatView = ({
         <PlayerBar
           health={playerHealth}
           incomingDamage={isAnimating || isShooting ? 0 : incomingDamage}
+          burnDamage={isAnimating || isShooting ? 0 : pendingPlayerBurnDamage(realCombat)}
           level={character.level}
           lethal={lethal && !isAnimating}
           combat={combat}

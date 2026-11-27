@@ -48,6 +48,7 @@ import {
   playCardSteps,
   startPlayerTurn,
   pendingPlayerHexDamage,
+  pendingPlayerBurnDamage,
   potentialEnemyHpLoss,
   startCombat,
   targetsFor,
@@ -357,6 +358,18 @@ void test('incoming damage preview assumes chance-based misses do not save the p
   assert.deepEqual(evasive, before);
   const fragile = { ...state, player: { ...state.player, hp: 2 } };
   assert.equal(potentialEnemyHpLoss(fragile), 2);
+});
+
+void test('the Burn preview matches end-of-turn HP loss without including Hex or enemy attacks', () => {
+  const state = fightWith(['backhand']);
+  const burning = { ...state, player: addStatus(addStatus(state.player, 'hex', 7), 'burn', 11) };
+  assert.equal(pendingPlayerBurnDamage(state), 0);
+  assert.equal(pendingPlayerBurnDamage(burning), 11);
+  const protectedState = { ...burning, player: castTimedProtection(burning.player, 2) };
+  const protectedLoss = pendingPlayerBurnDamage(protectedState);
+  assert.ok(protectedLoss > 0 && protectedLoss < 11);
+  assert.equal(protectedState.player.hp - finishPlayerTurn(protectedState).player.hp, protectedLoss);
+  assert.equal(pendingPlayerBurnDamage({ ...burning, player: { ...burning.player, hp: 3 } }), 3);
 });
 
 void test('player Hex preview shows only the damage due at the next turn opening', () => {

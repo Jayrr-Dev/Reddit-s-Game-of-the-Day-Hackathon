@@ -379,13 +379,16 @@
 }
 .hand-guard:focus-visible::before { background: #245d87; inset: 5px; }
 .player-lethal-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  justify-content: center;
-  min-width: 2rem;
-  height: 1.75rem;
-  padding: 0 4px 4px;
+  position: absolute;
+  inset: 50% auto auto 0;
+  translate: -50% -50%;
+  z-index: 1;
+  display: grid;
+  place-items: start center;
+  width: 22px;
+  height: 20px;
+  padding-top: 2px;
+  pointer-events: none;
   clip-path: polygon(0 0, 100% 0, 100% 60%, 50% 100%, 0 60%);
   background: #330d12;
   color: #ff555d;
@@ -411,9 +414,11 @@
   gap: 4px;
 }
 .table-energy { --hp-raise:8px; }
+.table-player-health-frame {
+  position:relative; align-self:center; width:min(100%,320px); inset-block-end:var(--hp-raise);
+}
 .table-player-health {
-  position:relative; isolation:isolate; align-self:center; width:min(100%,320px); height:13px;
-  inset-block-end:var(--hp-raise);
+  position:relative; isolation:isolate; width:100%; height:13px;
   overflow:hidden; border:1px solid var(--brass); border-radius:5px; background:#211516;
   box-shadow:0 1px 4px #160c08c9; color:#fff4df; pointer-events:none;
 }
@@ -432,6 +437,11 @@
 @keyframes table-low-health-breathe {
   0%,100% { opacity:0; }
   50% { opacity:.30; }
+}
+.table-player-health-burn {
+  position:absolute; inset-block:0;
+  background:linear-gradient(#ffba64,#f2812e 65%,#c44c19);
+  border-inline-start:1px solid #ffd49b;
 }
 .table-player-health-threat {
   position:absolute; inset-block:0;
@@ -452,7 +462,7 @@
   font:bold 9px/1 Georgia, serif; font-variant-numeric:tabular-nums;
   text-shadow:0 1px 2px #000,0 0 2px #000; white-space:nowrap;
 }
-@container duel (max-width:470px) { .table-player-health { width:calc(100% - 8px); } }
+@container duel (max-width:470px) { .table-player-health-frame { width:calc(100% - 8px); } }
 @media (prefers-reduced-motion:reduce) {
   .table-player-health-trail { transition:none; }
   .table-player-health[data-low-health] .table-player-health-fill::after { animation:none; }
