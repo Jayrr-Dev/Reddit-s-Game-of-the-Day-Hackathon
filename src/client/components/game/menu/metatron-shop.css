@@ -76,3 +76,9 @@
   .metatron-idle { display: none; }
   .metatron-idle-head, .metatron-idle-feathers, .metatron-greeting { animation: none; }
 }
+
+/* On narrow placements keep Metatron's line above the stock, not behind it. */
+@container (width < 490px) {
+  .metatron-greeting { top: 8%; left: auto; right: 6%; max-width: 47%; }
+  .metatron-greeting[data-purchase] { width: auto; }
+}

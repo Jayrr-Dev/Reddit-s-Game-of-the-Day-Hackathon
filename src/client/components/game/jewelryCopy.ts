@@ -2,6 +2,7 @@
 // JEWELRY COPY
 // Flavor and one-line effect text for rings and amulets.
 // ===================================================================
+import { shopAmuletBonus, shopAmuletSummary } from '../../../shared/game/amuletBonuses';
 import { IRON_RING_RESERVE, TRAVELERS_AMULET_DRAW } from '../../../shared/game/character';
 import { TRAINING_JEWELRY } from '../../../shared/game/trainingJewelry';
 
@@ -16,8 +17,8 @@ export const itemFlavor: Record<string, string> = {
 export const itemBonusSummary = (id: string) => {
   if (id === 'iron-ring') return '+' + IRON_RING_RESERVE + ' reserve energy';
   if (id === 'travelers-amulet') return '+' + TRAVELERS_AMULET_DRAW + ' card per turn';
-  return 'Cosmetic';
+  return shopAmuletSummary(id) ?? 'Cosmetic';
 };
 
 /** Display the same effect icon and ink in the inventory and item details. */
-export const itemInk = (id: string) => id === 'travelers-amulet' ? 'draw' : id === 'iron-ring' ? 'energy' : undefined;
+export const itemInk = (id: string) => id === 'travelers-amulet' || shopAmuletBonus(id)?.draw ? 'draw' : id === 'iron-ring' || shopAmuletBonus(id)?.reserve ? 'energy' : undefined;

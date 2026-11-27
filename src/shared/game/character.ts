@@ -1,3 +1,4 @@
+import { shopAmuletBonus } from './amuletBonuses.ts';
 import { buySkill, healingSkillBonusOf, isSkillPick, type SkillPick } from './skills.ts';
 import type { CombatState } from './types.ts';
 import { PLAYER_MAX_HP, PLAYER_HP_CAP, CARDS_PER_TURN, RESERVE_ENERGY_SLOTS } from './rules.ts';
@@ -683,6 +684,11 @@ export function characterBonuses(traits: Partial<Traits> = {}, equipment?: Equip
   }
   if (equipment?.rings.includes('iron-ring')) stats.retainEnergy += IRON_RING_RESERVE;
   if (equipment?.amulet === 'travelers-amulet') stats.cardsPerTurn += TRAVELERS_AMULET_DRAW;
+  const amulet = shopAmuletBonus(equipment?.amulet);
+  if (amulet) {
+    stats.cardsPerTurn += amulet.draw;
+    stats.retainEnergy += amulet.reserve;
+  }
   return stats;
 }
 

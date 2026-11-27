@@ -5,7 +5,7 @@
 // both sides instead of failing at runtime.
 // ===================================================================
 
-import type { RingOffer, ShopRingId } from '../game/ringShop.ts';
+import type { RingRarity, ShopOffer, ShopOfferId, ShopRingId, MysteryBoxId } from '../game/ringShop.ts';
 import type { RunAction, RunStats } from '../game/run.ts';
 import type { UnitStatOverride, UnitStatOverrides } from '../game/unitOverrides.ts';
 
@@ -86,11 +86,14 @@ export type DiscardItemResponse = { items: import('../game/items.ts').ItemBag };
 export type RingShopResponse = {
   offerDay: string;
   gold: number;
-  offers: RingOffer[];
+  offers: ShopOffer[];
+  opened: MysteryBoxId[];
+  collectedAll: boolean;
   owned: ShopRingId[];
 };
-export type BuyRingRequest = { ringId: ShopRingId; offerDay: string };
-export type BuyRingResponse = { status: 'bought' | 'owned' | 'short' | 'stale' | 'retry'; shop: RingShopResponse };
+export type BuyRingRequest = { ringId: ShopOfferId; offerDay: string };
+export type ShopReward = Pick<import('../game/ringShop.ts').RingOffer, 'id' | 'name' | 'slot'> & { rarity: RingRarity };
+export type BuyRingResponse = { status: 'bought' | 'owned' | 'short' | 'stale' | 'retry'; shop: RingShopResponse; reward?: ShopReward };
 export type RunProfile = { id: string; wins: number; shopRings?: ShopRingId[] };
 export type StartRunResponse = {
   build?: import('../game/playerBuild.ts').PlayerBuild;

@@ -1,6 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import { redis } from '@devvit/web/server';
 import { goldFromVictoryScore } from '../../shared/game/gold';
-import { goldAfterPurchases, quotePurchase, readPurchases, shopOffers, shopRingIds, type RingPurchases, type ShopRingId } from '../../shared/game/ringShop';
+import { allShopJewelryOwned, goldAfterPurchases, MYSTERY_BOX_IDS, quoteShopPurchase, readShopWallet, shopOffers, shopRingIds, type ShopWallet, type ShopOfferId } from '../../shared/game/ringShop';
 import type { RingShopResponse } from '../../shared/types/api';
 import { redisKeys } from './redisKeys';
 
@@ -11,41 +12,46 @@ async function earnings(id: string) {
 
 export async function readPlayerProgress(id: string) {
   const [{ wins, earned }, raw] = await Promise.all([earnings(id), redis.get(redisKeys.ringPurchases(id))]);
-  const purchases = readPurchases(raw);
-  return { wins, gold: goldAfterPurchases(earned, purchases), shopRings: shopRingIds(Object.keys(purchases)) };
+  const wallet = readShopWallet(raw);
+  return { wins, gold: goldAfterPurchases(earned, wallet.items), shopRings: shopRingIds(Object.keys(wallet.items)) };
 }
 
-function response(offerDay: string, earned: number, purchases: RingPurchases): RingShopResponse {
-  return { offerDay, gold: goldAfterPurchases(earned, purchases), owned: shopRingIds(Object.keys(purchases)), offers: shopOffers(offerDay) };
+function response(offerDay: string, earned: number, wallet: ShopWallet, admin: boolean): RingShopResponse {
+  return {
+    offerDay, gold: goldAfterPurchases(earned, wallet.items), owned: shopRingIds(Object.keys(wallet.items)),
+    offers: shopOffers(offerDay, admin), opened: MYSTERY_BOX_IDS.filter(box => wallet.boxes[offerDay + ':' + box]),
+    collectedAll: allShopJewelryOwned(wallet.items),
+  };
 }
 
-export async function getRingShop(id: string, day: string): Promise<RingShopResponse> {
+export async function getRingShop(id: string, day: string, admin = false): Promise<RingShopResponse> {
   const [{ earned }, raw] = await Promise.all([earnings(id), redis.get(redisKeys.ringPurchases(id))]);
-  return response(day, earned, readPurchases(raw));
+  return response(day, earned, readShopWallet(raw), admin);
 }
 
-export async function buyRing(id: string, day: string, offerDay: string, ringId: ShopRingId) {
+export async function buyRing(id: string, day: string, offerDay: string, ringId: ShopOfferId, admin = false) {
   const key = redisKeys.ringPurchases(id);
-  const offer = shopOffers(day).find(item => item.id === ringId)!;
+  const offer = shopOffers(day, admin).find(item => item.id === ringId);
+  if (offerDay !== day || !offer) return { status: 'stale', shop: await getRingShop(id, day, admin) } as const;
+  const entropy = offer.slot === 'box' ? randomUUID() : '';
   for (let attempt = 0; attempt < 6; attempt++) {
     const transaction = await redis.watch(key, redisKeys.victories(id));
     let inMulti = false;
     let completed = false;
     try {
       const [{ earned }, raw] = await Promise.all([earnings(id), redis.get(key)]);
-      const purchases = readPurchases(raw);
-      const decision = quotePurchase(earned, purchases, offer);
-      if (decision.status === 'owned') return { status: 'owned', shop: response(day, earned, purchases) } as const;
-      if (offerDay !== day) return { status: 'stale', shop: response(day, earned, purchases) } as const;
-      if (decision.status === 'short') return { status: 'short', shop: response(day, earned, purchases) } as const;
+      const wallet = readShopWallet(raw);
+      const decision = quoteShopPurchase(earned, wallet, offer, day, entropy);
+      if (decision.status === 'owned') return { status: 'owned', shop: response(day, earned, wallet, admin) } as const;
+      if (decision.status === 'short') return { status: 'short', shop: response(day, earned, wallet, admin) } as const;
       // The receipt doubles as ownership and debit. No partial outcome can exist.
       await transaction.multi();
       inMulti = true;
-      await transaction.set(key, JSON.stringify(decision.next));
+      await transaction.set(key, JSON.stringify(Object.keys(decision.next.boxes).length ? decision.next : decision.next.items));
       const result = await transaction.exec();
       completed = true;
       if (result[0] === 'OK')
-        return { status: 'bought', shop: response(day, earned, decision.next) } as const;
+        return { status: 'bought', shop: response(day, earned, decision.next, admin), ...('reward' in decision && { reward: decision.reward }) } as const;
       // A concurrent wallet or victory update aborted the write. Re-quote both.
     } finally {
       if (!completed) {
@@ -54,7 +60,7 @@ export async function buyRing(id: string, day: string, offerDay: string, ringId:
       }
     }
   }
-  return { status: 'retry', shop: await getRingShop(id, day) } as const;
+  return { status: 'retry', shop: await getRingShop(id, day, admin) } as const;
 }
 
 /** A run replay may submit the same wins again. The first awarded value is

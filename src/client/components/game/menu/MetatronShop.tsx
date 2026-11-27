@@ -9,9 +9,9 @@ import './metatron-shop.css';
 const SALE_LINES = [
   'Ah, gold matching ambition.',
   'You bargain with gold. The world deals in consequences.',
-  'A ring cannot tell you what to reach for.',
+  'No trinket can tell you what to reach for.',
   'Even fallen things can still catch the light.',
-  'The ring remembers the hand that wears it.',
+  'Everything I sell remembers who wore it last.',
   'Keep a little gold. Want is rarely satisfied.',
 ] as const;
 

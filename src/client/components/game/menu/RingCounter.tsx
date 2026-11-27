@@ -2,15 +2,19 @@ import { useEffect, useRef, useState } from 'react';
 import { apiClient } from '../../../lib/apiClient';
 import { useAccountId } from '../../../lib/accountId';
 import { GoldCoins } from '../profileParts';
-import type { RingShopResponse } from '../../../../shared/types/api';
-import type { ShopRingId } from '../../../../shared/game/ringShop';
+import type { RingShopResponse, ShopReward } from '../../../../shared/types/api';
+import type { ShopOfferId } from '../../../../shared/game/ringShop';
+import { MysteryChest, MysteryReveal } from './MysteryReveal';
+import { ShopJewelryArt } from './ShopJewelryArt';
 import './ring-counter.css';
 
 export function RingCounter({ onSale, onBuyingChange }: { onSale: () => void; onBuyingChange: (buying: boolean) => void }) {
   const account = useAccountId();
   const busyRef = useRef(false);
   const [shop, setShop] = useState<RingShopResponse>();
-  const [busy, setBusy] = useState<ShopRingId>();
+  const [busy, setBusy] = useState<ShopOfferId>();
+  const [selected, setSelected] = useState<ShopOfferId>();
+  const [reward, setReward] = useState<ShopReward>();
   const [note, setNote] = useState('');
   const [error, setError] = useState(false);
   const [retry, setRetry] = useState(0);
@@ -23,7 +27,25 @@ export function RingCounter({ onSale, onBuyingChange }: { onSale: () => void; on
     });
     return () => { active = false; };
   }, [account, retry]);
-  async function buy(id: ShopRingId) {
+
+  useEffect(() => {
+    if (!selected) return;
+    const closeOutside = (event: PointerEvent) => {
+      if (event.target instanceof Element && !event.target.closest('[data-shop-inspect]')) setSelected(undefined);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelected(undefined);
+    };
+    document.addEventListener('pointerdown', closeOutside);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOutside);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [selected]);
+
+  /** Revalidate the offer, price and wallet on the server before confirming a sale. */
+  async function buy(id: ShopOfferId) {
     if (!shop || busyRef.current) return;
     busyRef.current = true;
     onBuyingChange(true);
@@ -33,10 +55,11 @@ export function RingCounter({ onSale, onBuyingChange }: { onSale: () => void; on
       const result = await apiClient.buyRing({ ringId: id, offerDay: shop.offerDay });
       setShop(result.shop);
       if (result.status === 'bought') onSale();
-      setNote(result.status === 'bought' ? 'Ring added to your Inventory.' :
-        result.status === 'owned' ? 'You already own this ring.' :
+      if (result.reward) setReward(result.reward);
+      setNote(result.status === 'bought' ? 'Bought. Equip it in Profile.' :
+        result.status === 'owned' ? 'This offer is no longer available.' :
         result.status === 'short' ? 'Not enough Gold.' :
-        result.status === 'stale' ? 'Prices changed. Review the new offer before buying.' :
+        result.status === 'stale' ? 'Stock changed. Check the new offers.' :
         'The shop is busy. Please try again.');
     } catch {
       setNote('Purchase could not be confirmed. Check the shop again before retrying.');
@@ -47,29 +70,47 @@ export function RingCounter({ onSale, onBuyingChange }: { onSale: () => void; on
       setBusy(undefined);
     }
   }
-  if (!account) return <section className="ring-counter"><p>Sign in to buy rings with Gold.</p></section>;
-  if (error) return <section className="ring-counter"><p>Could not load the shop.</p><button type="button" onClick={() => setRetry(value => value + 1)}>Retry</button></section>;
-  if (!shop) return <section className="ring-counter" role="status"><p>Loading rings…</p></section>;
-  return <section className="ring-counter" aria-label="Rings for sale">
-    <div className="ring-counter-heading">
-      <h3>Rings for sale</h3>
-      <span className="ring-counter-gold" aria-label={shop.gold + ' Gold available'}><GoldCoins /> {shop.gold.toLocaleString()} Gold</span>
+
+  if (!account) return <p className="ring-counter-state">Sign in to buy jewelry with Gold.</p>;
+  if (error) return <div className="ring-counter-state">Could not load the shop. <button type="button" onClick={() => setRetry(value => value + 1)}>Retry</button></div>;
+  if (!shop) return <p className="ring-counter-state" role="status">Loading stock.</p>;
+  return <section className="ring-counter" aria-label="Jewelry for sale">
+    <span className="ring-counter-gold" aria-label={shop.gold + ' Gold available'}><GoldCoins /> {shop.gold.toLocaleString()} Gold</span>
+    <div className="ring-counter-layer">
+      <div className="ring-counter-frame">
+        <ul className="ring-counter-stock">
+          {shop.offers.map(offer => {
+            const box = offer.slot === 'box';
+            const owned = box ? shop.opened.includes(offer.id) : shop.owned.includes(offer.id);
+            const soldOut = box && shop.collectedAll;
+            const inspecting = selected === offer.id;
+            const detailsId = 'shop-details-' + offer.id;
+            const short = shop.gold < offer.price;
+            return <li key={offer.id} className="ring-counter-item" data-rarity={offer.rarity} data-box={box || undefined}>
+              <span className="ring-counter-name" title={offer.name}>{offer.name}</span>
+              <button type="button" className="ring-counter-disc" aria-expanded={inspecting} aria-controls={inspecting ? detailsId : undefined} data-shop-inspect
+                aria-label={'Inspect ' + offer.name} onClick={() => { setNote(''); setSelected(previous => previous === offer.id ? undefined : offer.id); }}>
+                {box ? <MysteryChest /> : <ShopJewelryArt offer={offer} />}
+              </button>
+              {inspecting && <div className="ring-counter-popover" id={detailsId} data-shop-inspect>
+                <strong>{offer.name}</strong>
+                {!box && <small>{offer.rarity} {offer.slot === 'amulet' ? 'Amulet' : 'Ring'}</small>}
+                <p>{offer.flavor}</p>
+                {!box && <span>{offer.effect ?? 'Cosmetic'}</span>}
+              </div>}
+              <button type="button" className="ring-counter-price" disabled={owned || soldOut || short || busy !== undefined}
+                aria-label={soldOut ? 'All mystery rewards owned' : owned ? offer.name + (box ? ' opened' : ' owned') : (box ? 'Open ' : 'Buy ') + offer.name + ' for ' + offer.price + ' Gold' + (short ? ', not enough Gold' : '')}
+                onClick={() => void buy(offer.id)}>
+                {soldOut ? 'Empty' : owned ? box ? 'Opened' : 'Owned' : busy === offer.id ? box ? 'Opening' : 'Buying' : <><GoldCoins /> {offer.price}</>}
+              </button>
+            </li>;
+          })}
+        </ul>
+        <div className="ring-counter-readout">
+          {note && <p role="status">{note}</p>}
+        </div>
+      </div>
     </div>
-    <div className="ring-counter-scroll">
-      <p className="ring-counter-hint">Prices change daily. Equip purchased rings in Profile once you unlock a ring slot.</p>
-      <ul>
-        {shop.offers.map(offer => {
-          const owned = shop.owned.includes(offer.id);
-          const short = shop.gold < offer.price;
-          return <li key={offer.id} className="ring-counter-item" data-rarity={offer.rarity} title={offer.flavor}>
-            <div><strong>{offer.name}</strong><span className="ring-counter-rarity">{offer.rarity}</span></div>
-            <button type="button" disabled={owned || short || busy !== undefined} aria-label={owned ? offer.name + ' owned' : 'Buy ' + offer.name + ' for ' + offer.price + ' Gold' + (short ? ', not enough Gold' : '')} onClick={() => void buy(offer.id)}>
-              {owned ? 'Owned' : busy === offer.id ? 'Buying…' : <><GoldCoins /> {offer.price}</>}
-            </button>
-          </li>;
-        })}
-      </ul>
-    </div>
-    {note && <p className="ring-counter-note" role="status">{note}</p>}
+    {reward && <MysteryReveal reward={reward} onClose={() => setReward(undefined)} />}
   </section>;
 }

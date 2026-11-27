@@ -322,7 +322,7 @@ const Equipment = ({
                   <JewelryIcon slot={item.slot} />
                   <span>
                 <b>{item.name}</b>
-                <small><span className="cs-inline-bonus stat-ink" data-stat={itemInk(item.id)}>{itemInk(item.id) && <Glyph name={item.slot === 'amulet' ? 'cards' : 'bolt'} />}{itemBonusSummary(item.id)}</span></small>
+                <small><span className="cs-inline-bonus stat-ink" data-stat={itemInk(item.id)}>{itemInk(item.id) && <Glyph name={itemInk(item.id) === 'draw' ? 'cards' : 'bolt'} />}{itemBonusSummary(item.id)}</span></small>
                   </span>
                 </button>
               <button

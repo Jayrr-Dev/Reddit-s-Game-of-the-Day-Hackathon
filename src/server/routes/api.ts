@@ -14,7 +14,7 @@ import { context, reddit, redis } from '@devvit/web/server';
 import { replayForScore, replayForScoreAndUnlocks } from '../../shared/game/replayForScore';
 import { getUnlocks, recordUnlocks } from '../core/playerUnlocks';
 import { buyRing, getRingShop, readPlayerProgress, recordVictories } from '../core/playerRingShop';
-import { isShopRingId, shopRingIds } from '../../shared/game/ringShop';
+import { isShopOfferId, shopRingIds } from '../../shared/game/ringShop';
 import { goldRewardFor } from '../../shared/game/gold';
 import { MAX_RUN_ACTIONS } from '../../shared/game/rules';
 import {
@@ -110,17 +110,17 @@ api.get('/profile',async c => {
 });
 api.get('/shop/rings', async c => {
   const id = context.userId;
-  if (!id) return jsonError(c, 401, 'Sign in to enter the ring shop');
-  return c.json<RingShopResponse>(await getRingShop(id, getDailyKey()));
+  if (!id) return jsonError(c, 401, 'Sign in to enter the jewelry shop');
+  return c.json<RingShopResponse>(await getRingShop(id, getDailyKey(), await isCurrentUserAdmin()));
 });
 api.post('/shop/rings/buy', async c => {
   const id = context.userId;
-  if (!id) return jsonError(c, 401, 'Sign in to buy rings');
+  if (!id) return jsonError(c, 401, 'Sign in to buy jewelry');
   const body: unknown = await c.req.json().catch(() => null);
-  if (!body || typeof body !== 'object' || !('ringId' in body) || !isShopRingId(body.ringId) ||
+  if (!body || typeof body !== 'object' || !('ringId' in body) || !isShopOfferId(body.ringId) ||
     !('offerDay' in body) || typeof body.offerDay !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.offerDay))
-    return jsonError(c, 400, 'Invalid ring offer');
-  return c.json<BuyRingResponse>(await buyRing(id, getDailyKey(), body.offerDay, body.ringId));
+    return jsonError(c, 400, 'Invalid jewelry offer');
+  return c.json<BuyRingResponse>(await buyRing(id, getDailyKey(), body.offerDay, body.ringId, await isCurrentUserAdmin()));
 });
 api.post('/profile',async c => {
   const id=context.userId;

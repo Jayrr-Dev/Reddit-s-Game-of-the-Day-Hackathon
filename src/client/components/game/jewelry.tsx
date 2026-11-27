@@ -3,6 +3,7 @@
 // Icons, flavor and effect copy for rings and amulets, shared by the
 // Equipment and Inventory tabs of the character sheet.
 // ===================================================================
+import { shopAmuletBonus, shopAmuletSummary } from '../../../shared/game/amuletBonuses';
 import { IRON_RING_RESERVE, TRAVELERS_AMULET_DRAW, type EquipmentSlot } from '../../../shared/game/character';
 import { TRAINING_JEWELRY } from '../../../shared/game/trainingJewelry';
 import { Glyph } from '../ui/Glyph';
@@ -45,6 +46,8 @@ export const ItemEffect = ({ id }: { id: string }) => {
   if (id === 'travelers-amulet') return (
     <p className="cs-real-effect stat-ink" data-stat="draw"><Glyph name="cards" /><strong>Draw {TRAVELERS_AMULET_DRAW} extra {TRAVELERS_AMULET_DRAW === 1 ? 'card' : 'cards'} at the start of your turn.</strong></p>
   );
+  const amulet = shopAmuletBonus(id);
+  if (amulet) return <p className="cs-real-effect stat-ink" data-stat={amulet.draw ? 'draw' : 'energy'}><Glyph name={amulet.draw ? 'cards' : 'bolt'} /><strong>{shopAmuletSummary(id)}</strong></p>;
   if (TRAINING_JEWELRY.some(item => item.id === id)) return <p className="cs-real-effect"><strong>Training replica. Cosmetic only.</strong></p>;
   return null;
 };
