@@ -7,13 +7,26 @@
   padding: 6px 8px;
   position: relative;
 }
-/* SAVE TRAITS: top-right of the canvas, styled like Respec all. */
+/* SAVE TRAITS: top-left of the canvas, styled like Respec all. */
 .trait-save {
   position: absolute;
   top: 8px;
-  right: 10px;
+  left: 10px;
   z-index: 2;
 }
+.trait-spiral:has(.trait-save) .trait-spiral-title { padding-inline: 3.25rem; }
+.trait-spiral .trait-save[data-pending] {
+  box-shadow: 0 0 0 2px #ab6518;
+  animation: trait-save-pulse 1.4s ease-in-out infinite;
+}
+@keyframes trait-save-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px #ab6518; }
+  50% { box-shadow: 0 0 0 3px #bc751f, 0 0 10px #c9852e; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trait-spiral .trait-save[data-pending] { animation: none; }
+}
+
 /* SAVED: a clear label, not a faded button. */
 .trait-spiral .trait-save:disabled { opacity: 1; background: #f3dfae; color: #5c3d16; border-color: #a3824d; }
 /* SAVED NODES: a darker gold ring marks circles only a respec can refund. */

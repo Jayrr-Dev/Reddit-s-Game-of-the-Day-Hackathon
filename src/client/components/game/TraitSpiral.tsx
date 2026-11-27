@@ -111,14 +111,14 @@ const HybridHalves = ({ stats, showIcon }: { stats: readonly [Stat, Stat]; showI
 );
 
 // --- SAVE TRAITS BUTTON ---
-/** Top-right of the canvas: asks first, then locks every spent node in; shows Saved once nothing is new. */
+/** Top-left of the canvas: asks first, then locks every spent node in; shows Saved once nothing is new. */
 const SaveTraitsButton = ({ unsaved, onSave }: { unsaved: number; onSave: () => void }) => {
   const [isConfirming, setIsConfirming] = useState(false);
   const isAllSaved = unsaved === 0;
   const points = unsaved + (unsaved === 1 ? ' point' : ' points');
   return (
     <>
-      <button type="button" className="cs-respec trait-save" disabled={isAllSaved} onClick={() => setIsConfirming(true)}>
+      <button type="button" className="cs-respec trait-save" data-pending={!isAllSaved && !isConfirming ? true : undefined} disabled={isAllSaved} onClick={() => setIsConfirming(true)}>
         {isAllSaved ? 'Saved' : 'Save'}
       </button>
       {isConfirming && (
