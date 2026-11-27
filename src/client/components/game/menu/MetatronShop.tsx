@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type RefObject } from 'react';
 import { REALM_APPLE, type ShopApple } from '../../../../shared/game/items';
 import type { CarryCard } from '../../../../shared/game/carryCards';
-import type { ShopRingId } from '../../../../shared/game/ringShop';
+import type { ShopOffer, ShopRingId } from '../../../../shared/game/ringShop';
 import shopAmbient from '../../../assets/npcs/metatron-shop-ambient.webp';
 import shopFrame from '../../../assets/npcs/metatron-shop-frame.webp';
 import { METATRON_ANGEL_LORE } from '../../../content/metatronAngelLore';
@@ -24,6 +24,15 @@ const GREETINGS = [
   'Are you a fool?',
   'Ah, the new lord.',
   "How's thy sin?",
+] as const;
+
+const LEGENDARY_RING_LINES = [
+  'The one ring to rule them all',
+  'Hold it to the fire. Some makers write where only flame can read.',
+  'If a rider in black asks, thou boughtest a spoon.',
+  'An unassuming band. It is always the plain ones that trouble kingdoms.',
+  "If it whispers that thou art its rightful keeper, don't answer.",
+  'If ever thou must be rid of it, look for the fire that forged it.',
 ] as const;
 
 const SALE_LINES = [
@@ -146,9 +155,10 @@ function ShopSpeech({ text, isReply, lastVoice }: { text: string; isReply: boole
 
 export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void; onTestInventory?: (items: ShopRingId[], visit: string, carry: CarryCard[]) => void }) => {
   const lastVoice = useRef<MetatronVoice>(undefined);
+  const lastLegendaryLine = useRef<string>(undefined);
   const [greeting] = useState(() => GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
   const [line, setLine] = useState<number | null>(null);
-  const [reaction, setReaction] = useState<{ serial: number; appleLine?: string }>({ serial: 0 });
+  const [reaction, setReaction] = useState<{ serial: number; appleLine?: string; saleLine?: string }>({ serial: 0 });
   const [buying, setBuying] = useState(false);
   const [idleLore] = useState(shuffleIdleLore);
   const [idleCount, setIdleCount] = useState(0);
@@ -180,9 +190,17 @@ export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void
       document.removeEventListener('visibilitychange', schedule);
     };
   }, [buying, reaction.serial, idleCount, idleLore.length]);
-  function greetPurchase() {
-    setReaction(previous => ({ serial: previous.serial + 1 }));
+  function greetPurchase(purchase?: Pick<ShopOffer, 'slot' | 'rarity'>) {
+    const legendaryRing = purchase?.slot === 'ring' && purchase.rarity === 'Legendary';
     setShowWait(false);
+    if (legendaryRing) {
+      const options = LEGENDARY_RING_LINES.filter(text => text !== lastLegendaryLine.current);
+      const saleLine = options[Math.floor(Math.random() * options.length)]!;
+      lastLegendaryLine.current = saleLine;
+      setReaction(previous => ({ serial: previous.serial + 1, saleLine }));
+      return;
+    }
+    setReaction(previous => ({ serial: previous.serial + 1 }));
     const roll = Math.random();
     setLine(previous => previous === null ? Math.floor(roll * SALE_LINES.length) :
       (previous + 1 + Math.floor(roll * (SALE_LINES.length - 1))) % SALE_LINES.length);
@@ -197,7 +215,7 @@ export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void
     });
   }
   const speech = showWait ? idleLore[idleCount - 1] :
-    reaction.appleLine ?? (line === null ? greeting : SALE_LINES[line]);
+    reaction.appleLine ?? reaction.saleLine ?? (line === null ? greeting : SALE_LINES[line]);
   return (
   <section
     role="dialog"

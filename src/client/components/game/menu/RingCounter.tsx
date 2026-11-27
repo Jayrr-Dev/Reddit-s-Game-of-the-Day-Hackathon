@@ -9,12 +9,12 @@ import { getItem, itemQuantity, REALM_APPLE, SHOP_APPLE, type ItemBag, type Shop
 import { getCard } from '../../../../shared/game/cards';
 import type { CarryCard } from '../../../../shared/game/carryCards';
 import { Glyph } from '../../ui/Glyph';
-import type { ShopOfferId, ShopRingId } from '../../../../shared/game/ringShop';
+import type { ShopOffer, ShopOfferId, ShopRingId } from '../../../../shared/game/ringShop';
 import { MysteryChest, MysteryReveal } from './MysteryReveal';
 import { ShopJewelryArt } from './ShopJewelryArt';
 import './ring-counter.css';
 
-export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory }: { onSale: () => void; onReroll: (item: ShopApple) => void; onBuyingChange: (buying: boolean) => void; onTestInventory?: (items: ShopRingId[], visit: string, carry: CarryCard[]) => void }) {
+export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory }: { onSale: (purchase?: Pick<ShopOffer, 'slot' | 'rarity'>) => void; onReroll: (item: ShopApple) => void; onBuyingChange: (buying: boolean) => void; onTestInventory?: (items: ShopRingId[], visit: string, carry: CarryCard[]) => void }) {
   const account = useAccountId();
   const busyRef = useRef(false);
   const testVisitRef = useRef<string>(undefined);
@@ -82,7 +82,7 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
       const result = await apiClient.buyRing({ ringId: id, offerDay: shop.offerDay, ...(shop.testVisit && { testVisit: shop.testVisit }) });
       setShop(result.shop);
       if (result.shop.testVisit) onTestInventory?.(result.shop.owned, result.shop.testVisit, result.shop.carryCards ?? []);
-      if (result.status === 'bought' && !result.reward) onSale();
+      if (result.status === 'bought' && !result.reward) onSale(shop.offers.find(offer => offer.id === id));
       if (result.reward) { revealing = true; setReward(result.reward); }
       setNote(result.status === 'bought' ? (result.shop.testVisit ? 'Test result applies to this visit only.' : result.reward ? 'Opening paid.' : 'Bought. Equip it in Profile.') :
         result.status === 'owned' ? 'This offer is no longer available.' :
