@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { PANDORA_RUN_COPY, type PandoraRunEffect } from '../../../shared/game/pandora';
-import { ALBUM_SLOTS, MAX_CARRY_CARDS, type CarryCard } from '../../../shared/game/carryCards';
+import { MAX_CARRY_CARDS, type CarryCard } from '../../../shared/game/carryCards';
 import { isUniqueInDeck } from '../../../shared/game/unique';
 import { getCard } from '../../../shared/game/cards';
 import { createCombatant } from '../../../shared/game/combatant';
@@ -12,6 +12,7 @@ import { getVolume, subscribeVolume } from '../../lib/gameAudio';
 import { STARTER_THEMES, useMapAudio } from '../../lib/mapAudio';
 import { localBuild } from '../../lib/playerBuild';
 import { Button } from '../ui/Button';
+import { MenuBackButton } from '../ui/MenuBackButton';
 import { CarryBagDialog } from './CarryBagDialog';
 import { PileDialog } from './combat/PileDialog';
 
@@ -51,12 +52,14 @@ export function StarterPicker({ accountId, starting, onBack, onConfirm, loadTest
       if (!live) return;
       setBuild(result.build);
       setQueued({ real: result.nextEffect, test: test?.nextEffect });
-      setCarry((result.carryCards ?? []).slice(0, ALBUM_SLOTS));
+      setCarry(result.carryCards ?? []);
     })
       .catch(()=>{if(live)setError(true);}).finally(()=>{if(live)setLoading(false);});
     return ()=>{live=false;};
   },[accountId,retry,loadTestShop]);
-  return <main className="starter-picker"><header><h1>Choose your starter deck</h1>
+  return <main className="starter-picker">
+    <MenuBackButton onClick={onBack} disabled={starting} />
+    <header className="starter-header"><h1>Choose your starter deck</h1>
     {!loading && cursed && <p className="starter-curse" role="status"><strong>Cursed: {PANDORA_RUN_COPY[pending].title}</strong><span>{PANDORA_RUN_COPY[pending].detail.replace('your next conquest', 'this run')}</span></p>}
   </header>
     {loading ? <p>Loading decks…</p> : error ? <div role="alert">Could not load your saved decks. <Button variant="menu" onClick={()=>setRetry(retry+1)}>Retry</Button></div> :
@@ -74,8 +77,7 @@ export function StarterPicker({ accountId, starting, onBack, onConfirm, loadTest
     <footer className="starter-footer">
       <Button variant="menu" disabled={loading || error || starting} aria-haspopup="dialog" onClick={() => setShowBag(true)}>Bring a Card</Button>
       {selectedCarry.length > 0 && <small>In bag: {selectedCarry.length}/{MAX_CARRY_CARDS}</small>}
-      <div><Button variant="menu" disabled={starting} onClick={onBack}>Back</Button>
-      <Button variant="menuPrimary" disabled={loading||error||starting} onClick={()=>onConfirm(build, selectedCarry.map(card => card.id))}>{starting?'Starting.':'Begin'}</Button></div>
+      <Button variant="menuPrimary" disabled={loading||error||starting} onClick={()=>onConfirm(build, selectedCarry.map(card => card.id))}>{starting?'Starting.':'Begin'}</Button>
     </footer>
     {showBag && <CarryBagDialog cards={carry} starter={starter} selected={selectedCarry} onPack={pack} onRemove={id => setCarryIds(current => current.filter(entry => entry !== id))} onClose={() => setShowBag(false)} />}
     {inspect && <PileDialog pile="deck" titleOverride={inspect+' starter deck'} cards={build.decks[inspect]??starterDeck(inspect)} attacker={attacker} killsThisTurn={0} usesSpent={{}} onClose={()=>setInspect(null)}/>}

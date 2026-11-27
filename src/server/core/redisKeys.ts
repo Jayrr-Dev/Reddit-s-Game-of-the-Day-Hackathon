@@ -10,6 +10,7 @@ export const redisKeys = {
   premiumShopRefresh: (userId: string) => `profile:premium-shop:v1:${userId}`,
   shopBossClears: (userId: string) => `profile:shop-boss-runs:v1:${userId}`,
   adminShopVisit: (userId: string, visit: string) => `profile:test-shop:v1:${userId}:${visit}`,
+  pandoraDailyClaim: (userId: string) => `profile:pandora-daily:v1:${userId}`,
   ringPurchases: (userId: string) => `profile:ring-purchases:v1:${userId}`,
   levelCurveStartWins: (userId: string) => 'progress:v2:xp-start-wins:' + userId,
   victories: (userId: string) => `progress:v1:${userId}:wins`,

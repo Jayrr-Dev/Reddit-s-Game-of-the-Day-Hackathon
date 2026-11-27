@@ -3,13 +3,12 @@
 // A sheet that covers the title screen (inside the 512 px post) to show
 // one thing at a time: the rules, or today's leaderboard. Closing it
 // returns to the menu. The page never scrolls: content too tall for
-// the sheet scrolls inside it (faded edges), and Back stays pinned
-// below it.
+// the sheet scrolls inside it (faded edges) below a pinned Back arrow.
 // ===================================================================
 
 import type { ReactNode } from 'react';
 import { SCROLL_FADE_STYLE } from '../../../lib/scrollFade';
-import { Button } from '../../ui/Button';
+import { MenuBackButton } from '../../ui/MenuBackButton';
 
 // --- TYPES ---
 export type MenuPanelProps = {
@@ -18,17 +17,20 @@ export type MenuPanelProps = {
   children: ReactNode;
   wide?: boolean;
   hideTitle?: boolean;
+  backLabel?: string;
 };
 
 // --- COMPONENT ---
 /** Renders the sheet with a title, its content and a close button. */
-export const MenuPanel = ({ title, onClose, children, wide = false, hideTitle = false }: MenuPanelProps) => (
+export const MenuPanel = ({ title, onClose, children, wide = false, hideTitle = false, backLabel }: MenuPanelProps) => (
   <section
     role="dialog"
     aria-label={title}
-    className="run-menu-panel absolute inset-0 z-40 flex flex-col items-center gap-3 overflow-hidden bg-surface p-4 animate-rise"
+    className="run-menu-panel page-menu-panel absolute inset-0 z-40 flex flex-col items-center gap-3 overflow-hidden bg-surface p-4 animate-rise"
+    data-hide-title={hideTitle || undefined}
   >
-    {!hideTitle && <h2 className="font-display text-xl font-black uppercase tracking-widest text-accent">
+    <MenuBackButton label={backLabel ?? 'Back to main menu'} onClick={onClose} />
+    {!hideTitle && <h2 className="page-menu-title font-display text-xl font-black uppercase tracking-widest text-accent">
       {title}
     </h2>}
     <div
@@ -37,8 +39,5 @@ export const MenuPanel = ({ title, onClose, children, wide = false, hideTitle = 
     >
       {children}
     </div>
-    <Button variant="menu" className="max-w-60" onClick={onClose}>
-      Back
-    </Button>
   </section>
 );

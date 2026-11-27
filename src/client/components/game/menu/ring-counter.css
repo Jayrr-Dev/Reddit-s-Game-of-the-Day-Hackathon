@@ -35,6 +35,7 @@
 }
 .ring-counter-disc, .ring-counter-price { pointer-events: auto; }
 .ring-counter-disc {
+  position: relative;
   width: min(100%, clamp(2.4rem, 11cqw, 5.3rem)); aspect-ratio: 1;
   display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--item-rim);
   background: radial-gradient(circle at 43% 34%, #5a3d50, #231729 69%);

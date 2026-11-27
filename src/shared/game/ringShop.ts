@@ -1,4 +1,4 @@
-import { ALBUM_SLOTS, availableCarryCards, isCarrySelection, IMBUE_CARDS, IMBUE_PRICE, isShopStockKey, readCarryCards, shopCardReceipt, SHOP_IMBUE_ID, type CarryCards } from './carryCards.ts';
+import { availableCarryCards, isCarrySelection, IMBUE_CARDS, IMBUE_PRICE, isShopStockKey, readCarryCards, shopCardReceipt, SHOP_IMBUE_ID, type CarryCards } from './carryCards.ts';
 import { ALL_CARD_IDS, getCard, isCardInPlay, type CardId } from './cards.ts';
 import { hashSeed, nextInt, pickDistinct, pickOne, pickWeighted, type RngState } from './rng.ts';
 import { TRAINING_JEWELRY } from './trainingJewelry.ts';
@@ -77,10 +77,10 @@ export type ShopOfferId = ShopRingId | MysteryBoxId | typeof SHOP_IMBUE_ID;
 type MysteryOffer = { id: MysteryBoxId; name: string; flavor: string; slot: 'box'; rarity: RingRarity; price: number };
 type CardOffer = { id: typeof SHOP_IMBUE_ID; name: string; flavor: string; slot: 'card'; cardId: CardId; rarity: RingRarity; price: number };
 export type ShopOffer = RingOffer | MysteryOffer | CardOffer;
-export type ShopWallet = { items: RingPurchases; boxes: Partial<Record<string, ShopRingId>>; events?: Partial<Record<string, PandoraEvent>>; carry?: CarryCards; unreadCarry?: Record<string, unknown>; testFruit?: { items: ItemBag; stock: string } };
+export type ShopWallet = { items: RingPurchases; boxes: Partial<Record<string, ShopRingId>>; events?: Partial<Record<string, PandoraEvent>>; freeBoxes?: Partial<Record<string, true>>; carry?: CarryCards; unreadCarry?: Record<string, unknown>; testFruit?: { items: ItemBag; stock: string } };
 export type ShopReward =
   | { kind: 'jewelry'; id: ShopRingId; name: string; slot: EquipmentSlot; rarity: RingRarity }
-  | (PandoraEvent & { albumFull?: true });
+  | PandoraEvent;
 const isBoxReceipt = (key: string) => {
   const [stock, box, ...extra] = key.split(':');
   return !extra.length && isShopStockKey(stock) && MYSTERY_BOX_IDS.some(id => id === box);
@@ -127,7 +127,7 @@ export const shopRingIds = (value: unknown): ShopRingId[] =>
   Array.isArray(value) ? SHOP_IDS.filter(id => value.includes(id)) : [];
 
 /** Five offers, with at most one Pandora box. An amulet can only appear in slot five. */
-export function shopOffers(day: string, admin = false): ShopOffer[] {
+export function shopOffers(day: string, admin = false, ensurePandora = false): ShopOffer[] {
   const premium = day.endsWith('p');
   const seed = (label: string) => hashSeed('metatron:stock:' + day + ':' + label);
   const [regular] = pickDistinct(seed('regular'), everydayRings, RING_SLOTS);
@@ -148,7 +148,7 @@ export function shopOffers(day: string, admin = false): ShopOffer[] {
   const boxCandidates = admin ? [] : MYSTERY_BOX_IDS.filter((id, index) =>
     (!premium || index !== 3) && nextInt(seed(id), 100)[0] < BOX_CHANCE[index]!);
   const box = admin ? MYSTERY_BOX_IDS[4] :
-    boxCandidates.length ? pickOne(seed('single-pandora-box'), boxCandidates)[0] : undefined;
+    boxCandidates.length ? pickOne(seed('single-pandora-box'), boxCandidates)[0] : ensurePandora ? MYSTERY_BOX_IDS[4] : undefined;
   return [...regular, fourth, fifth].map(({ id, rarity }, index): ShopOffer => {
     if (box && MYSTERY_BOX_IDS[index] === box) return boxOffer(box);
     const cardRoll = nextInt(seed('card-offer'), 100)[0];
@@ -176,12 +176,12 @@ export const ringInventory = (ids: readonly ShopRingId[]) =>
   });
 
 /** Restore old ring receipts and new amulet receipts without changing the wallet format. */
-export function readPurchases(raw?: string): RingPurchases {
+export function readPurchases(raw?: string, freeJewelry: ReadonlySet<string> = new Set()): RingPurchases {
   if (!raw) return {};
   const data: unknown = JSON.parse(raw);
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid jewelry purchase history');
   const entries = Object.entries(data);
-  if (entries.some(([id, cost]) => !isShopRingId(id) || !Number.isSafeInteger(cost) || cost <= 0))
+  if (entries.some(([id, cost]) => !isShopRingId(id) || !Number.isSafeInteger(cost) || cost < 0 || (cost === 0 && !freeJewelry.has(id))))
     throw new Error('Invalid jewelry purchase history');
   return data as RingPurchases;
 }
@@ -200,15 +200,28 @@ export function readShopWallet(raw?: string, practice = false): ShopWallet {
   if (!raw) return { items: {}, boxes: {} };
   const data: unknown = JSON.parse(raw);
   if (data && typeof data === 'object' && 'items' in data && 'boxes' in data) {
-    const items = readPurchases(JSON.stringify(data.items));
+    const freeBoxes: NonNullable<ShopWallet['freeBoxes']> = {};
+    if ('freeBoxes' in data) {
+      if (!data.freeBoxes || typeof data.freeBoxes !== 'object' || Array.isArray(data.freeBoxes))
+        throw new Error('Invalid free Pandora history');
+      for (const [receipt, value] of Object.entries(data.freeBoxes)) {
+        if (!isBoxReceipt(receipt) || value !== true) throw new Error('Invalid free Pandora receipt');
+        freeBoxes[receipt] = true;
+      }
+    }
     const boxes: ShopWallet['boxes'] = {};
+    const freeJewelry = new Set<string>();
     if (!data.boxes || typeof data.boxes !== 'object' || Array.isArray(data.boxes))
       throw new Error('Invalid mystery box history');
     for (const [receipt, id] of Object.entries(data.boxes)) {
-      if (!isBoxReceipt(receipt) || !isShopRingId(id) ||
-        items[id] !== MYSTERY_BOX_PRICE || Object.values(boxes).includes(id))
+      if (!isBoxReceipt(receipt) || !isShopRingId(id) || Object.values(boxes).includes(id))
         throw new Error('Invalid mystery box receipt');
       boxes[receipt] = id;
+      if (freeBoxes[receipt]) freeJewelry.add(id);
+    }
+    const items = readPurchases(JSON.stringify(data.items), freeJewelry);
+    for (const [receipt, id] of Object.entries(boxes)) {
+      if (id && items[id] !== (freeBoxes[receipt] ? 0 : MYSTERY_BOX_PRICE)) throw new Error('Invalid mystery box price');
     }
     const events: NonNullable<ShopWallet['events']> = {};
     if ('events' in data) {
@@ -219,6 +232,8 @@ export function readShopWallet(raw?: string, practice = false): ShopWallet {
         events[receipt] = readPandoraEvent(event);
       }
     }
+    if (Object.keys(freeBoxes).some(receipt => !boxes[receipt] && !events[receipt]))
+      throw new Error('Missing free Pandora outcome');
     // Keep unrecognized rows intact for recovery without blocking login or granting them.
     const unread: [string, unknown][] = [];
     const separate = 'unreadCarry' in data && data.unreadCarry && typeof data.unreadCarry === 'object' ? data.unreadCarry : undefined;
@@ -241,7 +256,7 @@ export function readShopWallet(raw?: string, practice = false): ShopWallet {
         !('stock' in fruit) || !isShopStockKey(fruit.stock)) throw new Error('Invalid test shop fruit');
       testFruit = { items: fruit.items, stock: fruit.stock };
     }
-    return { items, boxes, ...(Object.keys(events).length && { events }), ...(carry && { carry }), ...(unread.length && { unreadCarry: Object.fromEntries(unread) }), ...(testFruit && { testFruit }) };
+    return { items, boxes, ...(Object.keys(events).length && { events }), ...(Object.keys(freeBoxes).length && { freeBoxes }), ...(carry && { carry }), ...(unread.length && { unreadCarry: Object.fromEntries(unread) }), ...(testFruit && { testFruit }) };
   }
   return { items: readPurchases(raw), boxes: {} };
 }
@@ -249,8 +264,8 @@ export function readShopWallet(raw?: string, practice = false): ShopWallet {
 /** Include box tickets, Gold outcomes and cleared curse bounties in the balance. */
 export function shopGoldBalance(earned: number, wallet: ShopWallet): number {
   const purchases = Object.values(wallet.items).reduce((sum, price) => sum + price, 0);
-  const events = Object.values(wallet.events ?? {}).reduce((sum, event) =>
-    sum - MYSTERY_BOX_PRICE + (event?.kind === 'gold' ? event.change : event?.kind === 'run' && event.claimed ? PANDORA_CURSE_BOUNTY : 0), 0);
+  const events = Object.entries(wallet.events ?? {}).reduce((sum, [receipt, event]) =>
+    sum - (wallet.freeBoxes?.[receipt] ? 0 : MYSTERY_BOX_PRICE) + (event?.kind === 'gold' ? event.change : event?.kind === 'run' && event.claimed ? PANDORA_CURSE_BOUNTY : 0), 0);
   const knownCharges = Object.values(wallet.carry ?? {}).filter(card => card?.source === 'shop').length;
   const unreadCharges = Object.entries(wallet.unreadCarry ?? {}).filter(([id, row]) =>
     (id.startsWith('shop:') || id.startsWith('test-shop:')) && isShopStockKey(id.slice(id.indexOf(':') + 1)) &&
@@ -262,6 +277,16 @@ export function shopGoldBalance(earned: number, wallet: ShopWallet): number {
 /** Read all box receipts for this refresh, including older stock that had multiple boxes. */
 export const openedShopBoxes = (day: string, wallet: ShopWallet): MysteryBoxId[] =>
   MYSTERY_BOX_IDS.filter(box => wallet.boxes[day + ':' + box] || wallet.events?.[day + ':' + box]);
+
+/** One box is guaranteed while the daily claim is available. After claiming, keep its slot for this visit. */
+export function pandoraStock(stock: string, wallet: ShopWallet, admin: boolean, claimDay?: string) {
+  const opened = openedShopBoxes(stock, wallet);
+  const free = !opened.length && claimDay !== stock.slice(0, 10);
+  const hasFreeReceipt = opened.some(id => wallet.freeBoxes?.[stock + ':' + id]);
+  const offers = shopOffers(stock, admin, free || hasFreeReceipt).map(offer =>
+    offer.slot === 'box' && free ? { ...offer, price: 0 } : offer);
+  return { offers, opened: opened.length ? offers.flatMap(offer => offer.slot === 'box' ? [offer.id] : []) : [] };
+}
 
 /** Existing unclaimed half-life outcomes adopt the new payout; issued runs keep their baseline. */
 export function pendingPandoraEffect(wallet: ShopWallet): PandoraRunEffect | undefined {
@@ -295,7 +320,6 @@ export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: Sho
   if (offer.slot === 'card') {
     const id = shopCardReceipt(day, practice);
     if (wallet.carry?.[id] || Object.hasOwn(wallet.unreadCarry ?? {}, id)) return { status: 'owned' } as const;
-    if (!practice && availableCarryCards(wallet.carry).length >= ALBUM_SLOTS) return { status: 'full' } as const;
     if (balance < offer.price) return { status: 'short' } as const;
     return { status: 'buy', next: { ...wallet, carry: { ...wallet.carry, [id]: { id, cardId: offer.cardId, source: 'shop' } } } } as const;
   }
@@ -309,16 +333,17 @@ export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: Sho
   if (balance < offer.price) return { status: 'short' } as const;
 
 
+  // Record the waived price alongside the reward, including after tomorrow's claim.
+  if (offer.price === 0) wallet = { ...wallet, freeBoxes: { ...wallet.freeBoxes, [receipt]: true } };
   const seed = (label: string) => hashSeed('metatron:box:' + entropy + ':' + receipt + ':' + label);
   const kindRoll = nextInt(seed('kind'), 100)[0];
   if (kindRoll < PANDORA_CARD_CHANCE) {
     const cardId = drawPandoraCard(seed('card-rarity'), seed('card'));
     const owned = availableCarryCards(wallet.carry);
-    const albumFull = !practice && owned.length >= ALBUM_SLOTS;
-    if (albumFull || owned.some(card => card.cardId === cardId)) {
+    if (owned.some(card => card.cardId === cardId)) {
       const rarity = shopCardRarity(cardId);
       const reward = pandoraGoldReward(level, rarity);
-      return { status: 'buy', reward: { ...reward, ...(albumFull && { albumFull: true as const }) },
+      return { status: 'buy', reward,
         next: { ...wallet, events: { ...wallet.events, [receipt]: reward } } } as const;
     }
     const id = (practice ? 'test-pandora:' : 'pandora:') + receipt;
@@ -350,10 +375,10 @@ function shopRarity(id: ShopRingId): RingRarity {
 }
 
 /** Resolve an entire ordered selection of owned receipts without consuming them. */
-export function selectCarryCards(wallet: ShopWallet, receipts: readonly string[], practice = false) {
+export function selectCarryCards(wallet: ShopWallet, receipts: readonly string[]) {
   if (!isCarrySelection(receipts)) return undefined;
   const owned = availableCarryCards(wallet.carry);
-  const active = new Map((practice ? owned : owned.slice(0, ALBUM_SLOTS)).map(card => [card.id, card.cardId]));
+  const active = new Map(owned.map(card => [card.id, card.cardId]));
   const cards: CardId[] = [];
   for (const receipt of receipts) {
     const card = active.get(receipt);

@@ -15,6 +15,7 @@ import { ROW_LABEL } from '../../../shared/game/rules';
 import type { RunAction } from '../../../shared/game/run';
 import { createSandboxWith } from '../../../shared/game/sandbox';
 import { Button } from '../ui/Button';
+import { MenuBackButton } from '../ui/MenuBackButton';
 import { ModalDialog } from '../ui/ModalDialog';
 import { CombatView } from './CombatView';
 import { MechanicsLibrary } from './MechanicsLibrary';
@@ -67,7 +68,8 @@ export function FirstFight({
   // .lesson-book header/footer rules can't restyle the dialog's own.
   return (
     <>
-      <main className="lesson-book">
+      <main className="lesson-book relative">
+        <MenuBackButton onClick={onExit} />
         <header>
           <h1>How to play</h1>
           <span>
@@ -105,9 +107,6 @@ export function FirstFight({
           })}
         </section>
         <footer>
-          <Button variant="menu" onClick={onExit}>
-            Main menu
-          </Button>
           <Button variant="menu" onClick={() => setLibraryOpen(true)}>
             Mechanics
           </Button>

@@ -15,7 +15,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { getVolume, subscribeVolume } from '../../lib/gameAudio';
 import { useMapAudio } from '../../lib/mapAudio';
 import { GAME_TITLE, LEADERBOARD_SIZE } from '../../../shared/constants/game';
-import { formatDailyKey } from '../../../shared/utils/dailyKey';
+import { formatDailyKey, getDailyKey } from '../../../shared/utils/dailyKey';
 import type { InitResponse, LeaderboardEntry, RingShopResponse } from '../../../shared/types/api';
 import {
   LOGO_SUBTITLE,
@@ -179,15 +179,28 @@ export const IntroView = ({
   loadTestShop,
 }: IntroViewProps) => {
   const [sheet, setSheet] = useState<Sheet>('none');
-  const [playerTotals, setPlayerTotals] = useState({ wins: data.lifetimeWins ?? 0, xpStartWins: data.xpStartWins, bonusXp: data.bonusXp ?? 0, gold: data.gold ?? 0 });
+  const [playerTotals, setPlayerTotals] = useState({ wins: data.lifetimeWins ?? 0, xpStartWins: data.xpStartWins, bonusXp: data.bonusXp ?? 0, gold: data.gold ?? 0, pandoraFreeDay: data.pandoraFreeDay });
   const level = progressionFromWins(playerTotals.wins, false, playerTotals.xpStartWins, playerTotals.bonusXp).level;
   useEffect(() => {
     if (sheet !== 'none' || !data.accountId) return;
     let current = true;
-    apiClient.profile().then(result => {
-      if (current) setPlayerTotals({ wins: result.wins ?? data.lifetimeWins ?? 0, xpStartWins: result.xpStartWins ?? data.xpStartWins, bonusXp: result.bonusXp ?? data.bonusXp ?? 0, gold: result.gold ?? data.gold ?? 0 });
-    }).catch(() => {});
-    return () => { current = false; };
+    let request = 0;
+    const refresh = async () => {
+      const generation = ++request;
+      try {
+        const result = await apiClient.profile();
+        if (current && request === generation) setPlayerTotals({
+          wins: result.wins ?? data.lifetimeWins ?? 0, xpStartWins: result.xpStartWins ?? data.xpStartWins,
+          bonusXp: result.bonusXp ?? data.bonusXp ?? 0, gold: result.gold ?? data.gold ?? 0,
+          pandoraFreeDay: result.pandoraFreeDay,
+        });
+      } catch { /* Keep the last known totals if refresh fails. */ }
+    };
+    void refresh();
+    const dayMs = 24 * 60 * 60 * 1000;
+    const midnight = window.setTimeout(refresh, dayMs - Date.now() % dayMs + 1000);
+    window.addEventListener('focus', refresh);
+    return () => { current = false; window.clearTimeout(midnight); window.removeEventListener('focus', refresh); };
   }, [data.accountId, data.lifetimeWins, data.xpStartWins, data.bonusXp, data.gold, sheet]);
   const [testJewelry, setTestJewelry] = useState<ShopRingId[]>([]);
   const receiveTestInventory = useCallback((items: ShopRingId[], visit: string) => {
@@ -214,6 +227,7 @@ export const IntroView = ({
   });
   const isAdmin = useIsAdmin();
   const closeSheet = () => setSheet('none');
+  const freePandora = playerTotals.pandoraFreeDay === getDailyKey();
   const note = activeRunLevel !== undefined && activeRunLevel !== level
     ? 'Saved run: Lv ' + activeRunLevel + ' · Profile: Lv ' + level
     : rankedNote(data, canResume);
@@ -235,7 +249,10 @@ export const IntroView = ({
           {onEndless && <Button variant="menu" onClick={onEndless}>Endless</Button>}
           <div className="grid w-full grid-cols-2 gap-2">
             <Button variant="menu" onClick={() => setSheet('profile')}>Profile</Button>
-            <Button variant="menu" onClick={() => { setTestJewelry([]); onShopTestVisit?.(undefined); setSheet('shop'); }}>Shop</Button>
+            <Button variant="menu" className="home-shop-button" aria-label={freePandora ? "Shop, free Pandora's Box" : undefined}
+              onClick={() => { setTestJewelry([]); onShopTestVisit?.(undefined); setSheet('shop'); }}>
+              Shop{freePandora && <span className="pandora-free-ribbon" aria-hidden="true">Free</span>}
+            </Button>
           </div>
           {SHOW_PRACTICE && (
             <Button variant="menu" onClick={onPractice}>
@@ -270,7 +287,7 @@ export const IntroView = ({
       {sheet === 'shop' && <MetatronShop onClose={closeSheet} onTestInventory={receiveTestInventory} />}
       {sheet === 'dev' && isAdmin && <DevPanel onClose={closeSheet} />}
       {sheet === 'rules' && (
-        <MenuPanel title="Combat Rules" onClose={() => setSheet('tutorial')} wide>
+        <MenuPanel title="Combat Rules" backLabel="Back to How to Play" onClose={() => setSheet('tutorial')} wide>
           <CombatRulesSlides />
         </MenuPanel>
       )}

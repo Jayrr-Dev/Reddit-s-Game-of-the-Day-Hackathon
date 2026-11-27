@@ -31,10 +31,11 @@ test('one obsolete Album receipt cannot block the profile or change the saved ba
   assert.equal(shopGoldBalance(200, readShopWallet(JSON.stringify(updated))), 115);
 });
 
-test('Album keeps four active cards, allows an archive swap, and tombstones trash without refunding it', () => {
+test('Album keeps a fifth card selectable and tombstones trash without refunding it', () => {
   const extra = 'shop:' + day;
   const initial = { ...readShopWallet(), carry: { ...seededAdminCarryCards(), [extra]: { id: extra, cardId: 'wardingBolt', source: 'shop' } } } as const;
-  assert.equal(selectCarryCards(initial, [extra]), undefined);
+  assert.deepEqual(selectCarryCards(initial, [extra]), ['wardingBolt']);
+  assert.equal(selectCarryCards(initial, [...Object.keys(initial.carry)]), undefined, 'only four may be packed at once');
   const swapped = changeAlbum(initial.carry, { type: 'swap', id: extra, with: 'test:1' });
   assert.ok(swapped);
   assert.deepEqual(selectCarryCards({ ...initial, carry: swapped }, [extra]), ['wardingBolt']);
@@ -55,7 +56,7 @@ test('admin samples and visit cards become normal reusable Album receipts withou
   assert.deepEqual(availableCarryCards(wallet.carry).map(card => card.cardId), ['keenEdge', 'emberRune', 'wardingBolt', 'ruin', 'mourningCurse']);
   assert.equal(shopGoldBalance(200, wallet), 200);
   assert.deepEqual(selectCarryCards(wallet, ['grant:keenEdge', 'grant:ruin']), ['keenEdge', 'ruin']);
-  assert.equal(selectCarryCards(wallet, ['grant:mourningCurse']), undefined, 'overflow stays in the archive');
+  assert.deepEqual(selectCarryCards(wallet, ['grant:mourningCurse']), ['mourningCurse']);
   assert.equal(selectCarryCards(wallet, ['test:0']), undefined);
   const swapped = changeAlbum(carry, { type: 'swap', id: 'grant:mourningCurse', with: 'grant:ruin' });
   assert.ok(swapped);

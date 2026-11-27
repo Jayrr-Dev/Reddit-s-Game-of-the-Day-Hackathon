@@ -2,7 +2,7 @@ import test from 'node:test';
 import { availableCarryCards, isTestCarryCardId, seededAdminCarryCards } from './carryCards.ts';
 import { ALL_CARD_IDS, getCard, isCardInPlay } from './cards.ts';
 import assert from 'node:assert/strict';
-import { ADMIN_SHOP_GOLD, MYSTERY_BOX_PRICE, offerTestShopFruit, testShopFruit, testShopStockKey, assignPandoraEffect, claimPandoraBounty, openedShopBoxes, shopGoldBalance, TEMP_RING_IDS, goldAfterPurchases, quotePurchase, quoteShopPurchase, readPurchases, readShopWallet, shopCardRarity, shopOffers, shopRingIds, selectCarryCards } from './ringShop.ts';
+import { ADMIN_SHOP_GOLD, MYSTERY_BOX_PRICE, offerTestShopFruit, testShopFruit, testShopStockKey, assignPandoraEffect, claimPandoraBounty, openedShopBoxes, pandoraStock, shopGoldBalance, TEMP_RING_IDS, goldAfterPurchases, quotePurchase, quoteShopPurchase, readPurchases, readShopWallet, shopCardRarity, shopOffers, shopRingIds, selectCarryCards } from './ringShop.ts';
 import { createRun, replayRun, runReducer } from './run.ts';
 import { characterBonuses, trainingRingProgress } from './character.ts';
 import { drawPandoraEvent, pandoraGoldBreakdown, readPandoraEvent } from './pandora.ts';
@@ -280,4 +280,67 @@ void test('Pandora Gold keeps its base and adds a level percentage without chang
     result.reward?.kind === 'gold' && result.reward.change === 212);
   assert.ok(purchase?.status === 'buy');
   assert.equal(shopGoldBalance(200, readShopWallet(JSON.stringify(purchase.next))), 312);
+});
+
+test('daily Pandora is guaranteed even on boxless stock and never repeats on same-day refreshes', () => {
+  const stock = Array.from({ length: 20 }, (_, i) => day + 'T11.' + i)
+    .find(key => !shopOffers(key).some(offer => offer.slot === 'box'));
+  assert.ok(stock);
+  const wallet = readShopWallet();
+  const offered = pandoraStock(stock, wallet, false);
+  assert.equal(offered.offers.length, 5);
+  assert.equal(offered.offers.filter(offer => offer.slot === 'box').length, 1);
+  const box = offered.offers.find(offer => offer.slot === 'box');
+  assert.ok(box && box.price === 0);
+  const result = quoteShopPurchase(0, wallet, box, stock, 'daily-free');
+  assert.equal(result.status, 'buy');
+  if (result.status !== 'buy') return;
+  const restored = readShopWallet(JSON.stringify(result.next));
+  assert.deepEqual(pandoraStock(stock, restored, false, day).opened, [box.id]);
+  for (const refresh of [day + 'T12.0', day + 'T11.99000', day + 'T11.1p']) {
+    assert.ok(pandoraStock(refresh, restored, false, day).offers.every(item => item.price > 0));
+    assert.equal(pandoraStock(refresh, readShopWallet(), true, day).offers.find(offer => offer.slot === 'box')?.price, MYSTERY_BOX_PRICE);
+  }
+  assert.ok(pandoraStock('2026-11-28T00.0', restored, false, day).offers.some(offer => offer.slot === 'box' && offer.price === 0));
+});
+
+test('free Pandora jewelry, cards and event Gold survive serialization without a ticket debit', () => {
+  const stock = day + 'T09.0';
+  const box = pandoraStock(stock, readShopWallet(), false).offers.find(offer => offer.slot === 'box');
+  assert.ok(box);
+  const kinds = new Set<string>();
+  for (let i = 0; i < 400; i++) {
+    const result = quoteShopPurchase(200, readShopWallet(), box, stock, 'free-' + i);
+    if (result.status !== 'buy' || !('reward' in result)) throw new Error('missing free reward');
+    const reward = result.reward;
+    const restored = readShopWallet(JSON.stringify(result.next));
+    kinds.add(reward.kind);
+    assert.equal(shopGoldBalance(200, restored), 200 + (reward.kind === 'gold' ? reward.change : 0));
+    assert.equal(quoteShopPurchase(200, restored, box, stock, 'retry').status, 'owned');
+    if (reward.kind === 'jewelry') assert.equal(restored.items[reward.id], 0);
+    if (reward.kind === 'card') assert.deepEqual(selectCarryCards(restored, ['pandora:' + stock + ':' + box.id]), [reward.cardId]);
+  }
+  assert.deepEqual(kinds, new Set(['gold', 'card', 'run', 'jewelry']));
+});
+
+test('a shop purchase and a distinct Pandora reward still add cards to a full-looking Album', () => {
+  const original = { ...readShopWallet(), carry: seededAdminCarryCards() };
+  const shopKey = day + 'T12.0';
+  const item = shopOffers(shopKey, true).find(offer => offer.slot === 'card');
+  assert.ok(item && item.slot === 'card');
+  const purchase = quoteShopPurchase(500, original, item, shopKey, 'shop');
+  if (purchase.status !== 'buy') throw new Error('cannot buy card');
+  assert.equal(availableCarryCards(purchase.next.carry).length, 5);
+  assert.deepEqual(selectCarryCards(purchase.next, ['shop:' + shopKey]), [item.cardId]);
+  const box = shopOffers(shopKey, true).find(offer => offer.slot === 'box');
+  assert.ok(box);
+  for (let i = 0; i < 400; i++) {
+    const draw = quoteShopPurchase(500, purchase.next, box, shopKey, 'overflow-' + i);
+    if (draw.status !== 'buy' || !('reward' in draw) || draw.reward.kind !== 'card') continue;
+    const saved = readShopWallet(JSON.stringify(draw.next));
+    assert.equal(availableCarryCards(saved.carry).length, 6);
+    assert.deepEqual(selectCarryCards(saved, ['pandora:' + shopKey + ':' + box.id]), [draw.reward.cardId]);
+    return;
+  }
+  assert.fail('No unique Pandora card found');
 });

@@ -6,7 +6,7 @@ import shopAmbient from '../../../assets/npcs/metatron-shop-ambient.webp';
 import shopFrame from '../../../assets/npcs/metatron-shop-frame.webp';
 import { METATRON_ANGEL_LORE } from '../../../content/metatronAngelLore';
 import { playSound } from '../../../lib/gameAudio';
-import { Button } from '../../ui/Button';
+import { MenuBackButton } from '../../ui/MenuBackButton';
 import { SpeechBubble } from '../../ui/SpeechBubble';
 import { ProgressiveImg, ProgressiveSvgImage } from '../../ui/ProgressiveImage';
 import { RingCounter } from './RingCounter';
@@ -252,7 +252,8 @@ export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void
       </div>
     </div>
 
-    <header className="w-fit max-w-[90%] rounded-md bg-[#17111d]/90 px-3 py-2">
+    <MenuBackButton onClick={onClose} disabled={buying} />
+    <header className="metatron-shop-heading w-fit rounded-md bg-[#17111d]/90 px-3 py-2">
       <h2 className="font-display text-sm font-black uppercase tracking-widest text-accent">
         Shop
       </h2>
@@ -260,11 +261,6 @@ export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void
     </header>
 
     <RingCounter onSale={greetPurchase} onReroll={greetReroll} onBuyingChange={setBuying} {...(onTestInventory && { onTestInventory })} />
-    <footer className="flex items-end justify-end gap-2">
-      <Button variant="menu" className="max-w-24 shrink-0" onClick={onClose} disabled={buying}>
-        Back
-      </Button>
-    </footer>
   </section>
   );
 };

@@ -161,7 +161,8 @@ api.post('/shop/rings/buy', async c => {
   const visit = 'testVisit' in body ? body.testVisit : undefined;
   if (visit !== undefined && !isShopVisitId(visit))
     return jsonError(c, 400, 'Invalid shop test visit');
-  return c.json<BuyRingResponse>(await buyRing(id, await currentShopStock(id), body.offerDay, body.ringId, await isCurrentUserAdmin(), visit));
+  const expectedFree = 'expectedFree' in body && body.expectedFree === true;
+  return c.json<BuyRingResponse>(await buyRing(id, await currentShopStock(id), body.offerDay, body.ringId, await isCurrentUserAdmin(), visit, expectedFree));
 });
 api.post('/profile',async c => {
   const id=context.userId;
@@ -232,6 +233,7 @@ api.get('/init', async (c) => {
       appVersion: context.appVersion,
       username,
       ...(userId && { accountId: userId, lifetimeWins: progress.wins, xpStartWins: progress.xpStartWins, bonusXp: progress.bonusXp, gold: progress.gold }),
+      ...('pandoraFreeDay' in progress && progress.pandoraFreeDay && { pandoraFreeDay: progress.pandoraFreeDay }),
       bestScoreToday,
       streak,
       hasStartedRankedRun: startedRanked,

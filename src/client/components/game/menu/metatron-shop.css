@@ -1,3 +1,7 @@
+.metatron-shop-heading { margin-inline-start: 3rem; max-width: calc(100% - 8.5rem); }
+@media (max-width: 380px) {
+  .metatron-shop-heading { padding-inline: .28rem; }
+}
 /* A soft stationary mask keeps the lighting, room edges, and counter planted. */
 .metatron-idle-head, .metatron-idle-feathers { transform-box: view-box; }
 .metatron-idle-head {

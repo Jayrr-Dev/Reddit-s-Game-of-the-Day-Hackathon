@@ -11,21 +11,14 @@
 }
 .album-slot { display: grid; place-items: center; width: 100%; min-height: 10.5rem; }
 .album-slot[data-selected] .card-face { outline: 2px solid var(--color-card-trim-dark); outline-offset: 3px; }
-.album-empty {
-  display: grid; place-items: center; width: 6.5rem; height: 10rem;
-  border: 1px solid color-mix(in srgb, var(--color-accent) 58%, #735328); border-radius: .45rem; color: var(--faded-ink);
-  background: color-mix(in srgb, var(--color-surface-sunken, #170f0a) 58%, transparent);
-  box-shadow: inset 0 0 0 2px #0004;
-}
-.album-actions, .album-archive { display: flex; align-items: end; gap: .45rem; flex-wrap: wrap; }
+.album-empty { padding: 0 .55rem .55rem; }
 .album-actions { padding: .55rem; }
-.album-actions button, .album-actions select {
+.album-actions button {
   display: inline-flex; align-items: center; gap: .35rem; min-height: 2rem;
   padding: .25rem .55rem; border: 1px solid var(--line); border-radius: .3rem;
   color: var(--color-ink); background: var(--color-surface-sunken); font-size: .73rem;
 }
 .album-actions button:disabled { opacity: .52; }
-.album-archive label { display: grid; gap: .2rem; font-size: .73rem; }
 @container character-frame (max-width: 32rem) {
   .album-slots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

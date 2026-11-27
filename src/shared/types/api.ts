@@ -32,6 +32,7 @@ export type InitResponse = {
   accountId?: string;
   appVersion?: string;
   lifetimeWins?: number;
+  pandoraFreeDay?: string;
   xpStartWins?: number | undefined;
   bonusXp?: number | undefined;
   gold?: number;
@@ -73,6 +74,7 @@ export type ProfileResponse = {
   shopRings: ShopRingId[];
   carryCards: CarryCard[];
   nextEffect?: PandoraRunEffect;
+  pandoraFreeDay?: string;
   items: import('../game/items.ts').ItemBag;
   /** What the player has unlocked in runs (Illusion Training content). */
   unlocks: import('../game/unlocks.ts').Unlocks;
@@ -107,9 +109,9 @@ export type RingShopResponse = {
   imbueBought: boolean;
   owned: ShopRingId[];
 };
-export type BuyRingRequest = { ringId: ShopOfferId; offerDay: string; testVisit?: string };
+export type BuyRingRequest = { ringId: ShopOfferId; offerDay: string; testVisit?: string; expectedFree?: true };
 export type { ShopReward } from '../game/ringShop.ts';
-export type BuyRingResponse = { status: 'bought' | 'owned' | 'short' | 'full' | 'stale' | 'retry'; shop: RingShopResponse; reward?: ShopReward };
+export type BuyRingResponse = { status: 'bought' | 'owned' | 'short' | 'stale' | 'retry'; shop: RingShopResponse; reward?: ShopReward };
 export type RunProfile = { id: string; wins: number; shopRings?: ShopRingId[]; pandoraEffect?: PandoraRunEffect; cardRules?: 1; progressionVersion?: 2; conquestVersion?: ConquestVersion; vigorVersion?: 1; xpStartWins?: number; bonusXp?: number; carriedCard?: CardId; carriedCards?: CardId[] };
 export type StartRunResponse = {
   build?: import('../game/playerBuild.ts').PlayerBuild;

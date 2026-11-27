@@ -30,7 +30,9 @@ const boldParts = (line: string): string[] => line.split('**');
  */
 const MECHANIC_WORDS = [
   'all',
+  'attack',
   'block',
+  'buff',
   'deck',
   'discard',
   'dodge',
@@ -40,6 +42,8 @@ const MECHANIC_WORDS = [
   'miss',
   'stack',
   'turn',
+  'utility',
+  'utilities',
 ];
 /** The word endings a mechanic word may take (hits, blocked, misses). */
 const MECHANIC_ENDINGS = '(?:s|es|ed|d)?';

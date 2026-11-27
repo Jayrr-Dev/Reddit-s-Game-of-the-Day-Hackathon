@@ -3386,6 +3386,14 @@ textarea,
 .enemy-status-grid > * { direction: ltr; }
 
 .results-layout { display:flex; flex-direction:column; align-items:center; justify-content:safe center; gap:22px; height:100%; overflow-y:auto; padding:20px 12px; text-align:center; }
+.home-shop-button { position: relative; }
+.pandora-free-ribbon {
+  position: absolute; z-index: 1; top: -.32rem; right: -.16rem;
+  padding: .11rem .4rem .13rem; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 85%, 0 100%);
+  background: linear-gradient(#fff1ad, #e0ae50); color: #2d180c;
+  font: 800 .60rem/1.15 var(--font-body); letter-spacing: .045em;
+  pointer-events: none;
+}
 .menu-icon-hint:focus-visible::after {
   content: attr(aria-label);
   position: absolute;
@@ -3400,7 +3408,8 @@ textarea,
   white-space: nowrap;
   pointer-events: none;
 }
-.results-layout.endless-menu { padding-top: 58px; }
+.results-layout.endless-menu, .lesson-book, .page-menu-panel[data-hide-title] { padding-top: 58px; }
+.page-menu-title, .starter-header { padding-inline: 3.2rem; text-align: center; }
 .endless-menu .results-actions { width: min(100%, 205px); grid-template-columns: minmax(0, 1fr); }
 .results-layout header h1 { color:#e7bf78; font: bold 20px/1.2 var(--font-display); }
 .results-score { margin-top:6px; font:bold 40px/1.1 var(--font-display); color:#fff2d8; }
@@ -3464,7 +3473,7 @@ textarea,
 .rules-reference details { margin:12px 0 0; color:#c8b79d; font-size:11px; }
 .rules-reference summary { cursor:pointer; }
 .player-reddit-name { position:absolute; bottom:calc(100% + 9px); left:0; width:max-content; max-width:115px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#ffedc5; background:#23180fe8; padding:1px 4px; border-radius:3px; font:bold 11px var(--font-display); pointer-events:none; }
-.lesson-book {height:100%;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:14px;padding:16px;background:linear-gradient(#170e0988,#160d08bb),url('./assets/table/character-oak-grain.webp') center/cover;color:#f5e7c9}
+.lesson-book {height:100%;overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:safe center;gap:14px;padding:58px 16px 16px;background:linear-gradient(#170e0988,#160d08bb),url('./assets/table/character-oak-grain.webp') center/cover;color:#f5e7c9}
 .lesson-book header,.lesson-book footer {display:flex;align-items:center;justify-content:space-between;gap:12px;width:min(100%,620px)}
 .lesson-book h1 {font: bold 25px var(--font-display);color:#efc379}
 .lesson-book header span,.lesson-caption span {font-size:12px}

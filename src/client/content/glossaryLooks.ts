@@ -78,6 +78,8 @@ const GLOSSARY_LOOK: ReadonlyMap<string, Look> = new Map([
   ['Melee', INTENT_LOOK.attack],
   ['Range', INTENT_LOOK.range],
   ['Magic', INTENT_LOOK.magic],
+  ['Healing', INTENT_LOOK.heal],
+  ['healing', INTENT_LOOK.heal],
   // The rows: Frontline to Backline (Backline is Out of Range, faded).
   ...Object.values(ROW_INFO).map((info): [string, Look] => [
     info.label,

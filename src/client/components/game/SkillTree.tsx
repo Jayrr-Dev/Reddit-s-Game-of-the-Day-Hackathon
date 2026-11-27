@@ -319,11 +319,6 @@ export function SkillTree({
               {rank === 0 && (
                 <small className="cs-skill-requirement">{skillPurchases(character, active).message}</small>
               )}
-              {rank < skillCap(active.tier) && skillPurchases(character, active).steps.length > 0 ? (
-                <small>Click again to spend a point</small>
-              ) : rank > 0 && (
-                <small>Click again to refund</small>
-              )}
               {/* ACTIONS: small text buttons in one row; full wording lives in the tooltip/label. */}
               {rank > 0 && (
                 <div className="cs-node-actions">
