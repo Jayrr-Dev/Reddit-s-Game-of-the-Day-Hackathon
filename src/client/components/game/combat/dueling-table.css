@@ -823,11 +823,14 @@
 
 .training-entries { grid-auto-rows: max-content; min-height: 0; }
 /* Blur the locked contents, not the tile outline. The overlay does not change grid sizing. */
-.training-entries > .locked-preview:has(.training-entry) {
+.training-entries > .locked-preview:has(:is(.training-entry, .training-map)) {
   border-radius: 7px;
   overflow: clip;
 }
-.training-entries > .locked-preview:has(.training-entry)::after {
+.training-entries > .locked-preview:has(.training-map) {
+  border-radius: 6px;
+}
+.training-entries > .locked-preview:has(:is(.training-entry, .training-map))::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -835,7 +838,7 @@
   border-radius: inherit;
   pointer-events: none;
 }
-.training-entries > .locked-preview .training-entry { border-color: transparent; }
+.training-entries > .locked-preview :is(.training-entry, .training-map) { border-color: transparent; }
 .training-entry-copy { flex: none; width: 100%; }
 /* No colour here: the name's tier class (TIER_NAME_CLASS) sets it. */
 .training-entry-copy > span:first-child { line-height: 1.15; overflow-wrap: anywhere; }
