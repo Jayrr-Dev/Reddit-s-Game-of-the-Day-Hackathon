@@ -368,7 +368,7 @@ export const CombatView = ({
       if (!old || unit.hp >= old.hp) return false;
       // Poison and Hex ticks get their own cue from the status pop.
       return !(heroTurn.isPlaying && unit.statuses.burn >= old.statuses.burn &&
-        (unit.statuses.poison < old.statuses.poison || unit.statuses.hex !== old.statuses.hex));
+        ((unit.poisonDamageTaken ?? 0) > (old.poisonDamageTaken ?? 0) || unit.statuses.hex !== old.statuses.hex));
     })) {
       const heavy = id === 'siegeBlast' || id === 'hurlAside' || !!card?.effects.some(effect => effect.kind === 'damage' && effect.amount >= 12);
       const light = !!card?.effects.some(effect => effect.kind === 'damage' && effect.amount <= 4);

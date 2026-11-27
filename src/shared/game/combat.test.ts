@@ -212,14 +212,18 @@ void test('wrath adds to each hit and weaken cuts damage by 25%', () => {
   );
 });
 
-void test('poison ticks before an action, then drops by one', () => {
+void test('poison grows after each tick so it deals more damage over time', () => {
   const poisoned = {
     ...createCombatant(20, 20),
     statuses: { ...NO_STATUSES, poison: 3, weaken: 1 },
   };
   const ticked = poisonTick(poisoned);
   assert.equal(ticked.hp, 17);
-  assert.equal(ticked.statuses.poison, 2);
+  assert.equal(ticked.statuses.poison, 4);
+  const next = poisonTick(ticked);
+  assert.equal(next.hp, 13);
+  assert.equal(next.statuses.poison, 5);
+  assert.equal(next.poisonDamageTaken, 7);
   // Upkeep (after the turn) leaves it alone now.
   const upkept = endOfTurnUpkeep(poisoned);
   assert.equal(upkept.hp, 20);
@@ -247,10 +251,10 @@ void test('a poisoned hero loses HP right before it acts; the villain at turn st
     (unit) => unit.uid === squire.uid
   )!;
   assert.equal(before.hp, squire.hp - 3, 'its poison beat comes first');
-  assert.equal(before.statuses.poison, 2);
+  assert.equal(before.statuses.poison, 4);
   // The villain's poison ticks when its next turn starts.
   assert.equal(steps[0]!.state.player.statuses.poison, 4, 'not at its end');
-  assert.equal(steps.at(-1)!.state.player.statuses.poison, 3);
+  assert.equal(steps.at(-1)!.state.player.statuses.poison, 5);
 });
 
 void test('hex is left alone by end-of-turn upkeep', () => {
@@ -3264,7 +3268,7 @@ void test('Protection reduces all damaging afflictions after source scaling with
   assert.ok(effects.every(x => x.guard === 9 && x.statuses.armor === 5));
   assert.equal(effects[3]!.bleedTaken, 2);
   assert.equal(effects[4]!.shockDamageTaken, 5);
-  assert.deepEqual(effects.map((x, i) => x.statuses[(['hex','poison','burn','bleed','shock'] as const)[i]!]), [4, 6, 4, 7, 2]);
+  assert.deepEqual(effects.map((x, i) => x.statuses[(['hex','poison','burn','bleed','shock'] as const)[i]!]), [4, 8, 4, 7, 2]);
   const source = { ...unit, traits: { ...createCharacter().traits, scorn: 64 } };
   assert.equal(100 - poisonTick(base, source).hp, 6);
   assert.equal(100 - poisonTick({ ...base, statuses: { ...base.statuses, protection: 4 } }).hp, 1);

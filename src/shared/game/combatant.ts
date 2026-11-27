@@ -938,23 +938,25 @@ export const afterAction = <T extends Combatant>(
   source?: Combatant
 ): T => shockFade(frostThaw(burnTick(target, source)));
 
+/** Active Poison deepens after ticking; zero never grows on its own. */
+export const poisonAfterTick = (stacks: number): number => stacks > 0 ? stacks + 1 : 0;
+
 /**
  * Poison right before an action (a hero's move; the villain's turn
- * start): loses this much HP, then Poison drops by 1.
+ * start): loses this much HP, then Poison gains 1.
  */
 export const poisonTick = <T extends Combatant>(
   target: T,
   source?: Combatant
 ): T => {
   const { poison } = target.statuses;
-  if (poison <= 0) return target;
-  const poisoned = loseHp(
-    target,
-    incomingAfflictionDamage(target, poison, source)
-  );
+  if (poison <= 0 || target.hp <= 0) return target;
+  const loss = Math.min(target.hp, incomingAfflictionDamage(target, poison, source));
+  const poisoned = loseHp(target, loss);
   return {
     ...poisoned,
-    statuses: { ...poisoned.statuses, poison: poison - 1 },
+    poisonDamageTaken: (target.poisonDamageTaken ?? 0) + loss,
+    statuses: { ...poisoned.statuses, poison: poisonAfterTick(poison) },
   };
 };
 

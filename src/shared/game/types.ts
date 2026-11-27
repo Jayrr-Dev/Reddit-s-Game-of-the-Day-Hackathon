@@ -16,7 +16,7 @@ import type { SkillPick } from './skills.ts';
  * players as "Guard", lives on the
  * combatant itself because it resets every turn):
  * - poison: loses this much HP right before each of its actions (a hero
- *           move; the villain's turn start), then drops by 1
+ *           move; the villain's turn start), then grows by 1
  * - burn:   deals damage on application and right after each of its actions (a hero
  *           move; the villain's whole turn), then halves (3 -> 1, 1 -> 0)
  * - frost:  every hit it deals is 1 lower per stack (never below 0);
@@ -140,6 +140,8 @@ export type Combatant = {
   hexDamageTaken?: number;
   /** Cumulative HP lost to Burn applications and later ticks. */
   burnDamageTaken?: number;
+  /** Cumulative HP lost to Poison ticks. */
+  poisonDamageTaken?: number;
   /** Legacy hit count from saves written before Shock burst on the next hit. */
   shockHits?: number;
   /**

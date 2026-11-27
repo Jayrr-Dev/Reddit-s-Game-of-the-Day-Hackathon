@@ -122,6 +122,7 @@ type HeroLook = {
   bleedTaken: number;
   hexDamageTaken: number;
   burnDamageTaken: number;
+  poisonDamageTaken: number;
   point: Point | null;
 };
 
@@ -222,18 +223,6 @@ const dodgesBetween = (
   );
 
 /**
- * Identifies a Poison tick from its stack drop. Burn and Hex are tracked
- * separately by their accumulated damage.
- */
-const tickCauseOf = (
-  before: Record<TickKind, number>,
-  after: Record<TickKind, number>
-): TickKind | undefined => {
-  if (after.poison < before.poison) return 'poison';
-  return undefined;
-};
-
-/**
  * Splits a hit of several blows into one hit per blow. The engine lands
  * a move's blows in one step, so only their sum is seen; every blow of
  * an attack deals the same, so the sum splits evenly (any remainder on
@@ -287,6 +276,7 @@ type DebuffLook = Record<DebuffKind, number> & {
   bleedTaken: number;
   hexDamageTaken: number;
   burnDamageTaken: number;
+  poisonDamageTaken: number;
 };
 
 /** A unit's debuffs and burst/bite counts, for debuffsBetween. */
@@ -296,6 +286,7 @@ const debuffLookOf = (unit: Combatant): DebuffLook => ({
   bleedTaken: unit.bleedTaken ?? 0,
   hexDamageTaken: unit.hexDamageTaken ?? 0,
   burnDamageTaken: unit.burnDamageTaken ?? 0,
+  poisonDamageTaken: unit.poisonDamageTaken ?? 0,
 });
 
 /**
@@ -305,14 +296,15 @@ const debuffLookOf = (unit: Combatant): DebuffLook => ({
 const SPLIT_POPS: ReadonlySet<PopKind> = new Set(['shockBurst', 'bleedBite']);
 
 /** True for a pop that shows damage split out of a hit (see SPLIT_POPS). */
-const isSplitPop = (pop: Hit): boolean => SPLIT_POPS.has(pop.kind) || (pop.kind === 'hit' && (pop.tick === 'hex' || pop.tick === 'burn'));
+const isSplitPop = (pop: Hit): boolean => SPLIT_POPS.has(pop.kind) || (pop.kind === 'hit' && pop.tick !== undefined);
 
 /**
  * Debuffs laid on between two looks, plus a Shock that went off (the
  * engine counted a burst): effect only, no number.
  */
 const debuffsBetween = (before: DebuffLook, after: DebuffLook): Hit[] => {
-  const laid: Hit[] = DEBUFFS.map((kind) => ({
+  const poisonDamage = after.poisonDamageTaken - before.poisonDamageTaken;
+  const laid: Hit[] = DEBUFFS.filter(kind => kind !== 'poison' || poisonDamage <= 0).map((kind) => ({
     kind,
     amount: after[kind] - before[kind],
     blocked: 0,
@@ -324,7 +316,8 @@ const debuffsBetween = (before: DebuffLook, after: DebuffLook): Hit[] => {
   const hex: Hit[] = hexDamage > 0 ? [{ kind: 'hit', amount: hexDamage, blocked: 0, tick: 'hex' }] : [];
   const burnDamage = after.burnDamageTaken - before.burnDamageTaken;
   const burn: Hit[] = burnDamage > 0 ? [{ kind: 'hit', amount: burnDamage, blocked: 0, tick: 'burn' }] : [];
-  return [...laid, ...(burst ? [burst] : []), ...(bite ? [bite] : []), ...hex, ...burn];
+  const poison: Hit[] = poisonDamage > 0 ? [{ kind: 'hit', amount: poisonDamage, blocked: 0, tick: 'poison' }] : [];
+  return [...laid, ...(burst ? [burst] : []), ...(bite ? [bite] : []), ...hex, ...burn, ...poison];
 };
 
 /** HP Bleed cost between two looks, as its own number (null for none). */
@@ -420,6 +413,7 @@ const lookAt = (
         bleedTaken: unit.bleedTaken ?? 0,
         hexDamageTaken: unit.hexDamageTaken ?? 0,
         burnDamageTaken: unit.burnDamageTaken ?? 0,
+        poisonDamageTaken: unit.poisonDamageTaken ?? 0,
         point: bodyPointOf(unit.uid) ?? before.get(unit.uid)?.point ?? null,
       },
     ])
@@ -462,13 +456,12 @@ const heroPopsSince = (
           bleedTaken: unit.bleedTaken ?? 0,
           hexDamageTaken: unit.hexDamageTaken ?? 0,
           burnDamageTaken: unit.burnDamageTaken ?? 0,
+          poisonDamageTaken: unit.poisonDamageTaken ?? 0,
         };
     const debuffs = debuffsBetween(old, now);
     const splits = debuffs.filter(isSplitPop);
     const found = withoutSplits(hitBetween(old, now, countsBlocked), splits, old.hp);
-    // On the heroes' turn only statuses harm them: name the one that ticked.
-    const tick = isHeroTurn ? tickCauseOf(old, now) : undefined;
-    const hit = found ? { ...found, source, element, edge, tick } : null;
+    const hit = found ? { ...found, source, element, edge } : null;
     const gains = isHeroTurn ? gainsBetween(old, now) : [];
     const misses = missesBetween(old, now);
     const point = bodyPointOf(uid, hit && !isHeroTurn ? strikeIndex : undefined) ?? old.point;
@@ -633,13 +626,8 @@ export const usePlayerHits = (
       hitBetween(last.player, player, last.turn === turn),
       splits, last.player.hp
     );
-    // Untyped harm (no hero attack landing) is a status ticking.
-    const tick =
-      source === null
-        ? tickCauseOf(last.player.statuses, player.statuses)
-        : undefined;
     const [firstBlow, ...laterBlows] = found
-      ? splitIntoBlows({ ...found, source: source ?? undefined, element, edge, tick }, strikes, last.player.hp)
+      ? splitIntoBlows({ ...found, source: source ?? undefined, element, edge }, strikes, last.player.hp)
       : [];
     const gains = villainGainsBetween(last.player, player);
     const misses = missesBetween(last.player, player);

@@ -112,7 +112,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   poison: {
     label: 'Poison',
     description:
-      'Deals damage before each action, then loses 1 stack.',
+      'Deals its value before each action, then gains 1 stack.',
   },
   weaken: {
     label: 'Weaken',

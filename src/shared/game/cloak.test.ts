@@ -46,7 +46,7 @@ void test('Cloak lasts two opposing turns, but does not stop area attacks or exi
   const afterTwo = endTurn({ ...afterOne, waveArrival: true });
   assert.equal(afterTwo.heroes[0]?.statuses.cloak, 0);
   const poisonBeat = endTurnSteps({ ...poisoned, waveArrival: false })
-    .find(step => step.state.heroes[0]?.statuses.poison === 0 && step.state.heroes[0]?.statuses.cloak === 1);
+    .find(step => step.state.heroes[0]?.poisonDamageTaken === 1 && step.state.heroes[0]?.statuses.cloak === 1);
   assert.ok(poisonBeat && poisonBeat.state.heroes[0]!.hp < assassin.hp);
 });
 
