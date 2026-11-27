@@ -228,7 +228,7 @@ const PlayerBar = ({
           <StatusRow combatant={combat.player} timedBuffs={combat.timedBuffs} rows={2} />
         </div>
         <GuardGainPops guard={combat.player.guard} />
-        <PlayerHealthBar {...health} incomingDamage={incomingDamage} burnDamage={burnDamage} lethal={lethal} hexDamage={pendingPlayerHexDamage({ ...combat, player: { ...combat.player, hp: health.hp } })} />
+        <PlayerHealthBar {...health} guard={combat.player.guard} incomingDamage={incomingDamage} burnDamage={burnDamage} lethal={lethal} hexDamage={pendingPlayerHexDamage({ ...combat, player: { ...combat.player, hp: health.hp } })} />
       </div>
       <div className="table-turn justify-self-end">
         <TurnCorner

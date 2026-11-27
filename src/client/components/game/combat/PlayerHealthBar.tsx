@@ -1,10 +1,11 @@
 import { Glyph } from '../../ui/Glyph';
 
-type PlayerHealthProps = { hp: number; maxHp: number; hexDamage: number; incomingDamage: number; burnDamage: number; lethal: boolean };
+type PlayerHealthProps = { hp: number; maxHp: number; guard: number; hexDamage: number; incomingDamage: number; burnDamage: number; lethal: boolean };
 
 /** Preview Burn in orange, incoming hits in light red, and Hex in purple. */
-export function PlayerHealthBar({ hp, maxHp, hexDamage, incomingDamage, burnDamage, lethal }: PlayerHealthProps) {
+export function PlayerHealthBar({ hp, maxHp, guard, hexDamage, incomingDamage, burnDamage, lethal }: PlayerHealthProps) {
   const percent = Math.max(0, Math.min(100, hp / Math.max(1, maxHp) * 100));
+  const guardPercent = Math.max(0, Math.min(100, guard / Math.max(1, maxHp) * 100));
   // Loss starts at the right edge and follows turn order: Burn, enemies, then Hex.
   const pendingBurn = Math.max(0, Math.min(hp, burnDamage));
   const afterBurn = hp - pendingBurn;
@@ -16,6 +17,7 @@ export function PlayerHealthBar({ hp, maxHp, hexDamage, incomingDamage, burnDama
   const hexStart = (afterAttacks - pendingHex) / Math.max(1, maxHp) * 100;
   const healthText = [
     `${hp} of ${maxHp} HP`,
+    guard > 0 && `${guard} Guard`,
     pendingBurn > 0 && `${pendingBurn} pending Burn damage`,
     threatenedHp > 0 && `${threatenedHp} projected enemy damage`,
     pendingHex > 0 && `${pendingHex} pending Hex damage`,
@@ -28,6 +30,10 @@ export function PlayerHealthBar({ hp, maxHp, hexDamage, incomingDamage, burnDama
       aria-valuemin={0} aria-valuenow={hp} aria-valuemax={maxHp} aria-valuetext={healthText}>
       <span className="table-player-health-trail" style={{ width: percent + '%' }} aria-hidden="true" />
       <span className="table-player-health-fill" style={{ width: percent + '%' }} aria-hidden="true" />
+      {guardPercent > 0 && (
+        <span className="table-player-health-guard" data-overflow={guard > maxHp || undefined}
+          style={{ width: guardPercent + '%' }} aria-hidden="true" />
+      )}
       {pendingBurn > 0 && (
         <span className="table-player-health-burn" style={{ left: burnStart + '%', width: (percent - burnStart) + '%' }} aria-hidden="true" />
       )}
