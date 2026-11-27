@@ -40,7 +40,7 @@ import { AngelMage } from './AngelMageFigure';
 import { WingedArcher } from './WingedArcherFigure';
 import { ApollyonSeraph } from './ApollyonSeraphFigure';
 import lustArt from '../../../assets/heroes/lust.webp';
-import gluttonyArt from '../../../assets/heroes/gluttony.webp';
+import { GluttonyRigFigure } from './GluttonyRigFigure';
 import greedArt from '../../../assets/heroes/greed.webp';
 import moriArt from '../../../assets/heroes/light-lord-mori.webp';
 import azulaArt from '../../../assets/heroes/mage-borne-azula.webp';
@@ -722,7 +722,7 @@ const CREATURE_DRAWINGS: Record<
   sloth: SlothMotionFigure,
   pride: PrideMotionFigure,
   lust: ({ size }) => <BossSprite size={size} art={lustArt} inset={1} hover />,
-  gluttony: ({ size }) => <BossSprite size={size} art={gluttonyArt} inset={9} />,
+  gluttony: GluttonyRigFigure,
   greed: ({ size }) => <BossSprite size={size} art={greedArt} inset={2} />,
   envy: EnvyMotionFigure,
   holyDragon: HolyDragon,
