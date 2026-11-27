@@ -29,7 +29,7 @@ import {
 } from '../game/rules.ts';
 import type { HeroDef, HeroEffect, HeroHitProc, HeroMove, HeroTier } from '../game/types.ts';
 import type { CostCurveConfig } from './costCurveConfig.ts';
-import { bleedValue, burnValue, hexValue, poisonValue, shockValue } from './statusValues.ts';
+import { bleedValue, burnValue, halvingValue, hexValue, poisonValue, shockValue } from './statusValues.ts';
 
 // --- TYPES ---
 /** One unit's power score and what it is made of. */
@@ -67,7 +67,7 @@ const afflictionValue = (config: CostCurveConfig, proc: HeroHitProc): number => 
     case 'burn':
       return burnValue(amount);
     case 'frost':
-      return burnValue(amount);
+      return halvingValue(amount);
     case 'bleed':
       return bleedValue(config, amount);
     case 'shock':

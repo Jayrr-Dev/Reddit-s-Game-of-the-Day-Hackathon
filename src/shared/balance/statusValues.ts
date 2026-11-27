@@ -44,14 +44,17 @@ export const hexValue = (config: CostCurveConfig, stacks: number): number => {
   return total * config.battle.hexLandsLate;
 };
 
-/** Burn N: deals N immediately, then ticks on later actions, halving each time. */
-export const burnValue = (stacks: number): number => {
+/** Stack value across action ticks, halving after each tick. */
+export const halvingValue = (stacks: number): number => {
   let total = 0;
   for (let burn = stacks; burn > 0; burn = afterActionLeft(burn)) {
     total += burn;
   }
   return total;
 };
+
+/** Burn values its immediate damage separately from the full stacks it leaves. */
+export const burnValue = (stacks: number): number => stacks + halvingValue(stacks);
 
 /** Poison N: deals N before each hero action, then -1 (see poisonTick). */
 export const poisonValue = (

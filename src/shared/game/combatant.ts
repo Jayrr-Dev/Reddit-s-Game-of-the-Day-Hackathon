@@ -892,10 +892,10 @@ const hurtByBurn = <T extends Combatant>(target: T, amount: number, source?: Com
   return { ...loseHp(target, loss), burnDamageTaken: (target.burnDamageTaken ?? 0) + loss };
 };
 
-/** New Burn deals its value immediately; only the new stacks halve. */
+/** New Burn deals its value immediately and keeps all stacks for later ticks. */
 export const applyBurn = <T extends Combatant>(target: T, amount: number, source?: Combatant): T => {
   if (target.hp <= 0 || amount <= 0) return target;
-  return addStatus(hurtByBurn(target, amount, source), 'burn', afterActionLeft(amount));
+  return addStatus(hurtByBurn(target, amount, source), 'burn', amount);
 };
 
 /** Existing Burn ticks after an action and then halves. */

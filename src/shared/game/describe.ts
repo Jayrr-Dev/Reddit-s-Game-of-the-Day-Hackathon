@@ -94,7 +94,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   burn: {
     label: 'Burn',
     description:
-      'Deals damage when applied and after each action. Each tick halves those stacks (round down).',
+      'Deals damage when applied without losing stacks. After each action, deals its value and halves (round down).',
   },
   frost: {
     label: 'Frost',
