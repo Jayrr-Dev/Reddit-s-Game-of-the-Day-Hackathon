@@ -174,6 +174,7 @@ const PlayerBar = ({
   health,
   incomingDamage,
   burnDamage,
+  hexDamage,
   level,
   lethal,
   hits,
@@ -187,6 +188,7 @@ const PlayerBar = ({
   health: Health;
   incomingDamage: number;
   burnDamage: number;
+  hexDamage: number;
   level: number;
   lethal: boolean;
   hits: readonly PlayerHitPop[];
@@ -228,7 +230,7 @@ const PlayerBar = ({
           <StatusRow combatant={combat.player} timedBuffs={combat.timedBuffs} rows={2} />
         </div>
         <GuardGainPops guard={combat.player.guard} />
-        <PlayerHealthBar {...health} guard={combat.player.guard} incomingDamage={incomingDamage} burnDamage={burnDamage} lethal={lethal} hexDamage={pendingPlayerHexDamage({ ...combat, player: { ...combat.player, hp: health.hp } })} />
+        <PlayerHealthBar {...health} guard={combat.player.guard} incomingDamage={incomingDamage} burnDamage={burnDamage} lethal={lethal} hexDamage={hexDamage} />
       </div>
       <div className="table-turn justify-self-end">
         <TurnCorner
@@ -390,6 +392,7 @@ export const CombatView = ({
   const bossEntrance = useBossEntrance(combat.heroes, bossIntros);
   const isAnimating = heroTurn.isPlaying || cardHits.isPlaying;
   const incomingDamage = useMemo(() => heroTurn.isPlaying ? 0 : potentialEnemyHpLoss(realCombat), [heroTurn.isPlaying, realCombat]);
+  const hexDamage = useMemo(() => pendingPlayerHexDamage(realCombat), [realCombat]);
   const lethal = useMemo(() => realCombat.player.hp > 0 && endTurn(realCombat).player.hp <= 0, [realCombat]);
   // The card played last: its type colours its damage numbers, and a
   // Magic card's element shapes its bursts.
@@ -623,6 +626,7 @@ export const CombatView = ({
           health={playerHealth}
           incomingDamage={isAnimating || isShooting ? 0 : incomingDamage}
           burnDamage={isAnimating || isShooting ? 0 : pendingPlayerBurnDamage(realCombat)}
+          hexDamage={isAnimating || isShooting ? 0 : hexDamage}
           level={character.level}
           lethal={lethal && !isAnimating}
           combat={combat}

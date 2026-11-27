@@ -82,6 +82,7 @@ import {
   hexBurn,
   hexBurst,
   hexAfterPlayerAction,
+  hexAfterAction,
   poisonTick,
   guardAmount,
   hasMomentumFor,
@@ -2277,7 +2278,10 @@ const heroActs = (
     return next;
   }, hasAttack ? updateHeroes(state, [uid], revealCloak) : state);
 
-  const player = acted.player.hp > 0 ? bleedOnAttack(acted.player, state.player.statuses.bleed, actor, attackBlock.bleedHits) : acted.player;
+  const afterBleed = acted.player.hp > 0 ? bleedOnAttack(acted.player, state.player.statuses.bleed, actor, attackBlock.bleedHits) : acted.player;
+  // Every enemy move counts once for existing Hex on the player, even support moves.
+  // A move that applies the first stack leaves its printed value intact.
+  const player = planned && state.player.statuses.hex > 0 ? hexAfterAction(afterBleed) : afterBleed;
   const isDiving = planned !== null && isAloft(actor);
   const settled = updateHeroes({ ...acted, player }, [uid], (unit) => {
     // BURN AND FROST RUN AFTER EVERY ACTION, UPKEEP AFTER THE LAST ONE
@@ -2444,13 +2448,16 @@ export function openPlayerRound(state: CombatState): CombatState {
   });
 }
 
-/** HP that the currently queued Hex alone will cost at the next turn opening. */
-export const pendingPlayerHexDamage = ({ player, waveArrival }: Pick<CombatState, 'player' | 'waveArrival'>): number => {
+/** Forecast only existing Hex, accounting for the enemy moves before the next opening. */
+export function pendingPlayerHexDamage(state: CombatState): number {
+  if (state.player.hp <= 0 || state.player.statuses.hex <= 0) return 0;
+  const player = state.waveArrival
+    ? finishPlayerTurn(state).player
+    : resolveTurnSteps({ ...state, rng: 1 }, true).at(-1)?.state.player ?? state.player;
   if (player.hp <= 0 || player.statuses.hex <= 0) return 0;
-  // The arrival turn skips the normal stacked-buff countdown.
-  const atOpening = beforePlayerHex(waveArrival ? player : expirePlayerRoundStacks(player));
-  return player.hp - hexBurn(atOpening).hp;
-};
+  const atOpening = beforePlayerHex(state.waveArrival ? player : expirePlayerRoundStacks(player));
+  return atOpening.hp - hexBurn(atOpening).hp;
+}
 
 /**
  * Ends the villain's turn, beat by beat, so the view can play the
