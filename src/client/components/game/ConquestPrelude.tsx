@@ -245,7 +245,7 @@ export function ConquestMap({
       }}>World map</button>}
       <MapExpandButton view={mapHandoff} />
     </div>}
-    {runControls && !showWorld && <AtlasSettings onMainMenu={runControls.onMainMenu} />}
+    {runControls && !showWorld && <AtlasSettings />}
     {showWorld && <WorldAtlas current={regionIndexOf(runStop)}
       controls={<MapExpandButton className="world-atlas-expand" view={mapHandoff} />}
       {...(isAdmin && { onVisit: (index: number) => {

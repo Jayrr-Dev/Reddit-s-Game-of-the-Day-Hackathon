@@ -259,8 +259,12 @@
 .atlas-map-actions > button { min-height: 2.5rem; }
 .atlas-settings-gear { position: absolute; inset: auto .7rem .7rem auto; z-index: 4; }
 .atlas-map-actions > .map-expand-button { display: grid; width: 2.5rem; padding: 0; }
-.atlas-profile {
+.atlas-main-controls {
   position: absolute; z-index: 4; inset: .7rem auto auto .7rem;
+  display: flex; align-items: center; gap: .4rem;
+}
+.atlas-main-controls .atlas-menu-back { position: relative; inset: auto; }
+.atlas-profile {
   display: inline-flex; align-items: center; gap: .38rem; min-height: 2.5rem; padding: .2rem .42rem .2rem .22rem;
   border: 1px solid #b68d52; border-radius: .3rem; background: #2e231c; color: #fff0d2; text-align: left; cursor: pointer;
 }
@@ -269,5 +273,14 @@
 .atlas-profile > span { display: grid; gap: .12rem; }
 .atlas-profile strong { font: 750 .76rem/1.05 var(--font-display, Georgia, serif); }
 .atlas-profile small { display: flex; align-items: center; gap: .2rem; color: #f6ddba; font: 600 .65rem/1.1 var(--font-body, system-ui); white-space: nowrap; }
+.atlas-profile-vitals { display: flex; align-items: center; gap: .18rem; }
 .atlas-profile-heart { color: #ec9a8b; width: .7rem; height: .7rem; margin-left: .1rem; }
+@container (max-width: 368px) {
+  .atlas-profile { gap: .25rem; padding-inline: .25rem; }
+  .atlas-profile-portrait { width: 1.4rem; height: 1.4rem; }
+  .atlas-profile strong { display: none; }
+  .atlas-profile small { display: grid; gap: .12rem; }
+  .atlas-profile-heart { margin-left: 0; }
+  .atlas-map-actions > button:not(.map-expand-button) { padding-inline: .38rem; }
+}
 .map-fullbleed[data-run-controls] > .conquest-map-scroll { scroll-padding-top: 3.35rem; }
