@@ -73,6 +73,7 @@ export type HeroOnFieldProps = {
   /** Every hero on the field (what this one plans depends on them). */
   field: readonly HeroUnit[];
   onTap: (uid: number) => void;
+  onHover: (uid: number | null) => void;
 };
 
 // --- CONSTANTS ---
@@ -470,6 +471,7 @@ export const HeroOnField = ({
   isDying = false,
   field,
   onTap,
+  onHover,
 }: HeroOnFieldProps) => {
   const [arrivalDelay] = useState(() => marchDelayMs(unit));
   if (isDying)
@@ -498,6 +500,8 @@ export const HeroOnField = ({
     <button
       type="button"
       onClick={() => onTap(unit.uid)}
+      onPointerEnter={event => { if (event.pointerType === 'mouse') onHover(unit.uid); }}
+      onPointerLeave={event => { if (event.pointerType === 'mouse') onHover(null); }}
       {...{ [HERO_UID_ATTR]: unit.uid, [HERO_ROW_ATTR]: unit.row }}
       data-row-label={rowLabel(unit.row)}
       aria-label={`${hero.name}, ${unit.hp} of ${unit.maxHp} HP, ${rowLabel(unit.row)}`}

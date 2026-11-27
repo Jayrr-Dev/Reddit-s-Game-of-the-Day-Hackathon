@@ -53,7 +53,8 @@ export type BattlefieldViewProps = {
 /** How far (px) the camera leans per column away from the centre. */
 const CAMERA_LEAN_PX = 1;
 /** A quick change of target never flashes its name. */
-const NAME_REVEAL_MS = 300;
+const SELECTED_NAME_REVEAL_MS = 300;
+const HOVER_NAME_REVEAL_MS = 200;
 /** Parallax depth of each row's layer. */
 const ROW_DEPTH: Record<HeroRow, number> = {
   horizon: 0.45,
@@ -86,16 +87,16 @@ const RowLayer = ({
   </div>
 );
 
-/** Reveal a name only once selection has settled; cancel stale reveals. */
-function useSelectedName(selectedUid: number | null): number | null {
+/** Reveal a name only once its target has settled; cancel stale reveals. */
+function useDelayedName(uid: number | null, delayMs: number): number | null {
   const [revealedUid, setRevealedUid] = useState<number | null>(null);
   useLayoutEffect(() => {
     setRevealedUid(null);
-    if (selectedUid === null) return;
-    const timer = window.setTimeout(() => setRevealedUid(selectedUid), NAME_REVEAL_MS);
+    if (uid === null) return;
+    const timer = window.setTimeout(() => setRevealedUid(uid), delayMs);
     return () => window.clearTimeout(timer);
-  }, [selectedUid]);
-  return revealedUid === selectedUid ? revealedUid : null;
+  }, [uid, delayMs]);
+  return revealedUid === uid ? revealedUid : null;
 }
 
 // --- COMPONENT ---
@@ -116,7 +117,11 @@ export const BattlefieldView = ({
   onTapHero,
 }: BattlefieldViewProps) => {
   const fieldRef = useRef<HTMLDivElement>(null);
-  const nameUid = useSelectedName(selectedUid);
+  const [hoveredUid, setHoveredUid] = useState<number | null>(null);
+  const activeHover = heroes.some(unit => unit.uid === hoveredUid) ? hoveredUid : null;
+  const selectedName = useDelayedName(selectedUid, SELECTED_NAME_REVEAL_MS);
+  const hoveredName = useDelayedName(activeHover, HOVER_NAME_REVEAL_MS);
+  const nameUid = activeHover === null ? selectedName : hoveredName;
   usePlateSpacing(fieldRef, heroes, !!bossEntrance.entering);
   const ghosts = useFallenHeroes(heroes).filter(ghost => !heroes.some(unit => unit.uid === ghost.uid));
 
@@ -170,7 +175,7 @@ export const BattlefieldView = ({
               pickMarker={isDying ? null : pickMarkerOf(unit.uid)}
               action={isDying ? null : acting.get(unit.uid) ?? null}
               lastHitId={isDying ? null : lastHitIds.get(unit.uid) ?? null}
-              field={heroes} onTap={onTapHero} />
+              field={heroes} onTap={onTapHero} onHover={setHoveredUid} />
           </RowLayer>
         ))}
       </div>
