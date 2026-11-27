@@ -3,7 +3,7 @@ import { ALL_CARD_IDS, getCard, isCardInPlay, type CardId } from './cards.ts';
 import { hashSeed, nextInt, pickDistinct, pickOne } from './rng.ts';
 import { TRAINING_JEWELRY } from './trainingJewelry.ts';
 import { shopAmuletSummary, type ShopAmuletId } from './amuletBonuses.ts';
-import { drawPandoraEvent, readPandoraEvent, PANDORA_CURSE_BOUNTY, PANDORA_DUPLICATE_GOLD, type PandoraEvent, type PandoraRunEffect } from './pandora.ts';
+import { drawPandoraEvent, readPandoraEvent, PANDORA_CURSE_BOUNTY, pandoraGoldReward, type PandoraEvent, type PandoraRunEffect } from './pandora.ts';
 import type { EquipmentSlot } from './character.ts';
 import { isItemBag, itemQuantity, REALM_APPLE, SHOP_APPLE, spendItem, type ItemBag, type ShopApple } from './items.ts';
 
@@ -245,7 +245,7 @@ export function claimPandoraBounty(wallet: ShopWallet, runId: string): ShopWalle
 }
 
 /** At most one Pandora box can be purchased per stock refresh. */
-export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: ShopOffer, day: string, entropy: string, practice = false) {
+export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: ShopOffer, day: string, entropy: string, practice = false, level = 1) {
   const balance = shopGoldBalance(earned, wallet);
   if (offer.slot === 'card') {
     const id = 'shop:' + day;
@@ -269,7 +269,7 @@ export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: Sho
     const [cardId] = pickOne(seed('card'), PLAYABLE_CARDS);
     if (availableCarryCards(wallet.carry).some(card => card.cardId === cardId)) {
       const rarity = shopCardRarity(cardId);
-      const reward = { kind: 'gold', change: PANDORA_DUPLICATE_GOLD[rarity], duplicateRarity: rarity } as const;
+      const reward = pandoraGoldReward(level, rarity);
       return { status: 'buy', reward, next: { ...wallet, events: { ...wallet.events, [receipt]: reward } } } as const;
     }
     const id = (practice ? 'test-pandora:' : 'pandora:') + receipt;
@@ -278,7 +278,7 @@ export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: Sho
     return { status: 'buy', reward, next: { ...wallet, events: { ...wallet.events, [receipt]: reward }, carry: { ...wallet.carry, [id]: card } } } as const;
   }
   if (kindRoll < 50) {
-    const event = drawPandoraEvent(nextInt(seed('event'), 100)[0], balance - offer.price);
+    const event = drawPandoraEvent(nextInt(seed('event'), 100)[0], balance - offer.price, level);
     return { status: 'buy', reward: event, next: { ...wallet, events: { ...wallet.events, [receipt]: event } } } as const;
   }
   const [tier] = nextInt(seed('tier'), 100);
@@ -287,7 +287,7 @@ export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: Sho
   const [id] = pickOne(seed('reward'), desired);
   const rarity = shopRarity(id);
   if (wallet.items[id] !== undefined) {
-    const reward = { kind: 'gold', change: PANDORA_DUPLICATE_GOLD[rarity], duplicateRarity: rarity } as const;
+    const reward = pandoraGoldReward(level, rarity);
     return { status: 'buy', reward, next: { ...wallet, events: { ...wallet.events, [receipt]: reward } } } as const;
   }
   const item = catalog.get(id)!;

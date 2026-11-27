@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { ADMIN_SHOP_GOLD, MYSTERY_BOX_PRICE, offerTestShopFruit, testShopFruit, testShopStockKey, assignPandoraEffect, claimPandoraBounty, openedShopBoxes, shopGoldBalance, TEMP_RING_IDS, goldAfterPurchases, quotePurchase, quoteShopPurchase, readPurchases, readShopWallet, shopCardRarity, shopOffers, shopRingIds, takeCarryCards } from './ringShop.ts';
 import { createRun, replayRun, runReducer } from './run.ts';
 import { characterBonuses, trainingRingProgress } from './character.ts';
+import { drawPandoraEvent, pandoraGoldBreakdown, readPandoraEvent } from './pandora.ts';
 import { inventoryStacks } from './inventory.ts';
 
 const day = '2026-11-27';
@@ -234,4 +235,25 @@ void test('Pandora rolls cards about 25% of the time and stores them as one-use 
     assert.equal(testCard.source, 'test');
   }
   assert.ok(cardRolls >= 450 && cardRolls <= 550, String(cardRolls));
+});
+
+
+void test('Pandora Gold keeps its base and adds a level percentage without changing old receipts', () => {
+  assert.deepEqual(drawPandoraEvent(0, 100, 1), { kind: 'gold', change: 180 });
+  assert.deepEqual(pandoraGoldBreakdown(10), { base: 180, percent: 18, bonus: 32, total: 212 });
+  assert.deepEqual(pandoraGoldBreakdown(20, 'Rare'), { base: 110, percent: 38, bonus: 41, total: 151 });
+  assert.deepEqual(drawPandoraEvent(20, 100, 70), { kind: 'gold', change: -60 });
+  const reward = drawPandoraEvent(0, 100, 10);
+  assert.deepEqual(readPandoraEvent(reward), { kind: 'gold', change: 212, rewardLevel: 10 });
+  assert.throws(() => readPandoraEvent({ kind: 'gold', change: 999, rewardLevel: 10 }));
+  const box = shopOffers(day, true)[4]!;
+  const receipt = day + ':' + box.id;
+  const old = readShopWallet(JSON.stringify({ items: {}, boxes: {}, events: { [receipt]: { kind: 'gold', change: 180 } } }));
+  assert.equal(shopGoldBalance(200, old), 280);
+  const purchase = Array.from({ length: 160 }, (_, i) =>
+    quoteShopPurchase(200, readShopWallet(), box, day, String(i), false, 10)
+  ).find(result => result.status === 'buy' && 'reward' in result &&
+    result.reward?.kind === 'gold' && result.reward.change === 212);
+  assert.ok(purchase?.status === 'buy');
+  assert.equal(shopGoldBalance(200, readShopWallet(JSON.stringify(purchase.next))), 312);
 });

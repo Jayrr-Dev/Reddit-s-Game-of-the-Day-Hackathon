@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
-import { PANDORA_RUN_COPY } from '../../../../shared/game/pandora';
+import { PANDORA_RUN_COPY, pandoraGoldBreakdown } from '../../../../shared/game/pandora';
 import { GoldCoins } from '../profileParts';
 import { getCard } from '../../../../shared/game/cards';
 import { CardView } from '../CardView';
@@ -102,6 +102,8 @@ export function MysteryReveal({ reward, onClose }: { reward: ShopReward; onClose
   const continueButton = useRef<HTMLButtonElement>(null);
   const rarity = reward.kind === 'jewelry' ? reward.rarity : reward.kind === 'card' ? shopCardRarity(reward.cardId) : reward.kind === 'gold' && reward.change > 0 ? reward.duplicateRarity ?? 'Legendary' : 'Rare';
   const bad = reward.kind === 'gold' ? reward.change <= 0 : reward.kind === 'run' && reward.effect !== 'lasting-vigor';
+  const goldBreakdown = reward.kind === 'gold' && reward.rewardLevel
+    ? pandoraGoldBreakdown(reward.rewardLevel, reward.duplicateRarity) : undefined;
   const [shown, setShown] = useState(false);
 
   useEffect(() => {
@@ -144,6 +146,7 @@ export function MysteryReveal({ reward, onClose }: { reward: ShopReward; onClose
           </> : reward.kind === 'gold' ? <>
             <div className="shop-reward-sigil"><GoldCoins /></div>
             <strong>{reward.change > 0 ? '+' : ''}{reward.change} Gold</strong>
+            {goldBreakdown && <span>{goldBreakdown.base} base + {goldBreakdown.bonus} level bonus ({goldBreakdown.percent}%)</span>}
             <span>{reward.duplicateRarity ? 'Already owned: ' + reward.duplicateRarity + ' reward exchanged for Gold.' : reward.change > 0 ? 'A purse left for the next hand.' : reward.change < 0 ? 'The box took more than its price.' : 'No Gold left for the box to take.'}</span>
           </> : <>
             <div className="shop-reward-sigil"><MysteryChest /></div>
