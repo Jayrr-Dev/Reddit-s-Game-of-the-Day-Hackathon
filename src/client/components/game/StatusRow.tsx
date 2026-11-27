@@ -170,7 +170,7 @@ const OUT_OF_RANGE_CHIP: StatusChip = {
  * Hex fires only on odd counts, so its chip says which turn this is:
  * odd, it is PRIMED (a solid purple tile: it burns before the next
  * turn); even, it is a plain dark tile and the tooltip says it waits.
- * Growth can also reach an empowered digit and burst after an action.
+ * Growth into an odd or empowered number also bursts after an action.
  */
 const hexChipOf = (hex: number, target: Combatant, source?: Combatant): Partial<StatusChip> => {
   const burn = incomingAfflictionDamage(target, hexBurnAmount(hex, source), source);
@@ -178,12 +178,12 @@ const hexChipOf = (hex: number, target: Combatant, source?: Combatant): Partial<
   const multiplier = hexBurnMultiplier(hex, source);
   if (!isPrimed)
     return {
-      description: `No damage at turn start. Gains 1 after each action; reaching an empowered value bursts without losing stacks.`,
+      description: `No damage at turn start. Gains 1 after each action. Reaching an odd value bursts without spending stacks.`,
     };
   return {
     fill: toneVarOf(STATUS_LOOK.hex),
     text: multiplier > 1 ? `${hex}\u00d7${multiplier}` : String(hex),
-    description: `Deals ${burn} at turn start, then drops to ${hexAfterBurn(hex, source)}. Gains 1 after actions.`,
+    description: `Deals ${burn} at turn start, then drops to ${hexAfterBurn(hex, source)}. Gains 1 after actions; reaching an odd value bursts without spending stacks.`,
   };
 };
 

@@ -32,17 +32,24 @@ const auraStateOf = (hex: number, source?: Combatant): HexAuraState | null => {
 export const HexAura = ({ hex, source }: { hex: number; source?: Combatant }) => {
   const state = auraStateOf(hex, source);
   if (!state) return null;
+  const count = String(hex);
   return (
     <span
-      className="hex-aura pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[78%] text-hex"
-      data-state={state}
+      className="pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[78%] -translate-x-1/2 -translate-y-1/2 text-hex"
       aria-hidden="true"
     >
-      <svg
-        viewBox="0 0 10 10"
-        className="hex-aura-spin block size-full overflow-visible drop-shadow-[0_0_4px_currentColor]"
-      >
-        <HexSigil />
+      <span className="hex-aura absolute inset-0" data-state={state}>
+        <svg viewBox="0 0 10 10"
+          className="hex-aura-spin block size-full overflow-visible drop-shadow-[0_0_4px_currentColor]">
+          <HexSigil />
+        </svg>
+      </span>
+      <svg viewBox="0 0 10 10" className="absolute inset-0 size-full overflow-visible">
+        <text x="5" y="5" textAnchor="middle" dominantBaseline="central"
+          fontSize={count.length < 3 ? 3.2 : 8.4 / count.length}
+          className="hex-aura-count font-display font-black tabular-nums">
+          {count}
+        </text>
       </svg>
     </span>
   );

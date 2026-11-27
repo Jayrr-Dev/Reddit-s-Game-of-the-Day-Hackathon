@@ -284,6 +284,19 @@ void test('an action grows Hex to 3 or 13 and bursts immediately without spendin
   }
 });
 
+void test('action growth into ordinary odd Hex burns at face value without spending a stack', () => {
+  const target = createCombatant(100, 100);
+  let unit = { ...target, statuses: { ...target.statuses, hex: 8 } };
+  for (const [hex, hp] of [[9, 91], [10, 91], [11, 80], [12, 80], [13, 54]]) {
+    unit = hexAfterAction(unit);
+    assert.equal(unit.statuses.hex, hex);
+    assert.equal(unit.hp, hp);
+  }
+  const opening = hexBurn(unit);
+  assert.equal(opening.hp, 28);
+  assert.equal(opening.statuses.hex, 12);
+});
+
 void test('playing a card and moving each grow the player Hex once', () => {
   const fight = fightWith(['backhand']);
   const state = { ...fight, player: addStatus(fight.player, 'hex', 2) };
@@ -3070,11 +3083,11 @@ void test('Scorn scales enemy Poison, Burn and odd Hex ticks independently witho
   const ordinary = trigger(0, 5);
   const scaled = trigger(64, 5);
   const enemy = scaled.heroes[0]!;
-  const expected = [hexBurnAmount(5), 7, 9].reduce((sum, n) => sum + Math.floor(n * 1.6), 0);
+  const expected = [hexBurnAmount(5), 7, 9, hexBurnAmount(5)].reduce((sum, n) => sum + Math.floor(n * 1.6), 0);
   assert.equal(500 - enemy.hp, expected);
   assert.deepEqual(enemy.statuses, ordinary.heroes[0]!.statuses);
   assert.equal(scaled.player.hp, ordinary.player.hp);
-  assert.equal(500 - trigger(64, 4).heroes[0]!.hp, 11 + 14);
+  assert.equal(500 - trigger(64, 4).heroes[0]!.hp, 11 + 14 + 8);
 });
 
 void test('Scorn scales the Bleed bite and Shock burst separately from the melee hit, including overkill counters', () => {

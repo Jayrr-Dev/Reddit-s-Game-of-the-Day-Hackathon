@@ -20,6 +20,8 @@ void test('Status values replay the game rules', () => {
   // The first turn burns at opening and when the action grows Hex back to 3.
   const expected = Array.from({ length: 10 }, (_, turn) => 12 * CONFIG.battle.delayKeptPerTurn ** turn).reduce((a, b) => a + b, 0);
   assert.equal(hexValue(CONFIG, 3), expected * CONFIG.battle.hexLandsLate);
+  const ordinary = Array.from({ length: 10 }, (_, turn) => 10 * CONFIG.battle.delayKeptPerTurn ** turn).reduce((a, b) => a + b, 0);
+  assert.equal(hexValue(CONFIG, 5), ordinary * CONFIG.battle.hexLandsLate);
 });
 
 void test('Every effect on every card in play gets a price', () => {

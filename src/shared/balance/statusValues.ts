@@ -8,7 +8,6 @@
 import {
   afterActionLeft,
   hexAfterBurn,
-  isEmpoweredHex,
   hexBurnAmount,
 } from '../game/combatant.ts';
 import {
@@ -31,7 +30,7 @@ const delayed = (config: CostCurveConfig, turns: number): number =>
 
 // --- DAMAGE OVER TIME ---
 /**
- * Hex burns on odd openings and immediately when growth reaches an empowered digit.
+ * Hex burns at odd turn openings and when action growth reaches an odd value.
  * Simulate one action per turn with a per-turn delay discount and a
  * cut for always landing a turn late.
  */
@@ -39,13 +38,11 @@ export const hexValue = (config: CostCurveConfig, stacks: number): number => {
   let total = 0;
   let hex = stacks;
   for (let turn = 0; hex > 0 && turn < MAX_SIMULATED_TURNS; turn += 1) {
-    let damage = hexBurnAmount(hex);
+    const openingDamage = hexBurnAmount(hex);
     hex = hexAfterBurn(hex);
     if (hex > 0) hex += HEX_GROWTH;
-    if (isEmpoweredHex(hex)) {
-      damage += hexBurnAmount(hex);
-    }
-    total += damage * delayed(config, turn);
+    const actionDamage = hexBurnAmount(hex);
+    total += (openingDamage + actionDamage) * delayed(config, turn);
   }
   return total * config.battle.hexLandsLate;
 };

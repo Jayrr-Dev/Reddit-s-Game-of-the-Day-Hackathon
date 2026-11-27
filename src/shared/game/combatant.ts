@@ -873,12 +873,13 @@ function dealHexDamage<T extends Combatant>(target: T, amount: number, source?: 
   return { ...loseHp(target, loss), hexDamageTaken: (target.hexDamageTaken ?? 0) + loss };
 }
 
-/** Grow Hex after an action; empowered values burst without spending a stack. */
+/** Grow Hex after an action; odd or empowered values burst without spending a stack. */
 export const hexAfterAction = <T extends Combatant>(target: T, source?: Combatant): T => {
   if (target.hp <= 0) return target;
   const grown = growHex(target);
   const hex = grown.statuses.hex;
-  return isEmpoweredHex(hex, source) ? dealHexDamage(grown, hexBurnAmount(hex, source), source) : grown;
+  const damage = hexBurnAmount(hex, source);
+  return damage > 0 ? dealHexDamage(grown, damage, source) : grown;
 };
 
 /**

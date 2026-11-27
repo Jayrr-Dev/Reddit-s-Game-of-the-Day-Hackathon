@@ -2453,8 +2453,14 @@ textarea,
    and throbbing. Transform and opacity only; reduced motion holds it still.
    ------------------------------------------------------------------- */
 .hex-aura {
-  transform: translate(-50%, -50%);
   transition: opacity 300ms ease-out;
+}
+.hex-aura-count {
+  fill: var(--color-ink);
+  stroke: var(--color-surface-sunken);
+  stroke-width: .35px;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
 }
 .hex-aura[data-state='primed'] {
   opacity: 0.6;
@@ -2481,11 +2487,11 @@ textarea,
   0%,
   100% {
     opacity: 0.6;
-    transform: translate(-50%, -50%) scale(0.95);
+    transform: scale(0.95);
   }
   50% {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(1.08);
+    transform: scale(1.08);
   }
 }
 
