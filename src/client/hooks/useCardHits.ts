@@ -11,6 +11,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { playCardSteps } from '../../shared/game/combat';
+import { rowDepth } from '../../shared/game/battlefield';
+import { prefersReducedMotion } from '../lib/motion';
 import { didShockBurst, isDefeated } from '../../shared/game/combatant';
 import type { PlayCardAction, RunAction } from '../../shared/game/run';
 import type { CombatState } from '../../shared/game/types';
@@ -28,6 +30,8 @@ type Playback = {
 export const HIT_STAGGER_MS = 180;
 /** Gap before a Shock goes off (ms): longer, so a Shock chain reads bolt by bolt. */
 const SHOCK_STAGGER_MS = 360;
+/** Match the field's lane transition before the Knockback impact pops. */
+const KNOCKBACK_SLIDE_MS = 500;
 
 /** Leave the final damage number visible before the victory screen replaces combat. */
 const isLastLethalBeat = ({ beats, index }: Playback): boolean => {
@@ -46,9 +50,24 @@ const isShockNext = ({ beats, index }: Playback): boolean => {
   });
 };
 
+/** A backward slide with damage on the next beat should finish before impact. */
+const isKnockbackSlide = ({ beats, index }: Playback): boolean => {
+  const before = beats[index - 1];
+  const moved = beats[index];
+  const impact = beats[index + 1];
+  if (!before || !moved || !impact) return false;
+  return moved.heroes.some(unit => {
+    const old = before.heroes.find(hero => hero.uid === unit.uid);
+    const next = impact.heroes.find(hero => hero.uid === unit.uid);
+    return old && next && rowDepth(unit.row) > rowDepth(old.row) && unit.row === next.row &&
+      (next.damageTaken > unit.damageTaken || next.guard < unit.guard);
+  });
+};
+
 /** How long this beat holds before the next one (or the commit). */
 const holdMsOf = (playback: Playback): number => {
   if (isLastLethalBeat(playback)) return 1400;
+  if (isKnockbackSlide(playback) && !prefersReducedMotion()) return KNOCKBACK_SLIDE_MS;
   return isShockNext(playback) ? SHOCK_STAGGER_MS : HIT_STAGGER_MS;
 };
 

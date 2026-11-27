@@ -91,6 +91,8 @@ import {
   dodge,
   missShot,
   takeHit,
+  takeDamage,
+  loseHp,
   spendInvincible,
   reapDamage,
 } from './combatant.ts';
@@ -120,6 +122,7 @@ import {
   ELEMENT_ON_HIT,
   ON_OFF_BUFFS,
   LONG_RANGE_DAMAGE_FACTOR,
+  KNOCKBACK_DAMAGE_PER_ROW,
   MAX_HAND_SIZE,
   MALAISE_TURNS,
   TIERED_MAX_TIER,
@@ -1397,6 +1400,36 @@ const isAfflictionEffect = (effect: CardEffect): boolean =>
   effect.kind in STATUS_IS_AFFLICTION &&
   STATUS_IS_AFFLICTION[effect.kind as StatusId];
 
+/** Record attack damage per target, including Guard but not a Shock burst. */
+function tallyKnockbackHits(hits: Map<number, number>, before: CombatState, after: CombatState) {
+  for (const unit of after.heroes) {
+    const old = before.heroes.find(hero => hero.uid === unit.uid);
+    if (!old) continue;
+    const shockDamage = (unit.shockDamageTaken ?? 0) - (old.shockDamageTaken ?? 0);
+    const damage = unit.damageTaken - old.damageTaken + old.guard - unit.guard - shockDamage;
+    if (damage > 0) hits.set(unit.uid, (hits.get(unit.uid) ?? 0) + damage);
+  }
+}
+
+/** Impact follows the move; it uses damage already reduced by Armor and Protection. */
+function knockbackImpact(before: CombatState, moved: CombatState, hits: ReadonlyMap<number, number>, piercing: boolean): CombatState {
+  let changed = false;
+  let kills = 0;
+  const heroes = moved.heroes.map(unit => {
+    const landed = hits.get(unit.uid);
+    const origin = before.heroes.find(hero => hero.uid === unit.uid);
+    if (!landed || !origin || unit.hp <= 0) return unit;
+    const distance = rowDepth(unit.row) - rowDepth(origin.row);
+    if (distance <= 0) return unit;
+    const bonus = Math.ceil(landed * distance * KNOCKBACK_DAMAGE_PER_ROW);
+    const hurt = piercing ? loseHp(unit, bonus) : takeDamage(unit, bonus);
+    changed = true;
+    if (hurt.hp <= 0) kills++;
+    return hurt;
+  });
+  return changed ? { ...moved, heroes, mostKillsInOneHit: Math.max(moved.mostKillsInOneHit ?? 0, kills) } : moved;
+}
+
 /**
  * Resolves a paid-for card and returns the state after every beat (each
  * hit of each pick). Splitting hits changes nothing: a card's hits all
@@ -1426,6 +1459,7 @@ const cardBeats = (
     paid.player.statuses.hitLimit > 0 && effect.kind === 'damage' ? [{ ...effect, hits: 1 }] : oneHitAtATime(effect);
   const beats = own.filter((effect) => !isOnHitOwn(effect)).flatMap(splitHits);
   const imbuedBeats = [...own.filter(isOnHitOwn), ...extra].flatMap(splitHits);
+  const dealsKnockbackDamage = isProcPerHit && beats.some(effect => effect.kind === 'push');
   const states: CombatState[] = [];
   let current = plan.hasCharge ? moveFree(paid, 'charge') : paid;
   if (current !== paid) states.push(current);
@@ -1438,6 +1472,7 @@ const cardBeats = (
     // (HP or Guard lost), its effects on heroes (Burn, Knockback ...)
     // are skipped; effects on the villain (Guard, Draw) still apply.
     let hasLanded = false;
+    const knockbackHits = dealsKnockbackDamage ? new Map<number, number>() : null;
     // RELENTLESS (skill tree): any hit attempt carries the card's
     // afflictions, even blocked, for 0, dodged or missed.
     let hasConnected = false;
@@ -1448,6 +1483,14 @@ const cardBeats = (
       const before = current;
       current = applyCardEffect(current, effect, aimed, cardDef, plan, guardRepeats);
       states.push(current);
+      if (knockbackHits && effect.kind === 'damage') tallyKnockbackHits(knockbackHits, before, current);
+      if (knockbackHits?.size && effect.kind === 'push') {
+        const impact = knockbackImpact(before, current, knockbackHits, plan.isPiercing || isSpellpierceOn(current.player, cardDef.type));
+        if (impact !== current) {
+          current = impact;
+          states.push(current);
+        }
+      }
       // SHOCK CHAIN: a burst on this beat sets off the other Shocks, a beat each.
       for (const heroes of shockChain(before.heroes, current.heroes, current.player)) {
         current = { ...current, heroes };

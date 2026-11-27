@@ -2879,6 +2879,82 @@ void test('a Melee Knockback card only targets the front row, even if blocked', 
   }
 });
 
+/** A sturdy target that survives both the attack and its Knockback impact. */
+function knockbackFight(card: CardId, row: HeroUnit['row'] = 'front') {
+  const battle = fightWith([card]);
+  return { ...battle, heroes: battle.heroes.map(unit => ({ ...unit, row, hp: 500, maxHp: 500 })) };
+}
+
+void test('Knockback deals a separate 25% damage per row actually moved', () => {
+  for (const [start, moved, extra] of [['front', 'horizon', 8], ['back', 'horizon', 4]] as const) {
+    const base = knockbackFight('ruin', start);
+    // Lunge lets Ruin reach the midline to test a two-row push with only one row free.
+    const battle = start === 'front' ? base : { ...base, player: { ...base.player, skillPicks: [{ branch: 1, tier: 3, slot: 1 }] } };
+    const uid = battle.heroes[0]!.uid;
+    const [hit, push, impact, done] = playCardSteps(battle, 0, uid);
+    assert.equal(hit?.heroes[0]?.hp, 484, 'base hit first');
+    assert.equal(hit?.heroes[0]?.row, start);
+    assert.equal(push?.heroes[0]?.hp, 484, 'move before bonus damage');
+    assert.equal(push?.heroes[0]?.row, moved);
+    assert.equal(impact?.heroes[0]?.hp, 484 - extra);
+    assert.equal(done?.heroes[0]?.hp, 484 - extra);
+  }
+});
+
+void test('Knockback impact rounds up; a blocked or non-damaging push adds no damage', () => {
+  const battle = knockbackFight('repulse');
+  const unit = battle.heroes[0]!;
+  assert.equal(playCard(battle, 0, unit.uid).heroes[0]?.hp, 493, '5 + ceil(1.25)');
+  const blocked = { ...battle, heroes: [{ ...unit, statuses: { ...unit.statuses, pin: 1 } }] };
+  const pinned = playCard(blocked, 0, unit.uid).heroes[0];
+  assert.equal(pinned?.hp, 495);
+  assert.equal(pinned?.row, 'front');
+
+  const force = knockbackFight('forcePush');
+  const shoved = playCard(force, 0, force.heroes[0]!.uid).heroes[0];
+  assert.equal(shoved?.hp, 500);
+  assert.equal(shoved?.row, 'horizon');
+  assert.equal(shoved?.statuses.hex, 2);
+});
+
+void test('Knockback impact is based on the landed attack, not a Shock burst', () => {
+  const base = knockbackFight('repulse');
+  const unit = base.heroes[0]!;
+  const battle = { ...base, heroes: [{ ...unit, statuses: { ...unit.statuses, shock: 6 }, shockHits: SHOCK_HITS - 1 }] };
+  const target = playCard(battle, 0, unit.uid).heroes[0]!;
+  assert.equal(target.shockBursts, 1);
+  assert.equal(target.damageTaken - (target.shockDamageTaken ?? 0), 7);
+});
+
+void test('Knockback impact spends Guard without counting as another hit', () => {
+  const base = knockbackFight('ruin');
+  const unit = base.heroes[0]!;
+  const battle = { ...base, heroes: [{ ...unit, guard: 20, statuses: { ...unit.statuses, shock: 6, armor: 4 } }] };
+  const target = playCard(battle, 0, unit.uid).heroes[0]!;
+  assert.equal(target.hp, 500);
+  assert.equal(target.guard, 2, '12 base and 6 bonus');
+  assert.equal(target.shockHits, 1);
+});
+
+void test('area Knockback adds bonus damage only to the hit targets it actually moves', () => {
+  const base = knockbackFight('siegeBlast');
+  const unit = base.heroes[0]!;
+  const held = { ...unit, uid: unit.uid + 1, col: 1, statuses: { ...unit.statuses, pin: 1 } };
+  const battle = { ...base, heroes: [{ ...unit, col: 0 }, held] };
+  const after = playCard(battle, 0, unit.uid);
+  assert.deepEqual(after.heroes.map(hero => [hero.row, hero.hp]), [['horizon', 482], ['front', 488]]);
+});
+
+void test('Knockback bonus can defeat a surviving target and is included in the kill preview', () => {
+  const base = knockbackFight('ruin');
+  const target = base.heroes[0]!;
+  const battle = { ...base, heroes: [{ ...target, hp: 20 }] };
+  assert.equal(wouldFell(battle, 0, [target.uid], target.uid), true);
+  const after = playCard(battle, 0, target.uid);
+  assert.equal(after.slain, battle.slain + 1);
+  assert.equal(after.mostKillsInOneHit, 1);
+});
+
 void test('play history records paid cards and hand moves once, in order', () => {
   const battle = { ...fightWith(['darkCloak', 'darkCloak']), energy: 10 };
   const failed = playCard(battle, 99, 0);

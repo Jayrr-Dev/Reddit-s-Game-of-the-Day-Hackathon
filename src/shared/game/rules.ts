@@ -134,6 +134,9 @@ export const ROW_LABEL: Readonly<Record<HeroRow, string>> = {
 export const OUT_OF_RANGE_ROW: HeroRow = 'horizon';
 export const OUT_OF_RANGE_HIT_CHANCE = 0.5;
 
+/** Each row a Knockback attack actually moves adds this share of the triggering damage. */
+export const KNOCKBACK_DAMAGE_PER_ROW = 0.25;
+
 // --- ALOFT ---
 /**
  * A hero Aloft is out of Melee reach. Only these card types may aim at

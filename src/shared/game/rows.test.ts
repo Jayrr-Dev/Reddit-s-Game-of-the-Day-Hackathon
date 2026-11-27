@@ -222,7 +222,7 @@ void test('Siege Blast damages the front line and pushes its survivors up to two
   assert.deepEqual(
     after.heroes.map((hero) => [hero.hp, hero.row]),
     [
-      [38, 'horizon'],
+      [32, 'horizon'],
       [50, 'back'],
       [50, 'horizon'],
     ]
