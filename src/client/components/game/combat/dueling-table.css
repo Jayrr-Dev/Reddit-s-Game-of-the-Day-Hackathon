@@ -516,12 +516,12 @@
   font: 900 9px/1 var(--font-display, Georgia, serif);
   font-variant-numeric: tabular-nums;
 }
-.enemy-health-shield svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-.enemy-health-shield path { stroke: var(--brass); stroke-width: 1; transition: fill 150ms ease-out; }
+.enemy-health-shield-shape { position: absolute; inset: 0; width: 100%; height: 100%; }
+.enemy-health-shield-shape path { stroke: var(--brass); stroke-width: 1; transition: fill 150ms ease-out; }
 .enemy-health-shield > span { position: relative; paint-order: stroke fill; -webkit-text-stroke: 1.5px black; }
 .defeated-health-shield { position: absolute; top: calc(100% + 5px); left: 50%; translate: -50% 0; }
 @media (prefers-reduced-motion: reduce) {
-  .enemy-health-shield path { transition: none; }
+  .enemy-health-shield-shape path { transition: none; }
 }
 .hero-plate-head {
   position: absolute;
