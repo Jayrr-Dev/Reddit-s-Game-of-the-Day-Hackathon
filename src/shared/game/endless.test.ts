@@ -5,11 +5,11 @@ import { createHeroUnit, startPlayerTurn } from './combat.ts';
 import { attackDamage, combatantBonuses } from './combatant.ts';
 import { borrowedBenefit, eligiblePowerCopies, rollBorrowedPowers, type BorrowedPower } from './borrowedPowers.ts';
 import { buildEndlessWaves } from './endlessWaves.ts';
-import { progressionFromWins } from './character.ts';
+import { canSetTraitNode, progressionFromWins } from './character.ts';
 import { createRun, type RunState } from './run.ts';
 import { getCard } from './cards.ts';
 import { ENDLESS_CLASS_TYPES, endlessDraftOffers, endlessDraftSize, isSavedEndlessDraft, pendingDraftPower, refreshEndlessDraft, type EndlessDraft } from './endlessDraft.ts';
-import { applyBorrowedPower, isRunAction } from './run.ts';
+import { applyBorrowedPower, isRunAction, runReducer } from './run.ts';
 import { starterNames } from './starters.ts';
 
 test('Endless starts at a seeded fight without changing Conquest', () => {
@@ -217,6 +217,30 @@ test('Endless snapshots the profile level and allocated traits without replacing
   assert.ok(run.maxHp > 66);
   assert.deepEqual(run.deck, deck);
   assert.deepEqual(createEndless('test', deck, ENDLESS_BATTLE_VERSION, restoreEndlessProfile(JSON.parse(JSON.stringify(profile)))), run);
+});
+
+test('new Endless drops the extra Vigor HP without changing Conquest, older saves or Borrowed Power', () => {
+  const nodes = Array.from({ length: 64 }, (_, index) => (
+    { type: 'setTraitNode', trait: 'vigor', node: index + 1, owned: true } as const
+  ));
+  const edits: typeof nodes = [];
+  let conquest = createRun('vigor-test', undefined, 0, 10000);
+  for (let i = 0; i < 64; i++) {
+    const action = nodes.find(({ node }) => canSetTraitNode(conquest.character, 'vigor', node, true));
+    assert.ok(action);
+    edits.push(action);
+    conquest = runReducer(conquest, action);
+  }
+  const profile = { wins: 10000, shopRings: [], rings: { bossWins: 0, rareSlots: [] }, edits };
+  const fresh = createEndless('vigor-test', ['backhand'], ENDLESS_BATTLE_VERSION, profile);
+  const old = createEndless('vigor-test', ['backhand'], 1, profile);
+  assert.equal(fresh.character.traits.vigor, 64);
+  assert.equal(fresh.maxHp, 333);
+  assert.equal(old.maxHp, 666);
+  assert.equal(conquest.maxHp, 666);
+  assert.equal(fresh.phase.kind, 'combat');
+  assert.equal(fresh.phase.combat.player.hp, 333);
+  assert.equal(applyBorrowedPower(fresh, { rarity: 'common', benefit: { kind: 'hp', amount: 8, percent: false }, seed: 1 }).maxHp, 341);
 });
 
 test('Endless recruits mixed mobs in progressively larger and stronger waves beyond Wave 100', () => {
