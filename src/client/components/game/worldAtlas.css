@@ -68,3 +68,4 @@
   text-shadow: 0 2px 2px #140e0b, 1px 1px 0 #140e0b, -1px 1px 0 #140e0b;
 }
 .world-node[aria-current] .world-node-seal { outline-color: #ffe3a1; }
+.world-visit-button { width: 100%; margin-top: .35rem; }

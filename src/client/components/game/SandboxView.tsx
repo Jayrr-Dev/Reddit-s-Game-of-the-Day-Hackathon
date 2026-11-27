@@ -1,5 +1,5 @@
 // --- ILLUSION TRAINING ---
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useGameSettings } from '../../hooks/useGameSettings';
 import { useSandbox } from '../../hooks/useSandbox';
 import { Button } from '../ui/Button';
@@ -10,6 +10,7 @@ import { CombatView } from './CombatView';
 import { MAP_IMAGES, MAP_NAMES, PRACTICE_TERRAIN_START } from './combat/Backdrop';
 import { SettingsDialog } from './menu/SettingsDialog';
 import { bossArenaOf, type BossArena } from '../../content/bossArenas';
+import type { HeroId } from '../../../shared/game/heroes';
 import type { SandboxScenario } from '../../../shared/game/sandbox';
 import { ScenarioPicker } from './ScenarioPicker';
 import { useThemePreview } from '../../hooks/useThemePreview';
@@ -36,16 +37,30 @@ const SetupSettings = () => {
   return <SettingsDialog className="self-center">{controls}</SettingsDialog>;
 };
 
-/** Opens configuration before a scenario or random fight is chosen. */
-export const SandboxView = ({ onExit }: { onExit: () => void }) => {
+export type AtlasTrainingVisit = {
+  name: string;
+  map: string;
+  heroes: readonly HeroId[];
+  bossArena: boolean;
+};
+
+/** Opens configuration or starts an isolated atlas visit for the admin. */
+export const SandboxView = ({ onExit, atlasVisit }: { onExit: () => void; atlasVisit?: AtlasTrainingVisit }) => {
   const access = useUnlocks();
   const canRandomFight = canRollDummies(dummyHeroes(access));
   const {
     combat, character, round, retry, leaveFight, retries, deckId, deck, activeCustomId,
     customDecks, saveCustomDeck, pickCustomDeck, act, respec, reshuffle, summon, pickDeck,
   } = useSandbox(access);
-  const [selectedMap, setSelectedMap] = useState<number | null>(null);
-  const [arenaOverride, setArenaOverride] = useState<BossArena | null | undefined>(undefined);
+  const visit = access === null ? atlasVisit : undefined;
+  const [selectedMap, setSelectedMap] = useState<number | null>(() => {
+    const index = visit ? MAP_NAMES.findIndex(name => name === visit.map) : -1;
+    return index >= 0 ? index : null;
+  });
+  const [arenaOverride, setArenaOverride] = useState<BossArena | null | undefined>(
+    () => visit?.bossArena ? bossArenaOf(visit.heroes) ?? null : visit ? null : undefined,
+  );
+  useEffect(() => { if (visit) summon(visit.heroes, visit.bossArena); }, [visit, summon]);
   const [isConfirmingExit, setIsConfirmingExit] = useState(false);
   const arena = arenaOverride !== undefined ? arenaOverride ?? undefined : combat ? bossArenaOf(combat.heroes.map(unit => unit.heroId), combat.fallen.map(unit => unit.heroId)) : undefined;
   const terrainIndex = selectedMap ?? practiceTerrain(access, round);
@@ -112,7 +127,7 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
               terrainIndex={terrainIndex}
               trainingArenaOverride={arenaOverride}
               musicMuted={themePreview.isPreviewing}
-              where="Illusion Training"
+              where={visit ? 'Practice: ' + visit.name : 'Illusion Training'}
               score={0}
               onAction={act}
               renderTrainingMenu={trainingMenu}
@@ -122,9 +137,9 @@ export const SandboxView = ({ onExit }: { onExit: () => void }) => {
           {/* A corner tap mid-fight is easy to make by accident, so ask first. */}
           {isConfirmingExit && (
             <ConfirmDialog title="Exit battle?" confirmLabel="Exit" cancelLabel="Keep fighting"
-              onConfirm={thenStopPreview(() => { setIsConfirmingExit(false); leaveFight(); })}
+              onConfirm={thenStopPreview(() => { setIsConfirmingExit(false); if (visit) onExit(); else leaveFight(); })}
               onCancel={() => setIsConfirmingExit(false)}>
-              This illusion ends and you return to the training scenarios.
+              {visit ? 'Return to the map. Your conquest is unchanged.' : 'This illusion ends and you return to the training scenarios.'}
             </ConfirmDialog>
           )}
           {combat.player.hp <= 0 && (

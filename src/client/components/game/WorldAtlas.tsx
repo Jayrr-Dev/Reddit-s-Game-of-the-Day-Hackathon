@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { ARCHANGEL_BOSSES, GRANDANGEL_BOSSES } from '../../../shared/game/conquestAreas';
 import { bossArenaOf } from '../../content/bossArenas';
+import { Button } from '../ui/Button';
 import { ProgressiveImg } from '../ui/ProgressiveImage';
 import { ATLAS_REGIONS } from './AtlasRegions';
 import { RegionalEngraving } from './RegionalEngraving';
 import { WorldGeography, WORLD_PLACES } from './WorldGeography';
 import './worldAtlas.css';
 
-export function WorldAtlas({ current, onBack }: { current: number; onBack: () => void }) {
+export function WorldAtlas({ current, onBack, onVisit }: {
+  current: number; onBack: () => void; onVisit?: (region: number) => void;
+}) {
   const [selected, setSelected] = useState<number>();
   const back = useRef<HTMLButtonElement>(null);
   useEffect(() => back.current?.focus({ preventScroll: true }), []);
@@ -56,6 +59,7 @@ export function WorldAtlas({ current, onBack }: { current: number; onBack: () =>
       <strong>{entry.name}</strong>
       <p>{entry.angel} · {entry.landmark}</p>
       {selected === ATLAS_REGIONS.length-1 && <p>Mikhael awaits in Purgatory at the Last Citadel.</p>}
+      {onVisit && <Button variant="menuPrimary" className="world-visit-button" onClick={() => onVisit(selected)}>Visit region</Button>}
     </aside>}
   </section>;
 }

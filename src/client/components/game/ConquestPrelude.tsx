@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { hashSeed, nextFloat, pickOne } from '../../../shared/game/rng';
-import { areaCounts, conquestStops, GRANDANGEL_BOSSES } from '../../../shared/game/conquestAreas';
+import { areaCounts, buildAreaBattles, conquestStops, GRANDANGEL_BOSSES } from '../../../shared/game/conquestAreas';
 import { STOPS_PER_REGION } from '../../../shared/game/rules';
 import { regionChoices, type RegionChoice } from '../../../shared/game/regionRoutes';
 import { regionIndexOf, routeOptions, type Stop } from '../../../shared/game/kingdom';
@@ -21,6 +21,8 @@ import pride from '../../assets/npcs/sin-lair-pride.webp';
 import { AtlasInk, AtlasLandmark, landmarkOf, ATLAS_HEIGHT, ATLAS_WIDTH, type AtlasLink, type AtlasPoint } from './KingdomAtlas';
 import { ATLAS_REGIONS } from './AtlasRegions';
 import { WorldAtlas } from './WorldAtlas';
+import { SandboxView, type AtlasTrainingVisit } from './SandboxView';
+import { useIsAdmin } from '../../lib/adminRole';
 import { bossArenaOf } from '../../content/bossArenas';
 import { SinLairMotion } from './SinLairMotion';
 import './conquestPrelude.css';
@@ -50,11 +52,11 @@ function CitySeal({ citadel = false, location = '' }: { citadel?: boolean; locat
 
 /** Preview the actual region's destinations without making later stops selectable. */
 export function ConquestMap({
-  stop = 1,
+  stop: runStop = 1,
   region,
   route,
   worldSeed = 'atlas',
-  options,
+  options: runOptions,
   atlasOptions,
   onChoose,
 }: {
@@ -62,6 +64,12 @@ export function ConquestMap({
   options: readonly Stop[]; atlasOptions?: (stop: number) => readonly Stop[];
   onChoose: (option: number) => void;
 }) {
+  const isAdmin = useIsAdmin();
+  const [browseRegion, setBrowseRegion] = useState<number>();
+  const [practice, setPractice] = useState<AtlasTrainingVisit>();
+  const exploring = isAdmin && browseRegion !== undefined;
+  const stop = exploring ? browseRegion * STOPS_PER_REGION + 1 : runStop;
+  const options = exploring ? conquestStops(worldSeed, stop, route) : runOptions;
   const map = useRef<HTMLDivElement>(null);
   const activeMarker = useRef<HTMLButtonElement>(null);
   const selectedMarker = useRef<HTMLButtonElement>(null);
@@ -115,7 +123,7 @@ export function ConquestMap({
     : routeLocation(at, option, node.kind, route));
   const rows = Array.from({ length: STOPS_PER_REGION }, (_, index) => {
     const at = firstStop + index;
-    const nodes = at === stop ? options : atlasOptions?.(at) ??
+    const nodes = at === stop ? options : (exploring ? undefined : atlasOptions?.(at)) ??
       (isCampaign ? conquestStops(worldSeed, at, route) : routeOptions(worldSeed, at));
     return {
       at,
@@ -140,7 +148,18 @@ export function ConquestMap({
     return previous.flatMap(from => row.nodes.map(({point:to}) => ({from,to,state})));
   });
   const active = selected ? rows[selected.at - firstStop]?.nodes.find(node => node.option === selected.option) : undefined;
-  const canTravel = selected?.at === stop;
+  const canTravel = !exploring && selected?.at === stop;
+  const canPractice = isAdmin && Boolean(active?.node.site) && !canTravel;
+  /** Visits use the selected site's final encounter, without sending a run action. */
+  const practiceAt = () => {
+    const site = active?.node.site;
+    if (!canPractice || !site || !selected) return;
+    const wave = buildAreaBattles(site, worldSeed, selected.at, selected.option).at(-1)?.waves.at(-1);
+    if (!wave) return;
+    setSelected(undefined);
+    setPractice({ name: isSummit && site.kind === 'capital' ? 'The Last Citadel' : site.name,
+      map: site.map, heroes: wave.heroIds, bossArena: site.kind === 'capital' || site.kind === 'dragon' });
+  };
   const arena = active?.node.site?.kind === 'capital' ? bossArenaOf(active.node.heroIds) : undefined;
   const terrainName = active?.node.site?.map ?? active?.location.name;
   const locationArt = arena?.image ?? MAP_IMAGES[MAP_NAMES.findIndex(name => name === terrainName)];
@@ -155,7 +174,7 @@ export function ConquestMap({
       ? scroller.scrollHeight
       : Math.max(0, (activeMarker.current?.offsetTop ?? 0) - scroller.clientHeight * .56);
     scroller.focus({ preventScroll: true });
-  }, [firstStop, stop]);
+  }, [firstStop, stop, practice]);
 
   const hasActiveDestination = Boolean(active);
   useLayoutEffect(() => {
@@ -178,7 +197,8 @@ export function ConquestMap({
     ...(popover.side === 'above' ? { bottom: popover.edge } : { top: popover.edge }),
   };
   const position = ({x,y}: AtlasPoint) => ({ left: (100 * x / ATLAS_WIDTH) + '%', top: (100 * y / ATLAS_HEIGHT) + '%' });
-  return <section className="conquest-map map-fullbleed prelude-enter" aria-label={region ? region + ' map' : 'Conquest map'}
+  if (isAdmin && practice) return <SandboxView atlasVisit={practice} onExit={() => setPractice(undefined)} />;
+  return <section className="conquest-map map-fullbleed prelude-enter" aria-label={exploring ? theme.name + ' practice map' : region ? region + ' map' : 'Conquest map'}
     onPointerDownCapture={event => {
       if (active && event.target instanceof Element && !event.target.closest('.atlas-destination-popover, .atlas-destination, .atlas-inspectable')) setSelected(undefined);
     }}
@@ -188,13 +208,20 @@ export function ConquestMap({
         selectedMarker.current?.focus({ preventScroll: true });
       }
     }}>
+    {exploring && !showWorld && <div className="atlas-ascent atlas-browse-back"><button type="button" onClick={() => { setSelected(undefined); setBrowseRegion(undefined); }}>Back to conquest</button></div>}
     {isCampaign && <div className="atlas-ascent" hidden={showWorld}>
       <button ref={worldTrigger} type="button" aria-controls="full-world-atlas" onClick={() => {
         setSelected(undefined);
         setShowWorld(true);
       }}>World map</button>
     </div>}
-    {showWorld && <WorldAtlas current={regionIndex} onBack={() => {
+    {showWorld && <WorldAtlas current={regionIndexOf(runStop)}
+      {...(isAdmin && { onVisit: (index: number) => {
+        setSelected(undefined);
+        setBrowseRegion(index);
+        setShowWorld(false);
+      } })}
+      onBack={() => {
       setShowWorld(false);
       requestAnimationFrame(() => worldTrigger.current?.focus({ preventScroll: true }));
     }} />}
@@ -207,7 +234,7 @@ export function ConquestMap({
         </div>}
         {rows.map(row => row.nodes.map(({ node, option, location, point, mark }) => {
           const name = isSummit && node.site?.kind === 'capital' ? 'The Last Citadel' : location.name;
-          const available = row.at === stop;
+          const available = !exploring && row.at === stop;
           const inspected = selected?.at === row.at && selected.option === option;
           return <button type="button" key={row.at + ':' + option}
             className={available ? 'atlas-destination' : 'atlas-city atlas-inspectable'}
@@ -243,6 +270,7 @@ export function ConquestMap({
         <p>{isSummit && active.node.site?.kind === 'capital' ? 'Beyond the summit gate, Archangel Mikhael awaits in Purgatory.' : active.location.flavour}</p>
         {counts && <small>{counts.battles} {counts.battles === 1 ? 'battle' : 'battles'} · {counts.rooms} {counts.rooms === 1 ? 'room' : 'rooms'}</small>}
         {canTravel ? <Button variant="menuPrimary" onClick={() => onChoose(active.option)}>Travel here</Button>
+          : canPractice ? <Button variant="menuPrimary" onClick={practiceAt}>Visit in practice</Button>
           : <span className="atlas-location-state">{selected && selected.at < stop ? 'Already passed' : 'Not yet reachable'}</span>}
       </div>
     </div>}

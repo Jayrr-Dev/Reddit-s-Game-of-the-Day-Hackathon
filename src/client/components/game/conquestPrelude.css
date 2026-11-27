@@ -253,3 +253,4 @@
 .atlas-popover-content small { display: block; padding-top: .32rem; border-top: 1px solid #9e805963; color: #e2cca3; }
 .atlas-popover-close { position: absolute; top: .25rem; right: .3rem; width: 1.65rem; height: 1.65rem; border-radius: .25rem; color: inherit; cursor: pointer; }
 .atlas-popover-content > button:last-child { width: 100%; min-height: 1.8rem; margin-top: .42rem; padding-block: .2rem; }
+.atlas-browse-back { inset: auto auto .7rem .7rem; }
