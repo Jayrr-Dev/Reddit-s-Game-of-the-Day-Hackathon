@@ -1409,13 +1409,12 @@ const isAfflictionEffect = (effect: CardEffect): boolean =>
   effect.kind in STATUS_IS_AFFLICTION &&
   STATUS_IS_AFFLICTION[effect.kind as StatusId];
 
-/** Record attack damage per target, including Guard but not a Shock burst. */
+/** Record direct card damage per target, of any damage type, including Guard. */
 function tallyKnockbackHits(hits: Map<number, number>, before: CombatState, after: CombatState) {
   for (const unit of after.heroes) {
     const old = before.heroes.find(hero => hero.uid === unit.uid);
     if (!old) continue;
-    const shockDamage = (unit.shockDamageTaken ?? 0) - (old.shockDamageTaken ?? 0);
-    const damage = unit.damageTaken - old.damageTaken + old.guard - unit.guard - shockDamage;
+    const damage = unit.damageTaken - old.damageTaken + old.guard - unit.guard;
     if (damage > 0) hits.set(unit.uid, (hits.get(unit.uid) ?? 0) + damage);
   }
 }
@@ -1468,7 +1467,7 @@ const cardBeats = (
     paid.player.statuses.hitLimit > 0 && effect.kind === 'damage' ? [{ ...effect, hits: 1 }] : oneHitAtATime(effect);
   const beats = own.filter((effect) => !isOnHitOwn(effect)).flatMap(splitHits);
   const imbuedBeats = [...own.filter(isOnHitOwn), ...extra].flatMap(splitHits);
-  const dealsKnockbackDamage = isProcPerHit && beats.some(effect => effect.kind === 'push');
+  const hasKnockback = beats.some(effect => effect.kind === 'push');
   const primed = new Set(paid.heroes.filter(unit => unit.statuses.shock > 0).map(unit => unit.uid));
   let selfPrimed = paid.player.statuses.shock > 0;
   const bleeders = new Map<number, number>();
@@ -1495,7 +1494,7 @@ const cardBeats = (
     // (HP or Guard lost), its effects on heroes (Burn, Knockback ...)
     // are skipped; effects on the villain (Guard, Draw) still apply.
     let hasLanded = false;
-    const knockbackHits = dealsKnockbackDamage ? new Map<number, number>() : null;
+    const knockbackHits = hasKnockback ? new Map<number, number>() : null;
     // RELENTLESS (skill tree): any hit attempt carries the card's
     // afflictions, even blocked, for 0, dodged or missed.
     let hasConnected = false;
@@ -1508,8 +1507,9 @@ const cardBeats = (
       const selfHits = bleeders.get(SELF_TARGET_UID);
       if (effect.kind === 'damage' && selfHits !== undefined && aimed === SELF_TARGET_UID && villainWasHit(before.player, current.player))
         bleeders.set(SELF_TARGET_UID, selfHits + 1);
-      if (knockbackHits && effect.kind === 'damage') tallyKnockbackHits(knockbackHits, before, current);
       const isAttack = effect.kind === 'damage' || effect.kind === 'reap';
+      // Count the card's own damage before Shock or other triggered damage.
+      if (knockbackHits && isAttack) tallyKnockbackHits(knockbackHits, before, current);
       if (isAttack && aimed === SELF_TARGET_UID && selfPrimed && villainWasHit(before.player, current.player)) {
         current = { ...current, player: burstShock(current.player, current.player) };
         selfPrimed = false;

@@ -2865,10 +2865,20 @@ void test('Knockback deals a separate 25% damage per row actually moved', () => 
   }
 });
 
-void test('Knockback impact rounds up; a blocked or non-damaging push adds no damage', () => {
+void test('Knockback counts magic damage and rounds up after the target moves', () => {
   const battle = knockbackFight('repulse');
   const unit = battle.heroes[0]!;
-  assert.equal(playCard(battle, 0, unit.uid).heroes[0]?.hp, 493, '5 + ceil(1.25)');
+  const armored = { ...battle, heroes: [addStatus(unit, 'armor', 20)] };
+  const [hit, push, impact] = playCardSteps(armored, 0, unit.uid);
+  assert.equal(hit?.heroes[0]?.hp, 495, 'the 5 magic damage bypasses Armor');
+  assert.equal(push?.heroes[0]?.row, 'back');
+  assert.equal(push?.heroes[0]?.hp, 495);
+  assert.equal(impact?.heroes[0]?.hp, 493, 'ceil(5 x 25%)');
+});
+
+void test('a blocked or non-damaging push adds no Knockback damage', () => {
+  const battle = knockbackFight('repulse');
+  const unit = battle.heroes[0]!;
   const blocked = { ...battle, heroes: [{ ...unit, statuses: { ...unit.statuses, pin: 1 } }] };
   const pinned = playCard(blocked, 0, unit.uid).heroes[0];
   assert.equal(pinned?.hp, 495);

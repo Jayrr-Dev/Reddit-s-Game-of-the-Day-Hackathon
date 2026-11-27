@@ -477,7 +477,7 @@ export const PULL_INFO: StatusInfo = {
 export const KNOCKBACK_INFO: StatusInfo = {
   label: 'Knockback',
   description:
-    'Knocks the target hero **N lines** back\nAttack deals **25% extra damage per line moved**\nStops early if the way is blocked',
+    'Knocks the target hero **N lines** back\nAdds **25% of the card\'s damage per line moved**, any damage type\nStops early if the way is blocked',
 };
 /** What Homing means (a hero attack that can't be dodged). */
 export const RANDOMLY_INFO: StatusInfo = {
