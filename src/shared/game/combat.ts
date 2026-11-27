@@ -168,6 +168,7 @@ export type CombatSetup = {
   seed: RngState;
   /** Uses already spent on the run's Exhaust cards (default none). */
   usesSpent?: UsesSpent;
+  copyImbues?: import('./types.ts').CopyImbues;
 };
 
 /** Scales a hero number by might, rounding to a whole number. */
@@ -189,7 +190,8 @@ export const createHeroUnit = (
 
 /** Starts a fight: shuffles the deck and deals the first hand. */
 export const startCombat = (setup: CombatSetup): CombatState => {
-  const [drawPile, rng] = shuffle(setup.seed, setup.deck);
+  const [order, rng] = shuffle(setup.seed, setup.deck.map((_, index) => index));
+  const drawPile = order.map(index => setup.deck[index]!);
   const initial: CombatState = {
     player: { ...createCombatant(setup.hp, setup.maxHp), equipment: setup.equipment ?? starterEquipment(), ...(setup.traits && { traits: setup.traits }), ...(setup.traitNodes && { traitNodes: setup.traitNodes }), ...(setup.skillPicks && { skillPicks: setup.skillPicks }) },
     heroes: formUp(
@@ -208,6 +210,7 @@ export const startCombat = (setup: CombatSetup): CombatState => {
     usesSpent: setup.usesSpent ?? {},
     handImbues: [],
     stowedImbues: [],
+    ...(setup.copyImbues && { copies: { hand: [], draw: order, discard: [], destroyed: [], gifts: setup.copyImbues } }),
     timedBuffs: [],
     turn: 0,
     slain: 0,
@@ -539,8 +542,13 @@ export const canPlayCard = (state: CombatState, handIndex: number): boolean => {
 
 /** Moves the discard pile into a freshly shuffled draw pile. */
 const reshuffleDiscard = (state: CombatState): CombatState => {
-  const [drawPile, rng] = shuffle(state.rng, state.discardPile);
-  return { ...state, drawPile, discardPile: [], rng };
+  if (!state.copies) {
+    const [drawPile, rng] = shuffle(state.rng, state.discardPile);
+    return { ...state, drawPile, discardPile: [], rng };
+  }
+  const [order, rng] = shuffle(state.rng, state.discardPile.map((_, index) => index));
+  return { ...state, drawPile: order.map(index => state.discardPile[index]!), discardPile: [], rng,
+    copies: { ...state.copies, draw: order.map(index => state.copies!.discard[index]!), discard: [] } };
 };
 
 /** Draws one card; with a full hand the card is discarded instead. */
@@ -548,10 +556,13 @@ const drawOne = (state: CombatState): CombatState => {
   const ready = state.drawPile.length === 0 ? reshuffleDiscard(state) : state;
   const [top, ...rest] = ready.drawPile;
   if (top === undefined) return ready;
+  const copy = ready.copies?.draw[0];
+  const next = { ...ready, drawPile: rest, ...(ready.copies && { copies: { ...ready.copies, draw: ready.copies.draw.slice(1) } }) };
   // DEEP POCKETS (skill tree) raises the hand limit.
-  return ready.hand.length >= MAX_HAND_SIZE + handSizeBonusOf(ready.player.skillPicks)
-    ? { ...ready, drawPile: rest, discardPile: [...ready.discardPile, top] }
-    : addToHand({ ...ready, drawPile: rest }, top);
+  if (ready.hand.length >= MAX_HAND_SIZE + handSizeBonusOf(ready.player.skillPicks))
+    return { ...next, discardPile: [...ready.discardPile, top],
+      ...(next.copies && copy !== undefined && { copies: { ...next.copies, discard: [...next.copies.discard, copy] } }) };
+  return addToHand(next, top, copy);
 };
 
 /** Draws `count` cards, reshuffling the discard pile when needed. */
@@ -1587,19 +1598,24 @@ const planPlay = (
 const pileThePlayed = (
   state: CombatState,
   cardId: CardId,
-  imbues: readonly Imbue[]
+  imbues: readonly Imbue[],
+  copy?: number
 ): CombatState => {
   const { usesSpent, isExhausted } = spendUse(
     state.usesSpent, cardId, bonusUsesOf(getCard(cardId).type, state.player.skillPicks)
   );
-  const isRemoved =
-    isExhausted ||
-    cardHasKeyword(cardId, imbues, 'remove') ||
-    imbueEffectOf(cardId) !== undefined;
+  const isImbue = imbueEffectOf(cardId) !== undefined;
+  const destroyed = isExhausted || (state.copies !== undefined && isImbue);
+  const isRemoved = destroyed || cardHasKeyword(cardId, imbues, 'remove') || isImbue;
   const spent = {
     ...state,
     usesSpent,
-    exhausted: isExhausted ? [...state.exhausted, cardId] : state.exhausted,
+    exhausted: destroyed ? [...state.exhausted, cardId] : state.exhausted,
+    ...(state.copies && copy !== undefined && { copies: {
+      ...state.copies,
+      discard: isRemoved ? state.copies.discard : [...state.copies.discard, copy],
+      destroyed: destroyed ? [...state.copies.destroyed, copy] : state.copies.destroyed,
+    } }),
   };
   return isRemoved
     ? { ...spent, removedPile: [...spent.removedPile, cardId] }
@@ -1637,7 +1653,7 @@ export const playCard = (
     cardId,
     imbues
   );
-  const cleared = removeFallen(pileThePlayed(kept, cardId, imbues));
+  const cleared = removeFallen(pileThePlayed(kept, cardId, imbues, state.copies?.hand[handIndex]));
   const outcome: PlayOutcome = {
     hasKilled: cleared.slain > state.slain,
     hasHit: plan.picks.includes(SELF_TARGET_UID)

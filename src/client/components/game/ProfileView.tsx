@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { CarryCard } from '../../../shared/game/carryCards';
 import { ringInventory, type ShopRingId } from '../../../shared/game/ringShop';
 import type { BagLayout } from '../../../shared/game/bagLayout';
 import { type RingProgress } from '../../../shared/game/character';
@@ -32,17 +33,20 @@ export function ProfileView({
   rings,
   onClose,
   testJewelry = [],
+  testCarry = [],
 }: {
   data: InitResponse;
   rings?: RingProgress | undefined;
   onClose: () => void;
   testJewelry?: readonly ShopRingId[];
+  testCarry?: readonly CarryCard[];
 }) {
   const [build, setBuild] = useState<PlayerBuild>(() =>
     localBuild(data.accountId)
   );
   const [wins, setWins] = useState(data.lifetimeWins ?? 0);
   const [shopRings, setShopRings] = useState<ShopRingId[]>([]);
+  const [carry, setCarry] = useState<CarryCard[]>([]);
   const [testActions, setTestActions] = useState<RunAction[]>([]);
   const [testBag, setTestBag] = useState<BagLayout>();
   const [gold, setGold] = useState(data.gold ?? 0);
@@ -66,6 +70,7 @@ export function ProfileView({
           setWins(result.wins);
           setGold(result.gold);
           setShopRings(result.shopRings);
+          setCarry(result.carryCards ?? []);
           setItems(result.items);
         }
       })
@@ -191,6 +196,7 @@ export function ProfileView({
       inventory={
         <InventoryPanel
           owner={{ character, bag: items }}
+          carryCards={[...new Map([...carry, ...testCarry].map(card => [card.id, card])).values()]}
           layout={temporary.length ? testBag ?? build.bag : build.bag}
           onLayout={(bag) => temporary.length ? setTestBag(bag) : setBuild((previous) => ({ ...previous, bag }))}
           onTrash={(stack) => void trash(stack)}

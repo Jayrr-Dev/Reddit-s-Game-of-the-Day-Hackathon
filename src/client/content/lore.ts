@@ -33,6 +33,7 @@ export const STOP_COPY: Record<StopKind, { title: string; blurb: string }> = {
   elite: { title: 'Elite Hero', blurb: 'A veteran. Better spoils.' },
   champion: { title: 'Champion', blurb: 'Defeat them to conquer the region.' },
   grave: { title: 'Her Grave', blurb: 'Mourn to heal, or swear vengeance.' },
+  'greed-bargain': { title: "Greed's Bargain", blurb: 'Trade away a card now. Take it back after death.' },
   altar: { title: 'Dark Altar', blurb: 'Claim a forbidden card.' },
 };
 

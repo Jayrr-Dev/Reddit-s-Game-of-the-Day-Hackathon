@@ -276,6 +276,9 @@ export type ImbueGift =
   | { kind: 'effect'; effect: ImbuableEffect };
 /** A gift on one card. It stays with that card for the rest of the battle. */
 export type Imbue = { gift: ImbueGift };
+/** Run deck positions distinguish otherwise identical copies through every pile. */
+export type CopyImbues = Partial<Record<number, Imbue[]>>;
+export type BattleCardCopies = { hand: number[]; draw: number[]; discard: number[]; destroyed: number[]; gifts: CopyImbues };
 
 /** One step of a card. A card's effects resolve in order. */
 export type CardEffect =
@@ -609,6 +612,7 @@ export type CombatState = {
    * card can't be told apart there, so the next copy drawn takes them.
    */
   stowedImbues: StowedImbue[];
+  copies?: BattleCardCopies;
   /** Buffs that wear off after the next card or at the end of the turn. */
   timedBuffs: TimedBuff[];
   turn: number;

@@ -30,6 +30,7 @@ import { KeyArt } from './menu/KeyArt';
 import { useGameSettings } from '../../hooks/useGameSettings';
 import { SettingsDialog } from './menu/SettingsDialog';
 import { MenuPanel } from './menu/MenuPanel';
+import type { CarryCard } from '../../../shared/game/carryCards';
 import type { ShopRingId } from '../../../shared/game/ringShop';
 import { MetatronShop } from './menu/MetatronShop';
 import { DevPanel } from './menu/DevPanel';
@@ -176,7 +177,9 @@ export const IntroView = ({
 }: IntroViewProps) => {
   const [sheet, setSheet] = useState<Sheet>('none');
   const [testJewelry, setTestJewelry] = useState<ShopRingId[]>([]);
-  const receiveTestInventory = useCallback((items: ShopRingId[], visit: string) => {
+  const [testCarry, setTestCarry] = useState<CarryCard[]>([]);
+  const receiveTestInventory = useCallback((items: ShopRingId[], visit: string, cards: CarryCard[]) => {
+    setTestCarry(cards);
     setTestJewelry(items);
     onShopTestVisit?.(visit);
   }, [onShopTestVisit]);
@@ -186,7 +189,7 @@ export const IntroView = ({
   const settings = useGameSettings();
   const closeSheet = () => setSheet('none');
   const note = rankedNote(data, canResume);
-  if (sheet === 'profile') return <ProfileView data={data} rings={profileRings} onClose={closeSheet} testJewelry={isAdmin ? testJewelry : []} />;
+  if (sheet === 'profile') return <ProfileView data={data} rings={profileRings} onClose={closeSheet} testJewelry={isAdmin ? testJewelry : []} testCarry={isAdmin ? testCarry : []} />;
   if (sheet === 'tutorial') return <FirstFight accountId={data.accountId} onExit={closeSheet} onRules={() => setSheet('rules')} />;
 
   return (
@@ -203,7 +206,7 @@ export const IntroView = ({
           </Button>
           <div className="grid w-full grid-cols-2 gap-2">
             <Button variant="menu" onClick={() => setSheet('profile')}>Profile</Button>
-            <Button variant="menu" onClick={() => { setTestJewelry([]); onShopTestVisit?.(undefined); setSheet('shop'); }}>Shop</Button>
+            <Button variant="menu" onClick={() => { setTestJewelry([]); setTestCarry([]); onShopTestVisit?.(undefined); setSheet('shop'); }}>Shop</Button>
           </div>
           <Button variant="menu" onClick={() => setSheet('board')}>
             Today's tyrants

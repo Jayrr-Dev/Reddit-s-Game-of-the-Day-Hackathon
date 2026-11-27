@@ -17,7 +17,7 @@ import type { CardRarity, StatusId } from './types.ts';
 type RarityWeights = { item: Exclude<CardRarity, 'basic'>; weight: number }[];
 
 /** Rarity odds per kind of stop (grave never offers cards). */
-const RARITY_ODDS: Record<Exclude<StopKind, 'grave'>, RarityWeights> = {
+const RARITY_ODDS: Record<Exclude<StopKind, 'grave' | 'greed-bargain'>, RarityWeights> = {
   horde: [
     { item: 'common', weight: 65 },
     { item: 'uncommon', weight: 30 },
@@ -67,14 +67,15 @@ const offerBonusOf = (cardId: CardId, picks: readonly SkillPick[]): number => {
  */
 const rollOneOffer = (
   state: RngState,
-  source: Exclude<StopKind, 'grave'>,
+  source: Exclude<StopKind, 'grave' | 'greed-bargain'>,
   taken: readonly CardId[],
   starter?: StarterName,
   skillPicks: readonly SkillPick[] = [],
-  barred: readonly CardId[] = []
+  barred: readonly CardId[] = [],
+  specialImbues = false
 ): RngResult<CardId> => {
   const [rarity, afterRarity] = pickWeighted(state, RARITY_ODDS[source]);
-  const fullPool = cardsOfRarity(rarity);
+  const fullPool = cardsOfRarity(rarity).filter(id => !specialImbues || getCard(id).type !== 'imbue');
   const allowed = fullPool.filter((id) => !barred.includes(id));
   const pool = allowed.length ? allowed : fullPool;
   const fresh = pool.filter((id) => !taken.includes(id));
@@ -96,18 +97,19 @@ const rollOneOffer = (
  */
 export const rollOffers = (
   seed: RngState,
-  source: Exclude<StopKind, 'grave'>,
+  source: Exclude<StopKind, 'grave' | 'greed-bargain'>,
   exclude: readonly CardId[] = [],
   starter?: StarterName,
   skillPicks: readonly SkillPick[] = [],
   deck: readonly CardId[] = [],
-  isUnique: UniqueCheck = isUniqueCard
+  isUnique: UniqueCheck = isUniqueCard,
+  specialImbues = false
 ): CardId[] => {
   const offers: CardId[] = [];
   const barred = deck.filter(isUnique);
   let current = seed;
   for (let slot = 0; slot < OFFER_SIZE; slot += 1) {
-    const [cardId, next] = rollOneOffer(current, source, [...exclude, ...offers], starter, skillPicks, barred);
+    const [cardId, next] = rollOneOffer(current, source, [...exclude, ...offers], starter, skillPicks, barred, specialImbues);
     offers.push(cardId);
     current = next;
   }

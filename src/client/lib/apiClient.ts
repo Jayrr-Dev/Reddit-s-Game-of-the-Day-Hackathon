@@ -4,6 +4,7 @@
 // call these instead of fetch so URLs and response types live in one place.
 // ===================================================================
 
+import type { ShopApple } from '../../shared/game/items';
 import type {
   BuyRingRequest,
   BuyRingResponse,
@@ -58,6 +59,7 @@ const postJson = <TResponse>(path: string, payload?: unknown) =>
 // --- ROUTES ---
 export const apiClient = {
   ringShop: (testVisit?: string) => request<RingShopResponse>('/api/shop/rings' + (testVisit ? '?testVisit=' + encodeURIComponent(testVisit) : ''), { cache: 'no-store' }),
+  offerApple: (itemId: ShopApple) => postJson<Pick<ProfileResponse, 'items'>>('/api/shop/apple', { itemId }),
   buyRing: (payload: BuyRingRequest) => postJson<BuyRingResponse>('/api/shop/rings/buy', payload),
   profile: () => request<ProfileResponse>('/api/profile'),
   saveProfile: (build: import('../../shared/game/playerBuild').PlayerBuild) => postJson<{saved:boolean}>('/api/profile',build),
@@ -65,7 +67,7 @@ export const apiClient = {
   discardItem: (payload: UseItemRequest) => postJson<DiscardItemResponse>('/api/profile/discard-item', payload),
   init: () => request<InitResponse>('/api/init'),
   leaderboard: () => request<LeaderboardResponse>('/api/leaderboard'),
-  startRun: (testVisit?: string) => postJson<StartRunResponse>('/api/run/start', testVisit ? { testVisit } : undefined),
+  startRun: (testVisit?: string, bringCard?: string) => postJson<StartRunResponse>('/api/run/start', { testVisit, bringCard }),
   progress: (payload: FinishRunRequest) => postJson<{saved: boolean}>('/api/run/progress', payload),
   finishRun: (payload: FinishRunRequest) =>
     postJson<FinishRunResponse>('/api/run/finish', payload),

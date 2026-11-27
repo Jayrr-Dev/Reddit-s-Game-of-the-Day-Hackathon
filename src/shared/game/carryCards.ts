@@ -1,0 +1,37 @@
+import { ALL_CARD_IDS, getCard, isCardId, isCardInPlay, type CardId } from './cards.ts';
+
+export const SHOP_IMBUE_ID = 'imbue-card';
+export const IMBUE_PRICE = 85;
+export const IMBUE_CARDS = ALL_CARD_IDS.filter(id => getCard(id).type === 'imbue' && isCardInPlay(id));
+export type CarryCard = { id: string; cardId: CardId; source: 'shop' | 'ferryman'; spent?: string };
+export type CarryCards = Partial<Record<string, CarryCard>>;
+
+export const isShopStockKey = (value: unknown): value is string => typeof value === 'string' &&
+  /^\d{4}-\d{2}-\d{2}(?:T(?:[01]\d|2[0-3])\.\d{1,10}p?)?$/.test(value);
+
+/** Derive hourly stock; the cycle increments only when another boss-clearing run finishes. */
+export const shopStockKey = (time: Date, bossRuns: number): string =>
+  time.toISOString().slice(0, 13) + '.' + bossRuns;
+
+export const isCarryCardId = (value: unknown): value is string =>
+  typeof value === 'string' && (value.startsWith('shop:') ? isShopStockKey(value.slice(5)) : /^hell:[a-f0-9-]{36}$/.test(value));
+
+/** Restore paid and recovered cards without trusting an arbitrary catalog key. */
+export function readCarryCards(value: unknown): CarryCards {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid carry cards');
+  const cards: CarryCards = {};
+  for (const [id, row] of Object.entries(value)) {
+    if (!isCarryCardId(id) || !row || typeof row !== 'object' || !isCardId(row.cardId) ||
+      (row.source !== 'shop' && row.source !== 'ferryman') ||
+      (row.source === 'shop' && !id.startsWith('shop:')) ||
+      (row.source === 'ferryman' && !id.startsWith('hell:')) ||
+      (row.spent !== undefined && (typeof row.spent !== 'string' || !/^[a-f0-9-]{36}$/.test(row.spent))))
+      throw new Error('Invalid carry card receipt');
+    cards[id] = { id, cardId: row.cardId, source: row.source, ...(row.spent && { spent: row.spent }) };
+  }
+  return cards;
+}
+
+/** Only unspent cards appear in Inventory and on the Bring Card screen. */
+export const availableCarryCards = (owned?: CarryCards): CarryCard[] =>
+  Object.values(owned ?? {}).filter((card): card is CarryCard => !!card && !card.spent);

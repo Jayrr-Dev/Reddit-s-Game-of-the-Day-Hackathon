@@ -284,8 +284,12 @@ export const imbueSlot = (
     cardId !== undefined &&
     canImbueOnto(imbue.gift, cardId, imbuesAt(state, slot));
   if (!isAllowed) return state;
+  const copy = state.copies?.hand[slot];
   return {
     ...state,
+    ...(state.copies && copy !== undefined && { copies: { ...state.copies, gifts: {
+      ...state.copies.gifts, [copy]: [...imbuesAt(state, slot), imbue],
+    } } }),
     handImbues: state.hand.map((_, index) =>
       index === slot
         ? [...imbuesAt(state, slot), imbue]
@@ -301,6 +305,7 @@ export const removeFromHand = (
 ): CombatState => ({
   ...state,
   hand: state.hand.filter((_, slot) => slot !== index),
+  ...(state.copies && { copies: { ...state.copies, hand: state.copies.hand.filter((_, slot) => slot !== index) } }),
   handImbues: state.hand
     .map((__, slot) => imbuesAt(state, slot))
     .filter((_, slot) => slot !== index),
@@ -311,7 +316,13 @@ export const removeFromHand = (
 });
 
 /** Puts a card in hand; a copy drawn takes back its stowed battle imbues. */
-export const addToHand = (state: CombatState, cardId: CardId): CombatState => {
+export const addToHand = (state: CombatState, cardId: CardId, copy?: number): CombatState => {
+  if (state.copies && copy !== undefined) return {
+    ...state,
+    hand: [...state.hand, cardId],
+    handImbues: [...state.handImbues, state.copies.gifts[copy] ?? []],
+    copies: { ...state.copies, hand: [...state.copies.hand, copy] },
+  };
   const stowedIndex = state.stowedImbues.findIndex(
     (stowed) => stowed.cardId === cardId
   );
@@ -333,7 +344,7 @@ const stowImbues = (
   cardId: CardId,
   imbues: readonly Imbue[]
 ): CombatState =>
-  imbues.length === 0
+  state.copies || imbues.length === 0
     ? state
     : {
         ...state,
@@ -350,6 +361,7 @@ export const discardHand = (state: CombatState): CombatState => {
     cardId,
     imbues: imbuesAt(state, index),
     isHeld: holdsCard(cardId, cardImbuesAt(state, index)),
+    copy: state.copies?.hand[index],
   }));
   const kept = slots.filter((slot) => slot.isHeld);
   const dropped = slots.filter((slot) => !slot.isHeld);
@@ -357,6 +369,11 @@ export const discardHand = (state: CombatState): CombatState => {
     ...state,
     hand: kept.map((slot) => slot.cardId),
     handImbues: kept.map((slot) => slot.imbues),
+    ...(state.copies && { copies: {
+      ...state.copies,
+      hand: kept.flatMap(slot => slot.copy === undefined ? [] : [slot.copy]),
+      discard: [...state.copies.discard, ...dropped.flatMap(slot => slot.copy === undefined ? [] : [slot.copy])],
+    } }),
     // FATIGUE lasts one turn: held cards go back to their usual cost.
     handFatigue: [],
     discardPile: [...state.discardPile, ...dropped.map((slot) => slot.cardId)],

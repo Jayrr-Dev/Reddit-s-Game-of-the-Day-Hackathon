@@ -16,6 +16,22 @@ export const ITEMS = [
     description: 'Each page undoes a choice. Reading one returns every trait point so you can spend them again.',
     startingQuantity: 5,
   },
+  {
+    id: 'metatrons-apple',
+    name: 'Apple for Metatron',
+    pluralName: 'Apples for Metatron',
+    icon: 'heart',
+    description: 'Fresh fruit rarely reaches this far. Give it to Metatron to refresh all five offers.',
+    startingQuantity: 0,
+  },
+  {
+    id: 'realm-apple',
+    name: 'Realm Apple',
+    pluralName: 'Realm Apples',
+    icon: 'heart',
+    description: 'Withered and dry. It tastes of sand. Metatron will show at least one Legendary offer for it.',
+    startingQuantity: 0,
+  },
 ] as const;
 
 // --- TYPES ---
@@ -26,6 +42,10 @@ export type ItemBag = Partial<Record<ItemId, number>>;
 
 // --- ROLES ---
 /** The item spent to respec traits. */
+export const SHOP_APPLE = 'metatrons-apple';
+export const REALM_APPLE = 'realm-apple';
+export type ShopApple = typeof SHOP_APPLE | typeof REALM_APPLE;
+export const isShopApple = (value: unknown): value is ShopApple => value === SHOP_APPLE || value === REALM_APPLE;
 export const RESPEC_ITEM: ItemId = 'tome-of-regret';
 
 // --- LOOKUPS ---

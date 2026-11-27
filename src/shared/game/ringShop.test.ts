@@ -12,13 +12,14 @@ if (!cinder || cinder.slot !== 'ring' || !tideglass || tideglass.slot !== 'ring'
 test('the shop always stocks five unique pieces; premium stock only appears in the final two spots', () => {
   let amulets = 0;
   let publicBoxes = 0;
+  const boxSlots = new Set<number>();
   const stocks = new Set<string>();
   for (let i = 0; i < 500; i++) {
     const date = new Date(Date.UTC(2026, 10, 27 + i)).toISOString().slice(0, 10);
     const offers = shopOffers(date);
     assert.equal(offers.length, 5);
     assert.equal(new Set(offers.map(offer => offer.id)).size, 5);
-    assert.ok(offers.slice(0, 3).every(offer => offer.slot === 'ring' && ['Common', 'Uncommon'].includes(offer.rarity)));
+    assert.ok(offers.slice(0, 3).every(offer => offer.slot === 'box' || (offer.slot === 'ring' && ['Common', 'Uncommon'].includes(offer.rarity))));
     assert.ok(offers.slice(0, 4).every(offer => offer.slot !== 'amulet'));
     assert.deepEqual(offers, shopOffers(date));
     assert.deepEqual(shopOffers(date, true).slice(0, 4), offers.slice(0, 4));
@@ -28,11 +29,12 @@ test('the shop always stocks five unique pieces; premium stock only appears in t
       assert.ok(offers[4].effect);
       amulets++;
     }
-    publicBoxes += offers.filter(offer => offer.slot === 'box').length;
+    offers.forEach((offer, i) => { if (offer.slot === 'box') { publicBoxes++; boxSlots.add(i); } });
   }
   assert.ok(stocks.size > 50);
   assert.ok(amulets > 20 && amulets < 90, String(amulets));
-  assert.ok(publicBoxes > 50 && publicBoxes < 150, String(publicBoxes));
+  assert.equal(boxSlots.size, 5);
+  assert.ok(publicBoxes > 150, String(publicBoxes));
 });
 
 test('an owned ring is charged once, and another purchase can leave the wallet short', () => {
@@ -135,7 +137,10 @@ test('Pandora effects apply to one issued run and bounty survives replay without
   assert.deepEqual(curseRun.phase, ordinary.phase);
   assert.equal(createRun(day, undefined, 0, 0, [], 'lasting-vigor').maxHp, ordinary.maxHp + 12);
   assert.equal(createRun(day, undefined, 0, 0, [], 'brittle-blood').maxHp, ordinary.maxHp - 10);
-  const earned = claimPandoraBounty(bound.wallet, id);
+  assert.equal(bound.effect, 'half-life-double-gold');
+  assert.equal(claimPandoraBounty(bound.wallet, id), undefined);
+  const legacy = readShopWallet(JSON.stringify({ items: {}, boxes: {}, events: { [receipt]: { kind: 'run', effect: 'half-life', runId: id } } }));
+  const earned = claimPandoraBounty(legacy, id);
   if (!earned) throw new Error('Expected bounty');
   const restored = readShopWallet(JSON.stringify(earned));
   assert.equal(shopGoldBalance(100, restored), 160);

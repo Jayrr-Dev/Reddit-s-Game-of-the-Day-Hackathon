@@ -24,6 +24,8 @@ import { isMovementId, move } from './movement.ts';
 import type { GoldVictory } from './gold.ts';
 import { PANDORA_MAX_HP_GAIN, PANDORA_MAX_HP_LOSS, type PandoraRunEffect } from './pandora.ts';
 import { ringInventory, type ShopRingId } from './ringShop.ts';
+import { IMBUE_CARDS } from './carryCards.ts';
+import { nextInt, pickOne } from './rng.ts';
 import { rollOffers } from './rewards.ts';
 import { isUniqueInDeck } from './unique.ts';
 import {
@@ -36,7 +38,7 @@ import {
   SCORE_PER_REGION,
   SCORE_PER_WAVE,
 } from './rules.ts';
-import type { CombatState, MovementId, UsesSpent } from './types.ts';
+import type { CombatState, CopyImbues, MovementId, UsesSpent } from './types.ts';
 import { deckWithout } from './uses.ts';
 
 // --- TYPES ---
@@ -50,8 +52,9 @@ export type RunStats = {
 export type RunPhase =
   | { kind: 'route'; options: Stop[] }
   | { kind: 'combat'; stop: Stop; combat: CombatState }
-  | { kind: 'reward'; offers: CardId[]; source?: 'horde' | 'elite' | 'champion'; rerolled?: boolean; leveledUp?: boolean }
+  | { kind: 'reward'; offers: CardId[]; source?: 'horde' | 'elite' | 'champion'; rerolled?: boolean; leveledUp?: boolean; bonusImbue?: CardId }
   | { kind: 'grave' }
+  | { kind: 'greed-bargain' }
   | { kind: 'altar'; offers: CardId[] }
   | { kind: 'fallen'; battlefield?: { stop: Stop; combat: CombatState } };
 
@@ -61,6 +64,9 @@ export type RunState = {
   ringDrops?: number[];
   baseMaxHp?: number;
   pandoraEffect?: PandoraRunEffect;
+  deckImbues?: CopyImbues;
+  carriedCard?: CardId;
+  promisedToGreed?: CardId;
   storyRingUnlocked?: number | undefined;
   character: CharacterState;
   dailyKey: string;
@@ -125,6 +131,7 @@ export type RunAction =
   | { type: 'pickCard'; offerIndex: number | null }
   | { type: 'rerollReward' }
   | { type: 'graveChoice'; choice: GraveChoice }
+  | { type: 'greedChoice'; cardIndex: number | null }
   /** Gives up the march; the score so far stands. */
   | { type: 'abandon' };
 
@@ -146,7 +153,7 @@ const initialCharacter = (ringProgress: RingProgress | undefined, wins: number, 
 
 /** The start of the day's run: full HP, starter deck, first crossroads. */
 export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt = 0, wins = 0,
-  shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect): RunState => {
+  shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carriedCard?: CardId): RunState => {
   const maxHp = PLAYER_MAX_HP + (pandoraEffect === 'lasting-vigor' ? PANDORA_MAX_HP_GAIN : pandoraEffect === 'brittle-blood' ? -PANDORA_MAX_HP_LOSS : 0);
   return {
   attempt,
@@ -154,13 +161,15 @@ export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt
   dailyKey,
   stop: 1,
   character: initialCharacter(ringProgress, wins, shopRings),
-  hp: pandoraEffect === 'half-life' ? Math.ceil(maxHp / 2) : maxHp,
+  hp: (pandoraEffect === 'half-life' || pandoraEffect === 'half-life-double-gold') ? Math.ceil(maxHp / 2) : maxHp,
   maxHp,
-  deck: [...STARTER_DECK],
+  deck: [...STARTER_DECK, ...(carriedCard ? [carriedCard] : [])],
+  ...(cardRules && { deckImbues: {} }),
+  ...(carriedCard && { carriedCard }),
   usesSpent: {},
   stats: EMPTY_STATS,
   goldVictories: [],
-  phase: { kind: 'route', options: routeOptions(dailyKey, 1) },
+  phase: { kind: 'route', options: routeOptions(dailyKey, 1, cardRules === 1) },
   };
 };
 
@@ -173,12 +182,13 @@ const advanceToNextStop = (state: RunState): RunState => {
     ...state,
     stop,
     storyRingUnlocked: undefined,
-    phase: { kind: 'route', options: routeOptions(state.dailyKey, stop) },
+    phase: { kind: 'route', options: routeOptions(state.dailyKey, stop, !!state.deckImbues && !state.promisedToGreed) },
   };
 };
 
 /** Enters the chosen stop: starts a fight, or opens the grave or altar. */
 const enterStop = (state: RunState, stop: Stop): RunState => {
+  if (stop.kind === 'greed-bargain') return { ...state, phase: { kind: 'greed-bargain' } };
   if (stop.kind === 'grave') return { ...state, phase: { kind: 'grave' } };
   if (stop.kind === 'altar') {
     const offers = rollOffers(
@@ -187,7 +197,7 @@ const enterStop = (state: RunState, stop: Stop): RunState => {
       [],
       undefined,
       state.character.skillPicks,
-      state.deck
+      state.deck, undefined, !!state.deckImbues
     );
     return { ...state, phase: { kind: 'altar', offers } };
   }
@@ -203,6 +213,7 @@ const enterStop = (state: RunState, stop: Stop): RunState => {
     might: mightAt(state.stop),
     seed: stopSeed(state.dailyKey, 'combat', state.stop),
     usesSpent: state.usesSpent,
+    ...(state.deckImbues && { copyImbues: state.deckImbues }),
   });
   return { ...state, phase: { kind: 'combat', stop, combat } };
 };
@@ -250,21 +261,27 @@ const settleCombat = (
   const isChampion = stop.kind === 'champion';
   const bossWins = character.ringProgress.bossWins + (isChampion ? 1 : 0);
   const victoryHeal = stop.kind === 'champion' ? CHAMPION_VICTORY_HEAL : 0;
-  const deck = deckWithout(state.deck, combat.exhausted);
+  const copies = combat.copies;
+  const survivors = state.deck.map((_, index) => index).filter(index => !copies?.destroyed.includes(index));
+  const deck = copies ? survivors.map(index => state.deck[index]!) : deckWithout(state.deck, combat.exhausted);
+  const deckImbues = copies ? remapImbues(copies.gifts, survivors) : undefined;
+  const bonusImbue = copies && isChampion && nextInt(stopSeed(state.dailyKey, 'champion-imbue-drop', state.stop), 100)[0] < 35
+    ? pickOne(stopSeed(state.dailyKey, 'champion-imbue-card', state.stop), IMBUE_CARDS)[0] : undefined;
   const offers = rollOffers(
     stopSeed(state.dailyKey, 'reward', state.stop),
-    rewardSourceOf(stop), [], state.rewardStarter, state.character.skillPicks, deck
+    rewardSourceOf(stop), [], state.rewardStarter, state.character.skillPicks, deck, undefined, !!copies
   );
   return {
     ...state,
     hp: Math.min(state.maxHp, combat.player.hp + healingAmount(victoryHeal, character)),
     character: { ...character, ringProgress: { ...character.ringProgress, bossWins } },
     storyRingUnlocked: isChampion && bossWins <= 5 ? bossWins : undefined,
-    deck,
+    deck: bonusImbue ? [...deck, bonusImbue] : deck,
+    ...(deckImbues && { deckImbues }),
     usesSpent: combat.usesSpent,
     stats,
     goldVictories: [...state.goldVictories, { stop: state.stop, encounter: rewardSourceOf(stop) }],
-    phase: { kind: 'reward', offers, source: rewardSourceOf(stop), leveledUp: character.level > state.character.level },
+    phase: { kind: 'reward', offers, source: rewardSourceOf(stop), leveledUp: character.level > state.character.level, ...(bonusImbue && { bonusImbue }) },
   };
 };
 
@@ -301,6 +318,18 @@ const visitGrave = (state: RunState, choice: GraveChoice): RunState => {
   });
 };
 
+/** Compact the deck positions after a card leaves the run. */
+function remapImbues(imbues: CopyImbues, kept: readonly number[]): CopyImbues {
+  return Object.fromEntries(kept.flatMap((old, next) => imbues[old] ? [[next, imbues[old]]] : []));
+}
+
+/** This bargain cannot be used to preserve a card carried into the run. */
+export function greedCanTake(state: RunState, index: number): boolean {
+  const card = state.deck[index];
+  return state.phase.kind === 'greed-bargain' && !state.promisedToGreed && !!card &&
+    state.deck.length > 1 && card !== state.carriedCard;
+}
+
 // --- REDUCER ---
 
 /** Apply the same character edits in a story run and in Illusion Training. */
@@ -327,7 +356,7 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
   switch (action.type) {
     case 'starterDeck':
       return state.stop === 1 && phase.kind === 'route' && validStarter(action.name, action.cards)
-        ? { ...state, ...(action.favorStarter && {rewardStarter: action.name}), deck: [...action.cards] } : state;
+        ? { ...state, ...(action.favorStarter && {rewardStarter: action.name}), deck: [...action.cards, ...(state.carriedCard && !isUniqueInDeck(action.cards, state.carriedCard) ? [state.carriedCard] : [])] } : state;
     case 'skillPath':
     case 'buySkill':
     case 'saveTraits': {
@@ -381,13 +410,22 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
         : state;
     case 'rerollReward': {
       if (phase.kind !== 'reward' || phase.rerolled) return state;
-      const offers = rollOffers(stopSeed(state.dailyKey, 'reward-reroll', state.stop), phase.source ?? 'horde', phase.offers, state.rewardStarter, state.character.skillPicks, state.deck);
+      const offers = rollOffers(stopSeed(state.dailyKey, 'reward-reroll', state.stop), phase.source ?? 'horde', phase.offers, state.rewardStarter, state.character.skillPicks, state.deck, undefined, !!state.deckImbues);
       return { ...state, phase: { ...phase, offers, rerolled: true } };
     }
     case 'pickCard':
       return phase.kind === 'reward' || phase.kind === 'altar'
         ? takeOffer(state, phase.offers, action.offerIndex)
         : state;
+    case 'greedChoice': {
+      if (phase.kind !== 'greed-bargain') return state;
+      if (action.cardIndex === null) return advanceToNextStop(state);
+      if (!greedCanTake(state, action.cardIndex)) return state;
+      const kept = state.deck.map((_, index) => index).filter(index => index !== action.cardIndex);
+      return advanceToNextStop({ ...state, promisedToGreed: state.deck[action.cardIndex]!,
+        deck: kept.map(index => state.deck[index]!),
+        ...(state.deckImbues && { deckImbues: remapImbues(state.deckImbues, kept) }) });
+    }
     case 'graveChoice':
       return phase.kind === 'grave' ? visitGrave(state, action.choice) : state;
     case 'abandon':
@@ -404,8 +442,8 @@ export const replayRun = (
   dailyKey: string,
   actions: readonly RunAction[],
   ringProgress?: RingProgress,
-  attempt = 0, wins = 0, shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect
-): RunState => actions.reduce(runReducer, createRun(dailyKey, ringProgress, attempt, wins, shopRings, pandoraEffect));
+  attempt = 0, wins = 0, shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carriedCard?: CardId
+): RunState => actions.reduce(runReducer, createRun(dailyKey, ringProgress, attempt, wins, shopRings, pandoraEffect, cardRules, carriedCard));
 
 /** True once the heroes have stopped the villain. */
 export const isRunOver = (state: RunState): boolean =>
@@ -479,6 +517,8 @@ export const isRunAction = (value: unknown): value is RunAction => {
         'offerIndex' in value &&
         (value.offerIndex === null || isIndex(value.offerIndex))
       );
+    case 'greedChoice':
+      return 'cardIndex' in value && (value.cardIndex === null || isIndex(value.cardIndex));
     case 'graveChoice':
       return (
         'choice' in value &&

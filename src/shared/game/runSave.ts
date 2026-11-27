@@ -16,6 +16,7 @@ import {
 } from './character.ts';
 
 import type { RunProfile } from '../types/api.ts';
+import { isCardId } from './cards.ts';
 import { isPandoraRunEffect } from './pandora.ts';
 import { shopRingIds } from './ringShop.ts';
 
@@ -206,9 +207,11 @@ export const restoreLoggedRun = (
           'id' in saved.profile && typeof saved.profile.id === 'string' &&
           'wins' in saved.profile && typeof saved.profile.wins === 'number' && Number.isSafeInteger(saved.profile.wins)) {
           const profile = { id: saved.profile.id, wins: saved.profile.wins, ...('shopRings' in saved.profile && { shopRings: shopRingIds(saved.profile.shopRings) }),
-            ...('pandoraEffect' in saved.profile && isPandoraRunEffect(saved.profile.pandoraEffect) && { pandoraEffect: saved.profile.pandoraEffect }) };
+            ...('pandoraEffect' in saved.profile && isPandoraRunEffect(saved.profile.pandoraEffect) && { pandoraEffect: saved.profile.pandoraEffect }),
+            ...('cardRules' in saved.profile && saved.profile.cardRules === 1 && { cardRules: 1 as const }),
+            ...('carriedCard' in saved.profile && isCardId(saved.profile.carriedCard) && { carriedCard: saved.profile.carriedCard }) };
           const actions = saved.actions.filter(isRunAction);
-          return { run: replayRun(day, actions, initialRings, saved.attempt, profile.wins, profile.shopRings, profile.pandoraEffect), attempt: saved.attempt, initialRings, actions, profile };
+          return { run: replayRun(day, actions, initialRings, saved.attempt, profile.wins, profile.shopRings, profile.pandoraEffect, profile.cardRules, profile.carriedCard), attempt: saved.attempt, initialRings, actions, profile };
         }
         return restoreActions(
           day,

@@ -3,6 +3,7 @@
 // The crossroads before each stop: one or two paths to choose from.
 // ===================================================================
 
+import gildedVault from '../../assets/npcs/greed-gilded-vault.webp';
 import { useState } from 'react';
 import type { Stop } from '../../../shared/game/kingdom';
 import type { RunAction } from '../../../shared/game/run';
@@ -30,9 +31,9 @@ const PathCard = ({ stop, location, selected, onChoose }: {
       aria-pressed={selected}
       className="path-card text-left"
     >
-      <span className="route-portrait"><ProgressiveImg src={MAP_IMAGES[location.terrain]} alt="" /></span>
-      <span className="path-name">{location.name}</span>
-      <span className="path-rules">{location.flavour}</span>
+      <span className="route-portrait"><ProgressiveImg src={stop.kind === 'greed-bargain' ? gildedVault : MAP_IMAGES[location.terrain]} alt="" /></span>
+      <span className="path-name">{stop.kind === 'greed-bargain' ? 'The Gilded Vault' : location.name}</span>
+      <span className="path-rules">{stop.kind === 'greed-bargain' ? copy.blurb : location.flavour}</span>
       <span className="path-type">{copy.title}</span>
     </button>
   );

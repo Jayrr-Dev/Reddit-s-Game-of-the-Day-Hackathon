@@ -1,3 +1,5 @@
+import { availableCarryCards, IMBUE_CARDS, IMBUE_PRICE, isShopStockKey, readCarryCards, SHOP_IMBUE_ID, type CarryCards } from './carryCards.ts';
+import { cardsOfRarity, getCard, type CardId } from './cards.ts';
 import { hashSeed, nextInt, pickDistinct, pickOne } from './rng.ts';
 import { TRAINING_JEWELRY } from './trainingJewelry.ts';
 import { shopAmuletSummary, type ShopAmuletId } from './amuletBonuses.ts';
@@ -31,26 +33,30 @@ export type ShopRingId = (typeof TEMP_RING_IDS)[number] | ShopAmuletId;
 export type RingOffer = { id: ShopRingId; name: string; flavor: string; slot: EquipmentSlot; effect?: string; rarity: RingRarity; price: number };
 export type RingPurchases = Partial<Record<ShopRingId, number>>;
 
-export const MYSTERY_BOX_IDS = ['mystery-box-4', 'mystery-box-5'] as const;
+export const MYSTERY_BOX_IDS = ['mystery-box-1', 'mystery-box-2', 'mystery-box-3', 'mystery-box-4', 'mystery-box-5'] as const;
 export type MysteryBoxId = (typeof MYSTERY_BOX_IDS)[number];
-export type ShopOfferId = ShopRingId | MysteryBoxId;
+export type ShopOfferId = ShopRingId | MysteryBoxId | typeof SHOP_IMBUE_ID;
 type MysteryOffer = { id: MysteryBoxId; name: string; flavor: string; slot: 'box'; rarity: RingRarity; price: number };
-export type ShopOffer = RingOffer | MysteryOffer;
-export type ShopWallet = { items: RingPurchases; boxes: Partial<Record<string, ShopRingId>>; events?: Partial<Record<string, PandoraEvent>> };
+type CardOffer = { id: typeof SHOP_IMBUE_ID; name: string; flavor: string; slot: 'card'; cardId: CardId; rarity: RingRarity; price: number };
+export type ShopOffer = RingOffer | MysteryOffer | CardOffer;
+export type ShopWallet = { items: RingPurchases; boxes: Partial<Record<string, ShopRingId>>; events?: Partial<Record<string, PandoraEvent>>; carry?: CarryCards };
 export type ShopReward =
   | { kind: 'jewelry'; id: ShopRingId; name: string; slot: EquipmentSlot; rarity: RingRarity }
   | PandoraEvent;
-const isBoxReceipt = (key: string) => /^\d{4}-\d{2}-\d{2}:mystery-box-[45]$/.test(key);
+const isBoxReceipt = (key: string) => {
+  const [stock, box, ...extra] = key.split(':');
+  return !extra.length && isShopStockKey(stock) && MYSTERY_BOX_IDS.some(id => id === box);
+};
 export const ADMIN_SHOP_GOLD = 1000;
 export const MYSTERY_BOX_PRICE = 100;
 export const PANDORA_BOX_NAME = "Pandora's Box";
-const BOX_CHANCE = 10;
+const BOX_CHANCE = [8, 8, 8, 16, 24] as const;
 const boxOffer = (id: MysteryBoxId): MysteryOffer => ({
   id, name: PANDORA_BOX_NAME, slot: 'box', rarity: 'Rare', price: MYSTERY_BOX_PRICE,
   flavor: "I never told it your name. It knew it all the same.",
 });
 export const isShopOfferId = (id: unknown): id is ShopOfferId =>
-  isShopRingId(id) || MYSTERY_BOX_IDS.some(known => known === id);
+  id === SHOP_IMBUE_ID || isShopRingId(id) || MYSTERY_BOX_IDS.some(known => known === id);
 
 const SHOP_IDS: readonly ShopRingId[] = [...TEMP_RING_IDS, ...AMULET_IDS];
 const catalog = new Map(TRAINING_JEWELRY.map(item => [item.id, item]));
@@ -67,11 +73,12 @@ export const shopRingIds = (value: unknown): ShopRingId[] =>
 
 /** Three everyday rings, then two chances at rare stock. An amulet can only replace slot five. */
 export function shopOffers(day: string, admin = false): ShopOffer[] {
+  const premium = day.endsWith('p');
   const seed = (label: string) => hashSeed('metatron:stock:' + day + ':' + label);
   const [regular] = pickDistinct(seed('regular'), everydayRings, RING_SLOTS);
   const remaining = everydayRings.filter(candidate => !regular.includes(candidate));
   const [fourthRoll] = nextInt(seed('fourth-rarity'), 100);
-  const [fourth] = pickOne(seed('fourth-item'), fourthRoll < FOURTH_RARE_CHANCE ? rareRings : remaining);
+  const [fourth] = pickOne(seed('fourth-item'), premium ? rings.filter(item => item.rarity === 'Legendary') : fourthRoll < FOURTH_RARE_CHANCE ? rareRings : remaining);
   const [roll] = nextInt(seed('fifth-rarity'), 100);
   let fifth: StockItem;
   if (roll < AMULET_CHANCE) {
@@ -80,12 +87,20 @@ export function shopOffers(day: string, admin = false): ShopOffer[] {
     fifth = { id, rarity: AMULET_RARITY[id] };
   } else {
     const low = remaining.filter(candidate => candidate.id !== fourth.id);
-    const target = roll < 18 ? 'Legendary' : roll < 33 ? 'Epic' : roll < 65 || !low.length ? 'Rare' : undefined;
+    const target = roll < (premium ? 33 : 18) ? 'Legendary' : roll < (premium ? 63 : 33) ? 'Epic' : roll < (premium ? 90 : 65) || !low.length ? 'Rare' : undefined;
     [fifth] = pickOne(seed('fifth-item'), target ? rings.filter(candidate => candidate.id !== fourth.id && candidate.rarity === target) : low);
   }
   return [...regular, fourth, fifth].map(({ id, rarity }, index): ShopOffer => {
-    const box = index === 3 ? MYSTERY_BOX_IDS[0] : index === 4 ? MYSTERY_BOX_IDS[1] : undefined;
-    if (box && ((admin && index === 4) || nextInt(seed(box), 100)[0] < BOX_CHANCE)) return boxOffer(box);
+    const box = MYSTERY_BOX_IDS[index];
+    if (box && (!premium || index !== 3) && ((admin && index === 4) || nextInt(seed(box), 100)[0] < (BOX_CHANCE[index] ?? 0))) return boxOffer(box);
+    const cardRoll = nextInt(seed('card-offer'), 100)[0];
+    if (index === 3 && !premium && cardRoll < 35) {
+      const imbue = cardRoll < 20;
+      const pool = imbue ? IMBUE_CARDS : cardsOfRarity('rare').filter(id => getCard(id).type !== 'imbue');
+      const [cardId] = pickOne(seed('carry-card'), pool);
+      return { id: SHOP_IMBUE_ID, name: getCard(cardId).name, slot: 'card', cardId, rarity: 'Rare', price: IMBUE_PRICE,
+        flavor: imbue ? 'The mark survives the battle, but not the march.' : 'Someone paid to leave this here. They never came back for it.' };
+    }
     const { name, flavor, slot } = catalog.get(id)!;
     const effect = shopAmuletSummary(id);
     const [min, max] = PRICE_RANGE[rarity];
@@ -146,7 +161,8 @@ export function readShopWallet(raw?: string): ShopWallet {
         events[receipt] = readPandoraEvent(event);
       }
     }
-    return { items, boxes, ...(Object.keys(events).length && { events }) };
+    const carry = 'carry' in data ? readCarryCards(data.carry) : undefined;
+    return { items, boxes, ...(Object.keys(events).length && { events }), ...(carry && { carry }) };
   }
   return { items: readPurchases(raw), boxes: {} };
 }
@@ -156,19 +172,27 @@ export function shopGoldBalance(earned: number, wallet: ShopWallet): number {
   const purchases = Object.values(wallet.items).reduce((sum, price) => sum + price, 0);
   const events = Object.values(wallet.events ?? {}).reduce((sum, event) =>
     sum - MYSTERY_BOX_PRICE + (event?.kind === 'gold' ? event.change : event?.claimed ? PANDORA_CURSE_BOUNTY : 0), 0);
-  return Math.max(0, earned - purchases + events);
+  const runeCost = Object.values(wallet.carry ?? {}).filter(card => card?.source === 'shop').length * IMBUE_PRICE;
+  return Math.max(0, earned - purchases + events - runeCost);
 }
 
 /** One opening per slot and day, whether the result is jewelry or another outcome. */
 export const openedShopBoxes = (day: string, wallet: ShopWallet): MysteryBoxId[] =>
   MYSTERY_BOX_IDS.filter(box => wallet.boxes[day + ':' + box] || wallet.events?.[day + ':' + box]);
 
+/** Existing unclaimed half-life outcomes adopt the new payout; issued runs keep their baseline. */
+export function pendingPandoraEffect(wallet: ShopWallet): PandoraRunEffect | undefined {
+  const next = Object.values(wallet.events ?? {}).find(event => event?.kind === 'run' && !event.runId);
+  if (next?.kind !== 'run') return undefined;
+  return next.effect === 'half-life' ? 'half-life-double-gold' : next.effect;
+}
+
 /** Attach the oldest unused effect to an issued run. */
 export function assignPandoraEffect(wallet: ShopWallet, runId: string) {
   for (const [receipt, event] of Object.entries(wallet.events ?? {})) {
     if (event?.kind !== 'run' || event.runId) continue;
-    const effect: PandoraRunEffect = event.effect;
-    return { effect, wallet: { ...wallet, events: { ...wallet.events, [receipt]: { ...event, runId } } } };
+    const effect: PandoraRunEffect = event.effect === 'half-life' ? 'half-life-double-gold' : event.effect;
+    return { effect, wallet: { ...wallet, events: { ...wallet.events, [receipt]: { ...event, effect, runId } } } };
   }
   return undefined;
 }
@@ -185,6 +209,12 @@ export function claimPandoraBounty(wallet: ShopWallet, runId: string): ShopWalle
 /** A daily box can only be opened once. */
 export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: ShopOffer, day: string, entropy: string) {
   const balance = shopGoldBalance(earned, wallet);
+  if (offer.slot === 'card') {
+    const id = 'shop:' + day;
+    if (wallet.carry?.[id]) return { status: 'owned' } as const;
+    if (balance < offer.price) return { status: 'short' } as const;
+    return { status: 'buy', next: { ...wallet, carry: { ...wallet.carry, [id]: { id, cardId: offer.cardId, source: 'shop' } } } } as const;
+  }
   if (offer.slot !== 'box') {
     if (wallet.items[offer.id] !== undefined) return { status: 'owned' } as const;
     if (balance < offer.price) return { status: 'short' } as const;
@@ -217,6 +247,19 @@ export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: Sho
 /** Look up the actual item tier, not the box's presentation tier. */
 function shopRarity(id: ShopRingId): RingRarity {
   return rings.find(ring => ring.id === id)?.rarity ?? AMULET_IDS.map(key => ({ key, rarity: AMULET_RARITY[key] })).find(entry => entry.key === id)!.rarity;
+}
+
+/** Spend a single inventory card while issuing the run that receives it. */
+export function takeCarryCard(wallet: ShopWallet, receipt: string | undefined, runId: string) {
+  const card = availableCarryCards(wallet.carry).find(candidate => candidate.id === receipt);
+  return card && { card, wallet: { ...wallet, carry: { ...wallet.carry, [card.id]: { ...card, spent: runId } } } };
+}
+
+/** Put a surrendered card into Inventory after a verified death, once per run. */
+export function recoverCardFromHell(wallet: ShopWallet, runId: string, cardId: CardId): ShopWallet | undefined {
+  const id = 'hell:' + runId;
+  if (wallet.carry?.[id]) return undefined;
+  return { ...wallet, carry: { ...wallet.carry, [id]: { id, cardId, source: 'ferryman' } } };
 }
 
 /** When every item is owned the box can still give a non-jewelry outcome. */

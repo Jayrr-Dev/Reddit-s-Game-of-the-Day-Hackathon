@@ -1,5 +1,5 @@
 // --- PANDORA OUTCOMES ---
-export const PANDORA_RUN_EFFECTS = ['lasting-vigor', 'brittle-blood', 'half-life'] as const;
+export const PANDORA_RUN_EFFECTS = ['lasting-vigor', 'brittle-blood', 'half-life', 'half-life-double-gold'] as const;
 export type PandoraRunEffect = (typeof PANDORA_RUN_EFFECTS)[number];
 export type PandoraEvent =
   | { kind: 'gold'; change: number }
@@ -15,6 +15,7 @@ export const PANDORA_RUN_COPY = {
   'lasting-vigor': { title: 'Borrowed Vitality', detail: 'Start your next conquest with +12 max HP.' },
   'brittle-blood': { title: 'Withered Blood', detail: 'Start your next conquest with 10 less max HP.' },
   'half-life': { title: 'The Toll of Half-Life', detail: 'Start your next conquest at half HP. Clear your first battle to earn 160 Gold.' },
+  'half-life-double-gold': { title: 'The Toll of Half-Life', detail: 'Start your next conquest at half HP. Earn double Gold from every battle you win.' },
 } as const satisfies Record<PandoraRunEffect, { title: string; detail: string }>;
 
 /** Parse a trusted run modifier from a stored baseline. */
@@ -43,5 +44,5 @@ export function drawPandoraEvent(roll: number, balanceAfterPrice: number): Pando
   if (roll < 36) return { kind: 'gold', change: -Math.min(PANDORA_GOLD_LOSS_CAP, balanceAfterPrice) };
   if (roll < 61) return { kind: 'run', effect: 'lasting-vigor' };
   if (roll < 81) return { kind: 'run', effect: 'brittle-blood' };
-  return { kind: 'run', effect: 'half-life' };
+  return { kind: 'run', effect: 'half-life-double-gold' };
 }

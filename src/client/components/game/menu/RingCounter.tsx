@@ -3,18 +3,24 @@ import { apiClient } from '../../../lib/apiClient';
 import { useAccountId } from '../../../lib/accountId';
 import { GoldCoins } from '../profileParts';
 import type { RingShopResponse, ShopReward } from '../../../../shared/types/api';
+import { getItem, itemQuantity, REALM_APPLE, SHOP_APPLE, type ItemBag, type ShopApple } from '../../../../shared/game/items';
+import { getCard } from '../../../../shared/game/cards';
+import type { CarryCard } from '../../../../shared/game/carryCards';
+import { Glyph } from '../../ui/Glyph';
 import type { ShopOfferId, ShopRingId } from '../../../../shared/game/ringShop';
 import { MysteryChest, MysteryReveal } from './MysteryReveal';
 import { ShopJewelryArt } from './ShopJewelryArt';
 import './ring-counter.css';
 
-export function RingCounter({ onSale, onBuyingChange, onTestInventory }: { onSale: () => void; onBuyingChange: (buying: boolean) => void; onTestInventory?: (items: ShopRingId[], visit: string) => void }) {
+export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory }: { onSale: () => void; onReroll: (item: ShopApple) => void; onBuyingChange: (buying: boolean) => void; onTestInventory?: (items: ShopRingId[], visit: string, carry: CarryCard[]) => void }) {
   const account = useAccountId();
   const busyRef = useRef(false);
   const testVisitRef = useRef<string>(undefined);
   const [shop, setShop] = useState<RingShopResponse>();
   const [busy, setBusy] = useState<ShopOfferId>();
   const [selected, setSelected] = useState<ShopOfferId>();
+  const [apples, setApples] = useState<ItemBag>({});
+  const [offeringApple, setOfferingApple] = useState<ShopApple>();
   const [reward, setReward] = useState<ShopReward>();
   const [note, setNote] = useState('');
   const [error, setError] = useState(false);
@@ -23,12 +29,13 @@ export function RingCounter({ onSale, onBuyingChange, onTestInventory }: { onSal
     if (!account) return;
     let active = true;
     setError(false);
+    apiClient.profile().then(result => { if (active) setApples(result.items); }).catch(() => {});
     apiClient.ringShop(testVisitRef.current).then(result => {
       if (!active) return;
       setShop(result);
       if (result.testVisit) testVisitRef.current = result.testVisit;
       else if (testVisitRef.current) setNote('Test visit expired. Reopen the Shop.');
-      if (result.testVisit) onTestInventory?.(result.owned, result.testVisit);
+      if (result.testVisit) onTestInventory?.(result.owned, result.testVisit, result.carryCards ?? []);
     }).catch(() => {
       if (active) setError(true);
     });
@@ -51,6 +58,14 @@ export function RingCounter({ onSale, onBuyingChange, onTestInventory }: { onSal
     };
   }, [selected]);
 
+  useEffect(() => {
+    const hour = 60 * 60 * 1000;
+    const tick = () => { if (!busyRef.current) setRetry(value => value + 1); };
+    let timer: number;
+    const first = window.setTimeout(() => { tick(); timer = window.setInterval(tick, hour); }, hour - Date.now() % hour + 800);
+    return () => { window.clearTimeout(first); window.clearInterval(timer); };
+  }, []);
+
   /** Revalidate the offer, price and wallet on the server before confirming a sale. */
   async function buy(id: ShopOfferId) {
     if (!shop || busyRef.current) return;
@@ -61,8 +76,8 @@ export function RingCounter({ onSale, onBuyingChange, onTestInventory }: { onSal
     try {
       const result = await apiClient.buyRing({ ringId: id, offerDay: shop.offerDay, ...(shop.testVisit && { testVisit: shop.testVisit }) });
       setShop(result.shop);
-      if (result.shop.testVisit) onTestInventory?.(result.shop.owned, result.shop.testVisit);
-      if (result.status === 'bought') onSale();
+      if (result.shop.testVisit) onTestInventory?.(result.shop.owned, result.shop.testVisit, result.shop.carryCards ?? []);
+      if (result.status === 'bought' && !result.reward) onSale();
       if (result.reward) setReward(result.reward);
       setNote(result.status === 'bought' ? (result.shop.testVisit ? 'Test result applies to this visit only.' : 'Bought. Equip it in Profile.') :
         result.status === 'owned' ? 'This offer is no longer available.' :
@@ -79,17 +94,52 @@ export function RingCounter({ onSale, onBuyingChange, onTestInventory }: { onSal
     }
   }
 
+  /** Offer a real item; leave the account Gold and admin visit intact. */
+  async function giftApple(item: ShopApple) {
+    if (!itemQuantity(apples, item) || busyRef.current) return;
+    busyRef.current = true;
+    onBuyingChange(true);
+    setOfferingApple(item);
+    setNote('');
+    try {
+      const result = await apiClient.offerApple(item);
+      setApples(result.items);
+      setSelected(undefined);
+      onReroll(item);
+      setNote(item === REALM_APPLE ? 'Realm Apple given. Legendary stock refreshed.' : 'Apple given. Stock refreshed.');
+      setRetry(value => value + 1);
+    } catch {
+      setNote('The apple could not be offered. Check your Inventory.');
+    } finally {
+      busyRef.current = false;
+      onBuyingChange(false);
+      setOfferingApple(undefined);
+    }
+  }
+
   if (!account) return <p className="ring-counter-state">Sign in to buy jewelry with Gold.</p>;
   if (error) return <div className="ring-counter-state">Could not load the shop. <button type="button" onClick={() => setRetry(value => value + 1)}>Retry</button></div>;
   if (!shop) return <p className="ring-counter-state" role="status">Loading stock.</p>;
-  return <section className="ring-counter" aria-label="Jewelry for sale">
+  return <section className="ring-counter" aria-label="Metatron's stock">
     <span className="ring-counter-gold" aria-label={shop.gold + (shop.testVisit ? ' test Gold available' : ' Gold available')}><GoldCoins /> {shop.gold.toLocaleString()} {shop.testVisit ? 'Test Gold' : 'Gold'}</span>
+    <div className="shop-apple-offer">
+      {([SHOP_APPLE, REALM_APPLE] as const).map(item => {
+        const count = itemQuantity(apples, item);
+        const name = item === SHOP_APPLE ? 'Apple' : getItem(item).name;
+        return count > 0 && <div key={item} className="shop-apple-row">
+          <span>{name}: {count}</span>
+          <button type="button" className="ring-counter-price" disabled={busy !== undefined || offeringApple !== undefined}
+            title={item === REALM_APPLE ? 'Reroll with a guaranteed Legendary' : 'Reroll the shop'}
+            onClick={() => void giftApple(item)}>{offeringApple === item ? 'Giving…' : 'Give ' + name}</button>
+        </div>;
+      })}
+    </div>
     <div className="ring-counter-layer">
       <div className="ring-counter-frame">
         <ul className="ring-counter-stock">
           {shop.offers.map(offer => {
             const box = offer.slot === 'box';
-            const owned = box ? shop.opened.includes(offer.id) : shop.owned.includes(offer.id);
+            const owned = offer.slot === 'box' ? shop.opened.includes(offer.id) : offer.slot === 'card' ? shop.imbueBought : shop.owned.includes(offer.id);
             const inspecting = selected === offer.id;
             const detailsId = 'shop-details-' + offer.id;
             const short = shop.gold < offer.price;
@@ -97,15 +147,15 @@ export function RingCounter({ onSale, onBuyingChange, onTestInventory }: { onSal
               <span className="ring-counter-name" title={offer.name}>{offer.name}</span>
               <button type="button" className="ring-counter-disc" aria-expanded={inspecting} aria-controls={inspecting ? detailsId : undefined} data-shop-inspect
                 aria-label={'Inspect ' + offer.name} onClick={() => { setNote(''); setSelected(previous => previous === offer.id ? undefined : offer.id); }}>
-                {box ? <MysteryChest /> : <ShopJewelryArt offer={offer} />}
+                {offer.slot === 'box' ? <MysteryChest /> : offer.slot === 'card' ? <Glyph name="altar" className="size-8" /> : <ShopJewelryArt offer={offer} />}
               </button>
               {inspecting && <div className="ring-counter-popover" id={detailsId} data-shop-inspect>
                 <strong>{offer.name}</strong>
-                {!box && <small>{offer.rarity} {offer.slot === 'amulet' ? 'Amulet' : 'Ring'}</small>}
+                {!box && <small>{offer.rarity} {offer.slot === 'card' ? (getCard(offer.cardId).type === 'imbue' ? 'Imbue Card' : 'Card') : offer.slot === 'amulet' ? 'Amulet' : 'Ring'}</small>}
                 <p>{offer.flavor}</p>
-                <span>{box ? 'May give jewelry, change your Gold, or bless or curse your next conquest.' : offer.effect ?? 'Cosmetic'}</span>
+                <span>{offer.slot === 'box' ? 'May give jewelry, change your Gold, or bless or curse your next conquest.' : offer.slot === 'card' ? 'Added to Inventory. Use Bring Card when starting a conquest.' : offer.effect ?? 'Cosmetic'}</span>
               </div>}
-              <button type="button" className="ring-counter-price" disabled={owned || short || busy !== undefined}
+              <button type="button" className="ring-counter-price" disabled={owned || short || busy !== undefined || offeringApple !== undefined}
                 aria-label={owned ? offer.name + (box ? ' opened' : ' owned') : (box ? 'Open ' : 'Buy ') + offer.name + ' for ' + offer.price + ' Gold' + (short ? ', not enough Gold' : '')}
                 onClick={() => void buy(offer.id)}>
                 {owned ? box ? 'Opened' : 'Owned' : busy === offer.id ? box ? 'Opening' : 'Buying' : <><GoldCoins /> {offer.price}</>}
@@ -118,6 +168,6 @@ export function RingCounter({ onSale, onBuyingChange, onTestInventory }: { onSal
         </div>
       </div>
     </div>
-    {reward && <MysteryReveal reward={reward} onClose={() => setReward(undefined)} />}
+    {reward && <MysteryReveal reward={reward} onClose={() => { setReward(undefined); onSale(); }} />}
   </section>;
 }

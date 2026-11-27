@@ -6,6 +6,9 @@
 // ===================================================================
 
 export const redisKeys = {
+  appleFinds: (userId: string) => `profile:apple-drops:v1:${userId}`,
+  premiumShopRefresh: (userId: string) => `profile:premium-shop:v1:${userId}`,
+  shopBossClears: (userId: string) => `profile:shop-boss-runs:v1:${userId}`,
   adminShopVisit: (userId: string, visit: string) => `profile:test-shop:v1:${userId}:${visit}`,
   ringPurchases: (userId: string) => `profile:ring-purchases:v1:${userId}`,
   victories: (userId: string) => `progress:v1:${userId}:wins`,

@@ -30,7 +30,7 @@ import {
  * - altar:    the dark altar; take a powerful card
  * - champion: the region's guardian; beating it conquers the region
  */
-export type StopKind = 'horde' | 'elite' | 'grave' | 'altar' | 'champion';
+export type StopKind = 'horde' | 'elite' | 'grave' | 'altar' | 'champion' | 'greed-bargain';
 
 export type Stop = {
   optionIndex?: number;
@@ -140,7 +140,7 @@ const secondPathWeights = (
  * Otherwise path 1 is always a horde (so progress is always possible)
  * and path 2 is a weighted roll.
  */
-export const routeOptions = (dailyKey: string, stop: number): Stop[] => {
+export const routeOptions = (dailyKey: string, stop: number, allowGreed = false): Stop[] => {
   const seed = stopSeed(dailyKey, 'route', stop);
   if (isChampionStop(stop)) return [buildStop(seed, 'champion', stop)[0]];
 
@@ -149,6 +149,8 @@ export const routeOptions = (dailyKey: string, stop: number): Stop[] => {
     afterFirst,
     secondPathWeights(stop)
   );
+  if (allowGreed && stop >= 3 && nextInt(stopSeed(dailyKey, 'greed-bargain', stop), 100)[0] < 9)
+    return [first, { kind: 'greed-bargain', heroIds: [] }];
   const [second] = buildStop(afterKind, secondKind, stop);
   return [first, second];
 };

@@ -130,3 +130,60 @@
 
 .shop-mystery[data-curse] { --reveal-ink: #ef9d9c; }
 .shop-reward-sigil .profile-gold-icon { width: 2.5rem; height: 2.5rem; }
+
+.shop-apple-offer { position: absolute; z-index: 2; bottom: 1rem; left: 1rem; display: grid; gap: .3rem; }
+.shop-apple-row { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; width: fit-content; padding: .18rem .3rem .18rem .45rem; background: #211727f2; border-radius: .35rem; color: #fff0d0; font-size: .72rem; }
+.shop-apple-row .ring-counter-price { min-width: auto; margin: 0; padding-inline: .45rem; }
+
+/* Pandora's ritual: seal, rising motes, a held beat, then release. */
+.shop-mystery { --chest-energy: .46; }
+.shop-mystery[data-rarity="Rare"] { --chest-energy: .65; }
+.shop-mystery[data-rarity="Epic"] { --chest-energy: .82; }
+.shop-mystery[data-rarity="Legendary"] { --chest-energy: 1; }
+.shop-mystery-opening .shop-mystery-art { width: 7.3rem; height: 6.4rem; animation: pandora-rise var(--opening-time) linear both; }
+.shop-mystery-opening .shop-chest-lid { animation: pandora-lid var(--opening-time) ease-out both; }
+.shop-chest-seam { opacity: .3; }
+.shop-mystery-opening .shop-chest-seam { animation: pandora-flare var(--opening-time) linear both; transform-box: fill-box; transform-origin: center; }
+.shop-mystery-opening .shop-chest-glow {
+  width: 9rem; aspect-ratio: 1; inset: auto; background: radial-gradient(circle, var(--reveal-ink), transparent 69%);
+  transform-origin: center; animation: pandora-flare var(--opening-time) linear both;
+}
+.shop-chest-circle {
+  position: absolute; width: 7rem; aspect-ratio: 1; z-index: -1; border-radius: 50%; border: 1px solid var(--reveal-ink);
+  outline: 1px dashed var(--reveal-ink); outline-offset: 4px; animation: pandora-ring var(--opening-time) linear both;
+}
+.shop-chest-circle-inner { width: 5.4rem; border-style: dashed; outline-offset: -5px; }
+.shop-chest-particles { position: absolute; top: 50%; left: 50%; z-index: 1; pointer-events: none; }
+.shop-mystery-opening .shop-chest-particles i {
+  position: absolute; inset: auto; width: var(--size); height: calc(var(--size) * 2); background: var(--reveal-ink);
+  box-shadow: 0 0 7px var(--reveal-ink); border-radius: 90% 0;
+  animation: pandora-mote var(--opening-time) ease-out both;
+}
+@keyframes pandora-rise {
+  0%, 23% { transform: none; } 34% { transform: translateY(-3px); } 44% { transform: rotate(-2deg) translateY(-4px); }
+  51% { transform: rotate(2deg) translateY(-5px); } 56% { transform: rotate(-3deg) translateY(-6px); }
+  61% { transform: rotate(3deg) translateY(-7px); } 65% { transform: rotate(-4deg) translateY(-8px); }
+  70% { transform: rotate(3deg) translateY(-8px); } 76%, 81% { transform: translateY(-8px); }
+  87% { transform: translateY(-11px) scale(1.1); } 100% { transform: translateY(-6px); }
+}
+@keyframes pandora-lid {
+  0%, 79% { transform: none; } 88% { transform: translateY(-12px) rotate(-33deg); }
+  100% { transform: translateY(-9px) rotate(-28deg); }
+}
+@keyframes pandora-flare {
+  0%, 15% { transform: scale(.5); opacity: 0; } 37% { opacity: .26; }
+  67% { transform: scale(.75); opacity: .58; } 79% { transform: scale(.8); opacity: .28; }
+  87% { transform: scale(1.24); opacity: var(--chest-energy); } 100% { transform: scale(1.55); opacity: .33; }
+}
+@keyframes pandora-ring {
+  0%, 17% { transform: scale(.52) rotate(-20deg); opacity: 0; } 48% { opacity: .4; }
+  76% { transform: scale(.88) rotate(53deg); opacity: var(--chest-energy); }
+  100% { transform: scale(1.38) rotate(99deg); opacity: 0; }
+}
+@keyframes pandora-mote {
+  0%, 58% { transform: rotate(var(--angle)) translateY(-10px); opacity: 0; }
+  76%, 81% { transform: rotate(var(--angle)) translateY(-23px); opacity: .42; }
+  88% { opacity: var(--chest-energy); }
+  100% { transform: rotate(var(--angle)) translateY(calc(-1 * var(--distance))) scale(.5); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .shop-mystery-opening { visibility: hidden; } }

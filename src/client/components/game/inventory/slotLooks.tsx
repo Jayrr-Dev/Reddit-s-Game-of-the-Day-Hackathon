@@ -26,7 +26,9 @@ export const slotLook = (slot: InventorySlot): SlotLook => {
   switch (slot.kind) {
     case 'item':
       return {
-        icon: <Glyph name={slot.icon} className="inv-glyph" />,
+        icon: (slot.id === 'metatrons-apple' || slot.id === 'realm-apple')
+          ? <svg className="inv-glyph" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 13c-8-6-16 0-15 9 1 9 6 15 11 15 2 0 3-1 4-1s3 1 5 1c5 0 10-7 10-15 0-9-7-14-15-9Z" fill={slot.id === 'realm-apple' ? '#a4825a' : '#ca6363'}/><path d="M20 13Q18 5 24 3" fill="none" stroke="#977250" strokeWidth="2"/><path d="M21 10Q23 3 31 5Q29 12 21 10Z" fill="#9ca968"/><path d="M9 22q0-6 5-6" stroke="#f8bd9b" strokeWidth="2" fill="none" strokeLinecap="round"/></svg>
+          : <Glyph name={slot.icon} className="inv-glyph" />,
         subtitle: `Consumable · ${slot.quantity} owned`,
         details: <p className="cs-item-lore">{slot.description}</p>,
       };

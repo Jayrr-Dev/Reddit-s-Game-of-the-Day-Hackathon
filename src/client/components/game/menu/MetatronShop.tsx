@@ -1,4 +1,6 @@
 import { useEffect, useId, useState } from 'react';
+import { REALM_APPLE, type ShopApple } from '../../../../shared/game/items';
+import type { CarryCard } from '../../../../shared/game/carryCards';
 import type { ShopRingId } from '../../../../shared/game/ringShop';
 import shopAmbient from '../../../assets/npcs/metatron-shop-ambient.webp';
 import shopFrame from '../../../assets/npcs/metatron-shop-frame.webp';
@@ -57,8 +59,28 @@ function MetatronIdle() {
   );
 }
 
-export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void; onTestInventory?: (items: ShopRingId[], visit: string) => void }) => {
+/** Fade each letter without letting a word break across lines. Then dismiss the bubble. */
+function ShopSpeech({ text, isReply }: { text: string; isReply: boolean }) {
+  const [leaving, setLeaving] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  let index = 0;
+  useEffect(() => {
+    const readMs = 4200 + text.length * 24;
+    const fade = window.setTimeout(() => setLeaving(true), readMs);
+    const remove = window.setTimeout(() => setHidden(true), readMs + 360);
+    return () => { window.clearTimeout(fade); window.clearTimeout(remove); };
+  }, [text]);
+  if (hidden) return null;
+  return <p className="metatron-greeting" data-purchase={isReply || undefined} data-leaving={leaving || undefined} aria-label={text} aria-hidden={leaving || undefined}>
+    <span aria-hidden="true">{text.split(/(\s+)/).map((word, position) => /^\s+$/.test(word) ? word : <span key={position} className="metatron-word">
+      {Array.from(word, (letter, local) => <span key={local} className="metatron-letter" style={{ animationDelay: 200 + index++ * 22 + 'ms' }}>{letter}</span>)}
+    </span>)}</span>
+  </p>;
+}
+
+export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void; onTestInventory?: (items: ShopRingId[], visit: string, carry: CarryCard[]) => void }) => {
   const [line, setLine] = useState<number | null>(null);
+  const [reaction, setReaction] = useState<{ serial: number; apple?: ShopApple }>({ serial: 0 });
   const [buying, setBuying] = useState(false);
   const [waited, setWaited] = useState<number | null>(null);
   const [showWait, setShowWait] = useState(false);
@@ -69,13 +91,22 @@ export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void
       setShowWait(true);
     }, 25_000);
     return () => window.clearTimeout(timer);
-  }, [buying, line, waited]);
+  }, [buying, reaction.serial, waited]);
   function greetPurchase() {
+    setReaction(previous => ({ serial: previous.serial + 1 }));
     setShowWait(false);
     const roll = Math.random();
     setLine(previous => previous === null ? Math.floor(roll * SALE_LINES.length) :
       (previous + 1 + Math.floor(roll * (SALE_LINES.length - 1))) % SALE_LINES.length);
   }
+  function greetReroll(apple: ShopApple) {
+    setShowWait(false);
+    setReaction(previous => ({ serial: previous.serial + 1, apple }));
+  }
+  const speech = showWait && waited !== null ? WAIT_LINES[waited] :
+    reaction.apple === REALM_APPLE ? 'Dry as grave sand. I’d forgotten the taste. Come, see what I’ve kept under the cloth.' :
+    reaction.apple ? 'An apple. You remembered. Let me see what else I have.' :
+    line === null ? 'Greetings.' : SALE_LINES[line];
   return (
   <section
     role="dialog"
@@ -90,7 +121,7 @@ export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void
       className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-contain"
     />
 
-    <MetatronIdle key={line ?? 'hello'} />
+    <MetatronIdle key={reaction.serial} />
 
     <img
       src={shopAmbient}
@@ -103,9 +134,7 @@ export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void
 
     <div className="metatron-dialogue-layer">
       <div className="metatron-dialogue-frame">
-        <p key={showWait ? 'wait' : line ?? 'hello'} className="metatron-greeting" data-purchase={line !== null || showWait || undefined}>
-          {showWait && waited !== null ? WAIT_LINES[waited] : line === null ? 'Greetings.' : SALE_LINES[line]}
-        </p>
+        <ShopSpeech key={showWait ? 'wait' : reaction.serial} isReply={reaction.serial > 0 || showWait} text={speech ?? ''} />
       </div>
     </div>
 
@@ -116,7 +145,7 @@ export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void
       <p className="text-xs text-ink">Metatron the Fallen Angel</p>
     </header>
 
-    <RingCounter onSale={greetPurchase} onBuyingChange={setBuying} {...(onTestInventory && { onTestInventory })} />
+    <RingCounter onSale={greetPurchase} onReroll={greetReroll} onBuyingChange={setBuying} {...(onTestInventory && { onTestInventory })} />
     <footer className="flex items-end justify-end gap-2">
       <Button variant="menu" className="max-w-24 shrink-0" onClick={onClose} disabled={buying}>
         Back

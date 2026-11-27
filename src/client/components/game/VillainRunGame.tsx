@@ -8,7 +8,8 @@ import { playSound } from '../../lib/gameAudio';
 import { useEffect, useRef, useState } from 'react';
 import { regionIndexOf, regionName } from '../../../shared/game/kingdom';
 import { PANDORA_CURSE_BOUNTY, PANDORA_RUN_COPY } from '../../../shared/game/pandora';
-import { goldRewardFor } from '../../../shared/game/gold';
+import { getItem } from '../../../shared/game/items';
+import { appleAtVictory, goldRewardFor } from '../../../shared/game/gold';
 import { BattleCharacterSheet } from './BattleCharacterSheet';
 import {
   computeScore,
@@ -21,6 +22,8 @@ import { CombatView } from './CombatView';
 import { GraveView } from './GraveView';
 import { OfferView } from './OfferView';
 import { routeLocation } from './routeLocation';
+import { GreedBargain } from './GreedBargain';
+import { getCard } from '../../../shared/game/cards';
 import { RouteView } from './RouteView';
 import { MAP_IMAGES } from './combat/Backdrop';
 import { RunHud } from './RunHud';
@@ -44,6 +47,8 @@ const PhaseBody = ({ run, runId, onAction }: VillainRunGameProps) => {
   const { phase } = run;
 
   switch (phase.kind) {
+    case 'greed-bargain':
+      return <GreedBargain run={run} onAction={onAction} />;
     case 'route':
       return <RouteView stopNumber={run.stop} options={phase.options} onAction={onAction} />;
     case 'combat': {
@@ -68,9 +73,9 @@ const PhaseBody = ({ run, runId, onAction }: VillainRunGameProps) => {
       return (
         <OfferView
           title="Spoils of war"
-          goldReward={runId && phase.source ? goldRewardFor(runId, run.stop, phase.source) : undefined}
+          goldReward={runId && phase.source ? goldRewardFor(runId, run.stop, phase.source, run.pandoraEffect) : undefined}
           rerolls={phase.rerolled ? 0 : 1}
-          subtitle="Add one card to your deck."
+          subtitle={phase.bonusImbue ? 'Special drop: ' + getCard(phase.bonusImbue).name + ' added. Choose one more card.' : 'Add one card to your deck.'}
           unlockedRingSlot={run.storyRingUnlocked}
           offers={phase.offers}
           onAction={onAction}
@@ -112,6 +117,7 @@ export const VillainRunGame = ({ run, runId, onAction }: VillainRunGameProps) =>
   const [readyWave, setReadyWave] = useState(run.stop);
   const lastPhase = useRef(run.phase.kind);
   const leveledAtReward = run.phase.kind === 'reward' && run.phase.leveledUp;
+  const apple = runId && run.phase.kind === 'reward' && run.phase.source ? appleAtVictory(runId, run.stop, run.phase.source) : undefined;
   const startingNextWave = run.phase.kind === 'combat' && readyWave !== run.stop;
 
   useEffect(() => {
@@ -159,6 +165,9 @@ export const VillainRunGame = ({ run, runId, onAction }: VillainRunGameProps) =>
             <strong>Level up! Level {run.character.level}</strong>
             <span>Open character sheet</span>
           </button>
+        )}
+        {apple && (
+          <p className="mb-2 text-center text-xs text-accent">Found: {getItem(apple).name}. Give it to Metatron to refresh the shop.</p>
         )}
         {run.pandoraEffect && run.stop === 1 && run.phase.kind === 'route' && (
           <p className="mb-2 text-center text-xs text-ink"><strong>{PANDORA_RUN_COPY[run.pandoraEffect].title}:</strong> {PANDORA_RUN_COPY[run.pandoraEffect].detail.replace('your next conquest', 'this conquest')} This run is unranked.</p>

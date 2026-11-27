@@ -291,6 +291,7 @@ export const STOP_LOOK: Record<StopKind, Look> = {
   elite: { glyph: 'skull', toneClass: 'text-wrath' },
   champion: { glyph: 'crown', toneClass: 'text-accent' },
   grave: { glyph: 'grave', toneClass: 'text-guard' },
+  'greed-bargain': { glyph: 'altar', toneClass: 'text-accent' },
   altar: { glyph: 'altar', toneClass: 'text-hex' },
 };
 

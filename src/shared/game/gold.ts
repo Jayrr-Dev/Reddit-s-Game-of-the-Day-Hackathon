@@ -1,3 +1,5 @@
+import { REALM_APPLE, SHOP_APPLE, type ShopApple } from './items.ts';
+import type { PandoraRunEffect } from './pandora.ts';
 import type { StopKind } from './kingdom.ts';
 import { hashSeed, nextInt } from './rng.ts';
 
@@ -11,10 +13,18 @@ export const GOLD_RANGES = {
 } as const;
 
 // Seeded per attempt and stop. Refreshing, rerolling cards or replaying the run cannot reroll Gold.
-export function goldRewardFor(runId: string, stop: number, encounter: GoldEncounter): number {
+export function goldRewardFor(runId: string, stop: number, encounter: GoldEncounter, effect?: PandoraRunEffect): number {
   const [min, max] = GOLD_RANGES[encounter];
   const [roll] = nextInt(hashSeed(`villain-run:gold:${runId}:${stop}`), max - min + 1);
-  return min + roll;
+  return (min + roll) * (effect === 'half-life-double-gold' ? 2 : 1);
+}
+
+/** A verified ordinary victory occasionally drops an Apple for Metatron. */
+export function appleAtVictory(runId: string, stop: number, encounter: GoldEncounter): ShopApple | undefined {
+  if (encounter === 'champion') return undefined;
+  const [realm] = nextInt(hashSeed(`villain-run:realm-apple:${runId}:${stop}`), 100);
+  if (realm < 2) return REALM_APPLE;
+  return nextInt(hashSeed(`villain-run:apple:${runId}:${stop}`), 100)[0] < 10 ? SHOP_APPLE : undefined;
 }
 
 // Older victory records stored a nonnegative wave index and paid a flat 10 Gold.

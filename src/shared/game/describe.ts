@@ -478,7 +478,7 @@ const durationSuffix = (duration: Duration | undefined): string =>
 export const IMBUE_INFO: StatusInfo = {
   label: 'Imbue',
   description:
-    'Gives another card in your hand this keyword or effect\nAn effect lands on every hit that lands\nThen **Remove** this card',
+    'Upgrades another card in your hand for this run (up to 3)\nThen **Destroy** this Imbue card',
 };
 /** What Pull N and Knockback N mean, wherever they show. */
 export const PULL_INFO: StatusInfo = {

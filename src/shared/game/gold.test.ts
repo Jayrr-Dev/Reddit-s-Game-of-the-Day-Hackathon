@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { drawPandoraEvent } from './pandora.ts';
 import { GOLD_RANGES, goldFromVictoryScore, goldRewardFor } from './gold.ts';
 
 test('Gold rolls vary by run and stay within the encounter tier', () => {
@@ -15,4 +16,15 @@ test('Gold rolls vary by run and stay within the encounter tier', () => {
 
 test('Legacy wins retain their ten Gold and new records preserve their exact roll', () => {
   assert.equal([0, 2, 95, -10, -35, -105].map(goldFromVictoryScore).reduce((a, b) => a + b, 0), 180);
+});
+
+test('new Pandora half-life rolls double every verified battle payout', () => {
+  assert.deepEqual(drawPandoraEvent(99, 200), { kind: 'run', effect: 'half-life-double-gold' });
+  for (const encounter of ['horde', 'elite', 'champion'] as const) {
+    for (let stop = 1; stop <= 10; stop++) {
+      const base = goldRewardFor('run', stop, encounter);
+      assert.equal(goldRewardFor('run', stop, encounter, 'half-life-double-gold'), base * 2);
+      assert.equal(goldRewardFor('run', stop, encounter, 'half-life'), base);
+    }
+  }
 });

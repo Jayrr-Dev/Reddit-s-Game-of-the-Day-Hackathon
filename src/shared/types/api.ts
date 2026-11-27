@@ -5,6 +5,8 @@
 // both sides instead of failing at runtime.
 // ===================================================================
 
+import type { CardId } from '../game/cards.ts';
+import type { CarryCard } from '../game/carryCards.ts';
 import type { PandoraRunEffect } from '../game/pandora.ts';
 import type { ShopReward, ShopOffer, ShopOfferId, ShopRingId, MysteryBoxId } from '../game/ringShop.ts';
 import type { RunAction, RunStats } from '../game/run.ts';
@@ -63,6 +65,8 @@ export type ProfileResponse = {
   /** Gold balance on the player account. */
   gold: number;
   shopRings: ShopRingId[];
+  carryCards: CarryCard[];
+  nextEffect?: PandoraRunEffect;
   items: import('../game/items.ts').ItemBag;
   /** What the player has unlocked in runs (Illusion Training content). */
   unlocks: import('../game/unlocks.ts').Unlocks;
@@ -91,12 +95,15 @@ export type RingShopResponse = {
   opened: MysteryBoxId[];
   collectedAll: boolean;
   testVisit?: string;
+  carryCards: CarryCard[];
+  nextEffect?: PandoraRunEffect;
+  imbueBought: boolean;
   owned: ShopRingId[];
 };
 export type BuyRingRequest = { ringId: ShopOfferId; offerDay: string; testVisit?: string };
 export type { ShopReward } from '../game/ringShop.ts';
 export type BuyRingResponse = { status: 'bought' | 'owned' | 'short' | 'stale' | 'retry'; shop: RingShopResponse; reward?: ShopReward };
-export type RunProfile = { id: string; wins: number; shopRings?: ShopRingId[]; pandoraEffect?: PandoraRunEffect };
+export type RunProfile = { id: string; wins: number; shopRings?: ShopRingId[]; pandoraEffect?: PandoraRunEffect; cardRules?: 1; carriedCard?: CardId };
 export type StartRunResponse = {
   build?: import('../game/playerBuild.ts').PlayerBuild;
   profile?: RunProfile;

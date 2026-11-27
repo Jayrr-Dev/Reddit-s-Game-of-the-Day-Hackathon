@@ -32,7 +32,7 @@ import { Screen } from './ui/Screen';
 // --- TYPES ---
 type SessionProps = {
   data: InitResponse;
-  startRun: (testVisit?: string) => Promise<StartRunResponse>;
+  startRun: (testVisit?: string, bringCard?: string) => Promise<StartRunResponse>;
   finishRun: (actions: RunAction[], runId?: string) => Promise<FinishRunResponse>;
 };
 
@@ -76,7 +76,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
   useRunJourney(run, isPlaying);
 
   /** Claims the run with the server (ranked or practice), then plays. */
-  const handleStart = async (build?:PlayerBuild) => {
+  const handleStart = async (build?: PlayerBuild, bringCard?: string) => {
     if (!canResume && !build) {
       playSound('conquestOpen', 1, .8);
       setChoosing(true);
@@ -86,7 +86,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
     setViewedDefeat(false);
     try {
       if (!canResume) {
-        const started = await startRun(shopTestVisit.current);
+        const started = await startRun(shopTestVisit.current, bringCard);
         restart(started.profile, build ?? started.build);
         playSound('conquestStart', 1, .7);
         reset();
@@ -103,7 +103,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
     }
   };
 
-  if (choosing) return <StarterPicker accountId={data.accountId} starting={isStarting} onBack={()=>setChoosing(false)} onConfirm={build=>void handleStart(build)} />;
+  if (choosing) return <StarterPicker accountId={data.accountId} starting={isStarting} onBack={()=>setChoosing(false)} onConfirm={(build, bringCard) => void handleStart(build, bringCard)} testVisit={shopTestVisit.current} />;
   if (isPracticing)
     return <SandboxView onExit={() => setIsPracticing(false)} />;
   if (!isPlaying) {

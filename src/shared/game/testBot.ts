@@ -85,6 +85,8 @@ export const botAction = (state: RunState): RunAction => {
     case 'reward':
     case 'altar':
       return { type: 'pickCard', offerIndex: 0 };
+    case 'greed-bargain':
+      return { type: 'greedChoice', cardIndex: null };
     case 'grave':
       return { type: 'graveChoice', choice: 'mourn' };
     case 'fallen':
