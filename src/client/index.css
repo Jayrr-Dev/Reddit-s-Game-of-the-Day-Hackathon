@@ -3656,6 +3656,11 @@ textarea,
 .home-player-badge > strong { grid-column: 1 / -1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #f7ca78; }
 .home-player-gold { display: inline-flex; align-items: center; gap: .22rem; min-width: 0; }
 .home-player-gold .profile-gold-icon { width: .88rem; height: .88rem; flex-shrink: 0; }
+@container (min-width: 720px) {
+  .home-menu-actions { display: grid; grid-template-columns: 2fr 1fr; padding-inline: 0; }
+  .home-menu-actions > nav { justify-self: center; }
+  .home-player-badge { max-width: calc(100% / 3 - 8.75rem); }
+}
 @container (max-width: 575px) {
   .home-player-badge { position: static; display: flex; align-items: center; width: fit-content; max-width: calc(100% - 1.3rem); min-height: 1.7rem; margin: 0 auto .5rem .65rem; }
   .home-player-badge > span { white-space: nowrap; }
