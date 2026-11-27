@@ -35,24 +35,27 @@ const SALE_LINES = [
 ] as const;
 
 const IDLE_LORE = [
-  "This is the Gateway of Souls. The road from Earth runs through here. Even the dead stop to browse.",
-  'Xaten granted seven mortals eternity. Once a century, he asks what they have done to earn it.',
-  'Heaven cast me into Hell for stealing from its treasury. Now I sell what I took to demons like you.',
-  'You think I count gold for pleasure? A little more, and I can buy my freedom.',
+  "Thou standest at the Gateway of Souls. This is the road from Earth. Even the dead stop to browse.",
+  'Xaten granted seven mortals eternity. Once a century, he calleth them to account.',
+  'For theft from Heaven’s treasury was I cast into Hell. To thy kind I sell what I stole.',
+  'Thinkest thou I count gold for pleasure? A little more, and I shall buy my freedom.',
   'Uriel held the Crimson Gate open until the last pilgrim crossed. I remember things like that.',
   'Zadkiel called every decree mercy. I waited an age to hear him tell the two apart.',
   'Cerviel could stand watch in three places. He still took the coldest post himself.',
   'Two suns at Zeruel’s command, and not an ounce of warmth in him.',
   "Cherubiel kept his broken halo. I suppose he never cared what Heaven called beautiful.",
-  'Raziel knew which shelf I emptied. He never said a word. I still wonder why.',
+  'Raziel knew which shelf I emptied. Not a word did he speak. I wonder at that still.',
   'Mori knew every knight by name. I have met archangels who cannot say the same.',
   'Seven hundred years the old lord held his seat. Xaten owed him not a day more.',
-  "Heaven won't let me back with so much as one stolen coin in my pocket.",
-  'My greatest treasure? The key to Heaven’s treasury. It will be the last thing I sell.',
+  "Not so much as one stolen coin may go back with me. Heaven was most particular on that point.",
+  "My greatest treasure? The key to Heaven's treasury. The last thing I shall part with.",
 ] as const;
 const FIRST_IDLE_MS = 25_000;
 const NEXT_IDLE_MS = 42_000;
 const GREETING_DELAY_MS = 2000;
+const LETTER_START_MS = 200;
+const LETTER_STEP_MS = 42;
+const LETTER_FADE_MS = 220;
 
 /** Draw each memory at most once per shop visit. */
 function shuffleIdleLore() {
@@ -104,7 +107,10 @@ function ShopSpeech({ text, isReply }: { text: string; isReply: boolean }) {
   const [hidden, setHidden] = useState(false);
   let index = 0;
   useEffect(() => {
-    const readMs = 4200 + text.length * 24;
+    const characters = text.replace(/\s/g, '').length;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const typeMs = reducedMotion ? 0 : LETTER_START_MS + Math.max(0, characters - 1) * LETTER_STEP_MS + LETTER_FADE_MS;
+    const readMs = typeMs + (text.length >= 65 ? 8400 : 6800);
     let stopVoice: (() => void) | undefined;
     const voice = window.setTimeout(() => {
       if (text === '...') return;
@@ -121,7 +127,7 @@ function ShopSpeech({ text, isReply }: { text: string; isReply: boolean }) {
   if (hidden) return null;
   return <p className="metatron-greeting" data-purchase={isReply || undefined} data-leaving={leaving || undefined} aria-label={text} aria-hidden={leaving || undefined}>
     <span aria-hidden="true">{text.split(/(\s+)/).map((word, position) => /^\s+$/.test(word) ? word : <span key={position} className="metatron-word">
-      {Array.from(word, (letter, local) => <span key={local} className="metatron-letter" style={{ animationDelay: 200 + index++ * 22 + 'ms' }}>{letter}</span>)}
+      {Array.from(word, (letter, local) => <span key={local} className="metatron-letter" style={{ animationDelay: LETTER_START_MS + index++ * LETTER_STEP_MS + 'ms' }}>{letter}</span>)}
     </span>)}</span>
   </p>;
 }
@@ -173,7 +179,7 @@ export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void
     setReaction(previous => ({ serial: previous.serial + 1, apple }));
   }
   const speech = showWait ? idleLore[idleCount - 1] :
-    reaction.apple === REALM_APPLE ? 'Dry as grave sand. I’d forgotten the taste. Come, see what I’ve kept under the cloth.' :
+    reaction.apple === REALM_APPLE ? 'Dry as grave sand. I had forgot the taste. Come, see what I have kept beneath the cloth.' :
     reaction.apple ? 'An apple. Thou didst remember. Stay a moment. I have more beneath the cloth.' :
     line === null ? greeting : SALE_LINES[line];
   return (
