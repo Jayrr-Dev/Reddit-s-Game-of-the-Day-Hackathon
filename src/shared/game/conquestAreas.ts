@@ -188,8 +188,16 @@ const SECRETS: readonly RoomEvent[] = [
   { title: 'The Buried Spring', detail: 'The water beneath the floor is still warm.', heal: 0.25, secret: true },
 ];
 
+const VILLAGE_EVENTS: readonly RoomEvent[] = [
+  { title: 'Wayside Inn', detail: 'The innkeeper left a tonic beside the cold hearth.', heal: 0.08 },
+  { title: 'Blacksmith', detail: 'A card lies hidden beneath the forge bellows.', reward: 'horde' },
+  { title: 'Village Shrine', detail: 'Every candle bears the same name. Someone has scratched it off the altar.' },
+];
+
 /** The daily seed fixes room outcomes; revisiting or reloading cannot reroll them. */
-export function areaRoomEvent(dailyKey: string, stop: number, site: AreaSite, battle: number, layout: AreaBattle, room: number, allowGreed: boolean): RoomEvent {
+export function areaRoomEvent(dailyKey: string, stop: number, site: AreaSite, battle: number, layout: AreaBattle, room: number, allowGreed: boolean, village = false): RoomEvent {
+  const building = village ? VILLAGE_EVENTS[room] : undefined;
+  if (building) return building;
   const seed = stopSeed(dailyKey, 'room:' + site.name + ':' + battle, stop);
   const [secretStart] = nextInt(seed, layout.rooms);
   const roomSeed = stopSeed(dailyKey, 'room-event:' + site.name + ':' + battle + ':' + room, stop);

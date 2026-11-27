@@ -1,6 +1,6 @@
 // ===================================================================
 // GAME ENTRYPOINT (devvit.json -> post.entrypoints.default)
-// The whole game plays inline in the post (512 px tall), not expanded.
+// One entry point serves both the tall inline post and expanded mode.
 // ===================================================================
 
 import { GameScreen } from './components/GameScreen';

@@ -178,7 +178,6 @@ export const VillainRunGame = ({ run, runId, onAction, onMainMenu }: VillainRunG
   const apple = runId && run.phase.kind === 'reward' && run.phase.source ? appleAtVictory(runId, run.stop, run.phase.source, run.area?.battle) : undefined;
   const startingNextWave = !run.area && run.phase.kind === 'combat' && readyWave !== run.stop;
   const wavePending = run.phase.kind === 'combat' && run.area?.wavePending === true;
-  const upcomingWave = run.area?.battles[run.area.battle]?.waves[run.area.wave + 1];
   useEffect(() => {
     if (!wavePending) return;
     const timer = window.setTimeout(() => onAction({ type: 'nextBattleWave' }), NEXT_WAVE_PAUSE_MS);
@@ -219,15 +218,13 @@ export const VillainRunGame = ({ run, runId, onAction, onMainMenu }: VillainRunG
     return (
       <div className="relative h-full w-full overflow-hidden">
         <PhaseBody run={run} runId={runId} onAction={onAction} />
-        {wavePending && upcomingWave && <div className="area-wave-notice" role="status">
-          <strong>Next wave</strong><span>{upcomingWave.name}</span>
-        </div>}
       </div>
     );
   return (
     <div className="run-board flex h-full w-full flex-col overflow-hidden" style={run.phase.kind === 'reward' ? undefined : { backgroundImage: `linear-gradient(#140e0bbc, #140d09e8), url("${regionArt.src}")` }}>
       {run.phase.kind !== 'route' && <RunHud run={run} onOpenCharacter={() => setShowCharacter(true)} />}
-      <main data-route-board={run.phase.kind === 'route' || undefined} className="flex min-h-0 flex-1 flex-col items-center justify-center-safe overflow-y-auto p-3">
+      <main data-route-board={run.phase.kind === 'route' || undefined} className={run.phase.kind === 'area-camp'
+        ? 'flex min-h-0 flex-1' : 'flex min-h-0 flex-1 flex-col items-center justify-center-safe overflow-y-auto p-3'}>
         {apple && (
           <p className="mb-2 text-center text-xs text-accent">Found: {getItem(apple).name}. Give it to Metatron to refresh the shop.</p>
         )}

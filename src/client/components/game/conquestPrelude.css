@@ -192,15 +192,6 @@
 .region-conquered svg { width: 2rem; height: 2rem; }
 .region-conquered small { font-size: .68rem; font-weight: 650; }
 
-.area-camp { width:min(100%,32rem); padding:1rem; border:1px solid var(--color-edge); border-radius:.65rem; background:var(--color-surface-raised); color:var(--color-ink); text-align:center; display:grid; gap:.55rem; }
-.area-camp-art { width:100%; height:clamp(3rem, 22dvh, 8rem); object-fit:cover; object-position:center 40%; border-radius:.35rem; }
-.area-camp h1 { font-size:clamp(1.05rem,4vw,1.5rem); font-weight:700; }
-.area-camp small { color:var(--color-accent); }
-.area-camp p { font-size:.82rem; margin:.2rem 0; }
-.area-camp footer { display:flex; gap:.4rem; flex-wrap:wrap; justify-content:center; }
-.area-camp-event { padding:.45rem .6rem; border:1px solid var(--color-edge); border-radius:.375rem; }
-.area-wave-notice { position:absolute; z-index:10; pointer-events:none; top:22%; left:50%; transform:translateX(-50%); background:var(--color-surface-raised); border:1px solid var(--color-accent); border-radius:.4rem; color:var(--color-ink); padding:.4rem 1rem; text-align:center; display:grid; width:max-content; max-width:90%; }
-.area-wave-notice span { font-size:.8rem; }
 
 /* Small, optional world overview, never a fixed map header or footer. */
 .atlas-ascent { position: absolute; z-index: 4; inset: .7rem .7rem auto auto; color: #f6e6ca; font-family: var(--font-display, Georgia, serif); }
@@ -266,7 +257,8 @@
 /* Map controls stay out of the route art and landmark popovers. */
 .atlas-map-actions:not([hidden]) { display: flex; align-items: center; gap: .375rem; }
 .atlas-map-actions > button { min-height: 2.5rem; }
-.atlas-map-actions > .atlas-settings-gear { display: grid; width: 2.5rem; padding: 0; border-radius: .3rem; color: var(--color-accent); }
+.atlas-settings-gear { position: absolute; inset: auto .7rem .7rem auto; z-index: 4; }
+.atlas-map-actions > .map-expand-button { display: grid; width: 2.5rem; padding: 0; }
 .atlas-profile {
   position: absolute; z-index: 4; inset: .7rem auto auto .7rem;
   display: inline-flex; align-items: center; gap: .38rem; min-height: 2.5rem; padding: .2rem .42rem .2rem .22rem;

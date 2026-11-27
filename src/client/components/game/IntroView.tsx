@@ -3,11 +3,10 @@
 // The title screen, laid out like a mobile game's main menu and sized
 // to the 512 px inline post (top to bottom):
 //   KeyArt + logo   the scene fills the top, the logo sits over it
-//   Badges          date and best streak top left; streak and
+//   Badges          date top left; streak and
 //                   today's best top right (kept off the menu so
 //                   they never cover the ranked note on a narrow post)
-//   Menu            stacked wide buttons: start, leaderboard, rules,
-//                   target dummies (practice)
+//   Menu            wide action buttons with separate utility icons
 //   Ranked note     whether the next run counts
 // The rules and the leaderboard open as sheets over the menu.
 // ===================================================================
@@ -68,10 +67,6 @@ type Sheet = 'profile' | 'none' | 'tutorial' | 'rules' | 'board' | 'shop' | 'dev
  * shown on hover (or a long press on a phone).
  */
 const STAT_BADGE_INFO = {
-  bestStreak: {
-    title: 'Best streak',
-    description: 'Your longest run of days in a row with a finished run.',
-  },
   streak: {
     title: 'Streak',
     description: 'Days in a row you have finished a run. Finish one tomorrow to keep it going.',
@@ -141,12 +136,12 @@ const Hero = ({ data }: { data: InitResponse }) => (
     </div>
     {/* FADE THE SCENE INTO THE MENU */}
     <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-b from-transparent to-surface" />
-    {/* DATE AND BEST STREAK (TOP LEFT) */}
+    {/* DATE (TOP LEFT) */}
     <div className="absolute left-2 top-2 flex flex-col items-start gap-1.5">
-      <p className="pl-1 text-[10px] font-semibold text-ink-muted">
+      <p className="pl-1 text-[10px] font-semibold text-white">
         {formatDailyKey(data.dailyKey)}
       </p>
-      <StatBadge glyph="crown" value={data.streak.best} info={STAT_BADGE_INFO.bestStreak} />
+      {data.appVersion && <p className="pl-1 text-[10px] font-semibold text-white" aria-label={'Build ' + data.appVersion}>v{data.appVersion}</p>}
     </div>
     <div className="absolute right-2 top-2 flex flex-col items-end gap-1.5">
       <StatBadge glyph="flame" value={data.streak.current} info={STAT_BADGE_INFO.streak} />
@@ -217,12 +212,11 @@ export const IntroView = ({
   if (sheet === 'tutorial') return <FirstFight accountId={data.accountId} onExit={closeSheet} onRules={() => setSheet('rules')} />;
 
   return (
-    <main className="home-menu relative flex h-full flex-col overflow-hidden bg-surface">
+    <main className="home-menu relative flex h-full flex-col overflow-hidden bg-surface" data-admin={isAdmin || undefined}>
       <div className="relative mt-2 flex min-h-0 flex-1">
         <Hero data={data} />
-        <SettingsDialog className="absolute bottom-2 right-3 z-10">{settings.controls}</SettingsDialog>
       </div>
-      <div className="relative flex shrink-0 justify-center px-3 pb-3">
+      <div className="home-menu-actions relative flex shrink-0 justify-center pl-3 pr-14 pb-3 min-[380px]:px-14">
         {/* MENU */}
         <nav className="flex w-full max-w-60 flex-col items-center gap-2">
           {note && <p className="text-center text-[10px] leading-tight text-ink-muted">{note}</p>}
@@ -233,25 +227,31 @@ export const IntroView = ({
             <Button variant="menu" onClick={() => setSheet('profile')}>Profile</Button>
             <Button variant="menu" onClick={() => { setTestJewelry([]); setTestCarry([]); onShopTestVisit?.(undefined); setSheet('shop'); }}>Shop</Button>
           </div>
-          <Button variant="menu" onClick={() => setSheet('board')}>
-            Today's tyrants
-          </Button>
-          <Button variant="menu" onClick={() => setSheet('tutorial')}>
-            How to play
-          </Button>
           {SHOW_PRACTICE && (
             <Button variant="menu" onClick={onPractice}>
               Illusion Training
             </Button>
           )}
-          {/* DEV: admin-only reference tabs (sounds, assets) */}
-          {isAdmin && (
-            <Button variant="menu" onClick={() => setSheet('dev')}>
-              Dev
-            </Button>
-          )}
         </nav>
       </div>
+      <aside aria-label="Menu shortcuts" className="absolute bottom-2 right-2 z-10 flex flex-col gap-1">
+        <button type="button" className="home-utility-icon" aria-label="Leaderboard" title="Leaderboard" onClick={() => setSheet('board')}>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M8 3h8v7a4 4 0 0 1-8 0V3ZM8 5H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4m-4 3v5m-4 2h8m-6-2h4"/>
+          </svg>
+        </button>
+        <button type="button" className="home-utility-icon" aria-label="How to play" title="How to play" onClick={() => setSheet('tutorial')}>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M6 3h12a1 1 0 0 1 1 1v15H7a2 2 0 0 0-2 2V5a2 2 0 0 1 2-2Zm13 16v2H7a2 2 0 0 1 0-4h12M10 8a2 2 0 1 1 3 1.73c-.68.4-1 .82-1 1.52m0 2h.01"/>
+          </svg>
+        </button>
+        <SettingsDialog>{settings.controls}</SettingsDialog>
+      </aside>
+      {isAdmin && <button type="button" className="home-utility-icon absolute bottom-2 left-2 z-10" aria-label="Developer tools" title="Developer tools" onClick={() => setSheet('dev')}>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M20.5 4.8 17 8.3l-1.5-1.5L19 3.3a5.2 5.2 0 0 0-6.7 6.7l-8.2 8.2a1.7 1.7 0 0 0 2.4 2.4l8.2-8.2a5.2 5.2 0 0 0 5.8-7.6Z"/>
+        </svg>
+      </button>}
       {sheet === 'none' && <aside className="home-player-badge" aria-label="Player summary">
         <strong>{data.username ? 'u/' + data.username : 'Local player'}</strong>
         <span>Level {level}</span>

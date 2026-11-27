@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { activeRows, formUp } from './battlefield.ts';
+import { areaMapNodes, areaTerrain } from './areaMap.ts';
 import { createHeroUnit } from './combat.ts';
 import { ARCHANGEL_BOSSES, AREA_BOSSES, areaCounts, areaRoomEvent, buildAreaBattles, CAMPAIGN_LENGTH, CONQUEST_VERSION, conquestStops, GRANDANGEL_BOSSES, LOCATION_BOSSES, MAX_WAVE_SIZE } from './conquestAreas.ts';
 import { CONQUEST_SCENARIOS } from './conquestScenarios.ts';
 import { CHAMPION_IDS, getHero } from './heroes.ts';
 import { canChooseRegion } from './regionRoutes.ts';
 import { PLAYER_HP_CAP, STOPS_PER_REGION } from './rules.ts';
-import { createRun, isRunOver, optionsFor, runReducer, type RunState } from './run.ts';
+import { createRun, isRunAction, isRunOver, optionsFor, runReducer, type RunState } from './run.ts';
 import { groupUnitsByUnitType, unitRankGroups, unitRankLabel } from './sandbox.ts';
 import { replayForScoreAndUnlocks } from './replayForScore.ts';
 import { restoreLoggedRun, saveLoggedRun } from './runSave.ts';
@@ -96,6 +97,44 @@ void test('large locations have two battles, room and secret counts, and an excl
   const bossWin = clearBattle(rested);
   assert.equal(bossWin.stats.regionsConquered, 0);
   assert.deepEqual(bossWin.goldVictories.map(v => [v.encounter, v.battle]), [['elite', 0], ['champion', 1]]);
+});
+
+void test('roads are straight with curios; Village Green has three separate buildings around its square', () => {
+  const road = conquestStops(DAY, 1)[1]!.site!;
+  const village = conquestStops(DAY, 1)[0]!.site!;
+  assert.equal(areaTerrain(road), 'road');
+  const roadPins = areaMapNodes(road, buildAreaBattles(road, DAY, 1, 1));
+  assert.deepEqual(roadPins.map(pin => pin.kind), ['battle', 'curio', 'curio']);
+  assert.equal(new Set(roadPins.map(pin => pin.x)).size, 1);
+  const buildings = areaMapNodes(village, buildAreaBattles(village, DAY, 1, 0)).filter(pin => pin.kind === 'building');
+  assert.deepEqual(buildings.map(pin => pin.label), ['Wayside Inn', 'Blacksmith', 'Village Shrine']);
+  assert.equal(new Set(buildings.map(pin => pin.x)).size, 3);
+});
+
+void test('village buildings can be visited in any order once, without breaking old room actions', () => {
+  const battle = runReducer(campaign(), { type: 'chooseStop', option: 0 });
+  const camp = runReducer(clearBattle(battle), { type: 'pickCard', offerIndex: null });
+  assert.equal(camp.area?.site.map, 'Village Green');
+  const shrine = { type: 'areaCamp', choice: 'explore', room: 2 } as const;
+  assert.ok(isRunAction(shrine));
+  assert.ok(!isRunAction({ ...shrine, room: -1 }));
+  assert.ok(!isRunAction({ ...shrine, choice: 'rest' }));
+  assert.equal(runReducer(battle, shrine), battle);
+  const visited = runReducer(camp, shrine);
+  assert.equal(visited.phase.kind, 'area-camp');
+  assert.equal(visited.phase.event?.title, 'Village Shrine');
+  assert.equal(runReducer(visited, shrine), visited);
+  assert.equal(runReducer(visited, { ...shrine, room: 3 }), visited);
+  const inn = runReducer(visited, { ...shrine, room: 0 });
+  assert.equal(inn.phase.kind, 'area-camp');
+  assert.deepEqual(inn.phase.visited, [2, 0]);
+  assert.equal(inn.phase.event?.title, 'Wayside Inn');
+  assert.equal(runReducer(inn, { type: 'areaCamp', choice: 'rest' }), inn);
+  const oldAction = { type: 'areaCamp', choice: 'explore' } as const;
+  const oldVisit = runReducer(camp, oldAction);
+  assert.equal(oldVisit.phase.kind, 'area-camp');
+  assert.equal(oldVisit.phase.visited, undefined);
+  assert.equal(runReducer(oldVisit, oldAction), oldVisit);
 });
 
 void test('each of the nine capitals has one distinct region guardian, and only the last grants victory', () => {

@@ -36,7 +36,7 @@ const renderHeading = (label: string) => <SectionHeading key={label}>{label}</Se
 export const DevPanel = ({ onClose }: { onClose: () => void }) => {
   const [tab, setTab] = useState<DevTab>('sounds');
   return (
-    <MenuPanel title="Dev" onClose={onClose} wide>
+    <MenuPanel title="Developer tools" onClose={onClose} hideTitle wide>
       <TabBar ids={DEV_TABS} labels={DEV_TAB_LABELS} tab={tab} onTab={setTab} className="w-full" />
       <div key={tab} className="training-entries w-full" role="tabpanel" aria-label={DEV_TAB_LABELS[tab]}>
         {DEV_TAB_VIEWS[tab]()}

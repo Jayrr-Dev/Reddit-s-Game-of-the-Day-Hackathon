@@ -25,9 +25,16 @@ const browserStore = (accountId?: string) => {
 };
 
 type RunEvent =
-  { type: 'act'; action: RunAction } | { type: 'restart'; state: LoggedRun };
+  { type: 'act'; action: RunAction } | { type: 'restart'; state: LoggedRun } | { type: 'resumeView'; state: LoggedRun };
 const loggedRunReducer = (state: LoggedRun, event: RunEvent): LoggedRun => {
   if (event.type === 'restart') return event.state;
+  if (event.type === 'resumeView') {
+    const next = event.state;
+    const sameRun = next.attempt === state.attempt && next.profile?.id === state.profile?.id;
+    const extendsLog = next.actions.length > state.actions.length &&
+      state.actions.every((action, index) => JSON.stringify(action) === JSON.stringify(next.actions[index]));
+    return sameRun && extendsLog ? next : state;
+  }
   const run = runReducer(state.run, event.action);
   return run === state.run
     ? state
@@ -39,6 +46,12 @@ export const useRun = (dailyKey: string, accountId?: string) => {
     restoreLoggedRun(day, browserStore(accountId))
   );
   useEffect(() => saveLoggedRun(state, browserStore(accountId)), [state, accountId]);
+  useEffect(() => {
+    // Reddit can recreate the view. On return, take any actions played in the larger view.
+    const resumeView = () => send({ type: 'resumeView', state: restoreLoggedRun(dailyKey, browserStore(accountId)) });
+    window.addEventListener('focus', resumeView);
+    return () => window.removeEventListener('focus', resumeView);
+  }, [dailyKey, accountId]);
   const act = useCallback(
     (action: RunAction) => send({ type: 'act', action }),
     []

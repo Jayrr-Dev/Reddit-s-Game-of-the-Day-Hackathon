@@ -22,6 +22,7 @@ import { HELL_ARTIFACTS, isHellArtifact, type HellArtifactId } from './hellArtif
 import { combatOutcome, createHeroUnit, endTurn, playCard, startCombat, SELF_TARGET_UID } from './combat.ts';
 import { formUp } from './battlefield.ts';
 import { areaRoomEvent, buildAreaBattles, conquestMightAt, conquestStops, isLastRegion, REST_FRACTION, type AreaBattle, type AreaSite, type ConquestVersion, type RoomEvent } from './conquestAreas.ts';
+import { areaTerrain, areaVisitCount, areaVisitedRooms } from './areaMap.ts';
 import { canChooseRegion, isRegionChoice, type RegionChoice } from './regionRoutes.ts';
 import { regionIndexOf, mightAt, routeOptions, stopSeed, type Stop } from './kingdom.ts';
 import { isMovementId, move } from './movement.ts';
@@ -58,9 +59,9 @@ export type RunPhase =
   | { kind: 'combat'; stop: Stop; combat: CombatState }
   | { kind: 'reward'; offers: CardId[]; source?: 'horde' | 'elite' | 'champion'; rerolled?: boolean; leveledUp?: boolean; bonusImbue?: CardId }
   | { kind: 'grave' }
-  | { kind: 'greed-bargain'; explored?: number; event?: RoomEvent }
+  | { kind: 'greed-bargain'; explored?: number; event?: RoomEvent; visited?: readonly number[] }
   | { kind: 'altar'; offers: CardId[] }
-  | { kind: 'area-camp'; explored: number; event?: RoomEvent & { result?: string } }
+  | { kind: 'area-camp'; explored: number; event?: RoomEvent & { result?: string }; visited?: readonly number[] }
   | { kind: 'sealing'; source: 'champion' }
   | { kind: 'conquered' }
   | { kind: 'fallen'; battlefield?: { stop: Stop; combat: CombatState } };
@@ -138,7 +139,7 @@ export type RunAction =
   | { type: 'chooseStop'; option: number; hellArtifact?: HellArtifactId }
   | { type: 'nextBattleWave' }
   | { type: 'finishSealing' }
-  | { type: 'areaCamp'; choice: 'explore' | 'rest' | 'continue' }
+  | { type: 'areaCamp'; choice: 'explore' | 'rest' | 'continue'; room?: number }
   | PlayCardAction
   | { type: 'endTurn' }
   /** A movement on the battlefield, e.g. Charge (see movement.ts). */
@@ -385,7 +386,7 @@ function leaveCamp(state: RunState, area: AreaProgress): RunState {
 }
 
 /** A chosen room resolves once. Rest skips unexplored rooms. */
-function visitAreaCamp(state: RunState, choice: 'explore' | 'rest' | 'continue'): RunState {
+function visitAreaCamp(state: RunState, { choice, room: pickedRoom }: Extract<RunAction, { type: 'areaCamp' }>): RunState {
   const { phase, area } = state;
   if (phase.kind !== 'area-camp' || !area) return state;
   if (choice === 'continue') return leaveCamp(state, area);
@@ -395,18 +396,24 @@ function visitAreaCamp(state: RunState, choice: 'explore' | 'rest' | 'continue')
     return leaveCamp({ ...state, hp }, area);
   }
   const battle = area.battles[area.battle]!;
-  if (phase.explored >= battle.rooms) return state;
-  const event = areaRoomEvent(state.dailyKey, state.stop, area.site, area.battle, battle, phase.explored, !!state.deckImbues && !state.promisedToGreed);
+  const visited = areaVisitedRooms(phase.explored, phase.visited);
+  const count = pickedRoom === undefined ? battle.rooms : areaVisitCount(area.site, battle);
+  const roomIndex = pickedRoom ?? Array.from({ length: count }, (_, index) => index).find(index => !visited.includes(index));
+  if (roomIndex === undefined || !isIndex(roomIndex) || roomIndex >= count || visited.includes(roomIndex)) return state;
+  const event = areaRoomEvent(state.dailyKey, state.stop, area.site, area.battle,
+    { ...battle, rooms: count }, roomIndex, !!state.deckImbues && !state.promisedToGreed,
+    pickedRoom !== undefined && areaTerrain(area.site) === 'village');
   const heal = event.heal ? healingAmount(Math.ceil(state.maxHp * event.heal), state.character) : 0;
   const hp = Math.min(state.maxHp, state.hp + heal);
-  const seed = stopSeed(state.dailyKey, 'room-card:' + area.site.name + ':' + area.battle + ':' + phase.explored, state.stop);
+  const seed = stopSeed(state.dailyKey, 'room-card:' + area.site.name + ':' + area.battle + ':' + roomIndex, state.stop);
   const card = event.reward ? rollOffers(seed, event.reward, [], state.rewardStarter, state.character.skillPicks, state.deck, undefined, !!state.deckImbues)
     .find(id => !isUniqueInDeck(state.deck, id)) : undefined;
   const result = card ? 'Found: ' + getCard(card).name : event.heal ? 'Recovered ' + (hp - state.hp) + ' HP' : undefined;
   const room = { ...event, ...(result && { result }) };
+  const visits = { explored: phase.explored + 1, event: room,
+    ...((pickedRoom !== undefined || phase.visited) && { visited: [...visited, roomIndex] }) };
   return { ...state, hp, deck: card ? [...state.deck, card] : state.deck,
-    phase: event.greed ? { kind: 'greed-bargain', explored: phase.explored + 1, event: room }
-      : { kind: 'area-camp', explored: phase.explored + 1, event: room } };
+    phase: event.greed ? { kind: 'greed-bargain', ...visits } : { kind: 'area-camp', ...visits } };
 }
 
 /** Applies the grave choice: heal now, or grow stronger for later. */
@@ -521,7 +528,7 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
     case 'nextBattleWave':
       return acceptNextWave(state);
     case 'areaCamp':
-      return visitAreaCamp(state, action.choice);
+      return visitAreaCamp(state, action);
     case 'playCard':
       return phase.kind === 'combat'
         ? settleCombat(
@@ -558,7 +565,8 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
     case 'greedChoice': {
       if (phase.kind !== 'greed-bargain') return state;
       const exit = (next: RunState): RunState => phase.explored === undefined ? advanceToNextStop(next)
-        : { ...next, phase: { kind: 'area-camp', explored: phase.explored, ...(phase.event && { event: phase.event }) } };
+        : { ...next, phase: { kind: 'area-camp', explored: phase.explored,
+          ...(phase.event && { event: phase.event }), ...(phase.visited && { visited: phase.visited }) } };
       if (action.cardIndex === null) return exit(state);
       if (!greedCanTake(state, action.cardIndex)) return state;
       const kept = state.deck.map((_, index) => index).filter(index => index !== action.cardIndex);
@@ -648,7 +656,8 @@ export const isRunAction = (value: unknown): value is RunAction => {
           isIndex(value.imbueIndex))
       );
     case 'areaCamp':
-      return 'choice' in value && (value.choice === 'explore' || value.choice === 'rest' || value.choice === 'continue');
+      return 'choice' in value && (value.choice === 'explore' || value.choice === 'rest' || value.choice === 'continue') &&
+        (!('room' in value) || (value.choice === 'explore' && isIndex(value.room)));
     case 'nextBattleWave':
     case 'finishSealing':
       return true;

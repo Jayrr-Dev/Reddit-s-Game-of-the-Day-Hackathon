@@ -30,6 +30,7 @@ export type StreakSummary = {
 // --- GET /api/init ---
 export type InitResponse = {
   accountId?: string;
+  appVersion?: string;
   lifetimeWins?: number;
   xpStartWins?: number | undefined;
   gold?: number;

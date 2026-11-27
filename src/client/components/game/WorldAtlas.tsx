@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ARCHANGEL_BOSSES, GRANDANGEL_BOSSES } from '../../../shared/game/conquestAreas';
 import { bossArenaOf } from '../../content/bossArenas';
 import { ProgressiveImg } from '../ui/ProgressiveImage';
@@ -7,8 +7,8 @@ import { RegionalEngraving } from './RegionalEngraving';
 import { WorldGeography, WORLD_PLACES } from './WorldGeography';
 import './worldAtlas.css';
 
-export function WorldAtlas({ current, onBack, onVisit }: {
-  current: number; onBack: () => void; onVisit?: (region: number) => void;
+export function WorldAtlas({ current, onBack, onVisit, controls }: {
+  current: number; onBack: () => void; onVisit?: (region: number) => void; controls?: ReactNode;
 }) {
   const [selected, setSelected] = useState<number>();
   const back = useRef<HTMLButtonElement>(null);
@@ -35,6 +35,7 @@ export function WorldAtlas({ current, onBack, onVisit }: {
       </svg>
     </div>
     <button ref={back} type="button" className="world-atlas-back" onClick={onBack}>Back to region</button>
+    {controls}
     {ATLAS_REGIONS.map((region, i) => {
       const [x,y] = WORLD_PLACES[i]!;
       const state = i === current ? 'current' : i < current ? 'conquered' : 'ahead';

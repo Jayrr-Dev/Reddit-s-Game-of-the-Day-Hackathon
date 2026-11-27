@@ -61,6 +61,24 @@
 .oak-menu-button:enabled:active { filter: brightness(.9); }
 .oak-menu-button:focus-visible { outline: 2px solid var(--color-accent-hover); outline-offset: 2px; }
 
+.home-utility-icon, .map-expand-button {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: none;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
+  border-radius: 50%;
+  color: var(--color-accent);
+  background: var(--color-surface-sunken);
+}
+.home-utility-icon:hover, .map-expand-button:hover { border-color: var(--color-accent); }
+.home-utility-icon:focus-visible, .map-expand-button:focus-visible {
+  outline: 2px solid var(--color-accent-hover);
+  outline-offset: 2px;
+}
+.world-atlas-expand { position: absolute; z-index: 4; inset: .65rem .65rem auto auto; }
+
 /* --- LINING DIGITS ---
    Georgia (the display font) draws old-style digits: a "1" is short
    and sits low, a "3" drops below the line, so numbers never look
@@ -3626,17 +3644,23 @@ textarea,
 .starter-curse span { color: #f3dcc9; }
 
 .home-menu { container-type: inline-size; }
+.home-menu[data-admin] .home-menu-actions { padding-left: 3.5rem; }
+@container (max-width: 360px) {
+  .home-menu-actions .oak-menu-button { padding-inline: .8rem; white-space: nowrap; font-size: .8rem; }
+}
 .home-player-badge {
   position: absolute; bottom: .7rem; left: .75rem; z-index: 1;
   display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .22rem .55rem;
   width: fit-content; max-width: 29%; color: #f0d7ad; font-size: .7rem; line-height: 1.15;
   text-shadow: 0 1px 3px #100b12;
 }
+.home-menu[data-admin] .home-player-badge { bottom: 3.4rem; }
 .home-player-badge > strong { grid-column: 1 / -1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #f7ca78; }
 .home-player-gold { display: inline-flex; align-items: center; gap: .22rem; min-width: 0; }
 .home-player-gold .profile-gold-icon { width: .88rem; height: .88rem; flex-shrink: 0; }
 @container (max-width: 575px) {
   .home-player-badge { position: static; display: flex; align-items: center; width: fit-content; max-width: calc(100% - 1.3rem); min-height: 1.7rem; margin: 0 auto .5rem .65rem; }
+  .home-menu[data-admin] .home-player-badge { margin-left: 3.5rem; max-width: calc(100% - 7rem); gap: .3rem; font-size: .65rem; }
   .home-player-badge > span { white-space: nowrap; }
 }
 

@@ -209,6 +209,7 @@ api.get('/init', async (c) => {
       type: 'init',
       postId,
       dailyKey,
+      appVersion: context.appVersion,
       username,
       ...(userId && { accountId: userId, lifetimeWins: progress.wins, xpStartWins: progress.xpStartWins, gold: progress.gold }),
       bestScoreToday,

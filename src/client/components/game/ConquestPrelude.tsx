@@ -1,6 +1,7 @@
 import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { hashSeed, nextFloat, pickOne } from '../../../shared/game/rng';
-import { areaCounts, buildAreaBattles, conquestStops, GRANDANGEL_BOSSES } from '../../../shared/game/conquestAreas';
+import { buildAreaBattles, conquestStops, GRANDANGEL_BOSSES } from '../../../shared/game/conquestAreas';
+import { areaVisitCount } from '../../../shared/game/areaMap';
 import { STOPS_PER_REGION } from '../../../shared/game/rules';
 import { regionChoices, type RegionChoice } from '../../../shared/game/regionRoutes';
 import { regionIndexOf, routeOptions, type Stop } from '../../../shared/game/kingdom';
@@ -21,6 +22,9 @@ import pride from '../../assets/npcs/sin-lair-pride.webp';
 import { AtlasInk, AtlasLandmark, landmarkOf, ATLAS_HEIGHT, ATLAS_WIDTH, type AtlasLink, type AtlasPoint } from './KingdomAtlas';
 import { ATLAS_REGIONS } from './AtlasRegions';
 import { WorldAtlas } from './WorldAtlas';
+import { LocalAreaMap } from './LocalAreaMap';
+import { MapExpandButton } from './MapExpandButton';
+import { readMapHandoff, useMapExpansionScope, type MapHandoff } from '../../lib/mapExpansion';
 import { AtlasPlayerControls, AtlasSettings, type AtlasRunControls } from './AtlasPlayerControls';
 import { SandboxView, type AtlasTrainingVisit } from './SandboxView';
 import { useIsAdmin } from '../../lib/adminRole';
@@ -60,20 +64,26 @@ export function ConquestMap({
   options: runOptions,
   atlasOptions,
   runControls,
+  gift,
   onChoose,
 }: {
   stop?: number; region?: string; route?: RegionChoice | undefined; worldSeed?: string;
   options: readonly Stop[]; atlasOptions?: (stop: number) => readonly Stop[];
   runControls?: AtlasRunControls | undefined;
+  gift?: MapHandoff['artifact'];
   onChoose: (option: number) => void;
 }) {
   const isAdmin = useIsAdmin();
-  const [browseRegion, setBrowseRegion] = useState<number>();
+  const scope = useMapExpansionScope();
+  const [opened] = useState(() => readMapHandoff(scope));
+  const [browseRegion, setBrowseRegion] = useState(opened?.browseRegion);
   const [practice, setPractice] = useState<AtlasTrainingVisit>();
   const exploring = isAdmin && browseRegion !== undefined;
   const stop = exploring ? browseRegion * STOPS_PER_REGION + 1 : runStop;
   const options = exploring ? conquestStops(worldSeed, stop, route) : runOptions;
   const map = useRef<HTMLDivElement>(null);
+  const returnScroll = useRef<number | undefined>(undefined);
+  const [localOpen, setLocalOpen] = useState(opened?.local === true);
   const activeMarker = useRef<HTMLButtonElement>(null);
   const selectedMarker = useRef<HTMLButtonElement>(null);
   const [popover, setPopover] = useState<{left: number; edge: number; side: 'above' | 'below' | 'left' | 'right'; caret: number}>();
@@ -110,8 +120,10 @@ export function ConquestMap({
     setPopover(previous => previous?.left === next.left && previous.edge === next.edge &&
       previous.side === next.side && previous.caret === next.caret ? previous : next);
   }, []);
-  const [selected, setSelected] = useState<{at: number; option: number}>();
-  const [showWorld, setShowWorld] = useState(false);
+  const [selected, setSelected] = useState(opened?.selected);
+  const [showWorld, setShowWorld] = useState(opened?.world === true);
+  const mapHandoff: MapHandoff = { local: localOpen, world: showWorld,
+    ...(selected && { selected }), ...(gift && { artifact: gift }), ...(exploring && { browseRegion }) };
   const worldTrigger = useRef<HTMLButtonElement>(null);
   const regionIndex = regionIndexOf(stop);
   const firstStop = regionIndex * STOPS_PER_REGION + 1;
@@ -166,18 +178,21 @@ export function ConquestMap({
   const arena = active?.node.site?.kind === 'capital' ? bossArenaOf(active.node.heroIds) : undefined;
   const terrainName = active?.node.site?.map ?? active?.location.name;
   const locationArt = arena?.image ?? MAP_IMAGES[MAP_NAMES.findIndex(name => name === terrainName)];
-  const counts = active?.node.site ? areaCounts(active.node.site) : undefined;
+  const site = active?.node.site;
+  const localBattles = site && selected ? buildAreaBattles(site, worldSeed, selected.at, selected.option) : undefined;
+  const visits = site && localBattles?.reduce((total, battle) => total + areaVisitCount(site, battle), 0);
   const typeLabel = (node: Stop) => node.site?.kind === 'capital'
     ? regionIndex >= GRANDANGEL_BOSSES.length ? 'Final Boss' : 'Region Boss'
     : node.site?.kind === 'dragon' ? 'Area Boss' : node.site?.cityBoss ? 'City Boss' : undefined;
   useLayoutEffect(() => {
     const scroller = map.current;
     if (!scroller) return;
-    scroller.scrollTop = stop === firstStop
+    scroller.scrollTop = returnScroll.current ?? (stop === firstStop
       ? scroller.scrollHeight
-      : Math.max(0, (activeMarker.current?.offsetTop ?? 0) - scroller.clientHeight * .56);
+      : Math.max(0, (activeMarker.current?.offsetTop ?? 0) - scroller.clientHeight * .56));
+    returnScroll.current = undefined;
     scroller.focus({ preventScroll: true });
-  }, [firstStop, stop, practice]);
+  }, [firstStop, stop, practice, localOpen]);
 
   const hasActiveDestination = Boolean(active);
   useLayoutEffect(() => {
@@ -192,7 +207,7 @@ export function ConquestMap({
       scrollArea?.removeEventListener('scroll', update);
       window.removeEventListener('resize', update);
     };
-  }, [hasActiveDestination, positionPopover]);
+  }, [hasActiveDestination, positionPopover, localOpen]);
 
   const popoverStyle: (CSSProperties & { '--atlas-caret': string }) | undefined = popover && {
     left: popover.left,
@@ -201,6 +216,14 @@ export function ConquestMap({
   };
   const position = ({x,y}: AtlasPoint) => ({ left: (100 * x / ATLAS_WIDTH) + '%', top: (100 * y / ATLAS_HEIGHT) + '%' });
   if (isAdmin && practice) return <SandboxView atlasVisit={practice} onExit={() => setPractice(undefined)} />;
+  if (localOpen && active && site && localBattles) return <LocalAreaMap site={site} battles={localBattles}
+    mapHandoff={mapHandoff}
+    heading={isSummit && site.kind === 'capital' ? 'The Last Citadel' : site.name}
+    onBack={() => { setLocalOpen(false); setSelected(undefined); }}>
+    {canTravel ? <Button variant="menuPrimary" onClick={() => onChoose(active.option)}>Enter area</Button>
+      : canPractice ? <Button variant="menuPrimary" onClick={() => { setLocalOpen(false); practiceAt(); }}>Visit in practice</Button>
+      : <small className="local-area-inspection">{selected && selected.at < stop ? 'Already passed' : 'Not yet reachable'}</small>}
+  </LocalAreaMap>;
   return <section className="conquest-map map-fullbleed prelude-enter" data-run-controls={Boolean(runControls) || undefined} aria-label={exploring ? theme.name + ' practice map' : region ? region + ' map' : 'Conquest map'}
     onPointerDownCapture={event => {
       if (active && event.target instanceof Element && !event.target.closest('.atlas-destination-popover, .atlas-destination, .atlas-inspectable')) setSelected(undefined);
@@ -219,9 +242,11 @@ export function ConquestMap({
         setSelected(undefined);
         setShowWorld(true);
       }}>World map</button>}
-      {runControls && <AtlasSettings onMainMenu={runControls.onMainMenu} />}
+      <MapExpandButton view={mapHandoff} />
     </div>}
+    {runControls && !showWorld && <AtlasSettings onMainMenu={runControls.onMainMenu} />}
     {showWorld && <WorldAtlas current={regionIndexOf(runStop)}
+      controls={<MapExpandButton className="world-atlas-expand" view={mapHandoff} />}
       {...(isAdmin && { onVisit: (index: number) => {
         setSelected(undefined);
         setBrowseRegion(index);
@@ -274,8 +299,9 @@ export function ConquestMap({
         <span className="atlas-popover-kind">{typeLabel(active.node) ?? 'Battle route'}</span>
         <strong>{isSummit && active.node.site?.kind === 'capital' ? 'The Last Citadel' : active.location.name}</strong>
         <p>{isSummit && active.node.site?.kind === 'capital' ? 'Beyond the summit gate, Archangel Mikhael awaits in Purgatory.' : active.location.flavour}</p>
-        {counts && <small>{counts.battles} {counts.battles === 1 ? 'battle' : 'battles'} · {counts.rooms} {counts.rooms === 1 ? 'room' : 'rooms'}</small>}
-        {canTravel ? <Button variant="menuPrimary" onClick={() => onChoose(active.option)}>Travel here</Button>
+        {localBattles && <small>{localBattles.length} {localBattles.length === 1 ? 'battle' : 'battles'} · {visits} {visits === 1 ? 'stop' : 'stops'}</small>}
+        {site ? <Button variant="menuPrimary" onClick={() => { returnScroll.current = map.current?.scrollTop; setLocalOpen(true); }}>Open area map</Button>
+          : canTravel ? <Button variant="menuPrimary" onClick={() => onChoose(active.option)}>Travel here</Button>
           : canPractice ? <Button variant="menuPrimary" onClick={practiceAt}>Visit in practice</Button>
           : <span className="atlas-location-state">{selected && selected.at < stop ? 'Already passed' : 'Not yet reachable'}</span>}
       </div>
@@ -325,7 +351,10 @@ export function ConquestPrelude({ seed, options, worldSeed, atlasOptions, runCon
   onChoose: (option: number, artifact?: HellArtifactId) => void;
 }) {
   const saveKey = 'villain-arc:conquest-gift:' + seed;
+  const scope = useMapExpansionScope();
   const [accepted, setAccepted] = useState<HellArtifactId | 'accepted' | undefined>(() => {
+    const carried = readMapHandoff(scope)?.artifact;
+    if (carried) return carried;
     try {
       const saved = sessionStorage.getItem(saveKey);
       return isHellArtifact(saved) || saved === 'accepted' ? saved : undefined;
@@ -333,7 +362,7 @@ export function ConquestPrelude({ seed, options, worldSeed, atlasOptions, runCon
   });
   const [selected, setSelected] = useState<HellArtifactId>();
   const [host] = pickOne(hashSeed('conquest-sin:' + seed), HOSTS);
-  if (accepted) return <ConquestMap runControls={runControls} options={options} {...(worldSeed && {worldSeed})} {...(atlasOptions && {atlasOptions})}
+  if (accepted) return <ConquestMap gift={accepted} runControls={runControls} options={options} {...(worldSeed && {worldSeed})} {...(atlasOptions && {atlasOptions})}
     onChoose={option => onChoose(option, isHellArtifact(accepted) ? accepted : undefined)} />;
   const labelSide = host.side === 'right' ? 'left' : 'right';
   return <section className="sin-prelude prelude-enter" aria-label="A meeting before revival"

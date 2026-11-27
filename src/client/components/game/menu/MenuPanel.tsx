@@ -17,19 +17,20 @@ export type MenuPanelProps = {
   onClose: () => void;
   children: ReactNode;
   wide?: boolean;
+  hideTitle?: boolean;
 };
 
 // --- COMPONENT ---
 /** Renders the sheet with a title, its content and a close button. */
-export const MenuPanel = ({ title, onClose, children, wide = false }: MenuPanelProps) => (
+export const MenuPanel = ({ title, onClose, children, wide = false, hideTitle = false }: MenuPanelProps) => (
   <section
     role="dialog"
     aria-label={title}
     className="run-menu-panel absolute inset-0 z-40 flex flex-col items-center gap-3 overflow-hidden bg-surface p-4 animate-rise"
   >
-    <h2 className="font-display text-xl font-black uppercase tracking-widest text-accent">
+    {!hideTitle && <h2 className="font-display text-xl font-black uppercase tracking-widest text-accent">
       {title}
-    </h2>
+    </h2>}
     <div
       className={`flex min-h-0 w-full flex-1 flex-col items-center gap-3 overflow-y-auto overscroll-contain px-1 py-3 ${wide ? 'max-w-3xl' : 'max-w-xs'}`}
       style={wide ? undefined : SCROLL_FADE_STYLE}

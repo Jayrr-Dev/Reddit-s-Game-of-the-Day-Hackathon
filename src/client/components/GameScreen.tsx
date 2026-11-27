@@ -6,7 +6,7 @@
 // showing.
 // ===================================================================
 
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef, type ReactNode } from 'react';
 import { showToast } from '@devvit/web/client';
 import { canChooseRegion, regionOfRun } from '../../shared/game/regionRoutes';
 import { isRunOver, type RunAction } from '../../shared/game/run';
@@ -22,6 +22,7 @@ import { PlayerName } from '../lib/playerName';
 import { AccountId } from '../lib/accountId';
 import { IsAdmin } from '../lib/adminRole';
 import { journeys } from '../lib/journeys';
+import { MapExpansionScope, mapExpansionScope, readMapHandoff } from '../lib/mapExpansion';
 import { MikhaelEnding } from './game/MikhaelEnding';
 import { goldRewardFor } from '../../shared/game/gold';
 import { optionsFor } from '../../shared/game/run';
@@ -46,7 +47,9 @@ type SessionProps = {
 const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
   const { run, actions, hasProgress, act, restart, profile } = useRun(data.dailyKey, data.accountId);
   const { entries, refresh } = useLeaderboard();
-  const [isPlaying, setIsPlaying] = useState(false);
+  const mapScope = mapExpansionScope(data.accountId, data.dailyKey, run.attempt, profile?.id);
+  const [isPlaying, setIsPlaying] = useState(() => hasProgress && !isRunOver(run) && !!readMapHandoff(mapScope));
+  const withMapScope = (content: ReactNode) => <MapExpansionScope.Provider value={mapScope}>{content}</MapExpansionScope.Provider>;
   const onMainMenu = () => setIsPlaying(false);
   const [choosing, setChoosing] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -148,9 +151,9 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
   }
   if (run.phase.kind === 'route' && run.stop === 1) {
     const seed = id ?? [data.accountId ?? 'guest', run.dailyKey, run.attempt].join(':');
-    return <ConquestPrelude key={seed} seed={seed} options={run.phase.options} worldSeed={run.dailyKey} atlasOptions={at => optionsFor(run, at)}
+    return withMapScope(<ConquestPrelude key={seed} seed={seed} options={run.phase.options} worldSeed={run.dailyKey} atlasOptions={at => optionsFor(run, at)}
       runControls={{ run, onAction: act, onMainMenu }}
-      onChoose={(option, hellArtifact) => act({ type: 'chooseStop', option, ...(hellArtifact && { hellArtifact }) })} />;
+      onChoose={(option, hellArtifact) => act({ type: 'chooseStop', option, ...(hellArtifact && { hellArtifact }) })} />);
   }
   if (run.phase.kind === 'sealing') {
     const gold = id ? goldRewardFor(id, run.stop, 'champion', run.pandoraEffect, run.area?.battle) : undefined;
@@ -176,7 +179,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
     return <RegionCrossroads key={run.stop} stop={run.stop} campaign={!!run.conquestVersion}
       conquered={regionOfRun({ ...run, stop: run.stop - 1 })}
       onChoose={option => act({ type: 'chooseRegion', option })} />;
-  return <VillainRunGame run={run} runId={id} onAction={act} onMainMenu={onMainMenu} />;
+  return withMapScope(<VillainRunGame run={run} runId={id} onAction={act} onMainMenu={onMainMenu} />);
 };
 
 // --- COMPONENT ---
