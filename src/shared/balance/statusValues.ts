@@ -9,7 +9,7 @@ import {
   afterActionLeft,
   hexAfterGrowth,
   hexBurnAmount,
-  poisonAfterTick,
+  poisonAfterGrowth,
 } from '../game/combatant.ts';
 import {
   BLEED_BITE_FACTOR,
@@ -69,7 +69,7 @@ export const halvingValue = (stacks: number): number => {
 /** Burn values its immediate damage separately from the full stacks it leaves. */
 export const burnValue = (stacks: number): number => stacks + halvingValue(stacks);
 
-/** Poison deals its value, then grows. Price its damage within the simulation window. */
+/** Price Poison within the simulation window assuming one action between ticks and no incoming hits. */
 export const poisonValue = (
   config: CostCurveConfig,
   stacks: number
@@ -78,7 +78,7 @@ export const poisonValue = (
   let poison = stacks;
   for (let turn = 0; poison > 0 && turn < MAX_SIMULATED_TURNS; turn += 1) {
     total += poison * delayed(config, turn);
-    poison = poisonAfterTick(poison);
+    poison = poisonAfterGrowth(poison);
   }
   return total;
 };

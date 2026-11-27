@@ -85,6 +85,7 @@ import {
   hexAfterPlayerAction,
   hexAfterActionUnlessApplied,
   poisonTick,
+  poisonAfterAction,
   guardAmount,
   hasMomentumFor,
   heal,
@@ -1570,7 +1571,8 @@ const cardBeats = (
   // BLEED: combine each target's landed hits into one final damage beat.
   const counted = biteBleedOnAttack(paid, current, bleeders);
   if (counted !== current) states.push(counted);
-  const ticked = hexAfterPlayerAction(paid, counted);
+  const withPoison = poisonAfterAction(paid, counted);
+  const ticked = hexAfterPlayerAction(paid, withPoison);
   if (ticked !== counted) {
     // Give an actual burst its own damage beat, but do not pause for stack growth alone.
     const burst = ticked.heroes.some((unit, i) => unit.hp < counted.heroes[i]!.hp);
@@ -2300,7 +2302,8 @@ const heroActs = (
   });
   // SCRAMBLE 2+: still scrambled after its turn, so its next move re-rolls too.
   const stillScrambled = (settled.heroes.find((unit) => unit.uid === uid)?.statuses.scramble ?? 0) > 0;
-  return removeFallen(stillScrambled ? scrambleHero(settled, uid) : settled);
+  const resolved = stillScrambled ? scrambleHero(settled, uid) : settled;
+  return removeFallen(planned ? poisonAfterAction(state, resolved) : resolved);
 };
 
 /** Hero effects that land on the villain (afflictions, Knockback). */

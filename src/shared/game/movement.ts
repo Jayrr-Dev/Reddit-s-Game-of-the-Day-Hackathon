@@ -15,7 +15,7 @@
 
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import { chargeGuardOf, iFramesOf, movementDiscountOf } from './skills.ts';
-import { addGuard, hexAfterPlayerAction } from './combatant.ts';
+import { addGuard, hexAfterPlayerAction, poisonAfterAction } from './combatant.ts';
 import { fallBack, isDeep, rowDepth, stepForward } from './battlefield.ts';
 import { canPlayCard, canPlayCardOnSelf, combatOutcome, removeFallen } from './combat.ts';
 import {
@@ -274,7 +274,7 @@ export const move = (state: CombatState, moveId: MovementId): CombatState => {
     ...shiftFormation({ ...state, player: spendRush(state.player) }, moveId),
   };
   const moved = skillGrant(grant(paid, def.grants), moveId);
-  const resolved = hexAfterPlayerAction(state, moved);
+  const resolved = hexAfterPlayerAction(state, poisonAfterAction(state, moved));
   return recordEffects(state, resolved === moved ? moved : removeFallen(resolved));
 };
 

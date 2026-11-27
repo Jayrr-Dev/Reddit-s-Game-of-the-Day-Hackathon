@@ -373,7 +373,7 @@ export const takeHit = <T extends Combatant>(
   if (amount > 0 && target.statuses.invincible > 0)
     return spendInvincible(target);
   // PIERCING: past Protection, Armor and Guard, straight to HP.
-  if (isPiercing) return loseHp(target, amount);
+  if (isPiercing) return amount > 0 ? growPoison(loseHp(target, amount)) : loseHp(target, amount);
   const afterProtection = protectedAmount(target, amount);
   const reduced = armoredAmount(target, afterProtection, type);
   // ARMOR SOAK: counted so the view can show the armor icon on the hit.
@@ -384,7 +384,7 @@ export const takeHit = <T extends Combatant>(
       : target,
     reduced
   );
-  return hit;
+  return hit.hp < target.hp || hit.guard < target.guard ? growPoison(hit) : hit;
 };
 
 /** What a Bleed bites for: BLEED_BITE_FACTOR of it, rounded up. */
@@ -939,16 +939,28 @@ export const afterAction = <T extends Combatant>(
 ): T => shockFade(frostThaw(burnTick(target, source)));
 
 /** Active Poison deepens after ticking; zero never grows on its own. */
-export const poisonAfterTick = (stacks: number): number => stacks > 0 ? stacks + 1 : 0;
+export const poisonAfterGrowth = (stacks: number): number => stacks > 0 ? stacks + 1 : 0;
+
+/** Grow existing Poison without dealing a damage tick. */
+const growPoison = <T extends Combatant>(target: T): T =>
+  target.hp > 0 && target.statuses.poison > 0
+    ? { ...target, statuses: { ...target.statuses, poison: poisonAfterGrowth(target.statuses.poison) } }
+    : target;
+
+/** An action grows Poison on every unit that was poisoned before it began. */
+export function poisonAfterAction(before: CombatState, after: CombatState): CombatState {
+  const active = new Set(before.heroes.filter(unit => unit.statuses.poison > 0).map(unit => unit.uid));
+  const heroes = active.size ? after.heroes.map(unit => active.has(unit.uid) ? growPoison(unit) : unit) : after.heroes;
+  const player = before.player.statuses.poison > 0 ? growPoison(after.player) : after.player;
+  return player !== after.player || heroes.some((unit, index) => unit !== after.heroes[index])
+    ? { ...after, player, heroes } : after;
+}
 
 /**
  * Poison right before an action (a hero's move; the villain's turn
- * start): loses this much HP, then Poison gains 1.
+ * start): loses this much HP without changing its stacks.
  */
-export const poisonTick = <T extends Combatant>(
-  target: T,
-  source?: Combatant
-): T => {
+export const poisonTick = <T extends Combatant>(target: T, source?: Combatant): T => {
   const { poison } = target.statuses;
   if (poison <= 0 || target.hp <= 0) return target;
   const loss = Math.min(target.hp, incomingAfflictionDamage(target, poison, source));
@@ -956,7 +968,6 @@ export const poisonTick = <T extends Combatant>(
   return {
     ...poisoned,
     poisonDamageTaken: (target.poisonDamageTaken ?? 0) + loss,
-    statuses: { ...poisoned.statuses, poison: poisonAfterTick(poison) },
   };
 };
 
