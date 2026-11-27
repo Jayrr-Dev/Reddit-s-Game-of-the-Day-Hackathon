@@ -87,7 +87,7 @@ const PhaseBody = ({ run, runId, onAction, onMainMenu, endless }: VillainRunGame
           onAction={onAction}
           pauseActions={
             <>
-              {endless && onMainMenu && <Button variant="menu" onClick={onMainMenu}>Main menu</Button>}
+              {endless && onMainMenu && <Button variant="menu" onClick={onMainMenu}>Endless menu</Button>}
               <AbandonRun onConfirm={() => onAction({ type: 'abandon' })} />
             </>
           }

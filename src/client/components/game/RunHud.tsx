@@ -26,7 +26,7 @@ export const RunHud = ({ run, onOpenCharacter, onReturnFromEndless }: {
         </span>
       </div>
       <div className="flex items-center gap-3">
-        {onReturnFromEndless && <button type="button" aria-label="Main menu" title="Main menu" className="text-accent" onClick={onReturnFromEndless}><Glyph name="back" className="size-5" /></button>}
+        {onReturnFromEndless && <button type="button" aria-label="Endless menu" title="Endless menu" className="text-accent" onClick={onReturnFromEndless}><Glyph name="back" className="size-5" /></button>}
         <button type="button" aria-label="Character sheet" title="Character sheet" className="text-accent" onClick={onOpenCharacter}>
           <Glyph name="breastplate" className="size-5" />
         </button>
