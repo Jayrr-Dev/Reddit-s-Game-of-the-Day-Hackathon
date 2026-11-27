@@ -54,6 +54,20 @@ const AMULET_RARITY = {
 const AMULET_IDS = ['ferryman-token', 'vesper-locket', 'last-lantern'] as const satisfies readonly ShopAmuletId[];
 // The wallet and replay fields keep their original names for existing saves and clients.
 export type ShopRingId = (typeof TEMP_RING_IDS)[number] | ShopAmuletId;
+const PANDORA_JEWELRY = [{ item: 'ring', weight: 35 }, { item: 'amulet', weight: 15 }] as const;
+const PANDORA_RING_POOLS = [
+  { item: TEMP_RING_IDS.slice(0, 4), weight: 70 },
+  { item: TEMP_RING_IDS.slice(4, 6), weight: 19 },
+  { item: TEMP_RING_IDS.slice(6, 8), weight: 5 },
+  { item: TEMP_RING_IDS.slice(8), weight: 1 },
+];
+
+/** Split jewelry by slot first, keeping the existing rarity mix within each slot. */
+export function drawPandoraJewelry(slotSeed: RngState, tierSeed: RngState, rewardSeed: RngState): ShopRingId {
+  const [slot] = pickWeighted(slotSeed, PANDORA_JEWELRY);
+  const pool = slot === 'amulet' ? AMULET_IDS : pickWeighted(tierSeed, PANDORA_RING_POOLS)[0];
+  return pickOne(rewardSeed, pool)[0];
+}
 export type RingOffer = { id: ShopRingId; name: string; flavor: string; slot: EquipmentSlot; effect?: string; rarity: RingRarity; price: number };
 export type RingPurchases = Partial<Record<ShopRingId, number>>;
 
@@ -307,10 +321,7 @@ export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: Sho
     const event = drawPandoraEvent(nextInt(seed('event'), PANDORA_EVENT_TICKETS)[0], balance - offer.price, level);
     return { status: 'buy', reward: event, next: { ...wallet, events: { ...wallet.events, [receipt]: event } } } as const;
   }
-  const [tier] = nextInt(seed('tier'), 100);
-  const desired = tier < 5 ? AMULET_IDS : tier < 6 ? TEMP_RING_IDS.slice(8) :
-    tier < 11 ? TEMP_RING_IDS.slice(6, 8) : tier < 30 ? TEMP_RING_IDS.slice(4, 6) : TEMP_RING_IDS.slice(0, 4);
-  const [id] = pickOne(seed('reward'), desired);
+  const id = drawPandoraJewelry(seed('jewelry-slot'), seed('tier'), seed('reward'));
   const rarity = shopRarity(id);
   if (wallet.items[id] !== undefined) {
     const reward = pandoraGoldReward(level, rarity);

@@ -7,10 +7,20 @@ import { createRun, replayRun, runReducer } from './run.ts';
 import { characterBonuses, trainingRingProgress } from './character.ts';
 import { drawPandoraEvent, pandoraGoldBreakdown, readPandoraEvent } from './pandora.ts';
 import { inventoryStacks } from './inventory.ts';
-import { drawPandoraCard, PANDORA_CARD_TIERS } from './ringShop.ts';
+import { drawPandoraCard, drawPandoraJewelry, PANDORA_CARD_TIERS } from './ringShop.ts';
 import { hashSeed } from './rng.ts';
 
 const day = '2026-11-27';
+
+test('Pandora jewelry splits into 70% rings and 30% amulets', () => {
+  let amulets = 0;
+  const samples = 4000;
+  for (let i = 0; i < samples; i++) {
+    const id = drawPandoraJewelry(hashSeed('jewelry:' + i), hashSeed('tier:' + i), hashSeed('reward:' + i));
+    if (!TEMP_RING_IDS.some(ring => ring === id)) amulets++;
+  }
+  assert.ok(Math.abs(amulets / samples - .3) < .03, String(amulets));
+});
 
 test('Pandora card rarity is rolled first and each tier can award a playable card', () => {
   assert.deepEqual(PANDORA_CARD_TIERS.map(({ weight }) => weight), [35, 30, 25, 10]);
