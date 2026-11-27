@@ -59,7 +59,7 @@ export type CostCurveConfig = {
     areaOverkill: number;
     /** Share of a Randomly hit's value (it can't be aimed). */
     randomAim: number;
-    /** Chance a Shock goes off (3 hits on one hero in one turn). */
+    /** Chance a Shock goes off (a follow-up attack lands before it fades). */
     shockBurstChance: number;
     /** Later Melee or Range attacks on a bleeding hero. */
     laterAttacksForBleed: number;
@@ -70,7 +70,7 @@ export type CostCurveConfig = {
     /** Hex already on a target when Reap is played. */
     hexOnTarget: number;
   };
-  /** Prices for moving (see movement.ts: button = 1 energy + the streak). */
+  /** Prices for moving (see movement.ts: buttons start at zero, then use a shared streak). */
   movement: {
     /** Average energy a Charge or Back Step button press costs. */
     avgButtonEnergy: number;

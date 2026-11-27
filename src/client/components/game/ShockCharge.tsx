@@ -1,31 +1,24 @@
 // ===================================================================
 // SHOCK CHARGE
-// Shock's chip icon: a lightning bolt that charges as the hits in a row add
-// up toward the burst (SHOCK_HITS, see lib/shockStage):
-//   empty     no hits yet            an outline
-//   charging  some hits              filled a step per hit
-//   full      one hit off (primed)   full, and it pulses
-//   splash    the bursting hit       bursts outward as the damage lands
+// Shock's chip icon: a lightning bolt that's charged immediately.
+//   full      ready for an attack   full, and it pulses
+//   splash    the burst       bursts outward as the damage lands
 // PERFORMANCE: transform and opacity only (index.css "SHOCK CHARGE");
 // reduced motion shows a steady full bolt (no pulse, no splash).
 // ===================================================================
 
-import { useId } from 'react';
 import type { ShockCharge as Charge } from '../../lib/shockStage';
 
 // --- CONSTANTS ---
 /** The bolt, on a 10 x 10 box. */
 const BOLT_PATH = 'M6.2.5 2 5.6h2.7L3.6 9.5 8.2 4.2H5.4L6.2.5Z';
-/** The bolt's box height: a full fill reaches y 0 on it. */
-const BOX = 10;
 /** The discharge's sparks: which way each flies (degrees). */
 const SPLASH_ANGLES = [-150, -100, -60, -20, 30] as const;
 
 // --- COMPONENT ---
 /** Renders the bolt at its charge, in the current text colour. */
 export const ShockCharge = ({ charge }: { charge: Charge }) => {
-  const { stage, fill } = charge;
-  const clipId = useId();
+  const { stage } = charge;
   return (
     <span
       className="shock-charge relative inline-flex size-3"
@@ -36,16 +29,7 @@ export const ShockCharge = ({ charge }: { charge: Charge }) => {
         className="shock-charge-body size-full"
         aria-hidden="true"
       >
-        <clipPath id={clipId}>
-          <rect x="0" y={BOX * (1 - fill)} width={BOX} height={BOX} />
-        </clipPath>
-        <path d={BOLT_PATH} fill="currentColor" clipPath={`url(#${clipId})`} />
-        <path
-          d={BOLT_PATH}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="0.9"
-        />
+        <path d={BOLT_PATH} fill="currentColor" stroke="currentColor" strokeWidth="0.9" />
       </svg>
       {stage === 'splash' &&
         SPLASH_ANGLES.map((angle) => (

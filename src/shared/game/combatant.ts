@@ -7,7 +7,6 @@
 import {
   AFTER_ACTION_DIVISOR,
   SHOCK_BURST_FACTOR,
-  SHOCK_HITS,
   WEAKEN_DAMAGE_FACTOR,
   FROST_DAMAGE_PER_STACK,
   HEX_BURN_LOSS,
@@ -362,24 +361,21 @@ export const spendInvincible = <T extends Combatant>(target: T): T => ({
 });
 
 /**
- * Takes a hit of a type (a card's, or a hero attack's) and counts it
- * toward Shock: while shocked, every hit (any type) this turn adds
- * one, and the SHOCK_HITS-th bursts for the whole Shock (past Guard) and clears
- * it. A Piercing hit skips the
+ * Takes a hit of a type (a card's, or a hero attack's).
+ * A Piercing hit skips the
  * target's damage reductions and Guard (Protection, Armor, Guard).
  */
 export const takeHit = <T extends Combatant>(
   target: T,
   amount: number,
   type: CardType,
-  isPiercing = false,
-  source?: Combatant
+  isPiercing = false
 ): T => {
   // INVINCIBLE: a stack turns this hit to 0, then goes (even past Piercing).
   if (amount > 0 && target.statuses.invincible > 0)
-    return countShockHit(spendInvincible(target));
+    return spendInvincible(target);
   // PIERCING: past Protection, Armor and Guard, straight to HP.
-  if (isPiercing) return countShockHit(loseHp(target, amount), source);
+  if (isPiercing) return loseHp(target, amount);
   const afterProtection = protectedAmount(target, amount);
   const reduced = armoredAmount(target, afterProtection, type);
   // ARMOR SOAK: counted so the view can show the armor icon on the hit.
@@ -390,7 +386,7 @@ export const takeHit = <T extends Combatant>(
       : target,
     reduced
   );
-  return countShockHit(hit, source);
+  return hit;
 };
 
 /** What a Bleed bites for: BLEED_BITE_FACTOR of it, rounded up. */
@@ -399,24 +395,24 @@ export const bleedBiteOf = (bleed: number): number =>
   bleed > 0 ? Math.ceil(bleed * BLEED_BITE_FACTOR - 1e-9) : 0;
 
 /**
- * Bleed on a physical attack landed (call once per attack, after all its
- * hits): if the unit bled before the attack (`priorBleed`), it loses a
- * bite of that Bleed (past Guard), counted in bleedTaken, then Bleed -1.
+ * At the end of a physical attack, combine one Bleed bite per landed hit
+ * (past Guard), then lose one stack. Hits use the pre-attack stack count.
  * Using the Bleed from before means an attack never bites with the
  * stacks it just laid itself.
  */
 export const bleedOnAttack = <T extends Combatant>(
   target: T,
   priorBleed: number,
-  source?: Combatant
+  source?: Combatant,
+  landedHits = 1
 ): T => {
   const { bleed } = target.statuses;
-  if (priorBleed <= 0 || bleed <= 0) return target;
+  if (priorBleed <= 0 || bleed <= 0 || landedHits <= 0) return target;
   const bite = incomingAfflictionDamage(
     target,
     bleedBiteOf(priorBleed),
     source
-  );
+  ) * landedHits;
   const bled = loseHp(target, bite);
   return {
     ...bled,
@@ -425,17 +421,9 @@ export const bleedOnAttack = <T extends Combatant>(
   };
 };
 
-/** Counts a hit toward Shock; the SHOCK_HITS-th sets it off. */
-const countShockHit = <T extends Combatant>(hit: T, source?: Combatant): T => {
-  if (hit.statuses.shock <= 0) return hit;
-  const inARow = (hit.shockHits ?? 0) + 1;
-  if (inARow < SHOCK_HITS) return { ...hit, shockHits: inARow };
-  return burstShock(hit, source);
-};
-
 /**
  * Shock goes off: SHOCK_BURST_FACTOR times its stacks (past Guard),
- * then it clears. The SHOCK_HITS-th hit does this, and so does a
+ * then its stacks halve (rounding down). A landed follow-up attack does this, as does a
  * Smite (a hero's `detonate`) at once. No Shock, nothing happens.
  */
 export const burstShock = <T extends Combatant>(
@@ -454,7 +442,7 @@ export const burstShock = <T extends Combatant>(
     shockHits: 0,
     shockBursts: (target.shockBursts ?? 0) + 1,
     shockDamageTaken: (target.shockDamageTaken ?? 0) + damage,
-    statuses: { ...target.statuses, shock: 0 },
+    statuses: { ...target.statuses, shock: Math.floor(shock / 2) },
   };
   return loseHp(cleared, damage);
 };
@@ -469,13 +457,13 @@ export const didShockBurst = (before: Combatant, after: Combatant): boolean =>
  * other standing unit on its side that still holds Shock goes off too,
  * one at a time in field order. Returns the side after each chained
  * burst (empty when nothing went off), so the view can show each bolt
- * on its own beat. It can't loop: a chained burst is not a hit (it never
- * counts toward SHOCK_HITS) and it clears that unit's Shock, so every
- * unit goes off at most once per chain.
+ * on its own beat. Only Shock primed before the attack can join the chain,
+ * and each unit goes off at most once.
  */
 export const shockChain = <T extends Combatant & { uid: number }>(
   before: readonly T[],
   after: readonly T[],
+  eligible: ReadonlySet<number>,
   source?: Combatant
 ): T[][] => {
   const isTriggered = after.some((unit) => {
@@ -483,7 +471,7 @@ export const shockChain = <T extends Combatant & { uid: number }>(
     return old !== undefined && didShockBurst(old, unit);
   });
   if (!isTriggered) return [];
-  const charged = after.filter((unit) => unit.hp > 0 && unit.statuses.shock > 0);
+  const charged = after.filter((unit) => unit.hp > 0 && unit.statuses.shock > 0 && eligible.has(unit.uid));
   // Imperative on purpose: each step builds on the side the last burst left.
   const steps: T[][] = [];
   let side: T[] = [...after];

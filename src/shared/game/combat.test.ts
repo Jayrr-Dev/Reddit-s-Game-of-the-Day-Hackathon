@@ -15,6 +15,7 @@ import {
   burnTick,
   poisonTick,
   bleedOnAttack,
+  bleedBiteOf,
   afterAction,
   burstShock,
   frostThaw,
@@ -85,7 +86,6 @@ import {
   ENERGY_PER_TURN,
   MAX_IMBUES_PER_CARD,
   SHOCK_BURST_FACTOR,
-  SHOCK_HITS,
   STATUS_IS_AFFLICTION,
 } from './rules.ts';
 import type { CombatState, HeroUnit, ImbueGift } from './types.ts';
@@ -567,23 +567,6 @@ void test('a frosted hero hits softer, then its frost halves', () => {
   assert.equal(after.statuses.frost, 1);
 });
 
-void test('shock bursts and clears on the 3rd hit', () => {
-  assert.equal(SHOCK_HITS, 3);
-  const shocked = {
-    ...createCombatant(50, 50),
-    statuses: { ...NO_STATUSES, shock: 6 },
-  };
-  const twice = takeHit(takeHit(shocked, 2, 'melee'), 2, 'range');
-  assert.equal(twice.shockHits, 2);
-  assert.equal(twice.hp, 46);
-  const burst = takeHit(twice, 2, 'melee');
-  // Three hits of 2, then the shock (6) doubled.
-  assert.equal(SHOCK_BURST_FACTOR, 2);
-  assert.equal(burst.hp, 44 - 6 * SHOCK_BURST_FACTOR);
-  assert.equal(burst.statuses.shock, 0);
-  assert.equal(burst.shockHits ?? 0, 0);
-});
-
 void test('Shock fades by 1 after each action, like Bleed', () => {
   const shocked = {
     ...createCombatant(50, 50),
@@ -638,7 +621,7 @@ const withBleed = <T extends { statuses: typeof NO_STATUSES }>(
   bleed: number
 ): T => ({ ...unit, statuses: { ...unit.statuses, bleed } });
 
-void test('Bleed bites once per physical attack landed, not per hit', () => {
+void test('Bleed totals one bite per landed physical hit, then loses only one stack', () => {
   // A hit alone no longer sets it off.
   const bleeding = {
     ...createCombatant(50, 50),
@@ -647,13 +630,13 @@ void test('Bleed bites once per physical attack landed, not per hit', () => {
   const hit = takeHit(bleeding, 2, 'melee');
   assert.equal(hit.hp, 48);
   assert.equal(hit.statuses.bleed, 9);
-  // The whole attack: one bite for a third (rounded up), then Bleed -1.
+  // A single landed hit contributes one bite, then Bleed -1.
   assert.equal(BLEED_BITE_FACTOR, 1 / 3);
   const bitten = bleedOnAttack(bleeding, 9);
   assert.equal(bitten.hp, 50 - 3);
   assert.equal(bitten.statuses.bleed, 8);
   assert.equal(bitten.bleedTaken, 3, 'counted for the bleed number');
-  // Played: a 2x3 volley on Bleed 9 bites once, for 3.
+  // Played: a 2x3 volley on Bleed 9 combines three bites of 3.
   const start = withHand(fightWith([]), []);
   const uid = start.heroes[0]?.uid ?? -1;
   const state: CombatState = {
@@ -667,10 +650,13 @@ void test('Bleed bites once per physical attack landed, not per hit', () => {
       (unit) => unit.uid === uid
     )!;
   const volleyed = play('barbedVolley');
-  assert.equal(volleyed.hp, 500 - 6 - 3);
-  assert.equal(volleyed.bleedTaken, 3);
+  assert.equal(volleyed.hp, 500 - 6 - 9);
+  assert.equal(volleyed.bleedTaken, 9);
   // Its own 3 x Bleed 2 land too: 9 + 6, then -1 for the bite.
   assert.equal(volleyed.statuses.bleed, 14);
+  const beats = playCardSteps(withHand(state, ['barbedVolley']), 0, uid).slice(0, -1);
+  assert.ok(beats.slice(0, -1).every(beat => (beat.heroes[0]?.bleedTaken ?? 0) === 0));
+  assert.equal(beats.at(-1)?.heroes[0]?.bleedTaken, 9);
   // Magic doesn't set it off, nor does it tick between actions.
   assert.equal(play('chaosBolt').statuses.bleed, 9);
   assert.equal(afterAction(bleeding).statuses.bleed, 9);
@@ -678,38 +664,35 @@ void test('Bleed bites once per physical attack landed, not per hit', () => {
   assert.ok(!('venom' in NO_STATUSES), 'Venom is gone');
 });
 
-void test('new shock stacks on top and keeps the count', () => {
-  const shocked = {
-    ...createCombatant(50, 50),
-    statuses: { ...NO_STATUSES, shock: 2 },
-  };
-  const hit = takeHit(takeHit(shocked, 1, 'melee'), 1, 'melee');
-  const stacked = addStatus(hit, 'shock', 4);
-  assert.equal(stacked.shockHits, 2);
-  const burst = takeHit(stacked, 1, 'melee');
-  assert.equal(burst.hp, 50 - 3 - 6 * SHOCK_BURST_FACTOR);
+void test('enemy volleys apply all of their landed Bleed damage in one attack', () => {
+  const base = squireAndArcher(['backhand']);
+  const state = { ...base, player: withBleed({ ...base.player, hp: 100, maxHp: 100 }, 9) };
+  const archer = heroNamed(state, 'archer')!;
+  const steps = endTurnSteps(state);
+  const index = steps.findIndex(step => step.actorUid === archer.uid && step.attackType === 'range');
+  assert.ok(index >= 0);
+  const before = steps[index - 1]?.state.player ?? state.player;
+  const after = steps[index]!.state.player;
+  assert.equal((after.bleedTaken ?? 0) - (before.bleedTaken ?? 0), bleedBiteOf(before.statuses.bleed) * 3);
+  assert.equal(after.statuses.bleed, before.statuses.bleed - 1);
 });
 
-void test('Shock hits must come in one turn: the count resets at upkeep', () => {
-  const shocked = {
-    ...createCombatant(50, 50),
-    statuses: { ...NO_STATUSES, shock: 6 },
-  };
-  const twice = takeHit(takeHit(shocked, 1, 'melee'), 1, 'melee');
-  const nextTurn = endOfTurnUpkeep(twice);
-  assert.equal(nextTurn.shockHits ?? 0, 0);
-  assert.equal(takeHit(nextTurn, 1, 'melee').statuses.shock, 6);
-});
-
-void test('a magic hit counts toward Shock like any other', () => {
-  const shocked = {
-    ...createCombatant(50, 50),
-    statuses: { ...NO_STATUSES, shock: 6 },
-  };
-  const hit = takeHit(takeHit(shocked, 1, 'melee'), 1, 'range');
-  const zapped = takeHit(hit, 1, 'magic');
-  assert.equal(zapped.statuses.shock, 0, 'the 3rd hit bursts it');
-  assert.equal(zapped.hp, 50 - 3 - 6 * SHOCK_BURST_FACTOR);
+void test('Shock stacks, bursts once on the next separate attack and halves', () => {
+  const fight = fightWith(['staticCharge', 'twinDaggers', 'chaosBolt']);
+  const target = fight.heroes[0]!;
+  const charged = { ...fight, energy: 9, heroes: [{ ...target, hp: 500, maxHp: 500,
+    statuses: { ...target.statuses, shock: 2 } }] };
+  const applied = playCard(withHand(charged, ['staticCharge']), 0, target.uid);
+  assert.equal(applied.heroes[0]!.shockBursts ?? 0, 0);
+  assert.equal(applied.heroes[0]!.statuses.shock, 7);
+  const attacked = playCard(withHand(applied, ['twinDaggers']), 0, target.uid);
+  assert.equal(attacked.heroes[0]!.shockBursts, 1, 'both hits are one attack');
+  assert.equal(attacked.heroes[0]!.shockDamageTaken, 7 * SHOCK_BURST_FACTOR);
+  assert.equal(attacked.heroes[0]!.statuses.shock, 3);
+  const repeated = playCard(withHand(attacked, ['chaosBolt']), 0, target.uid);
+  assert.equal(repeated.heroes[0]!.shockBursts, 2, 'Magic also triggers Shock');
+  assert.equal(repeated.heroes[0]!.shockDamageTaken, 10 * SHOCK_BURST_FACTOR);
+  assert.equal(repeated.heroes[0]!.statuses.shock, 1);
 });
 
 void test('a hero shocked by the villain: four melee hits', () => {
@@ -740,7 +723,7 @@ void test('a hero shocked by the villain: four melee hits', () => {
     shocked
   );
   const maiden = after.heroes.find((unit) => unit.uid === uid)!;
-  assert.equal(maiden.hp, 99 - 6 * 4 - 5 * SHOCK_BURST_FACTOR);
+  assert.equal(maiden.hp, 99 - 6 * 4 - (5 + 2 + 1) * SHOCK_BURST_FACTOR);
   assert.equal(maiden.statuses.shock, 0);
 });
 
@@ -1247,7 +1230,7 @@ void test('every pick follows reach: a melee pick at the back row hits the front
   const [squire, archer] = start.heroes.map((unit) => unit.uid);
   const picks = [squire ?? -1, archer ?? -1];
   const after = playCard(start, 0, picks[0] ?? -1, picks);
-  // 4 + 4, and no bite: Bleed bites once per attack, on Bleed from before.
+  // 4 + 4, and no bite: only Bleed already present before the attack can bite.
   assert.deepEqual(hpLost(start, after), [8, 0]);
 });
 
@@ -1681,6 +1664,7 @@ void test('the griffon calls lightning: Shock its triple hits charge', () => {
   const talons = endTurn(atMove(names.indexOf('Thunder Talons')));
   // Shock 6 on every one of its 3 hits.
   assert.equal(talons.player.statuses.shock, 6 * 3);
+  assert.equal(talons.player.shockBursts ?? 0, 0, 'the attack that applies Shock cannot burst it');
   // Storm Wings guards and charges more Shock without attacking.
   const wings = endTurn(atMove(names.indexOf('Storm Wings')));
   assert.ok(wings.player.statuses.shock > 0);
@@ -1696,7 +1680,7 @@ void test('the griffon calls lightning: Shock its triple hits charge', () => {
     (step) => step.actorUid === griffon.uid
   )!.state;
   assert.equal(sliced.player.shockHits, 0);
-  assert.equal(sliced.player.statuses.shock, 0);
+  assert.equal(sliced.player.statuses.shock, 2);
   assert.equal(sliced.player.shockBursts, 1);
 });
 
@@ -1720,7 +1704,7 @@ void test('the griffon Smites (sets off Shock) and swipes Crossed Talon 3x6', ()
   // Smite: no hits, the Shock goes off at once (doubled). The villain's
   // own turn faded it 5 -> 4 first.
   const smitten = actOf(shocked(indexOf('Smite')));
-  assert.equal(smitten.player.statuses.shock, 0);
+  assert.equal(smitten.player.statuses.shock, 2);
   assert.equal(start.player.hp - smitten.player.hp, 4 * SHOCK_BURST_FACTOR);
   // Crossed Talon: 6 hits of 3, which also set the Shock off.
   const crossed = moves[indexOf('Crossed Talon')]!;
@@ -1731,7 +1715,7 @@ void test('the griffon Smites (sets off Shock) and swipes Crossed Talon 3x6', ()
     type: 'melee',
   });
   const swiped = actOf(shocked(indexOf('Crossed Talon')));
-  assert.equal(swiped.player.statuses.shock, 0);
+  assert.equal(swiped.player.statuses.shock, 2);
   assert.equal(
     start.player.hp - swiped.player.hp,
     3 * 6 + 4 * SHOCK_BURST_FACTOR
@@ -2923,7 +2907,7 @@ void test('Knockback impact rounds up; a blocked or non-damaging push adds no da
 void test('Knockback impact is based on the landed attack, not a Shock burst', () => {
   const base = knockbackFight('repulse');
   const unit = base.heroes[0]!;
-  const battle = { ...base, heroes: [{ ...unit, statuses: { ...unit.statuses, shock: 6 }, shockHits: SHOCK_HITS - 1 }] };
+  const battle = { ...base, heroes: [{ ...unit, statuses: { ...unit.statuses, shock: 6 } }] };
   const target = playCard(battle, 0, unit.uid).heroes[0]!;
   assert.equal(target.shockBursts, 1);
   assert.equal(target.damageTaken - (target.shockDamageTaken ?? 0), 7);
@@ -2934,9 +2918,9 @@ void test('Knockback impact spends Guard without counting as another hit', () =>
   const unit = base.heroes[0]!;
   const battle = { ...base, heroes: [{ ...unit, guard: 20, statuses: { ...unit.statuses, shock: 6, armor: 4 } }] };
   const target = playCard(battle, 0, unit.uid).heroes[0]!;
-  assert.equal(target.hp, 500);
+  assert.equal(target.hp, 488, 'only the direct card attack triggers Shock');
   assert.equal(target.guard, 2, '12 base and 6 bonus');
-  assert.equal(target.shockHits, 1);
+  assert.equal(target.shockBursts, 1);
 });
 
 void test('area Knockback adds bonus damage only to the hit targets it actually moves', () => {
@@ -3130,7 +3114,7 @@ void test('Scorn scales enemy Poison, Burn and odd Hex ticks independently witho
 void test('Scorn scales the Bleed bite and Shock burst separately from the melee hit, including overkill counters', () => {
   const battle = traitFight('backhand', { scorn: 64 });
   const target = battle.heroes[0]!;
-  const enemy = { ...target, hp: 1, shockHits: SHOCK_HITS - 1, statuses: { ...target.statuses, shock: 5, bleed: 10 } };
+  const enemy = { ...target, hp: 1, statuses: { ...target.statuses, shock: 5, bleed: 10 } };
   const steps = playCardSteps({ ...battle, heroes: [enemy] }, 0, enemy.uid);
   const burst = steps.find(step => (step.heroes[0]?.shockDamageTaken ?? 0) > 0)?.heroes[0];
   assert.ok(burst);
@@ -3210,7 +3194,7 @@ void test('Protection reduces all damaging afflictions after source scaling with
   assert.ok(effects.every(x => x.guard === 9 && x.statuses.armor === 5));
   assert.equal(effects[3]!.bleedTaken, 2);
   assert.equal(effects[4]!.shockDamageTaken, 5);
-  assert.deepEqual(effects.map((x, i) => x.statuses[(['hex','poison','burn','bleed','shock'] as const)[i]!]), [3, 6, 4, 7, 0]);
+  assert.deepEqual(effects.map((x, i) => x.statuses[(['hex','poison','burn','bleed','shock'] as const)[i]!]), [3, 6, 4, 7, 2]);
   const source = { ...unit, traits: { ...createCharacter().traits, scorn: 64 } };
   assert.equal(100 - poisonTick(base, source).hp, 6);
   assert.equal(100 - poisonTick({ ...base, statuses: { ...base.statuses, protection: 4 } }).hp, 1);
@@ -3479,19 +3463,17 @@ void test('combat history records each unit’s dodge count delta, including a u
 });
 
 // --- SHOCK CHAIN ---
-/** Squire about to take its 3rd Shock hit, Archer shocked too, both in reach. */
+/** Squire and Archer are both primed before the card is played. */
 const chainReady = (): CombatState => {
   const start = squireAndArcher(['backhand']);
   const [squire, archer] = start.heroes;
-  const charge = (shockHits: number) => ({
-    row: 'front' as const, hp: 80, maxHp: 80, guard: 0, shockHits,
-  });
+  const charge = { row: 'front' as const, hp: 80, maxHp: 80, guard: 0 };
   return {
     ...start,
     energy: 3,
     heroes: [
-      { ...squire!, ...charge(3), statuses: { ...squire!.statuses, shock: 5 } },
-      { ...archer!, ...charge(0), statuses: { ...archer!.statuses, shock: 4 } },
+      { ...squire!, ...charge, statuses: { ...squire!.statuses, shock: 5 } },
+      { ...archer!, ...charge, statuses: { ...archer!.statuses, shock: 4 } },
     ],
   };
 };
@@ -3501,7 +3483,7 @@ void test('one Shock going off sets off every other Shock on the field', () => {
   const [squire, archer] = state.heroes;
   const after = playCard(state, 0, squire!.uid);
   const archerAfter = after.heroes.find((unit) => unit.uid === archer!.uid)!;
-  assert.equal(archerAfter.statuses.shock, 0);
+  assert.equal(archerAfter.statuses.shock, 2);
   assert.equal(archerAfter.shockBursts, 1);
   // Never hit by the card: all it lost is its own burst (4 x 2).
   assert.equal(archerAfter.hp, 80 - 4 * SHOCK_BURST_FACTOR);

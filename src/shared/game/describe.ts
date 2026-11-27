@@ -32,7 +32,6 @@ import {
   ROW_LABEL,
   EXHAUST_USES,
   SHOCK_BURST_FACTOR,
-  SHOCK_HITS,
   STATUS_IS_AFFLICTION,
   BANE_AFFLICTIONS,
   UNIT_ONLY_STATUSES,
@@ -76,18 +75,6 @@ import type {
  */
 export type StatusInfo = { label: string; description: string };
 
-/** A count as an ordinal word for rules text: 3 -> "3rd", 4 -> "4th". */
-const ordinal = (count: number): string => {
-  const lastTwo = count % 100;
-  const suffix =
-    lastTwo >= 11 && lastTwo <= 13
-      ? 'th'
-      : (({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[
-          count % 10
-        ] ?? 'th');
-  return `${count}${suffix}`;
-};
-
 /** Sharpshooter's Range boost as a percentage ("+20%"). */
 export const SHARPSHOOTER_BONUS_TEXT = `+${Math.round((SHARPSHOOTER_DAMAGE_FACTOR - 1) * 100)}%`;
 
@@ -116,11 +103,11 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   },
   bleed: {
     label: 'Bleed',
-    description: `Each successful **Melee** or **Range** attack deals **⅓** of Bleed as bonus damage (round up). Then Bleed drops by **1**.`,
+    description: `Each landed **Melee** or **Range** hit adds **⅓** of Bleed as damage (round up). Deal the total at the end of the attack, then lose **1** stack.`,
   },
   shock: {
     label: 'Shock',
-    description: `Goes off on the **${ordinal(SHOCK_HITS)}** hit in a turn\nDeals **${SHOCK_BURST_FACTOR}×** its stacks as damage, then clears\nSets off every other **Shock**, one by one\n-1 stack after each action`,
+    description: `Bursts once on the **next attack**\nDeals **${SHOCK_BURST_FACTOR}×** its stacks as damage, then halves\nSets off every other **Shock**, one by one\n-1 stack after each action`,
   },
   poison: {
     label: 'Poison',

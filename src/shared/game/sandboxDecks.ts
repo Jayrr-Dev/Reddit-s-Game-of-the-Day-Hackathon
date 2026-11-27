@@ -66,7 +66,7 @@ const hasEffect =
   (card: CardDef): boolean =>
     effectsOf(card).some((kind) => kinds.includes(kind));
 
-/** True when the card hits more than once (Shock needs SHOCK_HITS a turn). */
+/** True when the card hits more than once. */
 const isMultiHit = (card: CardDef): boolean =>
   card.targets > 1 ||
   card.effects.some((effect) => effect.kind === 'damage' && effect.hits > 1);

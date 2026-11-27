@@ -90,6 +90,7 @@ import {
   tickCloak,
   dodge,
   missShot,
+  didShockBurst,
   takeHit,
   takeDamage,
   loseHp,
@@ -856,12 +857,15 @@ export const cleaveTargetsOf = (state: CombatState, cardId: CardId): HeroUnit[] 
  * it only adds overkill to damageTaken, so every hit of the volley still
  * shows its number. Fallen heroes leave when the card resolves.
  */
+type HitObserver = (before: CombatState, after: CombatState) => void;
+
 const villainAttack = (
   state: CombatState,
   effect: Extract<CardEffect, { kind: 'damage' }>,
   targetUid: number,
   cardDef: CardDef,
-  play: PlayContext
+  play: PlayContext,
+  observeHit?: HitObserver
 ): CombatState => {
   const isMelee = !cardDef.reach;
   const perHit = attackDamage(
@@ -911,9 +915,11 @@ const villainAttack = (
       cardDef,
       play.isLongRange
     );
+    observeHit?.(rolled, struck);
     const afterHit = play.isPiercing && aim.target === 'one'
       ? pierceBehind(struck, aim.uid, pierceHit, cardDef, play.isLongRange)
       : struck;
+    if (afterHit !== struck) observeHit?.(struck, afterHit);
     // Count fresh defeats from this hit, including its piercing damage.
     const kills = afterHit.heroes.filter((hero, index) =>
       hero.hp === 0 && (current.heroes[index]?.hp ?? 0) > 0
@@ -983,7 +989,7 @@ const elementalHit = <T extends Combatant>(
   isPiercing: boolean,
   attacker: Combatant
 ): T => {
-  const hit = takeHit(unit, amount, cardDef.type, isPiercing, attacker);
+  const hit = takeHit(unit, amount, cardDef.type, isPiercing);
   // A hit for 0 (all Armor or Protection) carries no element, unless
   // RELENTLESS (skill tree) lets afflictions ride even a blocked hit.
   const isLanded =
@@ -1007,7 +1013,7 @@ const reapHex = (
     state,
     resolveTargets(state, 'one', targetUid, cardDef.type),
     (unit, factor) =>
-      takeHit(unit, reapDamage(unit.statuses.hex, multiplier, state.player) * factor, cardDef.type, false, state.player),
+      takeHit(unit, reapDamage(unit.statuses.hex, multiplier, state.player) * factor, cardDef.type),
     cardDef,
     hasLongRange
   );
@@ -1050,7 +1056,7 @@ const applyOnPortrait = (
       const damage = amount * (critical ? 2 : 1);
       const hit = effect.kind === 'damage'
         ? elementalHit(player, damage, cardDef, play.isPiercing, player)
-        : takeHit(player, damage, cardDef.type, false, player);
+        : takeHit(player, damage, cardDef.type);
       return { ...current, player: hit };
     }
     case 'hex':
@@ -1099,12 +1105,13 @@ const applyCardEffect = (
   targetUid: number,
   cardDef: CardDef,
   play: PlayContext,
-  guardRepeats: number
+  guardRepeats: number,
+  observeHit?: HitObserver
 ): CombatState => {
   if (targetUid === SELF_TARGET_UID && !isSelfEffect(effect)) return applyOnPortrait(state, effect, cardDef, play);
   switch (effect.kind) {
     case 'damage':
-      return villainAttack(state, effect, targetUid, cardDef, play);
+      return villainAttack(state, effect, targetUid, cardDef, play, observeHit);
     case 'hex':
     case 'poison':
     case 'burn':
@@ -1460,6 +1467,20 @@ const cardBeats = (
   const beats = own.filter((effect) => !isOnHitOwn(effect)).flatMap(splitHits);
   const imbuedBeats = [...own.filter(isOnHitOwn), ...extra].flatMap(splitHits);
   const dealsKnockbackDamage = isProcPerHit && beats.some(effect => effect.kind === 'push');
+  const primed = new Set(paid.heroes.filter(unit => unit.statuses.shock > 0).map(unit => unit.uid));
+  let selfPrimed = paid.player.statuses.shock > 0;
+  const bleeders = new Map<number, number>();
+  if (isProcPerHit && PHYSICAL_TYPES.has(cardDef.type)) {
+    for (const unit of paid.heroes) if (unit.statuses.bleed > 0) bleeders.set(unit.uid, 0);
+    if (paid.player.statuses.bleed > 0) bleeders.set(SELF_TARGET_UID, 0);
+  }
+  const observeBleedHit: HitObserver | undefined = bleeders.size ? (before, after) => {
+    for (const [uid, hits] of bleeders) {
+      const old = before.heroes.find(unit => unit.uid === uid);
+      const hurt = after.heroes.find(unit => unit.uid === uid);
+      if (old && hurt && old.hp > 0 && villainWasHit(old, hurt)) bleeders.set(uid, hits + 1);
+    }
+  } : undefined;
   const states: CombatState[] = [];
   let current = plan.hasCharge ? moveFree(paid, 'charge') : paid;
   if (current !== paid) states.push(current);
@@ -1481,9 +1502,28 @@ const cardBeats = (
     const apply = (effect: CardEffect) => {
       if (aimed === SELF_TARGET_UID && current.player.hp <= 0) return;
       const before = current;
-      current = applyCardEffect(current, effect, aimed, cardDef, plan, guardRepeats);
-      states.push(current);
+      current = applyCardEffect(current, effect, aimed, cardDef, plan, guardRepeats, observeBleedHit);
+      const selfHits = bleeders.get(SELF_TARGET_UID);
+      if (effect.kind === 'damage' && selfHits !== undefined && aimed === SELF_TARGET_UID && villainWasHit(before.player, current.player))
+        bleeders.set(SELF_TARGET_UID, selfHits + 1);
       if (knockbackHits && effect.kind === 'damage') tallyKnockbackHits(knockbackHits, before, current);
+      const isAttack = effect.kind === 'damage' || effect.kind === 'reap';
+      if (isAttack && aimed === SELF_TARGET_UID && selfPrimed && villainWasHit(before.player, current.player)) {
+        current = { ...current, player: burstShock(current.player, current.player) };
+        selfPrimed = false;
+      }
+      if (isAttack && aimed !== SELF_TARGET_UID && primed.size) {
+        let burst = false;
+        const heroes = current.heroes.map(unit => {
+          const old = before.heroes.find(hero => hero.uid === unit.uid);
+          if (!old || !primed.has(unit.uid) || unit.statuses.shock <= 0 || !villainWasHit(old, unit)) return unit;
+          primed.delete(unit.uid);
+          burst = true;
+          return burstShock(unit, current.player);
+        });
+        if (burst) current = { ...current, heroes };
+      }
+      states.push(current);
       if (knockbackHits?.size && effect.kind === 'push') {
         const impact = knockbackImpact(before, current, knockbackHits, plan.isPiercing || isSpellpierceOn(current.player, cardDef.type));
         if (impact !== current) {
@@ -1492,9 +1532,15 @@ const cardBeats = (
         }
       }
       // SHOCK CHAIN: a burst on this beat sets off the other Shocks, a beat each.
-      for (const heroes of shockChain(before.heroes, current.heroes, current.player)) {
-        current = { ...current, heroes };
-        states.push(current);
+      if (primed.size && current.heroes.some(unit => {
+        const old = before.heroes.find(hero => hero.uid === unit.uid);
+        return old && didShockBurst(old, unit);
+      })) {
+        for (const heroes of shockChain(before.heroes, current.heroes, primed, current.player)) {
+          current = { ...current, heroes };
+          states.push(current);
+        }
+        primed.clear();
       }
     };
     for (const effect of beats) {
@@ -1514,42 +1560,25 @@ const cardBeats = (
     }
     if (!isProcPerHit && pick === 0) imbuedBeats.forEach(apply);
   });
-  // BLEED: one bite per hero struck (a whole card, not its hits), as a
-  // last beat of its own when it changes anything.
-  const counted = plan.picks.includes(SELF_TARGET_UID) && isProcPerHit && PHYSICAL_TYPES.has(cardDef.type) &&
-      current.player.hp > 0 && villainWasHit(paid.player, current.player)
-    ? { ...current, player: bleedOnAttack(current.player, paid.player.statuses.bleed, paid.player) }
-    : biteBleedOnAttack(paid, current, cardDef);
+  // BLEED: combine each target's landed hits into one final damage beat.
+  const counted = biteBleedOnAttack(paid, current, bleeders);
   if (counted !== current) states.push(counted);
   return states;
 };
 
-/**
- * After a physical attack card resolves, Bleed bites once on every hero
- * it landed on (HP or Guard lost) that bled before it (see bleedOnAttack).
- */
+/** Apply a single combined Bleed tick to each target that was bleeding before the attack. */
 const biteBleedOnAttack = (
   before: CombatState,
   after: CombatState,
-  cardDef: CardDef
+  hits: ReadonlyMap<number, number>
 ): CombatState => {
-  const isAttack = cardDef.effects.some((effect) => effect.kind === 'damage');
-  if (!isAttack || !PHYSICAL_TYPES.has(cardDef.type)) return after;
-  const priorBleedOf = (uid: number): number =>
-    before.heroes.find((hero) => hero.uid === uid)?.statuses.bleed ?? 0;
-  const struck = after.heroes.filter((unit) => {
-    const old = before.heroes.find((hero) => hero.uid === unit.uid);
-    return (
-      old !== undefined && old.statuses.bleed > 0 && villainWasHit(old, unit)
-    );
-  });
-  if (struck.length === 0) return after;
-  return removeFallen(
-    updateHeroes(
-      after,
-      struck.map((unit) => unit.uid),
-      (unit) => bleedOnAttack(unit, priorBleedOf(unit.uid), before.player)
-    )
+  const selfHits = hits.get(SELF_TARGET_UID) ?? 0;
+  const player = selfHits && after.player.hp > 0
+    ? bleedOnAttack(after.player, before.player.statuses.bleed, before.player, selfHits) : after.player;
+  const struck = after.heroes.filter(unit => unit.hp > 0 && (hits.get(unit.uid) ?? 0) > 0);
+  if (!struck.length) return player === after.player ? after : { ...after, player };
+  return updateHeroes({ ...after, player }, struck.map(unit => unit.uid), unit =>
+    bleedOnAttack(unit, before.heroes.find(hero => hero.uid === unit.uid)?.statuses.bleed ?? 0, before.player, hits.get(unit.uid) ?? 0)
   );
 };
 
@@ -1987,7 +2016,7 @@ const applyHeroEffect = (
   state: CombatState,
   actor: HeroUnit,
   effect: HeroEffect,
-  attackBlock: { invincible: boolean },
+  attackBlock: { invincible: boolean; shockPrimed: boolean; bleedHits: number },
   forecast: boolean
 ): CombatState => {
   const support = heroSupportOutput(actor, effect);
@@ -2142,14 +2171,13 @@ const heroShoots = (
   state: CombatState,
   actor: HeroUnit,
   effect: Extract<HeroEffect, { kind: 'attack' }>,
-  attackBlock: { invincible: boolean },
+  attackBlock: { invincible: boolean; shockPrimed: boolean; bleedHits: number },
   forecast: boolean
 ): CombatState => {
   const { type, perHit } = heroAttackOf(actor, effect, debuffPowerOf(state.player.skillPicks));
   const mayMiss = isOutOfRangeShot(type, actor.row, hasLongRangePassive(actor));
   const bonusAccuracy = accuracyBonusOf(actor, type);
   let current = state;
-  let hasLandedAny = false;
   for (let hit = 0; hit < effect.hits; hit += 1) {
     const [lands, rolled] = mayMiss && !forecast
       ? rollShot(current, OUT_OF_RANGE_HIT_CHANCE)
@@ -2180,7 +2208,11 @@ const heroShoots = (
     // PER HIT: a landed hit (one that took HP or Guard; a hit for 0
     // procs nothing) lays the attack's afflictions too.
     const hasLanded = isStruck && villainWasHit(ready.player, struck.player);
-    hasLandedAny ||= hasLanded;
+    if (hasLanded && PHYSICAL_TYPES.has(type)) attackBlock.bleedHits++;
+    if (hasLanded && attackBlock.shockPrimed) {
+      struck.player = burstShock(struck.player);
+      attackBlock.shockPrimed = false;
+    }
     current = hasLanded
       ? (effect.perHit ?? []).reduce(
           (laid, proc) => {
@@ -2191,13 +2223,7 @@ const heroShoots = (
         )
       : struck;
   }
-  // BLEED: the whole attack bites once, if any hit landed.
-  return hasLandedAny && PHYSICAL_TYPES.has(type)
-    ? {
-        ...current,
-        player: bleedOnAttack(current.player, state.player.statuses.bleed),
-      }
-    : current;
+  return current;
 };
 
 /** The hero with its Aloft set: 1 flies it up, 0 brings it down. */
@@ -2230,7 +2256,7 @@ const heroActs = (
   // A HIT FOR 0 PROCS NOTHING: a move whose attacks all came to 0 (missed,
   // dodged, or stopped by Armor) lays none of its effects on the villain.
   let hasLanded = false;
-  const attackBlock = { invincible: false };
+  const attackBlock = { invincible: false, shockPrimed: state.player.statuses.shock > 0, bleedHits: 0 };
   const acted = effects.reduce<CombatState>((current, effect) => {
     const freshActor = current.heroes.find((unit) => unit.uid === uid) ?? actor;
     if (isDefeated(current.player)) return current;
@@ -2243,8 +2269,9 @@ const heroActs = (
     return next;
   }, hasAttack ? updateHeroes(state, [uid], revealCloak) : state);
 
+  const player = acted.player.hp > 0 ? bleedOnAttack(acted.player, state.player.statuses.bleed, actor, attackBlock.bleedHits) : acted.player;
   const isDiving = planned !== null && isAloft(actor);
-  const settled = updateHeroes(acted, [uid], (unit) => {
+  const settled = updateHeroes({ ...acted, player }, [uid], (unit) => {
     // BURN AND FROST RUN AFTER EVERY ACTION, UPKEEP AFTER THE LAST ONE
     const landed = afterAction(isDiving ? withAloft(unit, 0) : unit, state.player);
     return {

@@ -36,7 +36,6 @@ import {
 import {
   WEAKEN_DAMAGE_FACTOR,
   SHOCK_BURST_FACTOR,
-  SHOCK_HITS,
   TIERED_MAX_TIER,
   MALAISE_TURNS,
   STATUS_IS_AFFLICTION,
@@ -65,7 +64,7 @@ import { TintedText } from '../ui/RichText';
 import { Tooltip } from '../ui/Tooltip';
 import {
   SHOCK_SPLASH,
-  shockChargeOf,
+  SHOCK_PRIMED,
   type ShockCharge as Charge,
 } from '../../lib/shockStage';
 import { ShockCharge } from './ShockCharge';
@@ -197,23 +196,11 @@ const hexChipOf = (hex: number, target: Combatant, source?: Combatant): Partial<
   };
 };
 
-/**
- * Shock's chip: its value, with a drop that fills as the hits in a row
- * add up (see ShockCharge). One hit from bursting it is PRIMED: full and
- * pulsing.
- */
-const shockChipOf = (combatant: Combatant, source?: Combatant): Partial<StatusChip> => {
-  const hits = combatant.shockHits ?? 0;
-  const isPrimed = hits >= SHOCK_HITS - 1;
-  return {
-    shockCharge: shockChargeOf(hits),
-    ...(isPrimed
-      ? {
-          description: `Primed: the next hit bursts it for ${incomingAfflictionDamage(combatant, combatant.statuses.shock * SHOCK_BURST_FACTOR, source)}.`,
-        }
-      : {}),
-  };
-};
+/** Active Shock is always primed. Show the damage the next attack will trigger. */
+const shockChipOf = (combatant: Combatant, source?: Combatant): Partial<StatusChip> => ({
+  shockCharge: SHOCK_PRIMED,
+  description: `Next attack: ${incomingAfflictionDamage(combatant, combatant.statuses.shock * SHOCK_BURST_FACTOR, source)} Shock damage. Halves after bursting.`,
+});
 
 /** Only the next-action share of a stacked attack buff belongs over the hand. */
 const oneUseAmount = (id: StatusId, total: number, buffs: readonly TimedBuff[]) => {
@@ -308,7 +295,7 @@ const statusChipsOf = (
       ...(id === 'shock' ? shockChipOf(combatant, source) : {}),
       ...(id === 'poison' ? {description: `Deals ${incomingAfflictionDamage(combatant, total, source)} damage before each action, then loses 1 stack.`} : {}),
       ...(id === 'burn' ? {description: `Deals ${incomingAfflictionDamage(combatant, total, source)} damage after each action, then halves (rounded down).`} : {}),
-      ...(id === 'bleed' ? {description: `A successful Melee or Range attack deals ${incomingAfflictionDamage(combatant, bleedBiteOf(total), source)} bonus damage, then Bleed loses 1 stack.`} : {}),
+      ...(id === 'bleed' ? {description: `Each landed Melee or Range hit adds ${incomingAfflictionDamage(combatant, bleedBiteOf(total), source)} Bleed damage. The total lands after the attack, then Bleed loses 1 stack.`} : {}),
     }];
   });
   const splash =

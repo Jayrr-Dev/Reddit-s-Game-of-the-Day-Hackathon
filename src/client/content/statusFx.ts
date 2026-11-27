@@ -244,7 +244,7 @@ export const STATUS_FX: Record<FxKind, FxSpec> = {
     hasGlow: true,
   },
   /**
-   * Shock discharging (its SHOCK_HITS-th hit): the bolt flashes, lightning lashes
+   * Shock discharging (on the next attack): the bolt flashes, lightning lashes
    * across the body and sparks fly off.
    */
   shockBurst: {

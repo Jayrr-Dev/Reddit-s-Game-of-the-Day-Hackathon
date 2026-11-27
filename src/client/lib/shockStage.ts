@@ -1,27 +1,17 @@
 // ===================================================================
 // SHOCK STAGE
-// How charged Shock's bolt is drawn (see ShockCharge): it fills as the hits
-// in a row add up toward the burst (SHOCK_HITS), full one hit before it.
+// Shock's bolt is fully charged as soon as it is applied.
 // ===================================================================
 
-import { SHOCK_HITS } from '../../shared/game/rules';
-
 // --- TYPES ---
-export type ShockStage = 'empty' | 'charging' | 'full' | 'splash';
+export type ShockStage = 'full' | 'splash';
 
-/** The bolt's look: its stage and how full it is (0..1). */
-export type ShockCharge = { stage: ShockStage; fill: number };
+/** The bolt's look before and during the burst. */
+export type ShockCharge = { stage: ShockStage };
 
 // --- HELPERS ---
-/**
- * The bolt for a number of hits in a row: empty at 0, filling a step
- * per hit, full (primed) at SHOCK_HITS - 1, the hit before the burst.
- */
-export const shockChargeOf = (hits: number): ShockCharge => {
-  const fill = Math.min(1, Math.max(0, hits) / (SHOCK_HITS - 1));
-  if (fill === 0) return { stage: 'empty', fill };
-  return { stage: fill < 1 ? 'charging' : 'full', fill };
-};
+/** Any active Shock is ready for the next attack. */
+export const SHOCK_PRIMED: ShockCharge = { stage: 'full' };
 
 /** The bolt as a Shock bursts: full, splashing. */
-export const SHOCK_SPLASH: ShockCharge = { stage: 'splash', fill: 1 };
+export const SHOCK_SPLASH: ShockCharge = { stage: 'splash' };

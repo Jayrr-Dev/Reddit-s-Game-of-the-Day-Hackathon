@@ -21,11 +21,9 @@ import type { SkillPick } from './skills.ts';
  *           move; the villain's whole turn), then halves (3 -> 1, 1 -> 0)
  * - frost:  every hit it deals is 1 lower per stack (never below 0);
  *           halves the same way after each of its actions
- * - shock:  stacks; on the SHOCK_HITS-th hit it takes (any type,
- *           from anyone), it loses this much HP and clears (see
- *           Combatant.shockHits)
- * - bleed:  each Melee/Range hit it takes (for more than 0) costs this much
- *           more (past Guard), then drops by 1 (see Combatant.bleedTaken)
+ * - shock:  the next landed attack bursts these stacks once and halves them
+ * - bleed:  each landed Melee/Range hit adds damage past Guard; total lands
+ *           after the attack, then Bleed drops by 1 (see Combatant.bleedTaken)
  * - hex:    right before its turn, loses this much HP if it is odd
  *           (nothing when even), then hex drops by 1
  * - vex:    every affliction laid on it gets this many more stacks;
@@ -138,7 +136,7 @@ export type Combatant = {
   dodgedHits?: number;
   /** HP Bleed has cost in the fight, for the bleed number on a hit. */
   bleedTaken?: number;
-  /** Hits taken this turn while shocked (see Shock). */
+  /** Legacy hit count from saves written before Shock burst on the next hit. */
   shockHits?: number;
   /**
    * Times Shock has gone off this fight. The view watches this to show a
