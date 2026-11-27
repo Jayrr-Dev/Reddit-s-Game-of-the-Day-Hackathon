@@ -126,9 +126,9 @@ const FEATURED_HEROES: Record<string, readonly HeroId[]> = {
  * Inline style that scales a figure so its measured drawing fills the
  * arena card by the shared margin, centred (rules in .training-portrait).
  */
-const portraitStyle = (heroId: HeroId, bounds: FigureBounds): CSSProperties =>
+const portraitStyle = (bounds: FigureBounds): CSSProperties =>
   cssVars({
-    '--body-width': BODY_WIDTH[drawSizeOf({ heroId })],
+    '--body-width': BODY_WIDTH[bounds.size],
     '--body-height': BODY_HEIGHT,
     '--fit-x': bounds.x,
     '--fit-y': bounds.y,
@@ -143,12 +143,12 @@ const portraitStyle = (heroId: HeroId, bounds: FigureBounds): CSSProperties =>
  */
 const PreviewFigure = ({ heroId, isLead, action }: { heroId: HeroId; isLead: boolean; action?: HeroAction | null | undefined }) => {
   const bounds = isLead ? FIGURE_BOUNDS[heroId] : undefined;
-  const size = drawSizeOf({ heroId });
+  const size = bounds?.size ?? drawSizeOf({ heroId });
   const figure = <HeroFigure heroId={heroId} size={size} action={action ?? null} />;
   return (
     <span
       className={bounds ? 'training-portrait' : isLead ? 'training-figure training-figure-lead' : 'training-figure'}
-      style={bounds ? portraitStyle(heroId, bounds) : cssVars({ '--training-aspect': figureAspect(size) })}
+      style={bounds ? portraitStyle(bounds) : cssVars({ '--training-aspect': figureAspect(size) })}
     >
       {action === undefined ? figure : <span className="block h-full w-full origin-bottom animate-hero-sway">{figure}</span>}
     </span>
@@ -165,7 +165,7 @@ const ScenarioPreview = ({
   /** The lead's move playing now (unit info showcase); undefined: still. */
   action?: HeroAction | null | undefined;
 }) => (
-  <span className="training-art training-lineup" aria-hidden="true">
+  <span className="training-art training-lineup" data-portrait-preview={action === undefined ? undefined : true} aria-hidden="true">
     <ProgressiveImg alt="" src={terrain} />
     {(FEATURED_HEROES[scenario.id] ?? scenario.heroIds.slice(0, 3)).map(
       (heroId, i) => (

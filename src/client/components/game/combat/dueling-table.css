@@ -790,6 +790,9 @@
   height: calc(var(--body-height) * var(--scale));
   filter: drop-shadow(0 2px 2px #21140f);
 }
+.training-lineup:not([data-portrait-preview]) .training-portrait :is([data-sin-motion], .gluttony-rig, [data-angel-assassin-rig], [data-zeruel-variant]) * {
+  animation: none !important;
+}
 /* The flanking figures sit beside the fitted boss, not after a .training-figure. */
 .training-portrait ~ .training-figure { left: 23%; bottom: 8px; height: 70%; z-index: 0; }
 .training-portrait ~ .training-figure:last-child { left: 77%; }
