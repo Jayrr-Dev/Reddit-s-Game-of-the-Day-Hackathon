@@ -143,7 +143,6 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
   if (!account) return <p className="ring-counter-state">Sign in to buy jewelry with Gold.</p>;
   if (error) return <div className="ring-counter-state">Could not load the shop. <button type="button" onClick={() => setRetry(value => value + 1)}>Retry</button></div>;
   if (!shop) return <p className="ring-counter-state" role="status">Loading stock.</p>;
-  const inspectedCard = shop.offers.find(offer => offer.slot === 'card' && offer.id === selected);
   return <section className="ring-counter" aria-label="Metatron's stock">
     <span className="ring-counter-gold" aria-label={shop.gold + (shop.testVisit ? ' test Gold available' : ' Gold available')}><GoldCoins /> {shop.gold.toLocaleString()} {shop.testVisit ? 'Test Gold' : 'Gold'}</span>
     <div className="shop-apple-offer">
@@ -181,6 +180,9 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
                 aria-label={'Inspect ' + offer.name} onClick={() => { setNote(''); setSelected(previous => previous === offer.id ? undefined : offer.id); }}>
                 {offer.slot === 'box' ? <MysteryChest /> : offer.slot === 'card' ? <span className="shop-card-thumbnail" aria-hidden="true"><CardArtwork cardId={offer.cardId} size="fan" showGlyph={false} /></span> : <ShopJewelryArt offer={offer} />}
               </button>
+              {inspecting && offer.slot === 'card' && <div className="shop-full-card" id={detailsId} data-shop-inspect>
+                <CardView cardId={offer.cardId} label={'Close ' + offer.name + ' card preview'} onClick={() => setSelected(undefined)} />
+              </div>}
               {inspecting && offer.slot !== 'card' && <div className="ring-counter-popover" id={detailsId} data-shop-inspect>
                 <strong>{offer.name}</strong>
                 {!box && <small>{offer.rarity} {offer.slot === 'amulet' ? 'Amulet' : 'Ring'}</small>}
@@ -200,9 +202,6 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
         </div>
       </div>
     </div>
-    {inspectedCard?.slot === 'card' && <div className="shop-full-card" id={'shop-details-' + inspectedCard.id} data-shop-inspect>
-      <CardView cardId={inspectedCard.cardId} label={'Close ' + inspectedCard.name + ' card preview'} onClick={() => setSelected(undefined)} />
-    </div>}
     {reward && <MysteryReveal reward={reward} onClose={() => { setReward(undefined); onSale(); onBuyingChange(false); }} />}
   </section>;
 }

@@ -50,9 +50,12 @@
 .shop-card-thumbnail .card-window { height: 100%; border-radius: 0; }
 .shop-card-thumbnail svg { width: 70%; max-width: 1.65rem; height: 68%; }
 .shop-full-card {
-  position: absolute; z-index: 5; top: 39%; left: 50%;
-  transform: translate(-50%, -50%); pointer-events: auto;
+  position: absolute; z-index: 5; bottom: calc(100% + .5rem); left: 50%;
+  transform: translateX(-50%); pointer-events: auto;
 }
+.ring-counter-item:first-child .shop-full-card { left: 0; transform: none; }
+.ring-counter-item:last-child .shop-full-card { left: auto; right: 0; transform: none; }
+.ring-counter-item:only-child .shop-full-card { left: 0; right: auto; }
 .shop-full-card .card-face { width: 8rem; height: 12.25rem; }
 .shop-full-card .card-window { height: 4rem; }
 .shop-item-art { width: 86%; height: 86%; }
