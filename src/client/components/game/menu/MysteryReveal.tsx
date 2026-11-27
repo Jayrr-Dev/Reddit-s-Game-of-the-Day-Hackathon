@@ -24,7 +24,7 @@ function TreasureBurst({ rarity }: { rarity: ChestRarity }) {
         <linearGradient id={paint} x1="0" y1="1" x2="0" y2="0" gradientUnits="objectBoundingBox">
           <stop stopColor="#fff0b8" stopOpacity=".94" />
           <stop offset=".34" stopColor="currentColor" stopOpacity=".65" />
-          <stop offset="1" stopColor="currentColor" stopOpacity=".04" />
+          <stop offset="1" stopColor="currentColor" stopOpacity="0" />
         </linearGradient>
       </defs>
       <g fill={`url(#${paint})`}>
@@ -45,7 +45,7 @@ function TreasureBurst({ rarity }: { rarity: ChestRarity }) {
         const size = 8 + (i * 7) % 13;
         return <svg key={i} viewBox="0 0 20 20" className="pandora-loot" style={{
           '--loot-x': (((i * 137.508) % 93) - 46.5) + 'cqw',
-          '--loot-y': -(21 + (i * 23) % 56) + 'cqh',
+          '--loot-y': -(21 + (i * 23) % 50) + 'cqh',
           '--loot-wait': (i * 61 % 620) + 'ms',
           '--loot-size': size + 'px',
           '--loot-spin': ((i % 2 ? -1 : 1) * (255 + (i * 73) % 400)) + 'deg',
