@@ -131,7 +131,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
       />
     );
   }
-  return <VillainRunGame run={run} onAction={act} />;
+  return <VillainRunGame run={run} runId={id} onAction={act} />;
 };
 
 // --- COMPONENT ---

@@ -26,6 +26,7 @@ export type StreakSummary = {
 export type InitResponse = {
   accountId?: string;
   lifetimeWins?: number;
+  gold?: number;
   type: 'init';
   postId: string;
   dailyKey: string;

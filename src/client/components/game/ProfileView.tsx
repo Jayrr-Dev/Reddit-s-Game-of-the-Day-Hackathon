@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { goldFromWins } from '../../../shared/game/gold';
 import { type RingProgress } from '../../../shared/game/character';
 import {
   characterEdit,
@@ -39,7 +38,7 @@ export function ProfileView({
     localBuild(data.accountId)
   );
   const [wins, setWins] = useState(data.lifetimeWins ?? 0);
-  const [gold, setGold] = useState(() => goldFromWins(data.lifetimeWins ?? 0));
+  const [gold, setGold] = useState(data.gold ?? 0);
   const [loading, setLoading] = useState(!!data.accountId);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');

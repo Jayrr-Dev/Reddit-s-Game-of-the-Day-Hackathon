@@ -21,6 +21,7 @@ import { STARTER_DECK, type CardId } from './cards.ts';
 import { combatOutcome, endTurn, playCard, startCombat, SELF_TARGET_UID } from './combat.ts';
 import { mightAt, routeOptions, stopSeed, type Stop } from './kingdom.ts';
 import { isMovementId, move } from './movement.ts';
+import type { GoldVictory } from './gold.ts';
 import { rollOffers } from './rewards.ts';
 import { isUniqueInDeck } from './unique.ts';
 import {
@@ -68,6 +69,7 @@ export type RunState = {
   /** Uses spent on each Exhaust card in the deck (see uses.ts). */
   usesSpent: UsesSpent;
   stats: RunStats;
+  goldVictories: GoldVictory[];
   phase: RunPhase;
 };
 
@@ -144,6 +146,7 @@ export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt
   deck: [...STARTER_DECK],
   usesSpent: {},
   stats: EMPTY_STATS,
+  goldVictories: [],
   phase: { kind: 'route', options: routeOptions(dailyKey, 1) },
 });
 
@@ -246,6 +249,7 @@ const settleCombat = (
     deck,
     usesSpent: combat.usesSpent,
     stats,
+    goldVictories: [...state.goldVictories, { stop: state.stop, encounter: rewardSourceOf(stop) }],
     phase: { kind: 'reward', offers, source: rewardSourceOf(stop), leveledUp: character.level > state.character.level },
   };
 };

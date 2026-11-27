@@ -134,6 +134,17 @@ const winWith = (run: RunState, drink: boolean): RunState => {
   });
 };
 
+void test('a Conquest win records its encounter once, independent of card rewards', () => {
+  const won = winWith(lastHeroFight(['rushPotion', 'backhand']), false);
+  assert.equal(won.phase.kind, 'reward');
+  assert.deepEqual(won.goldVictories, [{ stop: 1, encounter: 'horde' }]);
+  const rerolled = runReducer(won, { type: 'rerollReward' });
+  assert.deepEqual(rerolled.goldVictories, won.goldVictories);
+  const movedOn = runReducer(rerolled, { type: 'pickCard', offerIndex: null });
+  assert.deepEqual(movedOn.goldVictories, won.goldVictories);
+});
+
+
 void test('an Exhaust card counts its uses across fights', () => {
   const fight = lastHeroFight(['rushPotion', 'backhand']);
   const run: RunState = { ...fight, deck: [...fight.deck, 'rushPotion'] };

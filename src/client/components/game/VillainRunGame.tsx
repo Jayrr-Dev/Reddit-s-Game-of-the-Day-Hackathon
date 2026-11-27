@@ -7,8 +7,7 @@
 import { playSound } from '../../lib/gameAudio';
 import { useEffect, useRef, useState } from 'react';
 import { regionIndexOf, regionName } from '../../../shared/game/kingdom';
-import { GOLD_PER_WAVE } from '../../../shared/game/gold';
-import { useAccountId } from '../../lib/accountId';
+import { goldRewardFor } from '../../../shared/game/gold';
 import { BattleCharacterSheet } from './BattleCharacterSheet';
 import {
   computeScore,
@@ -29,6 +28,7 @@ import { useProgressiveImage } from '../../hooks/useProgressiveImage';
 // --- TYPES ---
 export type VillainRunGameProps = {
   run: RunState;
+  runId?: string | undefined;
   onAction: (action: RunAction) => void;
 };
 
@@ -39,9 +39,9 @@ const LEVEL_UP_AFTER_VICTORY_MS = 3350;
 
 // --- SUBCOMPONENTS ---
 /** The body for the current phase. */
-const PhaseBody = ({ run, onAction }: VillainRunGameProps) => {
+const PhaseBody = ({ run, runId, onAction }: VillainRunGameProps) => {
   const { phase } = run;
-  const accountId = useAccountId();
+
   switch (phase.kind) {
     case 'route':
       return <RouteView stopNumber={run.stop} options={phase.options} onAction={onAction} />;
@@ -67,7 +67,7 @@ const PhaseBody = ({ run, onAction }: VillainRunGameProps) => {
       return (
         <OfferView
           title="Spoils of war"
-          goldReward={accountId ? GOLD_PER_WAVE : undefined}
+          goldReward={runId && phase.source ? goldRewardFor(runId, run.stop, phase.source) : undefined}
           rerolls={phase.rerolled ? 0 : 1}
           subtitle="Add one card to your deck."
           unlockedRingSlot={run.storyRingUnlocked}
@@ -106,7 +106,7 @@ export const StoryDefeat = ({ run, onContinue }: { run: RunState; onContinue: ()
  * Fills the post exactly (no page scroll inside the feed). Combat owns
  * the whole box; the other phases get the run HUD on top.
  */
-export const VillainRunGame = ({ run, onAction }: VillainRunGameProps) => {
+export const VillainRunGame = ({ run, runId, onAction }: VillainRunGameProps) => {
   const [showCharacter, setShowCharacter] = useState(false);
   const [readyWave, setReadyWave] = useState(run.stop);
   const lastPhase = useRef(run.phase.kind);
@@ -146,7 +146,7 @@ export const VillainRunGame = ({ run, onAction }: VillainRunGameProps) => {
   if (run.phase.kind === 'combat')
     return (
       <div className="h-full w-full overflow-hidden">
-        <PhaseBody run={run} onAction={onAction} />
+        <PhaseBody run={run} runId={runId} onAction={onAction} />
       </div>
     );
   return (
@@ -159,7 +159,7 @@ export const VillainRunGame = ({ run, onAction }: VillainRunGameProps) => {
             <span>Open character sheet</span>
           </button>
         )}
-        <PhaseBody run={run} onAction={onAction} />
+        <PhaseBody run={run} runId={runId} onAction={onAction} />
       </main>
       {showCharacter && (
         <BattleCharacterSheet deck={run.deck} vitals={{ hp: run.hp, maxHp: run.maxHp }} character={run.character} onAction={onAction} onClose={() => setShowCharacter(false)} />

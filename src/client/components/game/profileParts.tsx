@@ -3,7 +3,6 @@
 // character sheet opened mid-battle, so both read the same.
 import type { ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
-import { GOLD_PER_WAVE } from '../../../shared/game/gold';
 import { stackDeck } from '../../../shared/game/deckBuilder';
 import { CardView } from './CardView';
 
@@ -38,7 +37,7 @@ export const ProfileStrip = ({ username, wins, gold, bestScore }: {
       <strong>{wins}</strong>
       <span>Waves won</span>
     </div>
-    <div className="profile-gold" title={`${GOLD_PER_WAVE} Gold per Conquest wave won`}>
+    <div className="profile-gold" title="Gold earned from Conquest victories">
       <strong><GoldCoins />{gold.toLocaleString()}</strong>
       <span>Gold</span>
     </div>
