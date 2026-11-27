@@ -16,6 +16,7 @@ import rally from '../../../assets/heroes/mikhael-rig-rally.webp';
 
 // --- ATLAS GEOMETRY ---
 const FRAMES: Record<MikhaelAttackClip, string> = { downward: down, upward: up, backhand, thrust };
+const RIG_IMAGES = [idle, idleWind, rally, ...Object.values(FRAMES)] as const;
 const CELL_W = 704;
 const CELL_H = 396;
 const COLS = 4;
@@ -108,6 +109,17 @@ function MikhaelIdleWind() {
   </g>;
 }
 
+// --- RALLY ---
+/**
+ * Raises the sword hand. Until the full drawing is decoded it holds the
+ * still idle pose: the 20 px placeholder of a mostly transparent sprite
+ * blurs into a faint smear, which made him seem to vanish for a second.
+ */
+function MikhaelRally() {
+  const art = useProgressiveImage(rally);
+  return <ProgressiveSvgImage href={art.isPlaceholder ? idle : rally} width={CELL_W} height={CELL_H} />;
+}
+
 // --- FOOT KEYING ---
 /** Draws a raw pose with the dark oval below the boots keyed out. */
 function KeyedPose({ children }: { children: ReactNode }) {
@@ -137,15 +149,16 @@ export function MikhaelSwordRig({ size, action }: { size: HeroSize; action?: Her
   const width = BODY_WIDTH[size] * RIG_WIDTH_SHARE;
   const height = width * CELL_H / CELL_W;
   useEffect(() => {
-    const timer = window.setTimeout(() => { Object.values(FRAMES).forEach((src) => { void loadFullImage(src); }); }, 300);
-    return () => window.clearTimeout(timer);
+    // Start every pose's download at once: his opening hand-raise (rally) can
+    // play right as the fight starts, before a delayed preload would finish.
+    RIG_IMAGES.forEach((src) => { void loadFullImage(src); });
   }, []);
   return <g className="mikhael-sword-responsive" style={{ transformOrigin: BODY_WIDTH[size] / 2 + 'px ' + GROUND + 'px' }}>
   <svg data-mikhael-motion={clip} data-mikhael-weapon="sword" pointerEvents="none"
     x={(BODY_WIDTH[size] - width) / 2} y={GROUND - height * FOOT_SHARE} width={width} height={height}
     viewBox={'0 0 ' + CELL_W + ' ' + CELL_H} overflow="hidden" preserveAspectRatio="none">
     {clip === 'idle' ? <MikhaelIdleWind /> : <KeyedPose>{clip === 'rally'
-      ? <ProgressiveSvgImage href={rally} width={CELL_W} height={CELL_H} />
+      ? <MikhaelRally />
       : <MikhaelAttackAtlas key={clip} clip={clip} />}</KeyedPose>}
   </svg></g>;
 }
