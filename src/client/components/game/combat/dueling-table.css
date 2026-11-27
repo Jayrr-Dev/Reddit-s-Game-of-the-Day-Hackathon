@@ -502,6 +502,7 @@
   cursor: pointer;
   touch-action: manipulation;
 }
+.unit-move-effect[data-intent-disrupted] .unit-move-number { color:var(--color-hp); }
 .hero-action-chips > [aria-label]::before {
   content: '';
   position: absolute;

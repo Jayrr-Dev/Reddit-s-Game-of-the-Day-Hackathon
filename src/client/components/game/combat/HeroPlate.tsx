@@ -67,6 +67,7 @@ const MoveArrow = ({ move }: { move: MoveIntent }) => {
     <Chip
       {...INTENT_LOOK[lead.kind]}
       fill={intentFill(lead.kind, move.isSignature)}
+      disrupted={lead.disrupted}
       text={lead.text}
       hoverText={lead.hoverText}
       extras={rest.map((intent) => ({
@@ -74,6 +75,7 @@ const MoveArrow = ({ move }: { move: MoveIntent }) => {
         text: intent.text,
         hoverText: intent.hoverText,
         fill: intentFill(intent.kind, false),
+        disrupted: intent.disrupted,
       }))}
       info={{
         title: move.name,

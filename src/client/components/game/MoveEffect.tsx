@@ -25,11 +25,12 @@ export const WithNumbers = ({ text }: { text: string }) =>
 /** One effect line: icon and coloured headline, then muted details. */
 export const MoveEffect = ({ intent }: { intent: Intent }) => {
   const { glyph, toneClass } = INTENT_LOOK[intent.kind];
+  const tone = intent.disrupted ? 'text-hp' : toneClass;
   const [headline = '', ...details] = intent.label.split('\n');
   return (
-    <li className="unit-move-effect">
-      <Glyph name={glyph} className={'size-4 ' + toneClass} />
-      <span className={'font-semibold ' + toneClass}><WithNumbers text={headline} /></span>
+    <li className="unit-move-effect" data-intent-disrupted={intent.disrupted}>
+      <Glyph name={glyph} className={'size-4 ' + tone} />
+      <span className={'font-semibold ' + tone}><WithNumbers text={headline} /></span>
       {details.length > 0 && <span className="unit-move-detail"><RichText text={details.join(' ')} /></span>}
     </li>
   );

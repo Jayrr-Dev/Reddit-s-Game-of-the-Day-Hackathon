@@ -29,6 +29,7 @@ export type ChipProps = {
    * its tone's colour when left out; a square stays a dark tile.
    */
   fill?: string | undefined;
+  disrupted?: boolean | undefined;
   /**
    * More icon + value pairs drawn inside the same badge, after the
    * first (an intent's secondary effects: one move, one arrow).
@@ -67,7 +68,7 @@ export const TurnsLeft = ({ turns, placement = 'inline' }: { turns: number; plac
 );
 
 /** One icon + value inside a badge. */
-export type ChipPart = { glyph: GlyphName; text: string; hoverText?: string | undefined; fill?: string | undefined };
+export type ChipPart = { glyph: GlyphName; text: string; hoverText?: string | undefined; fill?: string | undefined; disrupted?: boolean | undefined };
 
 export type ChipShape = 'arrow' | 'square';
 
@@ -128,14 +129,16 @@ const SEGMENT_PADDING: Record<SegmentPosition, string> = {
  * part's colour never shows behind another (the lead's blue used to
  * peek out past a red follow-up on the flat end).
  */
-const ArrowSegment = ({ fill, position, children }: {
+const ArrowSegment = ({ fill, position, disrupted, children }: {
   fill: string;
   position: SegmentPosition;
+  disrupted?: boolean | undefined;
   children: ReactNode;
 }) => (
   <span
     className={`inline-flex items-center gap-0.5 py-px ${SEGMENT_PADDING[position]}`}
-    style={{ backgroundColor: fill }}
+    data-intent-disrupted={disrupted || undefined}
+    style={{ backgroundColor: disrupted ? 'var(--color-intent-disrupted)' : fill, ...(disrupted && { color: 'white' }) }}
   >
     {children}
   </span>
@@ -167,6 +170,7 @@ const Badge = ({
   toneClass,
   shape = 'arrow',
   fill,
+  disrupted,
   extras = [],
   icon,
   turnsLeft,
@@ -188,6 +192,7 @@ const Badge = ({
         <ArrowSegment
           fill={leadFillOf(fill, glyph, toneClass)}
           position={extras.length ? 'first' : 'only'}
+          disrupted={disrupted}
         >
           <BadgeContent glyph={glyph} text={text} hoverText={hoverText} iconClass="" />
         </ArrowSegment>
@@ -196,6 +201,7 @@ const Badge = ({
             key={`${part.glyph}-${index}`}
             fill={part.fill ?? leadFillOf(fill, glyph, toneClass)}
             position={index === extras.length - 1 ? 'last' : 'middle'}
+            disrupted={part.disrupted}
           >
             <BadgeContent glyph={part.glyph} text={part.text} hoverText={part.hoverText} iconClass="" />
           </ArrowSegment>

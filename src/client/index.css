@@ -166,6 +166,7 @@
   --color-boosted: #23803f;
   --color-weakened: #b3263e;
   --color-energy: #e8bb66;
+  --color-intent-disrupted: #a42b3d;
   --energy-pip-fill: radial-gradient(circle at 40% 32%, #fff4a5, #ffbf39 52%, #a95813 95%);
 
   /* --- CARD CATEGORIES --- */

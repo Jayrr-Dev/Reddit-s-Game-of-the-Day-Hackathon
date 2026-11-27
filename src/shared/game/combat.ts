@@ -1199,7 +1199,9 @@ const applyCardEffect = (
           ? dispelBuffs(unit, effect.amount, rng, innateArmor)
           : applyDisruptCard(unit, effect, rng, innateArmor);
         rng = next;
-        return reduced;
+        return effect.kind === 'disrupt'
+          ? { ...reduced, disruptedOutput: (unit.disruptedOutput ?? 0) + effect.amount }
+          : reduced;
       });
       return { ...state, heroes, rng };
     }
@@ -1911,6 +1913,31 @@ const reviveFallen = (state: CombatState): CombatState => {
   return { ...state, heroes, nextUid, fallen: stillFallen };
 };
 
+/** Amount reduced by Disrupt after the effect's normal scaling. */
+export function heroOutput(unit: HeroUnit, original: number) {
+  return { original, amount: Math.max(0, original - (unit.disruptedOutput ?? 0)) };
+}
+
+/** Scale native support and affliction effects shared by intents and the enemy turn. */
+export function heroSupportOutput(unit: HeroUnit, effect: HeroEffect) {
+  switch (effect.kind) {
+    case 'hex': case 'poison': case 'burn': case 'frost': case 'bleed': case 'shock':
+    case 'guard': case 'heal':
+      return heroOutput(unit, scaleByMight(effect.amount, unit.might));
+    case 'weaken': case 'malaise': case 'pin': case 'scramble': case 'fatigue': case 'wrath': case 'cloak':
+      return heroOutput(unit, effect.amount);
+    case 'protect':
+      return heroOutput(unit, 1);
+    default:
+      return undefined;
+  }
+}
+
+/** On-hit afflictions use the same scaling and reduction as the damage resolver. */
+export function heroProcOutput(unit: HeroUnit, { status, amount }: HeroHitProc) {
+  return heroOutput(unit, status === 'weaken' ? amount : scaleByMight(amount, unit.might));
+}
+
 /** Resolves one effect of a hero's move. */
 const applyHeroEffect = (
   state: CombatState,
@@ -1918,7 +1945,9 @@ const applyHeroEffect = (
   effect: HeroEffect,
   attackBlock: { invincible: boolean }
 ): CombatState => {
-  const scaled = (amount: number) => scaleByMight(amount, actor.might);
+  const support = heroSupportOutput(actor, effect);
+  if (support && support.amount <= 0 && support.original > support.amount) return state;
+  const power = support?.amount ?? 0;
   switch (effect.kind) {
     case 'attack':
       return heroShoots(state, actor, effect, attackBlock);
@@ -1928,18 +1957,18 @@ const applyHeroEffect = (
     case 'frost':
     case 'bleed':
     case 'shock':
-      return afflictVillain(state, effect.kind, scaled(effect.amount), accuracyBonusOf(actor, 'magic'));
+      return afflictVillain(state, effect.kind, power, accuracyBonusOf(actor, 'magic'));
     case 'weaken':
-      return afflictVillain(state, 'weaken', effect.amount, accuracyBonusOf(actor, 'magic'));
+      return afflictVillain(state, 'weaken', power, accuracyBonusOf(actor, 'magic'));
     case 'malaise':
-      return afflictVillain(state, 'malaise', effect.amount, accuracyBonusOf(actor, 'magic'));
+      return afflictVillain(state, 'malaise', power, accuracyBonusOf(actor, 'magic'));
     case 'pin':
     case 'scramble':
-      return afflictVillain(state, effect.kind, effect.amount, accuracyBonusOf(actor, 'magic'));
+      return afflictVillain(state, effect.kind, power, accuracyBonusOf(actor, 'magic'));
     case 'fatigue': {
-      if (!effect.all) return afflictVillain(state, 'fatigue', effect.amount, accuracyBonusOf(actor, 'magic'));
+      if (!effect.all) return afflictVillain(state, 'fatigue', power, accuracyBonusOf(actor, 'magic'));
       // FATIGUE ALL: the newest one sets which card type it raises.
-      const laid = afflictVillain(state, 'fatigueAll', effect.amount, accuracyBonusOf(actor, 'magic'));
+      const laid = afflictVillain(state, 'fatigueAll', power, accuracyBonusOf(actor, 'magic'));
       return laid.player.statuses.fatigueAll === state.player.statuses.fatigueAll
         ? laid
         : { ...laid, player: { ...laid.player, fatigueAllType: effect.cardType } };
@@ -1948,19 +1977,19 @@ const applyHeroEffect = (
       return updateHeroes(
         state,
         heroTargets(state, actor.uid, effect.who),
-        (unit) => addGuard(unit, scaled(effect.amount))
+        (unit) => addGuard(unit, power)
       );
     case 'wrath':
       return updateHeroes(
         state,
         heroTargets(state, actor.uid, effect.who),
-        (unit) => addStatus(unit, 'wrath', effect.amount)
+        (unit) => addStatus(unit, 'wrath', power)
       );
     case 'heal':
       return updateHeroes(
         state,
         heroTargets(state, actor.uid, effect.who),
-        (unit) => heal(unit, scaled(effect.amount))
+        (unit) => heal(unit, power)
       );
     case 'protect':
       return updateHeroes(
@@ -1988,7 +2017,7 @@ const applyHeroEffect = (
     case 'revive':
       return reviveFallen(state);
     case 'cloak':
-      return updateHeroes(state, [actor.uid], (unit) => addStatus(unit, 'cloak', effect.amount));
+      return updateHeroes(state, [actor.uid], (unit) => addStatus(unit, 'cloak', power));
     case 'soar':
       return updateHeroes(state, [actor.uid], (unit) => withAloft(unit, 1));
     case 'advanceSelf':
@@ -2106,8 +2135,10 @@ const heroShoots = (
     hasLandedAny ||= hasLanded;
     current = hasLanded
       ? (effect.perHit ?? []).reduce(
-          (laid, proc) =>
-            afflictVillain(laid, proc.status, procAmount(proc, actor), bonusAccuracy),
+          (laid, proc) => {
+            const { amount, original } = heroProcOutput(actor, proc);
+            return amount <= 0 && original > amount ? laid : afflictVillain(laid, proc.status, amount, bonusAccuracy);
+          },
           struck
         )
       : struck;
@@ -2120,12 +2151,6 @@ const heroShoots = (
       }
     : current;
 };
-
-/** A per-hit affliction's stacks: scaled by might (Weaken counts turns). */
-const procAmount = (proc: HeroHitProc, actor: HeroUnit): number =>
-  proc.status === 'weaken'
-    ? proc.amount
-    : scaleByMight(proc.amount, actor.might);
 
 /** The hero with its Aloft set: 1 flies it up, 0 brings it down. */
 const withAloft = (unit: HeroUnit, aloft: number): HeroUnit => ({
@@ -2175,6 +2200,7 @@ const heroActs = (
     const landed = afterAction(isDiving ? withAloft(unit, 0) : unit, state.player);
     return {
       ...(isLast ? endOfTurnUpkeep(landed) : landed),
+      ...(isLast && unit.disruptedOutput && { disruptedOutput: 0 }),
       moveIndex: planned ? planned.index + 1 : unit.moveIndex,
     };
   });

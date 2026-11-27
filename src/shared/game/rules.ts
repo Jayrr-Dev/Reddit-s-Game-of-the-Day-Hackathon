@@ -187,7 +187,7 @@ export const WEAKEN_DAMAGE_FACTOR = 0.75;
 /** Burn and Frost are divided by this after each action (a half rounds down). */
 export const AFTER_ACTION_DIVISOR = 2;
 /** Shock bursts on this many hits (of any type) taken while shocked. */
-export const SHOCK_HITS = 4;
+export const SHOCK_HITS = 3;
 /** A Shock that goes off deals its stacks times this. */
 export const SHOCK_BURST_FACTOR = 2;
 /** Each stack of Frost takes this much off every hit its bearer deals. */

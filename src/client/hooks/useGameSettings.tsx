@@ -23,7 +23,7 @@ function SettingsSection({title, children}: {title: string; children: ReactNode}
 }
 
 const preferences = [
-  { key: 'villain-run.auto-end-turn', label: 'Auto-end turn', initial: true },
+  { key: 'villain-run.auto-end-turn', label: 'Auto-end turn', initial: false },
   { key: 'villain-run.boss-intros', label: 'Boss introductions', initial: true },
 ] as const;
 

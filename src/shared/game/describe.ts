@@ -46,7 +46,8 @@ import {
   createHeroUnit,
   heroAttackOf,
   plannedHeroMoves,
-  scaleByMight,
+  heroSupportOutput,
+  heroProcOutput,
 } from './combat.ts';
 import type {
   BuffId,
@@ -509,7 +510,7 @@ export const DISPEL_INFO: StatusInfo = {
 export const DISRUPT_INFO: StatusInfo = {
   label: 'Disrupt',
   description:
-    'Disrupt N lowers one random buff or affliction by N stacks or tiers.\nCan pick **Hit Limit** and lower it like any affliction.\n**Mass Disrupt** also gives every hero **Hit Limit 1**.',
+    'Disrupt N lowers one random buff or affliction by N stacks or tiers.\nCan pick **Hit Limit** and lower it like any affliction.\nEnemy buffs and afflictions they are about to use are also reduced for their next turn.\n**Mass Disrupt** also gives every hero **Hit Limit 1**.',
 };
 
 export const CLEANSE_INFO: StatusInfo = {
@@ -959,6 +960,7 @@ export type Intent = {
   label: string;
   isSignature?: boolean;
   hoverText?: string;
+  disrupted?: true;
 };
 
 /** One intent chip for one effect of a hero's next move. */
@@ -967,7 +969,7 @@ const describeHeroEffect = (
   effect: HeroEffect,
   debuffBonus = 0
 ): Intent => {
-  const scaled = (amount: number) => scaleByMight(amount, unit.might);
+  const power = heroSupportOutput(unit, effect)?.amount ?? 0;
   const toWhom = (who: 'self' | 'allies') =>
     who === 'allies' ? ' to every hero' : '';
   // ALL on the chip, like a card's "Damage ALL": it lands on every hero.
@@ -986,7 +988,7 @@ const describeHeroEffect = (
       };
     }
     case 'hex': {
-      const amount = scaled(effect.amount);
+      const amount = power;
       return { kind: 'curse', text: `${amount}`, label: `Hex ${amount}` };
     }
     case 'poison':
@@ -994,7 +996,7 @@ const describeHeroEffect = (
     case 'frost':
     case 'bleed':
     case 'shock': {
-      const amount = scaled(effect.amount);
+      const amount = power;
       const label = STATUS_INFO[effect.kind].label;
       return {
         kind: effect.kind,
@@ -1005,22 +1007,22 @@ const describeHeroEffect = (
     case 'weaken':
       return {
         kind: 'weaken',
-        text: `${effect.amount}`,
-        label: `Weaken ${effect.amount}`,
+        text: `${power}`,
+        label: `Weaken ${power}`,
       };
     case 'malaise':
-      return { kind: 'malaise', text: String(effect.amount), label: `Malaise ${effect.amount}\n${STATUS_INFO.malaise.description}` };
+      return { kind: 'malaise', text: String(power), label: `Malaise ${power}\n${STATUS_INFO.malaise.description}` };
     case 'pin':
     case 'scramble':
-      return { kind: effect.kind, text: String(effect.amount), label: `${STATUS_INFO[effect.kind].label} ${effect.amount}\n${STATUS_INFO[effect.kind].description}` };
+      return { kind: effect.kind, text: String(power), label: `${STATUS_INFO[effect.kind].label} ${power}\n${STATUS_INFO[effect.kind].description}` };
     case 'fatigue': {
       const info = STATUS_INFO[effect.all ? 'fatigueAll' : 'fatigue'];
-      return { kind: 'fatigue', text: effect.all ? `${effect.amount} ALL` : String(effect.amount), label: `${fatigueName(effect)}\n${info.description}` };
+      return { kind: 'fatigue', text: effect.all ? `${power} ALL` : String(power), label: `${fatigueName({ ...effect, amount: power })}\n${info.description}` };
     }
     case 'cloak':
-      return { kind: 'cloak', text: String(effect.amount), label: `Cloak ${effect.amount}\n${STATUS_INFO.cloak.description}` };
+      return { kind: 'cloak', text: String(power), label: `Cloak ${power}\n${STATUS_INFO.cloak.description}` };
     case 'guard': {
-      const amount = scaled(effect.amount);
+      const amount = power;
       return {
         kind: 'guard',
         text: `${allTag(effect.who)}${amount}`,
@@ -1030,11 +1032,11 @@ const describeHeroEffect = (
     case 'wrath':
       return {
         kind: 'buff',
-        text: `${allTag(effect.who)}+${effect.amount}`,
-        label: `Wrath +${effect.amount}${toWhom(effect.who)}`,
+        text: `${allTag(effect.who)}+${power}`,
+        label: `Wrath +${power}${toWhom(effect.who)}`,
       };
     case 'heal': {
-      const amount = scaled(effect.amount);
+      const amount = power;
       return {
         kind: 'heal',
         text: `${allTag(effect.who)}${amount}`,
@@ -1042,6 +1044,7 @@ const describeHeroEffect = (
       };
     }
     case 'protect':
+      if (!power) return { kind: 'protect', text: allTag(effect.who) + '0', label: `Protection 0${toWhom(effect.who)}` };
       return {
         kind: 'protect',
         text: effect.who === 'allies' ? 'ALL' : '',
@@ -1090,21 +1093,29 @@ const describeHeroEffect = (
   }
 };
 
+/** Preserve the zero and show what changed. */
+function markDisruptedIntent(intent: Intent, output: { original: number; amount: number } | undefined): Intent {
+  return output && output.amount < output.original
+    ? { ...intent, disrupted: true, label: intent.label + '\nDisrupt: ' + output.original + ' to ' + output.amount + '.' }
+    : intent;
+}
+
 /**
  * The extra chip for an attack that lays an affliction on every hit
  * (Thunder Talons: Shock 6 ×3). None for other effects.
  */
 const perHitIntents = (unit: HeroUnit, effect: HeroEffect): Intent[] => {
   if (effect.kind !== 'attack') return [];
-  return (effect.perHit ?? []).map(({ status, amount }) => {
-    const scaled =
-      status === 'weaken' ? amount : scaleByMight(amount, unit.might);
+  return (effect.perHit ?? []).map(proc => {
+    const { status } = proc;
+    const output = heroProcOutput(unit, proc);
+    const scaled = output.amount;
     const intentKind: IntentKind = status === 'hex' ? 'curse' : status;
-    return {
+    return markDisruptedIntent({
       kind: intentKind,
-      text: effect.hits > 1 ? `${scaled}×${effect.hits}` : `${scaled}`,
+      text: effect.hits > 1 && scaled > 0 ? `${scaled}×${effect.hits}` : `${scaled}`,
       label: `${STATUS_INFO[status].label} ${scaled} on every hit`,
-    };
+    }, output);
   });
 };
 
@@ -1137,7 +1148,7 @@ const describeMove = (
   isSignature: heroMove.isSignature ?? false,
   intents: foldPerHitAfflictions(heroMove.effects)
     .flatMap((effect) => [
-      describeHeroEffect(unit, effect, debuffBonus),
+      markDisruptedIntent(describeHeroEffect(unit, effect, debuffBonus), heroSupportOutput(unit, effect)),
       ...perHitIntents(unit, effect),
     ])
     .map((intent) => ({

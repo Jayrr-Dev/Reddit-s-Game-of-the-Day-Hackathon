@@ -522,6 +522,8 @@ export type HeroDef = {
 // --- COMBAT STATE ---
 /** A hero on the field. `uid` tells two Archers apart for targeting. */
 export type HeroUnit = Combatant & {
+  /** Flat reduction of the next enemy turn's outgoing buffs and afflictions. */
+  disruptedOutput?: number;
   uid: number;
   heroId: HeroId;
   moveIndex: number;

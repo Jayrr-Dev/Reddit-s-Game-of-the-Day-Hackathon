@@ -523,23 +523,19 @@ void test('a frosted hero hits softer, then its frost halves', () => {
   assert.equal(after.statuses.frost, 1);
 });
 
-void test('shock bursts and clears on the 4th hit', () => {
-  assert.equal(SHOCK_HITS, 4);
+void test('shock bursts and clears on the 3rd hit', () => {
+  assert.equal(SHOCK_HITS, 3);
   const shocked = {
     ...createCombatant(50, 50),
     statuses: { ...NO_STATUSES, shock: 6 },
   };
-  const thrice = takeHit(
-    takeHit(takeHit(shocked, 2, 'melee'), 2, 'range'),
-    2,
-    'melee'
-  );
-  assert.equal(thrice.shockHits, 3);
-  assert.equal(thrice.hp, 44);
-  const burst = takeHit(thrice, 2, 'melee');
-  // Four hits of 2, then the shock (6) doubled.
+  const twice = takeHit(takeHit(shocked, 2, 'melee'), 2, 'range');
+  assert.equal(twice.shockHits, 2);
+  assert.equal(twice.hp, 46);
+  const burst = takeHit(twice, 2, 'melee');
+  // Three hits of 2, then the shock (6) doubled.
   assert.equal(SHOCK_BURST_FACTOR, 2);
-  assert.equal(burst.hp, 42 - 6 * SHOCK_BURST_FACTOR);
+  assert.equal(burst.hp, 44 - 6 * SHOCK_BURST_FACTOR);
   assert.equal(burst.statuses.shock, 0);
   assert.equal(burst.shockHits ?? 0, 0);
 });
@@ -643,15 +639,11 @@ void test('new shock stacks on top and keeps the count', () => {
     ...createCombatant(50, 50),
     statuses: { ...NO_STATUSES, shock: 2 },
   };
-  const hit = takeHit(
-    takeHit(takeHit(shocked, 1, 'melee'), 1, 'melee'),
-    1,
-    'melee'
-  );
+  const hit = takeHit(takeHit(shocked, 1, 'melee'), 1, 'melee');
   const stacked = addStatus(hit, 'shock', 4);
-  assert.equal(stacked.shockHits, 3);
+  assert.equal(stacked.shockHits, 2);
   const burst = takeHit(stacked, 1, 'melee');
-  assert.equal(burst.hp, 50 - 4 - 6 * SHOCK_BURST_FACTOR);
+  assert.equal(burst.hp, 50 - 3 - 6 * SHOCK_BURST_FACTOR);
 });
 
 void test('Shock hits must come in one turn: the count resets at upkeep', () => {
@@ -670,14 +662,10 @@ void test('a magic hit counts toward Shock like any other', () => {
     ...createCombatant(50, 50),
     statuses: { ...NO_STATUSES, shock: 6 },
   };
-  const hit = takeHit(
-    takeHit(takeHit(shocked, 1, 'magic'), 1, 'melee'),
-    1,
-    'range'
-  );
+  const hit = takeHit(takeHit(shocked, 1, 'melee'), 1, 'range');
   const zapped = takeHit(hit, 1, 'magic');
-  assert.equal(zapped.statuses.shock, 0, 'the 4th hit bursts it');
-  assert.equal(zapped.hp, 50 - 4 - 6 * SHOCK_BURST_FACTOR);
+  assert.equal(zapped.statuses.shock, 0, 'the 3rd hit bursts it');
+  assert.equal(zapped.hp, 50 - 3 - 6 * SHOCK_BURST_FACTOR);
 });
 
 void test('a hero shocked by the villain: four melee hits', () => {
@@ -1652,8 +1640,7 @@ void test('the griffon calls lightning: Shock its triple hits charge', () => {
   // Storm Wings guards and charges more Shock without attacking.
   const wings = endTurn(atMove(names.indexOf('Storm Wings')));
   assert.ok(wings.player.statuses.shock > 0);
-  // Its Triple Slice charges the Shock 3 of the SHOCK_HITS (4) hits:
-  // one more hit that turn, from any hero, sets it off.
+  // Triple Slice can now trigger the whole burst on its own.
   const shocked = {
     ...atMove(0),
     player: {
@@ -1664,9 +1651,9 @@ void test('the griffon calls lightning: Shock its triple hits charge', () => {
   const sliced = endTurnSteps(shocked).find(
     (step) => step.actorUid === griffon.uid
   )!.state;
-  assert.equal(sliced.player.shockHits, 3);
-  // 6, less the 1 that faded after the villain's own turn.
-  assert.equal(sliced.player.statuses.shock, 5);
+  assert.equal(sliced.player.shockHits, 0);
+  assert.equal(sliced.player.statuses.shock, 0);
+  assert.equal(sliced.player.shockBursts, 1);
 });
 
 void test('the griffon Smites (sets off Shock) and swipes Crossed Talon 3x6', () => {
@@ -3320,6 +3307,39 @@ void test('Mass Disrupt lowers every debuff, then caps the enemy’s next attack
   assert.ok(describeCard('massDisrupt').includes('Max 1 hit for 1 turn'));
 });
 
+void test('Mass Disrupt shows the Rogue Poisoned Dart at zero and prevents the listed poison', () => {
+  const base = startCombat({ hp: 60, maxHp: 60, deck: ['massDisrupt'], heroIds: ['rogue'], might: 1, seed: 7 });
+  const rogue = { ...base.heroes[0]!, row: 'back' as const, moveIndex: 0 };
+  const fight = { ...base, waveArrival: false, heroes: [rogue] };
+  const before = describeHeroIntent(rogue, fight.heroes).intents;
+  assert.equal(before.find(intent => intent.kind === 'poison')?.text, '2');
+  assert.ok(endTurn(fight).player.statuses.poison > 0);
+  const played = playCard(fight, 0, -1);
+  const after = describeHeroIntent(played.heroes[0]!, played.heroes).intents;
+  assert.deepEqual(after.find(intent => intent.kind === 'range'), before.find(intent => intent.kind === 'range'));
+  assert.deepEqual(after.find(intent => intent.kind === 'poison'), {
+    kind: 'poison', text: '0', label: 'Poison 0 on every hit\nDisrupt: 2 to 0.', disrupted: true,
+  });
+  const round = endTurn(played);
+  assert.ok(round.player.hp < played.player.hp);
+  assert.equal(round.player.statuses.poison, 0);
+  assert.equal(round.heroes[0]?.disruptedOutput ?? 0, 0);
+});
+
+void test('Disrupt reduces the announced ally Guard and cancels Protection for that turn', () => {
+  const base = startCombat({ hp: 60, maxHp: 60, deck: ['massDisrupt'], heroIds: ['angelMage'], might: 1.6, seed: 7 });
+  const mage = { ...base.heroes[0]!, row: 'back' as const,
+    moveIndex: getHero('angelMage').moves.findIndex(move => move.name === 'Borrowed Time') };
+  const played = playCard({ ...base, waveArrival: false, heroes: [mage] }, 0, -1);
+  const intents = describeHeroIntent(played.heroes[0]!, played.heroes).intents;
+  assert.ok(intents.some(intent => intent.kind === 'guard' && intent.disrupted && intent.text === 'ALL 3'));
+  assert.ok(intents.some(intent => intent.kind === 'protect' && intent.disrupted && intent.text === 'ALL 0'));
+  const stepped = endTurnSteps(played).find(step => step.move?.name === 'Borrowed Time');
+  assert.ok(stepped);
+  assert.equal(stepped.state.heroes[0]?.guard, 3);
+  assert.equal(stepped.state.heroes[0]?.statuses.protection, 0);
+});
+
 void test('combat history records each unit’s dodge count delta, including a unit fallen on a later hit', () => {
   const state = fightWith(['backhand']);
   const old = { ...state, player: { ...state.player, dodgedHits: 1, missedShots: 1 } };
@@ -3336,7 +3356,7 @@ void test('combat history records each unit’s dodge count delta, including a u
 });
 
 // --- SHOCK CHAIN ---
-/** Squire on its 4th Shock hit, Archer shocked too, both in reach. */
+/** Squire about to take its 3rd Shock hit, Archer shocked too, both in reach. */
 const chainReady = (): CombatState => {
   const start = squireAndArcher(['backhand']);
   const [squire, archer] = start.heroes;
