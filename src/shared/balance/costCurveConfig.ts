@@ -150,6 +150,42 @@ export type CostCurveConfig = {
     /** Cheaper per kill (Decimate). */
     cheaperPerKill: number;
   };
+  /**
+   * Unit power (unitPower.ts). The villain's damage per turn is not set
+   * here: it is ENERGY_PER_TURN × curve.energyValue, so units and cards
+   * share one currency.
+   */
+  unit: {
+    /** Villain hits per turn (Armor cuts each physical one). */
+    villainHitsPerTurn: number;
+    /** Share of the villain's hits that are Melee or Range (Armor applies). */
+    physicalShare: number;
+    /** Extra toughness for standing out of Melee reach. */
+    backlineShield: number;
+    horizonShield: number;
+    /** Other heroes an "allies" effect also helps. */
+    alliesHelped: number;
+    /** Share of a heal that lands on missing HP. */
+    healUsed: number;
+    /** Turns left in the fight for fight-long gains (Wrath, summons). */
+    turnsLeft: number;
+    /** Hits per move of an ally that Wrath on allies boosts. */
+    allyHitsPerMove: number;
+    /** One extra move a turn (Vigor) is worth this share of a move. */
+    vigorShare: number;
+    /** Longrange passive: shots never miss into the Horizon. */
+    longRangeBonus: number;
+    /** Anchored passive: immune to Pull and Knockback. */
+    anchoredBonus: number;
+    /** Fatigue: share of an energy each +1 card cost really takes. */
+    fatigueEnergyShare: number;
+    /** Scramble on the villain: energy of a random card auto-played. */
+    scrambleEnergy: number;
+    /** Revive: flat points for bringing fallen allies back. */
+    revive: number;
+    /** Soar: share of a villain turn its Aloft dodges. */
+    soarShare: number;
+  };
 };
 
 // --- DEFAULTS ---
@@ -227,6 +263,23 @@ export const COST_CURVE_CONFIG: CostCurveConfig = {
     rampageShare: 0.15,
     chargeMomentumChance: 0.5,
     cheaperPerKill: 3,
+  },
+  unit: {
+    villainHitsPerTurn: 3,
+    physicalShare: 0.6,
+    backlineShield: 0.25,
+    horizonShield: 0.5,
+    alliesHelped: 2,
+    healUsed: 0.5,
+    turnsLeft: 3,
+    allyHitsPerMove: 1.5,
+    vigorShare: 1,
+    longRangeBonus: 0.1,
+    anchoredBonus: 0.05,
+    fatigueEnergyShare: 0.5,
+    scrambleEnergy: 0.5,
+    revive: 30,
+    soarShare: 0.5,
   },
 };
 

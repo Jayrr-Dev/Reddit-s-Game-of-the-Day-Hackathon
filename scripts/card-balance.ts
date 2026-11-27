@@ -16,6 +16,7 @@ import {
   withOverride,
   type CostCurveConfig,
 } from '../src/shared/balance/costCurveConfig.ts';
+import { markdownTable, textTable } from '../src/shared/balance/textTable.ts';
 
 // --- ARGUMENTS ---
 /** Every value given for `--name=value`. */
@@ -58,21 +59,6 @@ const rowCells = (score: CardScore): string[] => [
 
 const HEADERS = ['Card', 'Rarity', 'Cost', 'Value', 'Target', 'Ratio', 'Verdict', 'Where the value comes from'];
 
-/** A Markdown table. */
-const markdownTable = (scores: CardScore[]): string =>
-  [HEADERS, HEADERS.map(() => '---'), ...scores.map(rowCells)]
-    .map((cells) => `| ${cells.join(' | ')} |`)
-    .join('\n');
-
-/** A plain-text table with padded columns (breakdown left unpadded). */
-const textTable = (scores: CardScore[]): string => {
-  const rows = [HEADERS, ...scores.map(rowCells)];
-  const widths = HEADERS.map((_, column) => Math.max(...rows.map((row) => (row[column] ?? '').length)));
-  return rows
-    .map((row) => row.map((cell, column) => (column === row.length - 1 ? cell : cell.padEnd(widths[column] ?? 0))).join('  '))
-    .join('\n');
-};
-
 /** Counts per verdict: "36 too strong, 44 on curve, 29 too weak". */
 const summary = (scores: CardScore[]): string =>
   (['too strong', 'on curve', 'too weak'] as const)
@@ -90,7 +76,8 @@ const main = (): void => {
     .filter((score) => !only || score.verdict === VERDICT_BY_FLAG[only])
     .filter((score) => cards.length === 0 || cards.includes(score.id));
   const isMarkdown = process.argv.includes('--md');
-  console.log(isMarkdown ? markdownTable(scores) : textTable(scores));
+  const rows = scores.map(rowCells);
+  console.log(isMarkdown ? markdownTable(HEADERS, rows) : textTable(HEADERS, rows));
   console.log(`\n${all.length} cards: ${summary(all)}`);
 };
 
