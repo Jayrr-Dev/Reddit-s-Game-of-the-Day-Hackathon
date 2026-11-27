@@ -38,6 +38,7 @@ import { useProgressiveImage } from '../../hooks/useProgressiveImage';
 
 // --- TYPES ---
 export type VillainRunGameProps = {
+  endless?: boolean | undefined;
   run: RunState;
   runId?: string | undefined;
   onAction: (action: RunAction) => void;
@@ -51,7 +52,7 @@ const LEVEL_UP_AFTER_VICTORY_MS = 3350;
 
 // --- SUBCOMPONENTS ---
 /** The body for the current phase. */
-const PhaseBody = ({ run, runId, onAction, onMainMenu }: VillainRunGameProps) => {
+const PhaseBody = ({ run, runId, onAction, onMainMenu, endless }: VillainRunGameProps) => {
   const { phase } = run;
 
   switch (phase.kind) {
@@ -79,11 +80,15 @@ const PhaseBody = ({ run, runId, onAction, onMainMenu }: VillainRunGameProps) =>
           terrainIndex={mapIndex}
           {...(area && area.site.kind !== 'dragon' && { trainingArenaOverride: finalArena ?? null })}
           {...(area && { campaignLocation: finalArena?.name ?? area.site.name })}
-          where={wave && area?.wave !== 0 ? battleTitle + ' · ' + wave.name : battleTitle}
-          score={computeScore(run.stats)}
+          where={endless ? 'Endless · Wave ' + run.stop : wave && area?.wave !== 0 ? battleTitle + ' · ' + wave.name : battleTitle}
+          score={endless ? run.stats.wavesCleared : computeScore(run.stats)}
+          {...(endless && { scoreUnit: 'cleared' })}
           onAction={onAction}
           pauseActions={
-            <AbandonRun onConfirm={() => onAction({ type: 'abandon' })} />
+            <>
+              {endless && onMainMenu && <Button variant="menu" onClick={onMainMenu}>Main menu</Button>}
+              <AbandonRun onConfirm={() => onAction({ type: 'abandon' })} />
+            </>
           }
         />
       );
@@ -169,7 +174,7 @@ function LevelUpDialog({ character, onClose, onOpenCharacter }: {
  * Fills the post exactly (no page scroll inside the feed). Combat owns
  * the whole box; the other phases get the run HUD on top.
  */
-export const VillainRunGame = ({ run, runId, onAction, onMainMenu }: VillainRunGameProps) => {
+export const VillainRunGame = ({ run, runId, onAction, onMainMenu, endless }: VillainRunGameProps) => {
   const [showCharacter, setShowCharacter] = useState(false);
   const [dismissedLevel, setDismissedLevel] = useState<string>();
   const levelKey = (runId ?? run.dailyKey) + ':' + run.attempt + ':' + run.stop + ':' + run.character.level;
@@ -177,7 +182,7 @@ export const VillainRunGame = ({ run, runId, onAction, onMainMenu }: VillainRunG
   const lastPhase = useRef(run.phase.kind);
   const leveledAtReward = run.phase.kind === 'reward' && run.phase.leveledUp;
   const apple = runId && run.phase.kind === 'reward' && run.phase.source ? appleAtVictory(runId, run.stop, run.phase.source, run.area?.battle) : undefined;
-  const startingNextWave = !run.area && run.phase.kind === 'combat' && readyWave !== run.stop;
+  const startingNextWave = !endless && !run.area && run.phase.kind === 'combat' && readyWave !== run.stop;
   const wavePending = run.phase.kind === 'combat' && run.area?.wavePending === true;
   useEffect(() => {
     if (!wavePending) return;
@@ -218,12 +223,13 @@ export const VillainRunGame = ({ run, runId, onAction, onMainMenu }: VillainRunG
   if (run.phase.kind === 'combat')
     return (
       <div className="relative h-full w-full overflow-hidden">
-        <PhaseBody run={run} runId={runId} onAction={onAction} />
+        <PhaseBody run={run} runId={runId} onAction={onAction} onMainMenu={onMainMenu} endless={endless} />
       </div>
     );
   return (
     <div className="run-board flex h-full w-full flex-col overflow-hidden" style={run.phase.kind === 'reward' ? undefined : { backgroundImage: `linear-gradient(#140e0bbc, #140d09e8), url("${regionArt.src}")` }}>
-      {run.phase.kind !== 'route' && <RunHud run={run} onOpenCharacter={() => setShowCharacter(true)} />}
+      {run.phase.kind !== 'route' && <RunHud run={run} onOpenCharacter={() => setShowCharacter(true)}
+        {...(endless && onMainMenu && { onReturnFromEndless: onMainMenu })} />}
       <main data-route-board={run.phase.kind === 'route' || undefined} className={run.phase.kind === 'area-camp'
         ? 'flex min-h-0 flex-1' : 'flex min-h-0 flex-1 flex-col items-center justify-center-safe overflow-y-auto p-3'}>
         {apple && (

@@ -44,6 +44,7 @@ export type MapAudioOptions = {
   bossActive: boolean;
   bossAmbience?: BossArenaAmbience | undefined;
   alternateBattle?: boolean;
+  musicOverride?: string | undefined;
   musicVolume: number;
   sfxVolume: number;
 };
@@ -213,7 +214,7 @@ function syncLayer(layer: Layer, url: string, level: number, currentLevel: () =>
 const volume = (value: number) => Math.max(0, Math.min(1, value)) ** 2;
 
 export function useMapAudio(options: MapAudioOptions) {
-  const { mapId, active, bossActive, bossAmbience, alternateBattle = false, musicVolume, sfxVolume } = options;
+  const { mapId, active, bossActive, bossAmbience, alternateBattle = false, musicOverride, musicVolume, sfxVolume } = options;
   const latest = useRef(options);
   const layers = useRef<{ ambience: Layer; music: Layer }>({ ambience: { fading: new Set() }, music: { fading: new Set() } });
   const syncRef = useRef<() => void>(() => {});
@@ -233,7 +234,7 @@ export function useMapAudio(options: MapAudioOptions) {
       const ambienceUrl = opts.bossAmbience ? bossAmbiences[opts.bossAmbience] : mapAmbience;
       syncLayer(ambience, ambienceUrl, level('ambience'), () => level('ambience'));
       // Every boss shares the original boss theme (Army of Minotaur).
-      const score = opts.bossActive ? boss : opts.alternateBattle ? battleOrchestral : mapScore;
+      const score = opts.bossActive ? boss : opts.musicOverride ?? (opts.alternateBattle ? battleOrchestral : mapScore);
       syncLayer(music, score, level('music'), () => level('music'));
     };
     syncRef.current = sync;
@@ -250,7 +251,7 @@ export function useMapAudio(options: MapAudioOptions) {
   }, []);
 
   useEffect(() => {
-    latest.current = { mapId, active, bossActive, bossAmbience, alternateBattle, musicVolume, sfxVolume };
+    latest.current = { mapId, active, bossActive, bossAmbience, alternateBattle, musicOverride, musicVolume, sfxVolume };
     syncRef.current();
-  }, [mapId, active, bossActive, bossAmbience, alternateBattle, musicVolume, sfxVolume]);
+  }, [mapId, active, bossActive, bossAmbience, alternateBattle, musicOverride, musicVolume, sfxVolume]);
 }

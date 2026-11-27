@@ -16,6 +16,9 @@ export const PANDORA_MAX_HP_LOSS = 10;
 export const PANDORA_CURSE_BOUNTY = 160;
 export const PANDORA_GOLD_REWARD = 180;
 export const PANDORA_GOLD_LOSS_CAP = 60;
+export const PANDORA_CURSE_POOL_CHANCE = 15;
+export const PANDORA_BLESSING_POOL_CHANCE = 10;
+export const PANDORA_EVENT_CHANCE = PANDORA_CURSE_POOL_CHANCE + PANDORA_BLESSING_POOL_CHANCE;
 const PANDORA_GOLD_PERCENT_PER_LEVEL = 2;
 
 /** Positive Gold outcomes keep their flat base and earn 2% of it per level above one. */
@@ -71,11 +74,12 @@ export function readPandoraEvent(value: unknown): PandoraEvent {
   return { kind: 'run', effect: value.effect, ...(runId && { runId }), ...(claimed && { claimed }) };
 }
 
-/** Resolves an extra outcome for the box instead of a piece of jewelry. */
+/** Split the non-card, non-jewelry outcomes into the Curse and Blessing pools. */
 export function drawPandoraEvent(roll: number, balanceAfterPrice: number, level = 1): PandoraEvent {
-  if (roll < 20) return pandoraGoldReward(level);
-  if (roll < 36) return { kind: 'gold', change: -Math.min(PANDORA_GOLD_LOSS_CAP, balanceAfterPrice) };
-  if (roll < 61) return { kind: 'run', effect: 'lasting-vigor' };
-  if (roll < 81) return { kind: 'run', effect: 'brittle-blood' };
-  return { kind: 'run', effect: 'half-life-double-gold' };
+  const curseLimit = 100 * PANDORA_CURSE_POOL_CHANCE / PANDORA_EVENT_CHANCE;
+  const curseStep = curseLimit / 3;
+  if (roll < curseStep) return pandoraGoldReward(level);
+  if (roll < 2 * curseStep) return { kind: 'gold', change: -Math.min(PANDORA_GOLD_LOSS_CAP, balanceAfterPrice) };
+  if (roll < curseLimit) return { kind: 'run', effect: 'brittle-blood' };
+  return { kind: 'run', effect: roll < (curseLimit + 100) / 2 ? 'lasting-vigor' : 'half-life-double-gold' };
 }

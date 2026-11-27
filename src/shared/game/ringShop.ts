@@ -3,7 +3,7 @@ import { ALL_CARD_IDS, getCard, isCardInPlay, type CardId } from './cards.ts';
 import { hashSeed, nextInt, pickDistinct, pickOne } from './rng.ts';
 import { TRAINING_JEWELRY } from './trainingJewelry.ts';
 import { shopAmuletSummary, type ShopAmuletId } from './amuletBonuses.ts';
-import { drawPandoraEvent, readPandoraEvent, PANDORA_CURSE_BOUNTY, pandoraGoldReward, type PandoraEvent, type PandoraRunEffect } from './pandora.ts';
+import { drawPandoraEvent, readPandoraEvent, PANDORA_CURSE_BOUNTY, PANDORA_EVENT_CHANCE, pandoraGoldReward, type PandoraEvent, type PandoraRunEffect } from './pandora.ts';
 import type { EquipmentSlot } from './character.ts';
 import { isItemBag, itemQuantity, REALM_APPLE, SHOP_APPLE, spendItem, type ItemBag, type ShopApple } from './items.ts';
 
@@ -290,7 +290,7 @@ export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: Sho
     const reward = { kind: 'card', cardId } as const;
     return { status: 'buy', reward, next: { ...wallet, events: { ...wallet.events, [receipt]: reward }, carry: { ...wallet.carry, [id]: card } } } as const;
   }
-  if (kindRoll < 50) {
+  if (kindRoll < PANDORA_CARD_CHANCE + PANDORA_EVENT_CHANCE) {
     const event = drawPandoraEvent(nextInt(seed('event'), 100)[0], balance - offer.price, level);
     return { status: 'buy', reward: event, next: { ...wallet, events: { ...wallet.events, [receipt]: event } } } as const;
   }

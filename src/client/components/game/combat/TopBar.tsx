@@ -12,6 +12,7 @@ export type TopBarProps = {
   location: string;
   where: string;
   score: number;
+  scoreUnit?: string;
   onOpenDeck: () => void;
   onOpenCharacter: () => void;
   onOpenMenu: () => void;
@@ -25,6 +26,7 @@ export const TopBar = ({
   location,
   where,
   score,
+  scoreUnit = 'pts',
   onOpenMenu,
   onOpenDeck,
   onOpenCharacter,
@@ -56,7 +58,7 @@ export const TopBar = ({
           <path d="M2 2q5-2 9 1v14q-5-3-9-1zm20 0q-5-2-9 1v14q5-3 9-1z" />
         </svg>
       </button>
-      <span className="font-display font-bold text-accent">{score} pts</span>
+      <span className="font-display font-bold text-accent">{score} {scoreUnit}</span>
       <button
         type="button"
         onClick={onOpenMenu}

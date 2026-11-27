@@ -49,6 +49,7 @@ export type IntroViewProps = {
   canResume: boolean;
   isStarting: boolean;
   onStart: () => void;
+  onEndless?: () => void;
   /** Opens the target-dummy practice fight (testing aid). */
   onPractice: () => void;
   onShopTestVisit?: (visit: string | undefined) => void;
@@ -171,6 +172,7 @@ export const IntroView = ({
   canResume,
   isStarting,
   onStart,
+  onEndless,
   onPractice,
   onShopTestVisit,
   loadTestShop,
@@ -203,9 +205,15 @@ export const IntroView = ({
   }, [sheet, loadTestShop, receiveTestInventory]);
   const musicVolume = useSyncExternalStore(subscribeVolume, () => getVolume('music'));
   const sfxVolume = useSyncExternalStore(subscribeVolume, () => getVolume('sfx'));
-  useMapAudio({ mapId: sheet === 'shop' ? 'Gateway of Souls' : 'Home', active: sheet !== 'tutorial' && sheet !== 'dev', bossActive: false, musicVolume: musicVolume / 100, sfxVolume: sheet === 'shop' ? sfxVolume / 100 : 0 });
+  const settings = useGameSettings(true);
+  const inShop = sheet === 'shop';
+  useMapAudio({
+    mapId: inShop ? 'Gateway of Souls' : 'Home', active: sheet !== 'tutorial' && sheet !== 'dev', bossActive: false,
+    musicOverride: inShop ? undefined : settings.introMusicUrl,
+    musicVolume: !inShop && settings.introMusicMuted ? 0 : musicVolume / 100,
+    sfxVolume: inShop ? sfxVolume / 100 : 0,
+  });
   const isAdmin = useIsAdmin();
-  const settings = useGameSettings();
   const closeSheet = () => setSheet('none');
   const note = rankedNote(data, canResume);
   if (sheet === 'profile') return <ProfileView data={data} rings={profileRings} onClose={closeSheet} testJewelry={isAdmin ? testJewelry : []} testCarry={isAdmin ? testCarry : []} />;
@@ -223,6 +231,7 @@ export const IntroView = ({
           <Button variant="menuPrimary" onClick={onStart} disabled={isStarting} data-own-sound={!canResume ? true : undefined}>
             {canResume ? 'Resume the march' : 'Begin the conquest'}
           </Button>
+          {onEndless && <Button variant="menu" onClick={onEndless}>Endless</Button>}
           <div className="grid w-full grid-cols-2 gap-2">
             <Button variant="menu" onClick={() => setSheet('profile')}>Profile</Button>
             <Button variant="menu" onClick={() => { setTestJewelry([]); setTestCarry([]); onShopTestVisit?.(undefined); setSheet('shop'); }}>Shop</Button>

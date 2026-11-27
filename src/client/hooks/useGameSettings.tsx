@@ -1,6 +1,7 @@
 import { useState, useSyncExternalStore, type ReactNode } from 'react';
 import { MapSoundtrackCredits } from '../components/game/menu/MapSoundtrackCredits';
 import { getVolume, setVolume, subscribeVolume, playDraw, type AudioChannel } from '../lib/gameAudio';
+import { MUSIC_TRACKS } from '../lib/mapAudio';
 
 function VolumeControl({channel, label}: {channel: AudioChannel; label: string}) {
   const volume = useSyncExternalStore(subscribeVolume, () => getVolume(channel));
@@ -48,8 +49,22 @@ const subscribeBattleMusic = (listener: () => void) => {
 };
 const getBattleMusic = () => currentBattleMusic;
 
-export function useGameSettings() {
+const INTRO_MUSIC_KEY = 'villain-run.intro-music';
+const DEFAULT_INTRO_MUSIC = 'Home';
+const isIntroTrack = (name: string) => MUSIC_TRACKS.some(track => track.name === name);
+
+/** Loads the saved choice only if that track still ships with the game. */
+function loadIntroMusic() {
+  try {
+    const saved = localStorage.getItem(INTRO_MUSIC_KEY);
+    if (saved && (saved === 'off' || isIntroTrack(saved))) return saved;
+  } catch { /* Session only. */ }
+  return DEFAULT_INTRO_MUSIC;
+}
+
+export function useGameSettings(showIntroMusic = false) {
   const battleMusic = useSyncExternalStore(subscribeBattleMusic, getBattleMusic);
+  const [introMusic, setIntroMusic] = useState(loadIntroMusic);
   const [values, setValues] = useState(() => preferences.map(({ key, initial }) => {
     try {
       const saved = localStorage.getItem(key);
@@ -71,6 +86,19 @@ export function useGameSettings() {
   const controls = <>{toggles}<div className="grid w-full gap-2">
     <VolumeControl channel="music" label="Music" />
     <VolumeControl channel="sfx" label="SFX" />
+    {showIntroMusic && <SettingsSection title="Intro music">
+      <select aria-label="Intro music" value={introMusic} onChange={event => {
+        const value = event.currentTarget.value;
+        if (value !== 'off' && !isIntroTrack(value)) return;
+        setIntroMusic(value);
+        try { localStorage.setItem(INTRO_MUSIC_KEY, value); } catch { /* Session only. */ }
+      }} className="w-full rounded border border-accent/35 bg-surface-sunken px-2 py-1 text-xs text-ink">
+        {MUSIC_TRACKS.map(track => <option key={track.name} value={track.name}>
+          {track.name === DEFAULT_INTRO_MUSIC ? 'Original intro' : track.name}
+        </option>)}
+        <option value="off">Off</option>
+      </select>
+    </SettingsSection>}
     <SettingsSection title="Battle music">
       <select aria-label="Battle music" value={battleMusic} onChange={e => selectBattleMusic(e.target.value === 'orchestral' ? 'orchestral' : 'map')}
         className="w-full rounded border border-accent/35 bg-surface-sunken px-2 py-1 text-xs text-ink">
@@ -88,5 +116,6 @@ export function useGameSettings() {
     </details>
     <button type="button" data-own-sound className="justify-self-end text-xs text-accent underline" onClick={playDraw}>Test SFX</button>
   </div></>;
-  return { autoEnd: values[0], bossIntros: values[1] ?? true, battleMusic, controls };
+  return { autoEnd: values[0], bossIntros: values[1] ?? true, battleMusic, controls,
+    introMusicMuted: introMusic === 'off', introMusicUrl: MUSIC_TRACKS.find(track => track.name === introMusic)?.url };
 }

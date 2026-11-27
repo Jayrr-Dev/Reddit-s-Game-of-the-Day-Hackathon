@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { drawPandoraEvent } from './pandora.ts';
+import { drawPandoraEvent, PANDORA_CURSE_POOL_CHANCE, PANDORA_BLESSING_POOL_CHANCE } from './pandora.ts';
 import { GOLD_RANGES, goldFromVictoryScore, goldRewardFor } from './gold.ts';
 
 test('Gold rolls vary by run and stay within the encounter tier', () => {
@@ -27,4 +27,16 @@ test('new Pandora half-life rolls double every verified battle payout', () => {
       assert.equal(goldRewardFor('run', stop, encounter, 'half-life'), base);
     }
   }
+});
+
+void test('Pandora keeps the 15% Curse and 10% Blessing pools equally weighted within each pool', () => {
+  assert.equal(PANDORA_CURSE_POOL_CHANCE, 15);
+  assert.equal(PANDORA_BLESSING_POOL_CHANCE, 10);
+  const outcomes = new Map<string, number>();
+  for (let roll = 0; roll < 100; roll++) {
+    const event = drawPandoraEvent(roll, 200);
+    const key = event.kind === 'gold' ? String(event.change) : event.kind === 'run' ? event.effect : 'card';
+    outcomes.set(key, (outcomes.get(key) ?? 0) + 1);
+  }
+  assert.deepEqual([...outcomes], [['180', 20], ['-60', 20], ['brittle-blood', 20], ['lasting-vigor', 20], ['half-life-double-gold', 20]]);
 });

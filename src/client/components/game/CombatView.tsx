@@ -120,6 +120,7 @@ export type CombatViewProps = {
   musicMuted?: boolean | undefined;
   where: string;
   score: number;
+  scoreUnit?: string | undefined;
   onAction: (action: RunAction) => void;
   /** Extra buttons for the pause menu (e.g. the sandbox's reshuffle). */
   pauseActions?: ReactNode;
@@ -223,18 +224,20 @@ const PlayerBar = ({
 const PauseSheet = ({
   where,
   score,
+  scoreUnit,
   actions,
   onClose,
 }: {
   where: string;
   score: number;
+  scoreUnit: string;
   actions?: ReactNode;
   onClose: () => void;
 }) => (
   <MenuPanel title="Paused" onClose={onClose}>
     <p className="text-center text-sm text-ink">{where}</p>
     <p className="text-center font-display text-2xl font-black text-accent">
-      {score} pts
+      {score} {scoreUnit}
     </p>
     {actions}
   </MenuPanel>
@@ -254,6 +257,7 @@ export const CombatView = ({
   musicMuted = false,
   where,
   score,
+  scoreUnit = 'pts',
   onAction,
   pauseActions,
   renderTrainingMenu,
@@ -577,6 +581,7 @@ export const CombatView = ({
           location={campaignLocation ?? bossArena?.name ?? mapName}
           where={where}
           score={score}
+          scoreUnit={scoreUnit}
           onOpenMenu={() => setIsPaused(true)}
           onExitBattle={onExitBattle}
           onOpenDeck={() => setOpenPile('deck')}
@@ -726,6 +731,7 @@ export const CombatView = ({
         <PauseSheet
           where={where}
           score={score}
+          scoreUnit={scoreUnit}
           actions={<>{settings}{pauseActions}</>}
           onClose={() => setIsPaused(false)}
         />

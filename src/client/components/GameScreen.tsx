@@ -30,6 +30,7 @@ import { ConquestPrelude, RegionCrossroads } from './game/ConquestPrelude';
 import { StarterPicker } from './game/StarterPicker';
 import type { PlayerBuild } from '../../shared/game/playerBuild';
 import { IntroView } from './game/IntroView';
+import { EndlessView } from './game/EndlessView';
 import { ResultsView } from './game/ResultsView';
 import { SandboxView } from './game/SandboxView';
 import { StoryDefeat, VillainRunGame } from './game/VillainRunGame';
@@ -54,6 +55,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
   const [choosing, setChoosing] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [isPracticing, setIsPracticing] = useState(false);
+  const [endlessOpen, setEndlessOpen] = useState(false);
   const [viewedDefeat, setViewedDefeat] = useState(false);
   const isFallen = run.phase.kind === 'fallen';
   const isFinished = isRunOver(run);
@@ -131,6 +133,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
     }
   };
 
+  if (endlessOpen) return <EndlessView key={data.dailyKey} day={data.dailyKey} accountId={data.accountId} onBack={() => setEndlessOpen(false)} />;
   if (choosing) return <StarterPicker accountId={data.accountId} starting={isStarting} onBack={()=>setChoosing(false)} onConfirm={(build, bringCard) => void handleStart(build, bringCard)} {...(data.isAdmin && { loadTestShop })} />;
   if (isPracticing)
     return <SandboxView onExit={() => setIsPracticing(false)} />;
@@ -143,6 +146,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
         canResume={canResume}
         isStarting={isStarting}
         onStart={() => void handleStart()}
+        onEndless={() => setEndlessOpen(true)}
         onPractice={() => setIsPracticing(true)}
         onShopTestVisit={setShopTestVisit}
         {...(data.isAdmin && { loadTestShop })}
