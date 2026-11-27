@@ -136,7 +136,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
     }
   };
 
-  if (endlessOpen) return <EndlessView key={data.dailyKey} day={data.dailyKey} accountId={data.accountId}
+  if (endlessOpen) return <EndlessView key={data.dailyKey} data={data}
     rings={run.character.ringProgress} onBack={() => setEndlessOpen(false)} />;
   if (choosing) return <StarterPicker accountId={data.accountId} starting={isStarting} onBack={()=>setChoosing(false)} onConfirm={(build, bringCard) => void handleStart(build, bringCard)} {...(data.isAdmin && { loadTestShop })} />;
   if (isPracticing)

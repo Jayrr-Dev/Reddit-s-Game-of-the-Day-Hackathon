@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { getCard } from '../../../shared/game/cards';
-import { ENDLESS_CLASS_TYPES, endlessDraftOffers, endlessDraftSize, type DraftOffer, type EndlessDraft } from '../../../shared/game/endlessDraft';
+import { ENDLESS_CLASS_TYPES, ENDLESS_DRAFT_REFRESHES, endlessDraftOffers, endlessDraftSize, refreshEndlessDraft, type DraftOffer, type EndlessDraft } from '../../../shared/game/endlessDraft';
 import { playSound } from '../../lib/gameAudio';
+import type { StarterName } from '../../../shared/game/starters';
 import { Button } from '../ui/Button';
 import { CardView } from './CardView';
 import './endlessDraft.css';
@@ -11,7 +12,8 @@ type DraftProps = {
   draft: EndlessDraft;
   onPick: (index: number) => void;
   onBegin: () => void;
-  onBack: () => void;
+  onRefresh: () => void;
+  onPreviewClass: (starter: StarterName) => void;
   loading: boolean;
   loadError: boolean;
 };
@@ -33,12 +35,13 @@ function OpeningPack({ offer, chosen, onSelect }: { offer: DraftOffer; chosen: b
 }
 
 /** Preview a choice, then lock it in. Return here after leaving to continue the draft. */
-export function EndlessDraftView({ day, draft, onPick, onBegin, onBack, loading, loadError }: DraftProps) {
+export function EndlessDraftView({ day, draft, onPick, onBegin, loading, loadError, onRefresh, onPreviewClass }: DraftProps) {
   const [selected, setSelected] = useState<number | null>(null);
   const count = draft.cards.length;
   const size = endlessDraftSize(draft);
   const complete = count === size;
   const offers = endlessDraftOffers(day, draft);
+  const refreshes = ENDLESS_DRAFT_REFRESHES - (draft.refreshesUsed ?? 0);
   const pick = () => {
     if (selected === null) return;
     playSound('reward', 1.15, .68);
@@ -57,7 +60,7 @@ export function EndlessDraftView({ day, draft, onPick, onBegin, onBack, loading,
     </p>}
     {count === 0 ? <div className="endless-packs" aria-label="Endless classes">
       {offers.map((offer, index) => <OpeningPack key={offer.name} offer={offer}
-        chosen={index === selected} onSelect={() => setSelected(index)} />)}
+        chosen={index === selected} onSelect={() => { setSelected(index); if (offer.name) onPreviewClass(offer.name); }} />)}
     </div> : !complete && <div className="endless-draft-offers" aria-label="Card choices">
       {offers.map((offer, index) => {
         const id = offer.cards[0];
@@ -65,15 +68,12 @@ export function EndlessDraftView({ day, draft, onPick, onBegin, onBack, loading,
           onClick={() => setSelected(index)} />;
       })}
     </div>}
-    {count > 0 && <details className="results-board endless-draft-list" open={complete}>
-      <summary>Drafted cards ({count})</summary>
-      <ul>{draft.cards.map((id, index) => <li key={id + ':' + index}>{getCard(id).name}</li>)}</ul>
-    </details>}
+    {count > 0 && !complete && <Button variant="menu" className="min-w-36" disabled={refreshEndlessDraft(day, draft) === draft}
+      onClick={() => { setSelected(null); onRefresh(); }}>Refresh ({refreshes})</Button>}
     {loadError && <p role="alert">Could not load your character. Try again.</p>}
-    <div className="results-actions">
+    <div className="results-actions draft-primary">
       <Button variant="menuPrimary" disabled={loading || (!complete && selected === null)}
         onClick={complete ? onBegin : pick}>{complete ? loading ? 'Loading character…' : 'Begin Endless' : count === 0 ? 'Choose class' : 'Add card'}</Button>
-      <Button variant="menu" disabled={loading} onClick={onBack}>Endless menu</Button>
     </div>
   </main>;
 }

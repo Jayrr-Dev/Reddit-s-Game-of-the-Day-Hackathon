@@ -1,12 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createEndless, ENDLESS_BATTLE_VERSION, endlessClearedWaves, endlessWaveNumber, reduceEndless, restoreEndlessProfile } from './endless.ts';
-import { createHeroUnit } from './combat.ts';
+import { createEndless, draftBorrowedOffers, ENDLESS_BATTLE_VERSION, endlessClearedWaves, endlessWaveNumber, reduceEndless, restoreEndlessProfile, withDraftBorrowedPowers } from './endless.ts';
+import { createHeroUnit, startPlayerTurn } from './combat.ts';
+import { attackDamage, combatantBonuses } from './combatant.ts';
+import { borrowedBenefit, eligiblePowerCopies, rollBorrowedPowers, type BorrowedPower } from './borrowedPowers.ts';
 import { buildEndlessWaves } from './endlessWaves.ts';
 import { progressionFromWins } from './character.ts';
 import { createRun, type RunState } from './run.ts';
 import { getCard } from './cards.ts';
-import { ENDLESS_CLASS_TYPES, endlessDraftOffers, endlessDraftSize, isSavedEndlessDraft, type EndlessDraft } from './endlessDraft.ts';
+import { ENDLESS_CLASS_TYPES, endlessDraftOffers, endlessDraftSize, isSavedEndlessDraft, pendingDraftPower, refreshEndlessDraft, type EndlessDraft } from './endlessDraft.ts';
+import { applyBorrowedPower, isRunAction } from './run.ts';
 import { starterNames } from './starters.ts';
 
 test('Endless starts at a seeded fight without changing Conquest', () => {
@@ -122,6 +125,82 @@ test('Endless clears five waves, drafts a prize, and carries the same combat int
   assert.equal(next.phase.combat.discardPile.at(-1), offered);
   assert.equal(next.deck.at(-1), offered);
   assert.equal(next.area?.site, initial.area?.site);
+  const choice = { type: 'battleRespite', choice: 'borrow' } as const;
+  assert.ok(isRunAction(choice));
+  const powers = reduceEndless(run, choice);
+  assert.equal(powers.area?.respite?.powers?.length, 3);
+  assert.equal(reduceEndless(powers, { type: 'takeBorrowedPower', index: 3 }), powers);
+  const cancel = reduceEndless(powers, { type: 'closeBorrowedPowers' });
+  assert.deepEqual(reduceEndless(cancel, choice), powers);
+  const borrowed = reduceEndless(powers, { type: 'takeBorrowedPower', index: 0 });
+  assert.equal(endlessWaveNumber(borrowed), 6);
+  assert.equal(borrowed.phase.kind, 'combat');
+  assert.equal(borrowed.phase.combat.borrowedPowers?.length, 1);
+  assert.equal(borrowed.phase.combat.turn, run.phase.combat.turn);
+});
+
+test('draft refreshes replace offers, preserve cards, stop at five and pause at both power milestones', () => {
+  const day = '2026-11-27';
+  let draft: EndlessDraft = { number: 1, starter: 'Mage', cards: ['forkedBolt', 'frostBolt', 'mend', 'boneWard', 'arcaneBolt'] };
+  for (let i = 0; i < 5; i++) {
+    const next = refreshEndlessDraft(day, draft);
+    assert.equal(next.cards, draft.cards);
+    assert.notDeepEqual(endlessDraftOffers(day, next), endlessDraftOffers(day, draft));
+    assert.equal(next.refreshesUsed, i + 1);
+    draft = next;
+  }
+  assert.equal(refreshEndlessDraft(day, draft), draft);
+  while (draft.cards.length < 20) draft.cards.push(...endlessDraftOffers(day, draft)[0]!.cards);
+  assert.equal(pendingDraftPower(draft), 10);
+  const first = draftBorrowedOffers(day, draft, 10);
+  assert.deepEqual(first, draftBorrowedOffers(day, { ...draft, cards: draft.cards.slice(0, 10) }, 10));
+  draft.powerPicks = { 10: 0 };
+  assert.equal(pendingDraftPower(draft), 20);
+  draft.powerPicks[20] = 1;
+  assert.equal(pendingDraftPower(draft), undefined);
+  const run = createEndless(day, draft.cards, ENDLESS_BATTLE_VERSION);
+  const ready = withDraftBorrowedPowers(run, day, draft);
+  assert.equal(ready.phase.kind, 'combat');
+  assert.equal(ready.phase.combat.turn, 1);
+  assert.deepEqual(ready.phase.combat.borrowedPowers, [first[0], draftBorrowedOffers(day, draft, 20)[1]]);
+});
+
+test('borrowed stats, blood prices, HP scaling and Imbue affect live combat without changing the profile', () => {
+  const deck = ['backhand', 'backhand', 'darkCloak', 'forkedBolt', 'frostBolt', 'mend', 'boneWard', 'cleave'] as const;
+  const initial = createEndless('test', deck, ENDLESS_BATTLE_VERSION);
+  assert.equal(initial.phase.kind, 'combat');
+  const baseline = initial.phase.combat;
+  const energy: BorrowedPower = { rarity: 'rare', benefit: { kind: 'stat', stat: 'startingEnergy', amount: 1 },
+    price: { kind: 'blood', percent: 20 }, seed: 123 };
+  let run = applyBorrowedPower(initial, energy);
+  assert.equal(run.phase.kind, 'combat');
+  assert.equal(run.hp, initial.hp - Math.ceil(initial.maxHp * 0.2));
+  assert.equal(run.character, initial.character);
+  assert.equal(startPlayerTurn(run.phase.combat).energy, startPlayerTurn(initial.phase.combat).energy + 1);
+  run = applyBorrowedPower(run, { rarity: 'rare', benefit: { kind: 'stat', stat: 'magicPercent', amount: 30 }, seed: 1 });
+  assert.equal(run.phase.kind, 'combat');
+  assert.equal(attackDamage(10, run.phase.combat.player, 'magic'), 13);
+  run = applyBorrowedPower(run, { rarity: 'rare', benefit: { kind: 'hp', percent: true, amount: 20 }, seed: 1 });
+  assert.equal(run.maxHp, initial.maxHp + Math.ceil(initial.maxHp * 0.2));
+  run = applyBorrowedPower(run, { rarity: 'uncommon', benefit: { kind: 'stat', stat: 'cardsPerTurn', amount: 1 }, seed: 1 });
+  assert.equal(run.phase.kind, 'combat');
+  assert.equal(combatantBonuses(run.phase.combat.player).cardsPerTurn, combatantBonuses(initial.phase.combat.player).cardsPerTurn + 1);
+  const gift = { kind: 'effect', effect: { kind: 'guard', amount: 2 } } as const;
+  const eligible = eligiblePowerCopies(run.phase.combat, deck, gift);
+  const power: BorrowedPower = { rarity: 'legendary', benefit: { kind: 'imbue', count: 'all', gift, label: 'Guard 2', eligible: eligible.length }, seed: 1 };
+  const all = applyBorrowedPower(run, power);
+  const three = applyBorrowedPower(run, { ...power, benefit: { kind: 'imbue', count: 3, gift, label: 'Guard 2', eligible: eligible.length } });
+  assert.equal(all.phase.kind, 'combat');
+  assert.equal(three.phase.kind, 'combat');
+  assert.equal(Object.keys(all.phase.combat.copies?.gifts ?? {}).length, eligible.length);
+  assert.equal(Object.keys(three.phase.combat.copies?.gifts ?? {}).length, 3);
+  const copies = all.phase.combat.copies;
+  assert.deepEqual(all.phase.combat.handImbues, copies?.hand.map(i => copies.gifts[i] ?? []));
+  const rolled = Array.from({ length: 100 }, (_, n) => rollBorrowedPowers('roll-' + n, 30, baseline, deck));
+  assert.ok(rolled.every(offer => new Set(offer.map(borrowedBenefit)).size === 3));
+  assert.deepEqual(new Set(rolled.flat().map(power => power.rarity)), new Set(['common', 'uncommon', 'rare', 'legendary']));
+  assert.ok(rolled.flat().some(power => power.price));
+  assert.ok(rolled.flat().every(power => !power.price || power.rarity === 'rare' || power.rarity === 'legendary'));
 });
 
 test('Endless snapshots the profile level and allocated traits without replacing its drafted deck', () => {

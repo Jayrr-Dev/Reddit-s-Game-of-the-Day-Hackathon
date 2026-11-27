@@ -7,6 +7,9 @@ import type { CardType } from './types.ts';
 // --- DRAFT CONFIGURATION ---
 const LEGACY_DRAFT_SIZE = 11;
 const CLASS_DRAFT_SIZE = 20;
+export const ENDLESS_DRAFT_REFRESHES = 5;
+export const DRAFT_POWER_STAGES = [10, 20] as const;
+export type DraftPowerStage = typeof DRAFT_POWER_STAGES[number];
 export const ENDLESS_DRAFT_PACK_SIZE = 3;
 const OFFER_COUNT = 3;
 const OPENERS: readonly DraftOffer[] = [
@@ -23,7 +26,24 @@ export const ENDLESS_CLASS_TYPES: Record<StarterName, readonly [CardType, CardTy
   Archer: ['range', 'movement'],
 };
 export type DraftOffer = { name?: StarterName; cards: readonly CardId[] };
-export type EndlessDraft = { number: number; cards: CardId[]; starter?: StarterName };
+export type EndlessDraft = { number: number; cards: CardId[]; starter?: StarterName;
+  refreshesUsed?: number; roundRefresh?: number; powerPicks?: Partial<Record<DraftPowerStage, number>> };
+
+/** Earlier unfinished 20-card drafts also get the two free starting picks. */
+export function pendingDraftPower(draft: EndlessDraft): DraftPowerStage | undefined {
+  if (!draft.starter) return undefined;
+  return DRAFT_POWER_STAGES.find(stage => draft.cards.length >= stage && draft.powerPicks?.[stage] === undefined);
+}
+
+/** Check the limited draft counters and persisted starting choices. */
+function validCounter(value: unknown, max: number): boolean {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= max;
+}
+
+function validPowerPicks(value: unknown): boolean {
+  return !!value && typeof value === 'object' && !Array.isArray(value) &&
+    Object.entries(value).every(([stage, pick]) => (stage === '10' || stage === '20') && validCounter(pick, 2));
+}
 
 /** Keep partly drafted 11-card decks playable after adding the class picker. */
 export function endlessDraftSize(draft: EndlessDraft): number {
@@ -43,6 +63,9 @@ export function isSavedEndlessDraft(value: unknown): value is EndlessDraft {
     typeof value.number === 'number' && Number.isSafeInteger(value.number) && value.number > 0 &&
     'cards' in value && Array.isArray(value.cards) &&
     (!('starter' in value) || isStarterName(value.starter)) &&
+    (!('refreshesUsed' in value) || validCounter(value.refreshesUsed, ENDLESS_DRAFT_REFRESHES)) &&
+    (!('roundRefresh' in value) || validCounter(value.roundRefresh, ENDLESS_DRAFT_REFRESHES)) &&
+    (!('powerPicks' in value) || validPowerPicks(value.powerPicks)) &&
     (value.cards.length === 0 || (value.cards.length >= ENDLESS_DRAFT_PACK_SIZE &&
       value.cards.length <= ('starter' in value ? CLASS_DRAFT_SIZE : LEGACY_DRAFT_SIZE))) &&
     value.cards.every(isCardId) && keepsUniqueLimit(value.cards);
@@ -68,8 +91,21 @@ export function endlessDraftOffers(day: string, draft: EndlessDraft): DraftOffer
     return card.rarity === 'common' || card.rarity === 'uncommon';
   });
   const available = pool.length >= OFFER_COUNT ? pool : eligible;
-  if (!draft.starter) return pickDistinct(seed, available, OFFER_COUNT)[0].map(id => ({ cards: [id] }));
-  const [main, secondary] = ENDLESS_CLASS_TYPES[draft.starter];
+  let offers = weightedDraftCards(seed, available, draft.starter);
+  for (let refresh = 1; refresh <= (draft.roundRefresh ?? 0); refresh++) {
+    const fresh = available.filter(id => !offers.includes(id));
+    if (!fresh.length) break;
+    const changed = weightedDraftCards(hashSeed(seed + ':refresh:' + refresh), fresh, draft.starter);
+    const unchanged = weightedDraftCards(hashSeed(seed + ':fill:' + refresh), offers, draft.starter);
+    offers = [...changed, ...unchanged].slice(0, OFFER_COUNT);
+  }
+  return offers.map(id => ({ cards: [id] }));
+}
+
+/** Each offer is distinct; lower-priority card types remain possible. */
+function weightedDraftCards(seed: number, available: CardId[], starter?: StarterName): CardId[] {
+  if (!starter) return pickDistinct(seed, available, OFFER_COUNT)[0];
+  const [main, secondary] = ENDLESS_CLASS_TYPES[starter];
   let weighted = available.map(id => {
     const type = getCard(id).type;
     return { item: id, weight: type === main ? 3 : type === secondary ? 1.5 : 1 };
@@ -79,6 +115,17 @@ export function endlessDraftOffers(day: string, draft: EndlessDraft): DraftOffer
     const [id, next] = pickWeighted(current, weighted);
     current = next;
     weighted = weighted.filter(entry => entry.item !== id);
-    return { cards: [id] };
+    return id;
   });
+}
+
+/** A refresh never changes prior picks or spends a token on an identical offer. */
+export function refreshEndlessDraft(day: string, draft: EndlessDraft): EndlessDraft {
+  const used = draft.refreshesUsed ?? 0;
+  if (used >= ENDLESS_DRAFT_REFRESHES || draft.cards.length === 0 ||
+      draft.cards.length >= endlessDraftSize(draft) || pendingDraftPower(draft)) return draft;
+  const next = { ...draft, refreshesUsed: used + 1, roundRefresh: (draft.roundRefresh ?? 0) + 1 };
+  const before = endlessDraftOffers(day, draft).flatMap(offer => offer.cards);
+  const after = endlessDraftOffers(day, next).flatMap(offer => offer.cards);
+  return after.some(id => !before.includes(id)) ? next : draft;
 }

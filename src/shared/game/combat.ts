@@ -564,7 +564,7 @@ const drawOne = (state: CombatState): CombatState => {
   const copy = ready.copies?.draw[0];
   const next = { ...ready, drawPile: rest, ...(ready.copies && { copies: { ...ready.copies, draw: ready.copies.draw.slice(1) } }) };
   // DEEP POCKETS (skill tree) raises the hand limit.
-  if (ready.hand.length >= MAX_HAND_SIZE + handSizeBonusOf(ready.player.skillPicks))
+  if (ready.hand.length >= MAX_HAND_SIZE + handSizeBonusOf(ready.player.skillPicks) + (ready.player.borrowedStats?.cardsPerTurn ?? 0))
     return { ...next, discardPile: [...ready.discardPile, top],
       ...(next.copies && copy !== undefined && { copies: { ...next.copies, discard: [...next.copies.discard, copy] } }) };
   return addToHand(next, top, copy);

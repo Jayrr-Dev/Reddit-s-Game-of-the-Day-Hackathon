@@ -110,6 +110,7 @@ export type PassiveId = 'vigor' | 'longRange' | 'anchored';
 
 /** Anything with HP that fights: the villain or a hero. */
 export type Combatant = {
+  borrowedStats?: import('./borrowedPowers.ts').BorrowedStats;
   traits?: Traits;
   traitNodes?: TraitNodes;
   /** The villain's skill tree ranks (see skills.ts SKILL_EFFECTS). */
@@ -592,6 +593,7 @@ export type CombatHistoryRecord =
     };
 
 export type CombatState = {
+  borrowedPowers?: readonly import('./borrowedPowers.ts').BorrowedPower[];
   /** Replacement wave spends its first enemy phase entering the battlefield. */
   waveArrival?: boolean;
   playHistory?: readonly CombatHistoryRecord[];

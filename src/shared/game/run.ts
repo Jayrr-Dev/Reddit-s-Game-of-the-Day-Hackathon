@@ -20,6 +20,8 @@ import { playerHpCap, progressionFromWins, healingAmount, type RingProgress, all
 import { getCard, STARTER_DECK, type CardId } from './cards.ts';
 import { getRunArtifact, isHellArtifact, type HellArtifactId, type RunArtifactId } from './hellArtifacts.ts';
 import { combatOutcome, createHeroUnit, drawCards, endTurn, playCard, startCombat, SELF_TARGET_UID } from './combat.ts';
+import { imbueBorrowedCopies, rollBorrowedPowers, type BorrowedPower } from './borrowedPowers.ts';
+import { combatantBonuses } from './combatant.ts';
 import { formUp } from './battlefield.ts';
 import { areaRoomEvent, buildAreaBattles, conquestMightAt, conquestStops, isLastRegion, REST_FRACTION, type AreaBattle, type AreaSite, type ConquestVersion, type RoomEvent } from './conquestAreas.ts';
 import { areaTerrain, areaVisitCount, areaVisitedRooms } from './areaMap.ts';
@@ -70,10 +72,11 @@ export type RunPhase =
 
 type AreaProgress = {
   site: AreaSite; stop: Stop; battles: AreaBattle[]; battle: number; wave: number; wavePending?: boolean;
-  waveBase?: number; respite?: { offers?: CardId[] }; pushes?: number; finds?: CardId[];
+  waveBase?: number; respite?: { offers?: CardId[]; powers?: BorrowedPower[] }; pushes?: number; finds?: CardId[];
 };
 
 export type RunState = {
+  borrowedHp?: number;
   artifacts?: readonly RunArtifactId[];
   conquestVersion?: ConquestVersion;
   area?: AreaProgress | undefined;
@@ -144,7 +147,9 @@ export type RunAction =
   | { type: 'chooseRegion'; option: RegionChoice }
   | { type: 'chooseStop'; option: number; hellArtifact?: HellArtifactId }
   | { type: 'nextBattleWave' }
-  | { type: 'battleRespite'; choice: 'rest' | 'explore' | 'fight' }
+  | { type: 'battleRespite'; choice: 'rest' | 'explore' | 'fight' | 'borrow' }
+  | { type: 'takeBorrowedPower'; index: number }
+  | { type: 'closeBorrowedPowers' }
   | { type: 'finishSealing' }
   | { type: 'areaCamp'; choice: 'explore' | 'rest' | 'continue'; room?: number }
   | PlayCardAction
@@ -425,10 +430,40 @@ function continueOnslaught(state: RunState, area: AreaProgress, phase: Extract<R
   return spawnReinforcements(card ? { ...state, deck: [...state.deck, card] } : state, nextArea, next, 0);
 }
 
+/** Borrowed powers affect only the Endless combat and survive card movement and trait edits. */
+export function applyBorrowedPower(state: RunState, power: BorrowedPower): RunState {
+  if (state.phase.kind !== 'combat' || state.area?.battles[state.area.battle]?.finish !== 'endless-boss') return state;
+  const { benefit, price } = power;
+  const initial = state.phase.combat;
+  const combat = benefit.kind === 'imbue' ? imbueBorrowedCopies(initial, state.deck, power) : initial;
+  const stats = { ...combat.player.borrowedStats };
+  if (benefit.kind === 'stat') stats[benefit.stat] = (stats[benefit.stat] ?? 0) + benefit.amount;
+  if (price?.kind === 'stat') stats[price.stat] = (stats[price.stat] ?? 0) - price.amount;
+  const hpGain = benefit.kind === 'hp' ? (benefit.percent ? Math.ceil(combat.player.maxHp * benefit.amount / 100) : benefit.amount) : 0;
+  const maxHp = combat.player.maxHp + hpGain;
+  const blood = price?.kind === 'blood' ? Math.ceil(combat.player.maxHp * price.percent / 100) : 0;
+  const hp = Math.max(1, Math.min(maxHp, combat.player.hp + hpGain - blood));
+  const player = { ...combat.player, hp, maxHp, borrowedStats: stats };
+  const { retainEnergy } = combatantBonuses(player);
+  return { ...state, hp, maxHp, borrowedHp: (state.borrowedHp ?? 0) + hpGain,
+    ...(combat.copies && { deckImbues: combat.copies.gifts }),
+    phase: { ...state.phase, combat: { ...combat, player, reserve: Math.min(combat.reserve, retainEnergy),
+      borrowedPowers: [...(combat.borrowedPowers ?? []), power] } } };
+}
+
 /** Resolves one choice at a five-wave checkpoint. */
 function resolveRespite(state: RunState, area: AreaProgress, phase: Extract<RunPhase, { kind: 'combat' }>, action: RunAction): RunState {
   const endless = area.battles[area.battle]?.finish === 'endless-boss';
   const offers = area.respite?.offers;
+  const powers = area.respite?.powers;
+  if (endless && powers) {
+    if (action.type === 'closeBorrowedPowers') return { ...state, area: { ...area, respite: {} } };
+    if (action.type !== 'takeBorrowedPower') return state;
+    const power = powers[action.index];
+    if (!power) return state;
+    const next = applyBorrowedPower(state, power);
+    return next.phase.kind === 'combat' ? continueOnslaught(next, area, next.phase) : state;
+  }
   if (endless && offers) {
     if (action.type !== 'pickCard') return state;
     const card = action.offerIndex === null ? undefined : offers[action.offerIndex];
@@ -438,6 +473,12 @@ function resolveRespite(state: RunState, area: AreaProgress, phase: Extract<RunP
   if (action.type !== 'battleRespite') return state;
   const { choice } = action;
   const combat = phase.combat;
+  if (choice === 'borrow') {
+    if (!endless) return state;
+    const wave = (area.waveBase ?? 0) + area.wave + 1;
+    const powers = rollBorrowedPowers(state.dailyKey + ':' + state.deck.join(','), wave, combat, state.deck);
+    return { ...state, area: { ...area, respite: { powers } } };
+  }
   if (endless && choice === 'fight') {
     const wave = (area.waveBase ?? 0) + area.wave + 1;
     const cards = rollOffers(stopSeed(state.dailyKey, 'endless-spoils', wave), 'champion', [], state.rewardStarter,
@@ -445,7 +486,8 @@ function resolveRespite(state: RunState, area: AreaProgress, phase: Extract<RunP
     return { ...state, area: { ...area, respite: { offers: cards } } };
   }
   const fraction = choice === 'rest' ? REST_FRACTION : choice === 'explore' ? EXPLORE_RESUPPLY_FRACTION : 0;
-  const hp = Math.min(state.maxHp, combat.player.hp + healingAmount(Math.ceil(state.maxHp * fraction), state.character));
+  const hp = Math.min(state.maxHp, combat.player.hp + healingAmount(Math.ceil(state.maxHp * fraction),
+    { ...state.character, ...(combat.player.borrowedStats && { borrowedStats: combat.player.borrowedStats }) }));
   const healed = { ...combat, player: { ...combat.player, hp } };
   if (endless) return continueOnslaught(state, area, { ...phase, combat: choice === 'explore' ? drawCards(healed, 1) : healed });
   const { respite: _respite, ...progress } = area;
@@ -587,10 +629,10 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
       const character = applyCharacterAction(state.character, action);
       if (character === state.character) return state;
       const credited = state.character.highestVigor ?? state.character.traits.vigor;
-      const baseHp = state.baseMaxHp ?? state.maxHp - characterBonuses(state.character.traits, state.character.equipment, state.character.traitNodes, state.character.legacyVigor).maxHp + PLAYER_MAX_HP;
-      const health = traitHealth(state.hp, state.maxHp, state.character.traits, character, credited, baseHp, state.character.traitNodes, state.character.highestVigorHp);
+      const baseHp = state.baseMaxHp ?? state.maxHp - (state.borrowedHp ?? 0) - characterBonuses(state.character.traits, state.character.equipment, state.character.traitNodes, state.character.legacyVigor).maxHp + PLAYER_MAX_HP;
+      const health = traitHealth(state.hp, state.maxHp, state.character.traits, character, credited, baseHp, state.character.traitNodes, state.character.highestVigorHp, state.borrowedHp);
       return { ...state, character, baseMaxHp: baseHp, ...health,
-        phase: phase.kind === 'combat' ? { ...phase, combat: syncCharacterCombat(phase.combat, character, credited, baseHp, state.character.highestVigorHp) } : phase };
+        phase: phase.kind === 'combat' ? { ...phase, combat: syncCharacterCombat(phase.combat, character, credited, baseHp, state.character.highestVigorHp, state.borrowedHp) } : phase };
     }
     case 'chooseRegion': {
       if (!isRegionChoice(action.option) || !canChooseRegion(state)) return state;
@@ -608,6 +650,8 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
     case 'nextBattleWave':
       return acceptNextWave(state);
     case 'battleRespite':
+    case 'takeBorrowedPower':
+    case 'closeBorrowedPowers':
       return state;
     case 'areaCamp':
       return visitAreaCamp(state, action);
@@ -745,7 +789,11 @@ export const isRunAction = (value: unknown): value is RunAction => {
     case 'finishSealing':
       return true;
     case 'battleRespite':
-      return 'choice' in value && (value.choice === 'rest' || value.choice === 'explore' || value.choice === 'fight');
+      return 'choice' in value && (value.choice === 'rest' || value.choice === 'explore' || value.choice === 'fight' || value.choice === 'borrow');
+    case 'takeBorrowedPower':
+      return 'index' in value && isIndex(value.index) && value.index < 3;
+    case 'closeBorrowedPowers':
+      return true;
     case 'move':
       return 'move' in value && isMovementId(value.move);
     case 'endTurn':

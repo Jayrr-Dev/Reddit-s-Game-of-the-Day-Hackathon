@@ -1,6 +1,7 @@
 import { shopAmuletBonus } from './amuletBonuses.ts';
 import { buySkill, healingSkillBonusOf, isSkillPick, type SkillPick } from './skills.ts';
 import type { CombatState } from './types.ts';
+import type { BorrowedStats } from './borrowedPowers.ts';
 import { PLAYER_MAX_HP, PLAYER_HP_CAP, LEGACY_PLAYER_HP_CAP, CARDS_PER_TURN, RESERVE_ENERGY_SLOTS, XP_PER_VICTORY } from './rules.ts';
 
 export const TRAITS = [
@@ -689,14 +690,32 @@ export function migratePathNodes(trait: TraitId, allocation: PathRanks): number[
 
 export function healingAmount(
   base: number,
-  owner?: { traits?: Traits; traitNodes?: TraitNodes; skillPicks?: readonly SkillPick[] }
+  owner?: { traits?: Traits; traitNodes?: TraitNodes; skillPicks?: readonly SkillPick[]; borrowedStats?: BorrowedStats }
 ) {
   // MENDER (skill tree) adds its percent on top of the traits' healing.
   const skillPercent = Math.round(healingSkillBonusOf(owner?.skillPicks) * 100);
   const traitPercent = owner?.traits
     ? characterBonuses(owner.traits, undefined, owner.traitNodes).healingPercent
     : 0;
-  return Math.floor(base * (100 + traitPercent + skillPercent) / 100);
+  return Math.floor(base * Math.max(0, 100 + traitPercent + skillPercent + (owner?.borrowedStats?.healingPercent ?? 0)) / 100);
+}
+
+/** Merge run-scoped adjustments on top of equipment and trait values. */
+export function withBorrowedStats(stats: ReturnType<typeof characterBonuses>, bonuses?: BorrowedStats) {
+  if (!bonuses) return stats;
+  for (const key of Object.keys(bonuses)) {
+    if (!isBorrowedStat(key, bonuses)) continue;
+    const bonus = bonuses[key] ?? 0;
+    stats[key] += bonus;
+  }
+  stats.retainEnergy = Math.max(0, stats.retainEnergy);
+  stats.maxEnergy = Math.max(stats.startingEnergy, stats.maxEnergy);
+  return stats;
+}
+
+/** Obtains typed keys from the stat adjustment record. */
+function isBorrowedStat(key: string, bonuses: BorrowedStats): key is keyof BorrowedStats {
+  return Object.hasOwn(bonuses, key);
 }
 
 export function characterBonuses(traits: Partial<Traits> = {}, equipment?: Equipment, nodes?: TraitNodes, legacyVigor = false) {
@@ -723,25 +742,25 @@ export function characterBonuses(traits: Partial<Traits> = {}, equipment?: Equip
 export const traitHealth = (
   hp: number, maxHp: number, oldTraits: Partial<Traits> | undefined,
   character: CharacterState, creditedVigor = oldTraits?.vigor ?? 0,
-  baseHp?: number, oldNodes?: TraitNodes, creditedHpBonus?: number,
+  baseHp?: number, oldNodes?: TraitNodes, creditedHpBonus?: number, borrowedHp = 0,
 ) => {
   const oldHp = characterBonuses(oldTraits, undefined, oldNodes, character.legacyVigor).maxHp;
-  const base = baseHp ?? maxHp - oldHp + PLAYER_MAX_HP;
+  const base = baseHp ?? maxHp - borrowedHp - oldHp + PLAYER_MAX_HP;
   const nextMax = Math.min(playerHpCap(character.legacyVigor), base +
-    characterBonuses(character.traits, undefined, character.traitNodes, character.legacyVigor).maxHp - PLAYER_MAX_HP);
-  const credited = Math.min(playerHpCap(character.legacyVigor), base + (creditedHpBonus ?? Math.max(oldHp, characterBonuses({ vigor: creditedVigor }, undefined, undefined, character.legacyVigor).maxHp)) - PLAYER_MAX_HP);
+    characterBonuses(character.traits, undefined, character.traitNodes, character.legacyVigor).maxHp - PLAYER_MAX_HP) + borrowedHp;
+  const credited = Math.min(playerHpCap(character.legacyVigor), base + (creditedHpBonus ?? Math.max(oldHp, characterBonuses({ vigor: creditedVigor }, undefined, undefined, character.legacyVigor).maxHp)) - PLAYER_MAX_HP) + borrowedHp;
   return { maxHp: nextMax, hp: hp <= 0 ? 0 : Math.min(nextMax, hp + Math.max(0, nextMax - credited)) };
 };
 
 /** Apply live trait and resource limits without refilling energy. */
 export const syncCharacterCombat = (
-  combat: CombatState, character: CharacterState, creditedVigor = combat.player.traits?.vigor ?? 0, baseHp?: number, creditedHpBonus?: number
+  combat: CombatState, character: CharacterState, creditedVigor = combat.player.traits?.vigor ?? 0, baseHp?: number, creditedHpBonus?: number, borrowedHp = 0
 ): CombatState => {
-  const { maxEnergy, retainEnergy } = characterBonuses(character.traits, character.equipment, character.traitNodes);
+  const { maxEnergy, retainEnergy } = withBorrowedStats(characterBonuses(character.traits, character.equipment, character.traitNodes), combat.player.borrowedStats);
   const player = { ...combat.player, traits: character.traits, equipment: character.equipment };
   if (character.traitNodes) player.traitNodes = character.traitNodes;
   else delete player.traitNodes;
   return { ...combat, energy: Math.min(combat.energy, maxEnergy), reserve: Math.min(combat.reserve, retainEnergy),
     player: { ...player,
-      ...traitHealth(combat.player.hp, combat.player.maxHp, combat.player.traits, character, creditedVigor, baseHp, combat.player.traitNodes, creditedHpBonus) } };
+      ...traitHealth(combat.player.hp, combat.player.maxHp, combat.player.traits, character, creditedVigor, baseHp, combat.player.traitNodes, creditedHpBonus, borrowedHp) } };
 };

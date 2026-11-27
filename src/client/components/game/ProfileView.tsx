@@ -35,12 +35,16 @@ export function ProfileView({
   onClose,
   testJewelry = [],
   testCarry = [],
+  testVisit,
+  onTestCarryChange,
 }: {
   data: InitResponse;
   rings?: RingProgress | undefined;
   onClose: () => void;
   testJewelry?: readonly ShopRingId[];
   testCarry?: readonly CarryCard[];
+  testVisit?: string | undefined;
+  onTestCarryChange?: ((cards: CarryCard[]) => void) | undefined;
 }) {
   const [build, setBuild] = useState<PlayerBuild>(() =>
     localBuild(data.accountId)
@@ -199,7 +203,7 @@ export function ProfileView({
       onAction={changeCharacter}
       onRespec={() => void respec()}
       respecItem={respecItem}
-      album={<AlbumPanel cards={carry} onChange={setCarry} />}
+      album={<AlbumPanel cards={carry} testCards={testCarry} testVisit={testVisit} onTestChange={onTestCarryChange} onChange={setCarry} />}
       inventory={
         <InventoryPanel
           owner={{ character, bag: items }}

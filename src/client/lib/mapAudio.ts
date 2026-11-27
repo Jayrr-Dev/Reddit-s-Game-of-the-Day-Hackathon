@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { readAudioAsset } from './apiClient';
 import type { MAP_NAMES } from '../components/game/combat/Backdrop';
 import type { BossArenaAmbience } from '../content/bossArenas';
+import type { StarterName } from '../../shared/game/starters';
 
 import wild from '../assets/audio/ambience-wild.ogg';
 import civic from '../assets/audio/ambience-civic.ogg';
@@ -48,6 +49,13 @@ export type MapAudioOptions = {
   musicVolume: number;
   sfxVolume: number;
 };
+
+export const STARTER_THEMES = {
+  Warrior: 'Castle Gates',
+  Mage: 'Volcanic Pass',
+  Hexer: 'Deep Forest',
+  Archer: 'King’s Road',
+} satisfies Record<StarterName, (typeof MAP_NAMES)[number]>;
 
 const bossAmbiences: Record<BossArenaAmbience, string> = { stone, highland, civic };
 

@@ -196,7 +196,16 @@ api.post('/profile/album', async (c) => {
   if (!id) return jsonError(c, 401, 'Sign in to edit your Album');
   const action: unknown = await c.req.json().catch(() => null);
   if (!action || typeof action !== 'object' || !('id' in action) || !('type' in action) ||
-    !isCarryCardId(action.id) || isTestCarryCardId(action.id)) return jsonError(c, 400, 'Invalid Album card');
+    !isCarryCardId(action.id)) return jsonError(c, 400, 'Invalid Album card');
+  const testVisit = 'testVisit' in action ? action.testVisit : undefined;
+  if (testVisit !== undefined) {
+    if (!isShopVisitId(testVisit) || action.type !== 'trash' || !isTestCarryCardId(action.id))
+      return jsonError(c, 400, 'Invalid test card');
+    if (!(await isCurrentUserAdmin())) return jsonError(c, 403, 'Admins only');
+    const carryCards = await updatePlayerAlbum(id, { type: 'trash', id: action.id }, testVisit);
+    return carryCards ? c.json({ carryCards }) : jsonError(c, 400, 'Test card not found or the visit expired');
+  }
+  if (isTestCarryCardId(action.id)) return jsonError(c, 400, 'Invalid Album card');
   const selection = action.type === 'trash' ? { type: 'trash' as const, id: action.id }
     : action.type === 'swap' && 'with' in action && isCarryCardId(action.with) && !isTestCarryCardId(action.with)
       ? { type: 'swap' as const, id: action.id, with: action.with } : undefined;

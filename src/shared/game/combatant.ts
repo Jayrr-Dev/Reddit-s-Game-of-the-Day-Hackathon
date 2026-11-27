@@ -27,7 +27,7 @@ import {
   STATUS_IS_AFFLICTION,
   ROUND_BUFFS,
 } from './rules.ts';
-import { characterBonuses, healingAmount } from './character.ts';
+import { characterBonuses, healingAmount, withBorrowedStats } from './character.ts';
 import {
   afflictionResistOf,
   afflictionSkillBonusOf,
@@ -158,15 +158,15 @@ export const afflictionAmount = (
 
 /** Resolve live equipment and trait paths together for combat and previews. */
 export const combatantBonuses = (unit: Combatant) =>
-  characterBonuses(unit.traits, unit.equipment, unit.traitNodes);
+  withBorrowedStats(characterBonuses(unit.traits, unit.equipment, unit.traitNodes), unit.borrowedStats);
 
 export const scornBonus = (attacker: Combatant, status: StatusId): number =>
-  attacker.traits && STATUS_IS_AFFLICTION[status]
+  (attacker.traits || attacker.borrowedStats) && STATUS_IS_AFFLICTION[status]
     ? combatantBonuses(attacker).afflictionFlat
     : 0;
 
 export const offensiveBonus = (attacker: Combatant, type?: CardType) => {
-  if (!attacker.traits) return { percent: 0, flat: 0 };
+  if (!attacker.traits && !attacker.borrowedStats) return { percent: 0, flat: 0 };
   const stats = combatantBonuses(attacker);
   switch (type) {
     case 'melee':
@@ -263,7 +263,7 @@ export const damageFactorOf = (
  */
 /** A damaging affliction resolves once with its source's Malevolence bonus. */
 export const afflictionDamage = (base: number, source?: Combatant): number => {
-  const traitPercent = source?.traits
+  const traitPercent = source && (source.traits || source.borrowedStats)
     ? combatantBonuses(source).afflictionDamagePercent
     : 0;
   // MALEDICTION (skill tree) adds its percent on top of the traits'.
@@ -782,7 +782,7 @@ export const guardAmount = (
   applications = 1
 ): number => {
   const { shieldPercent, shieldFlat } = combatantBonuses(owner);
-  return (
+  return Math.max(0,
     Math.floor((base * (100 + shieldPercent)) / 100) +
     Math.floor(shieldFlat / applications) +
     buffedAmount(owner, owner.statuses.reinforce)

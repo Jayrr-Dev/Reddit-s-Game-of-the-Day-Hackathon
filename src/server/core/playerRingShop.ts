@@ -211,19 +211,21 @@ export async function bindRunItems(id: string, day: string, profile: RunProfile,
 }
 
 /** Save an Album edit without refunding or removing its original purchase receipt. */
-export async function updatePlayerAlbum(id: string, action: AlbumAction) {
-  const key = redisKeys.ringPurchases(id);
+export async function updatePlayerAlbum(id: string, action: AlbumAction, testVisit?: string) {
+  const key = testVisit ? redisKeys.adminShopVisit(id, testVisit) : redisKeys.ringPurchases(id);
   for (let i = 0; i < 6; i++) {
     const transaction = await redis.watch(key);
     let inMulti = false;
     let completed = false;
     try {
-      const wallet = readShopWallet(await redis.get(key));
+      const raw = await redis.get(key);
+      if (testVisit && !raw) return undefined;
+      const wallet = readShopWallet(raw, !!testVisit);
       const carry = changeAlbum(wallet.carry ?? {}, action);
       if (!carry) return undefined;
       await transaction.multi();
       inMulti = true;
-      await transaction.set(key, JSON.stringify({ ...wallet, carry }));
+      await transaction.set(key, JSON.stringify({ ...wallet, carry }), testVisit ? { expiration: testExpiry() } : undefined);
       const result = await transaction.exec();
       completed = true;
       if (result[0] === 'OK') return availableCarryCards(carry);

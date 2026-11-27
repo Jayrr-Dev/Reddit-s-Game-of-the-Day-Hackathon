@@ -9,19 +9,11 @@ import { starterNames, starterDeck, signatures, type StarterName } from '../../.
 import type { RingShopResponse } from '../../../shared/types/api';
 import { apiClient } from '../../lib/apiClient';
 import { getVolume, subscribeVolume } from '../../lib/gameAudio';
-import { useMapAudio } from '../../lib/mapAudio';
+import { STARTER_THEMES, useMapAudio } from '../../lib/mapAudio';
 import { localBuild } from '../../lib/playerBuild';
 import { Button } from '../ui/Button';
-import type { MAP_NAMES } from './combat/Backdrop';
 import { CarryBagDialog } from './CarryBagDialog';
 import { PileDialog } from './combat/PileDialog';
-
-const STARTER_THEMES = {
-  Warrior: 'Castle Gates',
-  Mage: 'Volcanic Pass',
-  Hexer: 'Deep Forest',
-  Archer: "King’s Road",
-} satisfies Record<StarterName, (typeof MAP_NAMES)[number]>;
 
 export function StarterPicker({ accountId, starting, onBack, onConfirm, loadTestShop }: {
   accountId?: string | undefined; starting: boolean; onBack:()=>void; onConfirm:(build:PlayerBuild, carryIds?: string[])=>void; loadTestShop?: () => Promise<RingShopResponse>;

@@ -1,5 +1,6 @@
 // --- ENERGY TRAY ---
-import { characterBonuses, type Equipment, type TraitNodes, type Traits } from '../../../../shared/game/character';
+import { characterBonuses, withBorrowedStats, type Equipment, type TraitNodes, type Traits } from '../../../../shared/game/character';
+import type { BorrowedStats } from '../../../../shared/game/borrowedPowers';
 
 // --- CONSTANTS ---
 /** A dark oval that fades to nothing well before the tray's edge. */
@@ -41,6 +42,7 @@ export const EnergyTray = ({
   traits,
   traitNodes,
   equipment,
+  borrowedStats,
 }: {
   inspectable?: boolean;
   energy: number;
@@ -48,8 +50,9 @@ export const EnergyTray = ({
   traits?: Partial<Traits> | undefined;
   traitNodes?: TraitNodes | undefined;
   equipment?: Equipment | undefined;
+  borrowedStats?: BorrowedStats | undefined;
 }) => {
-  const { startingEnergy, retainEnergy, maxEnergy } = characterBonuses(traits, equipment, traitNodes);
+  const { startingEnergy, retainEnergy, maxEnergy } = withBorrowedStats(characterBonuses(traits, equipment, traitNodes), borrowedStats);
   const { pipCount, litPips, litReserve } = trayFill(energy, reserve, startingEnergy, retainEnergy);
   const showCount = pipCount + retainEnergy > MAX_VISIBLE_PIPS;
   const Tray = inspectable ? 'button' : 'div';

@@ -192,8 +192,10 @@ export const IntroView = ({
   }, [data.accountId, data.lifetimeWins, data.xpStartWins, data.bonusXp, data.gold, sheet]);
   const [testJewelry, setTestJewelry] = useState<ShopRingId[]>([]);
   const [testCarry, setTestCarry] = useState<CarryCard[]>([]);
+  const [testAlbumVisit, setTestAlbumVisit] = useState<string>();
   const receiveTestInventory = useCallback((items: ShopRingId[], visit: string, cards: CarryCard[]) => {
     setTestCarry(cards);
+    setTestAlbumVisit(visit);
     setTestJewelry(items);
     onShopTestVisit?.(visit);
   }, [onShopTestVisit]);
@@ -220,7 +222,7 @@ export const IntroView = ({
   const note = activeRunLevel !== undefined && activeRunLevel !== level
     ? 'Saved run: Lv ' + activeRunLevel + ' · Profile: Lv ' + level
     : rankedNote(data, canResume);
-  if (sheet === 'profile') return <ProfileView data={data} rings={profileRings} onClose={closeSheet} testJewelry={isAdmin ? testJewelry : []} testCarry={isAdmin ? testCarry : []} />;
+  if (sheet === 'profile') return <ProfileView data={data} rings={profileRings} onClose={closeSheet} testJewelry={isAdmin ? testJewelry : []} testCarry={isAdmin ? testCarry : []} testVisit={isAdmin ? testAlbumVisit : undefined} onTestCarryChange={setTestCarry} />;
   if (sheet === 'tutorial') return <FirstFight accountId={data.accountId} onExit={closeSheet} onRules={() => setSheet('rules')} />;
 
   return (

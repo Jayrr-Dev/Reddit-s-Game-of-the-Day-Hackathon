@@ -1,0 +1,12 @@
+.borrowed-power-view.results-layout { gap:12px; }
+.borrowed-options { display:grid; gap:7px; width:min(100%,28rem); text-align:left; }
+.borrowed-option { display:grid; gap:2px; padding:8px 12px; border:1px solid #8f7752; border-radius:6px; background:#241911; color:var(--color-ink); }
+.borrowed-option[data-power-rarity=uncommon] { border-color:#7baf75; }
+.borrowed-option[data-power-rarity=rare] { border-color:#90aee9; }
+.borrowed-option[data-power-rarity=legendary] { border-color:#f3b854; }
+.borrowed-option[aria-pressed=true],.borrowed-option:focus-visible { outline:2px solid var(--color-accent); outline-offset:1px; background:#412b16; }
+.borrowed-option > span { text-transform:capitalize; font-size:10px; color:var(--color-ink-muted); }
+.borrowed-option > strong { font-family:var(--font-display); line-height:1.2; }
+.borrowed-option > small { color:#efb1a3; font-size:11px; }
+.borrowed-power-buff { display:inline-flex; flex:none; align-items:center; justify-content:center; gap:2px; min-width:25px; min-height:24px; margin-inline-end:3px; padding-inline:4px; color:#fce095; background:#31203e; border:1px solid #9269b6; border-radius:5px; font-size:10px; }
+.borrowed-power-buff:focus-visible { outline:2px solid #fce095; }

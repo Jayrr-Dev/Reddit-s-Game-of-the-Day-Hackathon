@@ -84,6 +84,7 @@ import { HitNumbers } from './combat/HitNumbers';
 import { PileDialog, type CardBrowserView, type PileId } from './combat/PileDialog';
 import { PileStack } from './combat/PileStack';
 import { PlayerCorner } from './combat/PlayerCorner';
+import { BorrowedPowerBuff } from './BorrowedPowerView';
 import { TutorialSpotlight } from './combat/TutorialSpotlight';
 import { PovImpact } from './combat/PovImpact';
 import { PlayerShots } from './combat/PlayerShots';
@@ -619,9 +620,10 @@ export const CombatView = ({
         />
         <div className="table-status-dock">
           <div className="table-buffs" role="group" aria-label="Player buffs">
+            {!!combat.borrowedPowers?.length && <BorrowedPowerBuff powers={combat.borrowedPowers} />}
             <StatusRow combatant={combat.player} group="buffs" timedBuffs={combat.timedBuffs} align="end" />
           </div>
-          <EnergyTray inspectable={tutorialCue?.selector === '.table-pips'} energy={combat.energy} reserve={combat.reserve} traits={combat.player.traits} traitNodes={combat.player.traitNodes} equipment={combat.player.equipment} />
+          <EnergyTray inspectable={tutorialCue?.selector === '.table-pips'} energy={combat.energy} reserve={combat.reserve} traits={combat.player.traits} traitNodes={combat.player.traitNodes} equipment={combat.player.equipment} borrowedStats={combat.player.borrowedStats} />
           <div className="table-afflictions" role="group" aria-label="Player afflictions">
             <StatusRow combatant={combat.player} group="afflictions" align="start" />
           </div>
