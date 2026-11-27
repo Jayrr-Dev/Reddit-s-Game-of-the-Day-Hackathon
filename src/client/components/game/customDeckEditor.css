@@ -47,7 +47,7 @@
 }
 
 /* --- CONTROLS --- */
-.custom-deck-editor button:where(:not(.card-face)),
+.custom-deck-editor button:where(:not(.card-face, .oak-menu-button)),
 .custom-deck-editor input,
 .cde-filters select {
   min-width: 0;
@@ -66,14 +66,14 @@
   color: var(--cde-muted);
   opacity: 1;
 }
-.custom-deck-editor button:where(:not(.card-face)) {
+.custom-deck-editor button:where(:not(.card-face, .oak-menu-button)) {
   cursor: pointer;
 }
-.custom-deck-editor button:where(:not(.card-face)):disabled {
+.custom-deck-editor button:where(:not(.card-face, .oak-menu-button)):disabled {
   opacity: 0.45;
   cursor: default;
 }
-.custom-deck-editor :is(input, button, select):focus-visible {
+.custom-deck-editor :is(input, button:not(.oak-menu-button), select):focus-visible {
   outline: 2px dashed var(--color-card-melee);
   outline-offset: -3px;
 }
@@ -103,6 +103,11 @@
   font: 800 1.2rem var(--font-display);
   font-variant: small-caps;
   letter-spacing: 0.03em;
+}
+.cde-head .cde-back {
+  flex: none;
+  width: 4.35rem;
+  height: 2rem;
 }
 .cde-head input {
   flex: 1;
@@ -195,6 +200,20 @@
     zoom: 0.66;
   }
 }
+/* Keep a clean outline on locked catalog cards; the lock and its blur are unchanged. */
+.cde-grid > .locked-preview {
+  border-radius: var(--radius-lg, 0.5rem);
+  overflow: clip;
+}
+.cde-grid > .locked-preview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--cde-line);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
 /* pan-y keeps vertical swipes scrolling the list; sideways presses drag. */
 .cde-tile {
   position: relative;

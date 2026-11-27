@@ -34,6 +34,7 @@ import {
   normalizeSearch,
   SEARCH_INDEX,
 } from './deckCardSearch';
+import { Button } from '../ui/Button';
 import { LockedPreview } from '../ui/LockedPreview';
 import './customDeckEditor.css';
 
@@ -283,6 +284,7 @@ export const CustomDeckEditor = ({ initial, isCardAllowed, onSave, onClose }: Ed
       }}
     >
       <header className="cde-head">
+        <Button variant="menu" className="cde-back" onClick={onClose}>Back</Button>
         <h2>{initial ? 'Edit deck' : 'Create deck'}</h2>
         <input
           type="text"
@@ -291,9 +293,6 @@ export const CustomDeckEditor = ({ initial, isCardAllowed, onSave, onClose }: Ed
           placeholder="Name your deck"
           onChange={(event) => setName(event.target.value)}
         />
-        <button type="button" onClick={onClose}>
-          Cancel
-        </button>
       </header>
       <div className="cde-board">
         <section
