@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { goldFromWins } from '../../../shared/game/gold';
 import { type RingProgress } from '../../../shared/game/character';
 import {
   characterEdit,
@@ -38,6 +39,7 @@ export function ProfileView({
     localBuild(data.accountId)
   );
   const [wins, setWins] = useState(data.lifetimeWins ?? 0);
+  const [gold, setGold] = useState(() => goldFromWins(data.lifetimeWins ?? 0));
   const [loading, setLoading] = useState(!!data.accountId);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -56,6 +58,7 @@ export function ProfileView({
         if (live) {
           setBuild(result.build);
           setWins(result.wins);
+          setGold(result.gold);
           setItems(result.items);
         }
       })
@@ -182,7 +185,7 @@ export function ProfileView({
       onClose={() => void leave()}
       profile={
         <>
-          <ProfileStrip username={data.username} wins={wins} bestScore={data.bestScoreToday ?? 0} />
+          <ProfileStrip username={data.username} wins={wins} gold={gold} bestScore={data.bestScoreToday ?? 0} />
           <ProfileDeck title="Starter deck" note="Choose the deck for your next conquest." cards={cards}>
             <div className="profile-classes">
               {starterNames.map((style) => (

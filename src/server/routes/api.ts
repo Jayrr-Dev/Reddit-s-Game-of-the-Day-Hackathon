@@ -13,6 +13,7 @@ import { Hono } from 'hono';
 import { context, reddit, redis } from '@devvit/web/server';
 import { replayForScore, replayForScoreAndUnlocks } from '../../shared/game/replayForScore';
 import { getUnlocks, recordUnlocks } from '../core/playerUnlocks';
+import { goldFromWins } from '../../shared/game/gold';
 import { MAX_RUN_ACTIONS } from '../../shared/game/rules';
 import {
   computeScore,
@@ -100,7 +101,7 @@ api.get('/profile',async c => {
   const id=context.userId;
   if(!id)return jsonError(c,401,'Sign in to load your profile');
   const [build,wins,items,unlocks]=await Promise.all([getBuild(id),redis.zCard(redisKeys.victories(id)),getItems(id),getUnlocks(id)]);
-  return c.json<ProfileResponse>({build,wins,items,unlocks});
+  return c.json<ProfileResponse>({build,wins,gold:goldFromWins(wins),items,unlocks});
 });
 api.post('/profile',async c => {
   const id=context.userId;

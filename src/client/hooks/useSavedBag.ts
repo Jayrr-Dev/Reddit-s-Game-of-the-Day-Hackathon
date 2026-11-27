@@ -13,7 +13,7 @@ export function useSavedBag() {
   const accountId = useAccountId();
   const { items, setItems, discard } = usePlayerItems(accountId);
   const [layout, setLayout] = useState<BagLayout | undefined>();
-  const [wins, setWins] = useState(0);
+  const [wallet, setWallet] = useState({ wins: 0, gold: 0 });
   useEffect(() => {
     if (!accountId) return;
     let live = true;
@@ -23,12 +23,12 @@ export function useSavedBag() {
         if (!live) return;
         setItems(result.items);
         setLayout(result.build.bag);
-        setWins(result.wins);
+        setWallet({ wins: result.wins, gold: result.gold });
       })
       .catch(() => {}); // Offline: the tabs still show the run's character and deck.
     return () => {
       live = false;
     };
   }, [accountId, setItems]);
-  return { items, discard, layout, setLayout, wins } as const;
+  return { items, discard, layout, setLayout, ...wallet } as const;
 }

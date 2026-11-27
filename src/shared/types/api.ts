@@ -57,6 +57,8 @@ export type SaveUnitStatsResponse = {
 export type ProfileResponse = {
   build: import('../game/playerBuild.ts').PlayerBuild;
   wins: number;
+  /** Gold balance on the player account. */
+  gold: number;
   items: import('../game/items.ts').ItemBag;
   /** What the player has unlocked in runs (Illusion Training content). */
   unlocks: import('../game/unlocks.ts').Unlocks;

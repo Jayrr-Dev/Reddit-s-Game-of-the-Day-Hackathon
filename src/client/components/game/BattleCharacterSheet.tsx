@@ -19,7 +19,7 @@ type Props = Omit<ComponentProps<typeof RunCharacterSheet>, 'profile' | 'invento
 /** Run character sheet plus the Profile and Inventory tabs. */
 export const BattleCharacterSheet = ({ deck, ...sheet }: Props) => {
   const username = useContext(PlayerName);
-  const { items, discard, layout, setLayout, wins } = useSavedBag();
+  const { items, discard, layout, setLayout, wins, gold } = useSavedBag();
   const { character, onAction } = sheet;
 
   /** Jewelry is dropped from the character; consumables from the saved bag. */
@@ -33,7 +33,7 @@ export const BattleCharacterSheet = ({ deck, ...sheet }: Props) => {
       {...sheet}
       profile={
         <>
-          <ProfileStrip username={username} wins={wins} />
+          <ProfileStrip username={username} wins={wins} gold={gold} />
           <ProfileDeck title="Deck in this fight" note="Every card you carry into this battle." cards={deck} />
         </>
       }
