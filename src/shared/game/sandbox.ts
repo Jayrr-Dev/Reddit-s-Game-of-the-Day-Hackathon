@@ -82,7 +82,7 @@ export type ScenarioGroup = {
 export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
   ...Object.entries(CONQUEST_SCENARIOS).map(([id, scenario]) => ({ id, ...scenario })),
   { id: 'archangelMikhael', name: getHero('archangelMikhael').name,
-    blurb: 'The Taxiarch. Fights with his sword up front, then summons Alpha and Omega and throws his spear from Midline.',
+    blurb: 'The Taxiarch. Fights with his sword up front, then throws his spear from Midline.',
     heroIds: ['archangelMikhael'], startsInPlace: true },
   {
     id: 'greed',
@@ -150,7 +150,7 @@ export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
   {
     id: 'archangelZeruel',
     name: getHero('archangelZeruel').name,
-    blurb: 'Twin halo strikes and violet magic.',
+    blurb: 'Summons Alpha and Omega, then fights with twin halo strikes and violet magic.',
     heroIds: ['archangelZeruel'],
     startsInPlace: true,
   },

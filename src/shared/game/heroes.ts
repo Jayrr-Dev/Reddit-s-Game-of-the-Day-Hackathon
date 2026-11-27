@@ -373,6 +373,9 @@ export const HEROES = {
   ]),
 
   archangelZeruel: hero('Archangel Zeruel', 'boss', 1500, 64, 7, FRONT, [
+    move('Call the Twin Suns',
+      summon('zeruelRedSun', 1, { row: 'back', col: 0 }),
+      summon('zeruelBlueSun', 1, { row: 'back', col: 2 })),
     move('Halo of Resolve', guard(16), wrath(2)),
     move('Twin Halo Strike', strike(21, 2)),
     move('Violet Judgment', homing(spell(23, 2)), weaken(1)),
@@ -530,9 +533,6 @@ export const HEROES = {
       visual: 'mikhaelSpear',
       moves: [
         move('Light Through the Rift', { ...shoot(35), maxRange: 2 }, burn(5)),
-        move('Call the Twin Suns',
-          summon('zeruelRedSun', 1, { row: 'back', col: 0 }),
-          summon('zeruelBlueSun', 1, { row: 'back', col: 2 })),
         move('Grasp of Heaven', { ...shoot(21, 2), maxRange: 2 }, pin(1)),
         move('The Gate Trembles', guard(20)),
         signature(move('Spear of the Last Seal', { ...shoot(62), maxRange: 2 }, dispel(), knockBack(1))),

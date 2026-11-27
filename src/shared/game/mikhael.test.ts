@@ -66,26 +66,8 @@ void test("Marshal's Ward protects Mikhael for three full player turns without c
   assert.equal(expired?.statuses.protection, 0);
 });
 
-void test('Mikhael calls Alpha and Omega once in his spear phase, on the two back flanks', () => {
-  const start = startCombat({ hp: 333, maxHp: 333, deck: ['backhand'], heroIds: ['archangelMikhael'], might: 1, seed: 9 });
-  const sword = { ...start.heroes[0]!, hp: 1001, row: 'front' as const, col: 1 };
-  const entered = playCard({ ...start, heroes: [sword], hand: ['backhand'], energy: 5 }, 0, sword.uid);
-  assert.equal(entered.heroes.length, 1);
-  const spear = endTurn(entered);
-  const call = endTurnSteps(spear).find(beat => beat.move?.name === 'Call the Twin Suns');
-  assert.ok(call);
-  const suns = call.state.heroes.filter(unit => unit.summonerUid === sword.uid);
-  assert.deepEqual(suns.map(unit => [getHero(unit.heroId).name, unit.row, unit.col]), [
-    ['Alpha', 'back', 0],
-    ['Omega', 'back', 2],
-  ]);
-  assert.ok(suns.every(unit => unit.onceSummoned && unit.joinedMidFight));
-  const after = call.state.heroes.find(unit => unit.uid === sword.uid)!;
-  assert.ok(after.summonedOnceIds?.includes('zeruelRedSun'));
-  assert.ok(after.summonedOnceIds?.includes('zeruelBlueSun'));
-  assert.notEqual(plannedHeroMove({ ...after, moveIndex: 1 }, [after])?.move.name, 'Call the Twin Suns');
-  const exhausted = { ...after, row: 'front' as const, hp: 1 };
-  const cleared = playCard({ ...call.state, heroes: [exhausted, ...suns], hand: ['backhand'], energy: 5 }, 0, exhausted.uid);
-  assert.equal(combatOutcome(cleared), 'won');
-  assert.equal(cleared.heroes.length, 0);
+void test('Neither Mikhael phase can summon Alpha or Omega', () => {
+  const mikhael = getHero('archangelMikhael');
+  assert.ok([...mikhael.moves, ...mikhael.secondPhase!.moves]
+    .every(move => move.effects.every(effect => effect.kind !== 'summon')));
 });
