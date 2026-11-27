@@ -592,6 +592,7 @@ export const CombatView = ({
             terrainIndex={terrainIndex}
             bossArena={bossArena}
             focusUid={controls.focusUid}
+            selectedUid={controls.selectedUid}
             aimOf={controls.aimOf}
             pickMarkerOf={controls.pickMarkerOf}
             acting={heroTurn.acting}

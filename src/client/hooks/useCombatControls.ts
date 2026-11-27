@@ -504,6 +504,7 @@ export const useCombatControls = (
     // Focus stays put while dragging, so the camera never slides a hero
     // out from under the finger; the drop focuses the target.
     focusUid,
+    selectedUid: chosenUid,
     /** The hero the drag has locked onto, if any (for the top plate). */
     hoverUid,
     heldIndex: imbue.isImbuing

@@ -3,7 +3,7 @@
 // One hero placed on the 3 x 2 battlefield. Front-row heroes are drawn
 // tall and low; Backline heroes smaller, higher and dimmer, Horizon
 // heroes smallest and faded (Out of Range), so depth
-// reads at a glance. Each hero wears its own health plate on top. Tapping a hero focuses it (and aims the selected
+// reads at a glance. Each hero has intent above and health below. Tapping a hero focuses it (and aims the selected
 // card at it when that is a legal target).
 // ===================================================================
 
@@ -56,6 +56,7 @@ export type HeroOnFieldProps = {
   unit: HeroUnit;
   player: Combatant;
   isFocused: boolean;
+  isSelected: boolean;
   aim: AimState;
   /** Set while a held Target card has picked this hero. */
   pickMarker: PickMarker | null;
@@ -163,6 +164,10 @@ const SWAY_BOB_PER_PX = { min: 0, spread: 0.35 } as const;
 
 /** Gap (px) kept between the plate and the top of the drawing space. */
 const PLATE_REST_PX = 2;
+/** Reserve the space between the front line and the player's controls for HP and effects. */
+const FRONT_HUD_CLEARANCE_PX = 74;
+/** Keep tall front models below the back row's intents after lifting their feet. */
+const FRONT_DRAW_TRIM_PX = 58;
 
 const AIM_CLASS: Record<AimState, string> = {
   idle: '',
@@ -192,8 +197,10 @@ const boxStyle = (unit: HeroUnit, field: readonly HeroUnit[]): CSSProperties => 
   return {
     left: `${100 * (center - width / 2)}%`,
     width: `${100 * width}%`,
-    bottom: `max(0%, calc(${100 * (1 - feet)}% - min(3%, 8px)))`,
-    height: `${100 * feet * heightAtFeet}%`,
+    bottom: unit.row === 'front' ? `${FRONT_HUD_CLEARANCE_PX}px` :
+      `max(0%, calc(${100 * (1 - feet)}% - min(3%, 8px)))`,
+    height: unit.row === 'front' ? `max(0px, calc(${100 * feet * heightAtFeet}% - ${FRONT_DRAW_TRIM_PX}px))` :
+      `${100 * feet * heightAtFeet}%`,
   };
 };
 
@@ -452,6 +459,7 @@ export const HeroOnField = ({
   unit,
   player,
   isFocused,
+  isSelected,
   aim,
   pickMarker,
   action,
@@ -467,6 +475,8 @@ export const HeroOnField = ({
   const size = drawSizeOf(unit);
   // The glow only marks a choice: with one hero left there is nothing to pick between.
   const isOutlined = isFocused && field.length > 1;
+  const [showHoverName, setShowHoverName] = useState(false);
+  const [showFocusName, setShowFocusName] = useState(false);
   const bodyStyle = bodyStyleOf(unit, size);
   const isMikhael = unit.heroId === 'archangelMikhael';
   const slot = boxStyle(unit, field);
@@ -487,6 +497,10 @@ export const HeroOnField = ({
     <button
       type="button"
       onClick={() => onTap(unit.uid)}
+      onPointerEnter={(event) => { if (event.pointerType !== 'touch') setShowHoverName(true); }}
+      onPointerLeave={() => setShowHoverName(false)}
+      onFocus={(event) => setShowFocusName(event.currentTarget.matches(':focus-visible'))}
+      onBlur={() => setShowFocusName(false)}
       {...{ [HERO_UID_ATTR]: unit.uid, [HERO_ROW_ATTR]: unit.row }}
       data-row-label={rowLabel(unit.row)}
       aria-label={`${hero.name}, ${unit.hp} of ${unit.maxHp} HP, ${rowLabel(unit.row)}`}
@@ -569,7 +583,8 @@ export const HeroOnField = ({
               className={`absolute inset-x-0 flex justify-center ${unit.heroId === 'archangelMikhael' && unit.phase !== 2 ? 'mikhael-sword-plate' : ''}`}
               style={unit.heroId === 'holyKing' ? { bottom: 'calc(116% + 4px)' } : unit.heroId === 'lightLordMori' ? { bottom: 'calc(111% + 4px)' } : unit.heroId === 'fulgurDragonknight' ? { bottom: 'calc(107% + 3px)' } : unit.heroId === 'zadkielOfDominations' || unit.heroId === 'mageBorneAstra' || unit.heroId === 'grandangelCerviel' || unit.heroId === 'grandangelGeonosis' || unit.heroId === 'grandangelRaziel' ? { bottom: 'calc(120% + 4px)' } : unit.heroId === 'archangelZeruel' ? { bottom: 'calc(110% + 3px)' } : unit.heroId === 'cervielSword' || unit.heroId === 'cervielBow' ? { bottom: 'calc(98% + 3px)' } : unit.heroId === 'grandangelCherubiel' ? { bottom: 'calc(125% + 4px)' } : unit.heroId === 'mageBorneAzula' ? { bottom: 'calc(113% + 4px)' } : unit.heroId === 'angelArcher' ? { bottom: '82%' } : unit.heroId === 'ivoryWerewolf' ? IVORY_WEREWOLF_PLATE : plateStyle(size)}
             >
-              <HeroPlate unit={unit} field={field} player={player} />
+              {!isDying && <HeroPlate unit={unit} field={field} player={player}
+                showName={isSelected || pickMarker !== null || showHoverName || showFocusName} />}
             </div>
             </div>
           </div>

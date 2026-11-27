@@ -37,6 +37,7 @@ export type BattlefieldViewProps = {
   bossArena?: BossArena | undefined;
   travelRows: number;
   focusUid: number | null;
+  selectedUid: number | null;
   /** Aim state per hero uid while a card is held (empty when none). */
   aimOf: (uid: number) => AimState;
   /** The Target pick marker on a hero, if a held card picked it. */
@@ -93,6 +94,7 @@ export const BattlefieldView = ({
   bossArena,
   travelRows,
   focusUid,
+  selectedUid,
   aimOf,
   pickMarkerOf,
   acting,
@@ -148,6 +150,7 @@ export const BattlefieldView = ({
           <RowLayer key={unit.uid} row={unit.row}>
             <HeroOnField unit={unit} player={player} isDying={isDying}
               isFocused={!isDying && unit.uid === focusUid}
+              isSelected={!isDying && unit.uid === selectedUid}
               aim={isDying ? 'idle' : aimOf(unit.uid)}
               pickMarker={isDying ? null : pickMarkerOf(unit.uid)}
               action={isDying ? null : acting.get(unit.uid) ?? null}

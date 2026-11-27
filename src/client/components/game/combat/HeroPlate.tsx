@@ -1,12 +1,7 @@
 // ===================================================================
 // HERO PLATE
-// The health plate that floats above every hero on the battlefield:
-//   name                      (top left)
-//   ====[ HP ]====            drain bar, the number in a centre shield
-//   intent chips   statuses   (under the bar: next move left on white
-//                              pills, statuses right on dark tiles)
-// Each hero gets its own plate, so the whole horde reads at a glance.
-// Plates follow the figure in screen space while their type and bars stay the same size.
+// The figure anchors its intent at the head and its HP at the feet.
+// Both stay legible at screen size, independent of the sprite's scale.
 // ===================================================================
 
 import { createPortal } from 'react-dom';
@@ -24,7 +19,7 @@ import {
 import { getHero } from '../../../../shared/game/heroes';
 import { debuffPowerOf } from '../../../../shared/game/skills';
 import type { Combatant, HeroUnit } from '../../../../shared/game/types';
-import { INTENT_LOOK, TIER_NAME_CLASS } from '../../../content/visuals';
+import { INTENT_LOOK, TIER_NAME_CLASS, toneVarOf } from '../../../content/visuals';
 import { Chip } from '../../ui/Chip';
 import { EnemyStatuses } from '../StatusRow';
 import { FLOATING_UID_ATTR, PLATE_UID_ATTR } from '../../../hooks/usePlateSpacing';
@@ -35,13 +30,20 @@ import { MoveEffect } from '../MoveEffect';
 export type HeroPlateProps = {
   unit: HeroUnit;
   player: Combatant;
+  showName: boolean;
   /** Every hero on the field (the plan shown depends on them). */
   field: readonly HeroUnit[];
 };
 
 // --- SUBCOMPONENTS ---
+/** Only attacks need a number at a glance; the popover keeps full details. */
+function isAttackIntent(kind: IntentKind) {
+  return kind === 'attack' || kind === 'range' || kind === 'magic';
+}
+
+/** Use the old intent badge fill as the icon and text color. */
 function intentFill(kind: IntentKind, signature: boolean) {
-  if (kind === 'attack' || kind === 'range' || kind === 'magic') return '#f08080';
+  if (isAttackIntent(kind)) return '#f08080';
   if (kind === 'heal') return 'var(--color-heal)';
   return signature ? 'var(--color-accent)' : undefined;
 }
@@ -57,24 +59,24 @@ const IntentPopoverBody = ({ move }: { move: MoveIntent }) => (
 );
 
 /**
- * One planned move as ONE arrow: its first effect sets the colour and
- * leads, the rest follow inside it (Guard 6 | Wrath +1 is one action).
+ * One unframed chip per move. Each effect keeps its original intent color.
  */
-const MoveArrow = ({ move }: { move: MoveIntent }) => {
+const MoveChip = ({ move }: { move: MoveIntent }) => {
   const [lead, ...rest] = move.intents;
   if (!lead) return null;
   return (
     <Chip
       {...INTENT_LOOK[lead.kind]}
+      shape="plain"
       fill={intentFill(lead.kind, move.isSignature)}
       disrupted={lead.disrupted}
-      text={lead.text}
-      hoverText={lead.hoverText}
+      text={isAttackIntent(lead.kind) ? lead.text : ''}
+      hoverText={isAttackIntent(lead.kind) ? lead.hoverText : undefined}
       extras={rest.map((intent) => ({
         glyph: INTENT_LOOK[intent.kind].glyph,
-        text: intent.text,
-        hoverText: intent.hoverText,
-        fill: intentFill(intent.kind, false),
+        text: isAttackIntent(intent.kind) ? intent.text : '',
+        hoverText: isAttackIntent(intent.kind) ? intent.hoverText : undefined,
+        fill: intentFill(intent.kind, false) ?? toneVarOf(INTENT_LOOK[intent.kind]),
         disrupted: intent.disrupted,
       }))}
       info={{
@@ -87,10 +89,9 @@ const MoveArrow = ({ move }: { move: MoveIntent }) => {
 };
 
 /**
- * The hero's next moves, one arrow per move: one for most heroes, two
- * for the dragon, which acts twice a turn.
+ * The hero's next moves, stacked in action order.
  */
-export const IntentChips = ({
+const IntentChips = ({
   unit,
   field,
   debuffBonus = 0,
@@ -100,25 +101,16 @@ export const IntentChips = ({
   /** The villain's Debilitate share, so attack chips show the real hit. */
   debuffBonus?: number;
 }) => {
-  const stack = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const chips = Array.from(stack.current?.children ?? []) as HTMLElement[];
-    const sort = () => chips.forEach(chip => { chip.style.order = String(-Math.round(chip.getBoundingClientRect().width * 10)); });
-    sort();
-    const observer = new ResizeObserver(sort);
-    chips.forEach(chip => observer.observe(chip));
-    return () => observer.disconnect();
-  });
-  return <div ref={stack} className="hero-action-chips flex flex-col items-end gap-1">
+  return <div className="hero-action-chips">
     {describeHeroIntent(unit, field, debuffBonus).moves.map((move, index) => (
-      <MoveArrow key={`${move.name}-${index}`} move={move} />
+      <MoveChip key={`${move.name}-${index}`} move={move} />
     ))}
   </div>;
 };
 
 // --- COMPONENT ---
 /** Renders one hero's plate, with color-coded names for elites and bosses. */
-export const HeroPlate = ({ unit, field, player }: HeroPlateProps) => {
+export const HeroPlate = ({ unit, field, player, showName }: HeroPlateProps) => {
   const anchorRef = useRef<HTMLDivElement>(null);
   const [layer, setLayer] = useState<HTMLElement | null>(null);
   useLayoutEffect(() => {
@@ -144,17 +136,17 @@ export const HeroPlate = ({ unit, field, player }: HeroPlateProps) => {
             {...{ [FLOATING_UID_ATTR]: unit.uid }}
             onClick={(event) => event.stopPropagation()}
             data-hero-kind={unit.heroId}
-            className={`hero-plate pointer-events-none absolute invisible flex origin-bottom flex-col gap-1.5`}
+            className="hero-plate pointer-events-none absolute top-0 invisible"
           >
-            <span
-              data-hero-tier={tier}
-              className={`hero-plate-name w-[128%] self-center px-1 text-center text-balance [overflow-wrap:anywhere] font-display font-bold text-[11px] uppercase leading-tight tracking-wider ${nameClass}`}
-            >
-              {name}{unit.phase === 2 && <span className="ml-1 text-[#ebd2ff]">II</span>}
-            </span>
-            <DrainBar hp={unit.hp} maxHp={unit.maxHp} size="small" />
-            <div className="hero-plate-details">
-              <IntentChips unit={unit} field={field} debuffBonus={debuffPowerOf(player.skillPicks)} />
+            <IntentChips unit={unit} field={field} debuffBonus={debuffPowerOf(player.skillPicks)} />
+            <div className="hero-plate-health">
+              <DrainBar hp={unit.hp} maxHp={unit.maxHp} size="small" />
+              {showName && <span
+                data-hero-tier={tier}
+                className={`hero-plate-name font-display font-bold text-[11px] uppercase leading-tight tracking-wider ${nameClass}`}
+              >
+                {name}{unit.phase === 2 && <span className="ml-1 text-[#ebd2ff]">II</span>}
+              </span>}
               <EnemyStatuses
                 combatant={unit}
                 source={player}

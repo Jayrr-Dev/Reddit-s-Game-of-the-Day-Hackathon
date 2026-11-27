@@ -477,37 +477,72 @@
   }
 }
 .hero-plate {
-  width: clamp(6rem, 17cqw, 9rem);
+  width: clamp(4rem, 14cqw, 6.25rem);
 }
 .hero-plate-layer[data-crowded] .hero-plate {
-  /* Three complete plates, including their 128% chip strips, fit even on a narrow field. */
-  width: min(clamp(6rem, 17cqw, 9rem), calc((100cqw - 15px) / 3.84));
+  width: min(clamp(4rem, 14cqw, 6.25rem), calc((100cqw - 20px) / 3));
 }
 .hero-plate-name {
+  position: absolute;
+  inset-block-end: calc(100% + 4px);
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  width: max-content;
+  max-width: 135%;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  text-align: center;
   paint-order: stroke fill;
   -webkit-text-stroke: 2px black;
   filter: drop-shadow(0 1px 1px rgb(0 0 0 / 70%));
 }
-/* Extend the action's tap area vertically without moving the HP bar or covering adjacent chips. */
-/* margin-top: the Guard badge hangs ~5px under the HP bar; keep the chips clear of it. */
-.hero-plate-details { margin-top:5px; display:grid; grid-template-columns:repeat(2, minmax(max-content, 1fr)); align-items:start; gap:8px; width:max-content; min-width:125%; align-self:center; transform:scale(.8); transform-origin:top center; }
-.hero-action-chips { grid-column:1; justify-self:end; zoom:1.5; white-space:nowrap; }
-.hero-plate-details > .enemy-status-grid { grid-column:2; justify-self:start; }
-@container duel (max-width: 470px) {
-  .hero-plate-layer[data-crowded] .hero-plate { gap: .2rem; }
-  .hero-plate-layer[data-crowded] .hero-action-chips { zoom: 1.25; }
+.hero-plate-health {
+  position: absolute;
+  inset: var(--hero-hp-y) 0 auto;
+  display: grid;
+  justify-items: center;
+  gap: .3rem;
 }
-.hero-action-chips > [aria-label] {
-  position: relative;
+.hero-plate-health > [role="meter"] { width: 100%; margin-bottom: 5px; }
+.hero-plate-health > .enemy-status-grid { zoom: .8; }
+.hero-plate-health .enemy-status-grid button span { paint-order: stroke fill; -webkit-text-stroke: 1.5px black; }
+.hero-plate-health [role="meter"] { max-width: var(--hero-edge-span); }
+.hero-action-chips {
+  position: absolute;
+  top: var(--hero-intent-y);
+  left: 50%;
+  translate: -50% 0;
+  display: grid;
+  justify-items: center;
+  white-space: nowrap;
+}
+.battlefield-intent {
+  display: flex;
+  align-items: center;
+  gap: .32rem;
+  min-height: 24px;
+  padding: 0 .15rem;
+  background: none;
+  border: 0;
+  font-size: .85rem;
+  font-weight: 850;
+  line-height: 1;
   cursor: pointer;
   touch-action: manipulation;
 }
-.unit-move-effect[data-intent-disrupted] .unit-move-number { color:var(--color-hp); }
-.hero-action-chips > [aria-label]::before {
-  content: '';
-  position: absolute;
-  inset: -2px -1px;
+.battlefield-intent:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.battlefield-intent-part {
+  display: inline-flex;
+  align-items: center;
+  gap: .16rem;
+  paint-order: stroke fill;
+  -webkit-text-stroke: 2px black;
 }
+.battlefield-intent-part .chip-icon { filter: drop-shadow(1px 1px 0 black) drop-shadow(-1px -1px 0 black); }
+@container duel (max-width: 470px) {
+  .battlefield-intent { font-size: .75rem; gap: .22rem; }
+}
+.unit-move-effect[data-intent-disrupted] .unit-move-number { color:var(--color-hp); }
 .guide-vanishing-point {
   position:absolute; left:50%; top:0; translate:-50% -50%;
   width:7px; height:7px; border:1px solid white; border-radius:50%; background:#b74027;
@@ -885,16 +920,6 @@
 
 .history-thumbnail[data-event=death]{color:#ff9393}.history-thumbnail[data-event=heal]{color:#8fe09c}.history-thumbnail[data-event=guard]{color:#93caff}.history-thumbnail[data-event=status]{color:#eac478}
  
-/* Keep the portrait clear when this oversized dragon fills the center lane. */
-@container duel (min-width: 600px) {
-  .hero-plate[data-hero-kind="fulgurDragonknight"] > .hero-plate-details {
-    position: absolute;
-    top: 0;
-    left: calc(100% + 16px);
-    min-width: 0;
-    transform-origin: top left;
-  }
-}
 .fulgur-hand-charge { opacity: 0; }
 [data-action="magic"] > .fulgur-throw-pose {
   transform-origin: 75px 98px;

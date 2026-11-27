@@ -22,7 +22,7 @@ export type ChipProps = {
   toneClass: string;
   /** What the chip means, shown in a popover when clicked or tapped. */
   info?: TooltipContent;
-  /** "arrow" for intents (default), "square" for active effects. */
+  /** Arrow badge, status tile, or unframed battlefield intent. */
   shape?: ChipShape;
   /**
    * A fill (a CSS colour) with a black icon and number. An arrow takes
@@ -70,7 +70,7 @@ export const TurnsLeft = ({ turns, placement = 'inline' }: { turns: number; plac
 /** One icon + value inside a badge. */
 export type ChipPart = { glyph: GlyphName; text: string; hoverText?: string | undefined; fill?: string | undefined; disrupted?: boolean | undefined };
 
-export type ChipShape = 'arrow' | 'square';
+export type ChipShape = 'arrow' | 'square' | 'plain';
 
 /**
  * The arrowhead outline: a point on the left, flat on the right. The
@@ -152,7 +152,7 @@ const leadFillOf = (fill: string | undefined, glyph: GlyphName, toneClass: strin
 export const Chip = ({ info, ...badge }: ChipProps) =>
   info ? (
     <Tooltip content={info} opensOn="click">
-      <Badge {...badge} />
+      <Badge {...badge} label={info.title} />
     </Tooltip>
   ) : (
     <Badge {...badge} />
@@ -174,8 +174,19 @@ const Badge = ({
   extras = [],
   icon,
   turnsLeft,
-}: Omit<ChipProps, 'info'>) =>
-  shape === 'square' ? (
+  label,
+}: Omit<ChipProps, 'info'> & { label?: string }) =>
+  shape === 'plain' ? (
+    <button type="button" aria-label={label} className="battlefield-intent group/intent">
+      {[{ glyph, text, hoverText, fill, disrupted }, ...extras].map((part, index) => (
+        <span key={index} className="battlefield-intent-part"
+          data-intent-disrupted={part.disrupted || undefined}
+          style={{ color: part.disrupted ? 'var(--color-intent-disrupted)' : leadFillOf(part.fill, part.glyph, toneClass) }}>
+          <BadgeContent glyph={part.glyph} text={part.text} hoverText={part.hoverText} iconClass="" />
+        </span>
+      ))}
+    </button>
+  ) : shape === 'square' ? (
     <span
       className={`inline-flex items-center gap-0.5 rounded-[3px] px-1 py-0.5 text-[11px] font-bold ring-1 ${fill ? 'text-black ring-black' : `bg-surface-sunken ring-edge ${toneClass}`}`}
       style={fill ? { backgroundColor: fill } : undefined}
