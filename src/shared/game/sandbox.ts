@@ -20,6 +20,7 @@ import { PASSIVE_INFO, preferredPositionLabel } from './describe.ts';
 import type { MoveAction, PlayCardAction } from './run.ts';
 import type { CardId } from './cards.ts';
 import { isCustomDeckList, sandboxDeckCards, type SandboxDeckId } from './sandboxDecks.ts';
+import type { SkillPick } from './skills.ts';
 import type { CombatState, HeroTier, HeroUnit, UnitType } from './types.ts';
 
 // --- TYPES ---
@@ -523,7 +524,8 @@ const sandboxSetup = (
   deckId: SandboxDeckId | readonly CardId[] = 'all',
   traits?: Traits,
   equipment?: Equipment,
-  traitNodes?: TraitNodes
+  traitNodes?: TraitNodes,
+  skillPicks?: readonly SkillPick[]
 ) => {
   if (typeof deckId !== 'string' && !isCustomDeckList(deckId)) throw new RangeError('Invalid custom training deck');
   const maxHp = characterBonuses(traits, equipment, traitNodes).maxHp;
@@ -533,6 +535,7 @@ const sandboxSetup = (
     ...(traits && { traits }),
     ...(equipment && { equipment }),
     ...(traitNodes && { traitNodes }),
+    ...(skillPicks && { skillPicks }),
     deck: typeof deckId === 'string' ? sandboxDeckCards(deckId) : [...deckId],
     heroIds,
     might: 1,
@@ -589,10 +592,11 @@ export const createSandbox = (
   traits?: Traits,
   equipment?: Equipment,
   traitNodes?: TraitNodes,
-  allowed?: readonly HeroId[]
+  allowed?: readonly HeroId[],
+  skillPicks?: readonly SkillPick[]
 ): CombatState => {
   const [heroIds, rng] = rollDummies(seed, allowed);
-  return startCombat(sandboxSetup(heroIds, rng, deckId, traits, equipment, traitNodes));
+  return startCombat(sandboxSetup(heroIds, rng, deckId, traits, equipment, traitNodes, skillPicks));
 };
 
 /**
@@ -607,9 +611,10 @@ export const createSandboxWith = (
   deckId: SandboxDeckId | readonly CardId[] = 'all',
   traits?: Traits,
   equipment?: Equipment,
-  traitNodes?: TraitNodes
+  traitNodes?: TraitNodes,
+  skillPicks?: readonly SkillPick[]
 ): CombatState => {
-  const fresh = startCombat(sandboxSetup(heroIds, seed, deckId, traits, equipment, traitNodes));
+  const fresh = startCombat(sandboxSetup(heroIds, seed, deckId, traits, equipment, traitNodes, skillPicks));
   const placed = startsInPlace
     ? { ...fresh, heroes: walkHome(fresh.heroes) }
     : fresh;
@@ -642,9 +647,17 @@ export const stepSandbox = (
   return { combat: startPlayerTurn(nextHorde(finished, finished.nextUid - 1, allowed)), victory: true };
 };
 
+/** Apply training skill purchases and refunds without resetting the fight. */
+export const syncTrainingSkills = (combat: CombatState, character: CharacterState): CombatState => {
+  const player = { ...combat.player };
+  if (character.skillPicks?.length) player.skillPicks = character.skillPicks;
+  else delete player.skillPicks;
+  return { ...combat, player };
+};
+
 /** Replay the selected encounter and exact deck with the current training build. */
 export const retryTrainingFight = (opening: CombatState, character: CharacterState): CombatState => {
-  let combat = syncCharacterCombat(opening, character);
+  let combat = syncTrainingSkills(syncCharacterCombat(opening, character), character);
   const { startingEnergy, cardsPerTurn } = characterBonuses(character.traits, character.equipment, character.traitNodes);
   if (combat.hand.length > cardsPerTurn) {
     // Opening cards have no imbues yet. Put excess cards back in their original order.

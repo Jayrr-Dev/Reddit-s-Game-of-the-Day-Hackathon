@@ -14,7 +14,7 @@ import type { HeroId } from '../../shared/game/heroes';
 import {
   createSandbox,
   createSandboxWith,
-  stepSandbox, retryTrainingFight,
+  stepSandbox, retryTrainingFight, syncTrainingSkills,
 } from '../../shared/game/sandbox';
 import type { CardId } from '../../shared/game/cards';
 import { activeTrainingCards, restoreTrainingDecks, saveTrainingDeck, type TrainingDeckSelection, type SandboxDeckId } from '../../shared/game/sandboxDecks';
@@ -88,8 +88,8 @@ const reduce = (state: SandboxState, event: SandboxEvent): SandboxState => {
   // Dropping the fight sends the view back to the scenario picker.
   if (event.type === 'leaveFight') return { ...state, combat: null, opening: null };
   if (event.type === 'reshuffle' || event.type === 'summon') {
-    const combat = event.type === 'reshuffle' ? createSandbox(event.seed, source, character.traits, character.equipment, character.traitNodes, allowed)
-      : createSandboxWith(event.seed, event.heroIds, event.startsInPlace, source, character.traits, character.equipment, character.traitNodes);
+    const combat = event.type === 'reshuffle' ? createSandbox(event.seed, source, character.traits, character.equipment, character.traitNodes, allowed, character.skillPicks)
+      : createSandboxWith(event.seed, event.heroIds, event.startsInPlace, source, character.traits, character.equipment, character.traitNodes, character.skillPicks);
     return { ...state, combat, opening: combat, round: state.combat ? round + 1 : round };
   }
   if (event.type === 'deck' || event.type === 'custom' || event.type === 'saveDeck') {
@@ -105,7 +105,7 @@ const reduce = (state: SandboxState, event: SandboxEvent): SandboxState => {
     const chosen = sourceCards(selection, access);
     if (!state.combat) return { ...state, ...selection, deck: chosen };
     const heroes = state.combat.heroes.map(unit => unit.heroId);
-    const combat = createSandboxWith(event.seed, heroes, false, trainingSource(selection, access), character.traits, character.equipment, character.traitNodes);
+    const combat = createSandboxWith(event.seed, heroes, false, trainingSource(selection, access), character.traits, character.equipment, character.traitNodes, character.skillPicks);
     return { ...state, ...selection, deck: chosen, combat, opening: combat, round: round + 1 };
   }
   const credited = character.highestVigor ?? character.traits.vigor;
@@ -117,7 +117,8 @@ const reduce = (state: SandboxState, event: SandboxEvent): SandboxState => {
   const { action } = event;
   if (action.type === 'buySkill' || action.type === 'skillPath' || action.type === 'saveTraits') {
     const next = applyCharacterAction(character, action);
-    return next === character ? state : { ...state, character: next };
+    return next === character ? state : { ...state, character: next,
+      combat: state.combat && action.type !== 'saveTraits' ? syncTrainingSkills(state.combat, next) : state.combat };
   }
   if (action.type === 'setTraitNode' || action.type === 'setTraitPathRank' || action.type === 'setTraitRank' ||
       action.type === 'allocateTrait' || action.type === 'equipItem') {
