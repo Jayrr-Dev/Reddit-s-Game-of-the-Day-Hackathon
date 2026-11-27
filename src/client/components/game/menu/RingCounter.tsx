@@ -86,7 +86,7 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
       if (result.shop.testVisit) onTestInventory?.(result.shop.owned, result.shop.testVisit, result.shop.carryCards ?? []);
       if (result.status === 'bought' && !result.reward) onSale(shop.offers.find(offer => offer.id === id));
       if (result.reward) { revealing = true; setReward(result.reward); }
-      setNote(result.status === 'bought' ? (result.shop.testVisit ? '' : result.reward ? 'Opening paid.' : 'Bought. Equip it in Profile.') :
+      setNote(result.status === 'bought' ? (result.shop.testVisit ? '' : result.reward ? 'Opening paid.' : shop.offers.some(offer => offer.id === id && offer.slot === 'card') ? 'Added to Inventory.' : 'Bought. Equip it in Profile.') :
         result.status === 'owned' ? 'This offer is no longer available.' :
         result.status === 'short' ? 'Not enough Gold.' :
         result.status === 'stale' ? (shop.testVisit && !result.shop.testVisit ? 'Test visit expired. Reopen the Shop.' : 'Stock changed. Check the new offers.') :
@@ -182,12 +182,12 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
               <span className="ring-counter-name" title={offer.name}>{offer.name}</span>
               <button type="button" className="ring-counter-disc" data-card={offer.slot === 'card' || undefined} aria-expanded={inspecting} aria-controls={inspecting ? detailsId : undefined} data-shop-inspect
                 aria-label={'Inspect ' + offer.name} onClick={() => { setNote(''); setSelected(previous => previous === offer.id ? undefined : offer.id); }}>
-                {offer.slot === 'box' ? <MysteryChest /> : offer.slot === 'card' ? <span className="shop-card-thumbnail" aria-hidden="true"><CardArtwork cardId={offer.cardId} size="fan" /></span> : <ShopJewelryArt offer={offer} />}
+                {offer.slot === 'box' ? <MysteryChest /> : offer.slot === 'card' ? <span className="shop-card-thumbnail" aria-hidden="true"><CardArtwork cardId={offer.cardId} size="fan" showGlyph={false} /></span> : <ShopJewelryArt offer={offer} />}
               </button>
               {inspecting && <div className="ring-counter-popover" id={detailsId} data-shop-inspect>
                 {offer.slot === 'card' && card ? <>
                   <div className="shop-card-details">
-                    <div className="shop-card-detail-art" aria-hidden="true"><CardArtwork cardId={offer.cardId} /></div>
+                    <div className="shop-card-detail-art" aria-hidden="true"><CardArtwork cardId={offer.cardId} showGlyph={false} /></div>
                     <div><strong>{card.name}</strong><small>{offer.rarity} {CARD_LOOK[card.type].typeName} · {card.cost} Energy</small></div>
                   </div>
                   <ul className="shop-card-rules" aria-label="Card effects">

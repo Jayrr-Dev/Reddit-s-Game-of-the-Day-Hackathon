@@ -5,8 +5,6 @@
 // Drag a stack where it should go (mouse or finger), or tap it and
 // then tap the destination. The details of the selected stack show alongside.
 // ===================================================================
-import { getCard } from '../../../../shared/game/cards';
-import { carrySourceLabel, type CarryCard } from '../../../../shared/game/carryCards';
 import { useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import { stackKey, type InventoryOwner, type InventorySlot } from '../../../../shared/game/inventory';
 import type { BagArea } from '../../../../shared/game/bagLayout';
@@ -28,7 +26,7 @@ type Dnd = {
   /** Wraps a tap so the release that ends a drag isn't also a tap. */
   onTap: (tap: () => void) => () => void;
 };
-type PanelProps = BagHandlers & { owner: InventoryOwner; carryCards?: readonly CarryCard[] };
+type PanelProps = BagHandlers & { owner: InventoryOwner };
 
 // --- BAG AREA ---
 /** One grid of bag cells (the backpack or the belt). */
@@ -62,7 +60,7 @@ const BagGrid = ({ area, actions, dnd, className, children }: {
 
 // --- DETAILS ---
 /** Name, kind and full description of the selected stack. */
-const InventoryDetails = ({ stack, notice, carry }: { stack: InventorySlot | undefined; notice: string; carry: readonly CarryCard[] }) => {
+const InventoryDetails = ({ stack, notice }: { stack: InventorySlot | undefined; notice: string }) => {
   const look = stack && slotLook(stack);
   return (
     <section className="cs-paper inv-details" aria-label="Item details" aria-live="polite">
@@ -77,11 +75,6 @@ const InventoryDetails = ({ stack, notice, carry }: { stack: InventorySlot | und
         ) : (
           <p className="inv-subtitle">Drag an item where it goes, or tap it and then tap the spot. Drop it on the trash to destroy it. Wear jewelry from the Equipment tab.</p>
         )}
-        {carry.length > 0 && <div className="mt-2 border-t border-accent/25 pt-2" aria-label="Cards in Inventory">
-          <strong>Cards</strong>
-          <ul className="text-xs">{carry.map(card => <li key={card.id}>{getCard(card.cardId).name} <span className="text-ink-muted">({carrySourceLabel(card.source)})</span></li>)}</ul>
-          <p className="text-xs text-ink-muted">Choose one at Bring Card before Conquest.</p>
-        </div>}
       </div>
     </section>
   );
@@ -89,7 +82,7 @@ const InventoryDetails = ({ stack, notice, carry }: { stack: InventorySlot | und
 
 // --- PANEL ---
 /** The whole Inventory tab, read from and saved to the player's profile. */
-export const InventoryPanel = ({ owner, carryCards = [], ...handlers }: PanelProps) => {
+export const InventoryPanel = ({ owner, ...handlers }: PanelProps) => {
   const [trashing, setTrashing] = useState<InventorySlot | undefined>();
   const actions = useBagActions(owner, { ...handlers, onTrash: setTrashing });
   const used = actions.bag.backpack.filter((key) => key !== null).length;
@@ -121,7 +114,7 @@ export const InventoryPanel = ({ owner, carryCards = [], ...handlers }: PanelPro
           </div>
         </div>
       </section>
-      <InventoryDetails stack={actions.selected} notice={actions.notice} carry={carryCards} />
+      <InventoryDetails stack={actions.selected} notice={actions.notice} />
       {/* DRAG GHOST: the dragged stack's picture follows the pointer. */}
       {drag && dragged && (
         <div className="inv-cell inv-ghost" data-kind={dragged.kind} aria-hidden="true" style={{ left: drag.x, top: drag.y }}>

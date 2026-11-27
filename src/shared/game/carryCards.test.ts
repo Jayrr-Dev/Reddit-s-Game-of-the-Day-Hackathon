@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isCarryCardId, isCarrySelection, seededAdminCarryCards, shopStockKey } from './carryCards.ts';
+import { availableCarryCards, isCarryCardId, isCarrySelection, isTestCarryCardId, seededAdminCarryCards, shopStockKey } from './carryCards.ts';
 import { appleAtVictory } from './gold.ts';
 import { PANDORA_DUPLICATE_GOLD } from './pandora.ts';
 import { replayForScoreAndUnlocks } from './replayForScore.ts';
@@ -148,4 +148,25 @@ test('Realm Apple stock guarantees a unique Legendary even during admin visits',
       if (admin) assert.equal(offers[4]?.slot, 'box');
     }
   }
+});
+
+test('an admin shop purchase stays in the same test wallet and can be brought into a run', () => {
+  const stock = '2026-11-27T12.0';
+  const offer = shopOffers(stock, true).find(row => row.slot === 'card');
+  assert.ok(offer && offer.slot === 'card');
+  const original = quoteShopPurchase(1000, readShopWallet(), offer, stock, '', true);
+  assert.equal(original.status, 'buy');
+  if (original.status !== 'buy') return;
+  const id = 'test-shop:' + stock;
+  assert.equal(isTestCarryCardId(id), true);
+  assert.equal(isCarrySelection([id]), true);
+  const reloaded = readShopWallet(JSON.stringify(original.next), true);
+  assert.equal(availableCarryCards(reloaded.carry).find(card => card.id === id)?.cardId, offer.cardId);
+  assert.equal(shopGoldBalance(1000, reloaded), 1000 - offer.price);
+  assert.deepEqual(takeCarryCards(reloaded, [id], firstId)?.cards, [offer.cardId]);
+  assert.equal(quoteShopPurchase(1000, reloaded, offer, stock, '', true).status, 'owned');
+  const legacy = quoteShopPurchase(1000, readShopWallet(), offer, stock, '', false);
+  if (legacy.status !== 'buy') throw new Error('Expected legacy receipt');
+  assert.ok(readShopWallet(JSON.stringify(legacy.next)).carry?.['shop:' + stock]);
+  assert.equal(readShopWallet(JSON.stringify(legacy.next), true).carry?.[id]?.cardId, offer.cardId);
 });

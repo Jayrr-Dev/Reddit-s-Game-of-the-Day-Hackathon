@@ -3,6 +3,8 @@
 // Turns the player's saved profile into RPG bag sections. The screen only
 // draws what this module returns, so new things to carry are added here.
 // ===================================================================
+import { getCard, type CardId } from './cards.ts';
+import type { CarryCard } from './carryCards.ts';
 import type { CharacterState, EquipmentSlot } from './character.ts';
 import { ITEMS, itemQuantity, type ItemBag, type ItemDef, type ItemId } from './items.ts';
 
@@ -12,6 +14,7 @@ export type InventoryOwner = {
   character: CharacterState;
   /** Consumables owned, saved on the server with the profile. */
   bag: ItemBag;
+  carryCards?: readonly CarryCard[];
 };
 /** Fields every stack shares. */
 type StackBase = {
@@ -24,6 +27,7 @@ type StackBase = {
 export type InventorySlot = StackBase & (
   | { kind: 'item'; id: ItemId; icon: ItemDef['icon']; description: string }
   | { kind: 'jewelry'; id: string; slot: EquipmentSlot; equipped: boolean }
+  | { kind: 'card'; id: string; cardId: CardId; source: CarryCard['source'] }
 );
 export type InventorySection = { id: string; label: string; slots: InventorySlot[] };
 /** One row of the inventory list: a section and how it reads the profile. */
@@ -61,12 +65,18 @@ const jewelrySlots = ({ character }: InventoryOwner): InventorySlot[] => {
   }));
 };
 
+const carrySlots = ({ carryCards = [] }: InventoryOwner): InventorySlot[] =>
+  carryCards.filter(card => !card.spent).map(card => ({
+    kind: 'card', id: card.id, cardId: card.cardId, source: card.source,
+    name: getCard(card.cardId).name, quantity: 1, isTrashable: false,
+  }));
+
 /**
  * THE INVENTORY LIST. Add a row here to give the bag a new section;
  * the Inventory tab draws every row without code changes.
  */
 export const INVENTORY_SOURCES: readonly InventorySource[] = [
-  { id: 'items', label: 'Items', slotsOf: (owner) => [...bagSlots(owner), ...jewelrySlots(owner)] },
+  { id: 'items', label: 'Items', slotsOf: (owner) => [...bagSlots(owner), ...jewelrySlots(owner), ...carrySlots(owner)] },
 ];
 
 // --- BUILD ---
@@ -74,7 +84,7 @@ export const INVENTORY_SOURCES: readonly InventorySource[] = [
 export const inventoryOf = (owner: InventoryOwner): InventorySection[] =>
   INVENTORY_SOURCES.map(({ id, label, slotsOf }) => ({ id, label, slots: slotsOf(owner) }));
 
-/** Every owned stack in list order. Cards are not items, so they never appear here. */
+/** Every owned stack in bag order. */
 export const inventoryStacks = (owner: InventoryOwner): InventorySlot[] =>
   inventoryOf(owner).flatMap((section) => section.slots);
 

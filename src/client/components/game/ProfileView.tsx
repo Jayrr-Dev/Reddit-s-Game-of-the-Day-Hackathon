@@ -93,6 +93,8 @@ export function ProfileView({
     runReducer,
     createRun(data.dailyKey, rings, 0, wins, shopRings, undefined, undefined, undefined, false, undefined, xpStartWins)
   );
+  const inventoryCards = [...new Map([...carry, ...testCarry].map(card => [card.id, card])).values()];
+  const usesTestBag = testJewelry.length > 0 || testCarry.length > 0;
   const temporary = ringInventory(testJewelry).filter(item => !run.character.inventory.some(real => real.id === item.id));
   const character = temporary.length ? testActions.reduce(runReducer, { ...run, character: {
     ...run.character, inventory: [...run.character.inventory, ...temporary],
@@ -197,10 +199,9 @@ export function ProfileView({
       respecItem={respecItem}
       inventory={
         <InventoryPanel
-          owner={{ character, bag: items }}
-          carryCards={[...new Map([...carry, ...testCarry].map(card => [card.id, card])).values()]}
-          layout={temporary.length ? testBag ?? build.bag : build.bag}
-          onLayout={(bag) => temporary.length ? setTestBag(bag) : setBuild((previous) => ({ ...previous, bag }))}
+          owner={{ character, bag: items, carryCards: inventoryCards }}
+          layout={usesTestBag ? testBag ?? build.bag : build.bag}
+          onLayout={(bag) => usesTestBag ? setTestBag(bag) : setBuild((previous) => ({ ...previous, bag }))}
           onTrash={(stack) => void trash(stack)}
         />
       }

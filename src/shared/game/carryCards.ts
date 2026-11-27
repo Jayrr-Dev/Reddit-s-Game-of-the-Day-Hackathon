@@ -32,7 +32,9 @@ const isPandoraCarryId = (id: string, prefix: 'pandora' | 'test-pandora') => {
   return kind === prefix && !extra.length && isShopStockKey(stock) && /^mystery-box-[1-5]$/.test(box ?? '');
 };
 
-export const isTestCarryCardId = (id: string): boolean => /^test:[0-3]$/.test(id) || isPandoraCarryId(id, 'test-pandora');
+export const shopCardReceipt = (stock: string, practice = false): string => (practice ? 'test-shop:' : 'shop:') + stock;
+const isTestShopReceipt = (id: string) => id.startsWith('test-shop:') && isShopStockKey(id.slice('test-shop:'.length));
+export const isTestCarryCardId = (id: string): boolean => /^test:[0-3]$/.test(id) || isTestShopReceipt(id) || isPandoraCarryId(id, 'test-pandora');
 
 export const isCarryCardId = (value: unknown): value is string => typeof value === 'string' &&
   ((value.startsWith('shop:') && isShopStockKey(value.slice(5))) || /^hell:[a-f0-9-]{36}$/.test(value) ||
@@ -58,7 +60,7 @@ export function readCarryCards(value: unknown): CarryCards {
   for (const [id, row] of Object.entries(value)) {
     if (!isCarryCardId(id) || !row || typeof row !== 'object' || !isCardId(row.cardId) ||
       (row.source !== 'shop' && row.source !== 'ferryman' && row.source !== 'pandora' && row.source !== 'test') ||
-      (row.source === 'shop' && !id.startsWith('shop:')) ||
+      (row.source === 'shop' && !id.startsWith('shop:') && !isTestShopReceipt(id)) ||
       (row.source === 'ferryman' && !id.startsWith('hell:')) ||
       (row.source === 'pandora' && !isPandoraCarryId(id, 'pandora')) ||
       (row.source === 'test' && (!isTestCarryCardId(id) || (id.startsWith('test:') && row.cardId !== TEST_CARDS[Number(id.slice(5))]))) ||

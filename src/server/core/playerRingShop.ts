@@ -1,4 +1,4 @@
-import { appendCarriedCards, availableCarryCards, isTestCarryCardId, seededAdminCarryCards, shopStockKey } from '../../shared/game/carryCards';
+import { appendCarriedCards, availableCarryCards, isTestCarryCardId, seededAdminCarryCards, shopCardReceipt, shopStockKey } from '../../shared/game/carryCards';
 import type { ShopApple } from '../../shared/game/items';
 import type { CardId } from '../../shared/game/cards';
 import { randomUUID } from 'node:crypto';
@@ -56,7 +56,7 @@ function response(offerDay: string, earned: number, wallet: ShopWallet, admin: b
     offerDay, gold: shopGoldBalance(earned, wallet), owned: shopRingIds(Object.keys(wallet.items)),
     offers, opened,
     collectedAll: allShopJewelryOwned(wallet.items), ...(testVisit && { testVisit, testItems: testShopFruit(wallet) }),
-    carryCards: availableCarryCards(wallet.carry), imbueBought: !!wallet.carry?.['shop:' + offerDay],
+    carryCards: availableCarryCards(wallet.carry), imbueBought: !!wallet.carry?.[shopCardReceipt(offerDay, !!testVisit)],
   };
 }
 
@@ -79,7 +79,7 @@ export async function openAdminRingShop(id: string, day: string): Promise<RingSh
 /** Re-read the same test wallet after an interrupted checkout, without resetting it. */
 export async function getAdminRingShop(userId: string, day: string, visit: string): Promise<RingShopResponse> {
   const raw = await redis.get(redisKeys.adminShopVisit(userId, visit));
-  return raw ? response(day, ADMIN_SHOP_GOLD, readShopWallet(raw), true, visit) : response(day, 0, emptyWallet(), true);
+  return raw ? response(day, ADMIN_SHOP_GOLD, readShopWallet(raw, true), true, visit) : response(day, 0, emptyWallet(), true);
 }
 
 /** The test reroll and fruit debit are one wallet write. Never touch the actual bag or stock cycle. */
@@ -93,7 +93,7 @@ export async function offerAdminShopFruit(id: string, visit: string, item: ShopA
       const raw = await redis.get(key);
       if (!raw) return undefined;
       const day = shopStockKey(new Date(), 0);
-      const next = offerTestShopFruit(readShopWallet(raw), day, item);
+      const next = offerTestShopFruit(readShopWallet(raw, true), day, item);
       if (!next) return undefined;
       await transaction.multi();
       inMulti = true;
@@ -132,7 +132,7 @@ export async function buyRing(id: string, day: string, offerDay: string, ringId:
     try {
       const [{ earned, wins }, raw, currentStock] = await Promise.all([funds(), redis.get(key), practice ? Promise.resolve(shopStockKey(new Date(), 0)) : currentShopStock(id)]);
       if (practice && !raw) return { status: 'stale', shop: response(day, 0, emptyWallet(), true) } as const;
-      const wallet = readShopWallet(raw);
+      const wallet = readShopWallet(raw, !!practice);
       const stock = practice ? testShopStockKey(currentStock, wallet) : currentStock;
       if (stock !== offerDay) return { status: 'stale', shop: await readCheckout() } as const;
       const xpStartWins = await readLevelCurveStart(id, wins);
@@ -178,7 +178,7 @@ export async function bindRunItems(id: string, day: string, profile: RunProfile,
         keys.includes(realKey) ? redis.get(realKey) : Promise.resolve(undefined),
       ]);
       if (testKey && !testRaw) return undefined;
-      const testWallet = readShopWallet(testRaw ?? undefined);
+      const testWallet = readShopWallet(testRaw ?? undefined, true);
       const realWallet = readShopWallet(realRaw ?? undefined);
       const test = takeCarryCards(testWallet, testIds, profile.id);
       const real = takeCarryCards(realWallet, realIds, profile.id);
@@ -214,7 +214,7 @@ export async function creditPandoraBounty(id: string, runId: string, testVisit?:
     let inMulti = false;
     let completed = false;
     try {
-      const wallet = claimPandoraBounty(readShopWallet(await redis.get(key)), runId);
+      const wallet = claimPandoraBounty(readShopWallet(await redis.get(key), !!testVisit), runId);
       if (!wallet) return;
       await transaction.multi();
       inMulti = true;
@@ -243,7 +243,7 @@ export async function bankHellCard(id: string, runId: string, card: CardId, test
     try {
       const raw = await redis.get(key);
       if (testVisit && !raw) return;
-      const next = recoverCardFromHell(readShopWallet(raw), runId, card);
+      const next = recoverCardFromHell(readShopWallet(raw, !!testVisit), runId, card);
       if (!next) return;
       await transaction.multi();
       inMulti = true;

@@ -1,6 +1,9 @@
 import { useId, useMemo } from 'react';
 import { hashSeed, nextFloat } from '../../../shared/game/rng';
 
+import { ATLAS_REGIONS } from './AtlasRegions';
+import { RegionalEngraving } from './RegionalEngraving';
+
 export type AtlasMark = 'hold' | 'city' | 'village' | 'bridge' | 'depths' | 'forest' | 'peak' | 'road' | 'crossing';
 export type AtlasPoint = { x: number; y: number };
 export type AtlasLink = { from: AtlasPoint; to: AtlasPoint; state: 'open' | 'future' | 'past' };
@@ -77,7 +80,7 @@ export function AtlasLandmark({mark}: {mark:AtlasMark}) {
 }
 
 /** The coastline is the region's silhouette; ink details are seeded, not tiled. */
-function geography(seed: string) {
+function geography(seed: string, terrain: (typeof ATLAS_REGIONS)[number]['terrain']) {
   let state=hashSeed(seed);
   const take=()=>{ const [value,next]=nextFloat(state); state=next; return value; };
   const stamps=(centers: readonly (readonly [number,number])[], count: number, radius: number) =>
@@ -85,48 +88,61 @@ function geography(seed: string) {
       const angle=take()*Math.PI*2, r=Math.sqrt(take())*radius;
       return {x:cx+Math.cos(angle)*r,y:cy+Math.sin(angle)*r*.66,s:.54+take()*.67};
     })).sort((a,b)=>a.y-b.y);
-  const mountains=stamps([[182,151],[631,190],[600,286],[176,427],[586,530],[171,640],[510,772]],5,63);
-  const trees=stamps([[152,257],[607,385],[201,546],[535,678],[257,814],[409,373]],13,62);
+  const rugged = terrain === 'glacier' || terrain === 'summit' || terrain === 'twins' || terrain === 'badlands';
+  const dry = terrain === 'dunes' || terrain === 'badlands';
+  const mountains=stamps([[182,151],[631,190],[600,286],[176,427],[586,530],[171,640],[510,772]],rugged ? 9 : dry ? 3 : 5,rugged ? 80 : 63);
+  const trees=stamps([[152,257],[607,385],[201,546],[535,678],[257,814],[409,373]],terrain === 'woods' ? 26 : rugged || dry ? 3 : 13,terrain === 'woods' ? 90 : 62);
   const wash = take()*55-26;
   return {mountains,trees,wash};
 }
-export function AtlasInk({seed,links,selected}: {seed:string;links:readonly AtlasLink[]; selected?:AtlasPoint | undefined}) {
+export function AtlasInk({seed,links,selected,regionIndex}: {seed:string;regionIndex:number;links:readonly AtlasLink[]; selected?:AtlasPoint | undefined}) {
   const uid=useId();
-  const {mountains,trees,wash}=useMemo(()=>geography(seed),[seed]);
+  const theme = ATLAS_REGIONS[regionIndex] ?? ATLAS_REGIONS[0]!;
+  const { terrain, ink, accent, land, sea } = theme;
+  const {mountains,trees,wash}=useMemo(()=>geography(seed,terrain),[seed,terrain]);
+  const snow = terrain === 'glacier' || terrain === 'summit';
+  const dry = terrain === 'dunes' || terrain === 'badlands';
+  const celestial = terrain === 'stars' || terrain === 'twins';
+  const mountainShape = terrain === 'badlands' ? 'M-28 16-19 5-9 3-7-12 11-12 16 4 28 16 8 14Z'
+    : terrain === 'dunes' ? 'M-28 16Q-7 12 6-6Q13 5 26 16Z' : PEAK;
   return <svg className="conquest-map-ink" viewBox={`0 0 ${ATLAS_WIDTH} ${ATLAS_HEIGHT}`} preserveAspectRatio="none" aria-hidden="true">
     <defs>
       <clipPath id={uid+'-coast'}><path d={COAST}/></clipPath>
-      <radialGradient id={uid+'-land'}><stop stopColor="#f5e4b9"/><stop offset="1" stopColor="#d6b681"/></radialGradient>
+      <radialGradient id={uid+'-land'}><stop stopColor={land[0]}/><stop offset="1" stopColor={land[1]}/></radialGradient>
       <pattern id={uid+'-waves'} width="57" height="38" patternUnits="userSpaceOnUse">
-        <path d="M6 14q6-4 12 0t12 0m7 15q5-3 11 0" fill="none" stroke="#e6d1a4" strokeOpacity=".55"/>
+        <path d="M6 14q6-4 12 0t12 0m7 15q5-3 11 0" fill="none" stroke={accent} strokeOpacity=".55"/>
       </pattern>
       <filter id={uid+'-paper'} x="0" y="0" width="100%" height="100%">
         <feTurbulence type="fractalNoise" baseFrequency=".64" numOctaves="3" seed="28"/>
         <feColorMatrix type="saturate" values="0"/>
       </filter>
     </defs>
-    <rect width="800" height="900" fill="#a7ad94"/>
+    <rect width="800" height="900" fill={sea}/>
     <rect width="800" height="900" fill={`url(#${uid}-waves)`}/>
-    <path d={COAST} fill="none" stroke="#e8d0a3" strokeWidth="12" opacity=".64"/>
-    <path d={COAST} fill={`url(#${uid}-land)`} stroke="#7d684b" strokeWidth="2.5"/>
+    <path d={COAST} fill="none" stroke={land[0]} strokeWidth="12" opacity=".64"/>
+    <path d={COAST} fill={`url(#${uid}-land)`} stroke={ink} strokeWidth="2.5"/>
     <g clipPath={`url(#${uid}-coast)`}>
       <path d={`M100 700Q260 ${458+wash} 800 590M85 498Q390 ${288+wash} 756 349M145 260Q338 120 755 182`}
-        fill="none" stroke="#bd9260" strokeWidth="63" opacity=".096"/>
-      <g stroke="#658782" fill="none" strokeLinecap="round">
+        fill="none" stroke={ink} strokeWidth="63" opacity=".096"/>
+      <g stroke={snow ? "#52849c" : dry ? "#905544" : "#567f75"} fill="none" strokeLinecap="round">
         <path d={`M690 209C540 242 597 339 451 350S332 ${506+wash} 230 518 129 478 79 522M627 590Q566 568 498 654T323 732 173 725`}
           strokeWidth="4.5" opacity=".66"/>
         <path d="M425 359q-49-38-79-103m-34 222q29 35 24 70m153 119q-19-42-66-49" strokeWidth="1.75" opacity=".6"/>
       </g>
-      <g stroke="#815c43" strokeWidth="1.35" strokeLinejoin="round" opacity=".67">
+      <g stroke={ink} strokeWidth="1.35" strokeLinejoin="round" opacity=".67">
         {mountains.map((p,i)=><g key={i} transform={`translate(${p.x} ${p.y}) scale(${p.s})`}>
-          <path d={PEAK} fill="#c29e76"/><path d="M6-16-4-2-9-9-25 16-12 12 4-8 7 0 12 4Z" fill="#f2dbad"/>
+          <path d={mountainShape} fill={land[1]}/>{!dry && <path d="M6-16-4-2-9-9-25 16-12 12 4-8 7 0 12 4Z" fill={snow ? "#f9ffff" : accent}/>}
           <path d="m-2 6-8 7m23-9 8 9" fill="none"/>
         </g>)}
       </g>
-      <g fill="#90a188" stroke="#5e7363" strokeWidth="1.15" opacity=".64">
+      <g fill={snow ? "#8096a0" : terrain === "woods" ? "#648664" : land[1]} stroke={ink} strokeWidth="1.15" opacity=".64">
         {trees.map((p,i)=><path key={i} d={TREE} transform={`translate(${p.x} ${p.y}) scale(${p.s})`}/>)}
       </g>
+      {snow && <path d="M129 350q43 5 76-56t34-107m338 157q-48-11-65 28m-364 290q43-35 39-87m327 148 48-97" stroke={accent} strokeWidth="5" fill="none" opacity=".72"/>}
+      {celestial && <path d="M117 275q276-210 599 27m-582 89q89-62 192-41m21 368q120 11 275-128" stroke={accent} strokeDasharray="1 13" strokeWidth="3" strokeLinecap="round" fill="none" opacity=".82"/>}
+      {dry && <path d="M144 287q82-23 154-1m-105 143q96-44 172-13m-145 225q121-59 212-25m55-254q77-39 177-14" stroke={ink} strokeDasharray="21 6 9 5" fill="none" opacity=".43"/>}
     </g>
+    <RegionalEngraving theme={theme} />
     <g stroke="#63503a" fill="none" transform="translate(706 704)" opacity=".69">
       <circle r="23"/><circle r="17"/><path fill="#c59a68" d="M0-33 6-6 33 0 6 6 0 33-6 6-33 0-6-6Z"/><path d="M0-32v64m-32-32h64"/>
       <text y="-39" textAnchor="middle" fill="#63503a" stroke="none" fontFamily="Georgia" fontSize="13">N</text>

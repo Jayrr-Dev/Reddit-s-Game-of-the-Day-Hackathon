@@ -17,7 +17,18 @@
 // and explains itself on hover or long press.
 // ===================================================================
 
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, type CSSProperties, type ReactNode } from 'react';
+import antidoteArt from '../../assets/table/antidote.webp';
+import curseArt from '../../assets/table/beckon.webp';
+import buffArt from '../../assets/table/vanish.webp';
+import defendArt from '../../assets/table/defend.webp';
+import healingArt from '../../assets/table/healing-potion.webp';
+import imbueArt from '../../assets/table/imbue.webp';
+import meleeArt from '../../assets/table/melee.webp';
+import pushArt from '../../assets/table/push.webp';
+import rangeArt from '../../assets/table/range.webp';
+import strideArt from '../../assets/table/stride.webp';
+import tonicArt from '../../assets/table/swift-tonic.webp';
 import { cardCost, getCard, type CardId } from '../../../shared/game/cards';
 import { MOVEMENTS } from '../../../shared/game/movement';
 import {
@@ -242,32 +253,51 @@ const ArtWindow = ({
   glyph,
   glowVar,
   look,
+  picture,
+  showGlyph = true,
 }: {
   glyph: GlyphName;
   glowVar: string;
   look: SizeLook;
+  picture?: string | undefined;
+  showGlyph?: boolean;
 }) => (
   <span
     className={`card-window grid ${look.art} w-full shrink-0 place-items-center rounded-t-full bg-surface-sunken`}
+    data-card-illustrated={picture ? '' : undefined}
     style={{
       backgroundImage: `radial-gradient(circle at 50% 70%, color-mix(in srgb, ${glowVar} 55%, transparent), transparent 70%)`,
-    }}
+      ...(picture && { '--card-picture': `url("${picture}")` }),
+    } as CSSProperties}
   >
-    <Glyph
+    {(!picture || showGlyph) && <Glyph
       name={glyph}
       className={`${look.glyph} text-ink drop-shadow-[0_1px_1px_rgb(0_0_0/0.8)]`}
-    />
+    />}
   </span>
 );
 
+const CARD_PICTURES: Partial<Record<CardId, string>> = {
+  healingPotion: healingArt, antidote: antidoteArt, rushPotion: tonicArt,
+  swiftTonic: tonicArt, forcePush: pushArt,
+};
+const TYPE_PICTURES: Readonly<Partial<Record<keyof typeof CARD_LOOK, string>>> = {
+  imbue: imbueArt, defend: defendArt, movement: strideArt, curse: curseArt,
+  buff: buffArt, magic: pushArt, melee: meleeArt, range: rangeArt,
+};
+
 /** The same artwork used on the playable card, without its interactive frame. */
-export const CardArtwork = ({ cardId, size = 'offer' }: { cardId: CardId; size?: CardSize }) => {
+export const CardArtwork = ({ cardId, size = 'offer', showGlyph = true }: {
+  cardId: CardId; size?: CardSize; showGlyph?: boolean;
+}) => {
   const card = getCard(cardId);
   const look = CARD_LOOK[card.type];
   return <ArtWindow
     glyph={(card.edge && EDGE_ART[card.edge]) ?? look.glyph}
     glowVar={look.glowVar}
     look={SIZE_LOOK[size]}
+    picture={CARD_PICTURES[cardId] ?? TYPE_PICTURES[card.type]}
+    showGlyph={showGlyph}
   />;
 };
 

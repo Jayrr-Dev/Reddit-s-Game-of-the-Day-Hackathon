@@ -183,78 +183,20 @@
   opacity: 0.86;
   filter: saturate(0.38) brightness(0.65);
 }
-[data-card-type='imbue'] {
-  --illustration: url('../../../assets/table/imbue.webp');
+.dueling-table [data-move] .card-window { position: relative; overflow: hidden; border-radius: 4px 4px 0 0; }
+.dueling-table [data-move='backStep'] .card-window::before,
+.dueling-table [data-move='charge'] .card-window::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--move-art) center / cover;
 }
-[data-card-type='defend'] {
-  --illustration: url('../../../assets/table/defend.webp');
+.dueling-table [data-move='backStep'] { --move-art: url('../../../assets/table/back-step.webp'); }
+.dueling-table [data-move='charge'] { --move-art: url('../../../assets/table/charge.webp'); }
+.dueling-table [data-move] .card-window > svg {
+  justify-self: end; align-self: end; margin: 2px; width: 13px; height: 13px;
 }
-[data-card-id='healingPotion'] {
-  --illustration: url('../../../assets/table/healing-potion.webp');
-}
-[data-card-id='antidote'] {
-  --illustration: url('../../../assets/table/antidote.webp');
-}
-[data-card-id='rushPotion'],
-[data-card-id='swiftTonic'] {
-  --illustration: url('../../../assets/table/swift-tonic.webp');
-}
-:is(
-  .dueling-table,
-  [data-card-type='imbue'],
-  [data-card-type='defend'],
-  [data-card-id='healingPotion'],
-  [data-card-id='antidote'],
-  [data-card-id='swiftTonic'],
-  [data-card-id='rushPotion']
-) {
-  .card-window {
-    position: relative;
-    overflow: hidden;
-    border-radius: 4px 4px 0 0;
-    background-size: cover;
-    background-position: center;
-  }
-  .card-window::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: var(--illustration) center / cover;
-  }
-  .card-window svg {
-    position: relative;
-    justify-self: end;
-    align-self: end;
-    margin: 2px;
-    width: 13px;
-    height: 13px;
-  }
-}
-.dueling-table [data-card-type='movement'] {
-  --illustration: url('../../../assets/table/stride.webp');
-}
-.dueling-table [data-move='backStep'] {
-  --illustration: url('../../../assets/table/back-step.webp');
-}
-.dueling-table [data-move='charge'] {
-  --illustration: url('../../../assets/table/charge.webp');
-}
-.dueling-table [data-card-type='curse'] {
-  --illustration: url('../../../assets/table/beckon.webp');
-}
-.dueling-table [data-card-type='buff'] {
-  --illustration: url('../../../assets/table/vanish.webp');
-}
-.dueling-table [data-card-type='magic'],
-.dueling-table [data-card-id='forcePush'] {
-  --illustration: url('../../../assets/table/push.webp');
-}
-.dueling-table [data-card-type='melee'] {
-  --illustration: url('../../../assets/table/melee.webp');
-}
-.dueling-table [data-card-type='range'] {
-  --illustration: url('../../../assets/table/range.webp');
-}
+
 /* Warmer paper on the table; its texture comes from cardFace.css. */
 .dueling-table .card-rules {
   --parchment-fill: radial-gradient(ellipse at center, #ffe8b5, #dfb67e);

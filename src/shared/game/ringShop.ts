@@ -1,4 +1,4 @@
-import { availableCarryCards, isCarrySelection, IMBUE_CARDS, IMBUE_PRICE, isShopStockKey, readCarryCards, SHOP_IMBUE_ID, type CarryCards } from './carryCards.ts';
+import { availableCarryCards, isCarrySelection, IMBUE_CARDS, IMBUE_PRICE, isShopStockKey, readCarryCards, shopCardReceipt, SHOP_IMBUE_ID, type CarryCards } from './carryCards.ts';
 import { ALL_CARD_IDS, getCard, isCardInPlay, type CardId } from './cards.ts';
 import { hashSeed, nextInt, pickDistinct, pickOne } from './rng.ts';
 import { TRAINING_JEWELRY } from './trainingJewelry.ts';
@@ -169,7 +169,7 @@ export function quotePurchase(earned: number, purchases: RingPurchases, offer: R
 }
 
 /** Keep old flat ring receipts readable. Box receipts live in the same atomic record. */
-export function readShopWallet(raw?: string): ShopWallet {
+export function readShopWallet(raw?: string, practice = false): ShopWallet {
   if (!raw) return { items: {}, boxes: {} };
   const data: unknown = JSON.parse(raw);
   if (data && typeof data === 'object' && 'items' in data && 'boxes' in data) {
@@ -192,7 +192,16 @@ export function readShopWallet(raw?: string): ShopWallet {
         events[receipt] = readPandoraEvent(event);
       }
     }
-    const carry = 'carry' in data ? readCarryCards(data.carry) : undefined;
+    const savedCarry = 'carry' in data ? readCarryCards(data.carry) : undefined;
+    // Existing admin receipts used the real shop prefix but only live in the test wallet.
+    const carry = practice && savedCarry ? Object.fromEntries(
+      Object.values(savedCarry).flatMap(card => {
+        if (!card) return [];
+        const id = card.source === 'shop' && card.id.startsWith('shop:')
+          ? shopCardReceipt(card.id.slice(5), true) : card.id;
+        return [[id, { ...card, id }] as const];
+      })
+    ) : savedCarry;
     const fruit = 'testFruit' in data ? data.testFruit : undefined;
     let testFruit: ShopWallet['testFruit'];
     if (fruit !== undefined) {
@@ -248,7 +257,7 @@ export function claimPandoraBounty(wallet: ShopWallet, runId: string): ShopWalle
 export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: ShopOffer, day: string, entropy: string, practice = false, level = 1) {
   const balance = shopGoldBalance(earned, wallet);
   if (offer.slot === 'card') {
-    const id = 'shop:' + day;
+    const id = shopCardReceipt(day, practice);
     if (wallet.carry?.[id]) return { status: 'owned' } as const;
     if (balance < offer.price) return { status: 'short' } as const;
     return { status: 'buy', next: { ...wallet, carry: { ...wallet.carry, [id]: { id, cardId: offer.cardId, source: 'shop' } } } } as const;

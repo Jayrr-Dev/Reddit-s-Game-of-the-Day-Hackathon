@@ -55,15 +55,26 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
   const isFinished = isRunOver(run);
   const canResume = hasProgress && !isFinished;
 
-  const shopTestVisit = useRef<string>(undefined);
-  const setShopTestVisit = useCallback((visit: string | undefined) => { shopTestVisit.current = visit; }, []);
+  const visitKey = 'villain-arc:test-shop:' + (data.accountId ?? 'guest');
+  const [initialShopVisit] = useState(() => {
+    if (!data.isAdmin) return undefined;
+    try { return sessionStorage.getItem(visitKey) ?? undefined; } catch { return undefined; }
+  });
+  const shopTestVisit = useRef<string>(initialShopVisit);
+  const setShopTestVisit = useCallback((visit: string | undefined) => {
+    shopTestVisit.current = visit;
+    try {
+      if (visit) sessionStorage.setItem(visitKey, visit);
+      else sessionStorage.removeItem(visitKey);
+    } catch { /* test shop still works without browser storage */ }
+  }, [visitKey]);
   const loadTestShop = useCallback(async (): Promise<RingShopResponse> => {
     const existing = shopTestVisit.current;
     let result = await apiClient.ringShop(existing);
     if (existing && !result.testVisit) result = await apiClient.ringShop();
-    if (result.testVisit && shopTestVisit.current === existing) shopTestVisit.current = result.testVisit;
+    if (result.testVisit && shopTestVisit.current === existing) setShopTestVisit(result.testVisit);
     return result;
-  }, []);
+  }, [setShopTestVisit]);
   const latest = useRef(actions);
   useEffect(() => { latest.current = actions; }, [actions]);
   const id = profile?.id;

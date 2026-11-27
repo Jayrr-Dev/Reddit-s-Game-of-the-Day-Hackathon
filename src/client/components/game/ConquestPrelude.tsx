@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { hashSeed, nextFloat, pickOne } from '../../../shared/game/rng';
 import { areaCounts, conquestStops, GRANDANGEL_BOSSES } from '../../../shared/game/conquestAreas';
 import { STOPS_PER_REGION } from '../../../shared/game/rules';
@@ -19,6 +19,7 @@ import gluttony from '../../assets/npcs/sin-lair-gluttony.webp';
 import lust from '../../assets/npcs/sin-lair-lust.webp';
 import pride from '../../assets/npcs/sin-lair-pride.webp';
 import { AtlasInk, AtlasLandmark, landmarkOf, ATLAS_HEIGHT, ATLAS_WIDTH, type AtlasLink, type AtlasPoint } from './KingdomAtlas';
+import { ATLAS_REGIONS } from './AtlasRegions';
 import { SinLairMotion } from './SinLairMotion';
 import './conquestPrelude.css';
 
@@ -61,11 +62,50 @@ export function ConquestMap({
 }) {
   const map = useRef<HTMLDivElement>(null);
   const activeMarker = useRef<HTMLButtonElement>(null);
+  const selectedMarker = useRef<HTMLButtonElement>(null);
+  const [popover, setPopover] = useState<{left: number; edge: number; side: 'above' | 'below' | 'left' | 'right'; caret: number}>();
+  const positionPopover = useCallback((marker: HTMLButtonElement) => {
+    const container = map.current?.parentElement?.getBoundingClientRect();
+    if (!container) return;
+    const anchor = marker.getBoundingClientRect();
+    const icon = marker.querySelector('.atlas-landmark')?.getBoundingClientRect() ?? anchor;
+    const margin = 8;
+    const gap = 10;
+    const width = Math.min(252, container.width - margin * 2);
+    const height = Math.min(164, container.height - margin * 2);
+    const within = (n: number, max: number) => Math.max(margin, Math.min(n, max - margin));
+    const midpoint = icon.left + icon.width / 2 - container.left;
+    const iconY = icon.top + icon.height / 2 - container.top;
+    const right = icon.right - container.left + gap;
+    const leftSide = icon.left - container.left - width - gap;
+    let next: NonNullable<typeof popover>;
+    if (right + width <= container.width - margin || leftSide >= margin) {
+      const edge = within(iconY - height / 2, container.height - height);
+      next = {
+        left: right + width <= container.width - margin ? right : leftSide,
+        edge,
+        side: right + width <= container.width - margin ? 'right' : 'left',
+        caret: within(iconY - edge, height),
+      };
+    } else {
+      const left = within(midpoint - width / 2, container.width - width);
+      const above = anchor.top - container.top >= height + gap || iconY > container.height / 2;
+      const distance = above ? container.bottom - anchor.top : anchor.bottom - container.top;
+      next = { left, edge: within(distance + gap, container.height - height),
+        side: above ? 'above' : 'below', caret: within(midpoint - left, width) };
+    }
+    setPopover(previous => previous?.left === next.left && previous.edge === next.edge &&
+      previous.side === next.side && previous.caret === next.caret ? previous : next);
+  }, []);
   const [selected, setSelected] = useState<number>();
+  const [showAscent, setShowAscent] = useState(false);
   const regionIndex = regionIndexOf(stop);
   const firstStop = regionIndex * STOPS_PER_REGION + 1;
   const isCampaign = options.some(option => option.site);
   const atlasSeed = [worldSeed, regionIndex, route ?? 0].join(':');
+  const theme = ATLAS_REGIONS[regionIndex] ?? ATLAS_REGIONS[0]!;
+  const isSummit = isCampaign && theme.terrain === 'summit';
+  const summitGate = { x: 423, y: 196 };
   const origin = { x: 355, y: 825 };
   const locationOf = (node: Stop, at: number, option: number) => node.site ?? (node.kind === 'greed-bargain'
     ? { name: 'The Gilded Vault', flavour: STOP_COPY[node.kind].blurb }
@@ -81,7 +121,7 @@ export function ConquestMap({
         const center = nodes.length === 1 ? 418 : 238 + 302 * option / (nodes.length - 1);
         const location = locationOf(node, at, option);
         return { node, option, location,
-          point: { x: center + (jitter - .5) * 43 + index * 6, y: 710 - index * 144 },
+          point: { x: center + (jitter - .5) * 43 + index * 6, y: isSummit && node.site?.kind === 'capital' ? 73 : 710 - index * 144 },
           mark: landmarkOf(location.name, node.site?.kind ?? (node.kind === 'champion' ? 'capital' : undefined)),
         };
       }),
@@ -89,7 +129,11 @@ export function ConquestMap({
   });
   const links = rows.flatMap((row, i): AtlasLink[] => {
     const previous = i === 0 ? [origin] : rows[i - 1]!.nodes.map(node => node.point);
-    const state = row.at === stop ? 'open' : row.at > stop ? 'future' : 'past';
+    const state: AtlasLink['state'] = row.at === stop ? 'open' : row.at > stop ? 'future' : 'past';
+    if (isSummit && i === STOPS_PER_REGION - 1) return [
+      ...previous.map(from => ({from, to: summitGate, state})),
+      ...row.nodes.map(({point:to}) => ({from: summitGate, to, state})),
+    ];
     return previous.flatMap(from => row.nodes.map(({point:to}) => ({from,to,state})));
   });
   const active = rows[stop - firstStop]?.nodes.find(node => node.option === selected);
@@ -106,24 +150,68 @@ export function ConquestMap({
     scroller.focus({ preventScroll: true });
   }, [firstStop, stop]);
 
+  const hasActiveDestination = Boolean(active);
+  useLayoutEffect(() => {
+    if (!hasActiveDestination) return;
+    const update = () => {
+      if (selectedMarker.current) positionPopover(selectedMarker.current);
+    };
+    const scrollArea = map.current;
+    scrollArea?.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      scrollArea?.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [hasActiveDestination, positionPopover]);
+
+  const popoverStyle: (CSSProperties & { '--atlas-caret': string }) | undefined = popover && {
+    left: popover.left,
+    '--atlas-caret': popover.caret + 'px',
+    ...(popover.side === 'above' ? { bottom: popover.edge } : { top: popover.edge }),
+  };
   const position = ({x,y}: AtlasPoint) => ({ left: (100 * x / ATLAS_WIDTH) + '%', top: (100 * y / ATLAS_HEIGHT) + '%' });
   return <section className="conquest-map map-fullbleed prelude-enter" aria-label={region ? region + ' map' : 'Conquest map'}
+    onPointerDownCapture={event => {
+      if (active && event.target instanceof Element && !event.target.closest('.atlas-destination-popover, .atlas-destination')) setSelected(undefined);
+    }}
     onKeyDown={event => {
-      if (event.key === 'Escape' && selected !== undefined) {
+      if (event.key === 'Escape' && showAscent) setShowAscent(false);
+      else if (event.key === 'Escape' && selected !== undefined) {
         setSelected(undefined);
-        map.current?.focus({ preventScroll: true });
+        selectedMarker.current?.focus({ preventScroll: true });
       }
     }}>
+    {isCampaign && <div className="atlas-ascent">
+      <button type="button" aria-expanded={showAscent} onClick={() => setShowAscent(value => !value)}>World ascent</button>
+      {showAscent && <ol reversed aria-label="Conquest regions">
+        {[...ATLAS_REGIONS].reverse().map((entry, i) => {
+          const rank = ATLAS_REGIONS.length - 1 - i;
+          return <li key={entry.angel} aria-current={rank === regionIndex ? 'step' : undefined} data-state={rank < regionIndex ? 'past' : rank > regionIndex ? 'future' : 'current'}>
+            <strong>{entry.name}</strong><small>{entry.angel}</small>
+          </li>;
+        })}
+      </ol>}
+    </div>}
     <div className="conquest-map-scroll atlas-scrollbar-hidden" ref={map} tabIndex={0} aria-label="Scrollable kingdom map">
       <div className="conquest-map-atlas">
-        <AtlasInk seed={atlasSeed} links={links} selected={active?.point} />
+        <AtlasInk seed={atlasSeed} links={links} selected={active?.point} regionIndex={regionIndex} />
+        {isCampaign && !isSummit && <div className="atlas-regional-note" style={position({x: 421, y: 44})}><strong>{theme.name}</strong><small>{theme.landmark}</small></div>}
+        {isSummit && <div className="atlas-city atlas-gateway" style={position(summitGate)}>
+          <AtlasLandmark mark="crossing" /><strong>Gate to Purgatory</strong><small>World Summit</small>
+        </div>}
         {rows.map(row => row.nodes.map(({ node, option, location, point, mark }) => {
-          const content = <><AtlasLandmark mark={mark} /><strong>{location.name}</strong>
+          const name = isSummit && node.site?.kind === 'capital' ? 'The Last Citadel' : location.name;
+          const content = <><AtlasLandmark mark={mark} /><strong>{name}</strong>
             {typeLabel(node) && <small>{typeLabel(node)}</small>}</>;
           return row.at === stop
             ? <button type="button" key={row.at + ':' + option} className="atlas-destination" aria-pressed={selected === option}
-                aria-label={location.name} ref={option === 0 ? activeMarker : undefined} style={position(point)}
-                onClick={() => setSelected(current => current === option ? undefined : option)}>{content}</button>
+                aria-label={name} aria-expanded={selected === option} ref={option === 0 ? activeMarker : undefined} style={position(point)}
+                onClick={event => {
+                  selectedMarker.current = event.currentTarget;
+                  positionPopover(event.currentTarget);
+                  setSelected(current => current === option ? undefined : option);
+                }}>{content}</button>
             : <div key={row.at + ':' + option} className="atlas-city" data-state={row.at < stop ? 'past' : 'future'}
                 style={position(point)}>{content}</div>;
         }))}
@@ -133,11 +221,21 @@ export function ConquestMap({
         </div>
       </div>
     </div>
-    {active && <footer className="atlas-destination-footer">
-      <span><strong>{active.location.name}</strong><small>{active.location.flavour}</small>
-        {counts && <small>{counts.battles} {counts.battles === 1 ? 'battle' : 'battles'} · {counts.rooms} rooms</small>}</span>
-      <Button variant="menuPrimary" onClick={() => onChoose(active.option)}>Confirm destination</Button>
-    </footer>}
+    {active && popover && <div className="atlas-destination-popover" role="group" aria-label="Destination details"
+      data-side={popover.side}
+      style={popoverStyle}>
+      <div className="atlas-popover-content">
+        <button type="button" className="atlas-popover-close" aria-label="Dismiss destination details" onClick={() => {
+          setSelected(undefined);
+          selectedMarker.current?.focus({ preventScroll: true });
+        }}>×</button>
+        <span className="atlas-popover-kind">{typeLabel(active.node) ?? 'Battle route'}</span>
+        <strong>{isSummit && active.node.site?.kind === 'capital' ? 'The Last Citadel' : active.location.name}</strong>
+        <p>{isSummit && active.node.site?.kind === 'capital' ? 'Beyond the summit gate, Archangel Mikhael awaits in Purgatory.' : active.location.flavour}</p>
+        {counts && <small>{counts.battles} {counts.battles === 1 ? 'battle' : 'battles'} · {counts.rooms} {counts.rooms === 1 ? 'room' : 'rooms'}</small>}
+        <Button variant="menuPrimary" onClick={() => onChoose(active.option)}>Travel here</Button>
+      </div>
+    </div>}
   </section>;
 }
 
@@ -160,7 +258,7 @@ export function RegionCrossroads({ stop, conquered, campaign, onChoose }: {
           const image = MAP_IMAGES[MAP_NAMES.findIndex(name => name === option.map)];
           return <button type="button" className="region-choice" key={option.name} aria-pressed={selected === choice} onClick={() => setSelected(choice)}>
             {image && <ProgressiveImg src={image} alt="" />}
-            <span><small>Region {index + 1}</small><strong>{option.name}</strong><small>{option.map}</small></span>
+            <span><small>{campaign ? ATLAS_REGIONS[index]?.name : 'Region ' + (index + 1)}</small><strong>{option.name}</strong><small>{campaign ? ATLAS_REGIONS[index]?.angel : option.map}</small></span>
           </button>;
         })}
         <svg viewBox="0 0 600 80" preserveAspectRatio="none" className="region-route-lines" aria-hidden="true">

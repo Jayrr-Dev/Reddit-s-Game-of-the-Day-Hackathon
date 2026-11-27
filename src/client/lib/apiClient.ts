@@ -61,7 +61,7 @@ export const apiClient = {
   ringShop: (testVisit?: string) => request<RingShopResponse>('/api/shop/rings' + (testVisit ? '?testVisit=' + encodeURIComponent(testVisit) : ''), { cache: 'no-store' }),
   offerApple: (itemId: ShopApple, testVisit?: string) => postJson<Pick<ProfileResponse, 'items'> & { shop?: RingShopResponse }>('/api/shop/apple', { itemId, ...(testVisit && { testVisit }) }),
   buyRing: (payload: BuyRingRequest) => postJson<BuyRingResponse>('/api/shop/rings/buy', payload),
-  profile: () => request<ProfileResponse>('/api/profile'),
+  profile: () => request<ProfileResponse>('/api/profile', { cache: 'no-store' }),
   saveProfile: (build: import('../../shared/game/playerBuild').PlayerBuild) => postJson<{saved:boolean}>('/api/profile',build),
   useItem: (payload: UseItemRequest) => postJson<UseItemResponse>('/api/profile/use-item', payload),
   discardItem: (payload: UseItemRequest) => postJson<DiscardItemResponse>('/api/profile/discard-item', payload),

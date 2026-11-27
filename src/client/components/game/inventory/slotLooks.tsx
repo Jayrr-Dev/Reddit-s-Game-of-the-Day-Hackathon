@@ -5,6 +5,9 @@
 // only a brand-new slot kind needs a new case here.
 // ===================================================================
 import type { ReactNode } from 'react';
+import { carrySourceLabel } from '../../../../shared/game/carryCards';
+import { describeCard } from '../../../../shared/game/describe';
+import { CardArtwork } from '../CardView';
 import type { InventorySlot } from '../../../../shared/game/inventory';
 import { isShopApple } from '../../../../shared/game/items';
 import { ShopAppleIcon } from '../menu/ShopAppleIcon';
@@ -26,6 +29,15 @@ export type SlotLook = {
 /** Builds the look for one slot; the switch keeps every slot kind covered. */
 export const slotLook = (slot: InventorySlot): SlotLook => {
   switch (slot.kind) {
+    case 'card':
+      return {
+        icon: <CardArtwork cardId={slot.cardId} size="fan" showGlyph={false} />,
+        subtitle: 'Card · ' + carrySourceLabel(slot.source),
+        details: <>
+          <ul className="inv-card-rules">{describeCard(slot.cardId).map(line => <li key={line}>{line.replace(/\*\*/g, '')}</li>)}</ul>
+          <p className="cs-item-lore">Use Bring a Card before starting a conquest.</p>
+        </>,
+      };
     case 'item':
       return {
         icon: isShopApple(slot.id)
