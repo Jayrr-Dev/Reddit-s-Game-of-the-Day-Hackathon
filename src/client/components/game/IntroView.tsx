@@ -239,7 +239,7 @@ export const IntroView = ({
       <div className="relative mt-2 flex min-h-0 flex-1">
         <Hero data={data} />
       </div>
-      <div className="home-menu-actions relative flex shrink-0 justify-center pl-3 pr-14 pb-3 min-[380px]:px-14">
+      <div className="home-menu-actions relative flex shrink-0 justify-center px-14 pb-3">
         {/* MENU */}
         <nav className="flex w-full max-w-60 flex-col items-center gap-2">
           {note && <p className="text-center text-[10px] leading-tight text-ink-muted">{note}</p>}
