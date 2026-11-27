@@ -4,6 +4,7 @@ import type { CarryCard } from '../../../../shared/game/carryCards';
 import type { ShopRingId } from '../../../../shared/game/ringShop';
 import shopAmbient from '../../../assets/npcs/metatron-shop-ambient.webp';
 import shopFrame from '../../../assets/npcs/metatron-shop-frame.webp';
+import { METATRON_ANGEL_LORE } from '../../../content/metatronAngelLore';
 import { playSound } from '../../../lib/gameAudio';
 import { Button } from '../../ui/Button';
 import { ProgressiveImg, ProgressiveSvgImage } from '../../ui/ProgressiveImage';
@@ -41,13 +42,6 @@ const IDLE_LORE = [
   'Xaten granted seven mortals eternity. Once a century, he calleth them to account.',
   'For theft from Heaven’s treasury was I cast into Hell. To thy kind I sell what I stole.',
   'Thinkest thou I count gold for pleasure? A little more, and I shall buy my freedom.',
-  'Uriel held the Crimson Gate open until the last pilgrim crossed. I remember things like that.',
-  'Zadkiel called every decree mercy. I waited an age to hear him tell the two apart.',
-  'Cerviel could stand watch in three places. He still took the coldest post himself.',
-  'Two suns at Zeruel’s command, and not an ounce of warmth in him.',
-  "Cherubiel kept his broken halo. I suppose he never cared what Heaven called beautiful.",
-  'Raziel knew which shelf I emptied. Not a word did he speak. I wonder at that still.',
-  'Mori knew every knight by name. I have met archangels who cannot say the same.',
   'Seven hundred years the old lord held his seat. Xaten owed him not a day more.',
   "Not so much as one stolen coin may go back with me. Heaven was most particular on that point.",
   "My greatest treasure? The key to Heaven's treasury. The last thing I shall part with.",
@@ -63,7 +57,7 @@ type MetatronVoice = (typeof METATRON_VOICES)[number];
 
 /** Draw each memory at most once per shop visit. */
 function shuffleIdleLore() {
-  const lines: string[] = [...IDLE_LORE];
+  const lines: string[] = [...IDLE_LORE, ...Object.values(METATRON_ANGEL_LORE)];
   for (let i = lines.length - 1; i > 0; i--) {
     const other = Math.floor(Math.random() * (i + 1));
     [lines[i], lines[other]] = [lines[other]!, lines[i]!];
