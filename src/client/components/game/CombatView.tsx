@@ -20,6 +20,7 @@
 // ===================================================================
 
 import './combat/dueling-table.css';
+import { isCloaked } from '../../../shared/game/combatant';
 import { getVolume, playAfflictionBurst, playCardSound, playCombatImpact, playUnitDeath, playSound, subscribeVolume, usesShockCue } from '../../lib/gameAudio';
 import { useMapAudio } from '../../lib/mapAudio';
 import { bossArenaOf, type BossArena } from '../../content/bossArenas';
@@ -323,6 +324,11 @@ export const CombatView = ({
       const shooter = combat.heroes.find(unit => unit.uid === heroTurn.arrowStep?.actorUid);
       after(HERO_SHOT_RELEASE_MS, () =>
         playSound(shooter?.heroId === 'ballista' ? 'siegeArrow' : 'arrow', .99, .84));
+    }
+    // Sound the moment a visible unit vanishes, not while Cloak ticks down.
+    if ((!isCloaked(before.player) && isCloaked(combat.player)) ||
+      combat.heroes.some(unit => isCloaked(unit) && before.heroes.some(old => old.uid === unit.uid && !isCloaked(old)))) {
+      playSound('cloakVanish', 1, .86);
     }
     if (combat.player.statuses.rush > before.player.statuses.rush) playSound('rush', 1, .82);
     if (combat.player.guard > before.player.guard) playSound('guardSet', 1, .8);

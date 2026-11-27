@@ -760,11 +760,14 @@
   left: 50%;
   bottom: 2px;
   z-index: 1;
-  width: 38%;
+  width: auto;
+  max-width: 38%;
+  aspect-ratio: var(--training-aspect);
   height: 90%;
   transform: translateX(-50%);
   filter: drop-shadow(0 2px 2px #21140f);
 }
+.training-figure-lead { bottom: 5%; }
 .training-figure ~ .training-figure { left: 23%; bottom: 8px; height: 70%; z-index: 0; }
 .training-figure ~ .training-figure:last-child { left: 77%; }
 /* A measured boss (content/figureBounds.ts) scaled so its visible

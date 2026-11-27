@@ -395,33 +395,18 @@ const CloudFlashes = () => (
 /** Soft light (the storm's gloom, the blade's glow) and the cloud's fade. */
 const Lights = ({ gloomId, glowId, fadeId }: LightIds) => (
   <defs>
-    {/* White keeps the cloud, black hides it: it thins toward the ground. */}
-    <linearGradient id={`${fadeId}-ramp`} x1="0" y1="0" x2="0" y2="1">
+    {/* Mask just the storm bank. Start above its lowest facets so no
+        opaque polygon ends abruptly at the bottom of the sprite. */}
+    <linearGradient id={`${fadeId}-ramp`} gradientUnits="userSpaceOnUse"
+      x1={0} x2={0} y1={(GROUND - CLOUD_FADE) * ART_SCALE} y2={(GROUND + 44) * ART_SCALE}>
       <stop offset="0%" stopColor="white" />
-      <stop offset="100%" stopColor="black" />
+      <stop offset="34%" stopColor="white" stopOpacity={0.85} />
+      <stop offset="68%" stopColor="white" stopOpacity={0.22} />
+      <stop offset="90%" stopColor="white" stopOpacity={0.025} />
+      <stop offset="100%" stopColor="white" stopOpacity={0} />
     </linearGradient>
-    <mask
-      id={fadeId}
-      maskUnits="userSpaceOnUse"
-      x={-50}
-      y={-50}
-      width={300}
-      height={200}
-    >
-      <rect
-        x={-50}
-        y={-50}
-        width={300}
-        height={50 + (GROUND - CLOUD_FADE) * ART_SCALE}
-        fill="white"
-      />
-      <rect
-        x={-50}
-        y={(GROUND - CLOUD_FADE) * ART_SCALE}
-        width={300}
-        height={CLOUD_FADE * ART_SCALE}
-        fill={`url(#${fadeId}-ramp)`}
-      />
+    <mask id={fadeId} maskUnits="userSpaceOnUse" style={{ maskType: "alpha" }} x={-50} y={-50} width={300} height={200}>
+      <rect x={-50} y={-50} width={300} height={200} fill={`url(#${fadeId}-ramp)`} />
     </mask>
     <radialGradient id={gloomId}>
       <stop offset="0%" stopColor={GLOOM} stopOpacity={0.9} />

@@ -388,6 +388,20 @@ const bodyStyleOf = (unit: HeroUnit, size: HeroSize): CSSProperties => {
     : isBoss(unit)
       ? Math.min(rowScale, 1.3)
       : rowScale;
+  // Raziel is tall and narrow. Grow the art toward the player rather
+  // than pushing the nameplate out of the top of the battlefield.
+  if (unit.heroId === 'grandangelRaziel') {
+    const feet = rowPerspective(unit.row).feet;
+    const laneHeight = isDeep(unit) ? 0.82 : 0.76;
+    const fieldHeight = `${100 / (feet * laneHeight)}cqh`;
+    const footPosition = `${100 / laneHeight}cqh`;
+    const height = `min(256cqh, 100cqw, max(1px, calc((${fieldHeight} + 34px) / 1.21)))`;
+    return {
+      height,
+      aspectRatio: figureAspect(size),
+      bottom: `min(0px, calc(${footPosition} + 14px - ${height} * 1.185))`,
+    };
+  }
   const stage = isBoss(unit) ? bossStageOf(unit.heroId) : undefined;
   if (stage) return stagedBodyStyle(stage, scale, size);
   const widthLimit =

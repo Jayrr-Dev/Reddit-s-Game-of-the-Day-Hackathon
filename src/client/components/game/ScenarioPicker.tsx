@@ -22,14 +22,14 @@ import {
 import { Fragment, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { newestCardIds } from '../../../shared/game/cardReleases';
-import { getHero, type HeroId } from '../../../shared/game/heroes';
-import type { HeroAction } from '../../content/heroLooks';
+import type { HeroId } from '../../../shared/game/heroes';
+import { drawSizeOf, type HeroAction } from '../../content/heroLooks';
 import { CARD_LOOK, EDGE_ART, ELEMENT_LOOK, TIER_NAME_CLASS } from '../../content/visuals';
 import { UnitInfoPanel, UnitInfoTabs, type UnitInfoTab } from './UnitInfo';
 import { TabBar } from '../ui/TabBar';
 import { HeroFigure } from './combat/HeroFigure';
 import { FIGURE_BOUNDS, type FigureBounds } from '../../content/figureBounds';
-import { BODY_HEIGHT, BODY_WIDTH } from '../../lib/heroFigure';
+import { BODY_HEIGHT, BODY_WIDTH, figureAspect } from '../../lib/heroFigure';
 import { cssVars } from '../../lib/cssVars';
 import { Glyph } from '../ui/Glyph';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
@@ -128,7 +128,7 @@ const FEATURED_HEROES: Record<string, readonly HeroId[]> = {
  */
 const portraitStyle = (heroId: HeroId, bounds: FigureBounds): CSSProperties =>
   cssVars({
-    '--body-width': BODY_WIDTH[getHero(heroId).size],
+    '--body-width': BODY_WIDTH[drawSizeOf({ heroId })],
     '--body-height': BODY_HEIGHT,
     '--fit-x': bounds.x,
     '--fit-y': bounds.y,
@@ -143,11 +143,12 @@ const portraitStyle = (heroId: HeroId, bounds: FigureBounds): CSSProperties =>
  */
 const PreviewFigure = ({ heroId, isLead, action }: { heroId: HeroId; isLead: boolean; action?: HeroAction | null | undefined }) => {
   const bounds = isLead ? FIGURE_BOUNDS[heroId] : undefined;
-  const figure = <HeroFigure heroId={heroId} size={getHero(heroId).size} action={action ?? null} />;
+  const size = drawSizeOf({ heroId });
+  const figure = <HeroFigure heroId={heroId} size={size} action={action ?? null} />;
   return (
     <span
-      className={bounds ? 'training-portrait' : 'training-figure'}
-      style={bounds && portraitStyle(heroId, bounds)}
+      className={bounds ? 'training-portrait' : isLead ? 'training-figure training-figure-lead' : 'training-figure'}
+      style={bounds ? portraitStyle(heroId, bounds) : cssVars({ '--training-aspect': figureAspect(size) })}
     >
       {action === undefined ? figure : <span className="block h-full w-full origin-bottom animate-hero-sway">{figure}</span>}
     </span>

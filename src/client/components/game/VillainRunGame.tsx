@@ -7,6 +7,8 @@
 import { playSound } from '../../lib/gameAudio';
 import { useEffect, useRef, useState } from 'react';
 import { regionIndexOf, regionName } from '../../../shared/game/kingdom';
+import { GOLD_PER_WAVE } from '../../../shared/game/gold';
+import { useAccountId } from '../../lib/accountId';
 import { BattleCharacterSheet } from './BattleCharacterSheet';
 import {
   computeScore,
@@ -39,6 +41,7 @@ const LEVEL_UP_AFTER_VICTORY_MS = 3350;
 /** The body for the current phase. */
 const PhaseBody = ({ run, onAction }: VillainRunGameProps) => {
   const { phase } = run;
+  const accountId = useAccountId();
   switch (phase.kind) {
     case 'route':
       return <RouteView stopNumber={run.stop} options={phase.options} onAction={onAction} />;
@@ -64,6 +67,7 @@ const PhaseBody = ({ run, onAction }: VillainRunGameProps) => {
       return (
         <OfferView
           title="Spoils of war"
+          goldReward={accountId ? GOLD_PER_WAVE : undefined}
           rerolls={phase.rerolled ? 0 : 1}
           subtitle="Add one card to your deck."
           unlockedRingSlot={run.storyRingUnlocked}

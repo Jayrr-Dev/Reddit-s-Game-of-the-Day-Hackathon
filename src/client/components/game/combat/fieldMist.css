@@ -1,0 +1,86 @@
+/* A single seamless, baked noise texture, tinted and layered at different
+   depths. Move the layer instead of recomputing a filter on every frame. */
+@keyframes field-mist-drift {
+  to { transform: translateX(-50%); }
+}
+
+@keyframes field-mist-arrive {
+  from { opacity: 0; }
+}
+
+.field-mist {
+  position: absolute;
+  pointer-events: none;
+}
+
+.field-mist-sky {
+  inset: 0;
+  background: linear-gradient(
+    #2e344a,
+    #626f8d 28%,
+    #a1aac1 43%,
+    #77839f 72%,
+    #646e90
+  );
+  animation: field-mist-arrive 1600ms ease-out backwards;
+}
+
+.field-mist-bank {
+  left: 0;
+  width: 200%;
+  background: var(--mist-tint);
+  mask-image: url('../../../assets/table/storm-mist.png');
+  mask-size: 50% 100%;
+  mask-position: var(--mist-phase, center) center;
+  mask-repeat: repeat-x;
+  animation:
+    field-mist-drift var(--mist-lap) linear infinite,
+    field-mist-arrive 1600ms ease-out backwards;
+}
+
+.field-mist-storm {
+  --mist-tint: rgb(27 31 49 / .72);
+  --mist-lap: 103s;
+  --mist-phase: 33%;
+  top: -19%;
+  height: 54%;
+}
+
+.field-mist-far {
+  --mist-tint: rgb(211 221 239 / .48);
+  --mist-lap: 116s;
+  --mist-phase: 68%;
+  top: 18%;
+  height: 31%;
+}
+
+.field-mist-mid {
+  --mist-tint: rgb(193 206 229 / .47);
+  --mist-lap: 82s;
+  --mist-phase: 15%;
+  top: 30%;
+  height: 46%;
+}
+
+.field-mist-floor {
+  --mist-tint: rgb(178 193 219 / .64);
+  --mist-lap: 62s;
+  --mist-phase: 82%;
+  top: 50%;
+  height: 64%;
+}
+
+.field-mist-near {
+  --mist-tint: rgb(215 224 244 / .24);
+  --mist-lap: 45s;
+  --mist-phase: 29%;
+  bottom: -18%;
+  height: 52%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field-mist-sky,
+  .field-mist-bank {
+    animation: none;
+  }
+}

@@ -7,6 +7,7 @@ import type { CardId } from '../../../shared/game/cards';
 import { playSound } from '../../lib/gameAudio';
 import { useState } from 'react';
 import type { RunAction } from '../../../shared/game/run';
+import { GoldCoins } from './profileParts';
 import { Button } from '../ui/Button';
 import { CardView } from './CardView';
 import { RingUnlockNotice } from './RingUnlockNotice';
@@ -16,6 +17,7 @@ export type OfferViewProps = {
   rerolls?: number;
   subtitle: string;
   offers: CardId[];
+  goldReward?: number | undefined;
   unlockedRingSlot?: number | undefined;
   onAction: (action: RunAction) => void;
 };
@@ -26,6 +28,7 @@ export const OfferView = ({
   rerolls,
   subtitle,
   offers,
+  goldReward,
   unlockedRingSlot,
   onAction,
 }: OfferViewProps) => {
@@ -36,6 +39,7 @@ export const OfferView = ({
       <h2 className="font-display text-xl font-bold">{title}</h2>
       <p className="text-sm text-ink-muted" aria-live="polite">{selected === null ? subtitle : 'Select the highlighted card again to add it.'}</p>
     </div>
+    {goldReward !== undefined && <div className="flex items-center gap-1.5 text-accent font-display font-bold" aria-label={goldReward + " Gold earned"}><GoldCoins />+{goldReward} Gold</div>}
     {unlockedRingSlot !== undefined && <RingUnlockNotice slots={[unlockedRingSlot]} />}
     <div className="flex flex-wrap justify-center gap-3">
       {offers.map((cardId, offerIndex) => (

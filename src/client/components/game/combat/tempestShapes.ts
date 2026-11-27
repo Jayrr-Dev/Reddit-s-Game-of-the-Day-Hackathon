@@ -592,7 +592,7 @@ export const BANK_FOLD: readonly Point[] = [
   [-0.74, 0.06],
 ];
 /** The cloud thins out over this much height above the ground. */
-export const CLOUD_FADE = 90;
+export const CLOUD_FADE = 159;
 /** Lightning inside the cloud: it flashes now and then. */
 export const CLOUD_FLASHES: readonly (readonly Point[])[] = [
   [
