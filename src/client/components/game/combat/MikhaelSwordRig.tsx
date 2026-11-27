@@ -55,10 +55,16 @@ const IDLE_COLUMNS = 5;
 const IDLE_ROWS = 5;
 const IDLE_CELS = 24;
 const IDLE_BEAT_MS = 3200 / IDLE_CELS;
-// Use the unwarped original for the entire lower robe, sword tip and boots.
-const IDLE_PIN_Y = 286;
+// The wind cels warp everything they cover, including the sword and greaves.
+// Only cloth, hair and wings should sway, so the hard parts are traced here
+// (cel pixels) and redrawn from the unwarped idle pose on top of each cel.
+// The sword outline runs pommel, fist, crossguard, then down the blade.
+const IDLE_PINNED_PARTS = [
+  'M298 250 306 233 321 233 322 262 320 272 310 275 278 358 268 358 293 274 289 268 288 257Z',
+  'M331 283 352 283 354 330 366 333 368 372 330 372Z',
+] as const;
 
-/** Plays the planted body's wing, fabric and hair cels at the held animation cadence. */
+/** Plays the wing, cloth and hair cels, with the sword and boots held still. */
 function MikhaelIdleWind() {
   const pinId = useId();
   const art = useProgressiveImage(idleWind);
@@ -77,19 +83,16 @@ function MikhaelIdleWind() {
   if (art.isPlaceholder) return <ProgressiveSvgImage href={idle} width={CELL_W} height={CELL_H} />;
   return <g data-mikhael-idle-cel={cel}>
     <defs>
-      <clipPath id={`${pinId}-moving`}>
-        <rect width={CELL_W} height={IDLE_PIN_Y} />
-      </clipPath>
-      <clipPath id={`${pinId}-grounded`}>
-        <rect y={IDLE_PIN_Y} width={CELL_W} height={CELL_H - IDLE_PIN_Y} />
+      <clipPath id={`${pinId}-pinned`}>
+        {IDLE_PINNED_PARTS.map((part) => <path key={part} d={part} />)}
       </clipPath>
     </defs>
-    <g clipPath={`url(#${pinId}-grounded)`}>
-      <ProgressiveSvgImage href={idle} width={CELL_W} height={CELL_H} />
-    </g>
     <image href={art.src} width={CELL_W * IDLE_COLUMNS} height={CELL_H * IDLE_ROWS}
       x={-(cel % IDLE_COLUMNS) * CELL_W} y={-Math.floor(cel / IDLE_COLUMNS) * CELL_H}
-      preserveAspectRatio="none" clipPath={`url(#${pinId}-moving)`} />
+      preserveAspectRatio="none" />
+    <g clipPath={`url(#${pinId}-pinned)`}>
+      <ProgressiveSvgImage href={idle} width={CELL_W} height={CELL_H} />
+    </g>
   </g>;
 }
 
