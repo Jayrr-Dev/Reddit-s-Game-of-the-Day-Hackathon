@@ -900,7 +900,7 @@ export const hexBurn = <T extends Combatant>(
  * AFTER_ACTION_DIVISOR to the nearest whole, an exact half rounding
  * DOWN (3 -> 1, 1 -> 0), so it always runs out instead of sticking at 1.
  */
-const afterActionLeft = (stacks: number): number =>
+export const afterActionLeft = (stacks: number): number =>
   Math.ceil(stacks / AFTER_ACTION_DIVISOR - 0.5);
 
 /** Burn, right after an action: it deals its value, then halves. */
