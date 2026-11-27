@@ -8,7 +8,9 @@ import type { RingShopResponse, ShopReward } from '../../../../shared/types/api'
 import { getItem, itemQuantity, REALM_APPLE, SHOP_APPLE, type ItemBag, type ShopApple } from '../../../../shared/game/items';
 import { getCard } from '../../../../shared/game/cards';
 import type { CarryCard } from '../../../../shared/game/carryCards';
-import { Glyph } from '../../ui/Glyph';
+import { describeCard } from '../../../../shared/game/describe';
+import { CARD_LOOK } from '../../../content/visuals';
+import { CardArtwork } from '../CardView';
 import type { ShopOffer, ShopOfferId, ShopRingId } from '../../../../shared/game/ringShop';
 import { MysteryChest, MysteryReveal } from './MysteryReveal';
 import { ShopJewelryArt } from './ShopJewelryArt';
@@ -171,21 +173,32 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
         <ul className="ring-counter-stock" data-stock-motion={stockMotion} aria-busy={stockMotion !== undefined}>
           {shop.offers.map((offer, slot) => {
             const box = offer.slot === 'box';
+            const card = offer.slot === 'card' ? getCard(offer.cardId) : undefined;
             const owned = offer.slot === 'box' ? shop.opened.includes(offer.id) : offer.slot === 'card' ? shop.imbueBought : shop.owned.includes(offer.id);
             const inspecting = selected === offer.id;
             const detailsId = 'shop-details-' + offer.id;
             const short = shop.gold < offer.price;
             return <li key={offer.id} className="ring-counter-item" style={{ '--shop-slot': slot } as CSSProperties} data-rarity={offer.rarity} data-box={box || undefined}>
               <span className="ring-counter-name" title={offer.name}>{offer.name}</span>
-              <button type="button" className="ring-counter-disc" aria-expanded={inspecting} aria-controls={inspecting ? detailsId : undefined} data-shop-inspect
+              <button type="button" className="ring-counter-disc" data-card={offer.slot === 'card' || undefined} aria-expanded={inspecting} aria-controls={inspecting ? detailsId : undefined} data-shop-inspect
                 aria-label={'Inspect ' + offer.name} onClick={() => { setNote(''); setSelected(previous => previous === offer.id ? undefined : offer.id); }}>
-                {offer.slot === 'box' ? <MysteryChest /> : offer.slot === 'card' ? <Glyph name="altar" className="size-8" /> : <ShopJewelryArt offer={offer} />}
+                {offer.slot === 'box' ? <MysteryChest /> : offer.slot === 'card' ? <span className="shop-card-thumbnail" aria-hidden="true"><CardArtwork cardId={offer.cardId} size="fan" /></span> : <ShopJewelryArt offer={offer} />}
               </button>
               {inspecting && <div className="ring-counter-popover" id={detailsId} data-shop-inspect>
-                <strong>{offer.name}</strong>
-                {!box && <small>{offer.rarity} {offer.slot === 'card' ? (getCard(offer.cardId).type === 'imbue' ? 'Imbue Card' : 'Card') : offer.slot === 'amulet' ? 'Amulet' : 'Ring'}</small>}
+                {offer.slot === 'card' && card ? <>
+                  <div className="shop-card-details">
+                    <div className="shop-card-detail-art" aria-hidden="true"><CardArtwork cardId={offer.cardId} /></div>
+                    <div><strong>{card.name}</strong><small>{offer.rarity} {CARD_LOOK[card.type].typeName} · {card.cost} Energy</small></div>
+                  </div>
+                  <ul className="shop-card-rules" aria-label="Card effects">
+                    {describeCard(offer.cardId).map((line, index) => <li key={index}>{line}</li>)}
+                  </ul>
+                </> : <>
+                  <strong>{offer.name}</strong>
+                  {!box && <small>{offer.rarity} {offer.slot === 'amulet' ? 'Amulet' : 'Ring'}</small>}
+                </>}
                 <p>{offer.flavor}</p>
-                <span>{offer.slot === 'box' ? 'Pay to open it once. The box stays with Metatron. The reward is yours.' : offer.slot === 'card' ? 'Added to Inventory. Use Bring Card when starting a conquest.' : offer.effect ?? 'Cosmetic'}</span>
+                <span>{offer.slot === 'box' ? 'Pay to open it once. The box stays with Metatron. The reward is yours.' : offer.slot === 'card' ? (owned ? 'In Inventory. Use Bring a Card before starting a conquest.' : 'Goes to Inventory. Use Bring a Card before starting a conquest.') : offer.effect ?? 'Cosmetic'}</span>
               </div>}
               <button type="button" className="ring-counter-price" disabled={owned || short || busy !== undefined || offeringApple !== undefined}
                 aria-label={owned ? offer.name + (box ? ' opened' : ' owned') : (box ? 'Open ' : 'Buy ') + offer.name + ' for ' + offer.price + ' Gold' + (short ? ', not enough Gold' : '')}

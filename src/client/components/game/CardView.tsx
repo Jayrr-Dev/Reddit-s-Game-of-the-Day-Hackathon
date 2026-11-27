@@ -260,6 +260,17 @@ const ArtWindow = ({
   </span>
 );
 
+/** The same artwork used on the playable card, without its interactive frame. */
+export const CardArtwork = ({ cardId, size = 'offer' }: { cardId: CardId; size?: CardSize }) => {
+  const card = getCard(cardId);
+  const look = CARD_LOOK[card.type];
+  return <ArtWindow
+    glyph={(card.edge && EDGE_ART[card.edge]) ?? look.glyph}
+    glowVar={look.glowVar}
+    look={SIZE_LOOK[size]}
+  />;
+};
+
 /**
  * The ribbon under the rules: its type, after an icon for a Magic
  * card's element or a Melee card's edge (Sharp or Blunt).
@@ -422,11 +433,7 @@ export const CardView = ({
       >
         <span className="num-center">{paidCost ?? cardCost(cardId, killsThisTurn, followUpReady) + fatigue}</span>
       </span>
-      <ArtWindow
-        glyph={(cardDef.edge && EDGE_ART[cardDef.edge]) ?? typeLook.glyph}
-        glowVar={typeLook.glowVar}
-        look={look}
-      />
+      <CardArtwork cardId={cardId} size={size} />
       {isImbueAimed && (
         <span
           aria-hidden
