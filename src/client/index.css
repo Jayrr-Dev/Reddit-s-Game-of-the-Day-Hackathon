@@ -166,6 +166,7 @@
   --color-boosted: #23803f;
   --color-weakened: #b3263e;
   --color-energy: #e8bb66;
+  --energy-pip-fill: radial-gradient(circle at 40% 32%, #fff4a5, #ffbf39 52%, #a95813 95%);
 
   /* --- CARD CATEGORIES --- */
   --color-card-melee: #8e1f33;
@@ -3399,7 +3400,9 @@ textarea,
 .results-board { width:min(100%,320px); color:#ddcba6; font-size:12px; }
 .results-board summary { cursor:pointer; }
 .portrait-level { position:absolute; left:50%; top:0; transform:translate(-50%,-55%); white-space:nowrap; padding:1px 5px; border:1px solid #bc9455; border-radius:4px; background:#2c1c13; color:#ffdf99; font:bold 11px/1.15 var(--font-display); pointer-events:none; }
+.glossary-energy-pip { display:inline-block; width:.65em; height:.65em; margin-inline-end:.22em; border-radius:50%; vertical-align:.02em; background:var(--energy-pip-fill); }
 .player-health-badge[data-health=lethal] { background:#330d12; }
+.glossary-energy-pip { display:inline-block; width:.65em; height:.65em; margin-inline-end:.22em; border-radius:50%; vertical-align:.02em; background:var(--energy-pip-fill); }
 .player-health-badge[data-health=lethal] svg { color:#ff555d; }
 .level-up-dialog {
   position: fixed; inset: 0; margin: auto; box-sizing: border-box;

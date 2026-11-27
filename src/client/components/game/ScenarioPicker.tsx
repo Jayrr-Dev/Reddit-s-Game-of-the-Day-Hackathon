@@ -19,7 +19,7 @@ import {
   isMapUnlocked,
   type UnlockAccess,
 } from '../../../shared/game/unlocks';
-import { Fragment, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useEffect, useState, type CSSProperties, type MouseEventHandler, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { newestCardIds } from '../../../shared/game/cardReleases';
 import type { HeroId } from '../../../shared/game/heroes';
@@ -36,6 +36,9 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { ThemeSpeaker } from './ThemeSpeaker';
 import { MapViewDialog, type MapView } from './MapViewDialog';
 import { SectionHeading } from './SectionHeading';
+import { PileDialog } from './combat/PileDialog';
+import { createCombatant } from '../../../shared/game/combatant';
+import { PLAYER_MAX_HP } from '../../../shared/game/rules';
 import type { ThemePreviewControls } from '../../hooks/useThemePreview';
 import {
   groupScenariosByUnitType,
@@ -47,6 +50,8 @@ import {
 } from '../../../shared/game/sandbox';
 import {
   SANDBOX_DECKS,
+  SANDBOX_DECKSETS,
+  sandboxDeckCards,
   type SandboxDeckId,
   type CustomTrainingDeck,
 } from '../../../shared/game/sandboxDecks';
@@ -99,7 +104,12 @@ const arenaHeroIds = (arena: BossArena): string[] =>
   Object.entries(BOSS_ARENAS).flatMap(([heroId, entry]) => (entry?.name === arena.name ? [heroId] : []));
 
 // --- SUBCOMPONENTS ---
-const DECK_EXAMPLES = {
+const DECK_EXAMPLES: Partial<Record<SandboxDeckId, readonly CardId[]>> = {
+  archerSet: ['blackArrow', 'barbedVolley', 'steadyAim'],
+  meleeSet: ['twinDaggers', 'ruin', 'impale'],
+  magicSet: ['frostBolt', 'forkedBolt', 'hexfire'],
+  cursedSet: ['whisperHex', 'mourningCurse', 'reap'],
+  otherSet: ['boneWard', 'mend', 'keenEdge'],
   stackedBuffs: ['sap', 'bulwark', 'instinct'],
   all: ['twinDaggers', 'frostBolt', 'boneWard'],
   newCards: newestCardIds(3),
@@ -114,7 +124,9 @@ const DECK_EXAMPLES = {
   range: ['blackArrow', 'retreatingShot', 'wildVolley'],
   movement: ['evasiveStep', 'forcePush', 'beckon'],
   defense: ['boneWard', 'spikedGuard', 'plateArmor'],
-} satisfies Record<SandboxDeckId, readonly CardId[]>;
+};
+
+const DECK_PREVIEW_PLAYER = createCombatant(PLAYER_MAX_HP, PLAYER_MAX_HP);
 
 const FEATURED_HEROES: Record<string, readonly HeroId[]> = {
   holyDragon: ['holyDragon'],
@@ -292,8 +304,8 @@ const regionView = (name: string, index: number): MapView => ({
 });
 
 /** The round "i" that opens a unit's attacks, over the corner of its card. */
-const InfoButton = ({ name, onInfo, label = 'Attacks' }: { name: string; onInfo: () => void; label?: string }) => (
-  <button type="button" className="training-info" aria-label={label + ' of ' + name} title={label} onClick={onInfo}>
+const InfoButton = ({ name, onInfo, label = 'Attacks' }: { name: string; onInfo: MouseEventHandler<HTMLButtonElement>; label?: string }) => (
+  <button type="button" className="training-info" aria-label={label + ' of ' + name} title={label} aria-haspopup="dialog" onClick={onInfo}>
     i
   </button>
 );
@@ -417,6 +429,7 @@ export const ScenarioPicker = ({
 }) => {
   const [tab, setTab] = useState<PickerTab>('scenarios');
   const [editing, setEditing] = useState<string | null>(null);
+  const [viewedDeck, setViewedDeck] = useState<{ name: string; cards: readonly CardId[]; opener: HTMLButtonElement } | null>(null);
   // The scenario waiting on the fight-or-not answer, if any.
   const [pending, setPending] = useState<SandboxScenario | null>(null);
   // The boss arena shown full size in its info dialog, if any.
@@ -434,9 +447,9 @@ export const ScenarioPicker = ({
   useEffect(() => stopPreview, [stopPreview]);
   return (
     <>
-    {renderHeader(() => { setTab('decks'); setEditing(''); })}
+    <div inert={viewedDeck !== null}>{renderHeader(() => { setTab('decks'); setEditing(''); })}</div>
     <section className="training-picker">
-      <TabBar ids={PICKER_TABS} labels={TAB_LABELS} tab={tab} onTab={setTab} />
+      <div inert={viewedDeck !== null}><TabBar ids={PICKER_TABS} labels={TAB_LABELS} tab={tab} onTab={setTab} /></div>
       {pending && (
         <FightPrompt
           scenario={pending}
@@ -448,6 +461,13 @@ export const ScenarioPicker = ({
       )}
       {viewedMap && (
         <MapViewDialog view={viewedMap} themePreview={themePreview} onClose={() => setViewedMap(null)} />
+      )}
+      {viewedDeck && (
+        <PileDialog pile="deck" cards={viewedDeck.cards} titleOverride={viewedDeck.name} attacker={DECK_PREVIEW_PLAYER}
+          usesSpent={{}} killsThisTurn={0} focusCloseOnOpen onClose={() => {
+            setViewedDeck(null);
+            requestAnimationFrame(() => viewedDeck.opener.focus({ preventScroll: true }));
+          }} />
       )}
       {editing !== null && (
         <CustomDeckEditor
@@ -465,6 +485,7 @@ export const ScenarioPicker = ({
         className="training-entries"
         role="tabpanel"
         aria-label={TAB_LABELS[tab]}
+        inert={viewedDeck !== null}
       >
         {tab === 'scenarios' || tab === 'units' ? (
           <ScenarioSections
@@ -510,6 +531,7 @@ export const ScenarioPicker = ({
           </>
         ) : (
           <>
+            {customDecks.length > 0 && <SectionHeading>Custom decks</SectionHeading>}
             {customDecks.map((deck) => (
               <div className="training-custom-tile" key={deck.id}>
                 <EntryButton
@@ -524,6 +546,7 @@ export const ScenarioPicker = ({
                   isActive={activeCustomId === deck.id}
                   onPick={() => onPickCustom(deck.id)}
                 />
+                <InfoButton name={deck.name} label="View cards" onInfo={event => setViewedDeck({ ...deck, opener: event.currentTarget })} />
                 <button
                   type="button"
                   className="training-deck-edit"
@@ -534,15 +557,26 @@ export const ScenarioPicker = ({
                 </button>
               </div>
             ))}
-            {/* The themed test decks are for testing: admins only. */}
-            {!isLimited(access) && SANDBOX_DECKS.map((deck) => (
-              <EntryButton
-                key={deck.id}
-                entry={deck}
-                preview={<DeckPreview cards={DECK_EXAMPLES[deck.id]} />}
-                isActive={!activeCustomId && deck.id === deckId}
-                onPick={() => onPickDeck(deck.id)}
-              />
+            {/* Presets keep their existing admin-only training access. */}
+            {!isLimited(access) && [
+              { label: 'Card decksets', decks: SANDBOX_DECKSETS, catalog: true },
+              { label: 'Practice decks', decks: SANDBOX_DECKS.filter(deck => !SANDBOX_DECKSETS.includes(deck)), catalog: false },
+            ].map(({ label, decks, catalog }) => (
+              <Fragment key={label}>
+                <SectionHeading>{label}</SectionHeading>
+                {decks.map(deck => {
+                  const cards = sandboxDeckCards(deck.id);
+                  return <div className="training-custom-tile" key={deck.id}>
+                    <EntryButton
+                      entry={catalog ? { ...deck, blurb: cards.length + ' cards. ' + deck.blurb } : deck}
+                      preview={<DeckPreview cards={DECK_EXAMPLES[deck.id] ?? cards.slice(0, 3)} />}
+                      isActive={!activeCustomId && deck.id === deckId}
+                      onPick={() => onPickDeck(deck.id)}
+                    />
+                    <InfoButton name={deck.name} label="View cards" onInfo={event => setViewedDeck({ name: deck.name, cards, opener: event.currentTarget })} />
+                  </div>;
+                })}
+              </Fragment>
             ))}
           </>
         )}

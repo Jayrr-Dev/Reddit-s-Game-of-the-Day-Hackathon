@@ -161,6 +161,35 @@ void test('movement cards follow formation rules and Jump grants Momentum', () =
   assert.equal(jumped.lastMovement, jumpReady.lastMovement);
 });
 
+void test('Invincible spends one stack on an entire enemy attack and blocks every on-hit proc', () => {
+  const base = fightWith(['backhand']);
+  const wolf = { ...base.heroes[0]!, heroId: 'ivoryWerewolf' as const, row: 'front' as const, moveIndex: 0 };
+  const ready = { ...base, waveArrival: false, heroes: [wolf] };
+  const rend = endTurnSteps(ready).find(step => step.move?.name === 'Rend');
+  assert.ok(rend);
+  assert.ok(rend.state.player.hp < ready.player.hp);
+  assert.ok(rend.state.player.statuses.bleed > 0);
+  const shielded = { ...ready, player: addStatus(ready.player, 'invincible', 2) };
+  const blocked = endTurnSteps(shielded).find(step => step.move?.name === 'Rend');
+  assert.ok(blocked);
+  assert.equal(blocked.state.player.hp, shielded.player.hp);
+  assert.equal(blocked.state.player.statuses.bleed, 0);
+  assert.equal(blocked.state.player.statuses.invincible, 1);
+  const last = endTurn({ ...shielded, player: addStatus(ready.player, 'invincible', 1) });
+  assert.equal(last.player.statuses.invincible, 0);
+  const unshielded = endTurn({ ...last, heroes: [{ ...wolf, moveIndex: 0 }] });
+  assert.ok(unshielded.player.hp < last.player.hp);
+});
+
+void test('Invincible does not spend a stack blocking Hex or a support move', () => {
+  const base = fightWith(['backhand']);
+  const actor = { ...base.heroes[0]!, heroId: 'holt' as const, row: 'front' as const, moveIndex: 0 };
+  const player = addStatus(addStatus(base.player, 'hex', 7), 'invincible', 1);
+  const after = endTurn({ ...base, player, heroes: [actor] });
+  assert.equal(after.player.hp, player.hp - 14);
+  assert.equal(after.player.statuses.invincible, 1);
+});
+
 void test('guard absorbs damage before HP', () => {
   const guarded = { ...createCombatant(20, 20), guard: 5 };
   const hit = takeDamage(guarded, 8);

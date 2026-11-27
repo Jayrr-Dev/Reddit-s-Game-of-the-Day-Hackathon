@@ -214,7 +214,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   '0-3-1': {
     name: 'Dodge Roll',
     description:
-      'Each Back Step adds 1 Invincible (stacks): each stack blocks one hit of damage',
+      'Each Back Step adds 1 Invincible: each stack blocks one attack, including all its hits',
   },
 };
 /** Ranks bought in one circle of any path (0 when not taken). */

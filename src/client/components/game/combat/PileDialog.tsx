@@ -22,6 +22,7 @@ export type CardBrowserView = PileId | 'deck';
 
 export type PileDialogProps = {
   titleOverride?: string;
+  focusCloseOnOpen?: boolean;
   pile: CardBrowserView;
   /** The pile's cards, top of the pile last (engine order). */
   cards: readonly CardId[];
@@ -59,6 +60,7 @@ export const PileDialog = ({
   cards,
   attacker,
   titleOverride,
+  focusCloseOnOpen = false,
   killsThisTurn,
   usesSpent,
   followUpReady,
@@ -148,6 +150,7 @@ export const PileDialog = ({
         </div>
         <button
           type="button"
+          autoFocus={focusCloseOnOpen}
           onClick={onClose}
           className="self-center rounded-full bg-surface-raised px-5 py-1.5 font-display text-sm font-bold uppercase tracking-wider text-ink ring-1 ring-edge active:scale-95"
         >

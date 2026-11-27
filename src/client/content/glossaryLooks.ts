@@ -121,6 +121,7 @@ const TERM_PATTERN = new RegExp(
     .filter((term) => !VERB_TERMS.has(term))
     .sort((a, b) => b.length - a.length)
     .map(escapeRegExp)
+    .concat('[Ee]nergy')
     .join('|')})\\b`
 );
 

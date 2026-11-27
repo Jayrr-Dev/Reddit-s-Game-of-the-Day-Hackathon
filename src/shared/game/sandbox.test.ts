@@ -28,7 +28,7 @@ import { getHero, unitTypeOf } from './heroes.ts';
 import { describeHeroMoveList } from './describe.ts';
 import { CARDS_PER_TURN, ENERGY_PER_TURN } from './rules.ts';
 import { getCard, isCardInPlay, type CardId } from './cards.ts';
-import { SANDBOX_DECKS, sandboxDeckCards, activeTrainingCards, restoreTrainingDecks, saveTrainingDeck } from './sandboxDecks.ts';
+import { SANDBOX_DECKS, SANDBOX_DECKSETS, sandboxDeckCards, activeTrainingCards, restoreTrainingDecks, saveTrainingDeck } from './sandboxDecks.ts';
 import { movementFailsOn } from './combat.ts';
 import { canMove, movementBlockReason, offeredMovement } from './movement.ts';
 import type { HeroUnit } from './types.ts';
@@ -227,6 +227,25 @@ void test('every test deck holds at least 4 cards, all in play', () => {
     assert.ok(new Set(cards).size >= 4, deck.id);
     assert.ok(cards.every(isCardInPlay), deck.id);
   }
+});
+
+void test('the five Decksets partition the playable catalog without duplicate copies', () => {
+  const listings = SANDBOX_DECKSETS.flatMap(deck => sandboxDeckCards(deck.id));
+  assert.equal(SANDBOX_DECKSETS.length, 5);
+  assert.deepEqual([...listings].sort(), sandboxDeckCards('all').sort());
+  assert.equal(new Set(listings).size, listings.length);
+  for (const id of ['blackArrow', 'barbedVolley', 'retreatingShot', 'steadyAim', 'deadeye', 'sharpshooter'] as const)
+    assert.ok(sandboxDeckCards('archerSet').includes(id), id);
+  FEATURES.threeRowField = true;
+  try { assert.ok(sandboxDeckCards('archerSet').includes('eagleEye')); }
+  finally { FEATURES.threeRowField = false; }
+  assert.ok(listings.filter(id => getCard(id).type === 'range').every(id => sandboxDeckCards('archerSet').includes(id)));
+  assert.ok(sandboxDeckCards('meleeSet').includes('battleFury'));
+  assert.ok(sandboxDeckCards('magicSet').includes('darkSurge'));
+  assert.ok(sandboxDeckCards('cursedSet').includes('bane'));
+  assert.ok(sandboxDeckCards('otherSet').includes('boneWard'));
+  assert.equal(restoreTrainingDecks({ deckId: 'archerSet' }).deckId, 'archerSet');
+  assert.equal(restoreTrainingDecks({ deckId: 'range' }).deckId, 'range');
 });
 
 void test('Stacked Buffs training deck has four copies of each family card', () => {

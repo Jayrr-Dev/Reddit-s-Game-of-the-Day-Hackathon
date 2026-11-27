@@ -90,6 +90,7 @@ import {
   dodge,
   missShot,
   takeHit,
+  spendInvincible,
   reapDamage,
 } from './combatant.ts';
 import { isLongRangeOn } from './features.ts';
@@ -1914,12 +1915,13 @@ const reviveFallen = (state: CombatState): CombatState => {
 const applyHeroEffect = (
   state: CombatState,
   actor: HeroUnit,
-  effect: HeroEffect
+  effect: HeroEffect,
+  attackBlock: { invincible: boolean }
 ): CombatState => {
   const scaled = (amount: number) => scaleByMight(amount, actor.might);
   switch (effect.kind) {
     case 'attack':
-      return heroShoots(state, actor, effect);
+      return heroShoots(state, actor, effect, attackBlock);
     case 'hex':
     case 'poison':
     case 'burn':
@@ -2063,7 +2065,8 @@ export const hasLongRangePassive = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
 const heroShoots = (
   state: CombatState,
   actor: HeroUnit,
-  effect: Extract<HeroEffect, { kind: 'attack' }>
+  effect: Extract<HeroEffect, { kind: 'attack' }>,
+  attackBlock: { invincible: boolean }
 ): CombatState => {
   const { type, perHit } = heroAttackOf(actor, effect, debuffPowerOf(state.player.skillPicks));
   const mayMiss = isOutOfRangeShot(type, actor.row, hasLongRangePassive(actor));
@@ -2078,6 +2081,17 @@ const heroShoots = (
     const mayDodge = lands && !effect.isHoming;
     const [dodged, ready] = mayDodge ? rollDodge(rolled, bonusAccuracy) : [false, rolled];
     const isStruck = lands && !dodged;
+    if (isStruck && perHit > 0) {
+      if (attackBlock.invincible) {
+        current = ready;
+        continue;
+      }
+      if (ready.player.statuses.invincible > 0) {
+        attackBlock.invincible = true;
+        current = { ...ready, player: spendInvincible(ready.player) };
+        continue;
+      }
+    }
     const struck = {
       ...ready,
       player: !lands
@@ -2142,13 +2156,14 @@ const heroActs = (
   // A HIT FOR 0 PROCS NOTHING: a move whose attacks all came to 0 (missed,
   // dodged, or stopped by Armor) lays none of its effects on the villain.
   let hasLanded = false;
+  const attackBlock = { invincible: false };
   const acted = effects.reduce<CombatState>((current, effect) => {
     const freshActor = current.heroes.find((unit) => unit.uid === uid) ?? actor;
     if (isDefeated(current.player)) return current;
     if (isCloaked(current.player) && isDirectHeroTarget(effect)) return current;
     const isSkipped = hasAttack && !hasLanded && isOnVillain(effect);
     if (isSkipped) return current;
-    const next = applyHeroEffect(current, freshActor, effect);
+    const next = applyHeroEffect(current, freshActor, effect, attackBlock);
     if (effect.kind === 'attack')
       hasLanded ||= villainWasHit(current.player, next.player);
     return next;

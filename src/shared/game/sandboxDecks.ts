@@ -13,7 +13,10 @@ import type { CardDef, CardEffect } from './types.ts';
 import { isUniqueCard, keepsUniqueLimit, withoutExtraUniques } from './unique.ts';
 
 // --- TYPES ---
+const DECKSET_IDS = ['archerSet', 'meleeSet', 'magicSet', 'cursedSet', 'otherSet'] as const;
+export type DecksetId = typeof DECKSET_IDS[number];
 export type SandboxDeckId =
+  | DecksetId
   | 'all'
   | 'newCards'
   | 'stackedBuffs'
@@ -94,7 +97,33 @@ const anyOf =
   (card: CardDef): boolean =>
     rules.some((rule) => rule(card));
 
+/** One catalog home per card. Specific support joins its playstyle; shared tools stay under Other. */
+export function decksetOf(card: CardDef): DecksetId {
+  if (card.type === 'range') return 'archerSet';
+  if (card.type === 'melee') return 'meleeSet';
+  if (card.type === 'magic') return 'magicSet';
+  if (card.type === 'curse') return 'cursedSet';
+  const matches: DecksetId[] = [];
+  if (buffsAny('hone', 'sharpshooter')(card) || hasKeyword('longRange')(card)) matches.push('archerSet');
+  if (buffsAny('might', 'berserker')(card) || hasEffect('momentum', 'charge')(card)) matches.push('meleeSet');
+  if (buffsAny('surge')(card)) matches.push('magicSet');
+  if (buffsAny('bane')(card)) matches.push('cursedSet');
+  return matches.length === 1 ? matches[0]! : 'otherSet';
+}
+
 // --- TABLE ---
+const DECKSET_LABELS = {
+  archerSet: ['Archer Deckset', 'Bows, ranged attacks and aim buffs.'],
+  meleeSet: ['Melee Deckset', 'Close-range attacks and melee support.'],
+  magicSet: ['Magic Deckset', 'Spells and magic support.'],
+  cursedSet: ['Cursed Deckset', 'Hex, curses and affliction support.'],
+  otherSet: ['Other Deckset', 'Shared defense, movement, Imbues and utility.'],
+} satisfies Record<DecksetId, readonly [string, string]>;
+
+export const SANDBOX_DECKSETS: readonly SandboxDeck[] = DECKSET_IDS
+  .map(id => ({ id, name: DECKSET_LABELS[id][0], blurb: DECKSET_LABELS[id][1], copies: 1,
+    fits: card => decksetOf(card) === id }));
+
 export const SANDBOX_DECKS: readonly SandboxDeck[] = [
   {
     id: 'all',
@@ -102,6 +131,7 @@ export const SANDBOX_DECKS: readonly SandboxDeck[] = [
     blurb: 'One of each card in the game.',
     fits: () => true,
   },
+  ...SANDBOX_DECKSETS,
   {
     id: 'newCards',
     name: 'New cards',

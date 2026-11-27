@@ -102,6 +102,8 @@ export const TintedText = ({ text }: { text: string }) => (
 
 /** A bold word: coloured and with its icon when it is a glossary word. */
 const BoldTerm = ({ text }: { text: string }) => {
+  if (text.toLowerCase() === 'energy')
+    return <b className="whitespace-nowrap font-bold text-energy"><span aria-hidden="true" className="glossary-energy-pip" />{text}</b>;
   const look = lookOfTerm(text);
   if (!look)
     return <b className={`font-bold ${emphasisToneClass(text)}`}>{text}</b>;

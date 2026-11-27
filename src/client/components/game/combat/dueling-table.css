@@ -153,12 +153,7 @@
   box-shadow: 0 2px 4px #170b07;
 }
 .table-pips .bg-energy {
-  background: radial-gradient(
-    circle at 40% 32%,
-    #fff4a5,
-    #ffbf39 52%,
-    #a95813 95%
-  );
+  background: var(--energy-pip-fill);
 }
 .table-end {
   display: flex;
@@ -853,7 +848,7 @@
 .training-speaker { position: absolute; left: 6px; top: 6px; display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--color-edge); border-radius: 999px; background: #000a; color: var(--color-accent); }
 .training-speaker:hover, .training-speaker[aria-pressed=true] { border-color: var(--color-accent); background: var(--color-accent); color: var(--color-on-accent); }
 .training-custom-tile .training-entry { width: 100%; height: 100%; }
-.training-deck-edit { position: absolute; right: 4px; top: 4px; padding: 2px 5px; font-size: 11px; }
+.training-deck-edit { position: absolute; left: 4px; top: 4px; padding: 2px 5px; font-size: 11px; }
 .training-info { position: absolute; right: 6px; top: 6px; display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid var(--color-edge); border-radius: 50%; background: var(--color-surface-raised); color: var(--color-accent); font-family: var(--font-display); font-weight: 900; font-style: italic; font-size: 14px; line-height: 1; }
 .training-info:hover, .training-info:focus-visible { border-color: var(--color-accent); }
 .unit-sprite-move { margin-top: 6px; min-height: 1.2em; color: var(--color-accent); font-family: var(--font-display); font-weight: 900; }

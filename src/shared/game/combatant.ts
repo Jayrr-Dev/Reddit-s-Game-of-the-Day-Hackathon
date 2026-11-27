@@ -355,6 +355,12 @@ export const dodge = <T extends Combatant>(target: T): T => ({
   dodgedHits: (target.dodgedHits ?? 0) + 1,
 });
 
+/** Spend one Invincible stack when the next damaging attack connects. */
+export const spendInvincible = <T extends Combatant>(target: T): T => ({
+  ...target,
+  statuses: { ...target.statuses, invincible: Math.max(0, target.statuses.invincible - 1) },
+});
+
 /**
  * Takes a hit of a type (a card's, or a hero attack's) and counts it
  * toward Shock: while shocked, every hit (any type) this turn adds
@@ -371,13 +377,7 @@ export const takeHit = <T extends Combatant>(
 ): T => {
   // INVINCIBLE: a stack turns this hit to 0, then goes (even past Piercing).
   if (amount > 0 && target.statuses.invincible > 0)
-    return countShockHit({
-      ...target,
-      statuses: {
-        ...target.statuses,
-        invincible: target.statuses.invincible - 1,
-      },
-    });
+    return countShockHit(spendInvincible(target));
   // PIERCING: past Protection, Armor and Guard, straight to HP.
   if (isPiercing) return countShockHit(loseHp(target, amount), source);
   const afterProtection = protectedAmount(target, amount);

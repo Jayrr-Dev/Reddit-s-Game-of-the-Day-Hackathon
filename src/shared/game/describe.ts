@@ -183,7 +183,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   invincible: {
     label: 'Invincible',
     description:
-      'The next damage it takes becomes **0**, then it loses 1 stack\nEach stack negates one more hit',
+      'Blocks all hits and on-hit effects of the next damaging attack that lands. Uses 1 stack per attack.',
   },
   reflex: {
     label: 'Reflex',
