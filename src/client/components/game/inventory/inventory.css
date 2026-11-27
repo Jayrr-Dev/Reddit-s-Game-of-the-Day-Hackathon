@@ -177,16 +177,17 @@
 
 /* Keep the complete card, including the orb and ribbon, inside the square. */
 .inv-card-miniature {
+  --mini-width: 80px;
+  --mini-height: 124px;
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: calc(50% - var(--mini-height) / 2);
+  left: calc(50% - var(--mini-width) / 2);
   display: grid;
   place-items: center;
-  width: 80px;
-  height: 124px;
-  translate: -50% -50%;
+  width: var(--mini-width);
+  height: var(--mini-height);
   transform: scale(.22);
-  transform: scale(calc((var(--inv-slot) - 4px) / 124px));
+  transform: scale(calc((var(--inv-slot) - 4px) / var(--mini-height)));
 }
 .inv-card-miniature .card-face {
   animation: none;
