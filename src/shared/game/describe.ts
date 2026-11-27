@@ -112,7 +112,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   poison: {
     label: 'Poison',
     description:
-      'Deals its value before an enemy acts or at the start of your turn. Any action adds 1 stack to all poisoned units. Each hit adds 1 to the poisoned target.',
+      'At turn start, deals its value as damage, then grows by 25% (rounded up).',
   },
   weaken: {
     label: 'Weaken',

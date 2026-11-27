@@ -212,19 +212,23 @@ void test('wrath adds to each hit and weaken cuts damage by 25%', () => {
   );
 });
 
-void test('poison damage ticks use the current stacks without changing them', () => {
+void test('poison grows after each tick so it deals more damage over time', () => {
   const poisoned = {
-    ...createCombatant(20, 20),
-    statuses: { ...NO_STATUSES, poison: 3, weaken: 1 },
+    ...createCombatant(100, 100),
+    statuses: { ...NO_STATUSES, poison: 8, weaken: 1 },
   };
   const ticked = poisonTick(poisoned);
-  assert.equal(ticked.hp, 17);
-  assert.equal(ticked.statuses.poison, 3);
-  assert.equal(ticked.poisonDamageTaken, 3);
+  assert.equal(ticked.hp, 92);
+  assert.equal(ticked.statuses.poison, 10);
+  const next = poisonTick(ticked);
+  assert.equal(next.hp, 82);
+  assert.equal(next.statuses.poison, 13);
+  assert.equal(next.poisonDamageTaken, 18);
+  assert.equal(poisonTick(createCombatant(10, 10)).statuses.poison, 0);
   // Upkeep (after the turn) leaves it alone now.
   const upkept = endOfTurnUpkeep(poisoned);
-  assert.equal(upkept.hp, 20);
-  assert.deepEqual(upkept.statuses, { ...NO_STATUSES, poison: 3 });
+  assert.equal(upkept.hp, 100);
+  assert.deepEqual(upkept.statuses, { ...NO_STATUSES, poison: 8 });
 });
 
 void test('a poisoned hero loses HP right before it acts; the villain at turn start', () => {
@@ -247,39 +251,11 @@ void test('a poisoned hero loses HP right before it acts; the villain at turn st
   const before = steps[moveAt - 1]!.state.heroes.find(
     (unit) => unit.uid === squire.uid
   )!;
-  assert.equal(before.hp, squire.hp - before.statuses.poison, 'its poison beat comes first');
+  assert.equal(before.hp, squire.hp - 3, 'its poison beat comes first');
+  assert.equal(before.statuses.poison, 4);
   // The villain's poison ticks when its next turn starts.
   assert.equal(steps[0]!.state.player.statuses.poison, 4, 'not at its end');
-  const prior = steps.at(-2)!.state.player;
-  assert.equal(prior.statuses.poison, 10, 'two enemy moves and four landed hits grow the original four stacks');
-  assert.equal(steps.at(-1)!.state.player.statuses.poison, 10, 'the turn-start tick is not an extra action');
-  assert.equal(steps.at(-1)!.state.player.poisonDamageTaken, 10);
-});
-
-void test('active Poison grows on Guard and HP hits, but not zero damage or from zero stacks', () => {
-  const unit = addStatus(createCombatant(30, 30), 'poison', 2);
-  const blocked = takeHit({ ...unit, guard: 5 }, 2, 'melee');
-  assert.equal(blocked.statuses.poison, 3);
-  assert.equal(blocked.hp, 30);
-  assert.equal(takeHit(blocked, 0, 'melee').statuses.poison, 3);
-  const pierced = takeHit(blocked, 2, 'magic', true);
-  assert.equal(pierced.statuses.poison, 4);
-  assert.equal(pierced.poisonDamageTaken, undefined, 'a direct hit grows Poison without ticking');
-  assert.equal(takeHit(createCombatant(30, 30), 2, 'melee').statuses.poison, 0);
-});
-
-void test('player Poison grows on a card and a move, then deals the full value at turn start', () => {
-  const fight = withHand(fightWith(['darkCloak']), ['darkCloak']);
-  const state = { ...fight, player: addStatus(fight.player, 'poison', 2), heroes: [addStatus(fight.heroes[0]!, 'poison', 1)] };
-  const played = playCard(state, 0, -1);
-  assert.equal(played.player.statuses.poison, 3);
-  assert.equal(played.heroes[0]?.statuses.poison, 2);
-  const stepped = move(played, 'backStep');
-  assert.equal(stepped.player.statuses.poison, 4);
-  assert.equal(stepped.heroes[0]?.statuses.poison, 3);
-  const opened = startPlayerTurn(stepped);
-  assert.equal(opened.player.hp, fight.player.hp - 4);
-  assert.equal(opened.player.statuses.poison, 4);
+  assert.equal(steps.at(-1)!.state.player.statuses.poison, 5);
 });
 
 void test('hex is left alone by end-of-turn upkeep', () => {
@@ -1536,6 +1512,28 @@ const dragonFight = (): CombatState =>
     seed: 4,
   });
 
+void test('Poison ticks once even when the enemy makes two moves', () => {
+  const start = dragonFight();
+  const dragon = start.heroes[0]!;
+  const steps = endTurnSteps({ ...start, heroes: [addStatus(dragon, 'poison', 8)] });
+  assert.equal(steps.filter(step => step.actorUid === dragon.uid).length, 2);
+  const after = steps.at(-1)!.state.heroes.find(unit => unit.uid === dragon.uid)!;
+  assert.equal(after.poisonDamageTaken, 8);
+  assert.equal(after.statuses.poison, 10);
+});
+
+void test('Poison does not grow from hits, card plays, or movement', () => {
+  const start = fightWith(['backhand']);
+  const target = addStatus(start.heroes[0]!, 'poison', 8);
+  const player = addStatus(start.player, 'poison', 8);
+  const played = playCard({ ...start, player, heroes: [target] }, 0, target.uid);
+  assert.ok(played.heroes[0]!.hp < target.hp);
+  const moved = move(played, 'backStep');
+  assert.notEqual(moved, played);
+  assert.equal(moved.heroes[0]!.statuses.poison, 8);
+  assert.equal(moved.player.statuses.poison, 8);
+});
+
 void test('the dragon makes two moves a turn: Sol summons, then breathes', () => {
   const start = dragonFight();
   const [dragon] = start.heroes;
@@ -2034,7 +2032,7 @@ void test('an imbue on a multi-hit card lands once per hit', () => {
   const after = playCard(imbued, 0, uid);
   const hero = after.heroes.find((unit) => unit.uid === uid);
   // Flurry hits 3 times, so Poison 3 lands 3 times.
-  assert.equal(hero?.statuses.poison, 11, 'three Poison 3 procs, plus growth on hits two and three');
+  assert.equal(hero?.statuses.poison, 9);
 });
 
 void test("imbued damage adds to the card's own Damage (Keen Edge on Backhand: 6 + 5)", () => {
@@ -3293,7 +3291,7 @@ void test('Protection reduces all damaging afflictions after source scaling with
   assert.ok(effects.every(x => x.guard === 9 && x.statuses.armor === 5));
   assert.equal(effects[3]!.bleedTaken, 2);
   assert.equal(effects[4]!.shockDamageTaken, 5);
-  assert.deepEqual(effects.map((x, i) => x.statuses[(['hex','poison','burn','bleed','shock'] as const)[i]!]), [4, 7, 4, 7, 2]);
+  assert.deepEqual(effects.map((x, i) => x.statuses[(['hex','poison','burn','bleed','shock'] as const)[i]!]), [4, 9, 4, 7, 2]);
   const source = { ...unit, traits: { ...createCharacter().traits, scorn: 64 } };
   assert.equal(100 - poisonTick(base, source).hp, 6);
   assert.equal(100 - poisonTick({ ...base, statuses: { ...base.statuses, protection: 4 } }).hp, 1);
@@ -3325,7 +3323,7 @@ void test('Dispel is a targeted Magic card that removes one random buff, not Gua
   const result = playCard(fight, 0, target.uid);
   const hero = result.heroes[0]!;
   assert.equal(hero.statuses.wrath, 0);
-  assert.equal(hero.statuses.poison, 4, 'Dispel did not clear Poison, so the action grew it');
+  assert.equal(hero.statuses.poison, 3);
   assert.equal(hero.guard, 8);
   assert.equal(hero.hp, target.hp);
   assert.deepEqual(playCard(fight, 0, target.uid), result);
@@ -3485,7 +3483,7 @@ void test('Mass Disrupt costs two energy and applies Disrupt 5 separately to eve
   const played = playCard(state, 0, first.uid);
   assert.equal(played.energy, state.energy - 2);
   assert.equal(played.heroes[0]!.statuses.wrath, 3);
-  assert.equal(played.heroes[1]!.statuses.poison, 2, 'reduction to 1 followed by action growth');
+  assert.equal(played.heroes[1]!.statuses.poison, 1);
   assert.equal(played.heroes[0]!.hp, first.hp);
   assert.equal(played.heroes[1]!.hp, second.hp);
 });
@@ -3502,7 +3500,7 @@ void test('Mass Disrupt lowers every debuff, then caps the enemy’s next attack
   const affected = played.heroes[0]!;
   assert.equal(affected.statuses.hex, 0);
   assert.equal(affected.statuses.bleed, 0);
-  assert.equal(affected.statuses.poison, 2, 'reduction to 1 followed by action growth');
+  assert.equal(affected.statuses.poison, 1);
   assert.equal(affected.statuses.wrath, 0);
   assert.equal(affected.statuses.hitLimit, 1);
   const limited = plannedHeroMove(affected, [affected])?.move.effects.find(effect => effect.kind === 'attack');

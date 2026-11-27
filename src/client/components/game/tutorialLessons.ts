@@ -217,7 +217,7 @@ export const lessons: Lesson[] = [
       inspect(
         '.enemy-status-grid button[aria-label^="Poison"]',
         'Inspect Poison',
-        'Tap Poison. Its stacks deal damage before the enemy acts, then fall by one.'
+        'Tap Poison. At turn start, it deals damage, then grows by 25% (rounded up).'
       ),
       play(
         'darkCloak',

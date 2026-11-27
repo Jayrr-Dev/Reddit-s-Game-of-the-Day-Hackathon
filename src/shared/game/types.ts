@@ -15,8 +15,8 @@ import type { SkillPick } from './skills.ts';
  * Lingering effects on a combatant (guard, the block value, shown to
  * players as "Guard", lives on the
  * combatant itself because it resets every turn):
- * - poison: loses this much HP right before each of its actions (a hero
- *           move; the villain's turn start); grows by 1 whenever anyone acts or this unit takes a direct hit
+ * - poison: deals its value as damage at the unit's turn start,
+ *           then grows by 25% (rounded up)
  * - burn:   deals damage on application and right after each of its actions (a hero
  *           move; the villain's whole turn), then halves (3 -> 1, 1 -> 0)
  * - frost:  every hit it deals is 1 lower per stack (never below 0);
