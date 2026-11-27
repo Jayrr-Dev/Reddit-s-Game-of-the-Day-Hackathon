@@ -33,7 +33,7 @@ export function areaVisitedRooms(explored: number, visited?: readonly number[]):
   return visited ?? Array.from({ length: explored }, (_, i) => i);
 }
 
-const BATTLE_LABEL = { elite: 'Encounter', 'location-boss': 'City Boss', 'region-boss': 'Guardian', 'dragon-boss': 'Dragon' };
+const BATTLE_LABEL = { elite: 'Encounter', 'location-boss': 'City Boss', 'region-boss': 'Guardian', 'dragon-boss': 'Dragon', 'endless-boss': 'Champion' };
 
 /** Build encounter and visit markers from the same battle plan the run uses. */
 export function areaMapNodes(site: AreaSite, battles: readonly AreaBattle[]): AreaMapNode[] {

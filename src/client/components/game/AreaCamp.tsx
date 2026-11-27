@@ -24,7 +24,7 @@ export function AreaCamp({ run, onAction }: { run: RunState; onAction: (action: 
       <p>{event.detail}</p>
       {event.result && <small>{event.result}</small>}
     </aside>}
-    {!explored && !!heal && <Button variant="menu" onClick={() => onAction({ type: 'areaCamp', choice: 'rest' })}>
+    {run.conquestVersion !== 3 && !explored && !!heal && <Button variant="menu" onClick={() => onAction({ type: 'areaCamp', choice: 'rest' })}>
       Rest (+{heal} HP)
     </Button>}
     <Button variant="menuPrimary" onClick={() => onAction({ type: 'areaCamp', choice: 'continue' })}>{continuing}</Button>

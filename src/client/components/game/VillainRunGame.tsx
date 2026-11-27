@@ -34,7 +34,11 @@ import { ConquestMap } from './ConquestPrelude';
 import { MAP_IMAGES, MAP_NAMES } from './combat/Backdrop';
 import { AreaCamp } from './AreaCamp';
 import { RunHud } from './RunHud';
-import { isLastRegion, PURGATORY_ARENA_TITLE } from '../../../shared/game/conquestAreas';
+import { battleTierName, isLastRegion, PURGATORY_ARENA_TITLE } from '../../../shared/game/conquestAreas';
+import { endlessClearedWaves, endlessWaveNumber } from '../../../shared/game/endless';
+import { battleRewardMultiplier } from '../../../shared/game/battleTiers';
+import { XP_PER_VICTORY } from '../../../shared/game/rules';
+import { BattleRespite } from './BattleRespite';
 import { useProgressiveImage } from '../../hooks/useProgressiveImage';
 
 // --- TYPES ---
@@ -66,11 +70,14 @@ const PhaseBody = ({ run, runId, onAction, onMainMenu, endless }: VillainRunGame
       const battle = area?.battles[area.battle];
       const wave = area ? battle?.waves[area.wave] : undefined;
       const regionTitle = 'Wave ' + run.stop + ' · ' + regionOfRun(run);
-      const battleTitle = area && battle ? 'Battle ' + (area.battle + 1) + '/' + area.battles.length + ' · Wave ' + (area.wave + 1) + '/' + battle.waves.length : regionTitle;
+      const battleTitle = area && battle ? (battleTierName(battle.waves.length) ?? 'Battle ' + (area.battle + 1) + '/' + area.battles.length)
+        + ' · Wave ' + (area.wave + 1) + '/' + battle.waves.length : regionTitle;
       const mapIndex = area ? MAP_NAMES.findIndex(name => name === area.site.map)
         : routeLocation(run.stop, phase.stop.optionIndex ?? 0, phase.stop.kind, chosenRegion(run)).terrain;
       const finalArena = battle?.waves.some(part => part.heroIds.includes('archangelMikhael'))
         ? bossArenaOf(['archangelMikhael']) : undefined;
+      const arena = endless && battle ? bossArenaOf(battle.waves.at(-1)?.heroIds ?? [])
+        : area?.site.dragon ? bossArenaOf([area.site.dragon]) : finalArena;
       return (
         <CombatView
           key={run.stop + ':' + (area?.battle ?? 0)}
@@ -79,10 +86,10 @@ const PhaseBody = ({ run, runId, onAction, onMainMenu, endless }: VillainRunGame
           character={run.character}
           deck={run.deck}
           terrainIndex={mapIndex}
-          {...(area && area.site.kind !== 'dragon' && { trainingArenaOverride: finalArena ?? null })}
+          {...(area && { trainingArenaOverride: arena ?? null })}
           {...(area && { campaignLocation: area.site.kind === 'capital' && isLastRegion(run.stop) ? PURGATORY_ARENA_TITLE : area.site.name })}
-          where={endless ? 'Endless · Wave ' + run.stop : wave && area?.wave !== 0 ? battleTitle + ' · ' + wave.name : battleTitle}
-          score={endless ? run.stats.wavesCleared : computeScore(run.stats)}
+          where={endless ? 'Endless · Wave ' + endlessWaveNumber(run) : wave && area?.wave !== 0 ? battleTitle + ' · ' + wave.name : battleTitle}
+          score={endless ? endlessClearedWaves(run) : computeScore(run.stats)}
           {...(endless && { scoreUnit: 'cleared' })}
           onAction={onAction}
           pauseActions={
@@ -100,9 +107,12 @@ const PhaseBody = ({ run, runId, onAction, onMainMenu, endless }: VillainRunGame
       return (
         <OfferView
           title="Spoils of war"
-          goldReward={runId && phase.source ? goldRewardFor(runId, run.stop, phase.source, run.pandoraEffect, run.area?.battle) : undefined}
+          goldReward={runId && phase.source ? goldRewardFor(runId, run.stop, phase.source, run.pandoraEffect, run.area?.battle, run.goldVictories.at(-1)?.waves, run.goldVictories.at(-1)?.pushes) : undefined}
+          xpReward={run.goldVictories.at(-1)?.waves ? XP_PER_VICTORY * battleRewardMultiplier(run.goldVictories.at(-1)?.waves) : undefined}
           rerolls={phase.rerolled ? 0 : 1}
-          subtitle={phase.bonusImbue ? 'Special drop: ' + getCard(phase.bonusImbue).name + ' added. Choose one more card.' : 'Add one card to your deck.'}
+          subtitle={phase.foundCards?.length || phase.bonusImbue
+            ? 'Found: ' + [...(phase.foundCards ?? []), ...(phase.bonusImbue ? [phase.bonusImbue] : [])].map(id => getCard(id).name).join(', ') + '. Choose one more card.'
+            : 'Add one card to your deck.'}
           unlockedRingSlot={run.storyRingUnlocked}
           offers={phase.offers}
           onAction={onAction}
@@ -137,14 +147,14 @@ export const StoryDefeat = ({ run, onContinue }: { run: RunState; onContinue: ()
 };
 
 /** A level-up summary keeps the new level, unspent points, and next goal together. */
-function LevelUpDialog({ character, onClose, onOpenCharacter }: {
-  character: CharacterState; onClose: () => void; onOpenCharacter: () => void;
+function LevelUpDialog({ character, levels, onClose, onOpenCharacter }: {
+  character: CharacterState; levels: number; onClose: () => void; onOpenCharacter: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const xpGoal = xpToNextLevel(character.level, character.legacyProgression, character.scaledExperience);
   const earnedTraits = traitPointsAvailable(character) -
-    traitPointsAvailable({ ...character, level: character.level - 1 });
+    traitPointsAvailable({ ...character, level: character.level - levels });
   useLayoutEffect(() => {
     const node = dialog.current;
     node?.showModal();
@@ -156,7 +166,7 @@ function LevelUpDialog({ character, onClose, onOpenCharacter }: {
     <h2 id={titleId}>Level {character.level}</h2>
     <dl className="level-up-points">
       <div><dt>Trait points</dt><dd><strong>+{earnedTraits}</strong> earned <span>{traitPointsAvailable(character)} available</span></dd></div>
-      <div><dt>Skill points</dt><dd><strong>+1</strong> earned <span>{skillPointsLeft(character)} available</span></dd></div>
+      <div><dt>Skill points</dt><dd><strong>+{levels}</strong> earned <span>{skillPointsLeft(character)} available</span></dd></div>
     </dl>
     {xpGoal > 0 ? <div className="level-up-xp">
       <p>{xpGoal - character.xp} XP to level {character.level + 1}</p>
@@ -224,7 +234,12 @@ export const VillainRunGame = ({ run, runId, onAction, onMainMenu, endless }: Vi
   if (run.phase.kind === 'combat')
     return (
       <div className="relative h-full w-full overflow-hidden">
-        <PhaseBody run={run} runId={runId} onAction={onAction} onMainMenu={onMainMenu} endless={endless} />
+        <div className="h-full" inert={!!run.area?.respite}>
+          <PhaseBody run={run} runId={runId} onAction={onAction} onMainMenu={onMainMenu} endless={endless} />
+        </div>
+        {run.area?.respite && <div className="absolute inset-0 z-[90]">
+          <BattleRespite run={run} endless={!!endless} onAction={onAction} onExit={onMainMenu} />
+        </div>}
       </div>
     );
   return (
@@ -244,8 +259,8 @@ export const VillainRunGame = ({ run, runId, onAction, onMainMenu, endless }: Vi
         )}
         <PhaseBody run={run} runId={runId} onAction={onAction} onMainMenu={onMainMenu} />
       </main>
-      {leveledAtReward && dismissedLevel !== levelKey && !showCharacter && (
-        <LevelUpDialog key={levelKey} character={run.character}
+      {run.phase.kind === 'reward' && leveledAtReward && dismissedLevel !== levelKey && !showCharacter && (
+        <LevelUpDialog key={levelKey} character={run.character} levels={run.phase.levelsGained ?? 1}
           onClose={() => setDismissedLevel(levelKey)}
           onOpenCharacter={() => { setDismissedLevel(levelKey); setShowCharacter(true); }} />
       )}

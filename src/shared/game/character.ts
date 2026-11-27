@@ -1,7 +1,7 @@
 import { shopAmuletBonus } from './amuletBonuses.ts';
 import { buySkill, healingSkillBonusOf, isSkillPick, type SkillPick } from './skills.ts';
 import type { CombatState } from './types.ts';
-import { PLAYER_MAX_HP, PLAYER_HP_CAP, LEGACY_PLAYER_HP_CAP, CARDS_PER_TURN, RESERVE_ENERGY_SLOTS } from './rules.ts';
+import { PLAYER_MAX_HP, PLAYER_HP_CAP, LEGACY_PLAYER_HP_CAP, CARDS_PER_TURN, RESERVE_ENERGY_SLOTS, XP_PER_VICTORY } from './rules.ts';
 
 export const TRAITS = [
   'vigor',
@@ -346,7 +346,6 @@ export const discardItem = (character: CharacterState, id: string): CharacterSta
   };
 };
 
-const XP_PER_VICTORY = 100;
 
 /** A rising curve: early gains teach the systems; high ranks take longer. */
 function levelXpThreshold(level: number, scaled = false) {
@@ -358,15 +357,11 @@ function levelXpThreshold(level: number, scaled = false) {
 export const xpToNextLevel = (level: number, legacyProgression = false, scaled = false) =>
   level >= (legacyProgression ? LEGACY_RUN_LEVEL_CAP : LEVEL_CAP) ? 0 : levelXpThreshold(level, scaled);
 export const awardCharacterVictory = (
-  character: CharacterState
+  character: CharacterState, xp = XP_PER_VICTORY
 ): CharacterState => {
   const cap = character.legacyProgression ? LEGACY_RUN_LEVEL_CAP : LEVEL_CAP;
   if (character.level >= cap) return character;
-  const xp = character.xp + XP_PER_VICTORY;
-  const threshold = xpToNextLevel(character.level, !!character.legacyProgression, !!character.scaledExperience);
-  if (xp < threshold) return { ...character, xp };
-  const level = character.level + 1;
-  return { ...character, level, xp: level === cap ? 0 : xp - threshold };
+  return { ...character, ...progressAt(character.level, character.xp + xp, cap, !!character.scaledExperience) };
 };
 
 /** Walk cumulative XP forward from a known level. */
@@ -379,14 +374,14 @@ function progressAt(level: number, xp: number, cap: number, scaled = false) {
 }
 
 /** Preserve the level and progress already earned at the changeover. */
-export function progressionFromWins(wins: number, legacyProgression = false, xpStartWins?: number) {
+export function progressionFromWins(wins: number, legacyProgression = false, xpStartWins?: number, bonusXp = 0) {
   const count = Math.max(0, Math.floor(wins));
   const cap = legacyProgression ? LEGACY_RUN_LEVEL_CAP : LEVEL_CAP;
-  if (xpStartWins === undefined) return progressAt(1, count * XP_PER_VICTORY, cap);
+  if (xpStartWins === undefined) return progressAt(1, count * XP_PER_VICTORY + bonusXp, cap);
   const migratedAt = Math.min(count, Math.max(0, Math.floor(xpStartWins)));
   const { level, xp } = progressAt(1, migratedAt * XP_PER_VICTORY, cap);
   const carried = Math.floor(xp * levelXpThreshold(level, true) / levelXpThreshold(level));
-  return progressAt(level, carried + (count - migratedAt) * XP_PER_VICTORY, cap, true);
+  return progressAt(level, carried + (count - migratedAt) * XP_PER_VICTORY + bonusXp, cap, true);
 }
 
 /** Preserve build proportions with integer quotas and stable trait-order ties. */

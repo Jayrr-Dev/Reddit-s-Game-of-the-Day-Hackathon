@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { areaMapNodes, areaTerrain, type AreaMapNode, type AreaTerrain } from '../../../shared/game/areaMap';
-import type { AreaBattle, AreaSite } from '../../../shared/game/conquestAreas';
+import { battleTierName, type AreaBattle, type AreaSite } from '../../../shared/game/conquestAreas';
 import { Glyph } from '../ui/Glyph';
 import { AtlasLandmark } from './KingdomAtlas';
 import { MapExpandButton } from './MapExpandButton';
@@ -68,6 +68,8 @@ export function LocalAreaMap({ site, battles, heading = site.name, onBack, inter
   const terrain = areaTerrain(site);
   const nodes = areaMapNodes(site, battles);
   const selected = nodes.find(node => node.id === selection);
+  const waves = selected?.kind === 'battle' ? battles[selected.battle]?.waves.length : undefined;
+  const tier = waves ? battleTierName(waves) : undefined;
   const status = (node: AreaMapNode) => {
     if (!interaction) return 'Preview';
     if (node.battle < interaction.battle) return 'Passed';
@@ -95,7 +97,9 @@ export function LocalAreaMap({ site, battles, heading = site.name, onBack, inter
         }} />)}
     </div>
     <footer className="local-area-footer">
-      {selected && <small className="local-area-inspection" aria-live="polite">{selected.label} · {status(selected)}</small>}
+      {selected && <small className="local-area-inspection" aria-live="polite">
+        {selected.label} · {tier ? tier + ' · ' : ''}{waves ? waves + ' waves · ' : ''}{status(selected)}
+      </small>}
       {children}
     </footer>
   </section>;

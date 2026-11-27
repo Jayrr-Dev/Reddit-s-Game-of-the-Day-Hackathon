@@ -319,6 +319,7 @@ export const GRAVE_HEAL_FRACTION = 0.35;
 export const GRAVE_VOW_MAX_HP = 8;
 /** HP restored after defeating a region's champion. */
 export const CHAMPION_VICTORY_HEAL = 15;
+export const XP_PER_VICTORY = 100;
 /** Cards offered after a fight or at the dark altar. */
 export const OFFER_SIZE = 3;
 
@@ -328,5 +329,5 @@ export const SCORE_PER_HERO_SLAIN = 10;
 export const SCORE_PER_REGION = 500;
 
 // --- SAFETY LIMITS ---
-/** The server refuses action logs longer than this. */
-export const MAX_RUN_ACTIONS = 6000;
+/** Longer multi-wave battles need room for a full campaign action log. */
+export const MAX_RUN_ACTIONS = 18000;

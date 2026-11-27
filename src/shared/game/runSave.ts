@@ -220,12 +220,13 @@ export const restoreLoggedRun = (
             ...('progressionVersion' in saved.profile && saved.profile.progressionVersion === 2 && { progressionVersion: 2 as const }),
             ...('vigorVersion' in saved.profile && saved.profile.vigorVersion === 1 && { vigorVersion: 1 as const }),
             ...('xpStartWins' in saved.profile && isWinBaseline(saved.profile.xpStartWins) && { xpStartWins: saved.profile.xpStartWins }),
+            ...('bonusXp' in saved.profile && isWinBaseline(saved.profile.bonusXp) && { bonusXp: saved.profile.bonusXp }),
             ...('conquestVersion' in saved.profile && isConquestVersion(saved.profile.conquestVersion) && { conquestVersion: saved.profile.conquestVersion }),
             ...('cardRules' in saved.profile && saved.profile.cardRules === 1 && { cardRules: 1 as const }),
             ...('carriedCards' in saved.profile && isCarriedDeck(saved.profile.carriedCards) && { carriedCards: saved.profile.carriedCards }),
             ...('carriedCard' in saved.profile && isCardId(saved.profile.carriedCard) && { carriedCard: saved.profile.carriedCard }) };
           const actions = saved.actions.filter(isRunAction);
-          return { run: replayRun(day, actions, initialRings, saved.attempt, profile.wins, profile.shopRings, profile.pandoraEffect, profile.cardRules, profile.carriedCards ?? profile.carriedCard, profile.progressionVersion !== 2, profile.conquestVersion, profile.xpStartWins, profile.vigorVersion !== 1), attempt: saved.attempt, initialRings, actions, profile };
+          return { run: replayRun(day, actions, initialRings, saved.attempt, profile.wins, profile.shopRings, profile.pandoraEffect, profile.cardRules, profile.carriedCards ?? profile.carriedCard, profile.progressionVersion !== 2, profile.conquestVersion, profile.xpStartWins, profile.vigorVersion !== 1, profile.bonusXp), attempt: saved.attempt, initialRings, actions, profile };
         }
         return restoreActions(
           day,

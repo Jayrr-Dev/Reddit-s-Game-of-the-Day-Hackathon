@@ -1,17 +1,19 @@
 import { isChampionStop, regionIndexOf, routeOptions, stopSeed, type Stop } from './kingdom.ts';
 import { regionChoices, type RegionChoice } from './regionRoutes.ts';
 import { stopLocation } from './routeLocation.ts';
-import { nextInt, pickOne } from './rng.ts';
+import { nextInt, pickDistinct, pickOne } from './rng.ts';
 import { CONQUEST_SCENARIOS } from './conquestScenarios.ts';
 import { CHAMPION_IDS, type HeroId } from './heroes.ts';
 import { STOPS_PER_REGION } from './rules.ts';
+import { BATTLE_WAVES } from './battleTiers.ts';
+export { BATTLE_WAVES, battleTierName } from './battleTiers.ts';
 
-export const CONQUEST_VERSION = 2;
-export type ConquestVersion = 1 | typeof CONQUEST_VERSION;
+export const CONQUEST_VERSION = 3;
+export type ConquestVersion = 1 | 2 | typeof CONQUEST_VERSION;
 
 /** Old issued runs retain their original encounter generation. */
 export function isConquestVersion(value: unknown): value is ConquestVersion {
-  return value === 1 || value === CONQUEST_VERSION;
+  return value === 1 || value === 2 || value === CONQUEST_VERSION;
 }
 export const PURGATORY_ARENA_TITLE = 'The End of the World';
 export const PURGATORY_ARENA_LORE = 'The Sin rose from the ashes of this city. Mikhael waits amid what remains.';
@@ -39,7 +41,7 @@ export const isLastRegion = (stop: number) => regionIndexOf(stop) === CAMPAIGN_L
 
 export type AreaSite = { name: string; map: string; flavour: string; kind: 'field' | 'depths' | 'city' | 'capital' | 'dragon'; dragon?: HeroId; cityBoss?: HeroId };
 type Wave = { name: string; heroIds: readonly HeroId[]; might?: number };
-export type AreaBattle = { waves: readonly Wave[]; finish: 'elite' | 'location-boss' | 'region-boss' | 'dragon-boss'; rooms: number; secrets: number };
+export type AreaBattle = { waves: readonly Wave[]; finish: 'elite' | 'location-boss' | 'region-boss' | 'dragon-boss' | 'endless-boss'; rooms: number; secrets: number };
 
 /** The two routes at each tier each lead to their own capital city. */
 const CAPITAL_NAMES = [
@@ -135,7 +137,7 @@ export function conquestStops(key: string, stop: number, region?: RegionChoice, 
     const location = stopLocation(stop, option, 'horde', region);
     const extraMaps = ['River Bridge', 'Castle Gates', 'City Square', 'Fallen City', 'Royal Court'];
     const lateMap = index >= 6 ? regionChoices(index, true)[region ?? 0].map : undefined;
-    const hasGuardedCity = version === CONQUEST_VERSION || (index < 7 && option === 1);
+    const hasGuardedCity = version >= 2 || (index < 7 && option === 1);
     const bossSite = hasGuardedCity && stop % STOPS_PER_REGION === STOPS_PER_REGION - 1 ? BOSS_LOCATIONS[index]?.[option] : undefined;
     if (bossSite) return { kind: 'horde', heroIds: [], site: { ...bossSite, kind: 'city',
       flavour: 'A named guardian holds this location.' } };
@@ -149,7 +151,7 @@ export function conquestStops(key: string, stop: number, region?: RegionChoice, 
 }
 
 /** Builds a site's ordered sequence once; all its battles use the same map. */
-export function buildAreaBattles(site: AreaSite, dailyKey: string, stop: number, option: number): AreaBattle[] {
+export function buildAreaBattles(site: AreaSite, dailyKey: string, stop: number, option: number, version: ConquestVersion = CONQUEST_VERSION): AreaBattle[] {
   const index = regionIndexOf(stop);
   const seed = stopSeed(dailyKey, 'area:' + option + ':' + site.name, stop);
   const opening = site.kind === 'capital' ? CONQUEST_SCENARIOS.cityGarrison
@@ -158,9 +160,14 @@ export function buildAreaBattles(site: AreaSite, dailyKey: string, stop: number,
     : stop <= 2 ? CONQUEST_SCENARIOS.roadPatrol
     : pickOne(seed, [CONQUEST_SCENARIOS.tollWatch, CONQUEST_SCENARIOS.sideStreetAmbush, CONQUEST_SCENARIOS.woodlineSkirmish])[0];
   return LAYOUTS[site.kind].map((layout, battle) => {
-    if (site.dragon) return { ...layout, finish: 'dragon-boss', waves: [{ name: 'Area Boss', heroIds: [site.dragon], might: 0.7 + index * 0.06 }] };
     const cityBoss = site.kind === 'city' && battle === 1;
     const regionBoss = site.kind === 'capital' && battle === 1;
+    const target = site.dragon || regionBoss ? BATTLE_WAVES.grand
+      : site.kind === 'capital' || (cityBoss && site.cityBoss) ? BATTLE_WAVES.regimental : BATTLE_WAVES.skirmish;
+    const reinforce = (waves: Wave[]) => version >= 3
+      ? fillBattleWaves(waves, stopSeed(dailyKey, 'reinforcements:' + option + ':' + site.name + ':' + battle, stop), stop, target)
+      : waves;
+    if (site.dragon) return { ...layout, finish: 'dragon-boss', waves: reinforce([{ name: 'Area Boss', heroIds: [site.dragon], might: 0.7 + index * 0.06 }]) };
     const elite = CHAMPION_IDS[(index + battle + (site.kind === 'depths' ? 2 : 0) + option) % CHAMPION_IDS.length]!;
     const finale: Wave = regionBoss ? regionBossWave(index)
       : cityBoss && site.cityBoss ? { name: 'City Boss', heroIds: site.cityBoss === 'lightLordMori' ? [site.cityBoss, 'paladin', 'hornedSentinel'] : [site.cityBoss], might: site.cityBoss === 'grandGriffon' ? 0.55 : 0.8 + index * 0.04 }
@@ -171,8 +178,30 @@ export function buildAreaBattles(site: AreaSite, dailyKey: string, stop: number,
     if (regionBoss && index >= 3) waves.push(index === 4 ? CONQUEST_SCENARIOS.siegeLine : index % 2 ? CONQUEST_SCENARIOS.assassinPatrol : CONQUEST_SCENARIOS.veteranEscort);
     if (index >= 2 && battle === 0 && site.kind !== 'field') waves.push(CONQUEST_SCENARIOS.veteranEscort);
     waves.push(finale);
-    return { ...layout, waves, finish: regionBoss ? 'region-boss' : cityBoss && site.cityBoss ? 'location-boss' : 'elite' };
+    return { ...layout, waves: reinforce(waves), finish: regionBoss ? 'region-boss' : cityBoss && site.cityBoss ? 'location-boss' : 'elite' };
   });
+}
+
+/** Use varied reinforcement rotations before the authored finale, not after the boss. */
+function fillBattleWaves(waves: Wave[], seed: number, stop: number, target: number): Wave[] {
+  const missing = target - waves.length;
+  if (missing <= 0) return waves;
+  const small = [CONQUEST_SCENARIOS.roadPatrol, CONQUEST_SCENARIOS.tollWatch,
+    CONQUEST_SCENARIOS.sideStreetAmbush, CONQUEST_SCENARIOS.woodlineSkirmish, CONQUEST_SCENARIOS.gateWatch];
+  const pool = stop <= 5 ? small : [...small, CONQUEST_SCENARIOS.cryptWardens,
+    CONQUEST_SCENARIOS.bridgeRetinue, CONQUEST_SCENARIOS.cityGarrison,
+    CONQUEST_SCENARIOS.undercroftGuard, CONQUEST_SCENARIOS.veteranEscort,
+    CONQUEST_SCENARIOS.assassinPatrol, CONQUEST_SCENARIOS.capitalVanguard, CONQUEST_SCENARIOS.siegeLine];
+  const candidates = pool.filter(wave => !waves.some(existing => existing.name === wave.name));
+  const rotated = pickDistinct(seed, candidates, candidates.length)[0];
+  const extras = Array.from({ length: missing }, (_, index): Wave => {
+    const wave = rotated[index % rotated.length]!;
+    const progress = (index + 1) / missing;
+    // Reinforcements wear the player down without outscaling the authored boss.
+    const might = stop <= 5 ? 0.38 + 0.16 * progress : conquestMightAt(stop) * (0.46 + 0.30 * progress);
+    return { ...wave, might };
+  });
+  return [...waves.slice(0, -1), ...extras, waves.at(-1)!];
 }
 
 export type RoomEvent = { title: string; detail: string; heal?: number; reward?: 'horde' | 'elite'; secret?: true; greed?: true };

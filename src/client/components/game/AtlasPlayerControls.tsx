@@ -9,7 +9,7 @@ import { BattleCharacterSheet } from './BattleCharacterSheet';
 import { SettingsDialog } from './menu/SettingsDialog';
 
 export type AtlasRunControls = {
-  run: Pick<RunState, 'character' | 'hp' | 'maxHp' | 'deck' | 'artifacts'>;
+  run: Pick<RunState, 'character' | 'hp' | 'maxHp' | 'deck' | 'artifacts' | 'conquestVersion'>;
   onAction: (action: RunAction) => void;
   onMainMenu: () => void;
 };

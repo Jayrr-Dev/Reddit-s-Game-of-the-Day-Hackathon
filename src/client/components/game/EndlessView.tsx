@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useReducer, useState } from 'react';
-import { createEndless, reduceEndless } from '../../../shared/game/endless';
+import { createEndless, ENDLESS_BATTLE_VERSION, endlessClearedWaves, endlessWaveNumber, reduceEndless, restoreEndlessProfile, type EndlessProfile } from '../../../shared/game/endless';
+import type { RingProgress } from '../../../shared/game/character';
+import { apiClient } from '../../lib/apiClient';
+import { localBuild } from '../../lib/playerBuild';
 import { ENDLESS_DRAFT_SIZE, endlessDraftOffers, isSavedEndlessDraft, type EndlessDraft } from '../../../shared/game/endlessDraft';
 import { isRunAction, isRunOver, type RunAction, type RunState } from '../../../shared/game/run';
 import { MAX_RUN_ACTIONS } from '../../../shared/game/rules';
@@ -8,9 +11,10 @@ import { StatTile } from '../ui/StatTile';
 import { VillainRunGame } from './VillainRunGame';
 import { EndlessDraftView } from './EndlessDraftView';
 
-type Session = { day: string; run: RunState; actions: RunAction[]; best: number; started: boolean; draft: EndlessDraft | null };
+type Session = { day: string; run: RunState; actions: RunAction[]; best: number; started: boolean; draft: EndlessDraft | null;
+  profile?: EndlessProfile; battleVersion?: typeof ENDLESS_BATTLE_VERSION };
 type Event = { type: 'act'; action: RunAction } | { type: 'newDraft' } |
-  { type: 'pick'; index: number; at: number } | { type: 'begin' };
+  { type: 'pick'; index: number; at: number } | { type: 'begin'; profile: EndlessProfile };
 type Page = 'menu' | 'draft' | 'battle';
 
 /** Restore only this account's Endless log for the date. */
@@ -24,7 +28,10 @@ function restore(day: string, key: string): Session {
       const draft = 'draft' in value && isSavedEndlessDraft(value.draft) ? value.draft : null;
       const started = actions.length > 0 || ('started' in value && value.started === true);
       const deck = started && draft?.cards.length === ENDLESS_DRAFT_SIZE ? draft.cards : undefined;
-      return { day, run: actions.reduce(reduceEndless, createEndless(day, deck)), actions, best, started, draft };
+      const battleVersion = 'battleVersion' in value && value.battleVersion === ENDLESS_BATTLE_VERSION ? ENDLESS_BATTLE_VERSION : undefined;
+      const profile = 'profile' in value ? restoreEndlessProfile(value.profile) : undefined;
+      return { day, run: actions.reduce(reduceEndless, createEndless(day, deck, battleVersion, profile)), actions, best, started, draft,
+        ...(battleVersion && { battleVersion }), ...(profile && { profile }) };
     }
   } catch { /* A local save is optional. */ }
   return { day, run: createEndless(day), actions: [], best: 0, started: false, draft: null };
@@ -44,33 +51,54 @@ function update(session: Session, event: Event): Session {
   }
   if (event.type === 'begin') {
     if (started || draft?.cards.length !== ENDLESS_DRAFT_SIZE) return session;
-    return { ...session, run: createEndless(session.day, draft.cards), actions: [], started: true };
+    return { ...session, run: createEndless(session.day, draft.cards, ENDLESS_BATTLE_VERSION, event.profile), actions: [], started: true,
+      battleVersion: ENDLESS_BATTLE_VERSION, profile: event.profile };
   }
   if (!started) return session;
   const run = reduceEndless(session.run, event.action);
   if (run === session.run) return session;
   return { ...session, run, actions: [...session.actions, event.action],
-    best: Math.max(session.best, run.stats.wavesCleared) };
+    best: Math.max(session.best, endlessClearedWaves(run)) };
 }
 
 /** A completely separate daily-seeded run and local record. */
-export function EndlessView({ day, accountId, onBack }: { day: string; accountId?: string | undefined; onBack: () => void }) {
+export function EndlessView({ day, accountId, rings, onBack }: { day: string; accountId?: string | undefined; rings: RingProgress; onBack: () => void }) {
   const key = 'villain-arc:endless:v1:' + (accountId ?? 'guest') + ':' + day;
   const [session, send] = useReducer(update, key, storageKey => restore(day, storageKey));
   const [page, setPage] = useState<Page>('menu');
-  const { run, actions, best, started, draft } = session;
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const { run, actions, best, started, draft, battleVersion, profile } = session;
   useEffect(() => {
-    try { localStorage.setItem(key, JSON.stringify({ actions, best, started, draft })); } catch { /* Play on without saving. */ }
-  }, [key, actions, best, started, draft]);
+    try { localStorage.setItem(key, JSON.stringify({ actions, best, started, draft, battleVersion, profile })); } catch { /* Play on without saving. */ }
+  }, [key, actions, best, started, draft, battleVersion, profile]);
   const act = useCallback((action: RunAction) => send({ type: 'act', action }), []);
   const openMenu = () => setPage('menu');
   const startDraft = () => { send({ type: 'newDraft' }); setPage('draft'); };
+  /** Snapshots the same saved build used in Conquest before entering Wave 1. */
+  async function begin() {
+    if (loading) return;
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const current = accountId ? await apiClient.profile() : undefined;
+      const snapshot: EndlessProfile = { wins: current?.wins ?? 0, xpStartWins: current?.xpStartWins,
+        bonusXp: current?.bonusXp, shopRings: current?.shopRings ?? [], rings,
+        edits: current?.build.character ?? localBuild(accountId).character };
+      send({ type: 'begin', profile: snapshot });
+      setPage('battle');
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }
   const finished = isRunOver(run);
   const resumable = started && !finished;
   const hasDraft = !started && draft !== null;
-  if (page === 'draft' && draft) return <EndlessDraftView day={day} draft={draft} onBack={openMenu}
+  if (page === 'draft' && draft) return <EndlessDraftView day={day} draft={draft} onBack={openMenu} loading={loading} loadError={loadError}
     onPick={index => send({ type: 'pick', index, at: draft.cards.length })}
-    onBegin={() => { send({ type: 'begin' }); setPage('battle'); }} />;
+    onBegin={() => void begin()} />;
   if (page !== 'battle') return <main className="run-results results-layout endless-menu" aria-labelledby="endless-title">
     <header>
       <h1 id="endless-title">Endless</h1>
@@ -78,7 +106,7 @@ export function EndlessView({ day, accountId, onBack }: { day: string; accountId
     </header>
     <div className="results-stats" style={{ gridTemplateColumns: resumable || hasDraft ? 'repeat(2, minmax(0, 1fr))' : '1fr' }}>
       <StatTile label="Best today" value={best + ' cleared'} />
-      {resumable && <StatTile label="Current run" value={'Wave ' + run.stop} />}
+      {resumable && <StatTile label="Current run" value={'Wave ' + endlessWaveNumber(run)} />}
       {hasDraft && <StatTile label="Draft" value={draft.cards.length + ' / ' + ENDLESS_DRAFT_SIZE} />}
     </div>
     <div className="results-actions">

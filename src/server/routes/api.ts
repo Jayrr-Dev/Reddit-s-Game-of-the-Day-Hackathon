@@ -21,7 +21,7 @@ import { updatePlayerAlbum } from '../core/playerRingShop';
 import { bankHellCard, bindRunItems, creditPandoraBounty, currentShopStock, recordShopBossClear, buyRing, getAdminRingShop, getRingShop, offerAdminShopFruit, openAdminRingShop, readPlayerProgress, recordVictories } from '../core/playerRingShop';
 import { isPandoraRunEffect } from '../../shared/game/pandora';
 import { isShopOfferId, shopRingIds } from '../../shared/game/ringShop';
-import { appleAtVictory, goldRewardFor } from '../../shared/game/gold';
+import { appleAtVictory, goldRewardFor, scoreForVictory } from '../../shared/game/gold';
 import { MAX_RUN_ACTIONS } from '../../shared/game/rules';
 import {
   computeScore,
@@ -218,7 +218,7 @@ api.get('/init', async (c) => {
       username ? getBestScore(dailyKey, username) : null,
       userId ? getStreak(userId, getDailyKey()) : { current: 0, best: 0 },
       userId ? hasStartedRankedRun(dailyKey, userId) : false,
-      userId ? readPlayerProgress(userId) : { wins: 0, xpStartWins: 0, gold: 0 },
+      userId ? readPlayerProgress(userId) : { wins: 0, xpStartWins: 0, bonusXp: 0, gold: 0 },
     ]);
 
     return c.json<InitResponse>({
@@ -227,7 +227,7 @@ api.get('/init', async (c) => {
       dailyKey,
       appVersion: context.appVersion,
       username,
-      ...(userId && { accountId: userId, lifetimeWins: progress.wins, xpStartWins: progress.xpStartWins, gold: progress.gold }),
+      ...(userId && { accountId: userId, lifetimeWins: progress.wins, xpStartWins: progress.xpStartWins, bonusXp: progress.bonusXp, gold: progress.gold }),
       bestScoreToday,
       streak,
       hasStartedRankedRun: startedRanked,
@@ -251,14 +251,14 @@ api.post('/run/start', async (c) => {
     const candidate = body && typeof body === 'object' && 'testVisit' in body ? body.testVisit : undefined;
     const testVisit = isShopVisitId(candidate) && await isCurrentUserAdmin() ? candidate : undefined;
     const day = getCurrentPostDailyKey();
-    const [{ wins, xpStartWins, shopRings }, build] = await Promise.all([readPlayerProgress(userId), getBuild(userId)]);
+    const [{ wins, xpStartWins, bonusXp, shopRings }, build] = await Promise.all([readPlayerProgress(userId), getBuild(userId)]);
     const record = body && typeof body === 'object' ? body as Record<string, unknown> : {};
     const requested = record.bringCards ?? (record.bringCard === undefined ? [] : [record.bringCard]);
     if (!isCarrySelection(requested)) return jsonError(c, 400, 'Invalid card selection');
     if (record.starter !== undefined && !isStarterName(record.starter)) return jsonError(c, 400, 'Invalid starter deck');
     const starter = isStarterName(record.starter) ? record.starter : build.selected;
     const deck = build.decks[starter] ?? starterDeck(starter);
-    const profile: RunProfile = { id: randomUUID(), wins, xpStartWins, shopRings, cardRules: 1, progressionVersion: 2, conquestVersion: CONQUEST_VERSION, vigorVersion: 1 };
+    const profile: RunProfile = { id: randomUUID(), wins, xpStartWins, bonusXp, shopRings, cardRules: 1, progressionVersion: 2, conquestVersion: CONQUEST_VERSION, vigorVersion: 1 };
     const withItems = await bindRunItems(userId, day, profile, testVisit, requested, deck)
       ?? (testVisit && !requested.length ? await bindRunItems(userId, day, profile, undefined, requested, deck) : undefined);
     if (withItems) return c.json<StartRunResponse>({ type: 'runStart', isRanked: false, profile: withItems, build });
@@ -291,7 +291,9 @@ async function verifyProgress(day: string, body: FinishRunRequest, userId: strin
   const xpStartWins = saved && typeof saved === 'object' && 'xpStartWins' in saved &&
     typeof saved.xpStartWins === 'number' && Number.isSafeInteger(saved.xpStartWins) && saved.xpStartWins >= 0 ? saved.xpStartWins : undefined;
   const legacyVigor = !(saved && typeof saved === 'object' && 'vigorVersion' in saved && saved.vigorVersion === 1);
-  const { state: run, unlocks } = replayForScoreAndUnlocks(day, body.actions, wins, shopRings, effect, cardRules, carried, legacyProgression, conquestVersion, xpStartWins, legacyVigor);
+  const bonusXp = saved && typeof saved === 'object' && 'bonusXp' in saved &&
+    typeof saved.bonusXp === 'number' && Number.isSafeInteger(saved.bonusXp) && saved.bonusXp >= 0 ? saved.bonusXp : 0;
+  const { state: run, unlocks } = replayForScoreAndUnlocks(day, body.actions, wins, shopRings, effect, cardRules, carried, legacyProgression, conquestVersion, xpStartWins, legacyVigor, bonusXp);
   if (run.phase.kind === 'fallen' && run.phase.battlefield && run.promisedToGreed) await bankHellCard(userId, body.runId, run.promisedToGreed, testVisit);
   if (effect === 'half-life' && run.goldVictories.length > 0) await creditPandoraBounty(userId, body.runId, testVisit);
   if (testVisit) return run;
@@ -301,8 +303,8 @@ async function verifyProgress(day: string, body: FinishRunRequest, userId: strin
     return item ? [{ id: runId + ':' + victory.stop + (victory.battle ? ':' + victory.battle : ''), item }] : [];
   }));
   await recordUnlocks(userId, unlocks);
-  const awards = run.goldVictories.map(({ stop, encounter, battle }, index) => ({
-    member: runId + ':' + index, score: -goldRewardFor(runId, stop, encounter, effect, battle)
+  const awards = run.goldVictories.map(({ stop, encounter, battle, waves, pushes }, index) => ({
+    member: runId + ':' + index, score: scoreForVictory(goldRewardFor(runId, stop, encounter, effect, battle, waves, pushes), waves)
   }));
   await recordVictories(userId, awards);
   return run;

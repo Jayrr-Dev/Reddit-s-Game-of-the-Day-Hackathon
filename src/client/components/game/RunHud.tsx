@@ -7,6 +7,7 @@
 import { regionOfRun } from '../../../shared/game/regionRoutes';
 import { STOPS_PER_REGION } from '../../../shared/game/rules';
 import { computeScore, type RunState } from '../../../shared/game/run';
+import { endlessWaveNumber } from '../../../shared/game/endless';
 import { Glyph } from '../ui/Glyph';
 
 /** Shows region, progress through it, HP, deck and score. */
@@ -22,7 +23,7 @@ export const RunHud = ({ run, onOpenCharacter, onReturnFromEndless }: {
           {onReturnFromEndless ? 'Endless' : regionOfRun(run)}
         </span>
         <span className="text-ink-muted">
-          {onReturnFromEndless ? 'Wave ' + run.stop : `Stop ${stepInRegion}/${STOPS_PER_REGION} · Wave ${run.stop}`}
+          {onReturnFromEndless ? 'Wave ' + endlessWaveNumber(run) : `Stop ${stepInRegion}/${STOPS_PER_REGION} · Wave ${run.stop}`}
         </span>
       </div>
       <div className="flex items-center gap-3">

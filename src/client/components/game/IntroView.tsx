@@ -47,6 +47,7 @@ export type IntroViewProps = {
   data: InitResponse;
   entries: LeaderboardEntry[];
   canResume: boolean;
+  activeRunLevel?: number | undefined;
   isStarting: boolean;
   onStart: () => void;
   onEndless?: () => void;
@@ -170,6 +171,7 @@ export const IntroView = ({
   data,
   entries,
   canResume,
+  activeRunLevel,
   isStarting,
   onStart,
   onEndless,
@@ -178,16 +180,16 @@ export const IntroView = ({
   loadTestShop,
 }: IntroViewProps) => {
   const [sheet, setSheet] = useState<Sheet>('none');
-  const [playerTotals, setPlayerTotals] = useState({ wins: data.lifetimeWins ?? 0, xpStartWins: data.xpStartWins, gold: data.gold ?? 0 });
-  const level = progressionFromWins(playerTotals.wins, false, playerTotals.xpStartWins).level;
+  const [playerTotals, setPlayerTotals] = useState({ wins: data.lifetimeWins ?? 0, xpStartWins: data.xpStartWins, bonusXp: data.bonusXp ?? 0, gold: data.gold ?? 0 });
+  const level = progressionFromWins(playerTotals.wins, false, playerTotals.xpStartWins, playerTotals.bonusXp).level;
   useEffect(() => {
     if (sheet !== 'none' || !data.accountId) return;
     let current = true;
     apiClient.profile().then(result => {
-      if (current) setPlayerTotals({ wins: result.wins ?? data.lifetimeWins ?? 0, xpStartWins: result.xpStartWins ?? data.xpStartWins, gold: result.gold ?? data.gold ?? 0 });
+      if (current) setPlayerTotals({ wins: result.wins ?? data.lifetimeWins ?? 0, xpStartWins: result.xpStartWins ?? data.xpStartWins, bonusXp: result.bonusXp ?? data.bonusXp ?? 0, gold: result.gold ?? data.gold ?? 0 });
     }).catch(() => {});
     return () => { current = false; };
-  }, [data.accountId, data.lifetimeWins, data.xpStartWins, data.gold, sheet]);
+  }, [data.accountId, data.lifetimeWins, data.xpStartWins, data.bonusXp, data.gold, sheet]);
   const [testJewelry, setTestJewelry] = useState<ShopRingId[]>([]);
   const [testCarry, setTestCarry] = useState<CarryCard[]>([]);
   const receiveTestInventory = useCallback((items: ShopRingId[], visit: string, cards: CarryCard[]) => {
@@ -215,7 +217,9 @@ export const IntroView = ({
   });
   const isAdmin = useIsAdmin();
   const closeSheet = () => setSheet('none');
-  const note = rankedNote(data, canResume);
+  const note = activeRunLevel !== undefined && activeRunLevel !== level
+    ? 'Saved run: Lv ' + activeRunLevel + ' · Profile: Lv ' + level
+    : rankedNote(data, canResume);
   if (sheet === 'profile') return <ProfileView data={data} rings={profileRings} onClose={closeSheet} testJewelry={isAdmin ? testJewelry : []} testCarry={isAdmin ? testCarry : []} />;
   if (sheet === 'tutorial') return <FirstFight accountId={data.accountId} onExit={closeSheet} onRules={() => setSheet('rules')} />;
 

@@ -12,6 +12,7 @@ import { OFFER_SIZE, STATUS_IS_AFFLICTION } from './rules.ts';
 import { isUniqueCard, type UniqueCheck } from './unique.ts';
 import { afflictionChanceBonusOf, cardChanceBonusOf, type SkillPick } from './skills.ts';
 import type { CardRarity, StatusId } from './types.ts';
+import { BATTLE_WAVES } from './battleTiers.ts';
 
 // --- ODDS ---
 type RarityWeights = { item: Exclude<CardRarity, 'basic'>; weight: number }[];
@@ -40,6 +41,12 @@ const RARITY_ODDS: Record<Exclude<StopKind, 'grave' | 'greed-bargain'>, RarityWe
     { item: 'legendary', weight: 8 },
   ],
 };
+const REGIMENTAL_ODDS: RarityWeights = [
+  { item: 'uncommon', weight: 30 }, { item: 'rare', weight: 60 }, { item: 'legendary', weight: 10 },
+];
+const GRAND_BATTLE_ODDS: RarityWeights = [
+  { item: 'uncommon', weight: 12 }, { item: 'rare', weight: 68 }, { item: 'legendary', weight: 20 },
+];
 
 // --- SKILL TREE ODDS ---
 /** True when a card lays an affliction on someone (Poison, Bleed, Hex ...). */
@@ -72,9 +79,16 @@ const rollOneOffer = (
   starter?: StarterName,
   skillPicks: readonly SkillPick[] = [],
   barred: readonly CardId[] = [],
-  specialImbues = false
+  specialImbues = false,
+  waves = 0,
+  pushes = 0
 ): RngResult<CardId> => {
-  const [rarity, afterRarity] = pickWeighted(state, RARITY_ODDS[source]);
+  const odds = waves >= BATTLE_WAVES.grand ? GRAND_BATTLE_ODDS
+    : waves >= BATTLE_WAVES.regimental ? REGIMENTAL_ODDS : RARITY_ODDS[source];
+  const weights = pushes > 0 ? odds.map(entry => ({
+    ...entry, weight: entry.weight * (1 + pushes * (entry.item === 'legendary' ? 0.75 : entry.item === 'rare' ? 0.35 : 0)),
+  })) : odds;
+  const [rarity, afterRarity] = pickWeighted(state, weights);
   const fullPool = cardsOfRarity(rarity).filter(id => !specialImbues || getCard(id).type !== 'imbue');
   const allowed = fullPool.filter((id) => !barred.includes(id));
   const pool = allowed.length ? allowed : fullPool;
@@ -103,13 +117,15 @@ export const rollOffers = (
   skillPicks: readonly SkillPick[] = [],
   deck: readonly CardId[] = [],
   isUnique: UniqueCheck = isUniqueCard,
-  specialImbues = false
+  specialImbues = false,
+  waves = 0,
+  pushes = 0
 ): CardId[] => {
   const offers: CardId[] = [];
   const barred = deck.filter(isUnique);
   let current = seed;
   for (let slot = 0; slot < OFFER_SIZE; slot += 1) {
-    const [cardId, next] = rollOneOffer(current, source, [...exclude, ...offers], starter, skillPicks, barred, specialImbues);
+    const [cardId, next] = rollOneOffer(current, source, [...exclude, ...offers], starter, skillPicks, barred, specialImbues, waves, pushes);
     offers.push(cardId);
     current = next;
   }

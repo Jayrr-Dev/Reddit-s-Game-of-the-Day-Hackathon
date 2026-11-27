@@ -12,6 +12,8 @@ type DraftProps = {
   onPick: (index: number) => void;
   onBegin: () => void;
   onBack: () => void;
+  loading: boolean;
+  loadError: boolean;
 };
 
 /** A compact opener shows all included cards before committing to a playstyle. */
@@ -24,7 +26,7 @@ function OpeningPack({ offer, chosen, onSelect }: { offer: DraftOffer; chosen: b
 }
 
 /** Preview a choice, then lock it in. Return here after leaving to continue the draft. */
-export function EndlessDraftView({ day, draft, onPick, onBegin, onBack }: DraftProps) {
+export function EndlessDraftView({ day, draft, onPick, onBegin, onBack, loading, loadError }: DraftProps) {
   const [selected, setSelected] = useState<number | null>(null);
   const count = draft.cards.length;
   const complete = count === ENDLESS_DRAFT_SIZE;
@@ -57,10 +59,11 @@ export function EndlessDraftView({ day, draft, onPick, onBegin, onBack }: DraftP
       <summary>Drafted cards ({count})</summary>
       <ul>{draft.cards.map((id, index) => <li key={id + ':' + index}>{getCard(id).name}</li>)}</ul>
     </details>}
+    {loadError && <p role="alert">Could not load your character. Try again.</p>}
     <div className="results-actions">
-      <Button variant="menuPrimary" disabled={!complete && selected === null}
-        onClick={complete ? onBegin : pick}>{complete ? 'Begin Endless' : count === 0 ? 'Choose pack' : 'Add card'}</Button>
-      <Button variant="menu" onClick={onBack}>Endless menu</Button>
+      <Button variant="menuPrimary" disabled={loading || (!complete && selected === null)}
+        onClick={complete ? onBegin : pick}>{complete ? loading ? 'Loading character…' : 'Begin Endless' : count === 0 ? 'Choose pack' : 'Add card'}</Button>
+      <Button variant="menu" disabled={loading} onClick={onBack}>Endless menu</Button>
     </div>
   </main>;
 }

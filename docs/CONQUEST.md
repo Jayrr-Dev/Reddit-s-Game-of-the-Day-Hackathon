@@ -5,7 +5,10 @@ New runs have nine regions: six Grandangels guard the capitals first, followed b
 ## Locations and battles
 
 - Routes enter existing battlefield maps. Each location sets its number of battles, rooms, and secrets. Major destinations have a named City Boss, even if their setting is not literally a city. Optional dragon sites are Area Boss fights. Holy Dragon Sol is the exception and guards Sunward City. Light Lord Mori guards Penitent Court with his two knights.
-- A battle keeps one map, the same hand and resources, and a queue of authored waves of up to six enemies. Reinforcements arrive at the back and march before attacking. Gold, cards, and XP wait for the final wave.
+- A battle keeps one map and the same hand and resources across its waves. Skirmishes have 5 waves, Regimentals 10, and Grand Battles 15 or more, with up to six enemies per wave. Named city bosses close Regimentals; regional and dragon bosses close Grand Battles. Reinforcements arrive at the back and march before attacking. Gold, cards, and XP wait for the final wave.
+- Regimentals award 2× Gold and XP and Grand Battles 3×, with higher Rare and Legendary card odds on both tiers. The same card odds apply to rerolls. Endless rewards stay within Endless.
+- Every fifth wave offers a Respite: Rest to recover 25% max HP, Explore to recover 12% and possibly find a card, or Keep Fighting to add 25% Gold and better rarity odds to the eventual payout. Healing bonuses still apply. Real room visits remain available after Conquest battles.
+- Endless is one fight on one map. The saved character's level, skill tree, traits, and gear carry in; the player drafts a separate deck. Mixed mobs arrive in bigger and stronger groups as wave numbers climb. At Respite, Explore also draws a card; Keep Fighting instead offers a stronger card for the current fight. Endless never changes the Conquest save or permanent wallet.
 - After the reward, explore seeded room events and possible secrets, or rest to recover 25% max HP. Rest skips this battle's room searches. The remaining rooms disappear when leaving for the next battle or destination.
 - Training lists units by type and rank: Grunt, Elite, Officer, City Boss, Area Boss, Region Boss, Final Boss. Alpha, Omega and Cerviel's staff and bow forms have their own Summons section. Ballista is an Elite with 100 HP.
 

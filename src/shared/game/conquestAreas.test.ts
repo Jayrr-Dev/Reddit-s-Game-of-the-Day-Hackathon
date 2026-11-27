@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { activeRows, formUp } from './battlefield.ts';
 import { areaMapNodes, areaTerrain } from './areaMap.ts';
 import { createHeroUnit } from './combat.ts';
-import { ARCHANGEL_BOSSES, AREA_BOSSES, areaCounts, areaRoomEvent, buildAreaBattles, CAMPAIGN_LENGTH, CONQUEST_VERSION, conquestStops, GRANDANGEL_BOSSES, LOCATION_BOSSES, MAX_WAVE_SIZE } from './conquestAreas.ts';
+import { ARCHANGEL_BOSSES, AREA_BOSSES, areaCounts, areaRoomEvent, BATTLE_WAVES, battleTierName, buildAreaBattles, CAMPAIGN_LENGTH, CONQUEST_VERSION, conquestStops, GRANDANGEL_BOSSES, LOCATION_BOSSES, MAX_WAVE_SIZE } from './conquestAreas.ts';
 import { CONQUEST_SCENARIOS } from './conquestScenarios.ts';
 import { CHAMPION_IDS, getHero } from './heroes.ts';
 import { canChooseRegion } from './regionRoutes.ts';
@@ -33,10 +33,16 @@ function clearWave(run: RunState): RunState {
   return runReducer(ready, { type: 'playCard', handIndex: 0, targetUid: target.uid });
 }
 
-function clearBattle(run: RunState): RunState {
+function clearBattle(run: RunState, choice: 'rest' | 'fight' = 'rest'): RunState {
   let next = run;
-  for (let wave = 0; wave < 3 && next.phase.kind === 'combat'; wave++) {
+  const waves = run.area?.battles[run.area.battle]?.waves.length ?? 1;
+  for (let wave = 0; wave < waves && next.phase.kind === 'combat'; wave++) {
     next = clearWave(next);
+    if (next.area?.respite) {
+      assert.ok(isRunAction({ type: 'battleRespite', choice }));
+      assert.equal(runReducer(next, { type: 'nextBattleWave' }), next);
+      next = runReducer(next, { type: 'battleRespite', choice });
+    }
     if (next.area?.wavePending) next = runReducer(next, { type: 'nextBattleWave' });
   }
   assert.ok(next.phase.kind === 'reward' || next.phase.kind === 'sealing');
@@ -72,13 +78,13 @@ void test('reinforcements march in from the back with the same hand, player, and
   const nextUid = pending.phase.combat.nextUid;
   assert.ok(next.phase.combat.heroes.every(unit => unit.uid >= nextUid));
   assert.equal(runReducer(next, { type: 'nextBattleWave' }), next);
-  const won = clearWave(next);
+  const won = clearBattle(next);
   assert.equal(won.phase.kind, 'reward');
   assert.equal(won.goldVictories.length, 1);
-  assert.equal(won.stats.wavesCleared, 2);
+  assert.equal(won.stats.wavesCleared, BATTLE_WAVES.skirmish);
 });
 
-void test('large locations have two battles, room and secret counts, and an exclusive rest choice', () => {
+void test('large locations retain room visits; new Rest is part of the five-wave Respite', () => {
   const first = runReducer(routeAt(4), { type: 'chooseStop', option: 1 });
   assert.equal(first.area?.site.name, 'Basilica Ward');
   assert.deepEqual(areaCounts(first.area!.site), { battles: 2, rooms: 5 });
@@ -89,14 +95,25 @@ void test('large locations have two battles, room and secret counts, and an excl
   assert.equal(explored.phase.kind, 'area-camp');
   assert.equal(explored.phase.explored, 1);
   assert.equal(runReducer(explored, { type: 'areaCamp', choice: 'rest' }), explored);
-  const rested = runReducer(camp, { type: 'areaCamp', choice: 'rest' });
+  assert.equal(runReducer(camp, { type: 'areaCamp', choice: 'rest' }), camp);
+  const rested = runReducer(camp, { type: 'areaCamp', choice: 'continue' });
   assert.equal(rested.phase.kind, 'combat');
-  assert.ok(rested.hp > camp.hp);
+  assert.equal(rested.hp, camp.hp);
   assert.equal(rested.area?.battle, 1);
   assert.equal(rested.area?.site.map, first.area?.site.map);
   const bossWin = clearBattle(rested);
   assert.equal(bossWin.stats.regionsConquered, 0);
   assert.deepEqual(bossWin.goldVictories.map(v => [v.encounter, v.battle]), [['elite', 0], ['champion', 1]]);
+});
+
+void test('Keep Fighting banks one Gold and rarity bonus per Respite, only paid after the boss', () => {
+  const city = runReducer(routeAt(4), { type: 'chooseStop', option: 1 });
+  const cleared = clearBattle(city);
+  const camp = runReducer(cleared, { type: 'pickCard', offerIndex: null });
+  const regimental = runReducer(camp, { type: 'areaCamp', choice: 'continue' });
+  const won = clearBattle(regimental, 'fight');
+  assert.equal(won.goldVictories.length, 2);
+  assert.deepEqual(won.goldVictories.at(-1), { stop: 4, encounter: 'champion', battle: 1, waves: 10, pushes: 2 });
 });
 
 void test('roads are straight with curios; Village Green has three separate buildings around its square', () => {
@@ -184,6 +201,12 @@ void test('City Bosses, optional dragon Area Bosses, and hidden room outcomes ar
       for (const { site } of sites) {
         assert.ok(site);
         const plan = buildAreaBattles(site, key, stop, 0);
+        for (const battle of plan) {
+          const expected: number = battle.finish === 'region-boss' || battle.finish === 'dragon-boss' ? BATTLE_WAVES.grand
+            : site.kind === 'capital' || battle.finish === 'location-boss' ? BATTLE_WAVES.regimental : BATTLE_WAVES.skirmish;
+          assert.equal(battle.waves.length, expected, site.name);
+          assert.ok(battle.waves.every(wave => wave.heroIds.length > 0 && wave.heroIds.length <= MAX_WAVE_SIZE));
+        }
         if (site.cityBoss) {
           assert.equal(plan.at(-1)?.waves.at(-1)?.heroIds[0], site.cityBoss);
           assert.equal(plan.at(-1)?.finish, 'location-boss');
@@ -191,6 +214,8 @@ void test('City Bosses, optional dragon Area Bosses, and hidden room outcomes ar
         }
         if (site.dragon) {
           assert.equal(plan[0]?.finish, 'dragon-boss');
+          assert.equal(plan[0]?.waves.at(-1)?.heroIds[0], site.dragon);
+          assert.equal(buildAreaBattles(site, key, stop, 0, 2)[0]?.waves.length, 1);
           assert.equal(sites[0]?.site?.dragon, undefined);
           assert.ok((AREA_BOSSES as readonly string[]).includes(site.dragon));
         }
@@ -202,6 +227,9 @@ void test('City Bosses, optional dragon Area Bosses, and hidden room outcomes ar
     }
   }
   assert.deepEqual([...seen].sort(), [...LOCATION_BOSSES].sort());
+  assert.equal(battleTierName(5), 'Skirmish');
+  assert.equal(battleTierName(10), 'Regimental');
+  assert.equal(battleTierName(16), 'Grand Battle');
 });
 
 void test('both roads in every region have a distinct guarded city before the capital', () => {
@@ -254,16 +282,17 @@ void test('the Training roster exposes two grouping layers and late-game HP and 
   }
 });
 
-void test('v1 action logs and v2 profiles replay with their own immutable route options', () => {
+void test('all issued versions replay with their own immutable wave plans and route options', () => {
   const originalGuardians = ['holyKing', 'grandGriffon', 'mageBorneAzula', 'twinAxeKnight', 'mageBorneAstra', 'holyDragon', 'lightLordMori'];
   const actions = [{ type: 'chooseStop', option: 0 }] as const;
   const map = new Map<string, string>();
   const storage = { get length() { return map.size; }, key: (i: number) => [...map.keys()][i] ?? null,
     getItem: (key: string) => map.get(key) ?? null, setItem: (key: string, value: string) => { map.set(key, value); } };
-  for (const conquestVersion of [1, CONQUEST_VERSION] as const) {
+  for (const conquestVersion of [1, 2, CONQUEST_VERSION] as const) {
     const profile = { id: 'version-' + conquestVersion, wins: 0, cardRules: 1, progressionVersion: 2, conquestVersion, vigorVersion: 1, xpStartWins: 0 } as const;
     const fresh = createRun(DAY, undefined, 0, 0, [], undefined, 1, undefined, false, conquestVersion, 0);
     const run = runReducer(fresh, actions[0]);
+    assert.equal(run.area?.battles[0]?.waves.length, conquestVersion === CONQUEST_VERSION ? 5 : 2);
     for (const savedProfile of [undefined, profile]) {
       saveLoggedRun({ run, actions: [...actions], attempt: 0, initialRings: fresh.character.ringProgress, ...(savedProfile && { profile: savedProfile }) }, storage);
       const restored = restoreLoggedRun(DAY, storage);

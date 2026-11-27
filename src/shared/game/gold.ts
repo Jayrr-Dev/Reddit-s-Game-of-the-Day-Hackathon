@@ -2,9 +2,11 @@ import { REALM_APPLE, SHOP_APPLE, type ShopApple } from './items.ts';
 import type { PandoraRunEffect } from './pandora.ts';
 import type { StopKind } from './kingdom.ts';
 import { hashSeed, nextInt } from './rng.ts';
+import { battleRewardMultiplier, KEEP_FIGHTING_GOLD_RATE } from './battleTiers.ts';
+import { XP_PER_VICTORY } from './rules.ts';
 
 export type GoldEncounter = Extract<StopKind, 'horde' | 'elite' | 'champion'>;
-export type GoldVictory = { stop: number; encounter: GoldEncounter; battle?: number };
+export type GoldVictory = { stop: number; encounter: GoldEncounter; battle?: number; waves?: number; pushes?: number };
 
 export const GOLD_RANGES = {
   horde: [10, 20],
@@ -13,10 +15,22 @@ export const GOLD_RANGES = {
 } as const;
 
 // Seeded per attempt and stop. Refreshing, rerolling cards or replaying the run cannot reroll Gold.
-export function goldRewardFor(runId: string, stop: number, encounter: GoldEncounter, effect?: PandoraRunEffect, battle?: number): number {
+export function goldRewardFor(runId: string, stop: number, encounter: GoldEncounter, effect?: PandoraRunEffect, battle?: number, waves?: number, pushes = 0): number {
   const [min, max] = GOLD_RANGES[encounter];
   const [roll] = nextInt(hashSeed(`villain-run:gold:${runId}:${stop}${battle ? ':' + battle : ''}`), max - min + 1);
-  return (min + roll) * (effect === 'half-life-double-gold' ? 2 : 1);
+  const earned = Math.round((min + roll) * battleRewardMultiplier(waves) * (1 + KEEP_FIGHTING_GOLD_RATE * pushes));
+  return earned * (effect === 'half-life-double-gold' ? 2 : 1);
+}
+
+/** One idempotent victory record stores whole Gold and exact binary XP steps. */
+export function scoreForVictory(gold: number, waves?: number): number {
+  return -(gold + (battleRewardMultiplier(waves) - 1) / 4);
+}
+
+/** Older integer victory scores never carry bonus XP. */
+export function bonusXpFromVictoryScore(score: number): number {
+  if (score >= 0) return 0;
+  return (-score - Math.floor(-score)) * 4 * XP_PER_VICTORY;
 }
 
 /** A verified ordinary victory occasionally drops an Apple for Metatron. */
@@ -28,4 +42,4 @@ export function appleAtVictory(runId: string, stop: number, encounter: GoldEncou
 }
 
 // Older victory records stored a nonnegative wave index and paid a flat 10 Gold.
-export const goldFromVictoryScore = (score: number): number => score < 0 ? -score : 10;
+export const goldFromVictoryScore = (score: number): number => score < 0 ? Math.floor(-score) : 10;

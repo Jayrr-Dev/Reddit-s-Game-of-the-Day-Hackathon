@@ -1,3 +1,4 @@
+import { CONQUEST_VERSION } from '../../shared/game/conquestAreas';
 import { useCallback, useEffect, useReducer } from 'react';
 import { localBuild } from '../lib/playerBuild';
 import { starterDeck } from '../../shared/game/starters';
@@ -60,10 +61,10 @@ export const useRun = (dailyKey: string, accountId?: string) => {
     const next = restartLoggedRun(state, browserStore(accountId));
     if (!next.actions.length && profile) {
       next.profile = profile;
-      next.run = createRun(dailyKey, next.initialRings, next.attempt, profile.wins, profile.shopRings, profile.pandoraEffect, profile.cardRules, profile.carriedCards ?? profile.carriedCard, profile.progressionVersion !== 2, profile.conquestVersion, profile.xpStartWins, profile.vigorVersion !== 1);
+      next.run = createRun(dailyKey, next.initialRings, next.attempt, profile.wins, profile.shopRings, profile.pandoraEffect, profile.cardRules, profile.carriedCards ?? profile.carriedCard, profile.progressionVersion !== 2, profile.conquestVersion, profile.xpStartWins, profile.vigorVersion !== 1, profile.bonusXp);
     }
     if (!next.actions.length && !profile) {
-      next.run = createRun(dailyKey, next.initialRings, next.attempt, 0, [], undefined, 1, undefined, false, 1, 0);
+      next.run = createRun(dailyKey, next.initialRings, next.attempt, 0, [], undefined, 1, undefined, false, CONQUEST_VERSION, 0);
     }
     if (!next.actions.length) {
       const chosen = build ?? localBuild(accountId);

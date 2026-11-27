@@ -60,6 +60,8 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
   const isFallen = run.phase.kind === 'fallen';
   const isFinished = isRunOver(run);
   const canResume = hasProgress && !isFinished;
+  const canBindOldPrep = !!data.accountId && canResume && !profile && run.stop === 1 &&
+    run.phase.kind === 'route' && !actions.some(action => action.type === 'chooseStop');
 
   const visitKey = 'villain-arc:test-shop:' + (data.accountId ?? 'guest');
   const [initialShopVisit] = useState(() => {
@@ -115,8 +117,9 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
     setIsStarting(true);
     setViewedDefeat(false);
     try {
-      if (!canResume) {
-        const started = await startRun(shopTestVisit.current, bringCards, build?.selected);
+      if (!canResume || canBindOldPrep) {
+        const started = await startRun(shopTestVisit.current, bringCards, build?.selected ?? run.rewardStarter);
+        if (data.accountId && !started.profile) throw new Error('Could not load your saved character. Try again before starting.');
         restart(started.profile, build ?? started.build);
         playSound('conquestStart', 1, .7);
         reset();
@@ -133,7 +136,8 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
     }
   };
 
-  if (endlessOpen) return <EndlessView key={data.dailyKey} day={data.dailyKey} accountId={data.accountId} onBack={() => setEndlessOpen(false)} />;
+  if (endlessOpen) return <EndlessView key={data.dailyKey} day={data.dailyKey} accountId={data.accountId}
+    rings={run.character.ringProgress} onBack={() => setEndlessOpen(false)} />;
   if (choosing) return <StarterPicker accountId={data.accountId} starting={isStarting} onBack={()=>setChoosing(false)} onConfirm={(build, bringCard) => void handleStart(build, bringCard)} {...(data.isAdmin && { loadTestShop })} />;
   if (isPracticing)
     return <SandboxView onExit={() => setIsPracticing(false)} />;
@@ -144,6 +148,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
         data={data}
         entries={entries}
         canResume={canResume}
+        activeRunLevel={canResume && !canBindOldPrep ? run.character.level : undefined}
         isStarting={isStarting}
         onStart={() => void handleStart()}
         onEndless={() => setEndlessOpen(true)}
@@ -160,7 +165,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
       onChoose={(option, hellArtifact) => act({ type: 'chooseStop', option, ...(hellArtifact && { hellArtifact }) })} />);
   }
   if (run.phase.kind === 'sealing') {
-    const gold = id ? goldRewardFor(id, run.stop, 'champion', run.pandoraEffect, run.area?.battle) : undefined;
+    const gold = id ? goldRewardFor(id, run.stop, 'champion', run.pandoraEffect, run.area?.battle, run.goldVictories.at(-1)?.waves, run.goldVictories.at(-1)?.pushes) : undefined;
     return <MikhaelEnding gold={gold}
       onContinue={() => act({ type: 'finishSealing' })} />;
   }

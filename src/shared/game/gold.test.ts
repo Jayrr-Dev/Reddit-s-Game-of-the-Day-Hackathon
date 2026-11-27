@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { drawPandoraEvent, PANDORA_CURSE_POOL_CHANCE, PANDORA_BLESSING_POOL_CHANCE, PANDORA_EVENT_TICKETS } from './pandora.ts';
-import { GOLD_RANGES, goldFromVictoryScore, goldRewardFor } from './gold.ts';
+import { bonusXpFromVictoryScore, GOLD_RANGES, goldFromVictoryScore, goldRewardFor, scoreForVictory } from './gold.ts';
 
 test('Gold rolls vary by run and stay within the encounter tier', () => {
   for (const kind of ['horde', 'elite', 'champion'] as const) {
@@ -39,4 +39,12 @@ void test('Pandora has equally weighted 15% Curse and 15% Blessing pools', () =>
     outcomes.set(key, (outcomes.get(key) ?? 0) + 1);
   }
   assert.deepEqual([...outcomes], [['180', 10], ['-60', 10], ['brittle-blood', 10], ['lasting-vigor', 15], ['half-life-double-gold', 15]]);
+});
+test('larger battle rewards stack with Pandora without creating fake wins or XP on old records', () => {
+  const normal = goldRewardFor('same', 4, 'champion', undefined, 1, 5);
+  assert.equal(goldRewardFor('same', 4, 'champion', undefined, 1, 10), normal * 2);
+  assert.equal(goldRewardFor('same', 4, 'champion', 'half-life-double-gold', 1, 15), normal * 6);
+  const recorded = [7, -18, scoreForVictory(90, 5), scoreForVictory(192, 10), scoreForVictory(303, 15)];
+  assert.deepEqual(recorded.map(goldFromVictoryScore), [10, 18, 90, 192, 303]);
+  assert.deepEqual(recorded.map(bonusXpFromVictoryScore), [0, 0, 0, 100, 200]);
 });

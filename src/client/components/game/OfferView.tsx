@@ -18,6 +18,7 @@ export type OfferViewProps = {
   subtitle: string;
   offers: CardId[];
   goldReward?: number | undefined;
+  xpReward?: number | undefined;
   unlockedRingSlot?: number | undefined;
   onAction: (action: RunAction) => void;
 };
@@ -29,6 +30,7 @@ export const OfferView = ({
   subtitle,
   offers,
   goldReward,
+  xpReward,
   unlockedRingSlot,
   onAction,
 }: OfferViewProps) => {
@@ -39,7 +41,10 @@ export const OfferView = ({
       <h2 className="font-display text-xl font-bold">{title}</h2>
       <p className="text-sm text-ink-muted" aria-live="polite">{selected === null ? subtitle : 'Select the highlighted card again to add it.'}</p>
     </div>
-    {goldReward !== undefined && <div className="flex items-center gap-1.5 text-accent font-display font-bold" aria-label={goldReward + " Gold earned"}><GoldCoins />+{goldReward} Gold</div>}
+    {(goldReward !== undefined || xpReward !== undefined) && <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-accent font-display font-bold">
+      {goldReward !== undefined && <span className="flex items-center gap-1.5" aria-label={goldReward + ' Gold earned'}><GoldCoins />+{goldReward} Gold</span>}
+      {xpReward !== undefined && <span>+{xpReward} XP</span>}
+    </div>}
     {unlockedRingSlot !== undefined && <RingUnlockNotice slots={[unlockedRingSlot]} />}
     <div className="flex flex-wrap justify-center gap-3">
       {offers.map((cardId, offerIndex) => (

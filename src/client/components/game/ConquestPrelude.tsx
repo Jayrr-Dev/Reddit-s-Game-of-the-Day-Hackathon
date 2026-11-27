@@ -179,7 +179,8 @@ export function ConquestMap({
   const terrainName = active?.node.site?.map ?? active?.location.name;
   const locationArt = arena?.image ?? MAP_IMAGES[MAP_NAMES.findIndex(name => name === terrainName)];
   const site = active?.node.site;
-  const localBattles = site && selected ? buildAreaBattles(site, worldSeed, selected.at, selected.option) : undefined;
+  const localBattles = site && selected ? buildAreaBattles(site, worldSeed, selected.at, selected.option,
+    exploring ? undefined : runControls?.run.conquestVersion) : undefined;
   const visits = site && localBattles?.reduce((total, battle) => total + areaVisitCount(site, battle), 0);
   const typeLabel = (node: Stop) => node.site?.kind === 'capital'
     ? regionIndex >= GRANDANGEL_BOSSES.length ? 'Final Boss' : 'Region Boss'

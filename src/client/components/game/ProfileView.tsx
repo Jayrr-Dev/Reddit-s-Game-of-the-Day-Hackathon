@@ -47,6 +47,7 @@ export function ProfileView({
   );
   const [wins, setWins] = useState(data.lifetimeWins ?? 0);
   const [xpStartWins, setXpStartWins] = useState(data.xpStartWins);
+  const [bonusXp, setBonusXp] = useState(data.bonusXp);
   const [shopRings, setShopRings] = useState<ShopRingId[]>([]);
   const [carry, setCarry] = useState<CarryCard[]>([]);
   const [testActions, setTestActions] = useState<RunAction[]>([]);
@@ -71,6 +72,7 @@ export function ProfileView({
           setBuild(result.build);
           setWins(result.wins);
           setXpStartWins(result.xpStartWins);
+          setBonusXp(result.bonusXp);
           setGold(result.gold);
           setShopRings(result.shopRings);
           setCarry(result.carryCards ?? []);
@@ -92,7 +94,7 @@ export function ProfileView({
   }, [data.accountId, retry, setItems]);
   const run = build.character.reduce(
     runReducer,
-    createRun(data.dailyKey, rings, 0, wins, shopRings, undefined, undefined, undefined, false, undefined, xpStartWins)
+    createRun(data.dailyKey, rings, 0, wins, shopRings, undefined, undefined, undefined, false, undefined, xpStartWins, false, bonusXp)
   );
   const usesTestBag = testJewelry.length > 0 || testCarry.length > 0;
   const temporary = ringInventory(testJewelry).filter(item => !run.character.inventory.some(real => real.id === item.id));
@@ -128,7 +130,7 @@ export function ProfileView({
     setBuild((previous) => {
       const current = previous.character.reduce(
         runReducer,
-        createRun(data.dailyKey, rings, 0, wins, shopRings, undefined, undefined, undefined, false, undefined, xpStartWins)
+        createRun(data.dailyKey, rings, 0, wins, shopRings, undefined, undefined, undefined, false, undefined, xpStartWins, false, bonusXp)
       );
       return runReducer(current, action) === current
         ? previous
