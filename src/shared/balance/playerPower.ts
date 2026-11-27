@@ -3,7 +3,12 @@
 // A ballpark power score for the villain at a given level and play
 // style, on the same scale as unit power (unitPower.ts):
 //
-//   power = damage per turn × HP / 24
+//   power = damage per turn × toughness / 24
+//   toughness = HP / (share of a boss's turn that still lands)
+//
+// Guard and Distance on the hand's cards stop part of each boss turn
+// (the `player` group of costCurveConfig.ts), which stretches HP the
+// way Armor and rows stretch a unit's.
 //
 // Unit power is threat × toughness / 24, so the two compare directly:
 // by Lanchester's law, whoever has the higher damage × HP wins a duel,
@@ -16,9 +21,10 @@
 // - Skill points (1 a level) buy the style's circles in order
 //   (playerStyles.ts).
 // - Each turn the hand holds the best mix of the style's cards for the
-//   energy and cards drawn (up to 2 copies, 1 of a Legendary). Remove,
-//   Exhaust, Imbue and buff cards are left out.
-// - Iron Ring and Traveler's Amulet are worn; Guard cards are ignored.
+//   energy and cards drawn (up to 2 copies, 1 of a Legendary), weighing
+//   damage against Guard and Distance. Remove, Exhaust, Imbue, buff and
+//   pure Guard cards are left out.
+// - Iron Ring and Traveler's Amulet are worn.
 // ===================================================================
 
 import { characterBonuses, TRAIT_CAP, type Traits } from '../game/character.ts';
@@ -44,6 +50,10 @@ export type PlayerPower = {
   energy: number;
   hp: number;
   damagePerTurn: number;
+  /** Incoming damage a turn's Guard and Distance stop. */
+  blockedPerTurn: number;
+  /** Effective HP: HP stretched by the damage blocked. */
+  toughness: number;
   power: number;
 };
 
@@ -124,37 +134,78 @@ const cardDamage = (config: CostCurveConfig, card: CardDef, stats: Stats, skills
   }, 0);
 };
 
-// --- HAND ---
-/**
- * The best hand for one turn: a knapsack over energy and cards drawn,
- * each card up to 2 copies (1 for a Legendary).
- */
-const bestTurn = (options: { cost: number; value: number; copies: number }[], energy: number, cards: number): number => {
-  // best[e][n]: most damage spending at most e energy on at most n cards.
-  let best = Array.from({ length: energy + 1 }, () => new Array<number>(cards + 1).fill(0));
-  for (const option of options) {
-    for (let copy = 0; copy < option.copies; copy += 1) {
-      const next = best.map((row) => [...row]);
-      for (let e = option.cost; e <= energy; e += 1) {
-        for (let n = 1; n <= cards; n += 1) {
-          const withCard = (best[e - option.cost]?.[n - 1] ?? 0) + option.value;
-          if (withCard > (next[e]?.[n] ?? 0)) next[e]![n] = withCard;
-        }
-      }
-      best = next;
-    }
-  }
-  return best[energy]?.[cards] ?? 0;
+// --- DEFENCE ---
+/** Guard one play of a card gives, with Vigor's percent and Endurance's flat bonus (see guardAmount). */
+const cardGuard = (card: CardDef, stats: Stats): number =>
+  card.effects.reduce((sum, effect) => {
+    if (effect.kind !== 'guard') return sum;
+    return sum + Math.floor((effect.amount * (100 + stats.shieldPercent)) / 100) + stats.shieldFlat;
+  }, 0);
+
+/** Incoming damage one play of a card stops this turn: its Guard, plus a dodge for Distance. */
+const cardBlock = (config: CostCurveConfig, card: CardDef, stats: Stats): number => {
+  const { incomingPerTurn, distanceDodgeShare } = config.player;
+  const dodge = card.keywords.includes('distance') ? distanceDodgeShare * incomingPerTurn : 0;
+  return cardGuard(card, stats) + dodge;
 };
 
-/** Damage per turn for a style with these stats and skills. */
-const damagePerTurn = (config: CostCurveConfig, style: PlayStyle, stats: Stats, skills: SkillBonus): number => {
+// --- HAND ---
+/** One card a hand can hold: what it costs, deals and stops, and how many copies the deck has. */
+type HandOption = { cost: number; damage: number; block: number; copies: number };
+
+/** The hand the search picked: damage dealt and damage stopped in one turn. */
+type Turn = { damage: number; blocked: number; toughness: number };
+
+/**
+ * The best hand for one turn. A knapsack over energy, cards drawn and
+ * damage stopped (in whole points, capped), each card up to 2 copies
+ * (1 for a Legendary). It keeps the most damage for every amount
+ * stopped, then picks the hand with the highest damage × toughness,
+ * because that product is what power measures.
+ */
+const bestTurn = (config: CostCurveConfig, options: HandOption[], energy: number, cards: number): Turn => {
+  const { incomingPerTurn, maxBlockedShare } = config.player;
+  const blockCap = Math.floor(incomingPerTurn * maxBlockedShare);
+  // best[index(e, n, b)]: most damage spending at most e energy on at most n cards, stopping b damage (-1: no hand).
+  const index = (e: number, n: number, b: number): number => (e * (cards + 1) + n) * (blockCap + 1) + b;
+  const best = new Float64Array((energy + 1) * (cards + 1) * (blockCap + 1)).fill(-1);
+  for (let e = 0; e <= energy; e += 1) for (let n = 0; n <= cards; n += 1) best[index(e, n, 0)] = 0;
+  for (const option of options) {
+    const block = Math.round(option.block);
+    for (let copy = 0; copy < option.copies; copy += 1) {
+      // Walk energy and cards downwards so each copy is added at most once (0/1 knapsack in place).
+      for (let e = energy; e >= option.cost; e -= 1) {
+        for (let n = cards; n >= 1; n -= 1) {
+          for (let b = blockCap; b >= 0; b -= 1) {
+            const before = best[index(e - option.cost, n - 1, b)] ?? -1;
+            if (before < 0) continue;
+            const target = index(e, n, Math.min(blockCap, b + block));
+            const withCard = before + option.damage;
+            if (withCard > (best[target] ?? -1)) best[target] = withCard;
+          }
+        }
+      }
+    }
+  }
+  // Toughness multiplier: HP lasts 1 / (share of incoming damage that still lands).
+  let top: Turn = { damage: 0, blocked: 0, toughness: 1 };
+  for (let blocked = 0; blocked <= blockCap; blocked += 1) {
+    const damage = best[index(energy, cards, blocked)] ?? -1;
+    const toughness = 1 / (1 - blocked / incomingPerTurn);
+    if (damage * toughness > top.damage * top.toughness) top = { damage, blocked, toughness };
+  }
+  return top;
+};
+
+/** The best turn for a style with these stats and skills. */
+const bestStyleTurn = (config: CostCurveConfig, style: PlayStyle, stats: Stats, skills: SkillBonus): Turn => {
   const options = styleCards(style).map((card) => ({
     cost: card.cost,
-    value: cardDamage(config, card, stats, skills),
+    damage: cardDamage(config, card, stats, skills),
+    block: cardBlock(config, card, stats),
     copies: card.rarity === 'legendary' ? 1 : 2,
   }));
-  return bestTurn(options, stats.startingEnergy, stats.cardsPerTurn);
+  return bestTurn(config, options, stats.startingEnergy, stats.cardsPerTurn);
 };
 
 // --- TRAIT SEARCH ---
@@ -174,23 +225,28 @@ const damageSplits = (style: PlayStyle, points: number): Partial<Traits>[] => {
 export const playerPower = (config: CostCurveConfig, style: PlayStyle, level: number): PlayerPower => {
   const traitPoints = TRAIT_POINTS_PER_LEVEL * level;
   const skills = skillBonusAt(style.skills, SKILL_POINTS_PER_LEVEL * level);
-  const dptCache = new Map<string, number>();
+  const turnCache = new Map<string, Turn>();
   let best: PlayerPower | null = null;
   for (let vigor = 0; vigor <= Math.min(TRAIT_CAP, traitPoints); vigor += 2) {
     for (let endurance = 0; endurance <= Math.min(TRAIT_CAP, traitPoints - vigor); endurance += 2) {
       for (const split of damageSplits(style, traitPoints - vigor - endurance)) {
         const traits = { ...split, vigor, endurance };
         const stats = characterBonuses(traits, WORN);
-        const key = `${JSON.stringify(split)}|${stats.startingEnergy}`;
-        const dpt = dptCache.get(key) ?? damagePerTurn(config, style, stats, skills);
-        dptCache.set(key, dpt);
-        const power = (dpt * stats.maxHp) / villainDamagePerTurn(config);
+        // The hand depends only on damage traits, energy and Guard bonuses, not on HP.
+        const key = `${JSON.stringify(split)}|${stats.startingEnergy}|${stats.shieldPercent}|${stats.shieldFlat}`;
+        const turn = turnCache.get(key) ?? bestStyleTurn(config, style, stats, skills);
+        turnCache.set(key, turn);
+        const toughness = stats.maxHp * turn.toughness;
+        const power = (turn.damage * toughness) / villainDamagePerTurn(config);
         if (!best || power > best.power) {
-          best = { level, style: style.label, traits, skills: skills.bought, energy: stats.startingEnergy, hp: stats.maxHp, damagePerTurn: dpt, power };
+          best = {
+            level, style: style.label, traits, skills: skills.bought, energy: stats.startingEnergy, hp: stats.maxHp,
+            damagePerTurn: turn.damage, blockedPerTurn: turn.blocked, toughness, power,
+          };
         }
       }
     }
   }
   if (!best) throw new Error('No trait split found');
-  return { ...best, damagePerTurn: Math.round(best.damagePerTurn), power: Math.round(best.power) };
+  return { ...best, damagePerTurn: Math.round(best.damagePerTurn), toughness: Math.round(best.toughness), power: Math.round(best.power) };
 };

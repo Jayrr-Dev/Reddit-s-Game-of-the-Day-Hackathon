@@ -32,7 +32,7 @@ const configFromArgs = (): CostCurveConfig =>
 const DEFAULT_LEVELS = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
 
 // --- OUTPUT ---
-const HEADERS = ['Style', 'Level', 'Energy', 'HP', 'Damage/turn', 'Power', 'Traits', 'Skills bought'];
+const HEADERS = ['Style', 'Level', 'Energy', 'HP', 'Damage/turn', 'Blocked/turn', 'Toughness', 'Power', 'Traits', 'Skills bought'];
 
 /** "Str 64, Vig 40, End 22" for the trait split the search chose. */
 const traitText = (result: PlayerPower): string =>
@@ -48,6 +48,8 @@ const rowCells = (result: PlayerPower): string[] => [
   String(result.energy),
   String(result.hp),
   String(result.damagePerTurn),
+  String(Math.round(result.blockedPerTurn)),
+  String(result.toughness),
   String(result.power),
   traitText(result),
   String(result.skills.length),
