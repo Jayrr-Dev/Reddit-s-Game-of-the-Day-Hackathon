@@ -4,10 +4,60 @@ import { GoldCoins } from '../profileParts';
 import { PANDORA_BOX_NAME } from '../../../../shared/game/ringShop';
 import type { ShopReward } from '../../../../shared/types/api';
 import { playSound } from '../../../lib/gameAudio';
+import { MagicCircle } from '../fx/MagicCircle';
 import { ShopJewelryArt } from './ShopJewelryArt';
 
-const REVEAL_MS = { Common: 2600, Uncommon: 2900, Rare: 3400, Epic: 4100, Legendary: 4800 };
-const RAYS = { Common: 3, Uncommon: 5, Rare: 8, Epic: 13, Legendary: 19 };
+const REVEAL_MS = { Common: 3600, Uncommon: 4000, Rare: 4600, Epic: 5250, Legendary: 6200 };
+const LOOT_COUNT = { Common: 14, Uncommon: 22, Rare: 32, Epic: 44, Legendary: 56 };
+type ChestRarity = keyof typeof REVEAL_MS;
+const RIBBONS = [
+  'M380 356 C333 325 260 298 261 252 C263 197 504 257 501 171 C492 102 260 174 263 98 C271 38 493 54 570 20',
+  'M380 356 C425 326 502 300 501 251 C497 199 255 244 260 169 C266 109 501 149 500 94 C497 40 291 54 221 19',
+  'M380 356 C395 284 467 288 443 232 C423 184 358 191 367 147 C376 100 449 109 420 67 C397 30 370 29 362 4',
+] as const;
+
+function TreasureBurst({ rarity }: { rarity: ChestRarity }) {
+  const paint = useId();
+  return <div className="pandora-burst" aria-hidden="true">
+    <svg className="pandora-beams" viewBox="0 0 760 440" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id={paint} x1="0" y1="1" x2="0" y2="0" gradientUnits="objectBoundingBox">
+          <stop stopColor="#fff0b8" stopOpacity=".94" />
+          <stop offset=".34" stopColor="currentColor" stopOpacity=".65" />
+          <stop offset="1" stopColor="currentColor" stopOpacity=".04" />
+        </linearGradient>
+      </defs>
+      <g fill={`url(#${paint})`}>
+        <path d="M378 351 5 0 170 0 389 351Z" />
+        <path d="M376 350 306 0 462 0 391 350Z" />
+        <path d="M379 350 596 0 760 0 390 350Z" />
+        {(rarity === 'Epic' || rarity === 'Legendary') && <path d="M375 353 174 0 237 0 386 350ZM385 352 533 0 591 0 393 355Z" opacity=".45" />}
+      </g>
+      <g className="pandora-ribbon-strokes" fill="none" strokeLinecap="round">
+        {RIBBONS.slice(0, rarity === 'Legendary' ? 3 : rarity === 'Common' ? 1 : 2).map((d, i) => <g key={d}>
+          <path d={d} pathLength="100" className="pandora-ribbon-glow" style={{ '--ribbon-delay': i * 75 + 'ms' } as CSSProperties} />
+          <path d={d} pathLength="100" className="pandora-ribbon-core" style={{ '--ribbon-delay': i * 75 + 'ms' } as CSSProperties} />
+        </g>)}
+      </g>
+    </svg>
+    <div className="pandora-treasure">
+      {Array.from({ length: LOOT_COUNT[rarity] }, (_, i) => {
+        const size = 8 + (i * 7) % 13;
+        return <svg key={i} viewBox="0 0 20 20" className="pandora-loot" style={{
+          '--loot-x': (((i * 137.508) % 93) - 46.5) + 'cqw',
+          '--loot-y': -(21 + (i * 23) % 56) + 'cqh',
+          '--loot-wait': (i * 61 % 620) + 'ms',
+          '--loot-size': size + 'px',
+          '--loot-spin': ((i % 2 ? -1 : 1) * (255 + (i * 73) % 400)) + 'deg',
+        } as CSSProperties}>
+          {i % 9 === 0 ? <path d="M10 1 18 7 15 15 10 19 4 15 2 7Z" fill="#54c7b7" stroke="#cbfff3" strokeWidth="1.1" />
+          : i % 7 === 0 ? <><rect x="4" y="1" width="12" height="18" rx="2" fill="#392442" stroke="#f3cc82" /><path d="M10 5 13 10 10 15 7 10Z" fill="#f6d08b" /></>
+          : <><ellipse cx="10" cy="10" rx="7.3" ry="8.8" fill={i % 5 ? '#cf8f31' : '#9a9bac'} stroke={i % 5 ? '#ffe38a' : '#f0e9ff'} strokeWidth="1.5" /><ellipse cx="10" cy="10" rx="4.6" ry="6.5" fill="none" stroke={i % 5 ? '#ffe3a0' : '#ece8fd'} /><path d="M8 13 12 7" stroke="#fff7dc" opacity=".74" /></>}
+        </svg>;
+      })}
+    </div>
+  </div>;
+}
 
 /** A two-piece reliquary, shared by the counter and the animated reveal. */
 export function MysteryChest() {
@@ -58,12 +108,12 @@ export function MysteryReveal({ reward, onClose }: { reward: ShopReward; onClose
     const duration = REVEAL_MS[rarity];
     const playing = [playSound('runeClick', .74, .46)];
     const seal = window.setTimeout(() => playing.push(playSound('cervielSeal', bad ? .76 : .97, .36)), duration * .26);
-    const crack = window.setTimeout(() => playing.push(playSound('cervielCrack', .86, rarity === 'Legendary' ? .72 : .45)), duration * .81);
+    const crack = window.setTimeout(() => playing.push(playSound('cervielCrack', .86, rarity === 'Legendary' ? .72 : .45)), duration * .59);
     const timer = window.setTimeout(() => setShown(true), duration);
     return () => { [seal, crack, timer].forEach(id => window.clearTimeout(id)); playing.forEach(stop => stop?.()); };
   }, [shown, rarity, bad]);
 
-  return <dialog ref={dialog} className="shop-mystery" aria-label={PANDORA_BOX_NAME + ' reward'} data-rarity={rarity} data-curse={bad || undefined} style={{ '--opening-time': REVEAL_MS[rarity] + 'ms' } as CSSProperties}
+  return <dialog ref={dialog} className="shop-mystery" aria-label={PANDORA_BOX_NAME + ' reward'} data-rarity={rarity} data-curse={bad || undefined} data-opening={!shown || undefined} style={{ '--opening-time': REVEAL_MS[rarity] + 'ms' } as CSSProperties}
     onCancel={event => { event.preventDefault(); if (shown) onClose(); }}>
     <p className="shop-mystery-label">{shown ? reward.kind === 'jewelry' ? 'You found' : 'The box has spoken' : PANDORA_BOX_NAME}</p>
     {shown
@@ -83,13 +133,10 @@ export function MysteryReveal({ reward, onClose }: { reward: ShopReward; onClose
           </>}
         </div>
       : <div className="shop-mystery-opening" aria-hidden="true">
-          <i className="shop-chest-glow" /><div className="shop-chest-circle" /><div className="shop-chest-circle shop-chest-circle-inner" />
-          <div className="shop-chest-particles">
-            {Array.from({ length: RAYS[rarity] }, (_, i) => <i key={i} style={{
-              '--angle': i * 137.508 + 'deg', '--distance': (25 + (i * 11) % 50) + 'px', '--size': (2 + i % 4) + 'px',
-            } as CSSProperties} />)}
-          </div>
-          <MysteryChest />
+          <div className="pandora-seal"><MagicCircle complexity={rarity === 'Legendary' || rarity === 'Epic' ? 'complex' : 'large'} seed={83} color="var(--reveal-ink)" /></div>
+          <div className="pandora-floor"><MagicCircle complexity="large" seed={31} placement="ground" color="var(--reveal-ink)" /></div>
+          <TreasureBurst rarity={rarity} />
+          <div className="pandora-chest-anchor"><MysteryChest /></div>
         </div>}
     {shown
       ? <button ref={continueButton} type="button" className="shop-mystery-action" onClick={onClose}>Continue</button>

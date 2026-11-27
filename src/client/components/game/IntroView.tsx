@@ -12,7 +12,7 @@
 // The rules and the leaderboard open as sheets over the menu.
 // ===================================================================
 
-import { useCallback, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import { getVolume, subscribeVolume } from '../../lib/gameAudio';
 import { useMapAudio } from '../../lib/mapAudio';
 import { GAME_TITLE, LEADERBOARD_SIZE } from '../../../shared/constants/game';
@@ -35,6 +35,9 @@ import type { ShopRingId } from '../../../shared/game/ringShop';
 import { MetatronShop } from './menu/MetatronShop';
 import { DevPanel } from './menu/DevPanel';
 import { ProfileView } from './ProfileView';
+import { GoldCoins } from './profileParts';
+import { apiClient } from '../../lib/apiClient';
+import { progressionFromWins } from '../../../shared/game/character';
 import type { RingProgress } from '../../../shared/game/character';
 import { FirstFight } from './FirstFight';
 import { useIsAdmin } from '../../lib/adminRole';
@@ -176,6 +179,16 @@ export const IntroView = ({
   onShopTestVisit,
 }: IntroViewProps) => {
   const [sheet, setSheet] = useState<Sheet>('none');
+  const [playerTotals, setPlayerTotals] = useState({ wins: data.lifetimeWins ?? 0, gold: data.gold ?? 0 });
+  const level = progressionFromWins(playerTotals.wins).level;
+  useEffect(() => {
+    if (sheet !== 'none' || !data.accountId) return;
+    let current = true;
+    apiClient.profile().then(result => {
+      if (current) setPlayerTotals({ wins: result.wins ?? data.lifetimeWins ?? 0, gold: result.gold ?? data.gold ?? 0 });
+    }).catch(() => {});
+    return () => { current = false; };
+  }, [data.accountId, data.lifetimeWins, data.gold, sheet]);
   const [testJewelry, setTestJewelry] = useState<ShopRingId[]>([]);
   const [testCarry, setTestCarry] = useState<CarryCard[]>([]);
   const receiveTestInventory = useCallback((items: ShopRingId[], visit: string, cards: CarryCard[]) => {
@@ -184,7 +197,8 @@ export const IntroView = ({
     onShopTestVisit?.(visit);
   }, [onShopTestVisit]);
   const musicVolume = useSyncExternalStore(subscribeVolume, () => getVolume('music'));
-  useMapAudio({ mapId: sheet === 'shop' ? 'Gateway of Souls' : 'Home', active: sheet !== 'tutorial' && sheet !== 'dev', bossActive: false, musicVolume: musicVolume / 100, sfxVolume: 0 });
+  const sfxVolume = useSyncExternalStore(subscribeVolume, () => getVolume('sfx'));
+  useMapAudio({ mapId: sheet === 'shop' ? 'Gateway of Souls' : 'Home', active: sheet !== 'tutorial' && sheet !== 'dev', bossActive: false, musicVolume: musicVolume / 100, sfxVolume: sheet === 'shop' ? sfxVolume / 100 : 0 });
   const isAdmin = useIsAdmin();
   const settings = useGameSettings();
   const closeSheet = () => setSheet('none');
@@ -193,7 +207,7 @@ export const IntroView = ({
   if (sheet === 'tutorial') return <FirstFight accountId={data.accountId} onExit={closeSheet} onRules={() => setSheet('rules')} />;
 
   return (
-    <main className="relative flex h-full flex-col overflow-hidden bg-surface">
+    <main className="home-menu relative flex h-full flex-col overflow-hidden bg-surface">
       <div className="relative mt-2 flex min-h-0 flex-1">
         <Hero data={data} />
         <SettingsDialog className="absolute bottom-2 right-3 z-10">{settings.controls}</SettingsDialog>
@@ -232,6 +246,11 @@ export const IntroView = ({
           )}
         </nav>
       </div>
+      {sheet === 'none' && <aside className="home-player-badge" aria-label="Player summary">
+        <strong>{data.username ? 'u/' + data.username : 'Local player'}</strong>
+        <span>Level {level}</span>
+        <span className="home-player-gold"><GoldCoins /> <span>{playerTotals.gold.toLocaleString()} Gold</span></span>
+      </aside>}
       {sheet === 'shop' && <MetatronShop onClose={closeSheet} onTestInventory={receiveTestInventory} />}
       {sheet === 'dev' && isAdmin && <DevPanel onClose={closeSheet} />}
       {sheet === 'rules' && (

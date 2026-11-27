@@ -35,6 +35,18 @@ const SALE_LINES = [
   'Keep a coin for the road. Want is rarely satisfied.',
 ] as const;
 
+const APPLE_THANKS = [
+  'An apple! Thou didst remember. There, now thou hast made me smile.',
+  'Pray, set it here. A fresh apple! I had all but forgotten the smell.',
+  'For me? Keep thy gold a moment. Let me find thee something worth seeing.',
+] as const;
+
+const REALM_THANKS = [
+  'A Realm Apple! May I? Ah, dry as grave sand. I had missed the taste.',
+  'Thou broughtest me a Realm Apple! Wait till thou seest what I kept beneath the cloth.',
+  'A little taste of home. Truly, thou hast made my day. Come, see what I set aside.',
+] as const;
+
 const IDLE_LORE = [
   'Hell hath no fury like a woman scorned',
   "A pilgrim once called me 'sir.' It seemed a poor reason to interrupt a sale.",
@@ -136,7 +148,7 @@ export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void
   const lastVoice = useRef<MetatronVoice>(undefined);
   const [greeting] = useState(() => GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
   const [line, setLine] = useState<number | null>(null);
-  const [reaction, setReaction] = useState<{ serial: number; apple?: ShopApple }>({ serial: 0 });
+  const [reaction, setReaction] = useState<{ serial: number; appleLine?: string }>({ serial: 0 });
   const [buying, setBuying] = useState(false);
   const [idleLore] = useState(shuffleIdleLore);
   const [idleCount, setIdleCount] = useState(0);
@@ -177,12 +189,15 @@ export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void
   }
   function greetReroll(apple: ShopApple) {
     setShowWait(false);
-    setReaction(previous => ({ serial: previous.serial + 1, apple }));
+    const pool = apple === REALM_APPLE ? REALM_THANKS : APPLE_THANKS;
+    const roll = Math.random();
+    setReaction(previous => {
+      const lines = pool.filter(text => text !== previous.appleLine);
+      return { serial: previous.serial + 1, appleLine: lines[Math.floor(roll * lines.length)]! };
+    });
   }
   const speech = showWait ? idleLore[idleCount - 1] :
-    reaction.apple === REALM_APPLE ? 'Dry as grave sand. I had forgot the taste. Come, see what I have kept beneath the cloth.' :
-    reaction.apple ? 'An apple. Thou didst remember. Stay a moment. I have more beneath the cloth.' :
-    line === null ? greeting : SALE_LINES[line];
+    reaction.appleLine ?? (line === null ? greeting : SALE_LINES[line]);
   return (
   <section
     role="dialog"

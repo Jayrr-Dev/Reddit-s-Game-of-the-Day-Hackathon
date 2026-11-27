@@ -33,13 +33,13 @@ export const ProfileStrip = ({ username, wins, gold, bestScore }: {
       <strong>{username ? 'u/' + username : 'Local player'}</strong>
       <span>Player</span>
     </div>
-    <div>
-      <strong>{wins}</strong>
-      <span>Waves won</span>
-    </div>
     <div className="profile-gold" title="Gold earned from Conquest victories">
       <strong><GoldCoins />{gold.toLocaleString()}</strong>
       <span>Gold</span>
+    </div>
+    <div>
+      <strong>{wins}</strong>
+      <span>Waves won</span>
     </div>
     {bestScore !== undefined && (
       <div>

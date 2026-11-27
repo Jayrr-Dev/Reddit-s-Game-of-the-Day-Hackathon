@@ -6,6 +6,7 @@ import type { BossArenaAmbience } from '../content/bossArenas';
 import wild from '../assets/audio/ambience-wild.ogg';
 import civic from '../assets/audio/ambience-civic.ogg';
 import stone from '../assets/audio/ambience-stone.ogg';
+import shopHearth from '../assets/audio/ambience-metatron-shop.ogg';
 import water from '../assets/audio/ambience-water.ogg';
 import highland from '../assets/audio/ambience-highland.ogg';
 import fire from '../assets/audio/ambience-fire.ogg';
@@ -51,7 +52,7 @@ const bossAmbiences: Record<BossArenaAmbience, string> = { stone, highland, civi
 
 const scenes: Record<string, readonly [ambience: string, score: string]> = {
   Home: [wild, home],
-  'Gateway of Souls': [stone, gatewayOfSouls],
+  'Gateway of Souls': [shopHearth, gatewayOfSouls],
   'Village Green': [wild, villageGreenScore],
   "King’s Road": [highland, kingsRoadScore],
   Monastery: [stone, monasteryScore],
@@ -89,7 +90,7 @@ export const MUSIC_TRACKS: readonly AudioTrack[] = [
 ];
 
 /** Every ambience bed, one row per sound file. */
-export const AMBIENCE_TRACKS: readonly AudioTrack[] = Object.entries({ wild, civic, stone, water, highland, fire })
+export const AMBIENCE_TRACKS: readonly AudioTrack[] = Object.entries({ wild, civic, stone, water, highland, fire, 'shop hearth': shopHearth })
   .map(([name, url]) => ({ name: name[0]?.toUpperCase() + name.slice(1), url }));
 
 type Playing = { url: string; source: AudioBufferSourceNode; gain: GainNode; targetLevel: number };
