@@ -216,8 +216,11 @@ export const COST_CURVE_CONFIG: CostCurveConfig = {
     incomingPerTurn: 15,
     heroesInReach: 3,
     heroesInFrontLine: 2,
-    delayKeptPerTurn: 0.85,
-    hexLandsLate: 0.9,
+    // Conservative (Sam, 2026-11-27): no discount for delay or landing
+    // late, since both were guesses. Effects are priced at full damage,
+    // so a card that passes the curve is not secretly too strong.
+    delayKeptPerTurn: 1,
+    hexLandsLate: 1,
     areaOverkill: 0.8,
     randomAim: 0.9,
     shockBurstChance: 0.5,
