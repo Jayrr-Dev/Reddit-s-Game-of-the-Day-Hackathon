@@ -71,7 +71,7 @@ export const isShopRingId = (id: unknown): id is ShopRingId => SHOP_IDS.some(kno
 export const shopRingIds = (value: unknown): ShopRingId[] =>
   Array.isArray(value) ? SHOP_IDS.filter(id => value.includes(id)) : [];
 
-/** Three everyday rings, then two chances at rare stock. An amulet can only replace slot five. */
+/** Five offers, with at most one Pandora box. An amulet can only appear in slot five. */
 export function shopOffers(day: string, admin = false): ShopOffer[] {
   const premium = day.endsWith('p');
   const seed = (label: string) => hashSeed('metatron:stock:' + day + ':' + label);
@@ -90,9 +90,12 @@ export function shopOffers(day: string, admin = false): ShopOffer[] {
     const target = roll < (premium ? 33 : 18) ? 'Legendary' : roll < (premium ? 63 : 33) ? 'Epic' : roll < (premium ? 90 : 65) || !low.length ? 'Rare' : undefined;
     [fifth] = pickOne(seed('fifth-item'), target ? rings.filter(candidate => candidate.id !== fourth.id && candidate.rarity === target) : low);
   }
+  const boxCandidates = admin ? [] : MYSTERY_BOX_IDS.filter((id, index) =>
+    (!premium || index !== 3) && nextInt(seed(id), 100)[0] < BOX_CHANCE[index]!);
+  const box = admin ? MYSTERY_BOX_IDS[4] :
+    boxCandidates.length ? pickOne(seed('single-pandora-box'), boxCandidates)[0] : undefined;
   return [...regular, fourth, fifth].map(({ id, rarity }, index): ShopOffer => {
-    const box = MYSTERY_BOX_IDS[index];
-    if (box && (!premium || index !== 3) && ((admin && index === 4) || nextInt(seed(box), 100)[0] < (BOX_CHANCE[index] ?? 0))) return boxOffer(box);
+    if (box && MYSTERY_BOX_IDS[index] === box) return boxOffer(box);
     const cardRoll = nextInt(seed('card-offer'), 100)[0];
     if (index === 3 && !premium && cardRoll < 35) {
       const imbue = cardRoll < 20;
@@ -176,7 +179,7 @@ export function shopGoldBalance(earned: number, wallet: ShopWallet): number {
   return Math.max(0, earned - purchases + events - runeCost);
 }
 
-/** One opening per slot and day, whether the result is jewelry or another outcome. */
+/** Read all box receipts for this refresh, including older stock that had multiple boxes. */
 export const openedShopBoxes = (day: string, wallet: ShopWallet): MysteryBoxId[] =>
   MYSTERY_BOX_IDS.filter(box => wallet.boxes[day + ':' + box] || wallet.events?.[day + ':' + box]);
 
@@ -206,7 +209,7 @@ export function claimPandoraBounty(wallet: ShopWallet, runId: string): ShopWalle
   return undefined;
 }
 
-/** A daily box can only be opened once. */
+/** At most one Pandora box can be purchased per stock refresh. */
 export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: ShopOffer, day: string, entropy: string) {
   const balance = shopGoldBalance(earned, wallet);
   if (offer.slot === 'card') {
@@ -221,7 +224,7 @@ export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: Sho
     return { status: 'buy', next: { ...wallet, items: { ...wallet.items, [offer.id]: offer.price } } } as const;
   }
   const receipt = day + ':' + offer.id;
-  if (wallet.boxes[receipt] || wallet.events?.[receipt]) return { status: 'owned' } as const;
+  if (openedShopBoxes(day, wallet).length) return { status: 'owned' } as const;
   if (balance < offer.price) return { status: 'short' } as const;
 
   const unowned = SHOP_IDS.filter(id => wallet.items[id] === undefined);

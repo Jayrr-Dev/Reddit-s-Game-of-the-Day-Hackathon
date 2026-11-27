@@ -22,7 +22,8 @@ test('the shop always stocks five unique pieces; premium stock only appears in t
     assert.ok(offers.slice(0, 3).every(offer => offer.slot === 'box' || (offer.slot === 'ring' && ['Common', 'Uncommon'].includes(offer.rarity))));
     assert.ok(offers.slice(0, 4).every(offer => offer.slot !== 'amulet'));
     assert.deepEqual(offers, shopOffers(date));
-    assert.deepEqual(shopOffers(date, true).slice(0, 4), offers.slice(0, 4));
+    assert.ok(offers.filter(offer => offer.slot === 'box').length <= 1);
+    assert.equal(shopOffers(date, true).filter(offer => offer.slot === 'box').length, 1);
     assert.equal(shopOffers(date, true)[4]?.id, 'mystery-box-5');
     stocks.add(offers.map(({ id }) => id).join(','));
     if (offers[4]?.slot === 'amulet') {
@@ -85,6 +86,7 @@ test('a mystery box costs exactly 100 Gold, awards an unowned item and only open
   assert.equal(goldAfterPurchases(130, saved.items), 0);
   assert.equal(saved.boxes[day + ':' + box.id], purchase.reward.id);
   assert.equal(quoteShopPurchase(1000, saved, box, day, 'different-roll').status, 'owned');
+  assert.equal(quoteShopPurchase(1000, saved, { ...box, id: 'mystery-box-1' }, day, 'different-slot').status, 'owned');
   assert.throws(() => readShopWallet('{"items":{},"boxes":{"2026-11-27:mystery-box-5":"cinder-band"}}'));
 });
 

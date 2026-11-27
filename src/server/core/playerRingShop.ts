@@ -32,10 +32,14 @@ export async function readPlayerProgress(id: string) {
 
 function response(offerDay: string, earned: number, wallet: ShopWallet, admin: boolean, testVisit?: string): RingShopResponse {
   const nextEffect = pendingPandoraEffect(wallet);
+  const offers = shopOffers(offerDay, admin);
+  const opened = openedShopBoxes(offerDay, wallet).length
+    ? offers.flatMap(offer => offer.slot === 'box' ? [offer.id] : [])
+    : [];
   return {
     ...(nextEffect && { nextEffect }),
     offerDay, gold: shopGoldBalance(earned, wallet), owned: shopRingIds(Object.keys(wallet.items)),
-    offers: shopOffers(offerDay, admin), opened: openedShopBoxes(offerDay, wallet),
+    offers, opened,
     collectedAll: allShopJewelryOwned(wallet.items), ...(testVisit && { testVisit }),
     carryCards: availableCarryCards(wallet.carry), imbueBought: !!wallet.carry?.['shop:' + offerDay],
   };
