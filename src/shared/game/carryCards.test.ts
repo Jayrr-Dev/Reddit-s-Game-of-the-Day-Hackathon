@@ -17,6 +17,20 @@ const day = '2026-11-27';
 const firstId = 'b4879658-3fed-485f-8039-600f1045a9f8';
 const nextId = '4c9d180d-5955-4c68-bcd2-92995619e472';
 
+test('one obsolete Album receipt cannot block the profile or change the saved balance', () => {
+  const shopId = 'shop:' + day;
+  const bad = { id: shopId, cardId: 'retiredCardExample', source: 'shop' };
+  const wallet = readShopWallet(JSON.stringify({ items: {}, boxes: {}, carry: {
+    [shopId]: bad, 'grant:ruin': { id: 'grant:ruin', cardId: 'ruin', source: 'grant', discarded: false },
+  } }));
+  assert.deepEqual(selectCarryCards(wallet, ['grant:ruin']), ['ruin']);
+  assert.equal(selectCarryCards(wallet, [shopId]), undefined);
+  assert.equal(shopGoldBalance(200, wallet), 115);
+  const updated = { ...wallet, carry: changeAlbum(wallet.carry!, { type: 'trash', id: 'grant:ruin' }) };
+  assert.deepEqual(readShopWallet(JSON.stringify(updated)).unreadCarry, { [shopId]: bad });
+  assert.equal(shopGoldBalance(200, readShopWallet(JSON.stringify(updated))), 115);
+});
+
 test('Album keeps four active cards, allows an archive swap, and tombstones trash without refunding it', () => {
   const extra = 'shop:' + day;
   const initial = { ...readShopWallet(), carry: { ...seededAdminCarryCards(), [extra]: { id: extra, cardId: 'wardingBolt', source: 'shop' } } } as const;

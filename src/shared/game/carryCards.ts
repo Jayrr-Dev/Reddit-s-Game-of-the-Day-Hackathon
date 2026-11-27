@@ -71,7 +71,7 @@ export function appendCarriedCards(starter: readonly CardId[], carried: readonly
 }
 
 /** Restore paid and recovered cards without trusting an arbitrary catalog key. */
-export function readCarryCards(value: unknown): CarryCards {
+export function readCarryCards(value: unknown, onUnread?: (id: string, row: unknown) => void): CarryCards {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid carry cards');
   const cards: CarryCards = {};
   for (const [id, row] of Object.entries(value)) {
@@ -83,8 +83,11 @@ export function readCarryCards(value: unknown): CarryCards {
       (row.source === 'grant' && id !== 'grant:' + row.cardId) ||
       (row.source === 'test' && (!isTestCarryCardId(id) || (id.startsWith('test:') && row.cardId !== TEST_CARDS[Number(id.slice(5))]))) ||
       (row.spent !== undefined && (typeof row.spent !== 'string' || !/^[a-f0-9-]{36}$/.test(row.spent))) ||
-      (row.discarded !== undefined && row.discarded !== true))
-      throw new Error('Invalid carry card receipt');
+      (row.discarded !== undefined && row.discarded !== true && row.discarded !== false)) {
+      if (!onUnread) throw new Error('Invalid carry card receipt');
+      onUnread(id, row);
+      continue;
+    }
     cards[id] = { id, cardId: row.cardId, source: row.source,
       ...(row.spent && { spent: row.spent }), ...(row.discarded && { discarded: true }) };
   }

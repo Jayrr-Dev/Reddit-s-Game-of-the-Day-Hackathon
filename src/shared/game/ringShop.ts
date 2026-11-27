@@ -77,7 +77,7 @@ export type ShopOfferId = ShopRingId | MysteryBoxId | typeof SHOP_IMBUE_ID;
 type MysteryOffer = { id: MysteryBoxId; name: string; flavor: string; slot: 'box'; rarity: RingRarity; price: number };
 type CardOffer = { id: typeof SHOP_IMBUE_ID; name: string; flavor: string; slot: 'card'; cardId: CardId; rarity: RingRarity; price: number };
 export type ShopOffer = RingOffer | MysteryOffer | CardOffer;
-export type ShopWallet = { items: RingPurchases; boxes: Partial<Record<string, ShopRingId>>; events?: Partial<Record<string, PandoraEvent>>; carry?: CarryCards; testFruit?: { items: ItemBag; stock: string } };
+export type ShopWallet = { items: RingPurchases; boxes: Partial<Record<string, ShopRingId>>; events?: Partial<Record<string, PandoraEvent>>; carry?: CarryCards; unreadCarry?: Record<string, unknown>; testFruit?: { items: ItemBag; stock: string } };
 export type ShopReward =
   | { kind: 'jewelry'; id: ShopRingId; name: string; slot: EquipmentSlot; rarity: RingRarity }
   | (PandoraEvent & { albumFull?: true });
@@ -219,7 +219,12 @@ export function readShopWallet(raw?: string, practice = false): ShopWallet {
         events[receipt] = readPandoraEvent(event);
       }
     }
-    const savedCarry = 'carry' in data ? readCarryCards(data.carry) : undefined;
+    // Keep unrecognized rows intact for recovery without blocking login or granting them.
+    const unread: [string, unknown][] = [];
+    const separate = 'unreadCarry' in data && data.unreadCarry && typeof data.unreadCarry === 'object' ? data.unreadCarry : undefined;
+    const saved = 'carry' in data ? data.carry : undefined;
+    const savedCarry = saved || separate ? readCarryCards({ ...separate, ...(typeof saved === 'object' && saved) },
+      (id, row) => unread.push([id, row])) : undefined;
     // Existing admin receipts used the real shop prefix but only live in the test wallet.
     const carry = practice && savedCarry ? Object.fromEntries(
       Object.values(savedCarry).flatMap(card => {
@@ -236,7 +241,7 @@ export function readShopWallet(raw?: string, practice = false): ShopWallet {
         !('stock' in fruit) || !isShopStockKey(fruit.stock)) throw new Error('Invalid test shop fruit');
       testFruit = { items: fruit.items, stock: fruit.stock };
     }
-    return { items, boxes, ...(Object.keys(events).length && { events }), ...(carry && { carry }), ...(testFruit && { testFruit }) };
+    return { items, boxes, ...(Object.keys(events).length && { events }), ...(carry && { carry }), ...(unread.length && { unreadCarry: Object.fromEntries(unread) }), ...(testFruit && { testFruit }) };
   }
   return { items: readPurchases(raw), boxes: {} };
 }
@@ -246,7 +251,11 @@ export function shopGoldBalance(earned: number, wallet: ShopWallet): number {
   const purchases = Object.values(wallet.items).reduce((sum, price) => sum + price, 0);
   const events = Object.values(wallet.events ?? {}).reduce((sum, event) =>
     sum - MYSTERY_BOX_PRICE + (event?.kind === 'gold' ? event.change : event?.kind === 'run' && event.claimed ? PANDORA_CURSE_BOUNTY : 0), 0);
-  const runeCost = Object.values(wallet.carry ?? {}).filter(card => card?.source === 'shop').length * IMBUE_PRICE;
+  const knownCharges = Object.values(wallet.carry ?? {}).filter(card => card?.source === 'shop').length;
+  const unreadCharges = Object.entries(wallet.unreadCarry ?? {}).filter(([id, row]) =>
+    (id.startsWith('shop:') || id.startsWith('test-shop:')) && isShopStockKey(id.slice(id.indexOf(':') + 1)) &&
+    row && typeof row === 'object' && 'source' in row && row.source === 'shop').length;
+  const runeCost = (knownCharges + unreadCharges) * IMBUE_PRICE;
   return Math.max(0, earned - purchases + events - runeCost);
 }
 
@@ -285,7 +294,7 @@ export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: Sho
   const balance = shopGoldBalance(earned, wallet);
   if (offer.slot === 'card') {
     const id = shopCardReceipt(day, practice);
-    if (wallet.carry?.[id]) return { status: 'owned' } as const;
+    if (wallet.carry?.[id] || Object.hasOwn(wallet.unreadCarry ?? {}, id)) return { status: 'owned' } as const;
     if (!practice && availableCarryCards(wallet.carry).length >= ALBUM_SLOTS) return { status: 'full' } as const;
     if (balance < offer.price) return { status: 'short' } as const;
     return { status: 'buy', next: { ...wallet, carry: { ...wallet.carry, [id]: { id, cardId: offer.cardId, source: 'shop' } } } } as const;
@@ -357,7 +366,7 @@ export function selectCarryCards(wallet: ShopWallet, receipts: readonly string[]
 /** Put a surrendered card into Inventory after a verified death, once per run. */
 export function recoverCardFromHell(wallet: ShopWallet, runId: string, cardId: CardId): ShopWallet | undefined {
   const id = 'hell:' + runId;
-  if (wallet.carry?.[id]) return undefined;
+  if (wallet.carry?.[id] || Object.hasOwn(wallet.unreadCarry ?? {}, id)) return undefined;
   return { ...wallet, carry: { ...wallet.carry, [id]: { id, cardId, source: 'ferryman' } } };
 }
 
