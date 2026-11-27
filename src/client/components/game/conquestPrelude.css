@@ -65,6 +65,15 @@
 }
 .sin-host-name p { margin: .3rem 0 0; color: #f1cd99; font-size: clamp(.72rem, 2cqw, .9rem); }
 .sin-host-voice .sin-line { padding: .48rem .7rem; font-size: clamp(.78rem, 1.95cqw, .97rem); line-height: 1.35; }
+/* CENTRED HOST: stretch the voice column down the right edge so the line sits on the dais, clear of the boss. */
+@container (min-width: 521px) {
+  .sin-prelude[data-host-side="center"] .sin-host-voice {
+    inset-block-end: clamp(.85rem, 4cqw, 2rem);
+    grid-template-rows: auto 1fr;
+    pointer-events: none;
+  }
+  .sin-prelude[data-host-side="center"] .sin-line { align-self: end; }
+}
 .sin-lair-art { display: none; }
 .sin-speech-mobile { display: none; }
 .sin-artifacts { width: min(45%, 23rem); margin-top: auto; }

@@ -302,13 +302,15 @@ export function ConquestPrelude({ seed, options, worldSeed, atlasOptions, onChoo
     onChoose={option => onChoose(option, isHellArtifact(accepted) ? accepted : undefined)} />;
   const labelSide = host.side === 'right' ? 'left' : 'right';
   return <section className="sin-prelude prelude-enter" aria-label="A meeting before revival"
-    data-label-side={labelSide} style={{ '--sin-lair': 'url("' + host.backdrop + '")', '--sin-focus': host.focus } as CSSProperties}>
+    data-label-side={labelSide} data-host-side={host.side} style={{ '--sin-lair': 'url("' + host.backdrop + '")', '--sin-focus': host.focus } as CSSProperties}>
     <div className="sin-prelude-content">
       <SinLairMotion host={host.name} art={host.backdrop} />
       <div className="sin-lair-art" aria-hidden="true" />
       <div className="sin-host-voice">
         <header className="sin-host-name"><h1>{host.name}</h1><p>{host.lair}</p></header>
-        <SpeechBubble className="sin-line sin-speech-desktop" tail={labelSide === 'left' ? 'right' : 'left'}>{host.line}</SpeechBubble>
+        {/* A centred host fills the middle of the art, so its line drops to the bottom corner and points up at it. */}
+        <SpeechBubble className="sin-line sin-speech-desktop"
+          tail={host.side === 'center' ? 'up-right' : labelSide === 'left' ? 'right' : 'left'}>{host.line}</SpeechBubble>
       </div>
       <SpeechBubble className="sin-speech-mobile" tail={labelSide === 'left' ? 'up-right' : 'up-left'}>{host.line}</SpeechBubble>
       <div className="sin-artifacts">
