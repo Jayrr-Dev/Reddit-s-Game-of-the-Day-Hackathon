@@ -19,6 +19,9 @@ const GREETINGS = [
   'Barter?',
   'You reek of Ambition',
   'sup.',
+  'Are you a fool?',
+  'Ah, the new lord.',
+  "How's thy sin?",
 ] as const;
 
 const SALE_LINES = [
