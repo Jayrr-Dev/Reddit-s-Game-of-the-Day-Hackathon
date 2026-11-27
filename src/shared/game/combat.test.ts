@@ -21,6 +21,7 @@ import {
   frostThaw,
   hexBurn,
   hexBurnAmount,
+  hexAfterAction,
   cleanseOne,
   dispelBuffs,
   disruptStatus,
@@ -188,7 +189,7 @@ void test('Invincible does not spend a stack blocking Hex or a support move', ()
   const actor = { ...base.heroes[0]!, heroId: 'holt' as const, row: 'front' as const, moveIndex: 0 };
   const player = addStatus(addStatus(base.player, 'hex', 7), 'invincible', 1);
   const after = endTurn({ ...base, player, heroes: [actor] });
-  assert.equal(after.player.hp, player.hp - 14);
+  assert.equal(after.player.hp, player.hp - 7);
   assert.equal(after.player.statuses.invincible, 1);
 });
 
@@ -262,72 +263,37 @@ void test('hex is left alone by end-of-turn upkeep', () => {
   assert.equal(after.statuses.hex, 3);
 });
 
-/** The HP a unit loses to Hex on each of its next `turns` turns. */
-const hexLosses = (hex: number, turns: number): number[] => {
-  let unit = {
-    ...createCombatant(100, 100),
-    statuses: { ...NO_STATUSES, hex },
-  };
-  const losses: number[] = [];
-  for (let turn = 0; turn < turns; turn += 1) {
-    const next = hexBurn(unit);
-    losses.push(unit.hp - next.hp);
-    unit = next;
-  }
-  return losses;
-};
-
-void test('an even hex does not burn, it grows by 1', () => {
-  for (const hex of [2, 4, 10]) {
-    const after = hexBurn({
-      ...createCombatant(100, 100),
-      statuses: { ...NO_STATUSES, hex },
-    });
-    assert.equal(after.hp, 100, `hex ${hex} waits`);
-    assert.equal(after.statuses.hex, hex + 1, `hex ${hex} grows`);
+void test('odd Hex deals its value and spends exactly one stack; even Hex waits', () => {
+  for (const [hex, damage, left] of [[0,0,0],[2,0,2],[4,0,4],[1,1,0],[5,5,4],[7,7,6],[13,26,12],[23,46,22]]) {
+    const after = hexBurn({ ...createCombatant(100, 100), statuses: { ...NO_STATUSES, hex: hex! } });
+    assert.equal(after.hp, 100 - damage!);
+    assert.equal(after.statuses.hex, left);
   }
 });
 
-void test('an odd hex burns for its value, then loses a third (rounded up)', () => {
-  const thirds: [number, number][] = [
-    [1, 0],
-    [5, 3],
-    [7, 4],
-    [9, 6],
-    [11, 7],
-  ];
-  for (const [hex, left] of thirds) {
-    const burned = hexBurn({
-      ...createCombatant(100, 100),
-      statuses: { ...NO_STATUSES, hex },
-    });
-    assert.equal(burned.hp, 100 - hex * 2, `hex ${hex} burns ${hex * 2}`);
-    assert.equal(burned.statuses.hex, left, `hex ${hex} drops to ${left}`);
+void test('an action grows Hex to 3 or 13 and bursts immediately without spending a stack', () => {
+  for (const hex of [2, 12, 22]) {
+    const before = { ...createCombatant(100, 100), statuses: { ...NO_STATUSES, hex } };
+    const burst = hexAfterAction(before);
+    assert.equal(burst.hp, 100 - (hex + 1) * 2);
+    assert.equal(burst.statuses.hex, hex + 1);
+    assert.equal(burst.hexDamageTaken, (hex + 1) * 2);
+    const later = hexAfterAction(burst);
+    assert.equal(later.hp, burst.hp);
+    assert.equal(later.statuses.hex, hex + 2);
   }
 });
 
-void test('an odd hex ending in 3 burns triple, then clears', () => {
-  for (const [hex, loss] of [
-    [3, 9],
-    [13, 39],
-    [23, 69],
-  ] as const) {
-    assert.equal(hexBurnAmount(hex), loss, `hex ${hex} reads ${loss}`);
-    const burned = hexBurn({
-      ...createCombatant(100, 100),
-      statuses: { ...NO_STATUSES, hex },
-    });
-    assert.equal(burned.hp, 100 - loss, `hex ${hex} burns ${loss}`);
-    assert.equal(burned.statuses.hex, 0, `hex ${hex} clears`);
-  }
-  assert.equal(hexBurnAmount(4), 0, 'even hex never burns');
-  assert.equal(hexBurnAmount(11), 22, 'other odd hex burns double');
-});
-
-void test('hex runs its course: 7 burns, grows, burns, then triples out', () => {
-  // 7 (x2) -> 4 (grows) -> 5 (x2) -> 3 (x3) -> gone.
-  assert.deepEqual(hexLosses(7, 5), [14, 0, 10, 9, 0]);
-  assert.deepEqual(hexLosses(4, 4), [0, 10, 9, 0]);
+void test('playing a card and moving each grow the player Hex once', () => {
+  const fight = fightWith(['backhand']);
+  const state = { ...fight, player: addStatus(fight.player, 'hex', 2) };
+  const paid = playCard(state, 0, state.heroes[0]!.uid);
+  assert.equal(paid.player.hp, state.player.hp - 6);
+  assert.equal(paid.player.statuses.hex, 3);
+  const stepped = move(paid, 'backStep');
+  assert.equal(stepped.player.hp, paid.player.hp);
+  assert.equal(stepped.player.statuses.hex, 4);
+  assert.equal(finishPlayerTurn(stepped).player.statuses.hex, 4);
 });
 
 void test('incoming damage preview accounts for every attack and existing defenses but not Hex', () => {
@@ -341,7 +307,7 @@ void test('incoming damage preview accounts for every attack and existing defens
   assert.equal(potentialEnemyHpLoss(guarded), 0);
   const hexed = { ...state, player: addStatus(state.player, 'hex', 7) };
   assert.equal(potentialEnemyHpLoss(hexed), open);
-  assert.equal(pendingPlayerHexDamage(hexed), 14);
+  assert.equal(pendingPlayerHexDamage(hexed), 7);
   assert.equal(potentialEnemyHpLoss({ ...state, waveArrival: true }), 0);
   assert.equal(potentialEnemyHpLoss({ ...state, player: addStatus(state.player, 'cloak', 2) }), 0);
 });
@@ -374,15 +340,15 @@ void test('the Burn preview matches end-of-turn HP loss without including Hex or
 
 void test('player Hex preview shows only the damage due at the next turn opening', () => {
   const player = createCombatant(63, 209);
-  for (const [hex, damage] of [[0, 0], [4, 0], [7, 14], [13, 39], [23, 63]] as const) {
+  for (const [hex, damage] of [[0, 0], [4, 0], [7, 7], [13, 26], [23, 46], [43, 63]] as const) {
     assert.equal(pendingPlayerHexDamage({ player: { ...player, statuses: { ...player.statuses, hex } } }), damage);
   }
   const hexed = { ...player, statuses: { ...player.statuses, hex: 7 } };
   const expiring = castTimedProtection(hexed, 1);
   const staying = castTimedProtection(hexed, 2);
-  assert.equal(pendingPlayerHexDamage({ player: expiring }), 14);
-  assert.equal(pendingPlayerHexDamage({ player: staying }), 11);
-  assert.equal(pendingPlayerHexDamage({ player: expiring, waveArrival: true }), 11);
+  assert.equal(pendingPlayerHexDamage({ player: expiring }), 7);
+  assert.equal(pendingPlayerHexDamage({ player: staying }), 6);
+  assert.equal(pendingPlayerHexDamage({ player: expiring, waveArrival: true }), 6);
 });
 
 void test('player Hex preview agrees with the burn at wave arrival and clears on an even remainder', () => {
@@ -395,7 +361,7 @@ void test('player Hex preview agrees with the burn at wave arrival and clears on
   const expected = pendingPlayerHexDamage(cursed);
   const result = endTurn(cursed);
   assert.equal(cursed.player.hp - result.player.hp, expected);
-  assert.equal(result.player.statuses.hex, 4);
+  assert.equal(result.player.statuses.hex, 6);
   assert.equal(pendingPlayerHexDamage(result), 0);
   const poisoned = { ...cursed, player: addStatus(cursed.player, 'poison', 5) };
   const justPoison = { ...poisoned, player: { ...poisoned.player, statuses: { ...poisoned.player.statuses, hex: 0 } } };
@@ -403,7 +369,7 @@ void test('player Hex preview agrees with the burn at wave arrival and clears on
   assert.equal(endTurn(justPoison).player.hp - endTurn(poisoned).player.hp, expected);
 });
 
-void test('a hexed hero burns before it acts, and its hex drops', () => {
+void test('a hero with Hex 3 burns before acting and again if its action grows back to 3', () => {
   // Settled, so the Squire stands in the front row and can swing.
   const fight = settled(
     startCombat({
@@ -427,11 +393,13 @@ void test('a hexed hero burns before it acts, and its hex drops', () => {
   const burnIndex = steps.findIndex(
     (step) =>
       step.actorUid === null &&
-      step.state.heroes[0]?.hp === hexed.heroes[0]!.hp - 9 // Hex 3 ends in 3: tripled, then cleared
+      step.state.heroes[0]?.hp === hexed.heroes[0]!.hp - 6 // Turn opening: Hex 3 deals double.
   );
   const actIndex = steps.findIndex((step) => step.actorUid === squireUid);
   assert.ok(burnIndex > 0 && burnIndex < actIndex, 'burns, then acts');
-  assert.equal(steps.at(-1)!.state.heroes[0]!.statuses.hex, 0);
+  assert.equal(steps[burnIndex]!.state.heroes[0]!.statuses.hex, 2);
+  assert.equal(steps[actIndex]!.state.heroes[0]!.statuses.hex, 3);
+  assert.equal(steps[actIndex]!.state.heroes[0]!.hexDamageTaken, 12);
 });
 
 void test('a hexed villain burns at the start of its turn', () => {
@@ -448,14 +416,12 @@ void test('a hexed villain burns at the start of its turn', () => {
     player: { ...fight.player, statuses: { ...NO_STATUSES, hex: 5 } },
   };
   const next = endTurn(hexed);
-  // The Bard only sings (Wrath to allies): the 10 lost is the hex (odd: double).
-  assert.equal(next.player.hp, 40);
-  // 5 loses a third, rounded up: 3 left.
-  assert.equal(next.player.statuses.hex, 3);
-  // 3 ends in 3: it burns triple (9, at least; the heroes may hit too), then clears.
+  // The Bard only sings. End Turn is not itself an action.
+  assert.equal(next.player.hp, 45);
+  assert.equal(next.player.statuses.hex, 4);
   const after = endTurn(next);
-  assert.ok(next.player.hp - after.player.hp >= 9);
-  assert.equal(after.player.statuses.hex, 0);
+  assert.equal(after.player.hexDamageTaken, next.player.hexDamageTaken);
+  assert.equal(after.player.statuses.hex, 4);
 });
 
 void test('burn deals its value, then halves (a half rounds down)', () => {
@@ -3190,11 +3156,11 @@ void test('Protection reduces all damaging afflictions after source scaling with
     statuses: { ...unit.statuses, protection: 2, armor: 5, hex: 5, poison: 7, burn: 9, bleed: 8, shock: 5 },
   };
   const effects = [hexBurn(base), poisonTick(base), burnTick(base), bleedOnAttack(base, 8), burstShock(base)];
-  assert.deepEqual(effects.map(x => 100 - x.hp), [5, 4, 5, 2, 5]);
+  assert.deepEqual(effects.map(x => 100 - x.hp), [3, 4, 5, 2, 5]);
   assert.ok(effects.every(x => x.guard === 9 && x.statuses.armor === 5));
   assert.equal(effects[3]!.bleedTaken, 2);
   assert.equal(effects[4]!.shockDamageTaken, 5);
-  assert.deepEqual(effects.map((x, i) => x.statuses[(['hex','poison','burn','bleed','shock'] as const)[i]!]), [3, 6, 4, 7, 2]);
+  assert.deepEqual(effects.map((x, i) => x.statuses[(['hex','poison','burn','bleed','shock'] as const)[i]!]), [4, 6, 4, 7, 2]);
   const source = { ...unit, traits: { ...createCharacter().traits, scorn: 64 } };
   assert.equal(100 - poisonTick(base, source).hp, 6);
   assert.equal(100 - poisonTick({ ...base, statuses: { ...base.statuses, protection: 4 } }).hp, 1);
@@ -3346,11 +3312,11 @@ void test('only curses may target the portrait; even area curses affect just the
   assert.equal(canPlayCardOnSelf(curse, 0), true);
   const cursed = playCard(curse, 0, SELF_TARGET_UID);
   assert.equal(cursed.player.statuses.enfeeble, 3);
-  assert.equal(cursed.player.statuses.hex, 1);
+  assert.equal(cursed.player.statuses.hex, 2);
   assert.deepEqual(cursed.heroes, stored.heroes);
   const plague = withHand(initial, ['plague']);
   const afflicted = playCard(plague, 0, SELF_TARGET_UID);
-  assert.equal(afflicted.player.statuses.hex, 4);
+  assert.equal(afflicted.player.statuses.hex, 5);
   assert.deepEqual(afflicted.heroes, plague.heroes);
   const lowEnergy = { ...plague, energy: 1 };
   assert.equal(playCard(lowEnergy, 0, SELF_TARGET_UID), lowEnergy);

@@ -80,6 +80,7 @@ import {
   burnTick,
   endOfTurnUpkeep,
   hexBurn,
+  hexAfterAction,
   poisonTick,
   guardAmount,
   hasMomentumFor,
@@ -1563,6 +1564,13 @@ const cardBeats = (
   // BLEED: combine each target's landed hits into one final damage beat.
   const counted = biteBleedOnAttack(paid, current, bleeders);
   if (counted !== current) states.push(counted);
+  const player = hexAfterAction(counted.player);
+  if (player !== counted.player) {
+    const grown = { ...counted, player };
+    // Animate a real burst separately, but don't pause for just a stack change.
+    if (player.hp < counted.player.hp || !states.length) states.push(grown);
+    else states[states.length - 1] = grown;
+  }
   return states;
 };
 
@@ -2273,7 +2281,7 @@ const heroActs = (
   const isDiving = planned !== null && isAloft(actor);
   const settled = updateHeroes({ ...acted, player }, [uid], (unit) => {
     // BURN AND FROST RUN AFTER EVERY ACTION, UPKEEP AFTER THE LAST ONE
-    const landed = afterAction(isDiving ? withAloft(unit, 0) : unit, state.player);
+    const landed = hexAfterAction(afterAction(isDiving ? withAloft(unit, 0) : unit, state.player), state.player);
     return {
       ...(isLast ? endOfTurnUpkeep(landed) : landed),
       ...(isLast && unit.disruptedOutput && { disruptedOutput: 0 }),

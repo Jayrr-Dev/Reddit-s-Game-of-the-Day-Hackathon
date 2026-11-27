@@ -17,8 +17,9 @@ void test('The target follows the curve: slot + energy x cost, times the rarity 
 void test('Status values replay the game rules', () => {
   // Burn 3 deals 3, halves to 1, deals 1, then runs out.
   assert.equal(burnValue(3), 4);
-  // Hex 3 ends in 3: it burns triple (9) once, then clears.
-  assert.equal(hexValue(CONFIG, 3), 9 * CONFIG.battle.hexLandsLate);
+  // The first turn burns at opening and when the action grows Hex back to 3.
+  const expected = Array.from({ length: 10 }, (_, turn) => 12 * CONFIG.battle.delayKeptPerTurn ** turn).reduce((a, b) => a + b, 0);
+  assert.equal(hexValue(CONFIG, 3), expected * CONFIG.battle.hexLandsLate);
 });
 
 void test('Every effect on every card in play gets a price', () => {

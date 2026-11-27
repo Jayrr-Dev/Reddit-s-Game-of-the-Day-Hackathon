@@ -137,7 +137,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   '4-3-0': {
     name: 'Sixfold Curse',
     description:
-      'Hex ending in 6 also burns triple and clears, like Hex ending in 3',
+      'Hex ending in 6 follows the same rules as 3: double damage and an immediate burst without stack loss when reached by acting',
   },
   '4-0-0': {
     name: 'Grimoire',

@@ -267,16 +267,14 @@ export const MALAISE_TURNS = 1;
  * behind the target (1 = full damage; lower it for a falloff).
  */
 export const PIERCE_DAMAGE_FACTOR = 1;
-/** An even Hex (it does not burn) grows by this much each turn. */
+/** Active Hex grows by this much after each action. */
 export const HEX_GROWTH = 1;
-/** After an odd Hex burns, it loses this share of itself (rounded up). */
-export const HEX_BURN_LOSS = 1 / 3;
-/** How much an odd Hex burns for, times its value (Hex 5 burns 10). */
-export const HEX_ODD_MULTIPLIER = 2;
-/** An odd Hex whose last digit is this (3, 13, 23...) burns harder, then clears. */
+/** How many stacks an active Hex spends when it burns. */
+export const HEX_BURN_STACK_COST = 1;
+/** An odd Hex whose last digit is this (3, 13, 23...) burns harder. */
 export const HEX_EMPOWERED_DIGIT = 3;
-/** How much that Hex burns for, times its value (Hex 3 burns 9). */
-export const HEX_EMPOWERED_MULTIPLIER = 3;
+/** How much a Hex ending in 3 burns for (Hex 3 burns 6). */
+export const HEX_EMPOWERED_MULTIPLIER = 2;
 
 // --- MAGIC ELEMENTS ---
 /** A status an element lays on every hit, and how much. */

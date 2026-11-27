@@ -7,11 +7,13 @@
 
 import {
   afterActionLeft,
-  hexAfterTurn,
+  hexAfterBurn,
+  isEmpoweredHex,
   hexBurnAmount,
 } from '../game/combatant.ts';
 import {
   BLEED_BITE_FACTOR,
+  HEX_GROWTH,
   SHOCK_BURST_FACTOR,
   TIERED_CUT_BY_TIER,
   WEAKEN_DAMAGE_FACTOR,
@@ -19,7 +21,7 @@ import {
 import type { CostCurveConfig } from './costCurveConfig.ts';
 
 // --- CONSTANTS ---
-/** Stop a simulation after this many turns (every status runs out sooner). */
+/** Bound long-lived status simulations to a ten-turn valuation window. */
 const MAX_SIMULATED_TURNS = 10;
 
 // --- HELPERS ---
@@ -29,16 +31,21 @@ const delayed = (config: CostCurveConfig, turns: number): number =>
 
 // --- DAMAGE OVER TIME ---
 /**
- * Hex N: burns before each hero turn (odd x2, ending in 3 x3), grows
- * when even, then shrinks. Summed with a per-turn delay discount and a
+ * Hex burns on odd openings and immediately when growth reaches an empowered digit.
+ * Simulate one action per turn with a per-turn delay discount and a
  * cut for always landing a turn late.
  */
 export const hexValue = (config: CostCurveConfig, stacks: number): number => {
   let total = 0;
   let hex = stacks;
   for (let turn = 0; hex > 0 && turn < MAX_SIMULATED_TURNS; turn += 1) {
-    total += hexBurnAmount(hex) * delayed(config, turn);
-    hex = hexAfterTurn(hex);
+    let damage = hexBurnAmount(hex);
+    hex = hexAfterBurn(hex);
+    if (hex > 0) hex += HEX_GROWTH;
+    if (isEmpoweredHex(hex)) {
+      damage += hexBurnAmount(hex);
+    }
+    total += damage * delayed(config, turn);
   }
   return total * config.battle.hexLandsLate;
 };

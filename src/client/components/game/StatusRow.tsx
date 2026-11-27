@@ -28,9 +28,9 @@ import {
 import {
   incomingAfflictionDamage,
   bleedBiteOf,
-  hexAfterTurn,
+  hexAfterBurn,
+  hexBurnMultiplier,
   hexBurnAmount,
-  isEmpoweredHex,
   tierCut,
 } from '../../../shared/game/combatant';
 import {
@@ -170,29 +170,20 @@ const OUT_OF_RANGE_CHIP: StatusChip = {
  * Hex fires only on odd counts, so its chip says which turn this is:
  * odd, it is PRIMED (a solid purple tile: it burns before the next
  * turn); even, it is a plain dark tile and the tooltip says it waits.
- * Adding a stack flips it, which is the choice: burst now or hold.
- * Odd, it burns double; odd and ending in 3, triple: the chip says x3.
+ * Growth can also reach an empowered digit and burst after an action.
  */
 const hexChipOf = (hex: number, target: Combatant, source?: Combatant): Partial<StatusChip> => {
   const burn = incomingAfflictionDamage(target, hexBurnAmount(hex, source), source);
   const isPrimed = burn > 0;
-  const isTripled = isEmpoweredHex(hex, source);
+  const multiplier = hexBurnMultiplier(hex, source);
   if (!isPrimed)
     return {
-      description: `Even: no burn this turn, grows to ${hexAfterTurn(hex, source)} (and burns the turn after).`,
-    };
-  if (isTripled)
-    return {
-      fill: toneVarOf(STATUS_LOOK.hex),
-      // The tripled burn is the big hit: show what it really deals (the
-      // unit itself wears a throbbing sigil, see HexAura).
-      text: `${hex}\u00d73`,
-      description: `${hex % 10 === 6 ? 'Ends in 6' : 'Ends in 3'}: burns for ${burn} (triple) before its next turn, then clears.`,
+      description: `No damage at turn start. Gains 1 after each action; reaching an empowered value bursts without losing stacks.`,
     };
   return {
     fill: toneVarOf(STATUS_LOOK.hex),
-    text: `${hex}\u00d72`,
-    description: `Odd: burns for ${burn} (double) before its next turn, then drops to ${hexAfterTurn(hex, source)}.`,
+    text: multiplier > 1 ? `${hex}\u00d7${multiplier}` : String(hex),
+    description: `Deals ${burn} at turn start, then drops to ${hexAfterBurn(hex, source)}. Gains 1 after actions.`,
   };
 };
 

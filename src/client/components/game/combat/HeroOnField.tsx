@@ -571,7 +571,7 @@ export const HeroOnField = ({
                     </div>
                     </div>
                   </div>
-                  <HexAura hex={unit.statuses.hex} />
+                  <HexAura hex={unit.statuses.hex} source={player} />
                   {unit.statuses.scramble > 0 && <ScrambleScribble />}
                   {pickMarker && <PickMark marker={pickMarker} />}
                   {unit.joinedMidFight && <ArrivalLight />}

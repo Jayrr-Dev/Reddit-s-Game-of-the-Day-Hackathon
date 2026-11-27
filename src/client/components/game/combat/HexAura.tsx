@@ -4,8 +4,8 @@
 // off (odd: it burns before the unit's next turn), so the warning means
 // something. An even Hex shows on its chip alone. Two levels (see
 // hexBurnAmount):
-//   primed   odd Hex, burns double before its turn   bright
-//   doubled  odd and ends in 3, burns triple   brightest, fast, throbbing
+//   primed   odd Hex, burns before its turn   bright
+//   doubled  ends in 3, burns double   brightest, fast, throbbing
 // PERFORMANCE: one element, transform and opacity only (index.css
 // "HEX AURA"); reduced motion holds a still sigil.
 // ===================================================================
@@ -14,6 +14,7 @@ import {
   hexBurnAmount,
   isEmpoweredHex,
 } from '../../../../shared/game/combatant';
+import type { Combatant } from '../../../../shared/game/types';
 import { HexSigil } from './HexSigil';
 
 // --- TYPES ---
@@ -21,15 +22,15 @@ type HexAuraState = 'primed' | 'doubled';
 
 // --- HELPERS ---
 /** How loud the aura is, or null when the Hex won't burn next turn. */
-const auraStateOf = (hex: number): HexAuraState | null => {
-  if (hexBurnAmount(hex) <= 0) return null;
-  return isEmpoweredHex(hex) ? 'doubled' : 'primed';
+const auraStateOf = (hex: number, source?: Combatant): HexAuraState | null => {
+  if (hexBurnAmount(hex, source) <= 0) return null;
+  return isEmpoweredHex(hex, source) ? 'doubled' : 'primed';
 };
 
 // --- COMPONENT ---
 /** Renders the aura over its parent's box, or nothing unless primed. */
-export const HexAura = ({ hex }: { hex: number }) => {
-  const state = auraStateOf(hex);
+export const HexAura = ({ hex, source }: { hex: number; source?: Combatant }) => {
+  const state = auraStateOf(hex, source);
   if (!state) return null;
   return (
     <span

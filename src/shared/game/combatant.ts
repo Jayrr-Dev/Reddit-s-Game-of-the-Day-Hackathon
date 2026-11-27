@@ -9,10 +9,9 @@ import {
   SHOCK_BURST_FACTOR,
   WEAKEN_DAMAGE_FACTOR,
   FROST_DAMAGE_PER_STACK,
-  HEX_BURN_LOSS,
+  HEX_BURN_STACK_COST,
   HEX_EMPOWERED_DIGIT,
   HEX_EMPOWERED_MULTIPLIER,
-  HEX_ODD_MULTIPLIER,
   HEX_GROWTH,
   BANE_AFFLICTIONS,
   MOMENTUM_DAMAGE_FACTOR,
@@ -835,52 +834,51 @@ export const isEmpoweredHex = (hex: number, source?: HexSource): boolean =>
   (hex % 10 === HEX_EMPOWERED_DIGIT ||
     (hex % 10 === 6 && hasHexSixOf(source?.skillPicks)));
 
-/**
- * What a Hex of this size burns for this turn: nothing when even,
- * HEX_ODD_MULTIPLIER times its value when odd (5 -> 10), and
- * HEX_EMPOWERED_MULTIPLIER times it when its last digit is
- * HEX_EMPOWERED_DIGIT (3 -> 9, 13 -> 39).
- */
-export const hexBurnAmount = (hex: number, source?: HexSource): number => {
-  if (isEmpoweredHex(hex, source)) return hex * HEX_EMPOWERED_MULTIPLIER;
-  if (hex <= 0 || hex % 2 === 0) return 0;
-  return hex * HEX_ODD_MULTIPLIER;
-};
-
-/**
- * What a Hex becomes after its bearer's turn starts:
- *   even         grows by HEX_GROWTH (it is building toward a burn)
- *   odd          burned, so it loses HEX_BURN_LOSS of itself, ROUNDED UP,
- *                so it always drops by at least 1 and never sticks
- *                (1 -> 0, 5 -> 3, 7 -> 4)
- *   odd, ends 3  burned triple, so it clears
- */
-export const hexAfterTurn = (hex: number, source?: HexSource): number => {
+/** Damage multiplier for the current Hex, or zero when it isn't due to burn. */
+export const hexBurnMultiplier = (hex: number, source?: HexSource): number => {
   if (hex <= 0) return 0;
-  if (isEmpoweredHex(hex, source)) return 0;
-  if (hex % 2 === 0) return hex + HEX_GROWTH;
-  return hex - Math.ceil(hex * HEX_BURN_LOSS);
+  if (isEmpoweredHex(hex, source)) return HEX_EMPOWERED_MULTIPLIER;
+  return hex % 2 === 0 ? 0 : 1;
 };
 
-/**
- * Hex, right before its bearer's turn: it burns (see hexBurnAmount),
- * then moves on (see hexAfterTurn). So Hex 7 deals 14, 0, 10, 9 and is
- * gone (7 -> 4 -> 5 -> 3 -> cleared).
- */
+/** Damage the current Hex deals at the start of its bearer's turn. */
+export const hexBurnAmount = (hex: number, source?: HexSource): number =>
+  hex * hexBurnMultiplier(hex, source);
+
+/** Spend one stack only when the current Hex triggers. */
+export const hexAfterBurn = (hex: number, source?: HexSource): number =>
+  Math.max(0, hex - (hexBurnMultiplier(hex, source) ? HEX_BURN_STACK_COST : 0));
+
+/** After an action, grow active Hex without creating new Hex. */
+const growHex = <T extends Combatant>(target: T): T =>
+  target.statuses.hex > 0
+    ? addStatus(target, 'hex', HEX_GROWTH)
+    : target;
+
+/** Hex burns right before its bearer's turn, preserving any remaining stacks. */
 export const hexBurn = <T extends Combatant>(
   target: T,
   source?: Combatant
 ): T => {
   const { hex } = target.statuses;
-  if (hex <= 0) return target;
-  const burned = loseHp(
-    target,
-    incomingAfflictionDamage(target, hexBurnAmount(hex, source), source)
-  );
-  return {
-    ...burned,
-    statuses: { ...burned.statuses, hex: hexAfterTurn(hex, source) },
-  };
+  const damage = hexBurnAmount(hex, source);
+  if (damage <= 0) return target;
+  const burned = dealHexDamage(target, damage, source);
+  return { ...burned, statuses: { ...burned.statuses, hex: hexAfterBurn(hex, source) } };
+};
+
+/** Apply Hex damage separately from its stack change for the combat HUD. */
+function dealHexDamage<T extends Combatant>(target: T, amount: number, source?: Combatant): T {
+  const loss = incomingAfflictionDamage(target, amount, source);
+  return { ...loseHp(target, loss), hexDamageTaken: (target.hexDamageTaken ?? 0) + loss };
+}
+
+/** Grow Hex after an action; empowered values burst without spending a stack. */
+export const hexAfterAction = <T extends Combatant>(target: T, source?: Combatant): T => {
+  if (target.hp <= 0) return target;
+  const grown = growHex(target);
+  const hex = grown.statuses.hex;
+  return isEmpoweredHex(hex, source) ? dealHexDamage(grown, hexBurnAmount(hex, source), source) : grown;
 };
 
 /**
@@ -922,7 +920,7 @@ const shockFade = <T extends Combatant>(target: T): T =>
 
 /**
  * Everything that runs right after a unit's action (a hero's move, the
- * villain's whole turn): Burn, Frost thaws, Shock fades by 1. (Bleed
+ * villain's whole turn): Burn, Frost thaws and Shock fades. (Bleed
  * goes off on attacks landed instead: see bleedOnAttack.)
  */
 export const afterAction = <T extends Combatant>(
@@ -952,8 +950,7 @@ export const poisonTick = <T extends Combatant>(
 
 /**
  * End-of-turn upkeep: weaken wears off by 1 (Poison ticks before
- * actions instead: see poisonTick), unused Momentum is lost, and Shock's hit count
- * starts over (its 3 hits must come within one turn). Wrath and buffs are
+ * actions instead: see poisonTick) and unused Momentum is lost. Wrath and buffs are
  * permanent for the fight (Hex runs before the turn: see hexBurn).
  */
 export const endOfTurnUpkeep = <T extends Combatant>(target: T): T => {

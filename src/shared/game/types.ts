@@ -24,8 +24,8 @@ import type { SkillPick } from './skills.ts';
  * - shock:  the next landed attack bursts these stacks once and halves them
  * - bleed:  each landed Melee/Range hit adds damage past Guard; total lands
  *           after the attack, then Bleed drops by 1 (see Combatant.bleedTaken)
- * - hex:    right before its turn, loses this much HP if it is odd
- *           (nothing when even), then hex drops by 1
+ * - hex:    grows after actions; odd stacks burn at turn start, and endings
+ *           in 3 double and burst right after growing. Only turn-start bursts cost 1.
  * - vex:    every affliction laid on it gets this many more stacks;
  *           drops by 1 at the end of its turn
  * - weaken: deals 25% less attack damage; drops by 1 at the end of its turn
@@ -136,6 +136,8 @@ export type Combatant = {
   dodgedHits?: number;
   /** HP Bleed has cost in the fight, for the bleed number on a hit. */
   bleedTaken?: number;
+  /** Cumulative HP damage from Hex, even when the stacks do not drop. */
+  hexDamageTaken?: number;
   /** Legacy hit count from saves written before Shock burst on the next hit. */
   shockHits?: number;
   /**

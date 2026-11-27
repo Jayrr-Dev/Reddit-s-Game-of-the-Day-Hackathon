@@ -120,6 +120,7 @@ type HeroLook = {
   enfeeble: number;
   shockDamageTaken: number;
   bleedTaken: number;
+  hexDamageTaken: number;
   point: Point | null;
 };
 
@@ -230,7 +231,6 @@ const tickCauseOf = (
 ): TickKind | undefined => {
   if (after.burn < before.burn) return 'burn';
   if (after.poison < before.poison) return 'poison';
-  if (after.hex !== before.hex) return 'hex';
   return undefined;
 };
 
@@ -286,6 +286,7 @@ const gainsBetween = (
 type DebuffLook = Record<DebuffKind, number> & {
   shockDamageTaken: number;
   bleedTaken: number;
+  hexDamageTaken: number;
 };
 
 /** A unit's debuffs and burst/bite counts, for debuffsBetween. */
@@ -293,6 +294,7 @@ const debuffLookOf = (unit: Combatant): DebuffLook => ({
   ...unit.statuses,
         shockDamageTaken: unit.shockDamageTaken ?? 0,
   bleedTaken: unit.bleedTaken ?? 0,
+  hexDamageTaken: unit.hexDamageTaken ?? 0,
 });
 
 /**
@@ -302,7 +304,7 @@ const debuffLookOf = (unit: Combatant): DebuffLook => ({
 const SPLIT_POPS: ReadonlySet<PopKind> = new Set(['shockBurst', 'bleedBite']);
 
 /** True for a pop that shows damage split out of a hit (see SPLIT_POPS). */
-const isSplitPop = (pop: Hit): boolean => SPLIT_POPS.has(pop.kind);
+const isSplitPop = (pop: Hit): boolean => SPLIT_POPS.has(pop.kind) || (pop.kind === 'hit' && pop.tick === 'hex');
 
 /**
  * Debuffs laid on between two looks, plus a Shock that went off (the
@@ -317,7 +319,9 @@ const debuffsBetween = (before: DebuffLook, after: DebuffLook): Hit[] => {
   })).filter((debuff) => debuff.amount > 0);
   const burst = shockBurstBetween(before, after);
   const bite = bleedBiteBetween(before, after);
-  return [...laid, ...(burst ? [burst] : []), ...(bite ? [bite] : [])];
+  const hexDamage = after.hexDamageTaken - before.hexDamageTaken;
+  const hex: Hit[] = hexDamage > 0 ? [{ kind: 'hit', amount: hexDamage, blocked: 0, tick: 'hex' }] : [];
+  return [...laid, ...(burst ? [burst] : []), ...(bite ? [bite] : []), ...hex];
 };
 
 /** HP Bleed cost between two looks, as its own number (null for none). */
@@ -411,6 +415,7 @@ const lookAt = (
         enfeeble: unit.statuses.enfeeble,
         shockDamageTaken: unit.shockDamageTaken ?? 0,
         bleedTaken: unit.bleedTaken ?? 0,
+        hexDamageTaken: unit.hexDamageTaken ?? 0,
         point: bodyPointOf(unit.uid) ?? before.get(unit.uid)?.point ?? null,
       },
     ])
@@ -451,6 +456,7 @@ const heroPopsSince = (
           enfeeble: unit.statuses.enfeeble,
         shockDamageTaken: unit.shockDamageTaken ?? 0,
           bleedTaken: unit.bleedTaken ?? 0,
+        hexDamageTaken: unit.hexDamageTaken ?? 0,
         };
     const debuffs = debuffsBetween(old, now);
     const splits = debuffs.filter(isSplitPop);
