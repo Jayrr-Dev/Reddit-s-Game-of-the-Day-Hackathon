@@ -34,6 +34,7 @@ const SALE_LINES = [
 ] as const;
 
 const IDLE_LORE = [
+  "This is the Gateway of Souls. The road from Earth runs through here. Even the dead stop to browse.",
   'Xaten gave seven mortals forever. Every hundred years, he asks them to earn it again.',
   'Heaven cast me into Hell for stealing from its treasury. Now I sell what I took to demons like you.',
   'You think I count gold for pleasure? A little more, and I can buy my freedom.',
