@@ -640,7 +640,7 @@
   padding: 8px 2px;
 }
 .training-picker { display: flex; flex-direction: column; min-height: 0; }
-.training-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.training-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px; margin-left: auto; }
 /* Banner buttons size to their label; the padding clears the slab's corner diamonds. */
 .training-actions .oak-menu-button { width: auto; padding-inline: 1rem; white-space: nowrap; }
 .training-tabs { border: 1px solid #805b31; }

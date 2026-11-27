@@ -3386,6 +3386,22 @@ textarea,
 .enemy-status-grid > * { direction: ltr; }
 
 .results-layout { display:flex; flex-direction:column; align-items:center; justify-content:safe center; gap:22px; height:100%; overflow-y:auto; padding:20px 12px; text-align:center; }
+.menu-icon-hint:focus-visible::after {
+  content: attr(aria-label);
+  position: absolute;
+  inset: calc(100% + 4px) auto auto 0;
+  z-index: 1;
+  padding: 3px 6px;
+  border: 1px solid var(--color-edge);
+  border-radius: 4px;
+  background: var(--color-surface-raised);
+  color: var(--color-ink);
+  font: 12px/1.2 var(--font-body);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.results-layout.endless-menu { padding-top: 58px; }
+.endless-menu .results-actions { width: min(100%, 205px); grid-template-columns: minmax(0, 1fr); }
 .results-layout header h1 { color:#e7bf78; font: bold 20px/1.2 var(--font-display); }
 .results-score { margin-top:6px; font:bold 40px/1.1 var(--font-display); color:#fff2d8; }
 .results-score span { font-size:15px; }

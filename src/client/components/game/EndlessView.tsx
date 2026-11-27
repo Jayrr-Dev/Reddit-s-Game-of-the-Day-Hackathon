@@ -12,6 +12,7 @@ import { endlessDraftSize, endlessDraftOffers, isSavedEndlessDraft, pendingDraft
 import { isRunAction, isRunOver, type RunAction, type RunState } from '../../../shared/game/run';
 import { MAX_RUN_ACTIONS } from '../../../shared/game/rules';
 import { Button } from '../ui/Button';
+import { IconButton } from '../ui/IconButton';
 import { StatTile } from '../ui/StatTile';
 import { VillainRunGame } from './VillainRunGame';
 import { EndlessDraftView } from './EndlessDraftView';
@@ -152,7 +153,8 @@ export function EndlessView({ data, rings, onBack }: { data: InitResponse; rings
         onBegin={() => void begin()} />}
     <EndlessDraftTools cards={draft.cards} level={profileLevel} busy={loading} onExit={openMenu} onProfile={() => setPage('profile')} />
   </div>;
-  if (page !== 'battle') return <main className="run-results results-layout endless-menu" aria-labelledby="endless-title">
+  if (page !== 'battle') return <main className="run-results results-layout endless-menu relative" aria-labelledby="endless-title">
+    <IconButton icon="back" label="Back to main menu" className="absolute left-3 top-3 menu-icon-hint" onClick={onBack} />
     <header>
       <h1 id="endless-title">Endless</h1>
       <p className="mt-2 text-sm text-ink-muted">Draft a deck. Survive as many waves as you can.</p>
@@ -166,7 +168,6 @@ export function EndlessView({ data, rings, onBack }: { data: InitResponse; rings
       <Button variant="menuPrimary" onClick={resumable ? () => setPage('battle') : hasDraft ? () => setPage('draft') : startDraft}>
         {resumable ? 'Resume run' : hasDraft ? 'Resume draft' : 'Draft deck'}
       </Button>
-      <Button variant="menu" onClick={onBack}>Main menu</Button>
     </div>
   </main>;
   if (!finished) return <VillainRunGame run={run} onAction={act} onMainMenu={openMenu} endless />;

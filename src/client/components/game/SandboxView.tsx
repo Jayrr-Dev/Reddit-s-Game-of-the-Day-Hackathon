@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { IconButton } from '../ui/IconButton';
 import { DeathScreen } from './DeathScreen';
 import { CombatView } from './CombatView';
+import { BattleCharacterSheet } from './BattleCharacterSheet';
 import { MAP_IMAGES, MAP_NAMES, PRACTICE_TERRAIN_START } from './combat/Backdrop';
 import { SettingsDialog } from './menu/SettingsDialog';
 import { bossArenaOf, type BossArena } from '../../content/bossArenas';
@@ -62,6 +63,7 @@ export const SandboxView = ({ onExit, atlasVisit }: { onExit: () => void; atlasV
   );
   useEffect(() => { if (visit) summon(visit.heroes, visit.bossArena); }, [visit, summon]);
   const [isConfirmingExit, setIsConfirmingExit] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const arena = arenaOverride !== undefined ? arenaOverride ?? undefined : combat ? bossArenaOf(combat.heroes.map(unit => unit.heroId), combat.fallen.map(unit => unit.heroId)) : undefined;
   const terrainIndex = selectedMap ?? practiceTerrain(access, round);
   const themePreview = useThemePreview(MAP_NAMES[terrainIndex] ?? '');
@@ -86,7 +88,11 @@ export const SandboxView = ({ onExit, atlasVisit }: { onExit: () => void; atlasV
             <div className="training-actions">
               <Button variant="menu" onClick={openDeck}>Custom deck</Button>
               {resume && canRandomFight && <Button variant="menu" onClick={reshuffle}>New opponents</Button>}
-              {settings}
+              <div className="flex items-center gap-1">
+                <IconButton icon="breastplate" label="Profile" className="relative menu-icon-hint" aria-haspopup="dialog"
+                  onClick={() => setIsProfileOpen(true)} />
+                {settings}
+              </div>
             </div>
           </header>
         )}
@@ -148,6 +154,9 @@ export const SandboxView = ({ onExit, atlasVisit }: { onExit: () => void; atlasV
           )}
         </>
       )}
+      {isProfileOpen && <BattleCharacterSheet training deck={deck} character={character}
+        vitals={combat ? { hp: combat.player.hp, maxHp: combat.player.maxHp, guard: combat.player.guard, energy: combat.energy } : undefined}
+        onRespec={respec} onAction={act} onClose={() => setIsProfileOpen(false)} />}
     </div>
   );
 };

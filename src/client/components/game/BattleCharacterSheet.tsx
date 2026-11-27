@@ -16,11 +16,12 @@ import { RunCharacterSheet } from './RunCharacterSheet';
 type Props = Omit<ComponentProps<typeof RunCharacterSheet>, 'profile' | 'inventory'> & {
   /** The deck in this fight, listed on the Profile tab. */
   deck: readonly CardId[];
+  training?: boolean;
   artifacts?: readonly RunArtifactId[] | undefined;
 };
 
 /** Run character sheet plus the Profile and Inventory tabs. */
-export const BattleCharacterSheet = ({ deck, artifacts, ...sheet }: Props) => {
+export const BattleCharacterSheet = ({ deck, artifacts, training = false, ...sheet }: Props) => {
   const username = useContext(PlayerName);
   const { items, discard, layout, setLayout, wins, gold } = useSavedBag();
   const { character, onAction } = sheet;
@@ -38,7 +39,8 @@ export const BattleCharacterSheet = ({ deck, artifacts, ...sheet }: Props) => {
         <>
           <ProfileStrip username={username} wins={wins} gold={gold} />
           <RunArtifacts artifacts={artifacts} />
-          <ProfileDeck title="Deck in this fight" note="Every card you carry into this battle." cards={deck} />
+          <ProfileDeck title={training ? 'Training deck' : 'Deck in this fight'}
+            note={training ? 'The cards in your current practice deck.' : 'Every card you carry into this battle.'} cards={deck} />
         </>
       }
       inventory={
