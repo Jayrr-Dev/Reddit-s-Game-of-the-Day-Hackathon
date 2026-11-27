@@ -309,6 +309,37 @@ void test('playing a card and moving each grow the player Hex once', () => {
   assert.equal(finishPlayerTurn(stepped).player.statuses.hex, 4);
 });
 
+void test('only player actions grow each already cursed enemy, even on untargeted card plays', () => {
+  const fresh = squireAndArcher(['darkCloak', 'mourningCurse']);
+  const [squire, archer] = fresh.heroes;
+  assert.ok(squire && archer);
+  const cursed = addStatus({ ...squire, hp: 50, maxHp: 50 }, 'hex', 4);
+  const untouched = { ...archer, hp: 50, maxHp: 50 };
+  const start = { ...withHand(fresh, ['darkCloak']), heroes: [cursed, untouched] };
+  const played = playCard(start, 0, -1);
+  assert.equal(played.heroes[0]?.statuses.hex, 5);
+  assert.equal(played.heroes[0]?.hp, 45);
+  assert.equal(played.heroes[1]?.statuses.hex, 0);
+  const applied = playCard(withHand({ ...played, energy: 5 }, ['mourningCurse']), 0, archer.uid);
+  assert.equal(applied.heroes[0]?.statuses.hex, 6);
+  assert.equal(applied.heroes[1]?.statuses.hex, 3, 'fresh curses start at their printed value');
+  const moved = move(applied, 'backStep');
+  assert.equal(moved.heroes[0]?.statuses.hex, 7);
+  assert.equal(moved.heroes[0]?.hp, 38);
+  assert.equal(moved.heroes[1]?.statuses.hex, 4);
+  const next = endTurn(moved);
+  assert.deepEqual(next.heroes.map(unit => unit.statuses.hex), [6, 4], 'only the turn-start burn changes the count');
+});
+
+void test('a player movement burst can defeat a cursed enemy and record the kill', () => {
+  const battle = fightWith(['backhand']);
+  const hero = battle.heroes[0]!;
+  const moved = move({ ...battle, heroes: [addStatus({ ...hero, hp: 5 }, 'hex', 4)] }, 'backStep');
+  assert.equal(moved.heroes.length, 0);
+  assert.equal(moved.fallen.at(-1)?.hexDamageTaken, 5);
+  assert.equal(moved.slain, battle.slain + 1);
+});
+
 void test('incoming damage preview accounts for every attack and existing defenses but not Hex', () => {
   const state = settled(startCombat({
     hp: 100, maxHp: 100, deck: ['backhand'], heroIds: ['squire', 'archer'], might: 1, seed: 7,
@@ -382,7 +413,7 @@ void test('player Hex preview agrees with the burn at wave arrival and clears on
   assert.equal(endTurn(justPoison).player.hp - endTurn(poisoned).player.hp, expected);
 });
 
-void test('a hero with Hex 3 burns before acting and again if its action grows back to 3', () => {
+void test('a hero with Hex 3 burns at turn start but does not grow Hex by acting', () => {
   // Settled, so the Squire stands in the front row and can swing.
   const fight = settled(
     startCombat({
@@ -411,8 +442,8 @@ void test('a hero with Hex 3 burns before acting and again if its action grows b
   const actIndex = steps.findIndex((step) => step.actorUid === squireUid);
   assert.ok(burnIndex > 0 && burnIndex < actIndex, 'burns, then acts');
   assert.equal(steps[burnIndex]!.state.heroes[0]!.statuses.hex, 2);
-  assert.equal(steps[actIndex]!.state.heroes[0]!.statuses.hex, 3);
-  assert.equal(steps[actIndex]!.state.heroes[0]!.hexDamageTaken, 12);
+  assert.equal(steps[actIndex]!.state.heroes[0]!.statuses.hex, 2);
+  assert.equal(steps[actIndex]!.state.heroes[0]!.hexDamageTaken, 6);
 });
 
 void test('a hexed villain burns at the start of its turn', () => {
@@ -3071,7 +3102,9 @@ void test('Reap previews and deals Intelligence-scaled magic damage based on tar
   const fight = traitFight('reap', { intelligence: 64 });
   const target = addStatus(fight.heroes[0]!, 'hex', 4);
   assert.ok(describeCard('reap', fight.player, target).includes('Damage 46'));
-  assert.equal(playCard({ ...fight, heroes: [target] }, 0, target.uid).heroes[0]!.hp, 454);
+  const beats = playCardSteps({ ...fight, heroes: [target] }, 0, target.uid);
+  assert.equal(beats[0]?.heroes[0]?.hp, 454, '46 Reap damage');
+  assert.equal(beats.at(-1)?.heroes[0]?.hp, 449, 'the card also grows Hex to 5 for a separate burst');
 });
 void test('Scorn scales enemy Poison, Burn and odd Hex ticks independently without changing their decay or Frost', () => {
   const trigger = (scorn: number, hex: number) => {
@@ -3083,11 +3116,11 @@ void test('Scorn scales enemy Poison, Burn and odd Hex ticks independently witho
   const ordinary = trigger(0, 5);
   const scaled = trigger(64, 5);
   const enemy = scaled.heroes[0]!;
-  const expected = [hexBurnAmount(5), 7, 9, hexBurnAmount(5)].reduce((sum, n) => sum + Math.floor(n * 1.6), 0);
+  const expected = [hexBurnAmount(5), 7, 9].reduce((sum, n) => sum + Math.floor(n * 1.6), 0);
   assert.equal(500 - enemy.hp, expected);
   assert.deepEqual(enemy.statuses, ordinary.heroes[0]!.statuses);
   assert.equal(scaled.player.hp, ordinary.player.hp);
-  assert.equal(500 - trigger(64, 4).heroes[0]!.hp, 11 + 14 + 8);
+  assert.equal(500 - trigger(64, 4).heroes[0]!.hp, 11 + 14);
 });
 
 void test('Scorn scales the Bleed bite and Shock burst separately from the melee hit, including overkill counters', () => {

@@ -178,12 +178,12 @@ const hexChipOf = (hex: number, target: Combatant, source?: Combatant): Partial<
   const multiplier = hexBurnMultiplier(hex, source);
   if (!isPrimed)
     return {
-      description: `No damage at turn start. Gains 1 after each action. Reaching an odd value bursts without spending stacks.`,
+      description: `No damage at turn start. Gains 1 after each player action. Reaching an odd value bursts without spending stacks.`,
     };
   return {
     fill: toneVarOf(STATUS_LOOK.hex),
     text: multiplier > 1 ? `${hex}\u00d7${multiplier}` : String(hex),
-    description: `Deals ${burn} at turn start, then drops to ${hexAfterBurn(hex, source)}. Gains 1 after actions; reaching an odd value bursts without spending stacks.`,
+    description: `Deals ${burn} at turn start, then drops to ${hexAfterBurn(hex, source)}. Gains 1 after each player action; reaching an odd value bursts without spending stacks.`,
   };
 };
 
@@ -424,7 +424,7 @@ const EnemyStatusTile = ({ chip }: { chip: StatusChip }) => (
       <span className="enemy-status-icon" aria-hidden="true">
         {chipIconOf(chip) ?? <Glyph name={chip.glyph} className="block size-full" />}
       </span>
-      {chip.text && <span className="enemy-status-count" aria-hidden="true"
+      {chip.text && chip.key !== 'hex' && <span className="enemy-status-count" aria-hidden="true"
         data-chars={chip.text.length}><span>{chip.text}</span></span>}
       {chip.turnsLeft !== undefined && <TurnsLeft turns={chip.turnsLeft} placement="corner" />}
     </button>

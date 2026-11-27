@@ -80,7 +80,7 @@ import {
   burnTick,
   endOfTurnUpkeep,
   hexBurn,
-  hexAfterAction,
+  hexAfterPlayerAction,
   poisonTick,
   guardAmount,
   hasMomentumFor,
@@ -626,7 +626,7 @@ const withoutOrphans = (heroes: HeroUnit[]): HeroUnit[] => {
  * melee heroes step up at the end of the heroes' turn, ranged ones hold
  * until the villain Charges.
  */
-const removeFallen = (state: CombatState): CombatState => {
+export const removeFallen = (state: CombatState): CombatState => {
   // Transform after the damage beat. A phase change is never a kill.
   const phases = [...state.heroes];
   phases.forEach((unit, index) => {
@@ -1564,11 +1564,11 @@ const cardBeats = (
   // BLEED: combine each target's landed hits into one final damage beat.
   const counted = biteBleedOnAttack(paid, current, bleeders);
   if (counted !== current) states.push(counted);
-  const player = hexAfterAction(counted.player);
-  if (player !== counted.player) {
-    const grown = { ...counted, player };
+  const grown = hexAfterPlayerAction(paid, counted);
+  if (grown !== counted) {
     // Animate a real burst separately, but don't pause for just a stack change.
-    if (player.hp < counted.player.hp || !states.length) states.push(grown);
+    const burst = grown.player.hp < counted.player.hp || grown.heroes.some((unit, i) => unit.hp < counted.heroes[i]!.hp);
+    if (burst || !states.length) states.push(grown);
     else states[states.length - 1] = grown;
   }
   return states;
@@ -2281,7 +2281,7 @@ const heroActs = (
   const isDiving = planned !== null && isAloft(actor);
   const settled = updateHeroes({ ...acted, player }, [uid], (unit) => {
     // BURN AND FROST RUN AFTER EVERY ACTION, UPKEEP AFTER THE LAST ONE
-    const landed = hexAfterAction(afterAction(isDiving ? withAloft(unit, 0) : unit, state.player), state.player);
+    const landed = afterAction(isDiving ? withAloft(unit, 0) : unit, state.player);
     return {
       ...(isLast ? endOfTurnUpkeep(landed) : landed),
       ...(isLast && unit.disruptedOutput && { disruptedOutput: 0 }),

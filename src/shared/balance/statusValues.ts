@@ -31,7 +31,7 @@ const delayed = (config: CostCurveConfig, turns: number): number =>
 // --- DAMAGE OVER TIME ---
 /**
  * Hex burns at odd turn openings and when action growth reaches an odd value.
- * Simulate one action per turn with a per-turn delay discount and a
+ * Assume one player action per round with a per-turn delay discount and a
  * cut for always landing a turn late.
  */
 export const hexValue = (config: CostCurveConfig, stacks: number): number => {

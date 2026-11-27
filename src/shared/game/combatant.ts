@@ -43,6 +43,7 @@ import type {
   CardType,
   MeleeEdge,
   Combatant,
+  CombatState,
   StatusId,
   Statuses,
 } from './types.ts';
@@ -881,6 +882,17 @@ export const hexAfterAction = <T extends Combatant>(target: T, source?: Combatan
   const damage = hexBurnAmount(hex, source);
   return damage > 0 ? dealHexDamage(grown, damage, source) : grown;
 };
+
+/** Player actions grow Hex on the player and enemies that were already cursed. */
+export function hexAfterPlayerAction(before: CombatState, after: CombatState): CombatState {
+  const primed = new Set(before.heroes.filter(unit => unit.statuses.hex > 0).map(unit => unit.uid));
+  const heroes = primed.size ? after.heroes.map(unit =>
+    primed.has(unit.uid) ? hexAfterAction(unit, before.player) : unit
+  ) : after.heroes;
+  const player = hexAfterAction(after.player);
+  return player !== after.player || heroes.some((unit, index) => unit !== after.heroes[index])
+    ? { ...after, player, heroes } : after;
+}
 
 /**
  * What an after-action status (Burn, Frost) drops to: divided by
