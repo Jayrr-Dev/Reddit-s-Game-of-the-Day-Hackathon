@@ -293,7 +293,7 @@ void test('playing a card and moving each count the player Hex down once without
   assert.equal(finishPlayerTurn(stepped).player.statuses.hex, 2);
 });
 
-void test('player actions reduce existing enemy Hex; only turn start bursts at face value', () => {
+void test('fresh and counted-down odd Hex burst immediately, and odd stacks also burst at turn start', () => {
   const fresh = squireAndArcher(['darkCloak', 'mourningCurse']);
   const [squire, archer] = fresh.heroes;
   assert.ok(squire && archer);
@@ -305,26 +305,34 @@ void test('player actions reduce existing enemy Hex; only turn start bursts at f
   assert.equal(played.heroes[1]?.statuses.hex, 0);
   const applied = playCard(withHand({ ...played, energy: 5 }, ['mourningCurse']), 0, archer.uid);
   assert.equal(applied.heroes[0]?.statuses.hex, 5);
-  assert.equal(applied.heroes[0]?.hp, 50, 'landing on odd Hex does not burst');
+  assert.equal(applied.heroes[0]?.hp, 45, 'the existing target counts down to odd and bursts');
+  assert.equal(applied.heroes[1]?.hp, 47, 'the freshly applied odd Hex bursts for 3');
   assert.equal(applied.heroes[1]?.statuses.hex, 3, 'fresh curses keep their printed value');
   const next = startPlayerTurn(applied);
   assert.deepEqual(next.heroes.map(unit => unit.statuses.hex), [5, 3], 'enemy bursts do not spend another stack');
-  assert.deepEqual(next.heroes.map(unit => unit.hp), [45, 47]);
+  assert.deepEqual(next.heroes.map(unit => unit.hp), [40, 44]);
   const moved = move(next, 'backStep');
   assert.deepEqual(moved.heroes.map(unit => unit.statuses.hex), [4, 2]);
-  assert.deepEqual(startPlayerTurn(moved).heroes.map(unit => unit.hp), [45, 47], 'even Hex does not burst');
+  assert.deepEqual(startPlayerTurn(moved).heroes.map(unit => unit.hp), [40, 44], 'even Hex does not burst');
 });
 
 void test('a turn-opening burst can defeat a cursed enemy and record the kill', () => {
   const battle = fightWith(['backhand']);
   const hero = battle.heroes[0]!;
-  const moved = move({ ...battle, heroes: [addStatus({ ...hero, hp: 3 }, 'hex', 4)] }, 'backStep');
-  assert.equal(moved.heroes.length, 1);
-  const next = startPlayerTurn(moved);
+  const next = startPlayerTurn({ ...battle, heroes: [addStatus({ ...hero, hp: 3 }, 'hex', 3)] });
   assert.equal(next.heroes.length, 0);
   assert.equal(next.fallen.at(-1)?.hexDamageTaken, 3);
   assert.equal(next.slain, battle.slain + 1);
   assert.equal(next.killsThisTurn, 1);
+});
+
+void test('an action that takes enemy Hex from 2 to 1 bursts for 1 and can record a kill', () => {
+  const battle = fightWith(['backhand']);
+  const hero = battle.heroes[0]!;
+  const moved = move({ ...battle, heroes: [addStatus({ ...hero, hp: 1 }, 'hex', 2)] }, 'backStep');
+  assert.equal(moved.heroes.length, 0);
+  assert.equal(moved.fallen.at(-1)?.hexDamageTaken, 1);
+  assert.equal(moved.slain, battle.slain + 1);
 });
 
 void test('incoming damage preview accounts for every attack and existing defenses but not Hex', () => {
@@ -900,7 +908,7 @@ void test('heroes act fastest first, ties by uid, beat by beat', () => {
 /** The Squire's uid in a fightWith() fight. */
 const squireUid = (state: CombatState): number => state.heroes[0]?.uid ?? -1;
 
-/** HP the Squire lost when `cardId` is played with the given buffs. */
+/** Direct HP the Squire lost when a card is played, before its separate Hex burst. */
 const damageWith = (cardId: CardId, buffs: Partial<typeof NO_STATUSES>) => {
   const start = withHand(fightWith(['backhand']), [cardId]);
   const buffed = {
@@ -909,7 +917,8 @@ const damageWith = (cardId: CardId, buffs: Partial<typeof NO_STATUSES>) => {
   };
   const before = buffed.heroes[0]?.hp ?? 0;
   const after = playCard(buffed, 0, squireUid(buffed));
-  return before - (after.heroes[0]?.hp ?? 0);
+  const result = after.heroes[0] ?? after.fallen.at(-1);
+  return before - (result?.hp ?? 0) - Math.min(result?.hexDamageTaken ?? 0, before);
 };
 
 void test('Might, Surge and Hone each power up only their own card type', () => {
@@ -918,7 +927,7 @@ void test('Might, Surge and Hone each power up only their own card type', () => 
   // The Squire is in front: no long-range bonus.
   assert.equal(damageWith('spiteBolt', { hone: 3 }), 9);
   assert.equal(damageWith('hexfire', { surge: 1 }), 7);
-  // A curse lays Hex and strikes for nothing, buffed or not.
+  // A curse deals no direct hit, buffed or not.
   assert.equal(damageWith('mourningCurse', { might: 5, surge: 5 }), 0);
 });
 
@@ -3099,9 +3108,9 @@ void test('Reap previews and deals Intelligence-scaled magic damage based on tar
   const beats = playCardSteps({ ...fight, heroes: [target] }, 0, target.uid);
   assert.equal(beats[0]?.heroes[0]?.hp, 454, '46 Reap damage');
   const after = beats.at(-1)!;
-  assert.equal(after.heroes[0]?.hp, 454, 'the card does not burst Hex');
+  assert.equal(after.heroes[0]?.hp, 451, 'the card also counts down to 3 and bursts');
   assert.equal(after.heroes[0]?.statuses.hex, 3);
-  assert.equal(startPlayerTurn(after).heroes[0]?.hp, 451, 'Hex bursts at the next opening');
+  assert.equal(startPlayerTurn(after).heroes[0]?.hp, 448, 'Hex bursts at the next opening');
 });
 void test('Scorn scales enemy Poison and Burn during enemy turns and Hex at the player opening', () => {
   const trigger = (scorn: number, hex: number) => {

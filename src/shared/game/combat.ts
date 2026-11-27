@@ -1568,8 +1568,9 @@ const cardBeats = (
   if (counted !== current) states.push(counted);
   const ticked = hexAfterPlayerAction(paid, counted);
   if (ticked !== counted) {
-    // Keep the countdown on the last action beat, with no separate pause.
-    if (!states.length) states.push(ticked);
+    // Give an actual burst its own damage beat, but do not pause for countdown alone.
+    const burst = ticked.heroes.some((unit, i) => unit.hp < counted.heroes[i]!.hp);
+    if (burst || !states.length) states.push(ticked);
     else states[states.length - 1] = ticked;
   }
   return states;

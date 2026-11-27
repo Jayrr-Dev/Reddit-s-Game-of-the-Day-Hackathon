@@ -29,15 +29,17 @@ const delayed = (config: CostCurveConfig, turns: number): number =>
 
 // --- DAMAGE OVER TIME ---
 /**
- * Hex bursts at turn start. Assume one later action between each pair
- * of openings, with the usual delay discount and conditional adjustment.
+ * Hex bursts when applied, after actions, and at turn start. Assume one
+ * later action just after each opening, with the usual delay discount.
  */
 export const hexValue = (config: CostCurveConfig, stacks: number): number => {
-  let total = 0;
+  let total = hexBurnAmount(stacks);
   let hex = stacks;
   for (let turn = 0; hex > 0 && turn < MAX_SIMULATED_TURNS; turn += 1) {
-    total += hexBurnAmount(hex) * delayed(config, turn + 1);
+    const weight = delayed(config, turn + 1);
+    total += hexBurnAmount(hex) * weight; // Turn opening.
     hex = hexAfterCountdown(hex);
+    total += hexBurnAmount(hex) * weight; // The next action.
   }
   return total * config.battle.hexLandsLate;
 };

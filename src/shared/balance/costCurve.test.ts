@@ -17,12 +17,12 @@ void test('The target follows the curve: slot + energy x cost, times the rarity 
 void test('Status values replay the game rules', () => {
   // Burn 3 deals 3, halves to 1, deals 1, then runs out.
   assert.equal(burnValue(3), 4);
-  // Hex deals face value on odd openings, assuming one later action per round.
+  // Odd Hex bursts immediately and can burst again at an opening.
   const delay = CONFIG.battle.delayKeptPerTurn;
   const late = CONFIG.battle.hexLandsLate;
-  assert.equal(hexValue(CONFIG, 1), delay * late);
-  assert.equal(hexValue(CONFIG, 3), (3 * delay + delay ** 3) * late);
-  assert.equal(hexValue(CONFIG, 5), (5 * delay + 3 * delay ** 3 + delay ** 5) * late);
+  assert.ok(Math.abs(hexValue(CONFIG, 1) - (1 + delay) * late) < 1e-9);
+  assert.ok(Math.abs(hexValue(CONFIG, 3) - (3 + 3 * delay + delay ** 2 + delay ** 3) * late) < 1e-9);
+  assert.ok(Math.abs(hexValue(CONFIG, 5) - (5 + 5 * delay + 3 * (delay ** 2 + delay ** 3) + delay ** 4 + delay ** 5) * late) < 1e-9);
 });
 
 void test('Every effect on every card in play gets a price', () => {
@@ -37,7 +37,7 @@ void test('Every effect on every card in play gets a price', () => {
 
 void test('Known outliers land where the benchmark put them', () => {
   assert.equal(scoreCard(CONFIG, 'flurry').verdict, 'on curve');
-  assert.equal(scoreCard(CONFIG, 'whisperHex').verdict, 'on curve');
+  assert.equal(scoreCard(CONFIG, 'whisperHex').verdict, 'too strong');
   assert.equal(scoreCard(CONFIG, 'dispel').verdict, 'too weak');
   assert.equal(scoreAllCards(CONFIG).length, ALL_CARD_IDS.filter(isCardInPlay).length);
 });

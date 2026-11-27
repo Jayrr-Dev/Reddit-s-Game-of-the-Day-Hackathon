@@ -855,18 +855,20 @@ function dealHexDamage<T extends Combatant>(target: T, amount: number, source?: 
   return { ...loseHp(target, loss), hexDamageTaken: (target.hexDamageTaken ?? 0) + loss };
 }
 
-/** Player actions change the count, but only turn openings can burst. */
+/** Count down an active Hex without triggering it. */
 export const hexAfterAction = <T extends Combatant>(target: T): T => {
   if (target.hp <= 0 || target.statuses.hex <= 0) return target;
   return { ...target, statuses: { ...target.statuses, hex: hexAfterCountdown(target.statuses.hex) } };
 };
 
-/** Only player actions count down Hex on enemies that were already cursed. */
+/** A player action checks enemy Hex after counting down curses that were already active. */
 export function hexAfterPlayerAction(before: CombatState, after: CombatState): CombatState {
-  const primed = new Set(before.heroes.filter(unit => unit.statuses.hex > 0).map(unit => unit.uid));
-  const heroes = primed.size ? after.heroes.map(unit =>
-    primed.has(unit.uid) ? hexAfterAction(unit) : unit
-  ) : after.heroes;
+  const existing = new Set(before.heroes.filter(unit => unit.statuses.hex > 0).map(unit => unit.uid));
+  const heroes = after.heroes.map(unit => {
+    const active = existing.has(unit.uid);
+    if (!active && unit.statuses.hex <= 0) return unit;
+    return hexBurst(active ? hexAfterAction(unit) : unit, before.player);
+  });
   const player = hexAfterAction(after.player);
   return player !== after.player || heroes.some((unit, index) => unit !== after.heroes[index])
     ? { ...after, player, heroes } : after;
