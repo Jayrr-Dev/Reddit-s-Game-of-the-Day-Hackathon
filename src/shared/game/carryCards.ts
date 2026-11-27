@@ -71,6 +71,6 @@ export function readCarryCards(value: unknown): CarryCards {
   return cards;
 }
 
-/** Only unspent cards appear in Inventory and on the Bring Card screen. */
+/** Owned cards are reusable; old spend markers no longer hide the originals. */
 export const availableCarryCards = (owned?: CarryCards): CarryCard[] =>
-  Object.values(owned ?? {}).filter((card): card is CarryCard => !!card && !card.spent);
+  Object.values(owned ?? {}).flatMap(card => card ? [{ id: card.id, cardId: card.cardId, source: card.source }] : []);

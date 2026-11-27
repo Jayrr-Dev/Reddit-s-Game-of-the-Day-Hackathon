@@ -1,6 +1,6 @@
 import { isStarterName, validStarter, type StarterName } from './starters.ts';
 import { planSkillPath, buySkill, isSkillPick, type SkillPick } from './skills.ts';
-import { progressionFromWins, healingAmount, type RingProgress, allocateTrait, awardCharacterVictory, characterBonuses, createCharacter, discardItem, equipItem, isRingIndex, saveTraits, isTrait, isTraitRank, isTraitNode, isTraitPath, traitPathCap, type TraitPath, setTraitNode, setTraitPathRank, setTraitRank, traitHealth, syncCharacterCombat, type CharacterState, type TraitId, type EquipmentSlot } from './character.ts';
+import { playerHpCap, progressionFromWins, healingAmount, type RingProgress, allocateTrait, awardCharacterVictory, characterBonuses, createCharacter, discardItem, equipItem, isRingIndex, saveTraits, isTrait, isTraitRank, isTraitNode, isTraitPath, traitPathCap, type TraitPath, setTraitNode, setTraitPathRank, setTraitRank, traitHealth, syncCharacterCombat, type CharacterState, type TraitId, type EquipmentSlot } from './character.ts';
 // ===================================================================
 // RUN (THE CONQUEST)
 // A whole day's run as one pure reducer: runReducer(state, action).
@@ -38,7 +38,6 @@ import {
   GRAVE_HEAL_FRACTION,
   GRAVE_VOW_MAX_HP,
   PLAYER_MAX_HP,
-  PLAYER_HP_CAP,
   SCORE_PER_HERO_SLAIN,
   SCORE_PER_REGION,
   SCORE_PER_WAVE,
@@ -170,7 +169,7 @@ const initialCharacter = (ringProgress: RingProgress | undefined, wins: number, 
 
 /** The start of the day's run: full HP, starter deck, first crossroads. */
 export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt = 0, wins = 0,
-  shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[], legacyProgression = false, conquestVersion?: ConquestVersion, xpStartWins?: number): RunState => {
+  shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[], legacyProgression = false, conquestVersion?: ConquestVersion, xpStartWins?: number, legacyVigor = false): RunState => {
   const carriedCards = typeof carried === 'string' ? [carried] : carried ? [...carried] : [];
   const maxHp = PLAYER_MAX_HP + (pandoraEffect === 'lasting-vigor' ? PANDORA_MAX_HP_GAIN : pandoraEffect === 'brittle-blood' ? -PANDORA_MAX_HP_LOSS : 0);
   return {
@@ -179,7 +178,7 @@ export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt
   ...(pandoraEffect && { pandoraEffect, baseMaxHp: maxHp }),
   dailyKey,
   stop: 1,
-  character: initialCharacter(ringProgress, wins, shopRings, legacyProgression, xpStartWins),
+  character: { ...initialCharacter(ringProgress, wins, shopRings, legacyProgression, xpStartWins), ...(legacyVigor && { legacyVigor: true }) },
   hp: (pandoraEffect === 'half-life' || pandoraEffect === 'half-life-double-gold') ? Math.ceil(maxHp / 2) : maxHp,
   maxHp,
   deck: appendCarriedCards(STARTER_DECK, carriedCards),
@@ -427,10 +426,10 @@ const visitGrave = (state: RunState, choice: GraveChoice): RunState => {
   }
   return advanceToNextStop({
     ...state,
-    baseMaxHp: (state.baseMaxHp ?? state.maxHp - characterBonuses(state.character.traits, state.character.equipment, state.character.traitNodes).maxHp + PLAYER_MAX_HP)
-      + Math.min(PLAYER_HP_CAP - state.maxHp, GRAVE_VOW_MAX_HP),
-    maxHp: Math.min(PLAYER_HP_CAP, state.maxHp + GRAVE_VOW_MAX_HP),
-    hp: state.hp + Math.min(PLAYER_HP_CAP - state.maxHp, GRAVE_VOW_MAX_HP),
+    baseMaxHp: (state.baseMaxHp ?? state.maxHp - characterBonuses(state.character.traits, state.character.equipment, state.character.traitNodes, state.character.legacyVigor).maxHp + PLAYER_MAX_HP)
+      + Math.min(playerHpCap(state.character.legacyVigor) - state.maxHp, GRAVE_VOW_MAX_HP),
+    maxHp: Math.min(playerHpCap(state.character.legacyVigor), state.maxHp + GRAVE_VOW_MAX_HP),
+    hp: state.hp + Math.min(playerHpCap(state.character.legacyVigor) - state.maxHp, GRAVE_VOW_MAX_HP),
   });
 };
 
@@ -472,9 +471,9 @@ function bringHellArtifact(state: RunState, id: HellArtifactId): RunState {
   if (!artifact) return state;
   if ('card' in artifact) return { ...state, deck: [...state.deck, artifact.card] };
 
-  const bonus = Math.max(0, Math.min(10, PLAYER_HP_CAP - state.maxHp));
+  const bonus = Math.max(0, Math.min(10, playerHpCap(state.character.legacyVigor) - state.maxHp));
   const baseMaxHp = state.baseMaxHp ??
-    state.maxHp - characterBonuses(state.character.traits, state.character.equipment, state.character.traitNodes).maxHp + PLAYER_MAX_HP;
+    state.maxHp - characterBonuses(state.character.traits, state.character.equipment, state.character.traitNodes, state.character.legacyVigor).maxHp + PLAYER_MAX_HP;
   return { ...state, baseMaxHp: baseMaxHp + bonus, hp: state.hp + bonus, maxHp: state.maxHp + bonus };
 }
 
@@ -507,7 +506,7 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
       const character = applyCharacterAction(state.character, action);
       if (character === state.character) return state;
       const credited = state.character.highestVigor ?? state.character.traits.vigor;
-      const baseHp = state.baseMaxHp ?? state.maxHp - characterBonuses(state.character.traits, state.character.equipment, state.character.traitNodes).maxHp + PLAYER_MAX_HP;
+      const baseHp = state.baseMaxHp ?? state.maxHp - characterBonuses(state.character.traits, state.character.equipment, state.character.traitNodes, state.character.legacyVigor).maxHp + PLAYER_MAX_HP;
       const health = traitHealth(state.hp, state.maxHp, state.character.traits, character, credited, baseHp, state.character.traitNodes, state.character.highestVigorHp);
       return { ...state, character, baseMaxHp: baseHp, ...health,
         phase: phase.kind === 'combat' ? { ...phase, combat: syncCharacterCombat(phase.combat, character, credited, baseHp, state.character.highestVigorHp) } : phase };
@@ -590,8 +589,8 @@ export const replayRun = (
   dailyKey: string,
   actions: readonly RunAction[],
   ringProgress?: RingProgress,
-  attempt = 0, wins = 0, shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[], legacyProgression = false, conquestVersion?: ConquestVersion, xpStartWins?: number
-): RunState => actions.reduce(runReducer, createRun(dailyKey, ringProgress, attempt, wins, shopRings, pandoraEffect, cardRules, carried, legacyProgression, conquestVersion, xpStartWins));
+  attempt = 0, wins = 0, shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[], legacyProgression = false, conquestVersion?: ConquestVersion, xpStartWins?: number, legacyVigor = false
+): RunState => actions.reduce(runReducer, createRun(dailyKey, ringProgress, attempt, wins, shopRings, pandoraEffect, cardRules, carried, legacyProgression, conquestVersion, xpStartWins, legacyVigor));
 
 /** True once the heroes have stopped the villain. */
 export const isRunOver = (state: RunState): boolean =>

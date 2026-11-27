@@ -35,7 +35,7 @@ export const slotLook = (slot: InventorySlot): SlotLook => {
         subtitle: 'Card · ' + carrySourceLabel(slot.source),
         details: <>
           <ul className="inv-card-rules">{describeCard(slot.cardId).map(line => <li key={line}>{line.replace(/\*\*/g, '')}</li>)}</ul>
-          <p className="cs-item-lore">Use Bring a Card before starting a conquest.</p>
+          <p className="cs-item-lore">Use Bring a Card before starting a conquest. The original stays in your backpack.</p>
         </>,
       };
     case 'item':

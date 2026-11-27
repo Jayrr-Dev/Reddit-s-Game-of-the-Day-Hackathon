@@ -242,7 +242,7 @@ api.post('/run/start', async (c) => {
     if (record.starter !== undefined && !isStarterName(record.starter)) return jsonError(c, 400, 'Invalid starter deck');
     const starter = isStarterName(record.starter) ? record.starter : build.selected;
     const deck = build.decks[starter] ?? starterDeck(starter);
-    const profile: RunProfile = { id: randomUUID(), wins, xpStartWins, shopRings, cardRules: 1, progressionVersion: 2, conquestVersion: CONQUEST_VERSION };
+    const profile: RunProfile = { id: randomUUID(), wins, xpStartWins, shopRings, cardRules: 1, progressionVersion: 2, conquestVersion: CONQUEST_VERSION, vigorVersion: 1 };
     const withItems = await bindRunItems(userId, day, profile, testVisit, requested, deck)
       ?? (testVisit && !requested.length ? await bindRunItems(userId, day, profile, undefined, requested, deck) : undefined);
     if (withItems) return c.json<StartRunResponse>({ type: 'runStart', isRanked: false, profile: withItems, build });
@@ -274,7 +274,8 @@ async function verifyProgress(day: string, body: FinishRunRequest, userId: strin
   const conquestVersion = saved && typeof saved === 'object' && 'conquestVersion' in saved && isConquestVersion(saved.conquestVersion) ? saved.conquestVersion : undefined;
   const xpStartWins = saved && typeof saved === 'object' && 'xpStartWins' in saved &&
     typeof saved.xpStartWins === 'number' && Number.isSafeInteger(saved.xpStartWins) && saved.xpStartWins >= 0 ? saved.xpStartWins : undefined;
-  const { state: run, unlocks } = replayForScoreAndUnlocks(day, body.actions, wins, shopRings, effect, cardRules, carried, legacyProgression, conquestVersion, xpStartWins);
+  const legacyVigor = !(saved && typeof saved === 'object' && 'vigorVersion' in saved && saved.vigorVersion === 1);
+  const { state: run, unlocks } = replayForScoreAndUnlocks(day, body.actions, wins, shopRings, effect, cardRules, carried, legacyProgression, conquestVersion, xpStartWins, legacyVigor);
   if (run.phase.kind === 'fallen' && run.phase.battlefield && run.promisedToGreed) await bankHellCard(userId, body.runId, run.promisedToGreed, testVisit);
   if (effect === 'half-life' && run.goldVictories.length > 0) await creditPandoraBounty(userId, body.runId, testVisit);
   if (testVisit) return run;

@@ -6,9 +6,8 @@
 import {
   GRAVE_HEAL_FRACTION,
   GRAVE_VOW_MAX_HP,
-  PLAYER_HP_CAP,
 } from '../../../shared/game/rules';
-import { healingAmount, type CharacterState } from '../../../shared/game/character';
+import { healingAmount, playerHpCap, type CharacterState } from '../../../shared/game/character';
 import type { RunAction } from '../../../shared/game/run';
 import { Glyph } from '../ui/Glyph';
 
@@ -21,7 +20,7 @@ export type GraveViewProps = {
 /** Two choices, each described with its real numbers. */
 export const GraveView = ({ maxHp, character, onAction }: GraveViewProps) => {
   const healAmount = healingAmount(Math.round(maxHp * GRAVE_HEAL_FRACTION), character);
-  const vowGain = Math.min(GRAVE_VOW_MAX_HP, PLAYER_HP_CAP - maxHp);
+  const vowGain = Math.min(GRAVE_VOW_MAX_HP, playerHpCap(character.legacyVigor) - maxHp);
   const choiceClass =
     'run-choice flex w-full flex-col items-start rounded-xl bg-surface-raised p-4 text-left ring-1 ring-edge hover:ring-accent';
   return (

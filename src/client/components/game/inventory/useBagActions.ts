@@ -1,8 +1,7 @@
 // ===================================================================
 // USE BAG ACTIONS
-// The Inventory's move rules in one place. Drag a stack (or tap it,
-// then tap a target) to move it: an empty cell, a cell to swap with,
-// or the trash. Wearing jewelry stays on the Equipment tab.
+// Drag to move or swap a stack. Tapping a bag cell only inspects it.
+// Wearing jewelry stays on the Equipment tab.
 // ===================================================================
 import { useState } from 'react';
 import {
@@ -76,11 +75,17 @@ export function useBagActions(owner: InventoryOwner, { layout, onLayout, onTrash
     setSelectedKey(undefined);
   };
 
-  /** A tap on a target: moves the selected stack there, or selects what the target holds. */
-  const tap = (target: BagTarget, heldKey: string | null) => {
-    if (heldKey && (!selected || heldKey === selectedKey)) return toggle(heldKey);
-    if (selected) return drop(selected, target);
-    if (target.kind === 'trash') setNotice('Select an item, then tap the trash.');
+  /** Inspect the tapped stack without changing the layout. */
+  const tap = (heldKey: string | null) => {
+    if (heldKey) return toggle(heldKey);
+    setSelectedKey(undefined);
+    setNotice('');
+  };
+
+  /** The dedicated trash button opens confirmation for the selected item. */
+  const tapTrash = () => {
+    if (selected) return drop(selected, { kind: 'trash' });
+    setNotice('Select an item, then tap the trash.');
   };
 
   return {
@@ -90,6 +95,7 @@ export function useBagActions(owner: InventoryOwner, { layout, onLayout, onTrash
     notice,
     stackOf,
     tap,
+    tapTrash,
     drop,
     /** Packs the backpack in list order: consumables, then jewelry. */
     sort: () => onLayout(sortBackpack(bag, keys)),

@@ -186,9 +186,10 @@
   place-items: center;
   width: var(--mini-width);
   height: var(--mini-height);
-  transform: scale(.22);
-  transform: scale(calc((var(--inv-slot) - 4px) / var(--mini-height)));
+  transform: scale(.19);
+  transform: scale(calc((100cqh - 8px) / var(--mini-height)));
 }
+.inv-cell[data-kind='card'] .inv-art { container-type: size; }
 .inv-card-miniature .card-face {
   animation: none;
   pointer-events: none;

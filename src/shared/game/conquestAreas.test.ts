@@ -261,7 +261,7 @@ void test('v1 action logs and v2 profiles replay with their own immutable route 
   const storage = { get length() { return map.size; }, key: (i: number) => [...map.keys()][i] ?? null,
     getItem: (key: string) => map.get(key) ?? null, setItem: (key: string, value: string) => { map.set(key, value); } };
   for (const conquestVersion of [1, CONQUEST_VERSION] as const) {
-    const profile = { id: 'version-' + conquestVersion, wins: 0, cardRules: 1, progressionVersion: 2, conquestVersion, xpStartWins: 0 } as const;
+    const profile = { id: 'version-' + conquestVersion, wins: 0, cardRules: 1, progressionVersion: 2, conquestVersion, vigorVersion: 1, xpStartWins: 0 } as const;
     const fresh = createRun(DAY, undefined, 0, 0, [], undefined, 1, undefined, false, conquestVersion, 0);
     const run = runReducer(fresh, actions[0]);
     for (const savedProfile of [undefined, profile]) {

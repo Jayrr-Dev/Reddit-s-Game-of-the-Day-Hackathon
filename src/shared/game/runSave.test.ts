@@ -146,7 +146,7 @@ void test('legacy disconnected buys and an interior refund migrate once, while n
     'strength'
   );
   assert.deepEqual(ids, normalizeTraitNodeIds('strength', [b, c]));
-  assert.deepEqual(migrated.run, replayRun('legacy-arms', migrated.actions, undefined, 0, 0, [], undefined, undefined, undefined, true));
+  assert.deepEqual(migrated.run, replayRun('legacy-arms', migrated.actions, undefined, 0, 0, [], undefined, undefined, undefined, true, undefined, undefined, true));
   saveLoggedRun(migrated, storage);
   assert.deepEqual(restoreLoggedRun('legacy-arms', storage), migrated);
   const saved = JSON.parse(storage.getItem(key)!);

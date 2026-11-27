@@ -88,7 +88,7 @@ const STATS: ReadonlyArray<{ key: Stat; label: string; percent?: boolean }> = [
 function PlayerStats({ character, vitals, previewRef, onRespec, respecItem }: Pick<SheetProps, 'character' | 'vitals' | 'onRespec' | 'respecItem'> & {
   previewRef: (element: HTMLDivElement | null) => void;
 }) {
-  const stats = characterBonuses(character.traits, character.equipment, character.traitNodes);
+  const stats = characterBonuses(character.traits, character.equipment, character.traitNodes, character.legacyVigor);
   const [isAskingRespec, setIsAskingRespec] = useState(false);
   /** Refunds every trait point with the paper sound. */
   const respec = () => { playSound('respec', 1, .72); onRespec?.(); };

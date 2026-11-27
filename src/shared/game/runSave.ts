@@ -112,17 +112,18 @@ const restoreActions = (
   connected: boolean,
   legacyProgression: boolean,
   conquestVersion?: ConquestVersion,
-  xpStartWins?: number
+  xpStartWins?: number,
+  legacyVigor = false
 ): LoggedRun => {
   const valid = raw.filter(isRunAction);
   if (connected || !valid.some((action) => action.type === 'setTraitNode'))
     return {
-      run: replayRun(day, valid, initialRings, attempt, 0, [], undefined, conquestVersion !== undefined ? 1 : undefined, undefined, legacyProgression, conquestVersion, xpStartWins),
+      run: replayRun(day, valid, initialRings, attempt, 0, [], undefined, conquestVersion !== undefined ? 1 : undefined, undefined, legacyProgression, conquestVersion, xpStartWins, legacyVigor),
       actions: valid,
       initialRings,
       attempt,
     };
-  let run = createRun(day, initialRings, attempt, 0, [], undefined, conquestVersion !== undefined ? 1 : undefined, undefined, legacyProgression, conquestVersion, xpStartWins);
+  let run = createRun(day, initialRings, attempt, 0, [], undefined, conquestVersion !== undefined ? 1 : undefined, undefined, legacyProgression, conquestVersion, xpStartWins, legacyVigor);
   const actions: RunAction[] = [];
   const previousIds = new Map<TraitId, readonly number[]>();
   for (const action of valid) {
@@ -217,13 +218,14 @@ export const restoreLoggedRun = (
           const profile = { id: saved.profile.id, wins: saved.profile.wins, ...('shopRings' in saved.profile && { shopRings: shopRingIds(saved.profile.shopRings) }),
             ...('pandoraEffect' in saved.profile && isPandoraRunEffect(saved.profile.pandoraEffect) && { pandoraEffect: saved.profile.pandoraEffect }),
             ...('progressionVersion' in saved.profile && saved.profile.progressionVersion === 2 && { progressionVersion: 2 as const }),
+            ...('vigorVersion' in saved.profile && saved.profile.vigorVersion === 1 && { vigorVersion: 1 as const }),
             ...('xpStartWins' in saved.profile && isWinBaseline(saved.profile.xpStartWins) && { xpStartWins: saved.profile.xpStartWins }),
             ...('conquestVersion' in saved.profile && isConquestVersion(saved.profile.conquestVersion) && { conquestVersion: saved.profile.conquestVersion }),
             ...('cardRules' in saved.profile && saved.profile.cardRules === 1 && { cardRules: 1 as const }),
             ...('carriedCards' in saved.profile && isCarriedDeck(saved.profile.carriedCards) && { carriedCards: saved.profile.carriedCards }),
             ...('carriedCard' in saved.profile && isCardId(saved.profile.carriedCard) && { carriedCard: saved.profile.carriedCard }) };
           const actions = saved.actions.filter(isRunAction);
-          return { run: replayRun(day, actions, initialRings, saved.attempt, profile.wins, profile.shopRings, profile.pandoraEffect, profile.cardRules, profile.carriedCards ?? profile.carriedCard, profile.progressionVersion !== 2, profile.conquestVersion, profile.xpStartWins), attempt: saved.attempt, initialRings, actions, profile };
+          return { run: replayRun(day, actions, initialRings, saved.attempt, profile.wins, profile.shopRings, profile.pandoraEffect, profile.cardRules, profile.carriedCards ?? profile.carriedCard, profile.progressionVersion !== 2, profile.conquestVersion, profile.xpStartWins, profile.vigorVersion !== 1), attempt: saved.attempt, initialRings, actions, profile };
         }
         return restoreActions(
           day,
@@ -233,7 +235,8 @@ export const restoreLoggedRun = (
           'traitRuleVersion' in saved && saved.traitRuleVersion === 5,
           !('progressionVersion' in saved && saved.progressionVersion === 2),
           'conquestVersion' in saved && isConquestVersion(saved.conquestVersion) ? saved.conquestVersion : undefined,
-          'xpStartWins' in saved && isWinBaseline(saved.xpStartWins) ? saved.xpStartWins : undefined
+          'xpStartWins' in saved && isWinBaseline(saved.xpStartWins) ? saved.xpStartWins : undefined,
+          !('vigorVersion' in saved && saved.vigorVersion === 1)
         );
       }
       return newAttempt(day, lifetimeRings(storage), 0);
@@ -292,6 +295,7 @@ export const saveLoggedRun = (state: LoggedRun, storage?: SaveStore): void => {
       JSON.stringify({
         traitRuleVersion: 5,
         ...(!state.run.character.legacyProgression && { progressionVersion: 2 }),
+        ...(!state.run.character.legacyVigor && { vigorVersion: 1 }),
         ...(state.run.conquestVersion && { conquestVersion: state.run.conquestVersion }),
         ...(!state.profile && state.run.character.scaledExperience && { xpStartWins: 0 }),
         profile: state.profile,

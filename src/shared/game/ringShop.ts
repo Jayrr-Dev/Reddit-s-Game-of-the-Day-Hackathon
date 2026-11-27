@@ -312,24 +312,16 @@ function shopRarity(id: ShopRingId): RingRarity {
   return rings.find(ring => ring.id === id)?.rarity ?? AMULET_IDS.map(key => ({ key, rarity: AMULET_RARITY[key] })).find(entry => entry.key === id)!.rarity;
 }
 
-/** Spend a single inventory card while issuing the run that receives it. */
-export function takeCarryCard(wallet: ShopWallet, receipt: string | undefined, runId: string) {
-  const card = availableCarryCards(wallet.carry).find(candidate => candidate.id === receipt);
-  return card && { card, wallet: { ...wallet, carry: { ...wallet.carry, [card.id]: { ...card, spent: runId } } } };
-}
-
-/** Spend a whole selection or none. The caller commits the returned wallet. */
-export function takeCarryCards(wallet: ShopWallet, receipts: readonly string[], runId: string) {
+/** Resolve an entire ordered selection of owned receipts without consuming them. */
+export function selectCarryCards(wallet: ShopWallet, receipts: readonly string[]) {
   if (!isCarrySelection(receipts)) return undefined;
-  const carry = { ...wallet.carry };
   const cards: CardId[] = [];
   for (const receipt of receipts) {
-    const card = carry[receipt];
-    if (!card || card.spent) return undefined;
+    const card = wallet.carry?.[receipt];
+    if (!card) return undefined;
     cards.push(card.cardId);
-    carry[receipt] = { ...card, spent: runId };
   }
-  return { cards, wallet: { ...wallet, carry } };
+  return cards;
 }
 
 /** Put a surrendered card into Inventory after a verified death, once per run. */

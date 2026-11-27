@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 import { redis } from '@devvit/web/server';
 import { progressionFromWins } from '../../shared/game/character';
 import { goldFromVictoryScore } from '../../shared/game/gold';
-import { ADMIN_SHOP_GOLD, allShopJewelryOwned, assignPandoraEffect, claimPandoraBounty, openedShopBoxes, pendingPandoraEffect, shopGoldBalance, quoteShopPurchase, recoverCardFromHell, takeCarryCards, readShopWallet, shopOffers, shopRingIds, offerTestShopFruit, testShopFruit, testShopStockKey, type ShopWallet, type ShopOfferId } from '../../shared/game/ringShop';
+import { ADMIN_SHOP_GOLD, allShopJewelryOwned, assignPandoraEffect, claimPandoraBounty, openedShopBoxes, pendingPandoraEffect, shopGoldBalance, quoteShopPurchase, recoverCardFromHell, selectCarryCards, readShopWallet, shopOffers, shopRingIds, offerTestShopFruit, testShopFruit, testShopStockKey, type ShopWallet, type ShopOfferId } from '../../shared/game/ringShop';
 import type { RingShopResponse, RunProfile } from '../../shared/types/api';
 import { redisKeys } from './redisKeys';
 
@@ -160,7 +160,7 @@ export async function buyRing(id: string, day: string, offerDay: string, ringId:
   return { status: 'retry', shop: await readCheckout() } as const;
 }
 
-/** Bind inventory debits, the queued effect, and the replay baseline atomically. */
+/** Bind reusable cards and any queued effect to the server-owned replay baseline. */
 export async function bindRunItems(id: string, day: string, profile: RunProfile, testVisit: string | undefined, receipts: readonly string[], starter: readonly CardId[]) {
   const testIds = receipts.filter(isTestCarryCardId);
   const realIds = receipts.filter(receipt => !isTestCarryCardId(receipt));
@@ -180,22 +180,24 @@ export async function bindRunItems(id: string, day: string, profile: RunProfile,
       if (testKey && !testRaw) return undefined;
       const testWallet = readShopWallet(testRaw ?? undefined, true);
       const realWallet = readShopWallet(realRaw ?? undefined);
-      const test = takeCarryCards(testWallet, testIds, profile.id);
-      const real = takeCarryCards(realWallet, realIds, profile.id);
+      const test = selectCarryCards(testWallet, testIds);
+      const real = selectCarryCards(realWallet, realIds);
       if (!test || !real) return undefined;
-      const carriedCards = receipts.map(receipt => (isTestCarryCardId(receipt) ? test.wallet : real.wallet).carry![receipt]!.cardId);
+      const cardsByReceipt = new Map([...testIds.map((receipt, index) => [receipt, test[index]!] as const),
+        ...realIds.map((receipt, index) => [receipt, real[index]!] as const)]);
+      const carriedCards = receipts.map(receipt => cardsByReceipt.get(receipt)!);
       if (appendCarriedCards(starter, carriedCards).length !== starter.length + carriedCards.length) return undefined;
-      const assigned = assignPandoraEffect(testKey ? test.wallet : real.wallet, profile.id);
+      const assigned = assignPandoraEffect(testKey ? testWallet : realWallet, profile.id);
       if (!assigned && !carriedCards.length) return undefined;
       const next: RunProfile = { ...profile, ...(assigned && { pandoraEffect: assigned.effect }), ...(carriedCards.length && { carriedCards }), ...(carriedCards.length === 1 && { carriedCard: carriedCards[0]! }) };
       await transaction.multi();
       inMulti = true;
-      if (testKey) await transaction.set(testKey, JSON.stringify(assigned?.wallet ?? test.wallet), { expiration: testExpiry() });
-      if (!testKey || realIds.length) await transaction.set(realKey, JSON.stringify((!testKey && assigned?.wallet) || real.wallet));
+      if (testKey) await transaction.set(testKey, JSON.stringify(assigned?.wallet ?? testWallet), { expiration: testExpiry() });
+      if (!testKey && assigned) await transaction.set(realKey, JSON.stringify(assigned.wallet));
       await transaction.set(redisKeys.runBaseline(id, day, profile.id), JSON.stringify({ ...next, ...(testKey && { testVisit }) }));
       const result = await transaction.exec();
       completed = true;
-      if (result.length === keys.length + 1 && result.every(entry => entry === 'OK')) return next;
+      if (result.length === (testKey || assigned ? 2 : 1) && result.every(entry => entry === 'OK')) return next;
     } finally {
       if (!completed) {
         if (inMulti) await transaction.discard().catch(() => {});

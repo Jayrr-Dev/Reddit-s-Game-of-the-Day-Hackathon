@@ -60,7 +60,7 @@ export const useRun = (dailyKey: string, accountId?: string) => {
     const next = restartLoggedRun(state, browserStore(accountId));
     if (!next.actions.length && profile) {
       next.profile = profile;
-      next.run = createRun(dailyKey, next.initialRings, next.attempt, profile.wins, profile.shopRings, profile.pandoraEffect, profile.cardRules, profile.carriedCards ?? profile.carriedCard, profile.progressionVersion !== 2, profile.conquestVersion, profile.xpStartWins);
+      next.run = createRun(dailyKey, next.initialRings, next.attempt, profile.wins, profile.shopRings, profile.pandoraEffect, profile.cardRules, profile.carriedCards ?? profile.carriedCard, profile.progressionVersion !== 2, profile.conquestVersion, profile.xpStartWins, profile.vigorVersion !== 1);
     }
     if (!next.actions.length && !profile) {
       next.run = createRun(dailyKey, next.initialRings, next.attempt, 0, [], undefined, 1, undefined, false, 1, 0);

@@ -139,7 +139,7 @@ const JUNCTION_DIAMETER = 28;
 export const TraitSpiral = ({ trait, character, stats, onSetNode, onSaveTraits, previewHost }: Props) => {
   const owned = new Set(traitNodeIds(character.traits, character.traitNodes, trait));
 
-  const totals = characterBonuses(character.traits, character.equipment, character.traitNodes);
+  const totals = characterBonuses(character.traits, character.equipment, character.traitNodes, character.legacyVigor);
   const [selected, setSelected] = useState(0);
   const [preview, setPreview] = useState<number | null>(null);
   const [receipt, setReceipt] = useState('');
@@ -148,7 +148,7 @@ export const TraitSpiral = ({ trait, character, stats, onSetNode, onSaveTraits, 
   const detailsId = useId();
   const { nodes, curves } = useMemo(() => {
     const rewards = Array.from({ length: TRAIT_CAP }, (_, i) => {
-      const gains = traitNodeGains(trait, i + 1);
+      const gains = traitNodeGains(trait, i + 1, character.legacyVigor);
       return { id: i + 1, changes: stats.flatMap(stat => {
         const delta = gains[stat.key] ?? 0;
         return delta > 0 ? [{ ...stat, delta }] : [];

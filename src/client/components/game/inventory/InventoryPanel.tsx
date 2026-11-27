@@ -2,8 +2,7 @@
 // INVENTORY PANEL
 // An arrangeable RPG bag: a 4 x 4 backpack and a belt strip with a
 // trash slot. Wearing jewelry stays on the Equipment tab.
-// Drag a stack where it should go (mouse or finger), or tap it and
-// then tap the destination. The details of the selected stack show alongside.
+// Drag to move a stack, or tap it to see its details.
 // ===================================================================
 import { useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import { stackKey, type InventoryOwner, type InventorySlot } from '../../../../shared/game/inventory';
@@ -50,7 +49,7 @@ const BagGrid = ({ area, actions, dnd, className, children }: {
           stack={stack}
           label={stack ? `${stack.name}, ${stack.quantity}${stack.kind === 'jewelry' && stack.equipped ? ', equipped' : ''}` : `Empty ${area} slot ${index + 1}`}
           isSelected={!!key && key === (actions.selected && stackKey(actions.selected))}
-          onTap={dnd.onTap(() => actions.tap(cell, key))}
+          onTap={dnd.onTap(() => actions.tap(key))}
         />
       );
     })}
@@ -73,7 +72,7 @@ const InventoryDetails = ({ stack, notice }: { stack: InventorySlot | undefined;
             <div className="inv-detail-body">{look.details}</div>
           </>
         ) : (
-          <p className="inv-subtitle">Drag an item where it goes, or tap it and then tap the spot. Drop it on the trash to destroy it. Wear jewelry from the Equipment tab.</p>
+          <p className="inv-subtitle">Tap to inspect. Drag to move or trash an item. Equip jewelry in the Equipment tab.</p>
         )}
       </div>
     </section>
@@ -106,7 +105,7 @@ export const InventoryPanel = ({ owner, ...handlers }: PanelProps) => {
         <div className="cs-compartment inv-layout">
           <BagGrid area="backpack" actions={actions} dnd={dnd} className="inv-backpack" />
           <BagGrid area="belt" actions={actions} dnd={dnd} className="inv-belt">
-            <TrashSlot isOver={dnd.overZone === 'trash'} onTap={dnd.onTap(() => actions.tap({ kind: 'trash' }, null))} />
+            <TrashSlot isOver={dnd.overZone === 'trash'} onTap={dnd.onTap(actions.tapTrash)} />
           </BagGrid>
           <div className="inv-actions">
             <button type="button" onClick={actions.sort}>Sort backpack</button>

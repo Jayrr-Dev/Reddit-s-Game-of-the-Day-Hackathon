@@ -89,6 +89,21 @@ void test('ranked allocation and equipment can be replayed and validated', () =>
   assert.deepEqual(replayRun('character-test', [action]), state);
 });
 
+void test('64 Vigor gives 666 HP without changing shields or old run replays', () => {
+  for (let vigor = 0; vigor <= 64; vigor++) {
+    const old = characterBonuses({ vigor }, undefined, undefined, true);
+    const next = characterBonuses({ vigor });
+    assert.equal(next.shieldPercent, old.shieldPercent);
+    assert.ok(next.maxHp >= old.maxHp);
+  }
+  assert.equal(characterBonuses({ vigor: 0 }).maxHp, 66);
+  assert.equal(characterBonuses({ vigor: 64 }).maxHp, 666);
+  assert.equal(characterBonuses({ vigor: 64 }, undefined, undefined, true).maxHp, 333);
+  const action = { type: 'allocateTrait', trait: 'vigor' } as const;
+  const legacy = replayRun('vigor-legacy', [action], undefined, 0, 0, [], undefined, undefined, undefined, false, undefined, undefined, true);
+  assert.equal(legacy.maxHp, characterBonuses({ vigor: 1 }, undefined, undefined, true).maxHp);
+});
+
 void test('five rings equip independently and legacy single-ring saves restore to slot one', () => {
   let c = createCharacter({bossWins: 5, rareSlots: [6,7,8,9,10]});
   const owned = Array.from({ length: 10 }, (_, i) => ({

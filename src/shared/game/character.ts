@@ -1,7 +1,7 @@
 import { shopAmuletBonus } from './amuletBonuses.ts';
 import { buySkill, healingSkillBonusOf, isSkillPick, type SkillPick } from './skills.ts';
 import type { CombatState } from './types.ts';
-import { PLAYER_MAX_HP, PLAYER_HP_CAP, CARDS_PER_TURN, RESERVE_ENERGY_SLOTS } from './rules.ts';
+import { PLAYER_MAX_HP, PLAYER_HP_CAP, LEGACY_PLAYER_HP_CAP, CARDS_PER_TURN, RESERVE_ENERGY_SLOTS } from './rules.ts';
 
 export const TRAITS = [
   'vigor',
@@ -66,6 +66,7 @@ export type CharacterState = {
   /** Retained only while replaying historical three-path actions. */
   traitPaths?: TraitPaths;
   highestVigorHp?: number;
+  legacyVigor?: true;
   /** Highest Vigor already credited to current HP, including refunded ranks. */
   highestVigor?: number;
   ringProgress: RingProgress;
@@ -119,10 +120,10 @@ function withNodes(character: CharacterState, trait: TraitId, ids: number[]): Ch
     if (!Object.keys(next.traitPaths).length) delete next.traitPaths;
   }
   if (trait === 'vigor') {
-    const before = characterBonuses(character.traits, undefined, character.traitNodes).maxHp;
-    const after = characterBonuses(next.traits, undefined, next.traitNodes).maxHp;
+    const before = characterBonuses(character.traits, undefined, character.traitNodes, character.legacyVigor).maxHp;
+    const after = characterBonuses(next.traits, undefined, next.traitNodes, character.legacyVigor).maxHp;
     next.highestVigor = Math.max(character.highestVigor ?? character.traits.vigor, ids.length);
-    next.highestVigorHp = Math.max(character.highestVigorHp ?? characterBonuses({ vigor: character.highestVigor ?? 0 }).maxHp, before, after);
+    next.highestVigorHp = Math.max(character.highestVigorHp ?? characterBonuses({ vigor: character.highestVigor ?? 0 }, undefined, undefined, character.legacyVigor).maxHp, before, after);
   }
   return next;
 }
@@ -514,7 +515,7 @@ const attackFlat = (rank: number) => rank % 4 === 1 || rank % 8 === 7;
 const rangedAccuracy = (rank: number) => rank % 4 === 2;
 const reserveRank = (rank: number) => [2, 8, 14].includes(rank % 16);
 const capacityRank = (rank: number) => [4, 10, 15].includes(rank % 16);
-const hpCurve = rankCurve(PLAYER_HP_CAP - PLAYER_MAX_HP, rank => !vigorShield(rank));
+const hpCurve = rankCurve(LEGACY_PLAYER_HP_CAP - PLAYER_MAX_HP, rank => !vigorShield(rank));
 const shieldPercentCurve = rankCurve(100, vigorShield);
 const attackFlatCurve = rankCurve(30, attackFlat);
 const attackPercentCurve = rankCurve(100, rank => !attackFlat(rank));
@@ -649,9 +650,17 @@ function rewardCurves(trait: TraitId): [StatKey, number[]][] {
   return curves;
 }
 
+/** Scale only HP from the established Vigor reward pattern; shield gains stay identical. */
+const expandedVigorCurves = rewardCurves('vigor').map(([key, curve]): [StatKey, number[]] => [key,
+  key === 'maxHp' ? curve.map(hp => Math.round(hp * (PLAYER_HP_CAP - PLAYER_MAX_HP) / (LEGACY_PLAYER_HP_CAP - PLAYER_MAX_HP))) : curve,
+]);
+
+/** The 333-HP curve stays available to already-issued runs. */
+export const playerHpCap = (legacyVigor?: boolean) => legacyVigor ? LEGACY_PLAYER_HP_CAP : PLAYER_HP_CAP;
+
 /** What one board node grants under the arm reward pattern. */
-export function traitNodeGains(trait: TraitId, node: number): NodeGain {
-  return nodeGainsFrom(rewardCurves(trait), node);
+export function traitNodeGains(trait: TraitId, node: number, legacyVigor = false): NodeGain {
+  return nodeGainsFrom(trait === 'vigor' && !legacyVigor ? expandedVigorCurves : rewardCurves(trait), node);
 }
 
 /** The pattern weight of a node (1, 5 or 10); the junction has none. */
@@ -695,11 +704,11 @@ export function healingAmount(
   return Math.floor(base * (100 + traitPercent + skillPercent) / 100);
 }
 
-export function characterBonuses(traits: Partial<Traits> = {}, equipment?: Equipment, nodes?: TraitNodes) {
+export function characterBonuses(traits: Partial<Traits> = {}, equipment?: Equipment, nodes?: TraitNodes, legacyVigor = false) {
   const stats = { ...baseStats };
   for (const trait of TRAITS) {
     const selected = nodes?.[trait];
-    for (const [key, curve] of rewardCurves(trait)) {
+    for (const [key, curve] of trait === 'vigor' && !legacyVigor ? expandedVigorCurves : rewardCurves(trait)) {
       stats[key] += selected
         ? selected.reduce((total, id) => total + curve[id]! - curve[id - 1]!, 0)
         : curve[traits[trait] ?? 0]!;
@@ -721,10 +730,11 @@ export const traitHealth = (
   character: CharacterState, creditedVigor = oldTraits?.vigor ?? 0,
   baseHp?: number, oldNodes?: TraitNodes, creditedHpBonus?: number,
 ) => {
-  const oldHp = characterBonuses(oldTraits, undefined, oldNodes).maxHp;
+  const oldHp = characterBonuses(oldTraits, undefined, oldNodes, character.legacyVigor).maxHp;
   const base = baseHp ?? maxHp - oldHp + PLAYER_MAX_HP;
-  const nextMax = Math.min(PLAYER_HP_CAP, base + characterBonuses(character.traits, undefined, character.traitNodes).maxHp - PLAYER_MAX_HP);
-  const credited = Math.min(PLAYER_HP_CAP, base + (creditedHpBonus ?? Math.max(oldHp, characterBonuses({ vigor: creditedVigor }).maxHp)) - PLAYER_MAX_HP);
+  const nextMax = Math.min(playerHpCap(character.legacyVigor), base +
+    characterBonuses(character.traits, undefined, character.traitNodes, character.legacyVigor).maxHp - PLAYER_MAX_HP);
+  const credited = Math.min(playerHpCap(character.legacyVigor), base + (creditedHpBonus ?? Math.max(oldHp, characterBonuses({ vigor: creditedVigor }, undefined, undefined, character.legacyVigor).maxHp)) - PLAYER_MAX_HP);
   return { maxHp: nextMax, hp: hp <= 0 ? 0 : Math.min(nextMax, hp + Math.max(0, nextMax - credited)) };
 };
 

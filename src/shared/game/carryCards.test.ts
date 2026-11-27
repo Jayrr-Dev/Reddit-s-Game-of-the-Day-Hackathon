@@ -11,7 +11,7 @@ import { startCombat } from './combat.ts';
 import { createRun, runReducer, greedCanTake, type RunState } from './run.ts';
 import { routeOptions } from './kingdom.ts';
 import { rollOffers } from './rewards.ts';
-import { openedShopBoxes, quoteShopPurchase, recoverCardFromHell, readShopWallet, shopGoldBalance, shopOffers, takeCarryCard, takeCarryCards } from './ringShop.ts';
+import { openedShopBoxes, quoteShopPurchase, recoverCardFromHell, readShopWallet, shopGoldBalance, shopOffers, selectCarryCards } from './ringShop.ts';
 
 const day = '2026-11-27';
 const firstId = 'b4879658-3fed-485f-8039-600f1045a9f8';
@@ -42,7 +42,7 @@ test('an Imbue destroys its own copy and the exact target keeps its gift in the 
   assert.equal(second.phase.combat.handImbues[second.phase.combat.copies!.hand.indexOf(0)]?.length, 0);
 });
 
-test('Greed takes the selected copy now, cannot take a brought card, and recovered cards are single-use', () => {
+test('Greed takes the selected copy now, cannot take a brought card, and recovered cards are reusable', () => {
   const base = createRun(day, undefined, 0, 0, [], undefined, 1, 'arrowShot');
   const state = { ...base, deck: ['arcaneBolt', 'darkCloak', 'arrowShot'] as CardId[], phase: { kind: 'greed-bargain' } as const };
   assert.equal(greedCanTake(state, 2), false);
@@ -52,10 +52,9 @@ test('Greed takes the selected copy now, cannot take a brought card, and recover
   assert.equal(runReducer(state, { type: 'greedChoice', cardIndex: null }).deck.length, 3);
   const banked = recoverCardFromHell(readShopWallet(), firstId, traded.promisedToGreed!);
   if (!banked) throw new Error('Expected held card');
-  const paid = takeCarryCard(banked, 'hell:' + firstId, nextId);
-  assert.equal(paid?.card.cardId, 'arcaneBolt');
-  assert.equal(takeCarryCard(paid!.wallet, paid!.card.id, firstId), undefined);
-  assert.equal(recoverCardFromHell(paid!.wallet, firstId, 'arcaneBolt'), undefined);
+  assert.deepEqual(selectCarryCards(banked, ['hell:' + firstId]), ['arcaneBolt']);
+  assert.deepEqual(selectCarryCards(banked, ['hell:' + firstId]), ['arcaneBolt']);
+  assert.equal(recoverCardFromHell(banked, firstId, 'arcaneBolt'), undefined);
 });
 
 test('new markets reroll hourly and after a boss without admitting Imbues to regular drops', () => {
@@ -75,7 +74,7 @@ test('new markets reroll hourly and after a boss without admitting Imbues to reg
     const bought = readShopWallet(JSON.stringify(buy.next));
     assert.equal(shopGoldBalance(200, bought), 200 - offer.price);
     assert.deepEqual(openedShopBoxes(stock, bought), []);
-    assert.equal(takeCarryCard(bought, 'shop:' + stock, firstId)?.card.cardId, offer.cardId);
+    assert.equal(selectCarryCards(bought, ['shop:' + stock])?.[0], offer.cardId);
   }
   assert.ok(kinds.has('imbue') && kinds.size > 1);
   for (let seed = 1; seed < 200; seed++)
@@ -88,26 +87,30 @@ test('new markets reroll hourly and after a boss without admitting Imbues to reg
   assert.ok(Array.from({ length: 100 }, (_, stop) => appleAtVictory(firstId, stop, 'horde')).some(Boolean));
 });
 
-test('all four bag cards are spent together and survive starter selection, save restore, and score replay', () => {
+test('all four bag cards are reusable and survive starter selection, save restore, and score replay', () => {
   const wallet = { ...readShopWallet(), carry: seededAdminCarryCards() };
   const ids = ['test:2', 'test:0', 'test:1', 'test:3'];
   assert.equal(isCarrySelection([...ids, ids[0]]), false);
-  assert.equal(takeCarryCards(wallet, ['test:0', 'shop:2026-11-27'], firstId), undefined);
+  assert.equal(selectCarryCards(wallet, ['test:0', 'shop:2026-11-27']), undefined);
   assert.equal(wallet.carry['test:0']?.spent, undefined);
-  const issued = takeCarryCards(wallet, ids, firstId);
+  const issued = selectCarryCards(wallet, ids);
   assert.ok(issued);
-  assert.equal(takeCarryCards(issued.wallet, ids, nextId), undefined);
-  assert.ok(ids.every(id => issued.wallet.carry[id]?.spent === firstId));
+  assert.deepEqual(selectCarryCards(wallet, ids), issued);
+  assert.ok(ids.every(id => !wallet.carry[id]?.spent));
+  const oldCard = { ...wallet.carry['test:0']!, spent: nextId };
+  const restored = readShopWallet(JSON.stringify({ ...wallet, carry: { 'test:0': oldCard } }));
+  assert.deepEqual(selectCarryCards(restored, ['test:0']), [oldCard.cardId]);
+  assert.deepEqual(availableCarryCards(restored.carry), [{ id: oldCard.id, source: oldCard.source, cardId: oldCard.cardId }]);
   const starter = starterDeck('Mage');
   const action = { type: 'starterDeck', name: 'Mage', cards: starter } as const;
-  const base = createRun(day, undefined, 0, 0, [], undefined, 1, issued.cards);
+  const base = createRun(day, undefined, 0, 0, [], undefined, 1, issued);
   const run = runReducer(base, action);
-  assert.deepEqual(run.deck, [...starter, ...issued.cards]);
-  assert.deepEqual(replayForScoreAndUnlocks(day, [action], 0, [], undefined, 1, issued.cards).state.deck, run.deck);
+  assert.deepEqual(run.deck, [...starter, ...issued]);
+  assert.deepEqual(replayForScoreAndUnlocks(day, [action], 0, [], undefined, 1, issued).state.deck, run.deck);
   let snapshot: string | null = null;
   const storage = { length: 0, key: () => null, getItem: () => snapshot, setItem: (_key: string, value: string) => { snapshot = value; } };
   const blank = restoreLoggedRun(day);
-  saveLoggedRun({ ...blank, run, actions: [action], profile: { id: firstId, wins: 0, cardRules: 1, carriedCards: issued.cards } }, storage);
+  saveLoggedRun({ ...blank, run, actions: [action], profile: { id: firstId, wins: 0, cardRules: 1, carriedCards: issued } }, storage);
   assert.deepEqual(restoreLoggedRun(day, storage).run.deck, run.deck);
 });
 
@@ -163,7 +166,7 @@ test('an admin shop purchase stays in the same test wallet and can be brought in
   const reloaded = readShopWallet(JSON.stringify(original.next), true);
   assert.equal(availableCarryCards(reloaded.carry).find(card => card.id === id)?.cardId, offer.cardId);
   assert.equal(shopGoldBalance(1000, reloaded), 1000 - offer.price);
-  assert.deepEqual(takeCarryCards(reloaded, [id], firstId)?.cards, [offer.cardId]);
+  assert.deepEqual(selectCarryCards(reloaded, [id]), [offer.cardId]);
   assert.equal(quoteShopPurchase(1000, reloaded, offer, stock, '', true).status, 'owned');
   const legacy = quoteShopPurchase(1000, readShopWallet(), offer, stock, '', false);
   if (legacy.status !== 'buy') throw new Error('Expected legacy receipt');

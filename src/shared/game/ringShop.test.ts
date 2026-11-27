@@ -2,7 +2,7 @@ import test from 'node:test';
 import { availableCarryCards, isTestCarryCardId, seededAdminCarryCards } from './carryCards.ts';
 import { ALL_CARD_IDS, getCard, isCardInPlay } from './cards.ts';
 import assert from 'node:assert/strict';
-import { ADMIN_SHOP_GOLD, MYSTERY_BOX_PRICE, offerTestShopFruit, testShopFruit, testShopStockKey, assignPandoraEffect, claimPandoraBounty, openedShopBoxes, shopGoldBalance, TEMP_RING_IDS, goldAfterPurchases, quotePurchase, quoteShopPurchase, readPurchases, readShopWallet, shopCardRarity, shopOffers, shopRingIds, takeCarryCards } from './ringShop.ts';
+import { ADMIN_SHOP_GOLD, MYSTERY_BOX_PRICE, offerTestShopFruit, testShopFruit, testShopStockKey, assignPandoraEffect, claimPandoraBounty, openedShopBoxes, shopGoldBalance, TEMP_RING_IDS, goldAfterPurchases, quotePurchase, quoteShopPurchase, readPurchases, readShopWallet, shopCardRarity, shopOffers, shopRingIds, selectCarryCards } from './ringShop.ts';
 import { createRun, replayRun, runReducer } from './run.ts';
 import { characterBonuses, trainingRingProgress } from './character.ts';
 import { drawPandoraEvent, pandoraGoldBreakdown, readPandoraEvent } from './pandora.ts';
@@ -201,7 +201,7 @@ void test('Metatron can offer every playable card and Imbues make up most card o
   assert.ok(imbues / count > .60 && imbues / count < .70, String(imbues / count));
 });
 
-void test('Pandora rolls cards about 25% of the time and stores them as one-use inventory', () => {
+void test('Pandora rolls cards about 25% of the time and stores them as reusable inventory', () => {
   const box = shopOffers(day, true)[4]!;
   let cardRolls = 0;
   for (let i = 0; i < 2000; i++) {
@@ -216,10 +216,8 @@ void test('Pandora rolls cards about 25% of the time and stores them as one-use 
     assert.equal(receipt.source, 'pandora');
     assert.equal(shopGoldBalance(200, wallet), 100);
     assert.equal(quoteShopPurchase(200, wallet, box, day, 'retry').status, 'owned');
-    const runId = 'b40315e3-92c3-4612-8ba1-fe5dff420764';
-    const spent = takeCarryCards(wallet, [receipt.id], runId);
-    assert.deepEqual(spent?.cards, [receipt.cardId]);
-    assert.deepEqual(availableCarryCards(spent?.wallet.carry), []);
+    assert.deepEqual(selectCarryCards(wallet, [receipt.id]), [receipt.cardId]);
+    assert.deepEqual(availableCarryCards(wallet.carry), [receipt]);
     if (cardRolls !== 1) continue;
     const alreadyOwn = { ...readShopWallet(), carry: { ['shop:' + day]: {
       id: 'shop:' + day, source: 'shop' as const, cardId: receipt.cardId,
