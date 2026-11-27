@@ -2448,8 +2448,7 @@ textarea,
 
 /* -------------------------------------------------------------------
    HEX AURA: the Hex sigil turns over any cursed unit (HexAura.tsx).
-   Waiting is faint, primed is bright, and doubled is brightest, fast
-   and throbbing. Transform and opacity only; reduced motion holds it still.
+   Waiting is faint, primed is bright. Reduced motion holds the ring still.
    ------------------------------------------------------------------- */
 .hex-aura {
   transition: opacity 300ms ease-out;
@@ -2467,33 +2466,15 @@ textarea,
 .hex-aura[data-state='primed'] {
   opacity: 0.6;
 }
-.hex-aura[data-state='doubled'] {
-  opacity: 0.9;
-  animation: hex-aura-throb 900ms ease-in-out infinite;
-}
 .hex-aura-spin {
   animation: hex-aura-spin 9s linear infinite;
 }
 .hex-aura[data-state='primed'] .hex-aura-spin {
   animation-duration: 6s;
 }
-.hex-aura[data-state='doubled'] .hex-aura-spin {
-  animation-duration: 3s;
-}
 @keyframes hex-aura-spin {
   to {
     transform: rotate(360deg);
-  }
-}
-@keyframes hex-aura-throb {
-  0%,
-  100% {
-    opacity: 0.6;
-    transform: scale(0.95);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.08);
   }
 }
 

@@ -1,29 +1,27 @@
 // ===================================================================
 // HEX AURA
 // The Hex sigil and stack count stay visible while a unit is cursed.
-// The ring is faint when it won't burst at turn start, and brighter when primed:
-//   primed   odd Hex, burns before its turn   bright
-//   doubled  ends in 3, burns double   brightest, fast, throbbing
+// The ring is faint unless the next player action will trigger a burst.
 // PERFORMANCE: one element, transform and opacity only (index.css
 // "HEX AURA"); reduced motion holds a still sigil.
 // ===================================================================
 
 import {
+  hexAfterCountdown,
   hexBurnAmount,
-  isEmpoweredHex,
 } from '../../../../shared/game/combatant';
 import type { Combatant } from '../../../../shared/game/types';
 import { HexSigil } from './HexSigil';
 
 // --- TYPES ---
-type HexAuraState = 'waiting' | 'primed' | 'doubled';
+type HexAuraState = 'waiting' | 'primed';
 
 // --- HELPERS ---
 /** How bright the ring is, or null when the unit has no Hex. */
 const auraStateOf = (hex: number, source?: Combatant): HexAuraState | null => {
   if (hex <= 0) return null;
-  if (hexBurnAmount(hex, source) <= 0) return 'waiting';
-  return isEmpoweredHex(hex, source) ? 'doubled' : 'primed';
+  const next = hexAfterCountdown(hex);
+  return hexBurnAmount(next, source) > 0 ? 'primed' : 'waiting';
 };
 
 // --- COMPONENT ---

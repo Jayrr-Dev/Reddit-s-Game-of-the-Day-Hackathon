@@ -267,14 +267,10 @@ export const MALAISE_TURNS = 1;
  * behind the target (1 = full damage; lower it for a falloff).
  */
 export const PIERCE_DAMAGE_FACTOR = 1;
-/** Active Hex grows by this much after each action. */
-export const HEX_GROWTH = 1;
+/** Active Hex counts down by this much after each player action. */
+export const HEX_ACTION_COST = 1;
 /** How many stacks an active Hex spends when it burns. */
 export const HEX_BURN_STACK_COST = 1;
-/** An odd Hex whose last digit is this (3, 13, 23...) burns harder. */
-export const HEX_EMPOWERED_DIGIT = 3;
-/** How much a Hex ending in 3 burns for (Hex 3 burns 6). */
-export const HEX_EMPOWERED_MULTIPLIER = 2;
 
 // --- MAGIC ELEMENTS ---
 /** A status an element lays on every hit, and how much. */

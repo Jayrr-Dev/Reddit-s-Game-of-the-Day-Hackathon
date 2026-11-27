@@ -274,8 +274,8 @@ export const move = (state: CombatState, moveId: MovementId): CombatState => {
     ...shiftFormation({ ...state, player: spendRush(state.player) }, moveId),
   };
   const moved = skillGrant(grant(paid, def.grants), moveId);
-  const grown = hexAfterPlayerAction(state, moved);
-  return recordEffects(state, grown !== moved ? removeFallen(grown) : moved);
+  const ticked = hexAfterPlayerAction(state, moved);
+  return recordEffects(state, ticked !== moved ? removeFallen(ticked) : moved);
 };
 
 /** Rampage and Momentum cards grant the same non-stacking bonus as Charge. */

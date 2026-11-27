@@ -89,7 +89,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   hex: {
     label: 'Hex',
     description:
-      'Gains **1** after each player action. Reaching **odd** Hex deals its value without spending stacks. At turn start, odd Hex deals damage and spends **1**. Ending in **3** deals double.',
+      'Loses **1** after each player action. If the result is **odd**, deal that much damage. No Hex burst on enemy turns.',
   },
   burn: {
     label: 'Burn',

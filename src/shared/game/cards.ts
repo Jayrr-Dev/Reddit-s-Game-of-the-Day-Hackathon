@@ -222,8 +222,7 @@ export const CARDS = {
     [energy(2), draw(1)],
     EXHAUSTS
   ),
-  // Curses never strike: they lay Hex (an odd Hex burns before the
-  // hero's next turn; see hexBurn), so their damage arrives a turn late.
+  // Curses lay Hex. Later player actions count it down and burst on odd values.
   mourningCurse: card('Mourning Curse', 'curse', 1, 'basic', [hex(3)]),
   chainsOfGrief: card('Chains of Grief', 'curse', 1, 'basic', [
     pull(1),

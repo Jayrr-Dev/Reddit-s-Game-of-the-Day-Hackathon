@@ -7,12 +7,11 @@
 
 import {
   afterActionLeft,
-  hexAfterBurn,
+  hexAfterCountdown,
   hexBurnAmount,
 } from '../game/combatant.ts';
 import {
   BLEED_BITE_FACTOR,
-  HEX_GROWTH,
   SHOCK_BURST_FACTOR,
   TIERED_CUT_BY_TIER,
   WEAKEN_DAMAGE_FACTOR,
@@ -30,19 +29,15 @@ const delayed = (config: CostCurveConfig, turns: number): number =>
 
 // --- DAMAGE OVER TIME ---
 /**
- * Hex burns at odd turn openings and when action growth reaches an odd value.
- * Assume one player action per round with a per-turn delay discount and a
- * cut for always landing a turn late.
+ * Hex counts down only on player actions. Assume one action per round,
+ * with the usual delay discount and conditional damage adjustment.
  */
 export const hexValue = (config: CostCurveConfig, stacks: number): number => {
   let total = 0;
   let hex = stacks;
   for (let turn = 0; hex > 0 && turn < MAX_SIMULATED_TURNS; turn += 1) {
-    const openingDamage = hexBurnAmount(hex);
-    hex = hexAfterBurn(hex);
-    if (hex > 0) hex += HEX_GROWTH;
-    const actionDamage = hexBurnAmount(hex);
-    total += (openingDamage + actionDamage) * delayed(config, turn);
+    hex = hexAfterCountdown(hex);
+    total += hexBurnAmount(hex) * delayed(config, turn);
   }
   return total * config.battle.hexLandsLate;
 };

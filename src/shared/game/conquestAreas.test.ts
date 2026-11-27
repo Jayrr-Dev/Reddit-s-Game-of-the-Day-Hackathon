@@ -90,8 +90,8 @@ void test('an End Turn wave clear opens a fresh hand and refills energy on reinf
   assert.equal(initial.phase.kind, 'combat');
   const combat = initial.phase.combat;
   const last = createHeroUnit('squire', combat.heroes[0]!.uid, 1);
-  for (const status of ['hex', 'poison'] as const) {
-    const enemy = { ...last, row: 'front' as const, col: 1, hp: 1, statuses: { ...last.statuses, [status]: 3 } };
+  for (const status of ['burn', 'poison'] as const) {
+    const enemy = { ...last, row: status === 'burn' ? 'back' as const : 'front' as const, col: 1, hp: 1, statuses: { ...last.statuses, [status]: 3 } };
     const ready = { ...initial, phase: { ...initial.phase, combat: { ...combat, waveArrival: false, heroes: [enemy], energy: 1 } } };
     const pending = runReducer(ready, { type: 'endTurn' });
     assert.equal(pending.phase.kind, 'combat');

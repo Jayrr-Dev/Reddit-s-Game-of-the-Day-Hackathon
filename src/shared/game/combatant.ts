@@ -10,9 +10,7 @@ import {
   WEAKEN_DAMAGE_FACTOR,
   FROST_DAMAGE_PER_STACK,
   HEX_BURN_STACK_COST,
-  HEX_EMPOWERED_DIGIT,
-  HEX_EMPOWERED_MULTIPLIER,
-  HEX_GROWTH,
+  HEX_ACTION_COST,
   BANE_AFFLICTIONS,
   MOMENTUM_DAMAGE_FACTOR,
   RAMPAGE_MOMENTUM_MULTIPLIER,
@@ -826,37 +824,18 @@ export const expireGuard = <T extends Combatant>(target: T): T => {
 /** Who laid a Hex: their skill tree can widen the empowered digits. */
 type HexSource = { skillPicks?: readonly SkillPick[] };
 
-/**
- * Whether this Hex is the empowered kind: last digit 3, or (HEX 6,
- * skill tree, on the hexer) last digit 6 too.
- */
-export const isEmpoweredHex = (hex: number, source?: HexSource): boolean =>
-  hex > 0 &&
-  (hex % 10 === HEX_EMPOWERED_DIGIT ||
-    (hex % 10 === 6 && hasHexSixOf(source?.skillPicks)));
-
-/** Damage multiplier for the current Hex, or zero when it isn't due to burn. */
-export const hexBurnMultiplier = (hex: number, source?: HexSource): number => {
-  if (hex <= 0) return 0;
-  if (isEmpoweredHex(hex, source)) return HEX_EMPOWERED_MULTIPLIER;
-  return hex % 2 === 0 ? 0 : 1;
-};
-
-/** Damage the current Hex deals at the start of its bearer's turn. */
+/** Hex deals its face value on odd stacks; Sixfold Curse also enables endings in 6. */
 export const hexBurnAmount = (hex: number, source?: HexSource): number =>
-  hex * hexBurnMultiplier(hex, source);
+  hex > 0 && (hex % 2 !== 0 || (hex % 10 === 6 && hasHexSixOf(source?.skillPicks))) ? hex : 0;
 
 /** Spend one stack only when the current Hex triggers. */
 export const hexAfterBurn = (hex: number, source?: HexSource): number =>
-  Math.max(0, hex - (hexBurnMultiplier(hex, source) ? HEX_BURN_STACK_COST : 0));
+  Math.max(0, hex - (hexBurnAmount(hex, source) ? HEX_BURN_STACK_COST : 0));
 
-/** After an action, grow active Hex without creating new Hex. */
-const growHex = <T extends Combatant>(target: T): T =>
-  target.statuses.hex > 0
-    ? addStatus(target, 'hex', HEX_GROWTH)
-    : target;
+/** Remaining Hex after a player action. */
+export const hexAfterCountdown = (hex: number): number => Math.max(0, hex - HEX_ACTION_COST);
 
-/** Hex burns right before its bearer's turn, preserving any remaining stacks. */
+/** Hex burns at the player's turn opening, spending one stack. */
 export const hexBurn = <T extends Combatant>(
   target: T,
   source?: Combatant
@@ -874,16 +853,16 @@ function dealHexDamage<T extends Combatant>(target: T, amount: number, source?: 
   return { ...loseHp(target, loss), hexDamageTaken: (target.hexDamageTaken ?? 0) + loss };
 }
 
-/** Grow Hex after an action; odd or empowered values burst without spending a stack. */
+/** Count down once and burst at the resulting value without spending another stack. */
 export const hexAfterAction = <T extends Combatant>(target: T, source?: Combatant): T => {
-  if (target.hp <= 0) return target;
-  const grown = growHex(target);
-  const hex = grown.statuses.hex;
+  if (target.hp <= 0 || target.statuses.hex <= 0) return target;
+  const hex = hexAfterCountdown(target.statuses.hex);
+  const ticked = { ...target, statuses: { ...target.statuses, hex } };
   const damage = hexBurnAmount(hex, source);
-  return damage > 0 ? dealHexDamage(grown, damage, source) : grown;
+  return damage > 0 ? dealHexDamage(ticked, damage, source) : ticked;
 };
 
-/** Player actions grow Hex on the player and enemies that were already cursed. */
+/** Only player actions count down Hex on enemies that were already cursed. */
 export function hexAfterPlayerAction(before: CombatState, after: CombatState): CombatState {
   const primed = new Set(before.heroes.filter(unit => unit.statuses.hex > 0).map(unit => unit.uid));
   const heroes = primed.size ? after.heroes.map(unit =>

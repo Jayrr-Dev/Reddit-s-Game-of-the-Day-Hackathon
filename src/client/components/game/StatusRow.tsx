@@ -29,7 +29,7 @@ import {
   incomingAfflictionDamage,
   bleedBiteOf,
   hexAfterBurn,
-  hexBurnMultiplier,
+  hexAfterCountdown,
   hexBurnAmount,
   tierCut,
 } from '../../../shared/game/combatant';
@@ -166,24 +166,16 @@ const OUT_OF_RANGE_CHIP: StatusChip = {
   description: OUT_OF_RANGE_INFO.description,
 };
 
-/**
- * Hex fires only on odd counts, so its chip says which turn this is:
- * odd, it is PRIMED (a solid purple tile: it burns before the next
- * turn); even, it is a plain dark tile and the tooltip says it waits.
- * Growth into an odd or empowered number also bursts after an action.
- */
-const hexChipOf = (hex: number, target: Combatant, source?: Combatant): Partial<StatusChip> => {
-  const burn = incomingAfflictionDamage(target, hexBurnAmount(hex, source), source);
-  const isPrimed = burn > 0;
-  const multiplier = hexBurnMultiplier(hex, source);
-  if (!isPrimed)
-    return {
-      description: `No damage at turn start. Gains 1 after each player action. Reaching an odd value bursts without spending stacks.`,
-    };
+/** Preview the coming countdown burst, plus the player's turn-start burn when applicable. */
+const hexChipOf = (hex: number, target: Combatant, source?: Combatant, isPlayer = false): Partial<StatusChip> => {
+  const next = hexAfterCountdown(hex);
+  const burst = incomingAfflictionDamage(target, hexBurnAmount(next, source), source);
+  const opening = isPlayer ? incomingAfflictionDamage(target, hexBurnAmount(hex)) : 0;
   return {
-    fill: toneVarOf(STATUS_LOOK.hex),
-    text: multiplier > 1 ? `${hex}\u00d7${multiplier}` : String(hex),
-    description: `Deals ${burn} at turn start, then drops to ${hexAfterBurn(hex, source)}. Gains 1 after each player action; reaching an odd value bursts without spending stacks.`,
+    fill: burst || opening ? toneVarOf(STATUS_LOOK.hex) : undefined,
+    text: String(hex),
+    description: `Next action: ${hex} to ${next} Hex${burst ? `, dealing ${burst} damage` : ''}.` +
+      (opening ? ` At your turn start: ${opening} damage, then ${hexAfterBurn(hex)} Hex.` : ''),
   };
 };
 
@@ -282,7 +274,7 @@ const statusChipsOf = (
           : id === 'cloak'
           ? `Untargetable for ${total} more enemy ${total === 1 ? 'turn' : 'turns'} or until attacking. Area effects and existing afflictions still apply.`
           : STATUS_INFO[id].description + (!handModifier && owner === 'player' && once === total ? ' Expires after your next card.' : ''),
-      ...(id === 'hex' ? hexChipOf(total, combatant, source) : {}),
+      ...(id === 'hex' ? hexChipOf(total, combatant, source, owner === 'player') : {}),
       ...(id === 'shock' ? shockChipOf(combatant, source) : {}),
       ...(id === 'poison' ? {description: `Deals ${incomingAfflictionDamage(combatant, total, source)} damage before each action, then loses 1 stack.`} : {}),
       ...(id === 'burn' ? {description: `Deals ${incomingAfflictionDamage(combatant, total, source)} damage after each action, then halves (rounded down).`} : {}),

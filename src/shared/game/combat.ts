@@ -9,8 +9,8 @@
 //   Villain turn: play cards with energy, then End Turn.
 //   End Turn: discard hand -> villain Burn, upkeep (poison) -> heroes clear
 //             guard
-//             -> each hero, fastest first (see heroTurnOrder): its Hex
-//                burns (see hexBurn), it acts (Burn and Frost run after
+//             -> each hero, fastest first (see heroTurnOrder):
+//                it acts (Burn and Frost run after
 //                each action), then takes its own upkeep
 //             -> new villain turn (clear guard, the villain's Hex
 //                burns, refill energy, draw).
@@ -1564,12 +1564,12 @@ const cardBeats = (
   // BLEED: combine each target's landed hits into one final damage beat.
   const counted = biteBleedOnAttack(paid, current, bleeders);
   if (counted !== current) states.push(counted);
-  const grown = hexAfterPlayerAction(paid, counted);
-  if (grown !== counted) {
+  const ticked = hexAfterPlayerAction(paid, counted);
+  if (ticked !== counted) {
     // Animate a real burst separately, but don't pause for just a stack change.
-    const burst = grown.player.hp < counted.player.hp || grown.heroes.some((unit, i) => unit.hp < counted.heroes[i]!.hp);
-    if (burst || !states.length) states.push(grown);
-    else states[states.length - 1] = grown;
+    const burst = ticked.player.hp < counted.player.hp || ticked.heroes.some((unit, i) => unit.hp < counted.heroes[i]!.hp);
+    if (burst || !states.length) states.push(ticked);
+    else states[states.length - 1] = ticked;
   }
   return states;
 };
@@ -2413,19 +2413,6 @@ const plannedAttackType = (
 };
 
 /**
- * A hero's Hex burning right before it acts, as a beat of its own, or
- * null when it carries no Hex.
- */
-const hexBurnStep = (state: CombatState, uid: number): TurnStep | null => {
-  const unit = state.heroes.find((hero) => hero.uid === uid);
-  if (!unit || unit.statuses.hex <= 0) return null;
-  const ticked = updateHeroes(state, [uid], hero => hexBurn(hero, state.player));
-  return {
-    actorUid: null, attackType: null, move: null, state: removeFallen(ticked),
-  };
-};
-
-/**
  * A hero's Poison ticking right before one of its actions, as a beat
  * of its own, or null when it carries no Poison.
  */
@@ -2501,13 +2488,6 @@ const resolveTurnSteps = (state: CombatState, forecast = false): TurnStep[] => {
   //    or a fallen villain end it early)
   let current = discarded;
   for (const { uid, heroId } of heroTurnOrder(discarded.heroes)) {
-    // ITS HEX BURNS FIRST, AS ITS OWN BEAT (it may fall to it)
-    const burned = hexBurnStep(current, uid);
-    if (burned) {
-      steps.push(burned);
-      current = burned.state;
-      if (combatOutcome(current) !== 'ongoing') return steps;
-    }
     const actions = actionsOf({ heroId });
     for (let action = 1; action <= actions; action += 1) {
       // ITS POISON TICKS BEFORE EACH ACTION, AS ITS OWN BEAT
