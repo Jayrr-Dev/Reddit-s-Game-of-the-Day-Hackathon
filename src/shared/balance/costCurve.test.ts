@@ -17,15 +17,9 @@ void test('The target follows the curve: slot + energy x cost, times the rarity 
 void test('Status values replay the game rules', () => {
   // Burn 3 deals 3, halves to 1, deals 1, then runs out.
   assert.equal(burnValue(3), 4);
-  // Odd Hex bursts immediately and can burst again at an opening.
-  const delay = CONFIG.battle.delayKeptPerTurn;
-  const late = CONFIG.battle.hexLandsLate;
-  const expected = (initial: number) => initial + Array.from({ length: 10 }, (_, round) => {
-    const odd = initial + round + (round % 2);
-    return odd * delay ** (round + 1);
-  }).reduce((a, b) => a + b, 0);
-  for (const stacks of [1, 3, 5])
-    assert.ok(Math.abs(hexValue(CONFIG, stacks) - expected(stacks) * late) < 1e-9);
+  // Hex 3, 3 actions a turn, 3 turns, no discounts: 3+5 this turn, 5+7 next, 9+11 the last = 40.
+  const plain = { ...CONFIG, battle: { ...CONFIG.battle, actionsPerTurn: 3, hexTurnsLeft: 3, delayKeptPerTurn: 1, hexLandsLate: 1 } };
+  assert.equal(hexValue(plain, 3), 40);
 });
 
 void test('Every effect on every card in play gets a price', () => {

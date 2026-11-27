@@ -29,17 +29,29 @@ const delayed = (config: CostCurveConfig, turns: number): number =>
 
 // --- DAMAGE OVER TIME ---
 /**
- * Hex bursts when applied, after actions, and at turn start. Assume one
- * later action just after each opening, with the usual delay discount.
+ * Hex on an enemy never runs out: it grows by 1 after each of your
+ * actions and bursts for its value whenever it is odd (when applied,
+ * after an action, and at turn start). So its worth depends on how
+ * long the target lives. Replays that for `hexTurnsLeft` turns of
+ * `actionsPerTurn` actions: the rest of this turn, then whole turns.
  */
 export const hexValue = (config: CostCurveConfig, stacks: number): number => {
-  let total = hexBurnAmount(stacks);
+  const { actionsPerTurn, hexTurnsLeft } = config.battle;
   let hex = stacks;
-  for (let turn = 0; hex > 0 && turn < MAX_SIMULATED_TURNS; turn += 1) {
-    const weight = delayed(config, turn + 1);
-    total += hexBurnAmount(hex) * weight; // Turn opening.
+  // This turn: the burst on landing, then the actions left after the curse.
+  let total = hexBurnAmount(hex);
+  for (let action = 1; action < actionsPerTurn; action += 1) {
     hex = hexAfterGrowth(hex);
-    total += hexBurnAmount(hex) * weight; // The next action.
+    total += hexBurnAmount(hex);
+  }
+  // Later turns: a burst at turn start, then one check after each action.
+  for (let turn = 1; turn < hexTurnsLeft; turn += 1) {
+    let turnDamage = hexBurnAmount(hex);
+    for (let action = 0; action < actionsPerTurn; action += 1) {
+      hex = hexAfterGrowth(hex);
+      turnDamage += hexBurnAmount(hex);
+    }
+    total += turnDamage * delayed(config, turn);
   }
   return total * config.battle.hexLandsLate;
 };

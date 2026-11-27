@@ -69,6 +69,10 @@ export type CostCurveConfig = {
     shockOnTarget: number;
     /** Hex already on a target when Reap is played. */
     hexOnTarget: number;
+    /** Your actions per turn (cards and moves): each one grows enemy Hex. */
+    actionsPerTurn: number;
+    /** Turns a cursed unit lives on (enemy Hex never runs out, so this caps its value). */
+    hexTurnsLeft: number;
   };
   /** Prices for moving (see movement.ts: buttons start at zero, then use a shared streak). */
   movement: {
@@ -228,6 +232,8 @@ export const COST_CURVE_CONFIG: CostCurveConfig = {
     physicalHitsLeft: 8,
     shockOnTarget: 4,
     hexOnTarget: 4,
+    actionsPerTurn: 3,
+    hexTurnsLeft: 3,
   },
   movement: {
     avgButtonEnergy: 1.5,
