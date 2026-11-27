@@ -2,14 +2,14 @@
   transform-box: view-box;
 }
 .sin-pride-still { display: none; }
-.sin-pride-wing.left { transform-origin: 155px 153px; --wing-sense: 1; }
-.sin-pride-wing.right { transform-origin: 242px 153px; --wing-sense: -1; }
+.sin-pride-wing.left { transform-origin: 155px 153px; --wing-sense: 1; --wing-lead: -.12s; }
+.sin-pride-wing.right { transform-origin: 242px 153px; --wing-sense: -1; --wing-lead: -.035s; }
 .sin-sloth-body { transform-origin: 480px 626px; }
 .sin-envy-body, .sin-envy-splash { transform-origin: 425px 531px; }
 .sin-sloth-impact { transform-origin: 480px 623px; }
 .sin-envy-splash, .sin-sloth-impact { opacity: 0; pointer-events: none; }
 
-.sin-boss-live[data-sin-pose="idle"] .sin-pride-wing { animation: sin-wing-idle 4.8s ease-in-out infinite; }
+.sin-boss-live[data-sin-pose="idle"] .sin-pride-wing { animation: sin-wing-idle 2.7s var(--wing-lead) infinite; }
 .sin-boss-live[data-sin-pose="idle"] .sin-sloth-body { animation: sin-sloth-idle 5.2s ease-in-out infinite; }
 .sin-boss-live[data-sin-pose="idle"] .sin-envy-body { animation: sin-envy-idle 2.8s ease-in-out infinite; }
 .sin-boss-live[data-sin-pose="guard"] .sin-pride-wing { animation: sin-wing-guard .62s ease-in-out both; }
@@ -25,7 +25,22 @@
   animation: sin-impact .56s ease-out both;
 }
 
-@keyframes sin-wing-idle { 50% { rotate: calc(var(--wing-sense) * -2deg); } }
+/* Lift slowly, drive down quickly, then reopen the membrane. The slight
+   phase offset keeps each wing from mirroring the other mechanically. */
+@keyframes sin-wing-idle {
+  0%, 100% { rotate: 0deg; scale: 1; }
+  28% {
+    rotate: calc(var(--wing-sense) * 14deg);
+    scale: .95 1.06;
+    animation-timing-function: cubic-bezier(.42, 0, .75, .7);
+  }
+  46% {
+    rotate: calc(var(--wing-sense) * -13deg);
+    scale: .79 .89;
+    animation-timing-function: cubic-bezier(.2, .58, .38, 1);
+  }
+  72% { rotate: calc(var(--wing-sense) * -3deg); scale: 1.025 1; }
+}
 @keyframes sin-wing-guard { 50% { rotate: calc(var(--wing-sense) * 4deg); } }
 @keyframes sin-wing-charge { to { rotate: calc(var(--wing-sense) * 5deg); } }
 @keyframes sin-wing-strike {
