@@ -212,7 +212,7 @@ export const IntroView = ({
   if (sheet === 'tutorial') return <FirstFight accountId={data.accountId} onExit={closeSheet} onRules={() => setSheet('rules')} />;
 
   return (
-    <main className="home-menu relative flex h-full flex-col overflow-hidden bg-surface" data-admin={isAdmin || undefined}>
+    <main className="home-menu relative flex h-full flex-col overflow-hidden bg-surface">
       <div className="relative mt-2 flex min-h-0 flex-1">
         <Hero data={data} />
       </div>
@@ -246,12 +246,12 @@ export const IntroView = ({
           </svg>
         </button>
         <SettingsDialog>{settings.controls}</SettingsDialog>
+        {isAdmin && <button type="button" className="home-utility-icon" aria-label="Developer tools" title="Developer tools" onClick={() => setSheet('dev')}>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M20.5 4.8 17 8.3l-1.5-1.5L19 3.3a5.2 5.2 0 0 0-6.7 6.7l-8.2 8.2a1.7 1.7 0 0 0 2.4 2.4l8.2-8.2a5.2 5.2 0 0 0 5.8-7.6Z"/>
+          </svg>
+        </button>}
       </aside>
-      {isAdmin && <button type="button" className="home-utility-icon absolute bottom-2 left-2 z-10" aria-label="Developer tools" title="Developer tools" onClick={() => setSheet('dev')}>
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M20.5 4.8 17 8.3l-1.5-1.5L19 3.3a5.2 5.2 0 0 0-6.7 6.7l-8.2 8.2a1.7 1.7 0 0 0 2.4 2.4l8.2-8.2a5.2 5.2 0 0 0 5.8-7.6Z"/>
-        </svg>
-      </button>}
       {sheet === 'none' && <aside className="home-player-badge" aria-label="Player summary">
         <strong>{data.username ? 'u/' + data.username : 'Local player'}</strong>
         <span>Level {level}</span>
