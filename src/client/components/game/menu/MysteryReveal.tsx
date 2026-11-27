@@ -1,7 +1,9 @@
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react';
 import { PANDORA_RUN_COPY } from '../../../../shared/game/pandora';
 import { GoldCoins } from '../profileParts';
-import { PANDORA_BOX_NAME } from '../../../../shared/game/ringShop';
+import { getCard } from '../../../../shared/game/cards';
+import { CardView } from '../CardView';
+import { PANDORA_BOX_NAME, shopCardRarity } from '../../../../shared/game/ringShop';
 import type { ShopReward } from '../../../../shared/types/api';
 import { playSound } from '../../../lib/gameAudio';
 import { MagicCircle } from '../fx/MagicCircle';
@@ -98,7 +100,7 @@ export function MysteryReveal({ reward, onClose }: { reward: ShopReward; onClose
   const dialog = useRef<HTMLDialogElement>(null);
   const sounded = useRef(false);
   const continueButton = useRef<HTMLButtonElement>(null);
-  const rarity = reward.kind === 'jewelry' ? reward.rarity : reward.kind === 'gold' && reward.change > 0 ? reward.duplicateRarity ?? 'Legendary' : 'Rare';
+  const rarity = reward.kind === 'jewelry' ? reward.rarity : reward.kind === 'card' ? shopCardRarity(reward.cardId) : reward.kind === 'gold' && reward.change > 0 ? reward.duplicateRarity ?? 'Legendary' : 'Rare';
   const bad = reward.kind === 'gold' ? reward.change <= 0 : reward.kind === 'run' && reward.effect !== 'lasting-vigor';
   const [shown, setShown] = useState(false);
 
@@ -128,17 +130,21 @@ export function MysteryReveal({ reward, onClose }: { reward: ShopReward; onClose
   return <dialog ref={dialog} className="shop-mystery" aria-label={PANDORA_BOX_NAME + ' reward'} data-rarity={rarity} data-curse={bad || undefined} data-opening={!shown || undefined} style={{ '--opening-time': REVEAL_MS[rarity] + 'ms' } as CSSProperties}
     onCancel={event => { event.preventDefault(); if (shown) onClose(); }}>
     {shown && <TreasureRewardFrame />}
-    <p className="shop-mystery-label">{shown ? reward.kind === 'jewelry' ? 'You found' : 'The box has spoken' : PANDORA_BOX_NAME}</p>
+    <p className="shop-mystery-label">{shown ? reward.kind === 'jewelry' || reward.kind === 'card' ? 'You found' : 'The box has spoken' : PANDORA_BOX_NAME}</p>
     {shown
       ? <div className="shop-mystery-reward" role="status">
           {reward.kind === 'jewelry' ? <>
             <div className="shop-reward-sigil"><ShopJewelryArt offer={reward} /></div>
             <strong>{reward.name}</strong>
             <span>{reward.rarity} {reward.slot === 'amulet' ? 'Amulet' : 'Ring'}</span>
+          </> : reward.kind === 'card' ? <>
+            <div className="shop-reward-card" aria-hidden="true" inert><CardView cardId={reward.cardId} /></div>
+            <strong>{getCard(reward.cardId).name}</strong>
+            <span>{shopCardRarity(reward.cardId)} Card · Added to Inventory</span>
           </> : reward.kind === 'gold' ? <>
             <div className="shop-reward-sigil"><GoldCoins /></div>
             <strong>{reward.change > 0 ? '+' : ''}{reward.change} Gold</strong>
-            <span>{reward.duplicateRarity ? 'Already owned: ' + reward.duplicateRarity + ' jewelry exchanged for Gold.' : reward.change > 0 ? 'A purse left for the next hand.' : reward.change < 0 ? 'The box took more than its price.' : 'No Gold left for the box to take.'}</span>
+            <span>{reward.duplicateRarity ? 'Already owned: ' + reward.duplicateRarity + ' reward exchanged for Gold.' : reward.change > 0 ? 'A purse left for the next hand.' : reward.change < 0 ? 'The box took more than its price.' : 'No Gold left for the box to take.'}</span>
           </> : <>
             <div className="shop-reward-sigil"><MysteryChest /></div>
             <strong>{PANDORA_RUN_COPY[reward.effect].title}</strong>

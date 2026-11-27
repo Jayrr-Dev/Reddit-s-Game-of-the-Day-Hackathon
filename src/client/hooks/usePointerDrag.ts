@@ -21,16 +21,19 @@ const zoneAt = (attribute: string, x: number, y: number): string | null =>
 /** Tracks one drag and reports the zone it was dropped on. */
 export const usePointerDrag = <T>(
   zoneAttribute: string,
-  onDrop: (item: T, zone: string | null, point: { x: number; y: number }) => void
+  onDrop: (item: T, zone: string | null, point: { x: number; y: number }) => void,
+  onDragStart?: () => void
 ) => {
   const [drag, setDrag] = useState<PointerDrag<T> | null>(null);
   const press = useRef<Press<T> | null>(null);
   const dragged = useRef(false);
   const dropRef = useRef(onDrop);
+  const startRef = useRef(onDragStart);
   // LATEST DROP HANDLER: the window listeners below are added once.
   useEffect(() => {
     dropRef.current = onDrop;
-  }, [onDrop]);
+    startRef.current = onDragStart;
+  }, [onDrop, onDragStart]);
 
   // POINTER DOWN: remember the press; the drag starts once it moves.
   const startPress = useCallback(
@@ -49,6 +52,7 @@ export const usePointerDrag = <T>(
       if (!start) return;
       const distance = Math.hypot(event.clientX - start.x, event.clientY - start.y);
       if (!dragged.current && distance < DRAG_START_PX) return;
+      if (!dragged.current) startRef.current?.();
       dragged.current = true;
       const { clientX: x, clientY: y } = event;
       setDrag({ item: start.item, x, y, over: zoneAt(zoneAttribute, x, y) });

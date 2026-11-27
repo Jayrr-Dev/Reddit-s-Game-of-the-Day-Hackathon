@@ -81,7 +81,7 @@ export function StarterPicker({ accountId, starting, onBack, onConfirm, loadTest
     })}</div>}
     <footer className="starter-footer">
       <Button variant="menu" disabled={loading || error || starting} aria-haspopup="dialog" onClick={() => setShowBag(true)}>Bring a Card</Button>
-      {selectedCarry.length > 0 && <small>In bag: {selectedCarry.length}/{MAX_CARRY_CARDS} · Unranked run</small>}
+      {selectedCarry.length > 0 && <small>In bag: {selectedCarry.length}/{MAX_CARRY_CARDS}</small>}
       <div><Button variant="menu" disabled={starting} onClick={onBack}>Back</Button>
       <Button variant="menuPrimary" disabled={loading||error||starting} onClick={()=>onConfirm(build, selectedCarry.map(card => card.id))}>{starting?'Starting.':'Begin'}</Button></div>
     </footer>

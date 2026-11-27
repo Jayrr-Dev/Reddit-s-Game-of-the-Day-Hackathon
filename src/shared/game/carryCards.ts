@@ -5,7 +5,7 @@ export const SHOP_IMBUE_ID = 'imbue-card';
 export const IMBUE_PRICE = 85;
 export const MAX_CARRY_CARDS = 4;
 export const IMBUE_CARDS = ALL_CARD_IDS.filter(id => getCard(id).type === 'imbue' && isCardInPlay(id));
-export type CarryCard = { id: string; cardId: CardId; source: 'shop' | 'ferryman' | 'test'; spent?: string };
+export type CarryCard = { id: string; cardId: CardId; source: 'shop' | 'ferryman' | 'pandora' | 'test'; spent?: string };
 export type CarryCards = Partial<Record<string, CarryCard>>;
 
 const TEST_CARDS = ['keenEdge', 'emberRune', 'wardingBolt', 'ruin'] as const satisfies readonly CardId[];
@@ -17,7 +17,7 @@ export function seededAdminCarryCards(): CarryCards {
 }
 
 export function carrySourceLabel(source: CarryCard['source']): string {
-  return source === 'shop' ? 'Shop' : source === 'test' ? 'Admin test' : 'From Hell';
+  return source === 'shop' ? 'Shop' : source === 'test' ? 'Admin test' : source === 'pandora' ? 'Pandora' : 'From Hell';
 }
 
 export const isShopStockKey = (value: unknown): value is string => typeof value === 'string' &&
@@ -27,8 +27,16 @@ export const isShopStockKey = (value: unknown): value is string => typeof value 
 export const shopStockKey = (time: Date, bossRuns: number): string =>
   time.toISOString().slice(0, 13) + '.' + bossRuns;
 
-export const isCarryCardId = (value: unknown): value is string =>
-  typeof value === 'string' && (value.startsWith('shop:') ? isShopStockKey(value.slice(5)) : (/^hell:[a-f0-9-]{36}$/.test(value) || /^test:[0-3]$/.test(value)));
+const isPandoraCarryId = (id: string, prefix: 'pandora' | 'test-pandora') => {
+  const [kind, stock, box, ...extra] = id.split(':');
+  return kind === prefix && !extra.length && isShopStockKey(stock) && /^mystery-box-[1-5]$/.test(box ?? '');
+};
+
+export const isTestCarryCardId = (id: string): boolean => /^test:[0-3]$/.test(id) || isPandoraCarryId(id, 'test-pandora');
+
+export const isCarryCardId = (value: unknown): value is string => typeof value === 'string' &&
+  ((value.startsWith('shop:') && isShopStockKey(value.slice(5))) || /^hell:[a-f0-9-]{36}$/.test(value) ||
+    isTestCarryCardId(value) || isPandoraCarryId(value, 'pandora'));
 
 /** Validate the selected inventory receipts, not client-supplied catalog IDs. */
 export const isCarrySelection = (value: unknown): value is string[] => Array.isArray(value) &&
@@ -49,10 +57,11 @@ export function readCarryCards(value: unknown): CarryCards {
   const cards: CarryCards = {};
   for (const [id, row] of Object.entries(value)) {
     if (!isCarryCardId(id) || !row || typeof row !== 'object' || !isCardId(row.cardId) ||
-      (row.source !== 'shop' && row.source !== 'ferryman' && row.source !== 'test') ||
+      (row.source !== 'shop' && row.source !== 'ferryman' && row.source !== 'pandora' && row.source !== 'test') ||
       (row.source === 'shop' && !id.startsWith('shop:')) ||
       (row.source === 'ferryman' && !id.startsWith('hell:')) ||
-      (row.source === 'test' && (!id.startsWith('test:') || row.cardId !== TEST_CARDS[Number(id.slice(5))])) ||
+      (row.source === 'pandora' && !isPandoraCarryId(id, 'pandora')) ||
+      (row.source === 'test' && (!isTestCarryCardId(id) || (id.startsWith('test:') && row.cardId !== TEST_CARDS[Number(id.slice(5))]))) ||
       (row.spent !== undefined && (typeof row.spent !== 'string' || !/^[a-f0-9-]{36}$/.test(row.spent))))
       throw new Error('Invalid carry card receipt');
     cards[id] = { id, cardId: row.cardId, source: row.source, ...(row.spent && { spent: row.spent }) };

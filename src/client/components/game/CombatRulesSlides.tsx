@@ -47,7 +47,7 @@ const SLIDES: readonly Lesson[] = [
       ['Rules area: Effects and keywords', 'Read damage, Guard, status stacks, hit count, and limits here. Hover or tap a keyword for help.'],
       ['Bottom: Type ribbon', 'Melee, Range, Magic, Curse, Defend, Utility, or Movement tells you what the card does.'],
     ],
-    example: 'Healing Potion is a 0-cost Utility card. Use 1/1 means this copy has one play before it Exhausts.',
+    example: 'Healing Potion is a 0-cost Utility card. Use 1/1 means this copy has one play before it is Destroyed.',
     cards: ['healingPotion', 'arcaneBolt'],
   },
   {
@@ -77,7 +77,7 @@ const SLIDES: readonly Lesson[] = [
       ['Draw pile', 'Where your next cards come from. Tap the stack by End Turn to inspect it.'],
       ['Discard', 'Most played cards and leftover hand cards go here. When Draw runs out, Discard is shuffled back in.'],
       ['Hold', 'A card with Hold stays in hand when you end your turn.'],
-      ['Remove vs. Destroy', 'Remove lasts for the fight. Destroy uses a per-run counter; when the last use is spent, that copy leaves the run deck.'],
+      ['Remove vs. Destroy', 'Remove lasts for the fight. Use tracks plays per run. The last play Destroys that copy for the rest of the run.'],
       [KEYWORD_INFO.unique.label, `${KEYWORD_INFO.unique.description}. Card rewards skip a Unique card you already own, and the deck builder won't add a second copy.`],
     ],
     example: `Blood Pact goes to Remove; an ordinary ${getCard('backhand').name} can return after reshuffling.`,

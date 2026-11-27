@@ -3645,7 +3645,7 @@ textarea,
   padding: .46rem; border: 1px solid #907959; border-radius: .25rem; min-width: 0;
 }
 .carry-bag-slot { border-style: dashed; background: #9b7d3d14; }
-.carry-bag-slot[data-over] { border-color: #6d451c; background: #c5a05f57; }
+.carry-bag-slot[data-over], .carry-bag-inventory[data-over] { border-color: #6d451c; background: #c5a05f57; }
 .carry-bag-drop-hint {
   min-height: 7.45rem; display: grid; align-content: center; justify-items: center; gap: .3rem;
   color: #624a32; text-align: center; font-size: .7rem;
@@ -3654,29 +3654,24 @@ textarea,
 .carry-bag-dialog .carry-bag-cards {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr)); gap: .45rem .15rem;
   align-content: start; min-height: 7.45rem; max-height: 42dvh; overflow: auto;
-  list-style: none; margin: 0; padding: .42rem .27rem .25rem;
+  list-style: none; margin: 0; padding: .88rem .27rem .25rem;
 }
 .carry-bag-card { display: grid; grid-template-rows: auto 1fr; justify-items: center; align-items: start; gap: .18rem; }
 .carry-bag-card small { color: #634f38; font-size: .62rem; }
 .carry-bag-card-placeholder { visibility: hidden; height: 7rem; }
 .carry-bag-source { width: max-content; line-height: 0; }
-.carry-bag-card[data-dragged] .carry-bag-source { opacity: .24; }
-.carry-bag-source > button:focus-visible, .carry-bag-remove:focus-visible { outline: 2px solid #6d451c; outline-offset: 2px; }
+.carry-bag-layout li[data-dragged] .carry-bag-source { opacity: .24; }
+.carry-bag-source > button:focus-visible { outline: 2px solid #6d451c; outline-offset: 2px; }
 .carry-bag-source > button:disabled { cursor: not-allowed; opacity: .48; }
 .carry-bag-packed {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr)); gap: .45rem .15rem;
-  max-height: 42dvh; overflow: auto; list-style: none; margin: 0; padding: .42rem .27rem .25rem;
+  max-height: 42dvh; overflow: auto; list-style: none; margin: 0; padding: .88rem .27rem .25rem;
 }
 .carry-bag-packed > li { display: grid; justify-items: center; }
 .carry-bag-landing { width: max-content; line-height: 0; }
-.carry-bag-landing[data-landing] { visibility: hidden; }
+.carry-bag-source[data-landing] { visibility: hidden; }
 .carry-bag-drag-ghost > button, .carry-bag-landing > button { animation: none; }
-.carry-bag-remove {
-  display: block; margin: .38rem .25rem 0; padding: .1rem .18rem;
-  color: #644325; font-size: .68rem; text-decoration: underline; cursor: pointer;
-}
-.carry-bag-remove:hover { color: #281308; }
-.starter-picker .carry-bag-dialog footer { display: flex; margin-top: .7rem; justify-content: space-between; align-items: center; gap: .6rem; }
+.starter-picker .carry-bag-dialog footer { display: flex; margin-top: .7rem; justify-content: flex-end; align-items: center; gap: .6rem; }
 .starter-picker .carry-bag-dialog footer button { width: auto; min-width: 5.25rem; }
 .carry-bag-source > button { touch-action: none; user-select: none; }
 .carry-bag-source > button { cursor: grab; }

@@ -1,8 +1,8 @@
 import test from 'node:test';
-import { availableCarryCards, seededAdminCarryCards } from './carryCards.ts';
-import { getCard, isCardInPlay } from './cards.ts';
+import { availableCarryCards, isTestCarryCardId, seededAdminCarryCards } from './carryCards.ts';
+import { ALL_CARD_IDS, getCard, isCardInPlay } from './cards.ts';
 import assert from 'node:assert/strict';
-import { ADMIN_SHOP_GOLD, MYSTERY_BOX_PRICE, offerTestShopFruit, testShopFruit, testShopStockKey, assignPandoraEffect, claimPandoraBounty, openedShopBoxes, shopGoldBalance, TEMP_RING_IDS, goldAfterPurchases, quotePurchase, quoteShopPurchase, readPurchases, readShopWallet, shopOffers, shopRingIds } from './ringShop.ts';
+import { ADMIN_SHOP_GOLD, MYSTERY_BOX_PRICE, offerTestShopFruit, testShopFruit, testShopStockKey, assignPandoraEffect, claimPandoraBounty, openedShopBoxes, shopGoldBalance, TEMP_RING_IDS, goldAfterPurchases, quotePurchase, quoteShopPurchase, readPurchases, readShopWallet, shopCardRarity, shopOffers, shopRingIds, takeCarryCards } from './ringShop.ts';
 import { createRun, replayRun, runReducer } from './run.ts';
 import { characterBonuses, trainingRingProgress } from './character.ts';
 import { inventoryStacks } from './inventory.ts';
@@ -181,4 +181,57 @@ test('a fresh admin shop visit carries two Imbues and two regular cards without 
   assert.equal(cards.filter(card => getCard(card.cardId).type === 'imbue').length, 2);
   assert.ok(cards.every(card => card.source === 'test' && isCardInPlay(card.cardId)));
   assert.equal(shopGoldBalance(ADMIN_SHOP_GOLD, wallet), ADMIN_SHOP_GOLD);
+});
+
+
+void test('Metatron can offer every playable card and Imbues make up most card offers', () => {
+  const seen = new Set<string>();
+  let count = 0, imbues = 0;
+  for (let i = 0; i < 12000; i++) {
+    const stock = new Date(Date.UTC(2026, 10, 27, i)).toISOString().slice(0, 13) + '.0';
+    const offer = shopOffers(stock).find(candidate => candidate.slot === 'card');
+    if (!offer) continue;
+    count++;
+    seen.add(offer.cardId);
+    if (getCard(offer.cardId).type === 'imbue') imbues++;
+    assert.equal(offer.rarity, shopCardRarity(offer.cardId));
+  }
+  assert.deepEqual(seen, new Set(ALL_CARD_IDS.filter(isCardInPlay)));
+  assert.ok(imbues / count > .60 && imbues / count < .70, String(imbues / count));
+});
+
+void test('Pandora rolls cards about 25% of the time and stores them as one-use inventory', () => {
+  const box = shopOffers(day, true)[4]!;
+  let cardRolls = 0;
+  for (let i = 0; i < 2000; i++) {
+    const purchase = quoteShopPurchase(200, readShopWallet(), box, day, String(i));
+    if (purchase.status !== 'buy' || !('reward' in purchase) || purchase.reward?.kind !== 'card') continue;
+    cardRolls++;
+    const wallet = readShopWallet(JSON.stringify(purchase.next));
+    const [receipt] = availableCarryCards(wallet.carry);
+    assert.ok(receipt);
+    assert.equal(receipt.cardId, purchase.reward.cardId);
+    assert.ok(isCardInPlay(receipt.cardId));
+    assert.equal(receipt.source, 'pandora');
+    assert.equal(shopGoldBalance(200, wallet), 100);
+    assert.equal(quoteShopPurchase(200, wallet, box, day, 'retry').status, 'owned');
+    const runId = 'b40315e3-92c3-4612-8ba1-fe5dff420764';
+    const spent = takeCarryCards(wallet, [receipt.id], runId);
+    assert.deepEqual(spent?.cards, [receipt.cardId]);
+    assert.deepEqual(availableCarryCards(spent?.wallet.carry), []);
+    if (cardRolls !== 1) continue;
+    const alreadyOwn = { ...readShopWallet(), carry: { ['shop:' + day]: {
+      id: 'shop:' + day, source: 'shop' as const, cardId: receipt.cardId,
+    } } };
+    const dupe = quoteShopPurchase(1000, alreadyOwn, box, day, String(i));
+    assert.ok(dupe.status === 'buy' && 'reward' in dupe && dupe.reward?.kind === 'gold');
+    assert.equal(dupe.reward.duplicateRarity, shopCardRarity(receipt.cardId));
+    assert.equal(availableCarryCards(dupe.next.carry).length, 1);
+    const practice = quoteShopPurchase(200, readShopWallet(), box, day, String(i), true);
+    assert.ok(practice.status === 'buy');
+    const [testCard] = availableCarryCards(readShopWallet(JSON.stringify(practice.next)).carry);
+    assert.ok(testCard && isTestCarryCardId(testCard.id));
+    assert.equal(testCard.source, 'test');
+  }
+  assert.ok(cardRolls >= 450 && cardRolls <= 550, String(cardRolls));
 });

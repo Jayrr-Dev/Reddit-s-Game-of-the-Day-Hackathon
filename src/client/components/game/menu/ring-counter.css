@@ -128,8 +128,8 @@
   box-shadow: 0 0 1.1rem color-mix(in srgb, var(--reveal-ink) 36%, transparent);
   animation: shop-prize-rise 260ms ease-out both;
 }
-.shop-mystery-reward strong { font: 800 1.15rem/1.12 var(--font-display, Georgia, serif); }
-.shop-mystery-reward span { color: var(--reveal-ink); font-size: .73rem; }
+.shop-mystery-reward > strong { font: 800 1.15rem/1.12 var(--font-display, Georgia, serif); }
+.shop-mystery-reward > span { color: var(--reveal-ink); font-size: .73rem; }
 .shop-mystery-action {
   min-height: 1.9rem; padding: .18rem .65rem; margin-top: .2rem; border: 1px solid #b0874d;
   border-radius: .28rem; background: #392619; color: #ffe0a2; font-size: .73rem;

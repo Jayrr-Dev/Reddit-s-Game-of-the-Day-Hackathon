@@ -632,6 +632,8 @@ const inCategory = (
   infos: readonly StatusInfo[]
 ): GlossaryEntry[] => infos.map((info) => ({ ...info, category }));
 
+const CARD_USE_INFO: StatusInfo = { label: 'Use', description: 'Limited plays per run. After the last play, **Destroy** this copy for the rest of the run.' };
+
 export const GLOSSARY: Readonly<Record<string, GlossaryEntry>> =
   // Later entries win a shared label: the movement Charge replaces the
   // keyword Charge, as before.
@@ -651,6 +653,7 @@ export const GLOSSARY: Readonly<Record<string, GlossaryEntry>> =
       ),
       ...inCategory('keyword', [
         ...Object.values(KEYWORD_INFO),
+        CARD_USE_INFO,
         { label: 'Charge', description: `Move forward when the ${ROW_LABEL.front} is empty and gain **Momentum**` },
         { label: 'Back Step', description: 'Move back if there is room. Gain **Reflex**.' },
         { label: 'Energy', description: 'Gain this much energy immediately to spend on cards or movement.' },
@@ -680,7 +683,7 @@ const usesForCard = (cardId: CardId, attacker?: Pick<Combatant, 'skillPicks'>) =
 
 const useCountLabel = (cardId: CardId, usesSpent: number, attacker?: Combatant): string => {
   const uses = usesForCard(cardId, attacker) ?? EXHAUST_USES;
-  return `${KEYWORD_INFO.exhaust.label} ${Math.min(usesSpent + 1, uses)}/${uses}`;
+  return `${CARD_USE_INFO.label} ${Math.min(usesSpent + 1, uses)}/${uses}`;
 };
 
 /** Explains the live remaining plays on this copy, including skill bonuses. */
@@ -693,7 +696,7 @@ export const describeCardUse = (
   if (uses === null) return null;
   const left = Math.max(0, uses - usesSpent);
   return {
-    label: KEYWORD_INFO.exhaust.label,
+    label: CARD_USE_INFO.label,
     description: `**${left}** ${left === 1 ? 'play' : 'plays'} left this run\nAfter the last play, **Destroy** this copy for the rest of the run`,
   };
 };

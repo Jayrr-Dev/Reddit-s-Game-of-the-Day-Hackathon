@@ -166,6 +166,7 @@ export function installGameAudio(root: HTMLElement) {
   root.addEventListener('click', event => {
     const button = event.target instanceof Element ? event.target.closest('button, a[href], summary, [role="button"], [role="tab"], [role="menuitem"], [role="option"], input[type="checkbox"], input[type="radio"], select') : null;
     if (!button || !root.contains(button) || button.closest('[inert], :disabled, [aria-disabled="true"]')) return;
+    if (button.closest('.carry-bag-source')) return;
     if (button.hasAttribute('data-card-size')) {
       playSound('cardClick', 1, 0.48);
       return;

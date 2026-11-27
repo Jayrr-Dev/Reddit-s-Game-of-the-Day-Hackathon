@@ -1,4 +1,4 @@
-import { appendCarriedCards, availableCarryCards, seededAdminCarryCards, shopStockKey } from '../../shared/game/carryCards';
+import { appendCarriedCards, availableCarryCards, isTestCarryCardId, seededAdminCarryCards, shopStockKey } from '../../shared/game/carryCards';
 import type { ShopApple } from '../../shared/game/items';
 import type { CardId } from '../../shared/game/cards';
 import { randomUUID } from 'node:crypto';
@@ -120,7 +120,7 @@ export async function buyRing(id: string, day: string, offerDay: string, ringId:
       const wallet = readShopWallet(raw);
       const stock = practice ? testShopStockKey(currentStock, wallet) : currentStock;
       if (stock !== offerDay) return { status: 'stale', shop: await readCheckout() } as const;
-      const decision = quoteShopPurchase(earned, wallet, offer, stock, entropy);
+      const decision = quoteShopPurchase(earned, wallet, offer, stock, entropy, !!practice);
       if (decision.status === 'owned') return { status: 'owned', shop: response(stock, earned, wallet, admin, practice) } as const;
       if (decision.status === 'short') return { status: 'short', shop: response(stock, earned, wallet, admin, practice) } as const;
       // The receipt doubles as ownership and debit. No partial outcome can exist.
@@ -146,8 +146,8 @@ export async function buyRing(id: string, day: string, offerDay: string, ringId:
 
 /** Bind inventory debits, the queued effect, and the replay baseline atomically. */
 export async function bindRunItems(id: string, day: string, profile: RunProfile, testVisit: string | undefined, receipts: readonly string[], starter: readonly CardId[]) {
-  const testIds = receipts.filter(receipt => receipt.startsWith('test:'));
-  const realIds = receipts.filter(receipt => !receipt.startsWith('test:'));
+  const testIds = receipts.filter(isTestCarryCardId);
+  const realIds = receipts.filter(receipt => !isTestCarryCardId(receipt));
   if (testIds.length && !testVisit) return undefined;
   const testKey = testVisit && (testIds.length || !receipts.length) ? redisKeys.adminShopVisit(id, testVisit) : undefined;
   const realKey = redisKeys.ringPurchases(id);
@@ -167,7 +167,7 @@ export async function bindRunItems(id: string, day: string, profile: RunProfile,
       const test = takeCarryCards(testWallet, testIds, profile.id);
       const real = takeCarryCards(realWallet, realIds, profile.id);
       if (!test || !real) return undefined;
-      const carriedCards = receipts.map(receipt => (receipt.startsWith('test:') ? test.wallet : real.wallet).carry![receipt]!.cardId);
+      const carriedCards = receipts.map(receipt => (isTestCarryCardId(receipt) ? test.wallet : real.wallet).carry![receipt]!.cardId);
       if (appendCarriedCards(starter, carriedCards).length !== starter.length + carriedCards.length) return undefined;
       const assigned = assignPandoraEffect(testKey ? test.wallet : real.wallet, profile.id);
       if (!assigned && !carriedCards.length) return undefined;

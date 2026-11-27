@@ -1,5 +1,5 @@
 import { availableCarryCards, isCarrySelection, IMBUE_CARDS, IMBUE_PRICE, isShopStockKey, readCarryCards, SHOP_IMBUE_ID, type CarryCards } from './carryCards.ts';
-import { cardsOfRarity, getCard, type CardId } from './cards.ts';
+import { ALL_CARD_IDS, getCard, isCardInPlay, type CardId } from './cards.ts';
 import { hashSeed, nextInt, pickDistinct, pickOne } from './rng.ts';
 import { TRAINING_JEWELRY } from './trainingJewelry.ts';
 import { shopAmuletSummary, type ShopAmuletId } from './amuletBonuses.ts';
@@ -20,6 +20,16 @@ const PRICE_RANGE: Readonly<Record<RingRarity, readonly [number, number]>> = {
 const RING_SLOTS = 3;
 const FOURTH_RARE_CHANCE = 40;
 const AMULET_CHANCE = 12;
+const SHOP_IMBUE_CHANCE = 65;
+const PANDORA_CARD_CHANCE = 25;
+const PLAYABLE_CARDS = ALL_CARD_IDS.filter(isCardInPlay);
+const NON_IMBUE_CARDS = PLAYABLE_CARDS.filter(id => getCard(id).type !== 'imbue');
+
+/** Shop tiers group starter and Common cards under the same display label. */
+export function shopCardRarity(id: CardId): RingRarity {
+  const rarity = getCard(id).rarity;
+  return rarity === 'legendary' ? 'Legendary' : rarity === 'rare' ? 'Rare' : rarity === 'uncommon' ? 'Uncommon' : 'Common';
+}
 
 export const TEMP_RING_IDS = [
   'cinder-band', 'tideglass-ring', 'rook-signet', 'briar-knot', 'quarry-ring',
@@ -116,10 +126,10 @@ export function shopOffers(day: string, admin = false): ShopOffer[] {
     if (box && MYSTERY_BOX_IDS[index] === box) return boxOffer(box);
     const cardRoll = nextInt(seed('card-offer'), 100)[0];
     if (index === 3 && !premium && cardRoll < 35) {
-      const imbue = cardRoll < 20;
-      const pool = imbue ? IMBUE_CARDS : cardsOfRarity('rare').filter(id => getCard(id).type !== 'imbue');
+      const imbue = nextInt(seed('card-family'), 100)[0] < SHOP_IMBUE_CHANCE;
+      const pool = imbue ? IMBUE_CARDS : NON_IMBUE_CARDS;
       const [cardId] = pickOne(seed('carry-card'), pool);
-      return { id: SHOP_IMBUE_ID, name: getCard(cardId).name, slot: 'card', cardId, rarity: 'Rare', price: IMBUE_PRICE,
+      return { id: SHOP_IMBUE_ID, name: getCard(cardId).name, slot: 'card', cardId, rarity: shopCardRarity(cardId), price: IMBUE_PRICE,
         flavor: imbue ? 'The mark survives the battle, but not the march.' : 'Someone paid to leave this here. They never came back for it.' };
     }
     const { name, flavor, slot } = catalog.get(id)!;
@@ -199,7 +209,7 @@ export function readShopWallet(raw?: string): ShopWallet {
 export function shopGoldBalance(earned: number, wallet: ShopWallet): number {
   const purchases = Object.values(wallet.items).reduce((sum, price) => sum + price, 0);
   const events = Object.values(wallet.events ?? {}).reduce((sum, event) =>
-    sum - MYSTERY_BOX_PRICE + (event?.kind === 'gold' ? event.change : event?.claimed ? PANDORA_CURSE_BOUNTY : 0), 0);
+    sum - MYSTERY_BOX_PRICE + (event?.kind === 'gold' ? event.change : event?.kind === 'run' && event.claimed ? PANDORA_CURSE_BOUNTY : 0), 0);
   const runeCost = Object.values(wallet.carry ?? {}).filter(card => card?.source === 'shop').length * IMBUE_PRICE;
   return Math.max(0, earned - purchases + events - runeCost);
 }
@@ -235,7 +245,7 @@ export function claimPandoraBounty(wallet: ShopWallet, runId: string): ShopWalle
 }
 
 /** At most one Pandora box can be purchased per stock refresh. */
-export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: ShopOffer, day: string, entropy: string) {
+export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: ShopOffer, day: string, entropy: string, practice = false) {
   const balance = shopGoldBalance(earned, wallet);
   if (offer.slot === 'card') {
     const id = 'shop:' + day;
@@ -254,7 +264,20 @@ export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: Sho
 
 
   const seed = (label: string) => hashSeed('metatron:box:' + entropy + ':' + receipt + ':' + label);
-  if (nextInt(seed('kind'), 100)[0] < 50) {
+  const kindRoll = nextInt(seed('kind'), 100)[0];
+  if (kindRoll < PANDORA_CARD_CHANCE) {
+    const [cardId] = pickOne(seed('card'), PLAYABLE_CARDS);
+    if (availableCarryCards(wallet.carry).some(card => card.cardId === cardId)) {
+      const rarity = shopCardRarity(cardId);
+      const reward = { kind: 'gold', change: PANDORA_DUPLICATE_GOLD[rarity], duplicateRarity: rarity } as const;
+      return { status: 'buy', reward, next: { ...wallet, events: { ...wallet.events, [receipt]: reward } } } as const;
+    }
+    const id = (practice ? 'test-pandora:' : 'pandora:') + receipt;
+    const card = { id, cardId, source: practice ? 'test' : 'pandora' } satisfies NonNullable<CarryCards[string]>;
+    const reward = { kind: 'card', cardId } as const;
+    return { status: 'buy', reward, next: { ...wallet, events: { ...wallet.events, [receipt]: reward }, carry: { ...wallet.carry, [id]: card } } } as const;
+  }
+  if (kindRoll < 50) {
     const event = drawPandoraEvent(nextInt(seed('event'), 100)[0], balance - offer.price);
     return { status: 'buy', reward: event, next: { ...wallet, events: { ...wallet.events, [receipt]: event } } } as const;
   }
