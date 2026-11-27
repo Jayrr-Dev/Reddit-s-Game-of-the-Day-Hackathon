@@ -35,8 +35,8 @@ const SALE_LINES = [
 
 const IDLE_LORE = [
   'Xaten gave seven mortals forever. Every hundred years, he asks them to earn it again.',
-  'Heaven cast me into Hell for stealing from its treasury. They never asked for the key back.',
-  'An angel told me demons would never touch holy gold. I wish he could see my customers now.',
+  'Heaven cast me into Hell for stealing from its treasury. Now I sell what I took to demons like you.',
+  'You think I count gold for pleasure? A little more, and I can buy my freedom.',
   'Uriel held the Crimson Gate open until the last pilgrim crossed. I remember things like that.',
   'Zadkiel called every order mercy. I used to wait for him to explain the difference.',
   'Cerviel could stand watch in three places. He still took the coldest post himself.',
@@ -45,8 +45,8 @@ const IDLE_LORE = [
   'Raziel knew which shelf I emptied. He never said a word. I still wonder why.',
   'Mori knew every knight by name. I have met archangels who cannot say the same.',
   'The last lord kept his seat seven hundred years. Xaten never once promised him seven hundred more.',
-  "The bells sounded the same on my last morning in Heaven. I don't know what I expected.",
-  'My greatest treasure? The key to Heaven’s treasury. The rest I sell. That, I keep.',
+  "Heaven won't let me back with so much as one stolen coin in my pocket.",
+  'My greatest treasure? The key to Heaven’s treasury. It will be the last thing I sell.',
 ] as const;
 const FIRST_IDLE_MS = 25_000;
 const NEXT_IDLE_MS = 42_000;
