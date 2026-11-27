@@ -484,11 +484,11 @@
 }
 .hero-plate-name {
   position: absolute;
-  inset-block-end: calc(100% + 4px);
+  inset-block-end: 100%;
   inset-inline-start: 50%;
   translate: -50% 0;
   width: max-content;
-  max-width: 135%;
+  max-width: min(10rem, var(--hero-edge-span));
   overflow-wrap: anywhere;
   text-wrap: balance;
   text-align: center;
@@ -507,11 +507,13 @@
 .hero-plate-health > .enemy-status-grid { zoom: .8; }
 .hero-plate-health .enemy-status-grid button span { paint-order: stroke fill; -webkit-text-stroke: 1.5px black; }
 .hero-plate-health [role="meter"] { max-width: var(--hero-edge-span); }
-.hero-action-chips {
+.hero-plate-head {
   position: absolute;
   top: var(--hero-intent-y);
   left: 50%;
   translate: -50% 0;
+}
+.hero-action-chips {
   display: grid;
   justify-items: center;
   white-space: nowrap;

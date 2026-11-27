@@ -138,15 +138,17 @@ export const HeroPlate = ({ unit, field, player, showName }: HeroPlateProps) => 
             data-hero-kind={unit.heroId}
             className="hero-plate pointer-events-none absolute top-0 invisible"
           >
-            <IntentChips unit={unit} field={field} debuffBonus={debuffPowerOf(player.skillPicks)} />
-            <div className="hero-plate-health">
-              <DrainBar hp={unit.hp} maxHp={unit.maxHp} size="small" />
+            <div className="hero-plate-head">
               {showName && <span
                 data-hero-tier={tier}
                 className={`hero-plate-name font-display font-bold text-[11px] uppercase leading-tight tracking-wider ${nameClass}`}
               >
                 {name}{unit.phase === 2 && <span className="ml-1 text-[#ebd2ff]">II</span>}
               </span>}
+              <IntentChips unit={unit} field={field} debuffBonus={debuffPowerOf(player.skillPicks)} />
+            </div>
+            <div className="hero-plate-health">
+              <DrainBar hp={unit.hp} maxHp={unit.maxHp} size="small" />
               <EnemyStatuses
                 combatant={unit}
                 source={player}

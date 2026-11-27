@@ -56,7 +56,7 @@ export type HeroOnFieldProps = {
   unit: HeroUnit;
   player: Combatant;
   isFocused: boolean;
-  isSelected: boolean;
+  showName: boolean;
   aim: AimState;
   /** Set while a held Target card has picked this hero. */
   pickMarker: PickMarker | null;
@@ -459,7 +459,7 @@ export const HeroOnField = ({
   unit,
   player,
   isFocused,
-  isSelected,
+  showName,
   aim,
   pickMarker,
   action,
@@ -475,8 +475,6 @@ export const HeroOnField = ({
   const size = drawSizeOf(unit);
   // The glow only marks a choice: with one hero left there is nothing to pick between.
   const isOutlined = isFocused && field.length > 1;
-  const [showHoverName, setShowHoverName] = useState(false);
-  const [showFocusName, setShowFocusName] = useState(false);
   const bodyStyle = bodyStyleOf(unit, size);
   const isMikhael = unit.heroId === 'archangelMikhael';
   const slot = boxStyle(unit, field);
@@ -497,10 +495,6 @@ export const HeroOnField = ({
     <button
       type="button"
       onClick={() => onTap(unit.uid)}
-      onPointerEnter={(event) => { if (event.pointerType !== 'touch') setShowHoverName(true); }}
-      onPointerLeave={() => setShowHoverName(false)}
-      onFocus={(event) => setShowFocusName(event.currentTarget.matches(':focus-visible'))}
-      onBlur={() => setShowFocusName(false)}
       {...{ [HERO_UID_ATTR]: unit.uid, [HERO_ROW_ATTR]: unit.row }}
       data-row-label={rowLabel(unit.row)}
       aria-label={`${hero.name}, ${unit.hp} of ${unit.maxHp} HP, ${rowLabel(unit.row)}`}
@@ -584,7 +578,7 @@ export const HeroOnField = ({
               style={unit.heroId === 'holyKing' ? { bottom: 'calc(116% + 4px)' } : unit.heroId === 'lightLordMori' ? { bottom: 'calc(111% + 4px)' } : unit.heroId === 'fulgurDragonknight' ? { bottom: 'calc(107% + 3px)' } : unit.heroId === 'zadkielOfDominations' || unit.heroId === 'mageBorneAstra' || unit.heroId === 'grandangelCerviel' || unit.heroId === 'grandangelGeonosis' || unit.heroId === 'grandangelRaziel' ? { bottom: 'calc(120% + 4px)' } : unit.heroId === 'archangelZeruel' ? { bottom: 'calc(110% + 3px)' } : unit.heroId === 'cervielSword' || unit.heroId === 'cervielBow' ? { bottom: 'calc(98% + 3px)' } : unit.heroId === 'grandangelCherubiel' ? { bottom: 'calc(125% + 4px)' } : unit.heroId === 'mageBorneAzula' ? { bottom: 'calc(113% + 4px)' } : unit.heroId === 'angelArcher' ? { bottom: '82%' } : unit.heroId === 'ivoryWerewolf' ? IVORY_WEREWOLF_PLATE : plateStyle(size)}
             >
               {!isDying && <HeroPlate unit={unit} field={field} player={player}
-                showName={isSelected || pickMarker !== null || showHoverName || showFocusName} />}
+                showName={showName} />}
             </div>
             </div>
           </div>

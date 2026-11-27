@@ -98,7 +98,7 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
     const findPlates = () => ordered.flatMap(unit => {
       const anchor = field.querySelector<HTMLElement>(`[${PLATE_UID_ATTR}="${unit.uid}"]`);
       const plate = layer.querySelector<HTMLElement>(`[${FLOATING_UID_ATTR}="${unit.uid}"]`);
-      const intent = plate?.querySelector<HTMLElement>('.hero-action-chips');
+      const intent = plate?.querySelector<HTMLElement>('.hero-plate-head');
       const figure = anchor?.closest<HTMLElement>('.hero-flight');
       const layout = figure?.closest<HTMLElement>('[' + HERO_LAYOUT_ATTR + ']');
       const hitbox = figure?.closest<HTMLButtonElement>('button[data-hero-uid]');
@@ -150,7 +150,8 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
         const natural = { width, height, left: center - width / 2, top: naturalTop };
         const healthY = (body.bottom - lift - bounds.top) * sy + HEALTH_GAP;
         const relief = { body: bodyLane, feet, row, movable: !isBoss(unit) && !isAnchored(unit) };
-        return { width, silhouette, relief, ground, center, scaleX, scaleY, naturalTop, natural, healthY, plateWidth: plate.offsetWidth };
+        return { width, silhouette, relief, ground, center, scaleX, scaleY, naturalTop, natural, healthY, plateWidth: plate.offsetWidth,
+          nameHeight: intent.querySelector<HTMLElement>('.hero-plate-name')?.offsetHeight ?? 0 };
       });
       const key = [frame.width, frame.height, top, ...measures.flatMap(({width, natural, silhouette, relief, ground}) =>
         [width, natural.width, natural.height, natural.left, natural.top, silhouette.top, silhouette.width, silhouette.height,
@@ -182,7 +183,7 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
       // The model and portaled plate use the same interpolated offset. The
       // base anchor still follows attacks and row transitions without lag.
       const reduced = prefersReducedMotion();
-      measures.forEach(({ center, scaleX, scaleY, naturalTop, healthY, plateWidth }, i) => {
+      measures.forEach(({ center, scaleX, scaleY, naturalTop, healthY, plateWidth, nameHeight }, i) => {
         const { plate, layout } = entries[i]!;
         const target = targets[i];
         if (!target) return;
@@ -201,7 +202,9 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
         const x = center + shift;
         const left = (x - plateWidth / 2).toFixed(3) + 'px';
         const edgeSpan = Math.max(1, 2 * Math.min(x - GAP, frame.width + GAP - x)).toFixed(3) + 'px';
-        const intentY = clamp(naturalTop + lift + Math.min(0, labelOffset), 0, frame.top + frame.height).toFixed(3) + 'px';
+        // Keep a selected name clear of the arena header, even in the far row.
+        const nameFloor = nameHeight ? frame.top + nameHeight : 0;
+        const intentY = clamp(naturalTop + lift + Math.min(0, labelOffset), nameFloor, frame.top + frame.height).toFixed(3) + 'px';
         const hpY = Math.min(healthY + lift, frame.top + frame.height - HEALTH_FLOOR_PADDING).toFixed(3) + 'px';
         if (layout.style.translate !== translate) layout.style.translate = translate;
         if (plate.style.left !== left) plate.style.left = left;

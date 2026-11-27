@@ -10,7 +10,7 @@
 // ===================================================================
 
 import { BOSS_ENTRANCE_MS, BOSS_LANDING_MS, bossEntranceOf } from '../../../content/bossEntrances';
-import { useRef, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { activeRows, drawColumnOf, rowDepth, sizeOf } from '../../../../shared/game/battlefield';
 import { BATTLEFIELD_COLUMNS } from '../../../../shared/game/rules';
 import type { Combatant, HeroRow, HeroUnit } from '../../../../shared/game/types';
@@ -52,6 +52,8 @@ export type BattlefieldViewProps = {
 // --- CONSTANTS ---
 /** How far (px) the camera leans per column away from the centre. */
 const CAMERA_LEAN_PX = 1;
+/** A quick change of target never flashes its name. */
+const NAME_REVEAL_MS = 300;
 /** Parallax depth of each row's layer. */
 const ROW_DEPTH: Record<HeroRow, number> = {
   horizon: 0.45,
@@ -84,6 +86,18 @@ const RowLayer = ({
   </div>
 );
 
+/** Reveal a name only once selection has settled; cancel stale reveals. */
+function useSelectedName(selectedUid: number | null): number | null {
+  const [revealedUid, setRevealedUid] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    setRevealedUid(null);
+    if (selectedUid === null) return;
+    const timer = window.setTimeout(() => setRevealedUid(selectedUid), NAME_REVEAL_MS);
+    return () => window.clearTimeout(timer);
+  }, [selectedUid]);
+  return revealedUid === selectedUid ? revealedUid : null;
+}
+
 // --- COMPONENT ---
 /** Renders the scene with every hero in its row and columns. */
 export const BattlefieldView = ({
@@ -102,6 +116,7 @@ export const BattlefieldView = ({
   onTapHero,
 }: BattlefieldViewProps) => {
   const fieldRef = useRef<HTMLDivElement>(null);
+  const nameUid = useSelectedName(selectedUid);
   usePlateSpacing(fieldRef, heroes, !!bossEntrance.entering);
   const ghosts = useFallenHeroes(heroes).filter(ghost => !heroes.some(unit => unit.uid === ghost.uid));
 
@@ -150,7 +165,7 @@ export const BattlefieldView = ({
           <RowLayer key={unit.uid} row={unit.row}>
             <HeroOnField unit={unit} player={player} isDying={isDying}
               isFocused={!isDying && unit.uid === focusUid}
-              isSelected={!isDying && unit.uid === selectedUid}
+              showName={!isDying && unit.uid === nameUid}
               aim={isDying ? 'idle' : aimOf(unit.uid)}
               pickMarker={isDying ? null : pickMarkerOf(unit.uid)}
               action={isDying ? null : acting.get(unit.uid) ?? null}
