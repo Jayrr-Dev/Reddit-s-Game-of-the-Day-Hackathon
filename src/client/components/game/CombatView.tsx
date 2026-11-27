@@ -84,6 +84,8 @@ import { HitNumbers } from './combat/HitNumbers';
 import { PileDialog, type CardBrowserView, type PileId } from './combat/PileDialog';
 import { PileStack } from './combat/PileStack';
 import { PlayerCorner } from './combat/PlayerCorner';
+import { PlayerHealthBar } from './combat/PlayerHealthBar';
+import type { Health } from '../../lib/healthImpacts';
 import { BorrowedPowerBuff } from './BorrowedPowerView';
 import { TutorialSpotlight } from './combat/TutorialSpotlight';
 import { PovImpact } from './combat/PovImpact';
@@ -167,6 +169,7 @@ const pileCards = (combat: CombatState, pile: PileId): readonly CardId[] =>
  */
 const PlayerBar = ({
   combat,
+  health,
   level,
   lethal,
   hits,
@@ -177,6 +180,7 @@ const PlayerBar = ({
   selfTargetLocked,
 }: {
   combat: CombatState;
+  health: Health;
   level: number;
   lethal: boolean;
   hits: readonly PlayerHitPop[];
@@ -189,7 +193,7 @@ const PlayerBar = ({
   return (
     <div className="table-controls grid grid-cols-[minmax(max-content,1fr)_minmax(0,max-content)_minmax(max-content,1fr)] items-end gap-1 px-2">
       <div className="table-player flex items-end gap-2.5 justify-self-start">
-        <PlayerCorner player={combat.player} level={level} lethal={lethal} hits={hits} onOpenCharacter={onOpenCharacter} onTargetSelf={onTargetSelf} selfTargetLocked={!!selfTargetLocked} />
+        <PlayerCorner player={{ ...combat.player, ...health }} level={level} lethal={lethal} hits={hits} onOpenCharacter={onOpenCharacter} onTargetSelf={onTargetSelf} selfTargetLocked={!!selfTargetLocked} />
         <PileStack
           count={combat.discardPile.length}
           label="Cards in the discard pile"
@@ -209,6 +213,7 @@ const PlayerBar = ({
       </div>
       <div className="table-energy relative flex min-w-0 flex-col items-center gap-1 pb-1">
         <GuardGainPops guard={combat.player.guard} />
+        <PlayerHealthBar {...health} />
       </div>
       <div className="table-turn justify-self-end">
         <TurnCorner
@@ -480,7 +485,7 @@ export const CombatView = ({
     cardHits.strikeIndex,
     combat.fallen
   );
-  const playerHits = usePlayerHits(
+  const { pops: playerHits, health: playerHealth } = usePlayerHits(
     combat.player,
     combat.turn,
     heroTurn.arrowStep ? 'range' : heroTurn.attackType,
@@ -598,6 +603,7 @@ export const CombatView = ({
       {/* BOTTOM BAND: rises over the field's foreground */}
       <div inert={!!bossEntrance.entering} className="table-console relative z-30 flex shrink-0 flex-col">
         <PlayerBar
+          health={playerHealth}
           level={character.level}
           lethal={lethal && !isAnimating}
           combat={combat}

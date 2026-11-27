@@ -24,6 +24,7 @@ import type {
   StatusId,
 } from '../../shared/game/types';
 import type { HitHistory } from '../lib/popSize';
+import { healthImpacts, type Health, type HealthImpact } from '../lib/healthImpacts';
 import { HERO_ANCHOR_ATTR, HERO_UID_ATTR, type Point } from './useCardDrag';
 
 // --- TYPES ---
@@ -598,8 +599,9 @@ export const usePlayerHits = (
   edge?: MeleeEdge,
   impactDelay = 0,
   bossImpact?: Cue
-): PlayerHitPop[] => {
+): { pops: PlayerHitPop[]; health: Health } => {
   const [pops, add] = usePopQueue<Hit>(history);
+  const [health, setHealth] = useState<Health>({ hp: player.hp, maxHp: player.maxHp });
   const lastRef = useRef({ player, turn });
   const impactTimers = useRef(new Set<number>());
   useEffect(() => {
@@ -641,19 +643,33 @@ export const usePlayerHits = (
     ];
     // Keep incoming projectile hit visuals and their cues on the same beat.
     // Each queued impact survives subsequent turns but not teardown.
-    const queue = (hits: Hit[], delay: number) => {
-      if (!hits.length) return;
-      if (!delay) { add(hits); return; }
-      const timers = impactTimers.current;
-      const id = window.setTimeout(() => { timers.delete(id); add(hits); }, delay);
-      timers.add(id);
+    const batches = new Map<number, Hit[]>();
+    const collect = (hits: Hit[], delay: number) => {
+      if (hits.length) batches.set(delay, [...(batches.get(delay) ?? []), ...hits]);
     };
-    queue(fresh, impactDelay);
-    laterBlows.forEach((blow, index) =>
-      queue([blow], impactDelay + (index + 1) * BLOW_STAGGER_MS)
-    );
-    queue(splits, impactDelay + laterBlows.length * BLOW_STAGGER_MS);
+    collect(fresh, impactDelay);
+    laterBlows.forEach((blow, index) => collect([blow], impactDelay + (index + 1) * BLOW_STAGGER_MS));
+    collect(splits, impactDelay + laterBlows.length * BLOW_STAGGER_MS);
+    const beats = [...batches].map(([delay, hits]) => ({ delay, damage: hits.reduce((total, hit) =>
+      total + (hit.kind === 'hit' || isSplitPop(hit) ? hit.amount : 0), 0) }));
+    const changes = healthImpacts(last.player, player, beats.length ? beats : [{ delay: impactDelay, damage: 0 }]);
+    for (const change of changes) if (!batches.has(change.delay)) batches.set(change.delay, []);
+    const present = (hits: Hit[], impact?: HealthImpact) => {
+      if (hits.length) add(hits);
+      // Retain the raw sum while effects overlap; clipping here can erase a heal
+      // that was shown before a prior projectile reached its target.
+      if (impact) setHealth(previous => ({
+        maxHp: previous.maxHp + impact.maxChange, hp: previous.hp + impact.hpChange,
+      }));
+    };
+    for (const [delay, hits] of batches) {
+      const impact = changes.find(change => change.delay === delay);
+      if (!delay) { present(hits, impact); continue; }
+      const timers = impactTimers.current;
+      const id = window.setTimeout(() => { timers.delete(id); present(hits, impact); }, delay);
+      timers.add(id);
+    }
   }, [player, turn, source, strikes, element, edge, impactDelay, bossImpact, add]);
 
-  return pops;
+  return { pops, health: { ...health, hp: Math.max(0, Math.min(health.maxHp, health.hp)) } };
 };

@@ -416,6 +416,27 @@
   padding-inline: 8px;
   gap: 4px;
 }
+.table-player-health {
+  position:relative; isolation:isolate; align-self:center; width:min(100%,320px); height:13px;
+  overflow:hidden; border:1px solid var(--brass); border-radius:5px; background:#211516;
+  box-shadow:0 1px 4px #160c08c9; color:#fff4df; pointer-events:none;
+}
+.table-player-health-trail,.table-player-health-fill {
+  position:absolute; left:0; top:0; height:100%;
+}
+.table-player-health-trail { background:#f5c850; transition:width 420ms ease-out 220ms; }
+.table-player-health-fill { background:linear-gradient(#e85d56,#a72935 72%,#701a27); }
+.table-player-health-ticks {
+  position:absolute; inset:0;
+  background:repeating-linear-gradient(to right, transparent 0 calc(10% - 1px), #160b0c8a calc(10% - 1px) 10%);
+}
+.table-player-health-label {
+  position:absolute; inset:0; display:grid; place-items:center;
+  font:bold 9px/1 Georgia, serif; font-variant-numeric:tabular-nums;
+  text-shadow:0 1px 2px #000,0 0 2px #000; white-space:nowrap;
+}
+@container duel (max-width:470px) { .table-player-health { width:calc(100% - 8px); } }
+@media (prefers-reduced-motion:reduce) { .table-player-health-trail { transition:none; } }
 .table-buffs,.table-afflictions { min-width: 0; display:flex; pointer-events:auto; }
 .table-buffs { justify-content:flex-end; }
 
