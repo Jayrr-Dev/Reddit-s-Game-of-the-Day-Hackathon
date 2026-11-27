@@ -13,7 +13,7 @@ import type { CardDef, CardEffect } from './types.ts';
 import { isUniqueCard, keepsUniqueLimit, withoutExtraUniques } from './unique.ts';
 
 // --- TYPES ---
-const DECKSET_IDS = ['archerSet', 'meleeSet', 'magicSet', 'cursedSet', 'otherSet'] as const;
+const DECKSET_IDS = ['archerSet', 'meleeSet', 'magicSet', 'cursedSet', 'guardSet', 'movementSet', 'imbueSet', 'otherSet'] as const;
 export type DecksetId = typeof DECKSET_IDS[number];
 export type SandboxDeckId =
   | DecksetId
@@ -97,7 +97,7 @@ const anyOf =
   (card: CardDef): boolean =>
     rules.some((rule) => rule(card));
 
-/** One catalog home per card. Specific support joins its playstyle; shared tools stay under Other. */
+/** Keep established playstyles, then sort general cards by their primary job. */
 export function decksetOf(card: CardDef): DecksetId {
   if (card.type === 'range') return 'archerSet';
   if (card.type === 'melee') return 'meleeSet';
@@ -108,7 +108,12 @@ export function decksetOf(card: CardDef): DecksetId {
   if (buffsAny('might', 'berserker')(card) || hasEffect('momentum', 'charge')(card)) matches.push('meleeSet');
   if (buffsAny('surge')(card)) matches.push('magicSet');
   if (buffsAny('bane')(card)) matches.push('cursedSet');
-  return matches.length === 1 ? matches[0]! : 'otherSet';
+  if (matches.length === 1) return matches[0]!;
+  if (card.type === 'imbue') return 'imbueSet';
+  if (card.type === 'movement' || hasEffect('rush', 'move', 'backStep')(card)) return 'movementSet';
+  if (card.type === 'defend' || hasEffect('guard', 'armor', 'protect', 'brace')(card) ||
+      buffsAny('instinct', 'reinforce')(card)) return 'guardSet';
+  return 'otherSet';
 }
 
 // --- TABLE ---
@@ -117,7 +122,10 @@ const DECKSET_LABELS = {
   meleeSet: ['Melee Deckset', 'Close-range attacks and melee support.'],
   magicSet: ['Magic Deckset', 'Spells and magic support.'],
   cursedSet: ['Cursed Deckset', 'Hex, curses and affliction support.'],
-  otherSet: ['Other Deckset', 'Shared defense, movement, Imbues and utility.'],
+  guardSet: ['Guard Deckset', 'Guard, Armor, Protection, Brace and dodge.'],
+  movementSet: ['Movement Deckset', 'General repositioning, Rush and mobility.'],
+  imbueSet: ['Imbue Deckset', 'Shared card upgrades and granted keywords.'],
+  otherSet: ['Utility Deckset', 'Healing, cleanse, draw, energy and shared buffs.'],
 } satisfies Record<DecksetId, readonly [string, string]>;
 
 export const SANDBOX_DECKSETS: readonly SandboxDeck[] = DECKSET_IDS

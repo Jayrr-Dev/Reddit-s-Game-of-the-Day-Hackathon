@@ -229,9 +229,9 @@ void test('every test deck holds at least 4 cards, all in play', () => {
   }
 });
 
-void test('the five Decksets partition the playable catalog without duplicate copies', () => {
+void test('the Decksets partition the playable catalog without duplicate copies', () => {
   const listings = SANDBOX_DECKSETS.flatMap(deck => sandboxDeckCards(deck.id));
-  assert.equal(SANDBOX_DECKSETS.length, 5);
+  assert.equal(SANDBOX_DECKSETS.length, 8);
   assert.deepEqual([...listings].sort(), sandboxDeckCards('all').sort());
   assert.equal(new Set(listings).size, listings.length);
   for (const id of ['blackArrow', 'barbedVolley', 'retreatingShot', 'steadyAim', 'deadeye', 'sharpshooter'] as const)
@@ -243,7 +243,13 @@ void test('the five Decksets partition the playable catalog without duplicate co
   assert.ok(sandboxDeckCards('meleeSet').includes('battleFury'));
   assert.ok(sandboxDeckCards('magicSet').includes('darkSurge'));
   assert.ok(sandboxDeckCards('cursedSet').includes('bane'));
-  assert.ok(sandboxDeckCards('otherSet').includes('boneWard'));
+  for (const id of ['boneWard', 'bulwark', 'plateArmor', 'standFirm', 'instinct'] as const)
+    assert.ok(sandboxDeckCards('guardSet').includes(id), id);
+  assert.ok(sandboxDeckCards('movementSet').includes('evasiveStep'));
+  assert.ok(sandboxDeckCards('movementSet').includes('rushPotion'));
+  assert.ok(sandboxDeckCards('imbueSet').includes('wardRune'));
+  assert.ok(sandboxDeckCards('otherSet').includes('antidote'));
+  assert.equal(restoreTrainingDecks({ deckId: 'otherSet' }).deckId, 'otherSet');
   assert.equal(restoreTrainingDecks({ deckId: 'archerSet' }).deckId, 'archerSet');
   assert.equal(restoreTrainingDecks({ deckId: 'range' }).deckId, 'range');
 });
