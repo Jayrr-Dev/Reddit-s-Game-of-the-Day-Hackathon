@@ -82,7 +82,7 @@ import {
   hexBurn,
   hexBurst,
   hexAfterPlayerAction,
-  hexAfterAction,
+  hexAfterActionUnlessApplied,
   poisonTick,
   guardAmount,
   hasMomentumFor,
@@ -2281,8 +2281,8 @@ const heroActs = (
 
   const afterBleed = acted.player.hp > 0 ? bleedOnAttack(acted.player, state.player.statuses.bleed, actor, attackBlock.bleedHits) : acted.player;
   // Every enemy move counts once for existing Hex on the player, even support moves.
-  // A move that applies the first stack leaves its printed value intact.
-  const player = planned && state.player.statuses.hex > 0 ? hexAfterAction(afterBleed) : afterBleed;
+  // A move that adds Hex does not also remove a stack.
+  const player = planned ? hexAfterActionUnlessApplied(state.player, afterBleed) : afterBleed;
   const isDiving = planned !== null && isAloft(actor);
   const settled = updateHeroes({ ...acted, player }, [uid], (unit) => {
     // BURN AND FROST RUN AFTER EVERY ACTION, UPKEEP AFTER THE LAST ONE

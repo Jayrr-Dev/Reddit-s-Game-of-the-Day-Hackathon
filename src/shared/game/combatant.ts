@@ -861,15 +861,19 @@ export const hexAfterAction = <T extends Combatant>(target: T): T => {
   return { ...target, statuses: { ...target.statuses, hex: hexAfterCountdown(target.statuses.hex) } };
 };
 
-/** A player action checks enemy Hex after counting down curses that were already active. */
+/** A target that gained Hex from this action keeps every stack. */
+export const hexAfterActionUnlessApplied = <T extends Combatant>(before: T, after: T): T =>
+  after.statuses.hex > before.statuses.hex ? after : hexAfterAction(after);
+
+/** A player action checks enemy Hex after resolving its countdown or application. */
 export function hexAfterPlayerAction(before: CombatState, after: CombatState): CombatState {
-  const existing = new Set(before.heroes.filter(unit => unit.statuses.hex > 0).map(unit => unit.uid));
+  const existing = new Map(before.heroes.map(unit => [unit.uid, unit]));
   const heroes = after.heroes.map(unit => {
-    const active = existing.has(unit.uid);
-    if (!active && unit.statuses.hex <= 0) return unit;
-    return hexBurst(active ? hexAfterAction(unit) : unit, before.player);
+    if (unit.statuses.hex <= 0) return unit;
+    const old = existing.get(unit.uid);
+    return hexBurst(old ? hexAfterActionUnlessApplied(old, unit) : unit, before.player);
   });
-  const player = hexAfterAction(after.player);
+  const player = hexAfterActionUnlessApplied(before.player, after.player);
   return player !== after.player || heroes.some((unit, index) => unit !== after.heroes[index])
     ? { ...after, player, heroes } : after;
 }

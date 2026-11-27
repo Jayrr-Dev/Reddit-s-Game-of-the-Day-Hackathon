@@ -316,6 +316,17 @@ void test('fresh and counted-down odd Hex burst immediately, and odd stacks also
   assert.deepEqual(startPlayerTurn(moved).heroes.map(unit => unit.hp), [40, 44], 'even Hex does not burst');
 });
 
+void test('adding Hex skips the countdown even on an already cursed target', () => {
+  const fresh = squireAndArcher(['mourningCurse']);
+  const [squire, archer] = fresh.heroes;
+  assert.ok(squire && archer);
+  const hero = addStatus({ ...squire, hp: 50, maxHp: 50 }, 'hex', 2);
+  const ally = addStatus({ ...archer, hp: 50, maxHp: 50 }, 'hex', 2);
+  const after = playCard({ ...withHand(fresh, ['mourningCurse']), heroes: [hero, ally] }, 0, squire.uid);
+  assert.deepEqual(after.heroes.map(unit => unit.statuses.hex), [5, 1]);
+  assert.deepEqual(after.heroes.map(unit => unit.hp), [45, 49]);
+});
+
 void test('a turn-opening burst can defeat a cursed enemy and record the kill', () => {
   const battle = fightWith(['backhand']);
   const hero = battle.heroes[0]!;
@@ -458,6 +469,9 @@ void test('the caster keeps the fresh Hex value and each later ally move counts 
   assert.deepEqual(enemyMoves.map(step => step.state.player.statuses.hex), [4, 3]);
   assert.ok(enemyMoves.every(step => !step.state.player.hexDamageTaken));
   assert.equal(steps.at(-1)?.state.player.hexDamageTaken, 3);
+  const stacked = endTurnSteps({ ...battle, heroes, player: addStatus(battle.player, 'hex', 1) });
+  assert.deepEqual(stacked.filter(step => step.actorUid !== null).map(step => step.state.player.statuses.hex), [5, 4]);
+  assert.equal(stacked.at(-1)?.state.player.hexDamageTaken ?? 0, 0);
 });
 
 void test('burn deals its value, then halves (a half rounds down)', () => {
@@ -2090,7 +2104,8 @@ void test('Enfeeble cuts the damage a unit deals by its tier, like Protection', 
 
 void test('Enfeeble climbs a tier when reapplied the next turn, up to IV', () => {
   const deck: CardId[] = Array.from({ length: 12 }, () => 'sapStrength');
-  let state = fightWith(deck);
+  const battle = fightWith(deck);
+  let state = { ...battle, heroes: battle.heroes.map(unit => ({ ...unit, hp: 100, maxHp: 100 })) };
   const uid = state.heroes[0]?.uid ?? -1;
   const tierOf = (current: CombatState) =>
     current.heroes.find((unit) => unit.uid === uid)?.statuses.enfeeble;
@@ -3364,11 +3379,11 @@ void test('only curses may target the portrait; even area curses affect just the
   assert.equal(canPlayCardOnSelf(curse, 0), true);
   const cursed = playCard(curse, 0, SELF_TARGET_UID);
   assert.equal(cursed.player.statuses.enfeeble, 3);
-  assert.equal(cursed.player.statuses.hex, 0);
+  assert.equal(cursed.player.statuses.hex, 1);
   assert.deepEqual(cursed.heroes, stored.heroes);
   const plague = withHand(initial, ['plague']);
   const afflicted = playCard(plague, 0, SELF_TARGET_UID);
-  assert.equal(afflicted.player.statuses.hex, 3);
+  assert.equal(afflicted.player.statuses.hex, 4);
   assert.deepEqual(afflicted.heroes, plague.heroes);
   const lowEnergy = { ...plague, energy: 1 };
   assert.equal(playCard(lowEnergy, 0, SELF_TARGET_UID), lowEnergy);

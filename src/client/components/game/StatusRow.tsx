@@ -176,7 +176,7 @@ const hexChipOf = (hex: number, target: Combatant, source?: Combatant, isPlayer 
     fill: (opening || action) ? toneVarOf(STATUS_LOOK.hex) : undefined,
     text: String(hex),
     description: (isPlayer ? 'Enemy actions also subtract 1 Hex. ' : '') +
-      `Next action: ${hex} to ${next} Hex${action ? `, dealing ${action} damage` : ''}. ` +
+      `If no Hex is added: ${hex} to ${next} Hex${action ? `, dealing ${action} damage` : ''} after an action. ` +
       `At your turn start, if unchanged: ${opening ? `${opening} damage` : 'no burst'}` +
       (left !== hex ? `, then ${left} Hex.` : '.'),
   };
