@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { showToast } from '@devvit/web/client';
 import { canChooseRegion, regionOfRun } from '../../shared/game/regionRoutes';
-import type { RunAction } from '../../shared/game/run';
+import { isRunOver, type RunAction } from '../../shared/game/run';
 import type { FinishRunResponse, InitResponse, RingShopResponse, StartRunResponse } from '../../shared/types/api';
 import { useDailyGame } from '../hooks/useDailyGame';
 import { useLeaderboard } from '../hooks/useLeaderboard';
@@ -22,6 +22,8 @@ import { PlayerName } from '../lib/playerName';
 import { AccountId } from '../lib/accountId';
 import { IsAdmin } from '../lib/adminRole';
 import { journeys } from '../lib/journeys';
+import { MikhaelEnding } from './game/MikhaelEnding';
+import { goldRewardFor } from '../../shared/game/gold';
 import { ConquestPrelude, RegionCrossroads } from './game/ConquestPrelude';
 import { StarterPicker } from './game/StarterPicker';
 import type { PlayerBuild } from '../../shared/game/playerBuild';
@@ -49,7 +51,8 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
   const [isPracticing, setIsPracticing] = useState(false);
   const [viewedDefeat, setViewedDefeat] = useState(false);
   const isFallen = run.phase.kind === 'fallen';
-  const canResume = hasProgress && !isFallen;
+  const isFinished = isRunOver(run);
+  const canResume = hasProgress && !isFinished;
 
   const shopTestVisit = useRef<string>(undefined);
   const setShopTestVisit = useCallback((visit: string | undefined) => { shopTestVisit.current = visit; }, []);
@@ -64,7 +67,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
   useEffect(() => { latest.current = actions; }, [actions]);
   const id = profile?.id;
   useEffect(() => {
-    if (!id || !run.stats.wavesCleared) return;
+    if (!id || !run.goldVictories.length) return;
     let active = true;
     let timer: ReturnType<typeof setTimeout>;
     const save = () => apiClient.progress({ runId: id, actions: latest.current }).catch(() => {
@@ -72,7 +75,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
     });
     void save();
     return () => { active = false; clearTimeout(timer); };
-  }, [id, run.stats.wavesCleared]);
+  }, [id, run.goldVictories.length]);
   const submit = useCallback((log: RunAction[]) => finishRun(log, id), [finishRun, id]);
   const onSaved = useCallback(() => void refresh(), [refresh]);
   const { submission, reset } = useRunSubmission({
@@ -135,12 +138,18 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
     return <ConquestPrelude key={seed} seed={seed} options={run.phase.options}
       onChoose={option => act({ type: 'chooseStop', option })} />;
   }
+  if (run.phase.kind === 'sealing') {
+    const gold = id ? goldRewardFor(id, run.stop, 'champion', run.pandoraEffect, run.area?.battle) : undefined;
+    return <MikhaelEnding gold={gold}
+      onContinue={() => act({ type: 'finishSealing' })} />;
+  }
   if (run.phase.kind === 'fallen' && run.phase.battlefield && !viewedDefeat)
     return <StoryDefeat run={run} onContinue={() => setViewedDefeat(true)} />;
-  if (isFallen) {
+  if (isFinished) {
     return (
       <ResultsView
         stats={run.stats}
+        conquered={!isFallen}
         ringDrops={run.ringDrops}
         submission={submission}
         entries={entries}
@@ -150,7 +159,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
     );
   }
   if (canChooseRegion(run))
-    return <RegionCrossroads key={run.stop} stop={run.stop}
+    return <RegionCrossroads key={run.stop} stop={run.stop} campaign={!!run.conquestVersion}
       conquered={regionOfRun({ ...run, stop: run.stop - 1 })}
       onChoose={option => act({ type: 'chooseRegion', option })} />;
   return <VillainRunGame run={run} runId={id} onAction={act} />;

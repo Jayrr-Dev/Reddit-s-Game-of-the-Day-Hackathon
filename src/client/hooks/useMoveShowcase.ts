@@ -32,6 +32,7 @@ export const showcaseActionOf = (move: MoveIntent): HeroAction => ({
   swing: 'slash',
   isSignature: move.isSignature,
   isTwoHanded: false,
+  moveName: move.name,
 });
 
 // --- HOOK ---

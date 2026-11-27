@@ -325,8 +325,20 @@ export const isMeleeMinded = (unit: Pick<HeroUnit, 'heroId'>): boolean =>
   getHero(unit.heroId).row === 'front';
 
 /** Preferred fighting row, clamped to the rows available in this battle. */
-export const preferredRow = (unit: Pick<HeroUnit, 'heroId'>): HeroRow =>
-  activeRows()[Math.min(rowDepth(getHero(unit.heroId).row), lastRowDepth())]!;
+export const preferredRow = (unit: Pick<HeroUnit, 'heroId' | 'phase'>): HeroRow => {
+  const hero = getHero(unit.heroId);
+  const home = unit.phase === 2 ? hero.secondPhase?.row ?? hero.row : hero.row;
+  return activeRows()[Math.min(rowDepth(home), lastRowDepth())]!;
+};
+
+/** Move a transforming boss to its new home without overlapping another unit. */
+export function takePhaseSeat(field: readonly HeroUnit[], unit: HeroUnit): HeroUnit {
+  const row = preferredRow(unit);
+  const size = getHero(unit.heroId).size;
+  const otherUnits = field.filter(hero => hero.uid !== unit.uid);
+  const col = firstOpenColumn(otherUnits, row, size, undefined, true);
+  return col === null ? unit : { ...unit, row, col, inReserve: false };
+}
 
 /** Positive behind home, negative in front of it. */
 const rowsBehindHome = (unit: HeroUnit): number =>

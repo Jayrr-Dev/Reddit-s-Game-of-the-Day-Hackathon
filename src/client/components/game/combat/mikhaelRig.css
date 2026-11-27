@@ -1,0 +1,31 @@
+/* TAXIARCH: arm and wing transforms stay pinned to their own attachment points. */
+.mikhael-rig-wing { transform-box:view-box; animation:mikhael-wing-left 3.45s ease-in-out infinite; }
+.mikhael-rig-wing[data-wing="1"] { animation-name:mikhael-wing-right; animation-delay:-.43s; }
+.mikhael-rig-wing[data-wing="2"] { animation-name:mikhael-wing-right; animation-duration:3.8s; animation-delay:-.44s; }
+.mikhael-rig-wing[data-wing="3"] { animation-name:mikhael-wing-left; animation-duration:3.8s; animation-delay:-.79s; }
+@keyframes mikhael-wing-left { 0%,100%{transform:rotate(-.8deg)} 50%{transform:rotate(3.5deg) scaleX(.96)} }
+@keyframes mikhael-wing-right { 0%,100%{transform:rotate(.8deg)} 50%{transform:rotate(-3.5deg) scaleX(.96)} }
+.mikhael-rig-arm,.mikhael-rig-stance { transform-box:view-box; }
+.mikhael-rig-effect { opacity:0; pointer-events:none; }
+.mikhael-rig[data-mikhael-motion="quake"] .mikhael-rig-arm { animation:mikhael-cleave .8s cubic-bezier(.3,.05,.3,1) both; }
+.mikhael-rig[data-mikhael-motion="double"] .mikhael-rig-arm { animation:mikhael-double .94s ease both; }
+.mikhael-rig[data-mikhael-motion="judgment"] .mikhael-rig-arm { animation:mikhael-judgment .97s ease both; }
+.mikhael-rig[data-mikhael-motion="rift"] .mikhael-rig-arm { animation:mikhael-throw .78s ease both; }
+.mikhael-rig[data-mikhael-motion="bind"] .mikhael-rig-arm { animation:mikhael-bind .94s ease both; }
+.mikhael-rig[data-mikhael-motion="last"] .mikhael-rig-arm { animation:mikhael-last .97s ease both; }
+.mikhael-rig[data-mikhael-motion="ward"] .mikhael-rig-stance,
+.mikhael-rig[data-mikhael-motion="gate"] .mikhael-rig-stance { animation:mikhael-brace .8s ease both; }
+.mikhael-rig[data-mikhael-motion="charge"] .mikhael-rig-arm { animation:mikhael-windup .56s ease both; }
+.mikhael-rig:is([data-mikhael-motion="quake"],[data-mikhael-motion="double"],[data-mikhael-motion="judgment"],[data-mikhael-motion="rift"],[data-mikhael-motion="bind"],[data-mikhael-motion="last"]) .mikhael-rig-effect {
+  animation:mikhael-smear .8s ease-out both;
+}
+@keyframes mikhael-cleave { 0%,100%{transform:none} 24%{transform:rotate(-42deg)} 48%{transform:rotate(54deg)} 70%{transform:rotate(22deg)} }
+@keyframes mikhael-double { 0%,100%{transform:none} 20%{transform:rotate(-30deg)} 38%{transform:rotate(47deg)} 59%{transform:rotate(-36deg)} 75%{transform:rotate(45deg)} }
+@keyframes mikhael-judgment { 0%{transform:rotate(-42deg)} 28%{transform:rotate(-66deg)} 43%{transform:rotate(65deg)} 74%{transform:rotate(24deg)} 100%{transform:none} }
+@keyframes mikhael-throw { 0%,100%{transform:none} 28%{transform:rotate(-17deg)} 49%{transform:rotate(37deg)} 69%{transform:rotate(19deg)} }
+@keyframes mikhael-bind { 0%,100%{transform:none} 26%{transform:rotate(-16deg)} 43%{transform:rotate(31deg)} 61%{transform:rotate(-12deg)} 73%{transform:rotate(32deg)} }
+@keyframes mikhael-last { 0%{transform:rotate(-15deg)} 29%{transform:rotate(-28deg)} 53%{transform:rotate(45deg)} 69%{transform:rotate(24deg)} 100%{transform:none} }
+@keyframes mikhael-windup { from{transform:none} to{transform:rotate(-35deg)} }
+@keyframes mikhael-brace { 0%,100%{transform:none} 44%{transform:scaleY(.92) scaleX(1.03)} }
+@keyframes mikhael-smear { 0%,37%,100%{opacity:0} 51%{opacity:.85} 69%{opacity:.24} }
+@media (prefers-reduced-motion:reduce) { .mikhael-rig * { animation:none !important; } }

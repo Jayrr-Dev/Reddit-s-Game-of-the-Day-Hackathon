@@ -181,16 +181,16 @@ export const IntroView = ({
   loadTestShop,
 }: IntroViewProps) => {
   const [sheet, setSheet] = useState<Sheet>('none');
-  const [playerTotals, setPlayerTotals] = useState({ wins: data.lifetimeWins ?? 0, gold: data.gold ?? 0 });
-  const level = progressionFromWins(playerTotals.wins).level;
+  const [playerTotals, setPlayerTotals] = useState({ wins: data.lifetimeWins ?? 0, xpStartWins: data.xpStartWins, gold: data.gold ?? 0 });
+  const level = progressionFromWins(playerTotals.wins, false, playerTotals.xpStartWins).level;
   useEffect(() => {
     if (sheet !== 'none' || !data.accountId) return;
     let current = true;
     apiClient.profile().then(result => {
-      if (current) setPlayerTotals({ wins: result.wins ?? data.lifetimeWins ?? 0, gold: result.gold ?? data.gold ?? 0 });
+      if (current) setPlayerTotals({ wins: result.wins ?? data.lifetimeWins ?? 0, xpStartWins: result.xpStartWins ?? data.xpStartWins, gold: result.gold ?? data.gold ?? 0 });
     }).catch(() => {});
     return () => { current = false; };
-  }, [data.accountId, data.lifetimeWins, data.gold, sheet]);
+  }, [data.accountId, data.lifetimeWins, data.xpStartWins, data.gold, sheet]);
   const [testJewelry, setTestJewelry] = useState<ShopRingId[]>([]);
   const [testCarry, setTestCarry] = useState<CarryCard[]>([]);
   const receiveTestInventory = useCallback((items: ShopRingId[], visit: string, cards: CarryCard[]) => {
@@ -225,6 +225,7 @@ export const IntroView = ({
       <div className="relative flex shrink-0 justify-center px-3 pb-3">
         {/* MENU */}
         <nav className="flex w-full max-w-60 flex-col items-center gap-2">
+          {note && <p className="text-center text-[10px] leading-tight text-ink-muted">{note}</p>}
           <Button variant="menuPrimary" onClick={onStart} disabled={isStarting} data-own-sound={!canResume ? true : undefined}>
             {canResume ? 'Resume the march' : 'Begin the conquest'}
           </Button>
@@ -248,11 +249,6 @@ export const IntroView = ({
             <Button variant="menu" onClick={() => setSheet('dev')}>
               Dev
             </Button>
-          )}
-          {note && (
-            <p className="text-center text-[10px] leading-tight text-ink-muted">
-              {note}
-            </p>
           )}
         </nav>
       </div>

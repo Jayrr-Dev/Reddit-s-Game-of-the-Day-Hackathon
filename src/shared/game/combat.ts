@@ -34,6 +34,7 @@ import {
   pullHero,
   pushHero,
   targetRuleOf,
+  takePhaseSeat,
   type UnplacedHero,
   cellCountOf,
   cellsOf,
@@ -261,6 +262,7 @@ const canMakeMove = (
 ): boolean =>
   heroMove.effects.every((effect) => {
     if (effect.kind === 'summon') return summonSpots(heroes, unit, effect).length > 0;
+    if (effect.kind === 'attack' && effect.maxRange !== undefined && rowDepth(unit.row) >= effect.maxRange) return false;
     return (
       unit.row === 'front' ||
       isAloft(unit) ||
@@ -615,14 +617,17 @@ const withoutOrphans = (heroes: HeroUnit[]): HeroUnit[] => {
  * until the villain Charges.
  */
 const removeFallen = (state: CombatState): CombatState => {
-  // Transform as we settle a defeat, after any hits in that beat.
-  // Phase one is never credited as a kill and the boss keeps its uid.
-  const phases = state.heroes.map(unit => isDefeated(unit)
-    ? enterHeroSecondPhase(unit, getHero(unit.heroId))
-    : unit);
+  // Transform after the damage beat. A phase change is never a kill.
+  const phases = [...state.heroes];
+  phases.forEach((unit, index) => {
+    const definition = getHero(unit.heroId);
+    const phased = enterHeroSecondPhase(unit, definition);
+    if (phased !== unit) phases[index] = definition.secondPhase?.row ? takePhaseSeat(phases, phased) : phased;
+  });
   const standing = withoutOrphans(phases.filter(unit => !isDefeated(unit)));
-  const fallen = phases.filter(unit => !standing.includes(unit));
-  return fallen.length === 0
+  const departed = phases.filter(unit => !standing.includes(unit));
+  const fallen = departed.filter(unit => !getHero(unit.heroId).survivesDefeat);
+  return departed.length === 0
     ? phases.some((unit, index) => unit !== state.heroes[index]) ? { ...state, heroes: phases } : state
     : {
         ...state,

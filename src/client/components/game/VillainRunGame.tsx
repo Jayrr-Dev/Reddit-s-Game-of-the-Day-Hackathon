@@ -4,6 +4,7 @@
 // input as a RunAction; this component never changes game state itself.
 // ===================================================================
 
+import { bossArenaOf } from '../../content/bossArenas';
 import { playSound } from '../../lib/gameAudio';
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { traitPointsAvailable, xpToNextLevel, type CharacterState } from '../../../shared/game/character';
@@ -29,7 +30,8 @@ import { routeLocation } from './routeLocation';
 import { GreedBargain } from './GreedBargain';
 import { getCard } from '../../../shared/game/cards';
 import { ConquestMap } from './ConquestPrelude';
-import { MAP_IMAGES } from './combat/Backdrop';
+import { MAP_IMAGES, MAP_NAMES } from './combat/Backdrop';
+import { AreaCamp } from './AreaCamp';
 import { RunHud } from './RunHud';
 import { useProgressiveImage } from '../../hooks/useProgressiveImage';
 
@@ -56,14 +58,25 @@ const PhaseBody = ({ run, runId, onAction }: VillainRunGameProps) => {
     case 'route':
       return <ConquestMap key={run.stop} stop={run.stop} region={regionOfRun(run)} route={chosenRegion(run)} options={phase.options} onChoose={option => onAction({ type: 'chooseStop', option })} />;
     case 'combat': {
+      const area = run.area;
+      const battle = area?.battles[area.battle];
+      const wave = area ? battle?.waves[area.wave] : undefined;
+      const regionTitle = 'Wave ' + run.stop + ' · ' + regionOfRun(run);
+      const battleTitle = area && battle ? 'Battle ' + (area.battle + 1) + '/' + area.battles.length + ' · Wave ' + (area.wave + 1) + '/' + battle.waves.length : regionTitle;
+      const mapIndex = area ? MAP_NAMES.findIndex(name => name === area.site.map)
+        : routeLocation(run.stop, phase.stop.optionIndex ?? 0, phase.stop.kind, chosenRegion(run)).terrain;
+      const finalArena = battle?.waves.some(part => part.heroIds.includes('archangelMikhael'))
+        ? bossArenaOf(['archangelMikhael']) : undefined;
       return (
         <CombatView
-          key={run.stop}
+          key={run.stop + ':' + (area?.battle ?? 0)}
           combat={phase.combat}
           character={run.character}
           deck={run.deck}
-          terrainIndex={routeLocation(run.stop, phase.stop.optionIndex ?? 0, phase.stop.kind, chosenRegion(run)).terrain}
-          where={`Wave ${run.stop} · ${regionOfRun(run)}`}
+          terrainIndex={mapIndex}
+          {...(area && area.site.kind !== 'dragon' && { trainingArenaOverride: finalArena ?? null })}
+          {...(area && { campaignLocation: finalArena?.name ?? area.site.name })}
+          where={wave && area?.wave !== 0 ? battleTitle + ' · ' + wave.name : battleTitle}
           score={computeScore(run.stats)}
           onAction={onAction}
           pauseActions={
@@ -72,11 +85,13 @@ const PhaseBody = ({ run, runId, onAction }: VillainRunGameProps) => {
         />
       );
     }
+    case 'area-camp':
+      return <AreaCamp run={run} onAction={onAction} />;
     case 'reward':
       return (
         <OfferView
           title="Spoils of war"
-          goldReward={runId && phase.source ? goldRewardFor(runId, run.stop, phase.source, run.pandoraEffect) : undefined}
+          goldReward={runId && phase.source ? goldRewardFor(runId, run.stop, phase.source, run.pandoraEffect, run.area?.battle) : undefined}
           rerolls={phase.rerolled ? 0 : 1}
           subtitle={phase.bonusImbue ? 'Special drop: ' + getCard(phase.bonusImbue).name + ' added. Choose one more card.' : 'Add one card to your deck.'}
           unlockedRingSlot={run.storyRingUnlocked}
@@ -95,6 +110,8 @@ const PhaseBody = ({ run, runId, onAction }: VillainRunGameProps) => {
       );
     case 'grave':
       return <GraveView character={run.character} maxHp={run.maxHp} onAction={onAction} />;
+    case 'sealing':
+    case 'conquered':
     case 'fallen':
       return null;
   }
@@ -116,7 +133,7 @@ function LevelUpDialog({ character, onClose, onOpenCharacter }: {
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
-  const xpGoal = xpToNextLevel(character.level, character.legacyProgression);
+  const xpGoal = xpToNextLevel(character.level, character.legacyProgression, character.scaledExperience);
   const earnedTraits = traitPointsAvailable(character) -
     traitPointsAvailable({ ...character, level: character.level - 1 });
   useLayoutEffect(() => {
@@ -156,8 +173,15 @@ export const VillainRunGame = ({ run, runId, onAction }: VillainRunGameProps) =>
   const [readyWave, setReadyWave] = useState(run.stop);
   const lastPhase = useRef(run.phase.kind);
   const leveledAtReward = run.phase.kind === 'reward' && run.phase.leveledUp;
-  const apple = runId && run.phase.kind === 'reward' && run.phase.source ? appleAtVictory(runId, run.stop, run.phase.source) : undefined;
-  const startingNextWave = run.phase.kind === 'combat' && readyWave !== run.stop;
+  const apple = runId && run.phase.kind === 'reward' && run.phase.source ? appleAtVictory(runId, run.stop, run.phase.source, run.area?.battle) : undefined;
+  const startingNextWave = !run.area && run.phase.kind === 'combat' && readyWave !== run.stop;
+  const wavePending = run.phase.kind === 'combat' && run.area?.wavePending === true;
+  const upcomingWave = run.area?.battles[run.area.battle]?.waves[run.area.wave + 1];
+  useEffect(() => {
+    if (!wavePending) return;
+    const timer = window.setTimeout(() => onAction({ type: 'nextBattleWave' }), NEXT_WAVE_PAUSE_MS);
+    return () => window.clearTimeout(timer);
+  }, [wavePending, onAction]);
 
   useEffect(() => {
     const previousPhase = lastPhase.current;
@@ -191,8 +215,11 @@ export const VillainRunGame = ({ run, runId, onAction }: VillainRunGameProps) =>
     );
   if (run.phase.kind === 'combat')
     return (
-      <div className="h-full w-full overflow-hidden">
+      <div className="relative h-full w-full overflow-hidden">
         <PhaseBody run={run} runId={runId} onAction={onAction} />
+        {wavePending && upcomingWave && <div className="area-wave-notice" role="status">
+          <strong>Next wave</strong><span>{upcomingWave.name}</span>
+        </div>}
       </div>
     );
   return (

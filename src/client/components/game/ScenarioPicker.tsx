@@ -40,6 +40,7 @@ import type { ThemePreviewControls } from '../../hooks/useThemePreview';
 import {
   groupScenariosByUnitType,
   groupUnitsByUnitType,
+  unitRankGroups,
   scenarioTier,
   soloUnitScenario,
   type SandboxScenario,
@@ -59,7 +60,7 @@ type PickerTab = 'scenarios' | 'units' | 'decks' | 'map';
 type PickerEntry = { id: string; name: string; blurb?: string; nameClass?: string };
 
 /** One headed section of either tab: a unit type, or Stationary on Units. */
-type PickerSection = { id: string; label: string; scenarios: readonly SandboxScenario[] };
+type PickerSection = { id: string; label: string; scenarios: readonly SandboxScenario[]; ranks?: readonly PickerSection[] };
 
 // --- CONSTANTS ---
 const PICKER_TABS: readonly PickerTab[] = ['scenarios', 'units', 'decks', 'map'];
@@ -79,7 +80,10 @@ const SCENARIO_GROUPS: readonly PickerSection[] = groupScenariosByUnitType().map
 /** Every unit as a one-on-one scenario, in the same unit type sections. */
 const UNIT_GROUPS: readonly PickerSection[] = groupUnitsByUnitType().map((group) => ({
   ...group,
-  scenarios: group.heroIds.map(soloUnitScenario),
+  scenarios: [],
+  ranks: group.id === 'summons' || group.id === 'stationary'
+    ? [{ id: group.id, label: '', scenarios: group.heroIds.map(soloUnitScenario) }]
+    : unitRankGroups(group.heroIds).map(({ rank, label, heroIds }) => ({ id: rank, label, scenarios: heroIds.map(soloUnitScenario) })),
 }));
 
 // --- UNLOCKS ---
@@ -315,7 +319,9 @@ const ScenarioSections = ({
   groups.map((group) => (
     <Fragment key={group.id}>
       <SectionHeading>{group.label}</SectionHeading>
-      {group.scenarios.map((scenario) => (
+      {(group.ranks ?? [group]).map(rank => <Fragment key={rank.id}>
+        {group.ranks && rank.label && <h3 className="col-span-full text-xs text-ink/75">{rank.label}</h3>}
+        {rank.scenarios.map((scenario) => (
         <LockedPreview
           key={scenario.id}
           isLocked={!isLineupUnlocked(access, scenario.heroIds)}
@@ -331,7 +337,8 @@ const ScenarioSections = ({
             {onInfo && <InfoButton name={scenario.name} onInfo={() => onInfo(scenario)} />}
           </div>
         </LockedPreview>
-      ))}
+        ))}
+      </Fragment>)}
     </Fragment>
   ));
 

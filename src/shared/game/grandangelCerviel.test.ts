@@ -16,7 +16,7 @@ void test('Grandangel Cerviel opens alone then summons the two original forms', 
     ['cervielSword', 'front', 1], ['grandangelCerviel', 'back', 0], ['cervielBow', 'back', 2],
   ]);
   assert.equal(new Set(second.heroes.map(({ uid }) => uid)).size, 3);
-  assert.deepEqual(second.heroes.map(({ heroId }) => getHero(heroId).tier), ['boss', 'elite', 'elite']);
+  assert.deepEqual(second.heroes.map(({ heroId }) => getHero(heroId).tier), ['boss', 'summon', 'summon']);
   assert.ok(second.heroes.every(({ heroId }) => ![...GRUNT_IDS, ...ELITE_IDS, ...CHAMPION_IDS].includes(heroId)));
   const beats = endTurnSteps(second);
   assert.equal(beats.find(({ move }) => move?.name === 'Twin Sabre Cuts')?.attackType, 'melee');

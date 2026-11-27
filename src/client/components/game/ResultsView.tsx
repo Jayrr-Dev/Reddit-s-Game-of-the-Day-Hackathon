@@ -16,6 +16,7 @@ import { RingUnlockNotice } from './RingUnlockNotice';
 // --- TYPES ---
 export type ResultsViewProps = {
   stats: RunStats;
+  conquered?: boolean;
   ringDrops?: readonly number[] | undefined;
   submission: RunSubmission;
   entries: LeaderboardEntry[];
@@ -45,6 +46,7 @@ const submissionNote = (submission: RunSubmission): string => {
 /** Renders the end-of-run screen; everything fits the 512 px inline post. */
 export const ResultsView = ({
   stats,
+  conquered,
   ringDrops = [],
   submission,
   entries,
@@ -56,7 +58,8 @@ export const ResultsView = ({
   return (
     <main className="run-results results-layout">
       <header>
-        <h1>Conquest results</h1>
+        <h1>{conquered ? 'Conquest complete' : 'Conquest results'}</h1>
+        {conquered && <p>The three Archangels were defeated. Wraith was sealed.</p>}
         <p className="results-score">{computeScore(stats).toLocaleString('en')} <span>pts</span></p>
         {note && <p role="status" className="text-xs text-ink-muted">{note}</p>}
       </header>

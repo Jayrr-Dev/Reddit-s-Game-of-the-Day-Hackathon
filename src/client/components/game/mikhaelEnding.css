@@ -1,0 +1,22 @@
+/* THE TAXIARCH'S LAST SEAL */
+.mikhael-ending { position:relative; isolation:isolate; height:100%; width:100%; overflow:hidden; background:var(--color-surface-sunken); color:var(--color-ink); text-align:center; }
+.mikhael-ending-backdrop { position:absolute; z-index:-2; inset:0; width:100%; height:100%; object-fit:cover; opacity:.38; }
+.mikhael-ending-stage { position:absolute; inset:0 0 21%; display:grid; place-items:center; overflow:hidden; }
+.mikhael-ending-mikhael { height:92%; width:min(100%,36rem); position:absolute; opacity:.9; filter:drop-shadow(0 0 1.15rem var(--color-edge)); }
+.mikhael-ending-seal { position:absolute; width:min(82%, 21rem); color:var(--color-accent-hover); filter:drop-shadow(0 0 .6rem currentColor); transform:scale(.08); opacity:0; animation:mikhael-seal-close 2.8s .26s ease-in-out both; }
+.mikhael-ending-copy { position:absolute; bottom:0; left:0; right:0; padding:3rem .9rem 1rem; background:linear-gradient(transparent,var(--color-surface-sunken) 60%); }
+.mikhael-ending-kicker { color:var(--color-accent-hover); font-size:.8rem; }
+.mikhael-ending-copy blockquote { font:italic clamp(.95rem, 3.4vw, 1.25rem)/1.25 var(--font-display); max-width:33rem; margin:.5rem auto; }
+.mikhael-ending-result { display:grid; justify-items:center; gap:.35rem; }
+.mikhael-ending-result h1 { font:800 clamp(1.25rem,4vw,1.85rem) / 1.05 var(--font-display); }
+.mikhael-ending-result small { color:var(--color-accent-hover); }
+.mikhael-ending[data-sealed] .mikhael-ending-mikhael { opacity:.5; transition:opacity .35s; }
+@keyframes mikhael-seal-close {
+  0% { transform:scale(.08) rotate(-35deg); opacity:0; }
+  65% { transform:scale(1.24) rotate(26deg); opacity:1; }
+  100% { transform:scale(.93) rotate(0); opacity:.95; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .mikhael-ending-seal { animation:none; transform:none; opacity:.95; }
+  .mikhael-ending[data-sealed] .mikhael-ending-mikhael { transition:none; }
+}

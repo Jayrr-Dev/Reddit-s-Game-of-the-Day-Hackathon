@@ -245,37 +245,37 @@ export const HEROES = {
     ['longRange', 'anchored']
   ),
 
-  // CHAMPIONS (ONE PER REGION, IN REGION ORDER)
-  holt: hero('Sergeant Holt', 'champion', 50, 20, 5, CHAMPION, [
+  // NAMED OFFICERS (ALSO THE GUARDIANS OF LEGACY RUNS)
+  holt: hero('Sergeant Holt', 'officer', 50, 20, 5, CHAMPION, [
     move('Rally', wrath(1, 'allies'), guard(6)),
     move('Halberd Sweep', strike(10)),
     move('Twin Thrust', strike(6, 2)),
   ]),
-  lysa: hero('Ranger Lysa', 'champion', 46, 120, 8, WIDE_BACK, [
+  lysa: hero('Ranger Lysa', 'officer', 46, 120, 8, WIDE_BACK, [
     move('Hail of Arrows', shoot(3, 4)),
     move('Snare', weaken(2), guard(6)),
     move('Piercing Shot', shoot(12)),
   ]),
-  maren: hero('High Priestess Maren', 'champion', 55, 55, 4, WIDE_BACK, [
+  maren: hero('High Priestess Maren', 'officer', 55, 55, 4, WIDE_BACK, [
     move('Sanctuary', guard(6, 'allies'), heal(6, 'self')),
     move('Holy Fire', burn(5), dispel()),
     move('Smite the Wicked', spell(11)),
   ]),
   // The knight: Armor 3 blunts every Melee and Range blow.
   brannoc: armored(
-    hero('Sir Brannoc', 'champion', 70, 220, 3, CHAMPION, [
+    hero('Sir Brannoc', 'officer', 70, 220, 3, CHAMPION, [
       move('Iron Wall', guard(15)),
       move('Gatebreaker', strike(18), pin(1)),
       move('Hammer Blows', strike(8, 2)),
     ]),
     3
   ),
-  seris: hero("Seris, the Queen's Blade", 'champion', 58, 330, 9, CHAMPION, [
+  seris: hero("Seris, the Queen's Blade", 'officer', 58, 330, 9, CHAMPION, [
     move('Dance of Blades', strike(4, 4)),
     move('Feint', weaken(2), guard(8)),
     move('Execution', strike(20)),
   ]),
-  valen: hero('Valen the Radiant', 'champion', 90, 48, 6, { row: 'horizon', size: 1.5 }, [
+  valen: hero('Valen the Radiant', 'officer', 90, 48, 6, { row: 'horizon', size: 1.5 }, [
     move('Radiance', wrath(2), guard(12)),
     move('Lightbringer', spell(9, 2)),
     move('Brand of Light', hex(6)),
@@ -289,30 +289,30 @@ export const HEROES = {
     move('Heaven\'s Tether', { kind: 'pullPlayer', lines: 1 }),
     move('Barbed Halo', shoot(4), bleed(2)),
   ]),
-  swordPrelate: hero('Sword Prelate', 'elite', 34, 55, 5, BACK, [
+  swordPrelate: hero('Sword Prelate', 'elite', 36, 55, 5, BACK, [
     move('Absolution', cleanse(), guard(4, 'allies')),
     move('Oathbreaker', spell(6), dispel()),
     move('Penance', spell(8), hex(2)),
   ]),
   hornedSentinel: armored(
-    hero('Horned Sentinel', 'elite', 43, 268, 3, WIDE_FRONT, [
+    hero('Horned Sentinel', 'elite', 44, 268, 3, WIDE_FRONT, [
       move('Plant the Hammer', guard(10)),
       move('Gate Slam', strike(11), knockBack(1)),
       move('Groundbreaker', strike(8), { kind: 'frost', amount: 2 }),
     ]),
     2
   ),
-  stormLancer: hero('Storm Lancer', 'elite', 34, 47, 7, FRONT, [
+  stormLancer: hero('Storm Lancer', 'elite', 38, 47, 7, FRONT, [
     move('Conducting Thrust', strike(7), shock(3)),
     move('Forked Javelin', shoot(3, 2), shock(1)),
     move('Thunderclap', detonate()),
   ]),
-  sevenEyedOracle: hero('Seven-Eyed Oracle', 'elite', 27, 278, 6, BACK, [
+  sevenEyedOracle: hero('Seven-Eyed Oracle', 'elite', 28, 278, 6, BACK, [
     move('Unravel', { kind: 'disrupt', amount: 2 }),
     move('Foreseen Wound', homing(spell(7)), hex(2)),
     move('Edict of Silence', { kind: 'malaise', amount: 1 }),
   ]),
-  holyKing: hero('Holy King', 'boss', 165, 48, 5, BOSS_COLUMN, [
+  holyKing: hero('Holy King', 'boss', 150, 48, 5, BOSS_COLUMN, [
     move('Royal Aegis', guard(14), protect('self')),
     move('Crownfall', strike(18), knockBack(1)),
     move('King\'s Decree', { kind: 'malaise', amount: 1 }, guard(6)),
@@ -320,25 +320,25 @@ export const HEROES = {
     move('Oath of Judgment', strike(16), dispel()),
   ]),
 
-  ivoryWerewolf: hero('Ivory Werewolf', 'elite', 34, 268, 8, WIDE_FRONT, [
+  ivoryWerewolf: hero('Ivory Werewolf', 'officer', 34, 268, 8, WIDE_FRONT, [
     move('Rend', strike(4, 2), bleed(2)),
     move('Blood Scent', wrath(2), guard(5)),
     move('Savage Bite', strike(10), bleed(3)),
   ]),
-  wolfCentaur: hero('Wolf-Centaur', 'elite', 43, 260, 6, WIDE_FRONT, [
+  wolfCentaur: hero('Wolf-Centaur', 'officer', 43, 260, 6, WIDE_FRONT, [
     move('Hunting Call', { kind: 'pullPlayer', lines: 1 }),
     move('Staff Strike', strike(12), weaken(1)),
     move('Pack Howl', wrath(1, 'allies')),
   ]),
 
-  angelMage: hero('Angel Mage', 'grunt', 37, 55, 6, WIDE_BACK, [
+  angelMage: hero('Angel Mage', 'grunt', 22, 55, 6, WIDE_BACK, [
     move('Borrowed Time', protect(), guard(5, 'allies')),
     { ...move('Stasis Pulse', spell(6), { kind: 'frost', amount: 3 }), element: 'ice' },
     move('Reverse Time', heal(10, 'self'), cleanse('self')),
     move('Clockhand Barrage', spell(4, 3)),
   ]),
 
-  mageBorneAstra: hero('Mage Borne Astra', 'boss', 205, 50, 6, BACK, [
+  mageBorneAstra: hero('Mage Borne Astra', 'boss', 195, 50, 6, BACK, [
     move('Vow of Silence', guard(12), { kind: 'malaise', amount: 1 }),
     move('Astral Echo', homing(spell(6, 3))),
     move('Quiet Covenant', heal(10, 'self'), cleanse('self')),
@@ -346,7 +346,7 @@ export const HEROES = {
   ]),
 
   // Cerviel's three bodies are separate units so each can be targeted and defeated.
-  grandangelCerviel: hero('Cerviel · Staff', 'elite', 55, 50, 6, BACK, [
+  grandangelCerviel: hero('Cerviel · Staff', 'summon', 55, 50, 6, BACK, [
     move('Staff of Accord', guard(10, 'allies'), protect()),
     move('Trinity Pulse', homing(spell(7, 2))),
     move('Seal of Concord', heal(8), cleanse()),
@@ -358,7 +358,7 @@ export const HEROES = {
     move('Rending Oath', strike(10), bleed(2)),
     move('Distant Blade Arc', spell(8)),
   ]), secondPhase: cervielSecondPhase('grandangelCerviel', 'cervielBow') },
-  cervielBow: hero('Cerviel • Bow', 'elite', 46, 50, 5, BACK, [
+  cervielBow: hero('Cerviel • Bow', 'summon', 46, 50, 5, BACK, [
     move('Gilded Volley', shoot(4, 2)),
     move('Pinning Arrow', shoot(9), weaken(1)),
   ]),
@@ -370,18 +370,18 @@ export const HEROES = {
     signature(move('Eclipse', homing(spell(16)), hex(5))),
   ]),
 
-  archangelZeruel: hero('Archangel Zeruel', 'boss', 280, 64, 7, FRONT, [
+  archangelZeruel: hero('Archangel Zeruel', 'boss', 1500, 64, 7, FRONT, [
     move('Halo of Resolve', guard(16), wrath(2)),
-    move('Twin Halo Strike', strike(8, 2)),
-    move('Violet Judgment', homing(spell(9, 2)), weaken(1)),
-    signature(move('Sundering Halo', homing(spell(20)), dispel())),
+    move('Twin Halo Strike', strike(21, 2)),
+    move('Violet Judgment', homing(spell(23, 2)), weaken(1)),
+    signature(move('Sundering Halo', homing(spell(72)), dispel())),
   ]),
 
-  zeruelRedSun: hero('Alpha', 'elite', 48, 4, 5, BACK, [
+  zeruelRedSun: hero('Alpha', 'summon', 48, 4, 5, BACK, [
     { ...move('Crimson Flare', spell(5), burn(2)), element: 'fire' },
     move('Solar Prominence', guard(7, 'allies')),
   ]),
-  zeruelBlueSun: hero('Omega', 'elite', 48, 212, 5, BACK, [
+  zeruelBlueSun: hero('Omega', 'summon', 48, 212, 5, BACK, [
     move('Blue Radiance', spell(6)),
     move('Stellar Mantle', guard(7, 'allies')),
   ]),
@@ -464,7 +464,7 @@ export const HEROES = {
     signature(move('Devour', strike(16), heal(18, 'self'))),
   ]),
 
-  mageBorneAzula: hero('Mage Borne Azula', 'boss', 190, 49, 6, BACK, [
+  mageBorneAzula: hero('Mage Borne Azula', 'boss', 180, 49, 6, BACK, [
     move('Sevenfold Ward', guard(12), protect('self')),
     move('Oracle’s Hex', spell(7, 2), hex(3)),
     move('Unravel', homing(spell(10)), dispel()),
@@ -479,7 +479,7 @@ export const HEROES = {
   ]),
 
   // BOSSES (TARGET DUMMY SCENARIOS ONLY UNTIL THEY JOIN A REGION)
-  apollyonSeraph: hero('Apollyon Seraph', 'elite', 220, 47, 5, FRONT, [
+  apollyonSeraph: hero('Apollyon Seraph', 'officer', 98, 47, 5, FRONT, [
     move('Seal of the Host', guard(10), protect('self')),
     move('Radiant Gaze', spell(7, 2)),
     move('The Last Trumpet', homing(spell(14)), { kind: 'malaise', amount: 1 }),
@@ -495,31 +495,49 @@ export const HEROES = {
    * down its signature Halo of Judgment (which also raises every fallen
    * ally) and roars itself into a Wrath.
    */
-  angelAssassin: hero('Angel Assassin', 'boss', 126, 280, 9, FRONT, [
+  angelAssassin: hero('Angel Assassin', 'grunt', 21, 280, 9, FRONT, [
     move('Veil', { kind: 'cloak', amount: 2 }),
-    move('Silent Strike', strike(8, 2), bleed(2)),
+    move('Silent Strike', strike(4, 2), bleed(1)),
     move('Dagger Cast', shoot(8), bleed(1)),
   ]),
 
-  twinAxeKnight: armored(hero('General Khan', 'boss', 205, 42, 5, FRONT, [
+  twinAxeKnight: armored(hero('General Khan', 'boss', 190, 42, 5, FRONT, [
     move('Twin Cleave', strike(9, 2), bleed(2)),
     move('Iron Brace', guard(19)),
     signature(move('Executioner’s Cross', strike(12, 2))),
   ]), 1),
-  archangelUriel: hero('Archangel Uriel', 'boss', 195, 14, 7, FRONT, [
+  archangelUriel: hero('Archangel Uriel', 'boss', 1000, 14, 7, FRONT, [
     move('Crimson Ward', guard(15), protect('self')),
-    { ...move('Wingfire', spell(13), burn(3)), element: 'fire' },
-    signature({ ...move('Radiant Verdict', spell(8, 3)), element: 'fire' }),
+    { ...move('Wingfire', spell(35), burn(5)), element: 'fire' },
+    signature({ ...move('Radiant Verdict', spell(20, 3)), element: 'fire' }),
   ]),
-  zeruelArmored: hero('Archangel Zeruel · Armored', 'boss', 210, 277, 6, FRONT, [
-    move('Ivory Rebuke', strike(11)),
-    move('Eclipse Guard', guard(18), protect('self')),
-    signature(move('Divided Light', spell(7, 3))),
-  ]),
+  // TAXIARCH: sword at the front, spear in Midline, then a living retreat.
+  archangelMikhael: {
+    ...hero('Archangel Mikhael', 'boss', 2000, 38, 6, FRONT, [
+      move('Marshal’s Ward', guard(26), protect('self')),
+      move('Divide the Earth', strike(44), knockBack(1)),
+      move('Sword of the Host', strike(25, 2)),
+      signature(move('The Taxiarch’s Sentence', strike(72), dispel())),
+    ]),
+    survivesDefeat: true,
+    secondPhase: {
+      triggerHpFraction: 0.5,
+      restoreHpFraction: 0.5,
+      row: 'back',
+      visual: 'mikhaelSpear',
+      moves: [
+        move('Light Through the Rift', { ...shoot(35), maxRange: 2 }, burn(5)),
+        move('Grasp of Heaven', { ...shoot(21, 2), maxRange: 2 }, pin(1)),
+        move('The Gate Trembles', guard(20)),
+        signature(move('Spear of the Last Seal', { ...shoot(62), maxRange: 2 }, dispel(), knockBack(1))),
+      ],
+    },
+  },
+
   holyDragon: hero(
     'Holy Dragon Sol',
     'boss',
-    500,
+    380,
     280,
     5,
     BOSS_T,
@@ -546,7 +564,7 @@ export const HEROES = {
    * signature moves): it flies up out of reach (Aloft), then the next
    * turn dives down with one crushing blow.
    */
-  grandGriffon: hero('Grand Griffon Rio', 'boss', 420, 275, 8, BOSS_COLUMN, [
+  grandGriffon: hero('Grand Griffon Rio', 'boss', 320, 275, 8, BOSS_COLUMN, [
     move('Triple Slice', strike(6, 3)),
     signature(move('Heavenly Drive', soar())),
     signature(move('Heavenly Dive', strike(34))),
@@ -668,7 +686,8 @@ const HERO_UNIT_TYPES = {
   apollyonSeraph: 'angel',
   angelAssassin: 'angel',
   archangelUriel: 'angel',
-  zeruelArmored: 'angel',
+
+  archangelMikhael: 'angel',
   // Dragons.
   fulgurDragonknight: 'dragon',
   holyDragon: 'dragon',

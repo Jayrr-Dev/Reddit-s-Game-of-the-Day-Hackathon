@@ -1,10 +1,12 @@
 type CervielSupportId = 'grandangelCerviel' | 'cervielBow';
 import type { HeroDef, HeroMove, HeroUnit } from './types.ts';
 
-/** The first lethal beat converts an opted-in boss in place, exactly once. */
+/** A boss can cross a phase gate once, at zero HP by default. */
 export function enterHeroSecondPhase(unit: HeroUnit, definition: HeroDef): HeroUnit {
   const phase = definition.secondPhase;
-  if (!phase || unit.phase === 2 || unit.hp > 0) return unit;
+  if (!phase || unit.phase === 2) return unit;
+  const threshold = Math.ceil(unit.maxHp * (phase.triggerHpFraction ?? 0));
+  if (unit.hp > threshold) return unit;
   return { ...unit, hp: Math.max(1, Math.ceil(unit.maxHp * phase.restoreHpFraction)), phase: 2, moveIndex: 0 };
 }
 

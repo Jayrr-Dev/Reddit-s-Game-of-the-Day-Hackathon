@@ -374,6 +374,7 @@ export const MOVEMENT_LOOK: Record<MovementId, MovementLook> = {
 export const TIER_NAME_CLASS: Record<HeroTier, string> = {
   boss: 'text-boss',
   elite: 'text-elite',
-  champion: 'text-ink',
+  officer: 'text-officer',
   grunt: 'text-ink',
+  summon: 'text-summon',
 };

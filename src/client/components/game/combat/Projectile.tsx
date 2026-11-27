@@ -15,7 +15,7 @@ import { CombatFx } from './CombatFx';
 import './projectile.css';
 
 // --- TYPES ---
-export type ProjectileKind = 'arrow' | 'bolt' | 'lightning';
+export type ProjectileKind = 'arrow' | 'bolt' | 'lightning' | 'spear';
 
 export type ProjectileFlight = {
   id: number;
@@ -104,6 +104,14 @@ const Lightning = () => (
   </svg>
 );
 
+/** The Taxiarch's long, gold-edged spear; the point leads the flight. */
+const Spear = () => <svg viewBox="0 0 100 16" aria-hidden="true"
+  className="h-4 w-[100px] -translate-x-full -translate-y-1/2 [transform-origin:100%_50%] [rotate:var(--shot-angle)]">
+  <path d="M1 8h80" stroke="var(--color-accent)" strokeWidth="3" />
+  <path d="M100 8 75 0l4 8-4 8Z" fill="var(--color-accent-hover)" />
+  <path d="M99 8H79L76 1Z" fill="var(--color-ink)" />
+</svg>;
+
 // --- COMPONENT ---
 /** Renders one shot in flight (place it on a fixed, full-screen layer). */
 export const Projectile = ({
@@ -120,8 +128,8 @@ export const Projectile = ({
     data-front-on-release={flight.frontOnRelease || undefined}
     style={flightStyle(flight)}
   >
-    {flight.kind === 'arrow' && <CombatFx kind="projectile-speed" delayMs={flight.delayMs} />}
+    {(flight.kind === 'arrow' || flight.kind === 'spear') && <CombatFx kind="projectile-speed" delayMs={flight.delayMs} />}
     {flight.kind === 'arrow' && <span aria-hidden="true" className="projectile-arrow-smear" />}
-    {flight.kind === 'arrow' ? <Arrow /> : flight.kind === 'lightning' ? <Lightning /> : <Bolt element={flight.element} />}
+    {flight.kind === 'arrow' ? <Arrow /> : flight.kind === 'lightning' ? <Lightning /> : flight.kind === 'spear' ? <Spear /> : <Bolt element={flight.element} />}
   </div>
 );

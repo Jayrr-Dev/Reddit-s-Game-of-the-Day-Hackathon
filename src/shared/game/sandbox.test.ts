@@ -352,7 +352,7 @@ void test('scenario tier follows its lead hero, so boss and elite names can be c
   assert.equal(tierOf('archangelZeruel'), 'boss');
   assert.equal(tierOf('zadkielOfDominations'), 'boss');
   // Elites, including one filed by its lead rather than the unit in front.
-  assert.equal(tierOf('apollyonSeraph'), 'elite');
+  assert.equal(tierOf('apollyonSeraph'), 'officer');
   // Angel Mage is a basic unit of the Angel Host (Sam, 2026-11-26).
   assert.equal(tierOf('angelMage'), 'grunt');
   assert.equal(tierOf('archers'), 'grunt');
@@ -361,20 +361,20 @@ void test('scenario tier follows its lead hero, so boss and elite names can be c
 
 void test('the Units tab lists every hero once, in unit type sections, weakest rank first', () => {
   const groups = groupUnitsByUnitType();
-  assert.deepEqual(groups.map((group) => group.label), ['Angels', 'Dragons', 'Beasts', 'Humans', 'Demi-humans', 'Seven Sins', 'Stationary']);
+  assert.deepEqual(groups.map((group) => group.label), ['Angels', 'Dragons', 'Beasts', 'Humans', 'Demi-humans', 'Seven Sins', 'Stationary', 'Summons']);
   // Every hero in the catalog lands in exactly one section: Stationary if anchored, else its unit type.
   const listed = groups.flatMap((group) => group.heroIds);
   assert.deepEqual([...listed].sort(), [...ALL_HERO_IDS].sort());
   for (const group of groups) {
     for (const heroId of group.heroIds) {
-      assert.equal(group.id, isAnchored({ heroId }) ? 'stationary' : unitTypeOf(heroId), heroId);
+      assert.equal(group.id, getHero(heroId).tier === 'summon' ? 'summons' : isAnchored({ heroId }) ? 'stationary' : unitTypeOf(heroId), heroId);
     }
   }
   const stationary = groups.find((group) => group.label === 'Stationary')?.heroIds ?? [];
   assert.ok(stationary.includes('ballista'));
   assert.ok(!groups.find((group) => group.label === 'Humans')?.heroIds.includes('ballista'));
   // Ranks never go backwards inside a section (grunts, elites, champions, bosses).
-  const rank = ['grunt', 'elite', 'champion', 'boss'];
+  const rank = ['grunt', 'elite', 'officer', 'boss', 'summon'];
   for (const group of groups) {
     const ranks = group.heroIds.map((id) => rank.indexOf(getHero(id).tier));
     assert.deepEqual(ranks, [...ranks].sort((a, b) => a - b), group.label);

@@ -7,6 +7,8 @@
 // Pure functions like the rest of the engine; never scored or logged.
 // ===================================================================
 
+import { ARCHANGEL_BOSSES, AREA_BOSSES, GRANDANGEL_BOSSES, LOCATION_BOSSES } from './conquestAreas.ts';
+import { CONQUEST_SCENARIOS } from './conquestScenarios.ts';
 import { advanceHeroes, cellCountOf, isAnchored } from './battlefield.ts';
 import { characterBonuses, syncCharacterCombat, type CharacterState, type Equipment, type TraitNodes, type Traits } from './character.ts';
 import { drawCards, combatOutcome, endTurn, finishPlayerTurn, playCard, startCombat, startPlayerTurn } from './combat.ts';
@@ -78,6 +80,10 @@ export type ScenarioGroup = {
  * Add a scenario by adding an entry here.
  */
 export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
+  ...Object.entries(CONQUEST_SCENARIOS).map(([id, scenario]) => ({ id, ...scenario })),
+  { id: 'archangelMikhael', name: getHero('archangelMikhael').name,
+    blurb: 'The Taxiarch. Fights with his sword up front, then throws his spear from Midline at half health.',
+    heroIds: ['archangelMikhael'], startsInPlace: true },
   {
     id: 'greed',
     name: getHero('greed').name,
@@ -273,13 +279,6 @@ export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
     startsInPlace: true,
   },
   {
-    id: 'zeruelArmored',
-    name: getHero('zeruelArmored').name,
-    blurb: 'The alternate armored Zeruel, fought alone.',
-    heroIds: ['zeruelArmored'],
-    startsInPlace: true,
-  },
-  {
     id: 'mixedRows',
     name: 'Full field',
     blurb: 'Every slot taken: fighters in front, ranged and support behind.',
@@ -365,7 +364,7 @@ export const groupScenariosByUnitType = (
  * A Units tab section: a unit type, or Stationary for anchored heroes
  * (the Ballista), which never leave their line.
  */
-export type UnitSectionId = UnitType | 'stationary';
+export type UnitSectionId = UnitType | 'stationary' | 'summons';
 
 /** One section's heading and its heroes, weakest rank first. */
 export type UnitGroup = {
@@ -378,15 +377,38 @@ export type UnitGroup = {
 const STATIONARY_LABEL = 'Stationary';
 
 /** Rank order for the Units list: the horde first, bosses last. */
-const TIER_ORDER: readonly HeroTier[] = ['grunt', 'elite', 'champion', 'boss'];
+const TIER_ORDER: readonly HeroTier[] = ['grunt', 'elite', 'officer', 'boss', 'summon'];
 
 /** Display names for a hero's rank, shown under each unit. */
 export const TIER_LABELS: Readonly<Record<HeroTier, string>> = {
   grunt: 'Grunt',
   elite: 'Elite',
-  champion: 'Champion',
+  officer: 'Officer',
+  summon: 'Summon',
   boss: 'Boss',
 };
+
+/** Boss labels show what they guard without changing the combat engine's boss tier. */
+export function unitRankLabel(id: HeroId): string {
+  if (ARCHANGEL_BOSSES.some(boss => boss === id)) return 'Final Boss';
+  if (GRANDANGEL_BOSSES.some(boss => boss === id)) return 'Region Boss';
+  if (LOCATION_BOSSES.some(boss => boss === id)) return 'City Boss';
+  if (AREA_BOSSES.some(boss => boss === id)) return 'Area Boss';
+  return TIER_LABELS[getHero(id).tier];
+}
+
+const RANK_GROUPS = [
+  ['Grunt', 'Grunts'], ['Elite', 'Elites'], ['Officer', 'Officers'],
+  ['City Boss', 'City Bosses'], ['Area Boss', 'Area Bosses'], ['Region Boss', 'Region Bosses'],
+  ['Final Boss', 'Final Bosses'], ['Boss', 'Other Bosses'], ['Summon', 'Summons'],
+] as const;
+
+/** Split a unit type by conquest rank without duplicating cards. */
+export function unitRankGroups(heroIds: readonly HeroId[]) {
+  return RANK_GROUPS.map(([rank, label]) => ({
+    rank, label, heroIds: heroIds.filter(id => unitRankLabel(id) === rank),
+  })).filter(group => group.heroIds.length > 0);
+}
 
 /** Every hero id in catalog order (the catalog is the one source of units). */
 export const ALL_HERO_IDS: readonly HeroId[] = Object.keys(HEROES).filter(
@@ -395,7 +417,7 @@ export const ALL_HERO_IDS: readonly HeroId[] = Object.keys(HEROES).filter(
 
 /** The Units tab section a hero is filed under: Stationary wins over its unit type. */
 const unitSectionOf = (heroId: HeroId): UnitSectionId =>
-  isAnchored({ heroId }) ? 'stationary' : unitTypeOf(heroId);
+  getHero(heroId).tier === 'summon' ? 'summons' : isAnchored({ heroId }) ? 'stationary' : unitTypeOf(heroId);
 
 /**
  * Heroes split into unit type sections (same order as the Scenarios tab)
@@ -403,10 +425,10 @@ const unitSectionOf = (heroId: HeroId): UnitSectionId =>
  * order breaks ties) and dropping empty sections.
  */
 export const groupUnitsByUnitType = (heroIds: readonly HeroId[] = ALL_HERO_IDS): UnitGroup[] =>
-  [...UNIT_TYPES, 'stationary' as const]
+  [...UNIT_TYPES, 'stationary' as const, 'summons' as const]
     .map((id) => ({
       id,
-      label: id === 'stationary' ? STATIONARY_LABEL : UNIT_TYPE_LABELS[id],
+      label: id === 'stationary' ? STATIONARY_LABEL : id === 'summons' ? 'Summons' : UNIT_TYPE_LABELS[id],
       heroIds: heroIds
         .filter((heroId) => unitSectionOf(heroId) === id)
         .toSorted((a, b) => TIER_ORDER.indexOf(getHero(a).tier) - TIER_ORDER.indexOf(getHero(b).tier)),
@@ -424,7 +446,7 @@ export const soloUnitScenario = (heroId: HeroId): SandboxScenario => {
   return {
     id: 'unit:' + heroId,
     name: hero.name,
-    blurb: TIER_LABELS[hero.tier] + ' · ' + hero.maxHp + ' HP · ' + preferredPositionLabel(heroId),
+    blurb: unitRankLabel(heroId) + ' · ' + hero.maxHp + ' HP · ' + preferredPositionLabel(heroId),
     heroIds: [heroId],
     startsInPlace: true,
   };
@@ -449,7 +471,7 @@ export const describeUnitStats = (heroId: HeroId): UnitStat[] => {
     info: PASSIVE_INFO[passive].description,
   }));
   return [
-    { label: 'Rank', value: TIER_LABELS[hero.tier] },
+    { label: 'Rank', value: unitRankLabel(heroId) },
     { label: 'Unit type', value: UNIT_TYPE_LABELS[unitTypeOf(heroId)] },
     { label: 'HP', value: String(hero.maxHp) },
     { label: 'Preferred line', value: preferredPositionLabel(heroId) },

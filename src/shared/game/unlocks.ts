@@ -96,7 +96,7 @@ const killsOfStep = (before: RunState, after: RunState): HeroId[] => {
   if (during) return heroIdsOf(during.fallen);
   const lostFight = after.phase.kind === 'fallen' ? after.phase.battlefield?.combat : undefined;
   if (lostFight) return heroIdsOf(lostFight.fallen);
-  const wonFight = after.phase.kind === 'reward' ? combatOf(before) : undefined;
+  const wonFight = after.phase.kind === 'reward' || after.phase.kind === 'sealing' ? combatOf(before) : undefined;
   return wonFight ? [...heroIdsOf(wonFight.fallen), ...heroIdsOf(wonFight.heroes)] : [];
 };
 
@@ -107,16 +107,23 @@ const stopOfStep = (before: RunState, action: RunAction): Pick<Unlocks, 'facedUn
   if (!stop) return { facedUnits: [], visitedMaps: [] };
   return {
     facedUnits: [...stop.heroIds],
-    visitedMaps: [stopLocation(before.stop, action.option, stop.kind, chosenRegion(before)).name],
+    visitedMaps: [stop.site?.map ?? stopLocation(before.stop, action.option, stop.kind, chosenRegion(before)).name],
   };
 };
 
 /** What one replayed step unlocks. */
-const unlocksOfStep = (before: RunState, action: RunAction, after: RunState): Unlocks => ({
-  ...stopOfStep(before, action),
-  killedUnits: killsOfStep(before, after),
-  deckCards: [...after.deck],
-});
+const unlocksOfStep = (before: RunState, action: RunAction, after: RunState): Unlocks => {
+  const entered = stopOfStep(before, action);
+  const beforeUids = new Set(combatOf(before)?.heroes.map(hero => hero.uid));
+  const shown = combatOf(after)?.heroes ?? [];
+  const newBattle = before.phase.kind !== 'combat';
+  return {
+    ...entered,
+    facedUnits: [...entered.facedUnits, ...heroIdsOf(newBattle ? shown : shown.filter(hero => !beforeUids.has(hero.uid)))],
+    killedUnits: killsOfStep(before, after),
+    deckCards: [...after.deck],
+  };
+};
 
 /**
  * Replays a run log from `start` and returns the final state with

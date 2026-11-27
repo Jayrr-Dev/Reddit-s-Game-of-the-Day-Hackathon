@@ -4,7 +4,7 @@
 // ===================================================================
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { RunAction, RunState } from '../../shared/game/run';
+import { isRunOver, type RunAction, type RunState } from '../../shared/game/run';
 import type { FinishRunResponse } from '../../shared/types/api';
 
 // --- TYPES ---
@@ -36,11 +36,11 @@ export const useRunSubmission = ({
     status: 'idle',
   });
   const hasSubmittedRef = useRef(false);
-  const isFallen = run.phase.kind === 'fallen';
+  const isFinished = isRunOver(run);
 
   // SUBMIT THE LOG THE MOMENT THE VILLAIN FALLS
   useEffect(() => {
-    if (!isActive || !isFallen || hasSubmittedRef.current) return;
+    if (!isActive || !isFinished || hasSubmittedRef.current) return;
     hasSubmittedRef.current = true;
     setSubmission({ status: 'saving' });
     finishRun(actions)
@@ -54,7 +54,7 @@ export const useRunSubmission = ({
           message: error instanceof Error ? error.message : 'Unknown error',
         })
       );
-  }, [isActive, isFallen, actions, finishRun, onSaved]);
+  }, [isActive, isFinished, actions, finishRun, onSaved]);
 
   /** Clears the result before a new run starts. */
   const reset = useCallback(() => {

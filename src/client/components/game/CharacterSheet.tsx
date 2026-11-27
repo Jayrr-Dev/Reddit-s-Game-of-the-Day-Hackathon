@@ -377,7 +377,7 @@ export const CharacterSheet = ({
   const dialog = useRef<HTMLDialogElement>(null);
   const [page, setPage] = useState<SheetPage>(profile ? 'profile' : 'traits');
   const [trait, setTrait] = useState<TraitId>('vigor');
-  const needed = xpToNextLevel(character.level, character.legacyProgression);
+  const needed = xpToNextLevel(character.level, character.legacyProgression, character.scaledExperience);
   const { newCount, markSeen } = useNewItems(character.inventory.map((item) => item.id));
   /** Counts beside the tab names: unspent points, and new items on Equipment. */
   const tabCounts: Partial<Record<SheetPage, { count: number; label: string }>> = {

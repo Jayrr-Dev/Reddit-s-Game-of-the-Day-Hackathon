@@ -485,6 +485,7 @@ export const HeroOnField = ({
       data-cloaked={unit.statuses.cloak > 0 ? '' : undefined}
       data-acting={action ? '' : undefined}
       data-boss-phase={secondPhase ? '2' : undefined}
+      data-mikhael-phase={unit.heroId === 'archangelMikhael' ? unit.phase ?? 1 : undefined}
     >
       {/* STAGE: holds the unit's lift (index.css, UNIT LIFT), which every
           reason to leave the ground feeds (Aloft, a boss's entrance, a
@@ -523,7 +524,7 @@ export const HeroOnField = ({
                   style={swayStyle(unit)}
                 >
                   <div
-                    className={`h-full w-full ${isDeep(unit) || unit.heroId === 'apollyonSeraph' || unit.heroId === 'lightLordMori' || unit.heroId === 'mageBorneAzula' || unit.heroId === 'grandangelCherubiel' || unit.heroId === 'zadkielOfDominations' || unit.heroId === 'mageBorneAstra' || unit.heroId === 'grandangelGeonosis' || unit.heroId === 'grandangelRaziel' || unit.heroId === 'grandangelCerviel' || unit.heroId === 'cervielBow' || (unit.heroId === 'angelArcher' && unit.row === 'back') ? '' : ROW_TINT_CLASS[unit.row]} ${aim === 'legal' ? 'animate-pulse' : ''}`}
+                    className={`h-full w-full ${isDeep(unit) || unit.heroId === 'apollyonSeraph' || unit.heroId === 'lightLordMori' || unit.heroId === 'mageBorneAzula' || unit.heroId === 'grandangelCherubiel' || unit.heroId === 'zadkielOfDominations' || unit.heroId === 'mageBorneAstra' || unit.heroId === 'grandangelGeonosis' || unit.heroId === 'grandangelRaziel' || unit.heroId === 'grandangelCerviel' || unit.heroId === 'cervielBow' || unit.heroId === 'archangelMikhael' || (unit.heroId === 'angelArcher' && unit.row === 'back') ? '' : ROW_TINT_CLASS[unit.row]} ${aim === 'legal' ? 'animate-pulse' : ''}`}
                   >
                     {/* SELECTED: a soft gold glow (dueling-table.css) on its own
                       layer, so its filter never fights the row tint's.
@@ -538,6 +539,7 @@ export const HeroOnField = ({
                         {secondPhase ? <CervielSecondPhase action={action} uid={unit.uid} /> : <HeroFigure
                           heroId={unit.heroId}
                           size={size}
+                          phase={unit.phase}
                           action={action}
                           mood={mood}
                         />}

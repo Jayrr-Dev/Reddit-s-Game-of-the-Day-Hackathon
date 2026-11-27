@@ -65,7 +65,7 @@ const BOSS_INTRO_BY_HERO: Partial<Record<HeroId, BossIntroId>> = {
   lightLordMori: 'crashLanding',
   angelAssassin: 'crashLanding',
   archangelUriel: 'crashLanding',
-  zeruelArmored: 'crashLanding',
+  archangelMikhael: 'crashLanding',
   holyDragon: 'crashLanding',
   tempestWyrm: 'crashLanding',
   grandGriffon: 'crashLanding',

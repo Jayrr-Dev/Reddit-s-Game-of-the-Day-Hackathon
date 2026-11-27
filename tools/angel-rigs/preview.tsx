@@ -7,7 +7,7 @@ import './preview.css';
 const roster = [
   ['archangelUriel', 'Archangel Uriel (reference)'],
   ['archangelZeruel', 'Archangel Zeruel'],
-  ['zeruelArmored', 'Archangel Zeruel · Armored'],
+  ['archangelMikhael', 'Archangel Mikhael'],
   ['grandangelCherubiel', 'Grandangel Cherubiel'],
   ['grandangelCambiel', 'Grandangel Cambiel'],
   ['grandangelGeonosis', 'Grandangel Geonosis'],
@@ -23,7 +23,7 @@ const roster = [
 ] as const satisfies readonly (readonly [CreatureId, string])[];
 
 type Motion = 'idle' | 'primary' | 'guard' | 'signature';
-const melee = new Set<CreatureId>(['grandangelCambiel', 'archangelZeruel', 'zeruelArmored', 'archangelUriel', 'cervielSword', 'pride', 'sloth']);
+const melee = new Set<CreatureId>(['grandangelCambiel', 'archangelZeruel', 'archangelMikhael', 'archangelUriel', 'cervielSword', 'pride', 'sloth']);
 function Angel({ heroId, label, motion, charging, small }: {
   heroId: CreatureId; label: string; motion: Motion; charging: boolean; small: boolean;
 }) {

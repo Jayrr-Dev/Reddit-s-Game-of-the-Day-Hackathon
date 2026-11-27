@@ -19,6 +19,6 @@ export const METATRON_ANGEL_LORE = {
   lightLordMori: "Mori knew every knight by name. I have met archangels who cannot say the same.",
   apollyonSeraph: "Apollyon's trumpet was meant to call the host to prayer. It sounded much the same when he called them to war.",
   angelAssassin: "Heaven swears it sends no assassins. A tidy oath, when the witness never sees one.",
+  archangelMikhael: "I saw Mikhael seal a gate from the wrong side once. Ask who was still standing when it shut.",
   archangelUriel: "Uriel held the Crimson Gate open until the last pilgrim crossed. I remember things like that.",
-  zeruelArmored: "Zeruel had his white armour polished before every judgment. He cared a great deal how mercy looked.",
 } as const satisfies Partial<Record<HeroId, string>>;

@@ -84,6 +84,7 @@ const actionOf = (step: Beat, uid: number): HeroAction => {
     isSignature: step.move?.isSignature ?? false,
     ...(step.move?.isSignature ? { isCharging: step.isCharge === true } : {}),
     isTwoHanded: step.move?.isTwoHanded ?? false,
+    ...(step.move && { moveName: step.move.name }),
     ...(wolfAttack === undefined ? {} : { wolfAttack }),
     ...(khanAttackPhase === undefined ? {} : { khanAttackPhase }),
     ...(step.cervielVolleyKey === undefined ? {} : { cervielVolleyKey: step.cervielVolleyKey }),

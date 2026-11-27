@@ -84,12 +84,14 @@ import {
   HaloShards,
   type HaloSpec,
 } from './HolyHalo';
+import { MikhaelFigure } from './MikhaelArt';
 import { ProgressiveSvgImage } from '../../ui/ProgressiveImage';
 
 // --- TYPES ---
 export type CreatureFigureProps = {
   heroId: CreatureId;
   size: HeroSize;
+  phase?: 2 | undefined;
   action?: HeroAction | null;
   mood?: HeroMood;
 };
@@ -718,7 +720,7 @@ const BossSprite = ({ size, art, hover, inset = 0 }: {
 /** Each creature's drawing. */
 const CREATURE_DRAWINGS: Record<
   CreatureId,
-  (props: { mood: HeroMood; size: HeroSize; action?: HeroAction | null }) => JSX.Element
+  (props: { mood: HeroMood; size: HeroSize; action?: HeroAction | null; phase?: 2 | undefined }) => JSX.Element
 > = {
   sloth: SlothMotionFigure,
   pride: PrideMotionFigure,
@@ -730,7 +732,7 @@ const CREATURE_DRAWINGS: Record<
   angelAssassin: AngelAssassinRigFigure,
   twinAxeKnight: GeneralKhanFigure,
   archangelUriel: UrielFigure,
-  zeruelArmored: ({ size, action }) => <ZeruelRigFigure size={size} action={action} armored />,
+  archangelMikhael: MikhaelFigure,
   angelArcher: AngelArcher,
   grandGriffon: GrandGriffon,
   ballista: Ballista,
@@ -763,6 +765,7 @@ export const CreatureFigure = ({
   heroId,
   size,
   action = null,
+  phase,
   mood = 'calm',
 }: CreatureFigureProps) => {
   const Drawing = CREATURE_DRAWINGS[heroId];
@@ -775,7 +778,7 @@ export const CreatureFigure = ({
       data-two-handed={action?.isTwoHanded ? '' : undefined}
       aria-hidden="true"
     >
-      <Drawing mood={mood} size={size} action={action} />
+      <Drawing mood={mood} size={size} action={action} phase={phase ?? (heroId === 'archangelMikhael' && action?.moveName?.startsWith('Phase 2') ? 2 : undefined)} />
     </svg>
   );
 };

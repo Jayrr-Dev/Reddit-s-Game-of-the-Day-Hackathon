@@ -28,6 +28,7 @@ import mines from '../../../assets/terrain/mines.webp';
 import cave from '../../../assets/terrain/cave.webp';
 import dungeon from '../../../assets/terrain/dungeon.webp';
 import riverBridge from '../../../assets/terrain/river-bridge.webp';
+import { MikhaelArenaMotion } from './MikhaelArenaMotion';
 import { useProgressiveImage } from '../../../hooks/useProgressiveImage';
 
 // Each artwork's distant road, gate or clearing, in image percentages.
@@ -82,7 +83,10 @@ export const Backdrop = memo(function Backdrop({ terrainIndex, bossArena, depths
   const layerFilter = (layer: keyof typeof TERRAIN_BLUR_PX): string =>
     sceneImage.isPlaceholder ? 'blur(var(--image-placeholder-blur))' : terrainBlur(layer);
   // Bottom-align the image so its recorded horizon lands at 20% of the frame.
-  const terrainStyle = { backgroundImage, backgroundPositionX: `${(1.2 * vanishingX - 50) / 0.2}%`, backgroundSize: `120% ${8000 / (100 - horizon)}%`, backgroundPositionY: 'bottom' };
+  // The Taxiarch's framing keeps the hovering witnesses in view on phones.
+  const terrainStyle = bossArena?.motion === 'taxiarch'
+    ? { backgroundImage, backgroundPosition: 'center top', backgroundSize: '112% 100%' }
+    : { backgroundImage, backgroundPositionX: `${(1.2 * vanishingX - 50) / 0.2}%`, backgroundSize: `120% ${8000 / (100 - horizon)}%`, backgroundPositionY: 'bottom' };
   const layer = 'parallax-layer pointer-events-none absolute -inset-x-8 inset-y-0 ';
   return (
     <div aria-hidden="true" data-boss-arena={bossArena?.name} className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -95,6 +99,7 @@ export const Backdrop = memo(function Backdrop({ terrainIndex, bossArena, depths
           maskImage: `linear-gradient(transparent ${groundStarts[row]}%, black ${groundStarts[row] + 9}%)`,
         }} />
       ))}
+      {bossArena?.motion === 'taxiarch' && <MikhaelArenaMotion />}
     </div>
   );
 });

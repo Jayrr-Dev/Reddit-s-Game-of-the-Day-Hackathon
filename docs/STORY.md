@@ -38,6 +38,8 @@ In [Castlevania (TV series)](https://en.wikipedia.org/wiki/Castlevania_%28TV_ser
 
 Grandangels rank directly below Archangels. They are powerful opponents in their own right. The Archangels are the final bosses of this part of the story. The god of this world is not fought in this part; leave what follows for the DLC.
 
+The final Archangel is Mikhael, the Taxiarch and commander of God's host. Wraith beats him across two forms: a sword in the frontline, then a spear thrown from Midline. Mikhael is defeated but does not die. Realizing that death would send Wraith back to Hell to rise again, he seals Wraith instead. Wraith has not reached God, and breaking the seal is left for the DLC. Wraith has no spoken line in the ending.
+
 ## How to imply his identity
 
 Never explicitly identify the protagonist as Wrath in player-facing story text. Let players put it together through his choices, how other Sins react to him, and the way grief turns into vengeance. The existing Wrath combat status can echo that theme without becoming an identity reveal.

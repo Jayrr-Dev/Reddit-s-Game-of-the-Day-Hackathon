@@ -60,7 +60,7 @@ export const FIGURE_BOUNDS: Readonly<Partial<Record<HeroId, FigureBounds>>> = {
   twinAxeKnight: { size: 3, x: 24.7, y: 9.3, width: 100.7, height: 87.4 },
   wolfCentaur: { size: 1.5, x: 5.5, y: 7, width: 74, height: 93 },
   zadkielOfDominations: { size: 3, x: 2.0, y: -12.2, width: 146.0, height: 107.4 },
-  zeruelArmored: { size: 3, x: 33.4, y: 1.1, width: 83.1, height: 96.7 },
+  archangelMikhael: { size: 3, x: 33.4, y: 1.1, width: 83.1, height: 96.7 },
   zeruelBlueSun: { size: 1, x: 5.6, y: 39.4, width: 47.9, height: 48.0 },
   zeruelRedSun: { size: 1, x: 3.6, y: 39.4, width: 50.8, height: 48.9 },
 };

@@ -155,7 +155,7 @@ export const CREATURE_IDS = [
   'angelAssassin',
   'twinAxeKnight',
   'archangelUriel',
-  'zeruelArmored',
+  'archangelMikhael',
   'angelArcher',
   'grandGriffon',
   'ballista',
@@ -242,7 +242,7 @@ const CREATURE_SHADOW: Record<CreatureId, GroundShadow> = {
   angelAssassin: { halfWidthShare: 0.22, opacity: 0.24, ...LIFT_RESPONSE },
   twinAxeKnight: { halfWidthShare: 0.39, opacity: 0.46, ...LIFT_RESPONSE },
   archangelUriel: { halfWidthShare: 0.26, opacity: 0.33, ...LIFT_RESPONSE },
-  zeruelArmored: { halfWidthShare: 0.26, opacity: 0.33, ...LIFT_RESPONSE },
+  archangelMikhael: { halfWidthShare: 0.26, opacity: 0.33, ...LIFT_RESPONSE },
 };
 
 /** The ground shadow a hero casts. */
@@ -534,6 +534,7 @@ export type HeroAction = {
   isCharging?: boolean;
   /** A two-handed swipe: the claws cross (Crossed Talon). */
   isTwoHanded: boolean;
+  moveName?: string;
   cervielVolleyKey?: number;
   khanAttackPhase?: 'cleave' | 'charge' | 'slam' | 'signature-preview';
   wolfAttack?: WolfAttack;

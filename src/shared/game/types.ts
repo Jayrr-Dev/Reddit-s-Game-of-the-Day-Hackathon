@@ -389,6 +389,8 @@ export type HeroEffect =
       type: HeroAttackType;
       /** Homing: its hits can't be dodged (they skip Instinct). */
       isHoming?: boolean;
+      /** Farthest lane this attack reaches, including the front lane. */
+      maxRange?: 1 | 2 | 3;
       /**
        * Afflictions laid on the villain by every hit that lands. A move's
        * own affliction effects join these (see foldPerHitAfflictions).
@@ -467,7 +469,7 @@ export type HeroMove = {
   visual?: 'cervielBladeVolley';
 };
 
-export type HeroTier = 'grunt' | 'elite' | 'champion' | 'boss';
+export type HeroTier = 'grunt' | 'elite' | 'officer' | 'boss' | 'summon';
 /** What kind of being a hero is (Illusion Training groups scenarios by it). */
 export type UnitType = 'angel' | 'dragon' | 'beast' | 'human' | 'demiHuman' | 'sin';
 
@@ -487,7 +489,15 @@ export type HeroDef = {
   maxHp: number;
   /** Moves repeat in order, so players can read and plan around them. */
   moves: readonly HeroMove[];
-  secondPhase?: { restoreHpFraction: number; moves: readonly HeroMove[]; visual: 'cervielBladeVolley' };
+  secondPhase?: {
+    restoreHpFraction: number;
+    triggerHpFraction?: number;
+    row?: HeroRow;
+    moves: readonly HeroMove[];
+    visual: 'cervielBladeVolley' | 'mikhaelSpear';
+  };
+  /** A narrative defeat: do not drop a corpse or credit a kill. */
+  survivesDefeat?: true;
   /** Portrait hue (0 to 360). Each hero gets its own heraldic colour. */
   hue: number;
   /** Preferred fighting row. After acting, the hero tries to return here. */

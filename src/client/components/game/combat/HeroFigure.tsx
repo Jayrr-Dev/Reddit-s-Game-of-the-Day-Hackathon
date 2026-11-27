@@ -48,6 +48,7 @@ import { ArcherSprite } from './ArcherSprite';
 export type HeroFigureProps = {
   heroId: HeroId;
   size: HeroSize;
+  phase?: 2 | undefined;
   /** The attack playing right now, if any. */
   action?: HeroAction | null;
   /** How the hero feels right now (shown on a bare face). */

@@ -97,7 +97,7 @@ const BOSS_ENTRANCES: Partial<Record<HeroId, BossEntrance>> = {
   angelAssassin: { epithet: 'Blade Behind the Veil', line: 'If I can end this unseen, no one else has to draw a blade.' },
   twinAxeKnight: { epithet: 'The Gilded Headsman', line: 'The crown can lose its throne. My soldiers cannot lose another home.' },
   archangelUriel: { epithet: 'Warden of the Crimson Gate', line: 'I will not ask you to forgive them. I am asking you to let these people pass.' },
-  zeruelArmored: { epithet: 'The Ivory Eclipse', line: 'The throne was never what you came for. You go no higher.' },
+  archangelMikhael: { epithet: 'Taxiarch', line: 'Thou hast scattered my host. Now stand before its commander.' },
   sloth: { epithet: 'The Unmoving', line: 'I felt you coming through the stone. The old one never shook me awake.' },
   pride: { epithet: 'The Fallen Sovereign', line: 'Seven hundred years. I thought no one could take his seat. Now I feel why it is yours.' },
   lust: { epithet: 'The Veiled Apparition', line: 'I feel what you want. If they all die, will she be any less gone?' },

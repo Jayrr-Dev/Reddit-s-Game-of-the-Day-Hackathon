@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { hashSeed, pickOne } from '../../../shared/game/rng';
+import { areaCounts, conquestStops, GRANDANGEL_BOSSES } from '../../../shared/game/conquestAreas';
 import { REGION_NAMES, STOPS_PER_REGION } from '../../../shared/game/rules';
 import { regionChoices, type RegionChoice } from '../../../shared/game/regionRoutes';
 import { regionIndexOf, type Stop } from '../../../shared/game/kingdom';
@@ -51,14 +52,19 @@ export function ConquestMap({ stop = 1, region, route, options, onChoose }: {
   const map = useRef<HTMLDivElement>(null);
   const title = useRef<HTMLHeadingElement>(null);
   const [selected, setSelected] = useState<number>();
-  const locationOf = (option: number, node: Stop) => node.kind === 'greed-bargain'
+  const isCampaign = options.some(node => node.site);
+  const locationOf = (option: number, node: Stop) => node.site ?? (node.kind === 'greed-bargain'
     ? { name: 'The Gilded Vault', flavour: STOP_COPY[node.kind].blurb }
-    : routeLocation(stop, option, node.kind, route);
+    : routeLocation(stop, option, node.kind, route));
   const active = selected === undefined ? undefined : options[selected];
   const place = selected === undefined || !active ? undefined : locationOf(selected, active);
   const landmarks = Array.from({ length: STOPS_PER_REGION }, (_, i) =>
     routeLocation(stop - (stop - 1) % STOPS_PER_REGION + i, 0, i === STOPS_PER_REGION - 1 ? 'champion' : 'horde', route).name);
-  const labels = stop === 1 ? REGION_NAMES : [...new Set(landmarks)];
+  const regionEnd = (regionIndexOf(stop) + 1) * STOPS_PER_REGION;
+  const capital = isCampaign ? conquestStops('atlas', regionEnd, route)[0]?.site : undefined;
+  const labels = isCampaign && capital ? [capital.name, ...new Set(landmarks.slice(0, -1))]
+    : stop === 1 ? REGION_NAMES : [...new Set(landmarks)];
+  const counts = active?.site ? areaCounts(active.site) : undefined;
   useLayoutEffect(() => {
     if (map.current) map.current.scrollTop = map.current.scrollHeight;
     title.current?.focus({ preventScroll: true });
@@ -84,33 +90,33 @@ export function ConquestMap({ stop = 1, region, route, options, onChoose }: {
         {labels.map((name, i) => {
           const position = CITY_POSITIONS[i];
           if (!position) return null;
-          return <div key={name} className="atlas-city" style={{ left: position[0] + '%', top: position[1] + '%' }}><CitySeal citadel={i >= 3} location={name} /><span>{stop === 1 && <small>Region {i + 1}</small>}{name}</span></div>;
+          return <div key={name} className="atlas-city" style={{ left: position[0] + '%', top: position[1] + '%' }}><CitySeal citadel={name === capital?.name || i >= 3} location={name} /><span>{name === capital?.name ? <small>Capital city</small> : stop === 1 && !isCampaign && <small>Region {i + 1}</small>}{name}</span></div>;
         })}
         {options.map((stop, i) => {
           const location = locationOf(i, stop);
           return <button type="button" key={i} className="atlas-destination" aria-pressed={selected === i}
             aria-label={location.name} style={{ left: (options.length === 1 ? 50 : 26 + (48 * i) / (options.length - 1)) + '%' }}
             onClick={() => setSelected(i)}>
-            <CitySeal location={location.name} /><strong>{location.name}</strong><small>{STOP_COPY[stop.kind].title}</small>
+            <CitySeal location={location.name} /><strong>{location.name}</strong><small>{stop.site?.kind === 'capital' ? (regionIndexOf(regionEnd) >= GRANDANGEL_BOSSES.length ? 'Capital · Final Boss' : 'Capital · Region Boss') : stop.site?.kind === 'dragon' ? 'Area Boss' : stop.site?.cityBoss ? 'City Boss' : stop.site ? 'Battle route' : STOP_COPY[stop.kind].title}</small>
           </button>;
         })}
         <div className="atlas-origin"><span aria-hidden="true">◆</span><strong>{stop === 1 ? 'The Crossing' : 'You are here'}</strong><small>{stop === 1 ? 'Wraith rises here' : 'Stop ' + ((stop - 1) % STOPS_PER_REGION + 1) + ' of ' + STOPS_PER_REGION}</small></div>
       </div>
     </div>
     <footer>
-      <span>{place ? <><strong>{place.name}</strong><small>{place.flavour}</small></> : 'Choose a destination on the map'}</span>
+      <span>{place ? <><strong>{place.name}</strong><small>{place.flavour}</small>{counts && <small>{counts.battles} {counts.battles === 1 ? 'battle' : 'battles'} · {counts.rooms} rooms</small>}</> : 'Choose a destination on the map'}</span>
       <Button variant="menuPrimary" disabled={selected === undefined} onClick={() => selected !== undefined && onChoose(selected)}>Confirm destination</Button>
     </footer>
   </section>;
 }
 
 /** The next pair opens only after the current region is conquered. */
-export function RegionCrossroads({ stop, conquered, onChoose }: {
-  stop: number; conquered: string; onChoose: (option: RegionChoice) => void;
+export function RegionCrossroads({ stop, conquered, campaign, onChoose }: {
+  stop: number; conquered: string; campaign?: boolean; onChoose: (option: RegionChoice) => void;
 }) {
   const [selected, setSelected] = useState<RegionChoice>();
   const index = regionIndexOf(stop);
-  const choices = regionChoices(index);
+  const choices = regionChoices(index, campaign);
   return <section className="conquest-map region-crossroads prelude-enter" aria-label="Choose the next region">
     <header>
       <p>{conquered} conquered</p>

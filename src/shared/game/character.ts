@@ -56,6 +56,7 @@ export type CharacterState = {
   skillPicks?: SkillPick[];
   /** Retained only by runs started before the progression update. */
   legacyProgression?: true;
+  scaledExperience?: true;
   level: number;
   xp: number;
   traits: Traits;
@@ -344,31 +345,47 @@ export const discardItem = (character: CharacterState, id: string): CharacterSta
   };
 };
 
-const levelXpThreshold = (level: number) => 100 + 5 * (level - 1);
-export const xpToNextLevel = (level: number, legacyProgression = false) =>
-  level >= (legacyProgression ? LEGACY_RUN_LEVEL_CAP : LEVEL_CAP) ? 0 : levelXpThreshold(level);
+const XP_PER_VICTORY = 100;
+
+/** A rising curve: early gains teach the systems; high ranks take longer. */
+function levelXpThreshold(level: number, scaled = false) {
+  const steps = level - 1;
+  return scaled ? 260 + 14 * steps + Math.floor(steps * steps / 5) : 100 + 5 * steps;
+}
+
+/** XP required from this level to the next; zero at the cap. */
+export const xpToNextLevel = (level: number, legacyProgression = false, scaled = false) =>
+  level >= (legacyProgression ? LEGACY_RUN_LEVEL_CAP : LEVEL_CAP) ? 0 : levelXpThreshold(level, scaled);
 export const awardCharacterVictory = (
   character: CharacterState
 ): CharacterState => {
   const cap = character.legacyProgression ? LEGACY_RUN_LEVEL_CAP : LEVEL_CAP;
   if (character.level >= cap) return character;
-  const xp = character.xp + 100;
-  const threshold = xpToNextLevel(character.level);
+  const xp = character.xp + XP_PER_VICTORY;
+  const threshold = xpToNextLevel(character.level, !!character.legacyProgression, !!character.scaledExperience);
   if (xp < threshold) return { ...character, xp };
   const level = character.level + 1;
   return { ...character, level, xp: level === cap ? 0 : xp - threshold };
 };
 
-/** Reconstruct lifetime level and XP under the rules used when the run began. */
-export function progressionFromWins(wins: number, legacyProgression = false) {
-  let level = 1;
-  let xp = Math.max(0, Math.floor(wins)) * 100;
-  const cap = legacyProgression ? LEGACY_RUN_LEVEL_CAP : LEVEL_CAP;
-  while (level < cap && xp >= xpToNextLevel(level)) {
-    xp -= xpToNextLevel(level);
+/** Walk cumulative XP forward from a known level. */
+function progressAt(level: number, xp: number, cap: number, scaled = false) {
+  while (level < cap && xp >= levelXpThreshold(level, scaled)) {
+    xp -= levelXpThreshold(level, scaled);
     level++;
   }
   return { level, xp: level === cap ? 0 : xp };
+}
+
+/** Preserve the level and progress already earned at the changeover. */
+export function progressionFromWins(wins: number, legacyProgression = false, xpStartWins?: number) {
+  const count = Math.max(0, Math.floor(wins));
+  const cap = legacyProgression ? LEGACY_RUN_LEVEL_CAP : LEVEL_CAP;
+  if (xpStartWins === undefined) return progressAt(1, count * XP_PER_VICTORY, cap);
+  const migratedAt = Math.min(count, Math.max(0, Math.floor(xpStartWins)));
+  const { level, xp } = progressAt(1, migratedAt * XP_PER_VICTORY, cap);
+  const carried = Math.floor(xp * levelXpThreshold(level, true) / levelXpThreshold(level));
+  return progressAt(level, carried + (count - migratedAt) * XP_PER_VICTORY, cap, true);
 }
 
 /** Preserve build proportions with integer quotas and stable trait-order ties. */

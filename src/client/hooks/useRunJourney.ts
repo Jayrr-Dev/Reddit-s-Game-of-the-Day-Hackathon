@@ -7,7 +7,8 @@
 
 import { useEffect } from 'react';
 import { REGION_NAMES, STOPS_PER_REGION } from '../../shared/game/rules';
-import { computeScore, type RunState } from '../../shared/game/run';
+import { CAMPAIGN_LENGTH } from '../../shared/game/conquestAreas';
+import { computeScore, isRunOver, type RunState } from '../../shared/game/run';
 import { journeys } from '../lib/journeys';
 
 // --- CONSTANTS ---
@@ -17,24 +18,26 @@ const STOPS_TO_THRONE = REGION_NAMES.length * STOPS_PER_REGION;
 // --- HOOK ---
 /** Sends progress and end events as the run advances. */
 export const useRunJourney = (run: RunState, isActive: boolean): void => {
-  const isFallen = run.phase.kind === 'fallen';
+  const isFinished = isRunOver(run);
+  const wonCampaign = run.phase.kind === 'conquered';
+  const conquest = !!run.conquestVersion;
 
   // PROGRESS: ONE EVENT PER NEW STOP
   useEffect(() => {
     if (!isActive || run.stop <= 1) return;
     journeys.progress(
-      Math.min(1, (run.stop - 1) / STOPS_TO_THRONE),
+      Math.min(1, (run.stop - 1) / (conquest ? CAMPAIGN_LENGTH * STOPS_PER_REGION : STOPS_TO_THRONE)),
       `stop-${run.stop}`
     );
-  }, [isActive, run.stop]);
+  }, [isActive, run.stop, conquest]);
 
   // END: WHEN THE HEROES STOP THE VILLAIN
   useEffect(() => {
-    if (!isActive || !isFallen) return;
+    if (!isActive || !isFinished) return;
     journeys.end({
       complete: true,
-      win: run.stats.regionsConquered >= REGION_NAMES.length,
+      win: conquest ? wonCampaign : run.stats.regionsConquered >= REGION_NAMES.length,
       score: computeScore(run.stats),
     });
-  }, [isActive, isFallen, run.stats]);
+  }, [isActive, isFinished, conquest, wonCampaign, run.stats]);
 };

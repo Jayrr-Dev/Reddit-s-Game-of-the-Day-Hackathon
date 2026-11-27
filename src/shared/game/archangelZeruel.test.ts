@@ -14,7 +14,7 @@ void test('Zeruel starts between his two independently targetable suns', () => {
   ]);
   assert.equal(new Set(fight.heroes.map(({ uid }) => uid)).size, 3);
   assert.deepEqual(fight.heroes.map(({ heroId }) => getHero(heroId).name), ['Archangel Zeruel', 'Alpha', 'Omega']);
-  assert.deepEqual(fight.heroes.map(({ heroId }) => getHero(heroId).tier), ['boss', 'elite', 'elite']);
+  assert.deepEqual(fight.heroes.map(({ heroId }) => getHero(heroId).tier), ['boss', 'summon', 'summon']);
   assert.ok(fight.heroes.every(({ heroId }) => ![...GRUNT_IDS, ...ELITE_IDS, ...CHAMPION_IDS].includes(heroId)));
   const moves = endTurnSteps(fight).map(beat => beat.move?.name);
   assert.ok(moves.includes('Crimson Flare'));

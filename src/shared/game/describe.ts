@@ -1190,7 +1190,7 @@ export const describeHeroMoveList = (heroId: HeroId): MoveIntent[] => {
   const unit: HeroUnit = { ...createHeroUnit(heroId, 0, 1), row: hero.row, col: 0 };
   const firstPhase = hero.moves.map((heroMove) => describeMove(unit, heroMove));
   const secondPhase = (hero.secondPhase?.moves ?? []).map((heroMove) => {
-    const move = describeMove({ ...unit, phase: 2 }, heroMove);
+    const move = describeMove({ ...unit, phase: 2, row: hero.secondPhase?.row ?? unit.row }, heroMove);
     return { ...move, name: SECOND_PHASE_PREFIX + move.name };
   });
   return [...firstPhase, ...secondPhase];

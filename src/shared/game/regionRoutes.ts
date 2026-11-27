@@ -13,17 +13,24 @@ const REGIONS = [
 ] as const;
 const UPRISING = [{ name: 'Highland Uprising', map: 'Mountain Pass' }, { name: 'Dune Uprising', map: 'Dune Sea' }] as const;
 
-export const regionChoices = (index: number) => REGIONS[index - 1] ?? UPRISING;
+const LATE_REGIONS = [
+  [{ name: 'Dawn Dominion', map: 'Royal Court' }, { name: 'The Sun March', map: 'Dune Sea' }],
+  [{ name: 'Eclipse Dominion', map: 'Fallen City' }, { name: 'Lunar Reach', map: 'Mountain Pass' }],
+  [{ name: "Heaven's Gate", map: 'Castle Gates' }, { name: 'The Last Dominion', map: 'Throne Hall' }],
+] as const;
+
+export const regionChoices = (index: number, conquest = false) =>
+  REGIONS[index - 1] ?? (conquest ? LATE_REGIONS[index - 6] : undefined) ?? UPRISING;
 export const isRegionChoice = (value: unknown): value is RegionChoice => value === 0 || value === 1;
 
-type RegionState = { stop: number; phase: { kind: string }; stats: { regionsConquered: number }; regionPath?: Partial<Record<number, RegionChoice>> };
+type RegionState = { stop: number; phase: { kind: string }; stats: { regionsConquered: number }; conquestVersion?: 1; regionPath?: Partial<Record<number, RegionChoice>> };
 export const chosenRegion = (run: Pick<RegionState, 'stop' | 'regionPath'>) =>
   run.regionPath?.[regionIndexOf(run.stop)];
 
-export function regionOfRun(run: Pick<RegionState, 'stop' | 'regionPath'>) {
+export function regionOfRun(run: Pick<RegionState, 'stop' | 'regionPath' | 'conquestVersion'>) {
   const index = regionIndexOf(run.stop);
   const choice = chosenRegion(run);
-  return choice === undefined ? regionName(index) : regionChoices(index)[choice].name;
+  return choice === undefined ? regionName(index) : regionChoices(index, !!run.conquestVersion)[choice].name;
 }
 
 export function canChooseRegion(run: RegionState) {

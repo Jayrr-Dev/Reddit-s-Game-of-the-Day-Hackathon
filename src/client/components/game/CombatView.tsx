@@ -113,6 +113,7 @@ export type CombatViewProps = {
   deck: readonly CardId[];
   /** Terrain for this region or practice round. */
   terrainIndex: number;
+  campaignLocation?: string;
   trainingArenaOverride?: BossArena | null | undefined;
   /** Silences this fight's music while the training menu previews a theme. */
   musicMuted?: boolean | undefined;
@@ -246,6 +247,7 @@ export const CombatView = ({
   onRespec,
   deck,
   terrainIndex,
+  campaignLocation,
   trainingArenaOverride,
   musicMuted = false,
   where,
@@ -324,7 +326,7 @@ export const CombatView = ({
     if (heroTurn.arrowStep) {
       const shooter = combat.heroes.find(unit => unit.uid === heroTurn.arrowStep?.actorUid);
       after(HERO_SHOT_RELEASE_MS, () =>
-        playSound(shooter?.heroId === 'ballista' ? 'siegeArrow' : 'arrow', .99, .84));
+        playSound(shooter?.heroId === 'archangelMikhael' ? 'tempestSpear' : shooter?.heroId === 'ballista' ? 'siegeArrow' : 'arrow', .99, .84));
     }
     // Sound the moment a visible unit vanishes, not while Cloak ticks down.
     if ((!isCloaked(before.player) && isCloaked(combat.player)) ||
@@ -569,7 +571,7 @@ export const CombatView = ({
     >
       <div inert={!!bossEntrance.entering} className="table-field-frame relative flex min-h-0 flex-1 flex-col">
         <TopBar
-          location={bossArena?.name ?? mapName}
+          location={campaignLocation ?? bossArena?.name ?? mapName}
           where={where}
           score={score}
           onOpenMenu={() => setIsPaused(true)}

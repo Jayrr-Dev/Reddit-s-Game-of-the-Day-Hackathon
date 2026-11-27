@@ -16,7 +16,7 @@ void test('Apollyon Seraph starts centered in front of two Biblical Angels', () 
   ]);
   const occupied = fight.heroes.flatMap(cellsOf).map(({ row, col }) => row + ':' + col);
   assert.equal(new Set(occupied).size, occupied.length);
-  assert.equal(getHero('apollyonSeraph').tier, 'elite');
+  assert.equal(getHero('apollyonSeraph').tier, 'officer');
   assert.equal(isImmovable(fight.heroes[0]!), false);
   const ranked = [...GRUNT_IDS, ...ELITE_IDS, ...CHAMPION_IDS];
   assert.ok(scenario.heroIds.every((heroId) => !ranked.includes(heroId)));

@@ -34,6 +34,7 @@ export type StopKind = 'horde' | 'elite' | 'grave' | 'altar' | 'champion' | 'gre
 
 export type Stop = {
   optionIndex?: number;
+  site?: import('./conquestAreas.ts').AreaSite;
   kind: StopKind;
   /** Heroes in this fight, in acting order (empty for grave and altar). */
   heroIds: HeroId[];

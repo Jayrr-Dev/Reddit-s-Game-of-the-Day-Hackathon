@@ -30,6 +30,7 @@ export type StreakSummary = {
 export type InitResponse = {
   accountId?: string;
   lifetimeWins?: number;
+  xpStartWins?: number | undefined;
   gold?: number;
   type: 'init';
   postId: string;
@@ -62,6 +63,7 @@ export type SaveUnitStatsResponse = {
 export type ProfileResponse = {
   build: import('../game/playerBuild.ts').PlayerBuild;
   wins: number;
+  xpStartWins?: number | undefined;
   /** Gold balance on the player account. */
   gold: number;
   shopRings: ShopRingId[];
@@ -104,7 +106,7 @@ export type RingShopResponse = {
 export type BuyRingRequest = { ringId: ShopOfferId; offerDay: string; testVisit?: string };
 export type { ShopReward } from '../game/ringShop.ts';
 export type BuyRingResponse = { status: 'bought' | 'owned' | 'short' | 'stale' | 'retry'; shop: RingShopResponse; reward?: ShopReward };
-export type RunProfile = { id: string; wins: number; shopRings?: ShopRingId[]; pandoraEffect?: PandoraRunEffect; cardRules?: 1; progressionVersion?: 2; carriedCard?: CardId; carriedCards?: CardId[] };
+export type RunProfile = { id: string; wins: number; shopRings?: ShopRingId[]; pandoraEffect?: PandoraRunEffect; cardRules?: 1; progressionVersion?: 2; conquestVersion?: 1; xpStartWins?: number; carriedCard?: CardId; carriedCards?: CardId[] };
 export type StartRunResponse = {
   build?: import('../game/playerBuild.ts').PlayerBuild;
   profile?: RunProfile;

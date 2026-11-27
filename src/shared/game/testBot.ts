@@ -71,6 +71,7 @@ export const botAction = (state: RunState): RunAction => {
       };
     }
     case 'combat': {
+      if (state.area?.wavePending) return { type: 'nextBattleWave' };
       const handIndex = pickHandIndex(phase.combat);
       return handIndex === null
         ? { type: 'endTurn' }
@@ -89,6 +90,11 @@ export const botAction = (state: RunState): RunAction => {
       return { type: 'greedChoice', cardIndex: null };
     case 'grave':
       return { type: 'graveChoice', choice: 'mourn' };
+    case 'area-camp':
+      return { type: 'areaCamp', choice: 'rest' };
+    case 'sealing':
+      return { type: 'finishSealing' };
+    case 'conquered':
     case 'fallen':
       return { type: 'endTurn' };
   }

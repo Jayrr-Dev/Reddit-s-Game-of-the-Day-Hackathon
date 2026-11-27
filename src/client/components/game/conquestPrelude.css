@@ -76,3 +76,13 @@
 .region-conquered { grid-column: 1 / -1; display: grid; justify-items: center; width: 8.5rem; justify-self: center; background: #ead1a3; color: #5e3a2c; padding: .35rem; border: 1px solid #846446; border-radius: .4rem; }
 .region-conquered svg { width: 2rem; height: 2rem; }
 .region-conquered small { font-size: .68rem; font-weight: 650; }
+
+.area-camp { width:min(100%,32rem); padding:1rem; border:1px solid var(--color-edge); border-radius:.65rem; background:var(--color-surface-raised); color:var(--color-ink); text-align:center; display:grid; gap:.55rem; }
+.area-camp-art { width:100%; height:clamp(3rem, 22dvh, 8rem); object-fit:cover; object-position:center 40%; border-radius:.35rem; }
+.area-camp h1 { font-size:clamp(1.05rem,4vw,1.5rem); font-weight:700; }
+.area-camp small { color:var(--color-accent); }
+.area-camp p { font-size:.82rem; margin:.2rem 0; }
+.area-camp footer { display:flex; gap:.4rem; flex-wrap:wrap; justify-content:center; }
+.area-camp-event { padding:.45rem .6rem; border:1px solid var(--color-edge); border-radius:.375rem; }
+.area-wave-notice { position:absolute; z-index:10; pointer-events:none; top:22%; left:50%; transform:translateX(-50%); background:var(--color-surface-raised); border:1px solid var(--color-accent); border-radius:.4rem; color:var(--color-ink); padding:.4rem 1rem; text-align:center; display:grid; width:max-content; max-width:90%; }
+.area-wave-notice span { font-size:.8rem; }

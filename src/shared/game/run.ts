@@ -17,8 +17,10 @@ import { progressionFromWins, healingAmount, type RingProgress, allocateTrait, a
 //   fallen -> the heroes stopped you; the run is over
 // ===================================================================
 
-import { STARTER_DECK, type CardId } from './cards.ts';
-import { combatOutcome, endTurn, playCard, startCombat, SELF_TARGET_UID } from './combat.ts';
+import { getCard, STARTER_DECK, type CardId } from './cards.ts';
+import { combatOutcome, createHeroUnit, endTurn, playCard, startCombat, SELF_TARGET_UID } from './combat.ts';
+import { formUp } from './battlefield.ts';
+import { areaRoomEvent, buildAreaBattles, conquestMightAt, conquestStops, isLastRegion, REST_FRACTION, type AreaBattle, type AreaSite, type RoomEvent } from './conquestAreas.ts';
 import { canChooseRegion, isRegionChoice, type RegionChoice } from './regionRoutes.ts';
 import { regionIndexOf, mightAt, routeOptions, stopSeed, type Stop } from './kingdom.ts';
 import { isMovementId, move } from './movement.ts';
@@ -55,11 +57,18 @@ export type RunPhase =
   | { kind: 'combat'; stop: Stop; combat: CombatState }
   | { kind: 'reward'; offers: CardId[]; source?: 'horde' | 'elite' | 'champion'; rerolled?: boolean; leveledUp?: boolean; bonusImbue?: CardId }
   | { kind: 'grave' }
-  | { kind: 'greed-bargain' }
+  | { kind: 'greed-bargain'; explored?: number; event?: RoomEvent }
   | { kind: 'altar'; offers: CardId[] }
+  | { kind: 'area-camp'; explored: number; event?: RoomEvent & { result?: string } }
+  | { kind: 'sealing'; source: 'champion' }
+  | { kind: 'conquered' }
   | { kind: 'fallen'; battlefield?: { stop: Stop; combat: CombatState } };
 
+type AreaProgress = { site: AreaSite; stop: Stop; battles: AreaBattle[]; battle: number; wave: number; wavePending?: boolean };
+
 export type RunState = {
+  conquestVersion?: 1;
+  area?: AreaProgress | undefined;
   regionPath?: Partial<Record<number, RegionChoice>>;
   attempt: number;
   rewardStarter?: StarterName;
@@ -126,6 +135,9 @@ export type RunAction =
   | { type: 'saveTraits' }
   | { type: 'chooseRegion'; option: RegionChoice }
   | { type: 'chooseStop'; option: number }
+  | { type: 'nextBattleWave' }
+  | { type: 'finishSealing' }
+  | { type: 'areaCamp'; choice: 'explore' | 'rest' | 'continue' }
   | PlayCardAction
   | { type: 'endTurn' }
   /** A movement on the battlefield, e.g. Charge (see movement.ts). */
@@ -149,22 +161,23 @@ const EMPTY_STATS: RunStats = {
 // --- CREATION ---
 
 /** Owned shop rings are part of the trusted run baseline, not a player action. */
-const initialCharacter = (ringProgress: RingProgress | undefined, wins: number, shopRings: readonly ShopRingId[], legacyProgression: boolean) => {
+const initialCharacter = (ringProgress: RingProgress | undefined, wins: number, shopRings: readonly ShopRingId[], legacyProgression: boolean, xpStartWins?: number) => {
   const character = createCharacter(ringProgress);
-  return { ...character, ...progressionFromWins(wins, legacyProgression), ...(legacyProgression && { legacyProgression: true as const }), inventory: [...character.inventory, ...ringInventory(shopRings)] };
+  return { ...character, ...progressionFromWins(wins, legacyProgression, xpStartWins), ...(xpStartWins !== undefined && { scaledExperience: true as const }), ...(legacyProgression && { legacyProgression: true as const }), inventory: [...character.inventory, ...ringInventory(shopRings)] };
 };
 
 /** The start of the day's run: full HP, starter deck, first crossroads. */
 export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt = 0, wins = 0,
-  shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[], legacyProgression = false): RunState => {
+  shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[], legacyProgression = false, conquestVersion?: 1, xpStartWins?: number): RunState => {
   const carriedCards = typeof carried === 'string' ? [carried] : carried ? [...carried] : [];
   const maxHp = PLAYER_MAX_HP + (pandoraEffect === 'lasting-vigor' ? PANDORA_MAX_HP_GAIN : pandoraEffect === 'brittle-blood' ? -PANDORA_MAX_HP_LOSS : 0);
   return {
   attempt,
+  ...(conquestVersion && { conquestVersion }),
   ...(pandoraEffect && { pandoraEffect, baseMaxHp: maxHp }),
   dailyKey,
   stop: 1,
-  character: initialCharacter(ringProgress, wins, shopRings, legacyProgression),
+  character: initialCharacter(ringProgress, wins, shopRings, legacyProgression, xpStartWins),
   hp: (pandoraEffect === 'half-life' || pandoraEffect === 'half-life-double-gold') ? Math.ceil(maxHp / 2) : maxHp,
   maxHp,
   deck: appendCarriedCards(STARTER_DECK, carriedCards),
@@ -173,7 +186,7 @@ export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt
   usesSpent: {},
   stats: EMPTY_STATS,
   goldVictories: [],
-  phase: { kind: 'route', options: routeOptions(dailyKey, 1, cardRules === 1) },
+  phase: { kind: 'route', options: conquestVersion ? conquestStops(dailyKey, 1) : routeOptions(dailyKey, 1, cardRules === 1) },
   };
 };
 
@@ -186,6 +199,13 @@ function regionRouteKey(state: RunState, stop: number) {
   return choice === undefined ? state.dailyKey : state.dailyKey + ':region:' + index + ':' + choice;
 }
 
+/** Only new runs use the expanded campaign. The earlier route is replayed unchanged. */
+function optionsFor(state: RunState, stop: number): Stop[] {
+  const key = regionRouteKey(state, stop);
+  return state.conquestVersion ? conquestStops(key, stop, state.regionPath?.[regionIndexOf(stop)])
+    : routeOptions(key, stop, !!state.deckImbues && !state.promisedToGreed);
+}
+
 /** Moves on to the crossroads of the next stop. */
 const advanceToNextStop = (state: RunState): RunState => {
   const stop = state.stop + 1;
@@ -193,12 +213,33 @@ const advanceToNextStop = (state: RunState): RunState => {
     ...state,
     stop,
     storyRingUnlocked: undefined,
-    phase: { kind: 'route', options: routeOptions(regionRouteKey(state, stop), stop, !!state.deckImbues && !state.promisedToGreed) },
+    area: undefined,
+    phase: { kind: 'route', options: optionsFor(state, stop) },
   };
 };
 
+/** Starts a location's next battle; wave changes inside it never reset combat. */
+function beginAreaBattle(state: RunState, area: AreaProgress): RunState {
+  const first = area.battles[area.battle]!.waves[0]!;
+  const combat = startCombat({
+    hp: state.hp, maxHp: state.maxHp, deck: state.deck,
+    traits: state.character.traits, equipment: state.character.equipment,
+    ...(state.character.traitNodes && { traitNodes: state.character.traitNodes }),
+    ...(state.character.skillPicks && { skillPicks: state.character.skillPicks }),
+    heroIds: first.heroIds, formation: 'furthest', might: first.might ?? conquestMightAt(state.stop),
+    seed: stopSeed(state.dailyKey, 'area-battle:' + area.stop.optionIndex + ':' + area.battle, state.stop),
+    usesSpent: state.usesSpent,
+    ...(state.deckImbues && { copyImbues: state.deckImbues }),
+  });
+  return { ...state, area, phase: { kind: 'combat', stop: area.stop, combat: { ...combat, waveArrival: true } } };
+}
+
 /** Enters the chosen stop: starts a fight, or opens the grave or altar. */
 const enterStop = (state: RunState, stop: Stop): RunState => {
+  if (stop.site) {
+    const battles = buildAreaBattles(stop.site, state.dailyKey, state.stop, stop.optionIndex ?? 0);
+    return beginAreaBattle(state, { site: stop.site, stop, battles, battle: 0, wave: 0 });
+  }
   if (stop.kind === 'greed-bargain') return { ...state, phase: { kind: 'greed-bargain' } };
   if (stop.kind === 'grave') return { ...state, phase: { kind: 'grave' } };
   if (stop.kind === 'altar') {
@@ -238,12 +279,13 @@ const tallyFight = (
   stats: RunStats,
   combat: CombatState,
   won: boolean,
-  stop: Stop
+  isRegionBoss: boolean,
+  waves: number
 ) => ({
-  wavesCleared: stats.wavesCleared + (won ? 1 : 0),
+  wavesCleared: stats.wavesCleared + waves,
   heroesSlain: stats.heroesSlain + combat.slain,
   regionsConquered:
-    stats.regionsConquered + (won && stop.kind === 'champion' ? 1 : 0),
+    stats.regionsConquered + (won && isRegionBoss ? 1 : 0),
   turns: stats.turns + combat.turn,
 });
 
@@ -260,18 +302,26 @@ const settleCombat = (
   stop: Stop,
   combat: CombatState
 ): RunState => {
+  const area = state.area;
+  const battle = area?.battles[area.battle];
   const outcome = combatOutcome(combat);
-  if (outcome === 'ongoing')
-    return { ...state, phase: { kind: 'combat', stop, combat } };
-
+  if (state.phase.kind === 'combat' && combat === state.phase.combat) return state;
+  if (outcome === 'ongoing') return { ...state, phase: { kind: 'combat', stop, combat } };
   const won = outcome === 'won';
-  const stats = tallyFight(state.stats, combat, won, stop);
+  if (won && area && battle && area.wave + 1 < battle.waves.length) {
+    return { ...state, area: { ...area, wavePending: true }, phase: { kind: 'combat', stop, combat } };
+  }
+
+  const isRegionBoss = battle ? battle.finish === 'region-boss' : stop.kind === 'champion';
+  const source = battle ? battle.finish === 'elite' ? 'elite' : 'champion' : rewardSourceOf(stop);
+  const stats = tallyFight(state.stats, combat, won, isRegionBoss, (area?.wave ?? 0) + Number(won));
   if (!won) return finishRun({ ...state, hp: 0, stats }, { stop, combat });
 
   const character = awardCharacterVictory(state.character);
-  const isChampion = stop.kind === 'champion';
-  const bossWins = character.ringProgress.bossWins + (isChampion ? 1 : 0);
-  const victoryHeal = stop.kind === 'champion' ? CHAMPION_VICTORY_HEAL : 0;
+  const isChampion = source === 'champion';
+  const bossWins = character.ringProgress.bossWins + (isRegionBoss ? 1 : 0);
+  const victoryHeal = isRegionBoss ? CHAMPION_VICTORY_HEAL : 0;
+  const rewardKey = area ? 'reward:area:' + area.battle : 'reward';
   const copies = combat.copies;
   const survivors = state.deck.map((_, index) => index).filter(index => !copies?.destroyed.includes(index));
   const deck = copies ? survivors.map(index => state.deck[index]!) : deckWithout(state.deck, combat.exhausted);
@@ -279,20 +329,22 @@ const settleCombat = (
   const bonusImbue = copies && isChampion && nextInt(stopSeed(state.dailyKey, 'champion-imbue-drop', state.stop), 100)[0] < 35
     ? pickOne(stopSeed(state.dailyKey, 'champion-imbue-card', state.stop), IMBUE_CARDS)[0] : undefined;
   const offers = rollOffers(
-    stopSeed(state.dailyKey, 'reward', state.stop),
-    rewardSourceOf(stop), [], state.rewardStarter, state.character.skillPicks, deck, undefined, !!copies
+    stopSeed(state.dailyKey, rewardKey, state.stop),
+    source, [], state.rewardStarter, state.character.skillPicks, deck, undefined, !!copies
   );
+  const isFinale = area?.site.kind === 'capital' && isRegionBoss && isLastRegion(state.stop);
   return {
     ...state,
     hp: Math.min(state.maxHp, combat.player.hp + healingAmount(victoryHeal, character)),
     character: { ...character, ringProgress: { ...character.ringProgress, bossWins } },
-    storyRingUnlocked: isChampion && bossWins <= 5 ? bossWins : undefined,
+    storyRingUnlocked: isRegionBoss && bossWins <= 5 ? bossWins : undefined,
     deck: bonusImbue ? [...deck, bonusImbue] : deck,
     ...(deckImbues && { deckImbues }),
     usesSpent: combat.usesSpent,
     stats,
-    goldVictories: [...state.goldVictories, { stop: state.stop, encounter: rewardSourceOf(stop) }],
-    phase: { kind: 'reward', offers, source: rewardSourceOf(stop), leveledUp: character.level > state.character.level, ...(bonusImbue && { bonusImbue }) },
+    goldVictories: [...state.goldVictories, { stop: state.stop, encounter: source, ...(area && { battle: area.battle }) }],
+    phase: isFinale ? { kind: 'sealing', source: 'champion' }
+      : { kind: 'reward', offers, source, leveledUp: character.level > state.character.level, ...(bonusImbue && { bonusImbue }) },
   };
 };
 
@@ -308,8 +360,53 @@ const takeOffer = (
   const picked = offerIndex === null ? undefined : offers[offerIndex];
   const canAdd = picked !== undefined && !isUniqueInDeck(state.deck, picked);
   const deck = canAdd ? [...state.deck, picked] : state.deck;
-  return advanceToNextStop({ ...state, deck });
+  return state.area ? { ...state, deck, phase: { kind: 'area-camp', explored: 0 } }
+    : advanceToNextStop({ ...state, deck });
 };
+
+/** Spawn fresh units at range without resetting cards, afflictions, or the clock. */
+function acceptNextWave(state: RunState): RunState {
+  const { area, phase } = state;
+  if (phase.kind !== 'combat' || !area?.wavePending) return state;
+  const wave = area.battles[area.battle]?.waves[area.wave + 1];
+  if (!wave) return state;
+  const combat = phase.combat;
+  const might = wave.might ?? conquestMightAt(state.stop);
+  const heroes = formUp(wave.heroIds.map((id, index) => createHeroUnit(id, combat.nextUid + index, id === 'ballista' ? 1 : might)), 'furthest');
+  return { ...state, area: { ...area, wave: area.wave + 1, wavePending: false },
+    phase: { ...phase, combat: { ...combat, heroes, fallen: [], waveArrival: true, nextUid: combat.nextUid + heroes.length } } };
+}
+
+/** Continue deeper into this site, leave for the map, or complete the campaign. */
+function leaveCamp(state: RunState, area: AreaProgress): RunState {
+  if (area.battle + 1 < area.battles.length) return beginAreaBattle(state, { ...area, battle: area.battle + 1, wave: 0 });
+  return advanceToNextStop(state);
+}
+
+/** A chosen room resolves once. Rest skips unexplored rooms. */
+function visitAreaCamp(state: RunState, choice: 'explore' | 'rest' | 'continue'): RunState {
+  const { phase, area } = state;
+  if (phase.kind !== 'area-camp' || !area) return state;
+  if (choice === 'continue') return leaveCamp(state, area);
+  if (choice === 'rest') {
+    if (phase.explored > 0) return state;
+    const hp = Math.min(state.maxHp, state.hp + healingAmount(Math.ceil(state.maxHp * REST_FRACTION), state.character));
+    return leaveCamp({ ...state, hp }, area);
+  }
+  const battle = area.battles[area.battle]!;
+  if (phase.explored >= battle.rooms) return state;
+  const event = areaRoomEvent(state.dailyKey, state.stop, area.site, area.battle, battle, phase.explored, !!state.deckImbues && !state.promisedToGreed);
+  const heal = event.heal ? healingAmount(Math.ceil(state.maxHp * event.heal), state.character) : 0;
+  const hp = Math.min(state.maxHp, state.hp + heal);
+  const seed = stopSeed(state.dailyKey, 'room-card:' + area.site.name + ':' + area.battle + ':' + phase.explored, state.stop);
+  const card = event.reward ? rollOffers(seed, event.reward, [], state.rewardStarter, state.character.skillPicks, state.deck, undefined, !!state.deckImbues)
+    .find(id => !isUniqueInDeck(state.deck, id)) : undefined;
+  const result = card ? 'Found: ' + getCard(card).name : event.heal ? 'Recovered ' + (hp - state.hp) + ' HP' : undefined;
+  const room = { ...event, ...(result && { result }) };
+  return { ...state, hp, deck: card ? [...state.deck, card] : state.deck,
+    phase: event.greed ? { kind: 'greed-bargain', explored: phase.explored + 1, event: room }
+      : { kind: 'area-camp', explored: phase.explored + 1, event: room } };
+}
 
 /** Applies the grave choice: heal now, or grow stronger for later. */
 const visitGrave = (state: RunState, choice: GraveChoice): RunState => {
@@ -364,7 +461,12 @@ export const applyCharacterAction = (
 /** Applies one action. Actions that don't fit the current phase are ignored. */
 export const runReducer = (state: RunState, action: RunAction): RunState => {
   const { phase } = state;
+  if (phase.kind === 'conquered') return state;
+  if (phase.kind === 'sealing') return action.type === 'finishSealing'
+    ? { ...state, area: undefined, phase: { kind: 'conquered' } } : state;
   switch (action.type) {
+    case 'finishSealing':
+      return state;
     case 'starterDeck':
       return state.stop === 1 && phase.kind === 'route' && validStarter(action.name, action.cards)
         ? { ...state, ...(action.favorStarter && {rewardStarter: action.name}), deck: appendCarriedCards(action.cards, state.carriedCards ?? []) } : state;
@@ -393,13 +495,18 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
     case 'chooseRegion': {
       if (!isRegionChoice(action.option) || !canChooseRegion(state)) return state;
       const next = { ...state, regionPath: { ...state.regionPath, [regionIndexOf(state.stop)]: action.option } };
-      return { ...next, phase: { kind: 'route', options: routeOptions(regionRouteKey(next, next.stop), next.stop, !!next.deckImbues && !next.promisedToGreed) } };
+      return { ...next, phase: { kind: 'route', options: optionsFor(next, next.stop) } };
     }
     case 'chooseStop': {
+      if (state.conquestVersion && canChooseRegion(state)) return state;
       const chosen =
         phase.kind === 'route' ? phase.options[action.option] : undefined;
       return chosen ? enterStop(state, { ...chosen, optionIndex: action.option }) : state;
     }
+    case 'nextBattleWave':
+      return acceptNextWave(state);
+    case 'areaCamp':
+      return visitAreaCamp(state, action.choice);
     case 'playCard':
       return phase.kind === 'combat'
         ? settleCombat(
@@ -426,7 +533,7 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
         : state;
     case 'rerollReward': {
       if (phase.kind !== 'reward' || phase.rerolled) return state;
-      const offers = rollOffers(stopSeed(state.dailyKey, 'reward-reroll', state.stop), phase.source ?? 'horde', phase.offers, state.rewardStarter, state.character.skillPicks, state.deck, undefined, !!state.deckImbues);
+      const offers = rollOffers(stopSeed(state.dailyKey, state.area ? 'reward-reroll:area:' + state.area.battle : 'reward-reroll', state.stop), phase.source ?? 'horde', phase.offers, state.rewardStarter, state.character.skillPicks, state.deck, undefined, !!state.deckImbues);
       return { ...state, phase: { ...phase, offers, rerolled: true } };
     }
     case 'pickCard':
@@ -435,10 +542,12 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
         : state;
     case 'greedChoice': {
       if (phase.kind !== 'greed-bargain') return state;
-      if (action.cardIndex === null) return advanceToNextStop(state);
+      const exit = (next: RunState): RunState => phase.explored === undefined ? advanceToNextStop(next)
+        : { ...next, phase: { kind: 'area-camp', explored: phase.explored, ...(phase.event && { event: phase.event }) } };
+      if (action.cardIndex === null) return exit(state);
       if (!greedCanTake(state, action.cardIndex)) return state;
       const kept = state.deck.map((_, index) => index).filter(index => index !== action.cardIndex);
-      return advanceToNextStop({ ...state, promisedToGreed: state.deck[action.cardIndex]!,
+      return exit({ ...state, promisedToGreed: state.deck[action.cardIndex]!,
         deck: kept.map(index => state.deck[index]!),
         ...(state.deckImbues && { deckImbues: remapImbues(state.deckImbues, kept) }) });
     }
@@ -458,12 +567,12 @@ export const replayRun = (
   dailyKey: string,
   actions: readonly RunAction[],
   ringProgress?: RingProgress,
-  attempt = 0, wins = 0, shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[], legacyProgression = false
-): RunState => actions.reduce(runReducer, createRun(dailyKey, ringProgress, attempt, wins, shopRings, pandoraEffect, cardRules, carried, legacyProgression));
+  attempt = 0, wins = 0, shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[], legacyProgression = false, conquestVersion?: 1, xpStartWins?: number
+): RunState => actions.reduce(runReducer, createRun(dailyKey, ringProgress, attempt, wins, shopRings, pandoraEffect, cardRules, carried, legacyProgression, conquestVersion, xpStartWins));
 
 /** True once the heroes have stopped the villain. */
 export const isRunOver = (state: RunState): boolean =>
-  state.phase.kind === 'fallen';
+  state.phase.kind === 'fallen' || state.phase.kind === 'conquered';
 
 /** The leaderboard score: how deep into the kingdom the villain pushed. */
 export const computeScore = (stats: RunStats): number =>
@@ -522,6 +631,11 @@ export const isRunAction = (value: unknown): value is RunAction => {
           value.imbueIndex === undefined ||
           isIndex(value.imbueIndex))
       );
+    case 'areaCamp':
+      return 'choice' in value && (value.choice === 'explore' || value.choice === 'rest' || value.choice === 'continue');
+    case 'nextBattleWave':
+    case 'finishSealing':
+      return true;
     case 'move':
       return 'move' in value && isMovementId(value.move);
     case 'endTurn':

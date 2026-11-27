@@ -25,11 +25,23 @@ async function earnings(id: string) {
   return { wins: rows.length, earned: rows.reduce((sum, { score }) => sum + goldFromVictoryScore(score), 0) };
 }
 
+/** Fix the migration point at the first read, preserving the old level and XP bar. */
+async function readLevelCurveStart(id: string, wins: number): Promise<number> {
+  const key = redisKeys.levelCurveStartWins(id);
+  let baseline = await redis.get(key);
+  if (baseline == null) {
+    await redis.set(key, String(wins), { nx: true });
+    baseline = await redis.get(key);
+  }
+  return baseline == null ? wins : Number(baseline);
+}
+
 export async function readPlayerProgress(id: string) {
   const [{ wins, earned }, raw] = await Promise.all([earnings(id), redis.get(redisKeys.ringPurchases(id))]);
   const wallet = readShopWallet(raw);
   const nextEffect = pendingPandoraEffect(wallet);
-  return { ...(nextEffect && { nextEffect }), wins, gold: shopGoldBalance(earned, wallet), shopRings: shopRingIds(Object.keys(wallet.items)), carryCards: availableCarryCards(wallet.carry) };
+  const xpStartWins = await readLevelCurveStart(id, wins);
+  return { ...(nextEffect && { nextEffect }), wins, xpStartWins, gold: shopGoldBalance(earned, wallet), shopRings: shopRingIds(Object.keys(wallet.items)), carryCards: availableCarryCards(wallet.carry) };
 }
 
 function response(offerDay: string, earned: number, wallet: ShopWallet, admin: boolean, testVisit?: string): RingShopResponse {
@@ -123,7 +135,8 @@ export async function buyRing(id: string, day: string, offerDay: string, ringId:
       const wallet = readShopWallet(raw);
       const stock = practice ? testShopStockKey(currentStock, wallet) : currentStock;
       if (stock !== offerDay) return { status: 'stale', shop: await readCheckout() } as const;
-      const decision = quoteShopPurchase(earned, wallet, offer, stock, entropy, !!practice, progressionFromWins(wins).level);
+      const xpStartWins = await readLevelCurveStart(id, wins);
+      const decision = quoteShopPurchase(earned, wallet, offer, stock, entropy, !!practice, progressionFromWins(wins, false, xpStartWins).level);
       if (decision.status === 'owned') return { status: 'owned', shop: response(stock, earned, wallet, admin, practice) } as const;
       if (decision.status === 'short') return { status: 'short', shop: response(stock, earned, wallet, admin, practice) } as const;
       // The receipt doubles as ownership and debit. No partial outcome can exist.

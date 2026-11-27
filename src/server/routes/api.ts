@@ -200,7 +200,7 @@ api.get('/init', async (c) => {
       username ? getBestScore(dailyKey, username) : null,
       userId ? getStreak(userId, getDailyKey()) : { current: 0, best: 0 },
       userId ? hasStartedRankedRun(dailyKey, userId) : false,
-      userId ? readPlayerProgress(userId) : { wins: 0, gold: 0 },
+      userId ? readPlayerProgress(userId) : { wins: 0, xpStartWins: 0, gold: 0 },
     ]);
 
     return c.json<InitResponse>({
@@ -208,7 +208,7 @@ api.get('/init', async (c) => {
       postId,
       dailyKey,
       username,
-      ...(userId && { accountId: userId, lifetimeWins: progress.wins, gold: progress.gold }),
+      ...(userId && { accountId: userId, lifetimeWins: progress.wins, xpStartWins: progress.xpStartWins, gold: progress.gold }),
       bestScoreToday,
       streak,
       hasStartedRankedRun: startedRanked,
@@ -232,14 +232,14 @@ api.post('/run/start', async (c) => {
     const candidate = body && typeof body === 'object' && 'testVisit' in body ? body.testVisit : undefined;
     const testVisit = isShopVisitId(candidate) && await isCurrentUserAdmin() ? candidate : undefined;
     const day = getCurrentPostDailyKey();
-    const [{ wins, shopRings }, build] = await Promise.all([readPlayerProgress(userId), getBuild(userId)]);
+    const [{ wins, xpStartWins, shopRings }, build] = await Promise.all([readPlayerProgress(userId), getBuild(userId)]);
     const record = body && typeof body === 'object' ? body as Record<string, unknown> : {};
     const requested = record.bringCards ?? (record.bringCard === undefined ? [] : [record.bringCard]);
     if (!isCarrySelection(requested)) return jsonError(c, 400, 'Invalid card selection');
     if (record.starter !== undefined && !isStarterName(record.starter)) return jsonError(c, 400, 'Invalid starter deck');
     const starter = isStarterName(record.starter) ? record.starter : build.selected;
     const deck = build.decks[starter] ?? starterDeck(starter);
-    const profile = { id: randomUUID(), wins, shopRings, cardRules: 1 as const, progressionVersion: 2 as const };
+    const profile = { id: randomUUID(), wins, xpStartWins, shopRings, cardRules: 1 as const, progressionVersion: 2 as const, conquestVersion: 1 as const };
     const withItems = await bindRunItems(userId, day, profile, testVisit, requested, deck)
       ?? (testVisit && !requested.length ? await bindRunItems(userId, day, profile, undefined, requested, deck) : undefined);
     if (withItems) return c.json<StartRunResponse>({ type: 'runStart', isRanked: false, profile: withItems, build });
@@ -268,18 +268,21 @@ async function verifyProgress(day: string, body: FinishRunRequest, userId: strin
   const cardRules = saved && typeof saved === 'object' && 'cardRules' in saved && saved.cardRules === 1 ? 1 as const : undefined;
   const carried = saved && typeof saved === 'object' && 'carriedCards' in saved && isCarriedDeck(saved.carriedCards) ? saved.carriedCards : saved && typeof saved === 'object' && 'carriedCard' in saved && isCardId(saved.carriedCard) ? saved.carriedCard : undefined;
   const legacyProgression = !(saved && typeof saved === 'object' && 'progressionVersion' in saved && saved.progressionVersion === 2);
-  const { state: run, unlocks } = replayForScoreAndUnlocks(day, body.actions, wins, shopRings, effect, cardRules, carried, legacyProgression);
+  const conquestVersion = saved && typeof saved === 'object' && 'conquestVersion' in saved && saved.conquestVersion === 1 ? 1 : undefined;
+  const xpStartWins = saved && typeof saved === 'object' && 'xpStartWins' in saved &&
+    typeof saved.xpStartWins === 'number' && Number.isSafeInteger(saved.xpStartWins) && saved.xpStartWins >= 0 ? saved.xpStartWins : undefined;
+  const { state: run, unlocks } = replayForScoreAndUnlocks(day, body.actions, wins, shopRings, effect, cardRules, carried, legacyProgression, conquestVersion, xpStartWins);
   if (run.phase.kind === 'fallen' && run.phase.battlefield && run.promisedToGreed) await bankHellCard(userId, body.runId, run.promisedToGreed, testVisit);
   if (effect === 'half-life' && run.goldVictories.length > 0) await creditPandoraBounty(userId, body.runId, testVisit);
   if (testVisit) return run;
   const runId = body.runId;
   await recordAppleFinds(userId, run.goldVictories.flatMap(victory => {
-    const item = appleAtVictory(runId, victory.stop, victory.encounter);
-    return item ? [{ id: runId + ':' + victory.stop, item }] : [];
+    const item = appleAtVictory(runId, victory.stop, victory.encounter, victory.battle);
+    return item ? [{ id: runId + ':' + victory.stop + (victory.battle ? ':' + victory.battle : ''), item }] : [];
   }));
   await recordUnlocks(userId, unlocks);
-  const awards = run.goldVictories.map(({ stop, encounter }, index) => ({
-    member: runId + ':' + index, score: -goldRewardFor(runId, stop, encounter, effect)
+  const awards = run.goldVictories.map(({ stop, encounter, battle }, index) => ({
+    member: runId + ':' + index, score: -goldRewardFor(runId, stop, encounter, effect, battle)
   }));
   await recordVictories(userId, awards);
   return run;
