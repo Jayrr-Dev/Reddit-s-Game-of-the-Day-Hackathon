@@ -140,13 +140,17 @@ void test('movement cards follow formation rules and Jump grants Momentum', () =
   const retreat = playCard(front, 0, 0);
   assert.deepEqual(retreat.heroes, move(front, 'backStep').heroes);
   assert.equal(retreat.energy, front.energy - 1);
-  assert.equal(retreat.lastMovement?.move, 'backStep');
+  assert.equal(retreat.freeMove?.move, 'backStep');
+  assert.equal(retreat.lastMovement, front.lastMovement);
+  assert.equal(movementCost(retreat, 'charge'), movementCost(front, 'charge'));
 
   const chargeReady = withHand(retreat, ['chargeForward']);
   const charged = playCard(chargeReady, 0, 0);
   assert.deepEqual(charged.heroes, move(chargeReady, 'charge').heroes);
   assert.equal(charged.player.statuses.momentum, 1);
-  assert.equal(charged.lastMovement?.streak, 2);
+  assert.equal(charged.freeMove?.move, 'charge');
+  assert.equal(charged.lastMovement, retreat.lastMovement);
+  assert.equal(movementCost(charged, 'backStep'), movementCost(front, 'backStep'));
   assert.equal(canPlayCard(withHand(charged, ['chargeForward']), 0), false);
 
   const jumpReady = withHand(front, ['jump']);
@@ -1332,7 +1336,21 @@ void test('every card text fits on the card face', () => {
   }
 });
 
-void test('every movement shares one streak; a full turn off resets it', () => {
+void test('moving with a card does not raise or reset an existing button streak', () => {
+  const start = { ...fightWith(['backhand']), energy: 9 };
+  const retreated = move(start, 'backStep');
+  const charged = playCard(withHand(retreated, ['chargeForward']), 0, 0);
+  assert.equal(charged.freeMove?.move, 'charge');
+  assert.equal(charged.energy, retreated.energy - 1);
+  assert.equal(charged.lastMovement, retreated.lastMovement);
+  assert.equal(movementCost(charged, 'charge'), 2);
+  assert.equal(movementCost(charged, 'backStep'), 2);
+  const next = move(charged, 'backStep');
+  assert.equal(next.energy, charged.energy - 2);
+  assert.equal(next.lastMovement?.streak, 2);
+});
+
+void test('movement buttons share one streak; a full turn off resets it', () => {
   const start = { ...fightWith(['backhand']), energy: 9 };
   assert.equal(movementCost(start, 'backStep'), 1);
   // Back Step, Charge, Back Step in one turn: a different move still

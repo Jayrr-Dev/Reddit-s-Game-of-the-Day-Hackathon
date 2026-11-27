@@ -5,7 +5,7 @@
 // grants. To add a move, add an entry to MOVEMENTS (and its id to
 // MovementId); cost, availability and the action log handle it.
 //
-// SHARED COST: every movement counts toward one streak, whatever its
+// SHARED BUTTON COST: each Charge or Back Step button use counts toward one streak, whatever its
 // kind. Each move costs its base cost plus MOVEMENT_STREAK_COST per
 // move made in a row. The streak survives the turn it was made and the
 // next one; it resets only after one full turn with no movement.
@@ -283,31 +283,16 @@ export const move = (state: CombatState, moveId: MovementId): CombatState => {
 export const grantMomentum = (state: CombatState): CombatState =>
   grant(state, MOVEMENTS.charge.grants);
 
-/** Makes a card's movement at its card cost and records the movement streak. */
+/** Makes a card's movement at its card cost without touching the button streak. */
 export const moveFromCard = (
   state: CombatState,
   moveId: MovementId
 ): CombatState => {
-  if (!hasRoomFor(state, moveId)) return state;
-  return skillGrant(
-    grant(
-      {
-        ...state,
-        lastMovement: {
-          move: moveId,
-          turn: state.turn,
-          streak: streakOf(state) + 1,
-        },
-        ...shiftFormation(state, moveId),
-      },
-      MOVEMENTS[moveId].grants
-    ),
-    moveId
-  );
+  return moveFree(state, moveId);
 };
 
 /**
- * Makes `move` for free (Rampage on a kill, Distance on a hit): only
+ * Makes `move` without a separate movement payment (card effect or keyword): only
  * when there's room, at no cost and outside the movement streak. Does
  * nothing when there's no room.
  */

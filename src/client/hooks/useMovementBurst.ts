@@ -1,9 +1,8 @@
 // ===================================================================
 // USE MOVEMENT BURST
 // The speed-lines burst for each villain movement. It fires when the
-// shown fight records a new movement, so a move made by hand and one an
-// keyword (Rampage on kill, Distance on hit) makes on its own, once the card's
-// hits have played out, get the same burst.
+// shown fight records a new movement. Button moves, card effects, and
+// keywords (Rampage on kill, Distance on hit) all get the same burst.
 // ===================================================================
 
 import { useState } from 'react';
@@ -16,7 +15,7 @@ export type MovementBurst = { move: MovementId; count: number; label?: string };
 // --- HOOK ---
 /** The speed-lines burst to draw now, if any. */
 export const useMovementBurst = (shown: CombatState) => {
-  // A paid move (lastMovement) or a free keyword one (freeMove): each
+  // A button move (lastMovement) or a card move (freeMove): each
   // is a fresh object, so a new one means a new move.
   const { lastMovement, freeMove } = shown;
   const forced = shown.forcedMovement;

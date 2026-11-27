@@ -635,14 +635,13 @@ export type CombatState = {
   /** Net rows the villain has travelled toward the enemy since combat began. */
   travelRows?: number;
   forcedMovement?: { count: number; move: MovementId; distance: number };
-  /** The last movement (its streak raises the next one's cost). */
   followUpReady?: boolean;
   mostKillsInOneHit?: number;
+  /** The last movement-button use (its streak raises the next button's cost). */
   lastMovement: MovementRecord | null;
   /**
-   * The last free move a keyword made (Rampage on kill, Distance on hit): a
-   * fresh object each time, so the view can play its speed lines. It
-   * costs nothing and never counts toward the movement streak.
+   * The last move from a card effect or keyword: a fresh object each time
+   * for speed lines, with no separate button cost or streak increase.
    */
   freeMove: { move: MovementId } | null;
   /** The uid the next hero to join (a summon) gets; never reused. */
