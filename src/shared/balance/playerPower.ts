@@ -6,7 +6,7 @@
 //   power = damage per turn × toughness / 24
 //   toughness = HP / (share of a boss's turn that still lands)
 //
-// Guard and Distance on the hand's cards stop part of each boss turn
+// Guard and Distance on the deck's cards stop part of each boss turn
 // (the `player` group of costCurveConfig.ts), which stretches HP the
 // way Armor and rows stretch a unit's.
 //
@@ -21,9 +21,10 @@
 // - Skill points (1 a level) buy the style's circles in order
 //   (playerStyles.ts).
 // - Each turn the hand holds the best mix of the style's cards for the
-//   energy and cards drawn (up to 2 copies, 1 of a Legendary), weighing
-//   damage against Guard and Distance. Remove, Exhaust, Imbue, buff and
-//   pure Guard cards are left out.
+//   energy and cards drawn (up to 2 copies, 1 of a Legendary). Remove,
+//   Exhaust, Imbue, buff and pure Guard cards are left out.
+// - Guard and Distance count on an AVERAGE draw (each copy is in hand
+//   cardsPerTurn / deck size of the time), not every turn.
 // - Iron Ring and Traveler's Amulet are worn.
 // ===================================================================
 
@@ -150,62 +151,58 @@ const cardBlock = (config: CostCurveConfig, card: CardDef, stats: Stats): number
 };
 
 // --- HAND ---
-/** One card a hand can hold: what it costs, deals and stops, and how many copies the deck has. */
-type HandOption = { cost: number; damage: number; block: number; copies: number };
+/** One card the deck holds: what it costs, deals and stops, and how many copies the deck has. */
+type DeckCard = { cost: number; damage: number; block: number; copies: number };
 
-/** The hand the search picked: damage dealt and damage stopped in one turn. */
+/** One turn: the best damage hand, and the damage stopped on an average draw. */
 type Turn = { damage: number; blocked: number; toughness: number };
 
 /**
- * The best hand for one turn. A knapsack over energy, cards drawn and
- * damage stopped (in whole points, capped), each card up to 2 copies
- * (1 for a Legendary). It keeps the most damage for every amount
- * stopped, then picks the hand with the highest damage × toughness,
- * because that product is what power measures.
+ * Most damage one turn's hand can deal: a knapsack over energy and
+ * cards drawn, each card up to its copies (2, or 1 for a Legendary).
  */
-const bestTurn = (config: CostCurveConfig, options: HandOption[], energy: number, cards: number): Turn => {
-  const { incomingPerTurn, maxBlockedShare } = config.player;
-  const blockCap = Math.floor(incomingPerTurn * maxBlockedShare);
-  // best[index(e, n, b)]: most damage spending at most e energy on at most n cards, stopping b damage (-1: no hand).
-  const index = (e: number, n: number, b: number): number => (e * (cards + 1) + n) * (blockCap + 1) + b;
-  const best = new Float64Array((energy + 1) * (cards + 1) * (blockCap + 1)).fill(-1);
-  for (let e = 0; e <= energy; e += 1) for (let n = 0; n <= cards; n += 1) best[index(e, n, 0)] = 0;
-  for (const option of options) {
-    const block = Math.round(option.block);
-    for (let copy = 0; copy < option.copies; copy += 1) {
-      // Walk energy and cards downwards so each copy is added at most once (0/1 knapsack in place).
-      for (let e = energy; e >= option.cost; e -= 1) {
+const bestDamage = (deck: DeckCard[], energy: number, cards: number): number => {
+  // best[e][n]: most damage spending at most e energy on at most n cards.
+  const best = Array.from({ length: energy + 1 }, () => new Array<number>(cards + 1).fill(0));
+  for (const card of deck) {
+    for (let copy = 0; copy < card.copies; copy += 1) {
+      // Walk downwards so each copy is added at most once (0/1 knapsack in place).
+      for (let e = energy; e >= card.cost; e -= 1) {
         for (let n = cards; n >= 1; n -= 1) {
-          for (let b = blockCap; b >= 0; b -= 1) {
-            const before = best[index(e - option.cost, n - 1, b)] ?? -1;
-            if (before < 0) continue;
-            const target = index(e, n, Math.min(blockCap, b + block));
-            const withCard = before + option.damage;
-            if (withCard > (best[target] ?? -1)) best[target] = withCard;
-          }
+          const withCard = (best[e - card.cost]?.[n - 1] ?? 0) + card.damage;
+          if (withCard > (best[e]?.[n] ?? 0)) best[e]![n] = withCard;
         }
       }
     }
   }
-  // Toughness multiplier: HP lasts 1 / (share of incoming damage that still lands).
-  let top: Turn = { damage: 0, blocked: 0, toughness: 1 };
-  for (let blocked = 0; blocked <= blockCap; blocked += 1) {
-    const damage = best[index(energy, cards, blocked)] ?? -1;
-    const toughness = 1 / (1 - blocked / incomingPerTurn);
-    if (damage * toughness > top.damage * top.toughness) top = { damage, blocked, toughness };
-  }
-  return top;
+  return best[energy]?.[cards] ?? 0;
 };
 
-/** The best turn for a style with these stats and skills. */
-const bestStyleTurn = (config: CostCurveConfig, style: PlayStyle, stats: Stats, skills: SkillBonus): Turn => {
-  const options = styleCards(style).map((card) => ({
+/**
+ * Damage stopped on an AVERAGE turn, not the best one: each copy of a
+ * Guard or Distance card is in hand cardsPerTurn / deck size of the
+ * time. A deck with one Guard card can't hold it every turn, so
+ * defence is counted by draw odds while damage stays a ceiling.
+ */
+const averageBlock = (config: CostCurveConfig, deck: DeckCard[], cards: number): number => {
+  const deckSize = deck.reduce((sum, card) => sum + card.copies, 0);
+  const inHand = deckSize === 0 ? 0 : Math.min(1, cards / deckSize);
+  const blocked = deck.reduce((sum, card) => sum + card.block * card.copies * inHand, 0);
+  return Math.min(blocked, config.player.incomingPerTurn * config.player.maxBlockedShare);
+};
+
+/** One turn for a style with these stats and skills. */
+const styleTurn = (config: CostCurveConfig, style: PlayStyle, stats: Stats, skills: SkillBonus): Turn => {
+  const deck = styleCards(style).map((card) => ({
     cost: card.cost,
     damage: cardDamage(config, card, stats, skills),
     block: cardBlock(config, card, stats),
     copies: card.rarity === 'legendary' ? 1 : 2,
   }));
-  return bestTurn(config, options, stats.startingEnergy, stats.cardsPerTurn);
+  const blocked = averageBlock(config, deck, stats.cardsPerTurn);
+  // HP lasts 1 / (share of a boss turn that still lands).
+  const toughness = 1 / (1 - blocked / config.player.incomingPerTurn);
+  return { damage: bestDamage(deck, stats.startingEnergy, stats.cardsPerTurn), blocked, toughness };
 };
 
 // --- TRAIT SEARCH ---
@@ -234,7 +231,7 @@ export const playerPower = (config: CostCurveConfig, style: PlayStyle, level: nu
         const stats = characterBonuses(traits, WORN);
         // The hand depends only on damage traits, energy and Guard bonuses, not on HP.
         const key = `${JSON.stringify(split)}|${stats.startingEnergy}|${stats.shieldPercent}|${stats.shieldFlat}`;
-        const turn = turnCache.get(key) ?? bestStyleTurn(config, style, stats, skills);
+        const turn = turnCache.get(key) ?? styleTurn(config, style, stats, skills);
         turnCache.set(key, turn);
         const toughness = stats.maxHp * turn.toughness;
         const power = (turn.damage * toughness) / villainDamagePerTurn(config);
