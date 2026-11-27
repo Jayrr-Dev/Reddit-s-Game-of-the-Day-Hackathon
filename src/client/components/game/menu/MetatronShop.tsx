@@ -1,9 +1,26 @@
-import { useId } from 'react';
+import { useEffect, useId, useState } from 'react';
 import shopAmbient from '../../../assets/npcs/metatron-shop-ambient.webp';
 import shopFrame from '../../../assets/npcs/metatron-shop-frame.webp';
 import { Button } from '../../ui/Button';
 import { ProgressiveImg, ProgressiveSvgImage } from '../../ui/ProgressiveImage';
+import { RingCounter } from './RingCounter';
 import './metatron-shop.css';
+
+const SALE_LINES = [
+  'Ah, gold matching ambition.',
+  'You bargain with gold. The world deals in consequences.',
+  'A ring cannot tell you what to reach for.',
+  'Even fallen things can still catch the light.',
+  'The ring remembers the hand that wears it.',
+  'Keep a little gold. Want is rarely satisfied.',
+] as const;
+
+const WAIT_LINES = [
+  'Take your time. Haste is the most expensive thing I sell.',
+  'You’ve gone quiet. A good sign, usually.',
+  'Even the dust has learned to wait.',
+  'The door stays where it is.',
+] as const;
 
 const SCENE_WIDTH = 1200;
 const SCENE_HEIGHT = 675;
@@ -39,7 +56,26 @@ function MetatronIdle() {
   );
 }
 
-export const MetatronShop = ({ onClose }: { onClose: () => void }) => (
+export const MetatronShop = ({ onClose }: { onClose: () => void }) => {
+  const [line, setLine] = useState<number | null>(null);
+  const [buying, setBuying] = useState(false);
+  const [waited, setWaited] = useState<number | null>(null);
+  const [showWait, setShowWait] = useState(false);
+  useEffect(() => {
+    if (buying || waited !== null) return;
+    const timer = window.setTimeout(() => {
+      setWaited(Math.floor(Math.random() * WAIT_LINES.length));
+      setShowWait(true);
+    }, 25_000);
+    return () => window.clearTimeout(timer);
+  }, [buying, line, waited]);
+  function greetPurchase() {
+    setShowWait(false);
+    const roll = Math.random();
+    setLine(previous => previous === null ? Math.floor(roll * SALE_LINES.length) :
+      (previous + 1 + Math.floor(roll * (SALE_LINES.length - 1))) % SALE_LINES.length);
+  }
+  return (
   <section
     role="dialog"
     aria-label="Shop"
@@ -53,7 +89,7 @@ export const MetatronShop = ({ onClose }: { onClose: () => void }) => (
       className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-contain"
     />
 
-    <MetatronIdle />
+    <MetatronIdle key={line ?? 'hello'} />
 
     <img
       src={shopAmbient}
@@ -66,7 +102,9 @@ export const MetatronShop = ({ onClose }: { onClose: () => void }) => (
 
     <div className="metatron-dialogue-layer">
       <div className="metatron-dialogue-frame">
-        <p className="metatron-greeting">Greetings.</p>
+        <p key={showWait ? 'wait' : line ?? 'hello'} className="metatron-greeting" data-purchase={line !== null || showWait || undefined}>
+          {showWait && waited !== null ? WAIT_LINES[waited] : line === null ? 'Greetings.' : SALE_LINES[line]}
+        </p>
       </div>
     </div>
 
@@ -77,14 +115,13 @@ export const MetatronShop = ({ onClose }: { onClose: () => void }) => (
       <p className="text-xs text-ink">Metatron the Fallen Angel</p>
     </header>
 
-    <footer className="flex items-end justify-between gap-2">
-      <p className="rounded-md bg-[#17111d]/90 px-3 py-2 text-xs text-ink">
-        The shop isn’t stocked yet.
-      </p>
+    <RingCounter onSale={greetPurchase} onBuyingChange={setBuying} />
+    <footer className="flex items-end justify-end gap-2">
       <Button variant="menu" className="max-w-24 shrink-0" onClick={onClose}>
         Back
       </Button>
     </footer>
   </section>
-);
+  );
+};
 

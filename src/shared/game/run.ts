@@ -22,6 +22,7 @@ import { combatOutcome, endTurn, playCard, startCombat, SELF_TARGET_UID } from '
 import { mightAt, routeOptions, stopSeed, type Stop } from './kingdom.ts';
 import { isMovementId, move } from './movement.ts';
 import type { GoldVictory } from './gold.ts';
+import { ringInventory, type ShopRingId } from './ringShop.ts';
 import { rollOffers } from './rewards.ts';
 import { isUniqueInDeck } from './unique.ts';
 import {
@@ -135,12 +136,19 @@ const EMPTY_STATS: RunStats = {
 
 // --- CREATION ---
 
+/** Owned shop rings are part of the trusted run baseline, not a player action. */
+const initialCharacter = (ringProgress: RingProgress | undefined, wins: number, shopRings: readonly ShopRingId[]) => {
+  const character = createCharacter(ringProgress);
+  return { ...character, ...progressionFromWins(wins), inventory: [...character.inventory, ...ringInventory(shopRings)] };
+};
+
 /** The start of the day's run: full HP, starter deck, first crossroads. */
-export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt = 0, wins = 0): RunState => ({
+export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt = 0, wins = 0,
+  shopRings: readonly ShopRingId[] = []): RunState => ({
   attempt,
   dailyKey,
   stop: 1,
-  character: { ...createCharacter(ringProgress), ...progressionFromWins(wins) },
+  character: initialCharacter(ringProgress, wins, shopRings),
   hp: PLAYER_MAX_HP,
   maxHp: PLAYER_MAX_HP,
   deck: [...STARTER_DECK],
@@ -390,8 +398,8 @@ export const replayRun = (
   dailyKey: string,
   actions: readonly RunAction[],
   ringProgress?: RingProgress,
-  attempt = 0, wins = 0
-): RunState => actions.reduce(runReducer, createRun(dailyKey, ringProgress, attempt, wins));
+  attempt = 0, wins = 0, shopRings: readonly ShopRingId[] = []
+): RunState => actions.reduce(runReducer, createRun(dailyKey, ringProgress, attempt, wins, shopRings));
 
 /** True once the heroes have stopped the villain. */
 export const isRunOver = (state: RunState): boolean =>

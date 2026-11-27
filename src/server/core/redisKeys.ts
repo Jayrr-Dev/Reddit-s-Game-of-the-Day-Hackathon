@@ -6,6 +6,7 @@
 // ===================================================================
 
 export const redisKeys = {
+  ringPurchases: (userId: string) => `profile:ring-purchases:v1:${userId}`,
   victories: (userId: string) => `progress:v1:${userId}:wins`,
   runBaseline: (userId: string, day: string, id: string) => `progress:v1:${userId}:${day}:${id}`,
   /** Sorted set: username -> best score for one day. */

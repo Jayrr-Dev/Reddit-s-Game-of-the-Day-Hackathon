@@ -48,6 +48,7 @@
   font: 600 clamp(.70rem, 1.55cqw, .88rem)/1.2 var(--font-display, Georgia, serif);
   animation: metatron-greeting-in 380ms 170ms ease-out both;
 }
+.metatron-greeting[data-purchase] { width: min(32%, 11rem); }
 .metatron-greeting::before {
   content: "";
   position: absolute;

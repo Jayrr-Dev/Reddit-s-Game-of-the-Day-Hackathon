@@ -15,6 +15,9 @@ import {
   type TraitId,
 } from './character.ts';
 
+import type { RunProfile } from '../types/api.ts';
+import { shopRingIds } from './ringShop.ts';
+
 type SaveStore = {
   length: number;
   key(index: number): string | null;
@@ -23,7 +26,7 @@ type SaveStore = {
 };
 
 export type LoggedRun = {
-  profile?: { id: string; wins: number };
+  profile?: RunProfile;
   run: RunState;
   actions: RunAction[];
   attempt: number;
@@ -201,9 +204,9 @@ export const restoreLoggedRun = (
         if ('profile' in saved && saved.profile && typeof saved.profile === 'object' &&
           'id' in saved.profile && typeof saved.profile.id === 'string' &&
           'wins' in saved.profile && typeof saved.profile.wins === 'number' && Number.isSafeInteger(saved.profile.wins)) {
-          const profile = { id: saved.profile.id, wins: saved.profile.wins };
+          const profile = { id: saved.profile.id, wins: saved.profile.wins, ...('shopRings' in saved.profile && { shopRings: shopRingIds(saved.profile.shopRings) }) };
           const actions = saved.actions.filter(isRunAction);
-          return { run: replayRun(day, actions, initialRings, saved.attempt, profile.wins), attempt: saved.attempt, initialRings, actions, profile };
+          return { run: replayRun(day, actions, initialRings, saved.attempt, profile.wins, profile.shopRings), attempt: saved.attempt, initialRings, actions, profile };
         }
         return restoreActions(
           day,

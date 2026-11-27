@@ -1,0 +1,33 @@
+.ring-counter {
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: min(100%, 19rem);
+  max-height: min(54%, 22rem);
+  border: 1px solid #a07336;
+  border-radius: .6rem;
+  background: #1d121bef;
+  color: #fff3d9;
+  padding: .55rem;
+  font-size: .78rem;
+}
+.ring-counter-heading, .ring-counter-item { display: flex; align-items: center; justify-content: space-between; gap: .4rem; }
+.ring-counter-heading { padding: 0 .2rem .32rem; }
+.ring-counter-heading h3 { font-family: var(--font-display); font-weight: 800; font-size: 1rem; }
+.ring-counter-gold, .ring-counter-item button { display: inline-flex; align-items: center; gap: .2rem; white-space: nowrap; font-weight: 750; }
+.ring-counter-gold { color: #ffcf77; }
+.ring-counter .profile-gold-icon { width: 1rem; height: 1rem; }
+.ring-counter-scroll { overflow-y: auto; min-height: 0; scrollbar-width: thin; scrollbar-color: #ac814c #211520; }
+.ring-counter-hint { color: #dfc9a5; padding: .2rem; }
+.ring-counter-item { padding: .3rem .2rem; border-top: 1px solid #594138; }
+.ring-counter-item strong { display: block; }
+.ring-counter-rarity { color: #ddd6cb; font-size: .69rem; font-weight: 650; }
+.ring-counter-item[data-rarity="Uncommon"] .ring-counter-rarity { color: #b7dfa7; }
+.ring-counter-item[data-rarity="Rare"] .ring-counter-rarity { color: #a7cefe; }
+.ring-counter-item[data-rarity="Epic"] .ring-counter-rarity { color: #dcc2ff; }
+.ring-counter-item[data-rarity="Legendary"] .ring-counter-rarity { color: #ffca75; }
+.ring-counter button { min-height: 1.8rem; padding: .14rem .4rem; border: 1px solid #aa7b43; border-radius: .27rem; background: #432918; color: #ffe4a9; }
+.ring-counter button:not(:disabled):hover { background: #714625; }
+.ring-counter button:disabled { opacity: .65; cursor: default; }
+.ring-counter-note { color: #ffe0a3; border-top: 1px solid #594138; margin-top: .24rem; padding: .3rem .2rem 0; }

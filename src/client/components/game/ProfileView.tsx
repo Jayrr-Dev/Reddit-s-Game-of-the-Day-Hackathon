@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { ShopRingId } from '../../../shared/game/ringShop';
 import { type RingProgress } from '../../../shared/game/character';
 import {
   characterEdit,
@@ -38,6 +39,7 @@ export function ProfileView({
     localBuild(data.accountId)
   );
   const [wins, setWins] = useState(data.lifetimeWins ?? 0);
+  const [shopRings, setShopRings] = useState<ShopRingId[]>([]);
   const [gold, setGold] = useState(data.gold ?? 0);
   const [loading, setLoading] = useState(!!data.accountId);
   const [saving, setSaving] = useState(false);
@@ -58,6 +60,7 @@ export function ProfileView({
           setBuild(result.build);
           setWins(result.wins);
           setGold(result.gold);
+          setShopRings(result.shopRings);
           setItems(result.items);
         }
       })
@@ -76,7 +79,7 @@ export function ProfileView({
   }, [data.accountId, retry, setItems]);
   const run = build.character.reduce(
     runReducer,
-    createRun(data.dailyKey, rings, 0, wins)
+    createRun(data.dailyKey, rings, 0, wins, shopRings)
   );
   const character = run.character;
   const name = build.selected;
@@ -104,7 +107,7 @@ export function ProfileView({
     setBuild((previous) => {
       const current = previous.character.reduce(
         runReducer,
-        createRun(data.dailyKey, rings, 0, wins)
+        createRun(data.dailyKey, rings, 0, wins, shopRings)
       );
       return runReducer(current, action) === current
         ? previous

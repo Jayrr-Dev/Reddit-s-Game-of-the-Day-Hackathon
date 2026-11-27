@@ -13,7 +13,9 @@ import { Hono } from 'hono';
 import { context, reddit, redis } from '@devvit/web/server';
 import { replayForScore, replayForScoreAndUnlocks } from '../../shared/game/replayForScore';
 import { getUnlocks, recordUnlocks } from '../core/playerUnlocks';
-import { goldFromVictoryScore, goldRewardFor } from '../../shared/game/gold';
+import { buyRing, getRingShop, readPlayerProgress, recordVictories } from '../core/playerRingShop';
+import { isShopRingId, shopRingIds } from '../../shared/game/ringShop';
+import { goldRewardFor } from '../../shared/game/gold';
 import { MAX_RUN_ACTIONS } from '../../shared/game/rules';
 import {
   computeScore,
@@ -21,6 +23,8 @@ import {
   isRunOver,
 } from '../../shared/game/run';
 import type {
+  BuyRingResponse,
+  RingShopResponse,
   FinishRunRequest,
   FinishRunResponse,
   InitResponse,
@@ -97,17 +101,26 @@ async function getBuild(id:string) {
   const data:unknown = raw ? JSON.parse(raw) : null;
   return isPlayerBuild(data) ? data : defaultBuild();
 }
-/** Wins and Gold come from the same server-verified ledger. */
-async function getProgress(id: string): Promise<{ wins: number; gold: number }> {
-  const rows = await redis.zRange(redisKeys.victories(id), 0, -1, { by: 'rank' });
-  return { wins: rows.length, gold: rows.reduce((sum, { score }) => sum + goldFromVictoryScore(score), 0) };
-}
 
 api.get('/profile',async c => {
   const id=context.userId;
   if(!id)return jsonError(c,401,'Sign in to load your profile');
-  const [build, progress, items, unlocks] = await Promise.all([getBuild(id), getProgress(id), getItems(id), getUnlocks(id)]);
+  const [build, progress, items, unlocks] = await Promise.all([getBuild(id), readPlayerProgress(id), getItems(id), getUnlocks(id)]);
   return c.json<ProfileResponse>({ build, ...progress, items, unlocks });
+});
+api.get('/shop/rings', async c => {
+  const id = context.userId;
+  if (!id) return jsonError(c, 401, 'Sign in to enter the ring shop');
+  return c.json<RingShopResponse>(await getRingShop(id, getDailyKey()));
+});
+api.post('/shop/rings/buy', async c => {
+  const id = context.userId;
+  if (!id) return jsonError(c, 401, 'Sign in to buy rings');
+  const body: unknown = await c.req.json().catch(() => null);
+  if (!body || typeof body !== 'object' || !('ringId' in body) || !isShopRingId(body.ringId) ||
+    !('offerDay' in body) || typeof body.offerDay !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.offerDay))
+    return jsonError(c, 400, 'Invalid ring offer');
+  return c.json<BuyRingResponse>(await buyRing(id, getDailyKey(), body.offerDay, body.ringId));
 });
 api.post('/profile',async c => {
   const id=context.userId;
@@ -150,7 +163,7 @@ api.get('/init', async (c) => {
       username ? getBestScore(dailyKey, username) : null,
       userId ? getStreak(userId, getDailyKey()) : { current: 0, best: 0 },
       userId ? hasStartedRankedRun(dailyKey, userId) : false,
-      userId ? getProgress(userId) : { wins: 0, gold: 0 },
+      userId ? readPlayerProgress(userId) : { wins: 0, gold: 0 },
     ]);
 
     return c.json<InitResponse>({
@@ -181,8 +194,9 @@ api.post('/run/start', async (c) => {
       ? await beginRun(getCurrentPostDailyKey(), userId)
       : false;
     if (!userId) return c.json<StartRunResponse>({ type: 'runStart', isRanked });
-    const profile = { id: randomUUID(), wins: await redis.zCard(redisKeys.victories(userId)) };
-    await redis.set(redisKeys.runBaseline(userId, getCurrentPostDailyKey(), profile.id), String(profile.wins));
+    const { wins, shopRings } = await readPlayerProgress(userId);
+    const profile = { id: randomUUID(), wins, shopRings };
+    await redis.set(redisKeys.runBaseline(userId, getCurrentPostDailyKey(), profile.id), JSON.stringify({ wins, shopRings }));
     return c.json<StartRunResponse>({ type: 'runStart', isRanked, profile, build: await getBuild(userId) });
   } catch (error) {
     console.error('api/run/start failed', error);
@@ -196,13 +210,17 @@ async function verifyProgress(day: string, body: FinishRunRequest, userId: strin
   const baseline = await redis.get(redisKeys.runBaseline(userId, day, body.runId));
   if (baseline == null) return null;
   // One replay both verifies the run and finds what it unlocked.
-  const { state: run, unlocks } = replayForScoreAndUnlocks(day, body.actions, Number(baseline));
+  const saved: unknown = JSON.parse(baseline);
+  const wins = typeof saved === 'number' ? saved :
+    saved && typeof saved === 'object' && 'wins' in saved && typeof saved.wins === 'number' ? saved.wins : 0;
+  const shopRings = saved && typeof saved === 'object' && 'shopRings' in saved ? shopRingIds(saved.shopRings) : [];
+  const { state: run, unlocks } = replayForScoreAndUnlocks(day, body.actions, wins, shopRings);
   await recordUnlocks(userId, unlocks);
   const runId = body.runId;
   const awards = run.goldVictories.map(({ stop, encounter }, index) => ({
     member: runId + ':' + index, score: -goldRewardFor(runId, stop, encounter)
   }));
-  if (awards.length) await redis.zAdd(redisKeys.victories(userId), ...awards);
+  await recordVictories(userId, awards);
   return run;
 }
 api.post('/run/progress', async (c) => {

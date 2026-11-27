@@ -1,3 +1,4 @@
+import type { ShopRingId } from './ringShop.ts';
 import { trainingRingProgress } from './character.ts';
 import { createRun, replayRun, type RunAction } from './run.ts';
 import { replayWithUnlocks } from './unlocks.ts';
@@ -12,5 +13,5 @@ export const replayForScore = (day: string, actions: readonly RunAction[], wins 
   replayRun(day, actions, trainingRingProgress(), 0, wins);
 
 /** The same verified replay as replayForScore, plus what the run unlocked. */
-export const replayForScoreAndUnlocks = (day: string, actions: readonly RunAction[], wins = 0) =>
-  replayWithUnlocks(createRun(day, trainingRingProgress(), 0, wins), actions);
+export const replayForScoreAndUnlocks = (day: string, actions: readonly RunAction[], wins = 0, shopRings: readonly ShopRingId[] = []) =>
+  replayWithUnlocks(createRun(day, trainingRingProgress(), 0, wins, shopRings), actions);

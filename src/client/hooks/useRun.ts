@@ -47,7 +47,7 @@ export const useRun = (dailyKey: string, accountId?: string) => {
     const next = restartLoggedRun(state, browserStore(accountId));
     if (!next.actions.length && profile) {
       next.profile = profile;
-      next.run = createRun(dailyKey, next.initialRings, next.attempt, profile.wins);
+      next.run = createRun(dailyKey, next.initialRings, next.attempt, profile.wins, profile.shopRings);
     }
     if (!next.actions.length) {
       const chosen = build ?? localBuild(accountId);

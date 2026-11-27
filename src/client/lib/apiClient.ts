@@ -5,6 +5,9 @@
 // ===================================================================
 
 import type {
+  BuyRingRequest,
+  BuyRingResponse,
+  RingShopResponse,
   ApiErrorResponse,
   FinishRunRequest,
   FinishRunResponse,
@@ -54,6 +57,8 @@ const postJson = <TResponse>(path: string, payload?: unknown) =>
 
 // --- ROUTES ---
 export const apiClient = {
+  ringShop: () => request<RingShopResponse>('/api/shop/rings'),
+  buyRing: (payload: BuyRingRequest) => postJson<BuyRingResponse>('/api/shop/rings/buy', payload),
   profile: () => request<ProfileResponse>('/api/profile'),
   saveProfile: (build: import('../../shared/game/playerBuild').PlayerBuild) => postJson<{saved:boolean}>('/api/profile',build),
   useItem: (payload: UseItemRequest) => postJson<UseItemResponse>('/api/profile/use-item', payload),

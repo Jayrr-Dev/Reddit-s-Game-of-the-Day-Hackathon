@@ -5,6 +5,7 @@
 // both sides instead of failing at runtime.
 // ===================================================================
 
+import type { RingOffer, ShopRingId } from '../game/ringShop.ts';
 import type { RunAction, RunStats } from '../game/run.ts';
 import type { UnitStatOverride, UnitStatOverrides } from '../game/unitOverrides.ts';
 
@@ -60,6 +61,7 @@ export type ProfileResponse = {
   wins: number;
   /** Gold balance on the player account. */
   gold: number;
+  shopRings: ShopRingId[];
   items: import('../game/items.ts').ItemBag;
   /** What the player has unlocked in runs (Illusion Training content). */
   unlocks: import('../game/unlocks.ts').Unlocks;
@@ -81,9 +83,18 @@ export type DiscardItemResponse = { items: import('../game/items.ts').ItemBag };
 // --- POST /api/run/start ---
 // Called when the player begins a run. The first run of the day is the
 // ranked one; any later run is practice and never touches the board.
+export type RingShopResponse = {
+  offerDay: string;
+  gold: number;
+  offers: RingOffer[];
+  owned: ShopRingId[];
+};
+export type BuyRingRequest = { ringId: ShopRingId; offerDay: string };
+export type BuyRingResponse = { status: 'bought' | 'owned' | 'short' | 'stale' | 'retry'; shop: RingShopResponse };
+export type RunProfile = { id: string; wins: number; shopRings?: ShopRingId[] };
 export type StartRunResponse = {
   build?: import('../game/playerBuild.ts').PlayerBuild;
-  profile?: { id: string; wins: number };
+  profile?: RunProfile;
   type: 'runStart';
   isRanked: boolean;
 };
