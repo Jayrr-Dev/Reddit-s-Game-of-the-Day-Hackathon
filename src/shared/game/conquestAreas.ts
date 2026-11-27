@@ -69,7 +69,7 @@ function regionBossWave(index: number): Wave {
   const boss = [...GRANDANGEL_BOSSES, ...ARCHANGEL_BOSSES][index] ?? ARCHANGEL_BOSSES.at(-1)!;
   return {
     name: index < GRANDANGEL_BOSSES.length ? 'Region Boss' : 'Final Boss',
-    heroIds: boss === 'archangelZeruel' ? [boss, 'zeruelRedSun', 'zeruelBlueSun'] : [boss],
+    heroIds: [boss],
     might: index < GRANDANGEL_BOSSES.length ? 0.42 + index * 0.11 : 1,
   };
 }

@@ -24,7 +24,7 @@ const RIG_WIDTH_SHARE = 1.74;
 const GROUND = 98;
 const FOOT_SHARE = 0.932;
 // The source sword cels have a dark oval below the boots. Key it out
-// only in the foot strip; the separate World/Floor shadow stays put.
+// only in the foot strip; the separate floor shadow stays put.
 const FOOT_STRIP_Y = 332;
 
 /** Advances a cached texture through its authored cels without redrawing the stage. */
@@ -55,9 +55,13 @@ const IDLE_COLUMNS = 5;
 const IDLE_ROWS = 5;
 const IDLE_CELS = 24;
 const IDLE_BEAT_MS = 3200 / IDLE_CELS;
+// Fade into the original planted drawing before the lower robe and boots.
+const IDLE_BLEND_Y = 278;
+const IDLE_PIN_Y = 302;
 
 /** Plays the planted body's wing, fabric and hair cels at the held animation cadence. */
 function MikhaelIdleWind() {
+  const pinId = useId();
   const art = useProgressiveImage(idleWind);
   const [cel, setCel] = useState(0);
   useEffect(() => {
@@ -73,8 +77,30 @@ function MikhaelIdleWind() {
   }, [art.isPlaceholder]);
   if (art.isPlaceholder) return <ProgressiveSvgImage href={idle} width={CELL_W} height={CELL_H} />;
   return <g data-mikhael-idle-cel={cel}>
+    <defs>
+      <linearGradient id={`${pinId}-blend`} gradientUnits="userSpaceOnUse"
+        x1={0} x2={0} y1={IDLE_BLEND_Y} y2={IDLE_PIN_Y}>
+        <stop stopColor="white" stopOpacity={1} />
+        <stop offset="1" stopColor="white" stopOpacity={0} />
+      </linearGradient>
+      <linearGradient id={`${pinId}-pin`} href={`#${pinId}-blend`}>
+        <stop stopColor="white" stopOpacity={0} />
+        <stop offset="1" stopColor="white" stopOpacity={1} />
+      </linearGradient>
+      <mask id={`${pinId}-moving`} maskUnits="userSpaceOnUse" x={0} y={0} width={CELL_W} height={IDLE_PIN_Y}>
+        <rect width={CELL_W} height={IDLE_PIN_Y} fill={`url(#${pinId}-blend)`} />
+      </mask>
+      <mask id={`${pinId}-grounded`} maskUnits="userSpaceOnUse" x={0} y={IDLE_BLEND_Y}
+        width={CELL_W} height={CELL_H - IDLE_BLEND_Y}>
+        <rect y={IDLE_BLEND_Y} width={CELL_W} height={CELL_H - IDLE_BLEND_Y} fill={`url(#${pinId}-pin)`} />
+      </mask>
+    </defs>
+    <g mask={`url(#${pinId}-grounded)`}>
+      <ProgressiveSvgImage href={idle} width={CELL_W} height={CELL_H} />
+    </g>
     <image href={art.src} width={CELL_W * IDLE_COLUMNS} height={CELL_H * IDLE_ROWS}
-      x={-(cel % IDLE_COLUMNS) * CELL_W} y={-Math.floor(cel / IDLE_COLUMNS) * CELL_H} preserveAspectRatio="none" />
+      x={-(cel % IDLE_COLUMNS) * CELL_W} y={-Math.floor(cel / IDLE_COLUMNS) * CELL_H}
+      preserveAspectRatio="none" mask={`url(#${pinId}-moving)`} />
   </g>;
 }
 

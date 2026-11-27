@@ -82,7 +82,7 @@ export type ScenarioGroup = {
 export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
   ...Object.entries(CONQUEST_SCENARIOS).map(([id, scenario]) => ({ id, ...scenario })),
   { id: 'archangelMikhael', name: getHero('archangelMikhael').name,
-    blurb: 'The Taxiarch. Fights with his sword up front, then throws his spear from Midline at half health.',
+    blurb: 'The Taxiarch. Fights with his sword up front, then summons Alpha and Omega and throws his spear from Midline.',
     heroIds: ['archangelMikhael'], startsInPlace: true },
   {
     id: 'greed',
@@ -150,8 +150,8 @@ export const SANDBOX_SCENARIOS: readonly SandboxScenario[] = [
   {
     id: 'archangelZeruel',
     name: getHero('archangelZeruel').name,
-    blurb: 'Twin halo strikes and violet magic, flanked by Alpha (red) and Omega (blue).',
-    heroIds: ['archangelZeruel', 'zeruelRedSun', 'zeruelBlueSun'],
+    blurb: 'Twin halo strikes and violet magic.',
+    heroIds: ['archangelZeruel'],
     startsInPlace: true,
   },
   {
@@ -611,7 +611,7 @@ export const createSandboxWith = (
 ): CombatState => {
   const fresh = startCombat(sandboxSetup(heroIds, seed, deckId, traits, equipment, traitNodes));
   const placed = startsInPlace
-    ? { ...fresh, heroes: setZeruelFormation(walkHome(fresh.heroes)) }
+    ? { ...fresh, heroes: walkHome(fresh.heroes) }
     : fresh;
   return placed;
 };
@@ -622,13 +622,6 @@ export const createSandboxWith = (
  */
 const walkHome = (heroes: HeroUnit[]): HeroUnit[] =>
   BATTLEFIELD_ROWS.reduce((field) => advanceHeroes(field), heroes);
-
-/** Archangel Zeruel keeps Alpha and Omega on the back flanks. */
-const setZeruelFormation = (heroes: HeroUnit[]): HeroUnit[] => {
-  if (!heroes.some(({ heroId }) => heroId === 'archangelZeruel')) return heroes;
-  return heroes.map(unit => unit.heroId === 'zeruelRedSun' ? { ...unit, row: 'back', col: 0 }
-    : unit.heroId === 'zeruelBlueSun' ? { ...unit, row: 'back', col: 2 } : unit);
-};
 
 /**
  * Applies one input; brings a new horde (from `allowed` heroes, if

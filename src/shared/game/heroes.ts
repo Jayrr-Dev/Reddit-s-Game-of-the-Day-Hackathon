@@ -101,10 +101,11 @@ const signature = (heroMove: HeroMove): HeroMove => ({
 const revive = (): HeroEffect => ({ kind: 'revive' });
 
 /** Calls `count` of a hero onto the field beside the summoner. */
-const summon = (heroId: SummonId, count: number): HeroEffect => ({
+const summon = (heroId: SummonId | 'zeruelRedSun' | 'zeruelBlueSun', count: number, onceAt?: { row: 'back'; col: 0 | 1 | 2 }): HeroEffect => ({
   kind: 'summon',
   heroId,
   count,
+  ...(onceAt ? { onceAt } : {}),
 });
 
 /** Knocks the villain back `lines` lines (the heroes end up farther). */
@@ -529,6 +530,9 @@ export const HEROES = {
       visual: 'mikhaelSpear',
       moves: [
         move('Light Through the Rift', { ...shoot(35), maxRange: 2 }, burn(5)),
+        move('Call the Twin Suns',
+          summon('zeruelRedSun', 1, { row: 'back', col: 0 }),
+          summon('zeruelBlueSun', 1, { row: 'back', col: 2 })),
         move('Grasp of Heaven', { ...shoot(21, 2), maxRange: 2 }, pin(1)),
         move('The Gate Trembles', guard(20)),
         signature(move('Spear of the Last Seal', { ...shoot(62), maxRange: 2 }, dispel(), knockBack(1))),

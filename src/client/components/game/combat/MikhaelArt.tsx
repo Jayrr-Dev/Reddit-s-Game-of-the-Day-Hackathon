@@ -34,6 +34,7 @@ const ATTACK_MOTION: Readonly<Record<string, Motion>> = {
   'Light Through the Rift': 'rift',
   'Grasp of Heaven': 'bind',
   'The Gate Trembles': 'gate',
+  'Call the Twin Suns': 'gate',
   'Spear of the Last Seal': 'last',
 };
 
