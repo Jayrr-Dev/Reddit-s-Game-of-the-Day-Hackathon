@@ -9,8 +9,8 @@
 // kind. Each move costs its base cost plus MOVEMENT_STREAK_COST per
 // move made in a row. The streak survives the turn it was made and the
 // next one; it resets only after one full turn with no movement.
-// Example: Charge on turn 3 (1), Back Step on turn 3 (2), Charge on
-// turn 4 (3). Nothing on turn 5. Turn 6: back to 1.
+// Example: Charge on turn 3 (0), Back Step on turn 3 (1), Charge on
+// turn 4 (2). Nothing on turn 5. Turn 6: back to 0.
 // ===================================================================
 
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
@@ -123,12 +123,9 @@ const streakOf = (state: CombatState): number => {
 export const movementCost = (state: CombatState, move: MovementId): number =>
   isRushing(state)
     ? 0
-    : // ENDURANCE (skill tree) takes energy off the base cost.
-      Math.max(
-        0,
-        MOVEMENTS[move].baseCost - movementDiscountOf(state.player.skillPicks)
-      ) +
-      streakOf(state) * MOVEMENT_STREAK_COST +
+    : MOVEMENTS[move].baseCost +
+      // ENDURANCE discounts the shared streak surcharge, not Fatigue.
+      Math.max(0, streakOf(state) * MOVEMENT_STREAK_COST - movementDiscountOf(state.player.skillPicks)) +
       // FATIGUE ALL Movement: Charge and Back Step cost more this turn.
       (state.movementFatigue ?? 0);
 

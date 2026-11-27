@@ -1341,8 +1341,8 @@ void test('a Range hero shoots harder from the back, and plainly (still Range) u
   assert.deepEqual([strike?.kind, strike?.text, strike?.hoverText], ['range', '2×3', '6']);
 });
 
-void test('Back Step pushes a full front row back for 1 energy', () => {
-  const state = fightWith(['backhand']);
+void test('the first Back Step is usable at 0 energy', () => {
+  const state = { ...fightWith(['backhand']), energy: 0 };
   assert.ok(canMove(state, 'backStep'));
   const after = move(state, 'backStep');
   assert.ok(after.heroes.every((unit) => unit.row === 'back'));
@@ -1404,28 +1404,28 @@ void test('moving with a card does not raise or reset an existing button streak'
   assert.equal(charged.freeMove?.move, 'charge');
   assert.equal(charged.energy, retreated.energy - 1);
   assert.equal(charged.lastMovement, retreated.lastMovement);
-  assert.equal(movementCost(charged, 'charge'), 2);
-  assert.equal(movementCost(charged, 'backStep'), 2);
+  assert.equal(movementCost(charged, 'charge'), 1);
+  assert.equal(movementCost(charged, 'backStep'), 1);
   const next = move(charged, 'backStep');
-  assert.equal(next.energy, charged.energy - 2);
+  assert.equal(next.energy, charged.energy - 1);
   assert.equal(next.lastMovement?.streak, 2);
 });
 
 void test('movement buttons share one streak; a full turn off resets it', () => {
   const start = { ...fightWith(['backhand']), energy: 9 };
-  assert.equal(movementCost(start, 'backStep'), 1);
+  assert.equal(movementCost(start, 'backStep'), 0);
   // Back Step, Charge, Back Step in one turn: a different move still
-  // counts toward the streak, so they cost 1, 2 and 3.
+  // counts toward the streak, so they cost 0, 1 and 2.
   const mixed = move(move(move(start, 'backStep'), 'charge'), 'backStep');
-  assert.equal(mixed.energy, 9 - 6);
+  assert.equal(mixed.energy, 9 - 3);
   assert.equal(mixed.lastMovement?.streak, 3);
   // Every kind of movement prices off the same streak.
-  assert.equal(movementCost(mixed, 'charge'), 4);
-  assert.equal(movementCost(mixed, 'backStep'), 4);
+  assert.equal(movementCost(mixed, 'charge'), 3);
+  assert.equal(movementCost(mixed, 'backStep'), 3);
   // The next turn doesn't reset it: the turn it was made never counts.
-  assert.equal(movementCost({ ...mixed, turn: mixed.turn + 1 }, 'charge'), 4);
+  assert.equal(movementCost({ ...mixed, turn: mixed.turn + 1 }, 'charge'), 3);
   // Only after one full turn without moving does it go back to base.
-  assert.equal(movementCost({ ...mixed, turn: mixed.turn + 2 }, 'charge'), 1);
+  assert.equal(movementCost({ ...mixed, turn: mixed.turn + 2 }, 'charge'), 0);
 });
 
 void test('playDamageFactor combines Charge, Weaken and the target bonus', () => {
@@ -2590,7 +2590,9 @@ void test('a turn has a play left while a card or a move can be made', () => {
   const state = squireAndArcher(['backhand']);
   assert.equal(hasPlayLeft(state), true, 'Backhand is affordable');
   const broke = { ...state, energy: 0 };
-  assert.equal(hasPlayLeft(broke), false, 'no energy, no move offered');
+  assert.equal(hasPlayLeft(broke), true, 'first Back Step is free');
+  const streak = { move: 'charge' as const, streak: 1, turn: state.turn };
+  assert.equal(hasPlayLeft({ ...broke, lastMovement: streak }), false, 'paid Back Step is unaffordable');
   // An empty hand still has a Back Step (the Squire has room behind).
   const empty = { ...state, hand: [] };
   assert.equal(hasPlayLeft(empty), true, 'a Back Step is left');
@@ -2601,7 +2603,8 @@ void test('a turn has a play left while a card or a move can be made', () => {
     heroes: state.heroes.map((unit) => ({ ...unit, row: 'back' })),
   };
   assert.equal(hasPlayLeft(allBack), true);
-  assert.equal(hasPlayLeft({ ...allBack, energy: 0 }), false);
+  assert.equal(hasPlayLeft({ ...allBack, energy: 0 }), true, 'first Charge is free');
+  assert.equal(hasPlayLeft({ ...allBack, energy: 0, lastMovement: streak }), false, 'paid Charge is unaffordable');
 });
 
 // --- SHARPSHOOTER ---

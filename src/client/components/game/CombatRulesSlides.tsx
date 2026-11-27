@@ -66,7 +66,7 @@ const SLIDES: readonly Lesson[] = [
     labels: [
       ['Charge', 'If the Frontline is empty and the field can shift, close one row. Gain Momentum for your next Melee card this turn.'],
       ['Back Step', `Fall back one row if there is room. Gain Reflex: +${Math.round(REFLEX_DODGE*100)}% dodge for one enemy turn.`],
-      ['Movement streak', 'Charge and Back Step buttons share a rising cost. Card moves do not count. A full turn without using either button resets it.'],
+      ['Movement streak', 'Charge and Back Step start free, then share a rising cost. Card moves do not count. A full turn without either button resets it.'],
       ['Rush and Momentum', 'Rush makes the next movements free. Momentum boosts the next Melee card by 50%; it is not an extra move.'],
     ],
     example: 'A boss that occupies both lines can block Back Step.',

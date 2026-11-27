@@ -238,7 +238,7 @@ void test('when the front row falls, the back row holds until a Charge', () => {
   assert.equal(canMove(charged, 'charge'), false);
 });
 
-void test('Charge is refused while anyone holds the front or energy is short', () => {
+void test('Charge is free unless it continues a movement streak; the front line still blocks it', () => {
   const state = fight(['squire', 'priest'], []);
   assert.equal(canMove(state, 'charge'), false);
   assert.equal(move(state, 'charge'), state);
@@ -248,8 +248,11 @@ void test('Charge is refused while anyone holds the front or energy is short', (
     unitOf(state, 'squire').uid
   );
   const broke = { ...felled, energy: 0 };
-  assert.equal(canMove(broke, 'charge'), false);
-  assert.equal(move(broke, 'charge'), broke);
+  assert.equal(canMove(broke, 'charge'), true);
+  assert.equal(move(broke, 'charge').energy, 0);
+  const consecutive = { ...broke, lastMovement: { move: 'backStep' as const, streak: 1, turn: broke.turn } };
+  assert.equal(canMove(consecutive, 'charge'), false);
+  assert.equal(move(consecutive, 'charge'), consecutive);
 });
 
 void test('charging gives Momentum: the next Melee card hits 50% harder, once', () => {

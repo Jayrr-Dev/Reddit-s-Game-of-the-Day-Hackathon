@@ -63,7 +63,7 @@ export type SkillEffect = { name: string; description: string };
 export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   '0-0-0': {
     name: 'Endurance',
-    description: 'Charge and Back Step cost 1 less energy',
+    description: 'Consecutive Charge and Back Step moves cost 1 less energy',
   },
   '0-1-0': {
     name: 'Impact',
@@ -426,7 +426,7 @@ export const iFramesOf = (picks?: readonly SkillPick[]): number =>
 /** The effect of a circle, if it has one. */
 export const skillEffectOf = (pick: SkillPick): SkillEffect | undefined =>
   SKILL_EFFECTS[`${pick.branch}-${pick.tier}-${pick.slot}`];
-/** ENDURANCE: energy taken off Charge and Back Step (0 or 1). */
+/** ENDURANCE: energy taken off the shared movement streak surcharge (0 or 1). */
 export const movementDiscountOf = (picks: readonly SkillPick[] = []): number =>
   picks.some((p) => p.branch === 0 && p.tier === 0 && p.slot === 0) ? 1 : 0;
 export const skillRank = (picks: SkillPick[], tier: number, slot: number) =>

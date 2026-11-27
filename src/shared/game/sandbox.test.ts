@@ -358,19 +358,22 @@ void test('training applies skill picks to new fights, live purchases and refund
   const trained = applyCharacterAction(character, { type: 'skillPath', pick });
   const opening = createSandboxWith(11, ['squire'], true);
   const baseCost = movementCost(opening, 'charge');
-  assert.ok(baseCost > 0);
+  assert.equal(baseCost, 0);
   const pickedScenario = createSandboxWith(11, ['squire'], true, 'all', undefined, undefined, undefined, trained.skillPicks);
   const randomFight = createSandbox(11, 'all', undefined, undefined, undefined, undefined, trained.skillPicks);
   const edited = syncTrainingSkills({ ...opening, energy: 1 }, trained);
   for (const fight of [pickedScenario, randomFight, edited, retryTrainingFight(opening, trained)]) {
     assert.deepEqual(fight.player.skillPicks, trained.skillPicks);
-    assert.equal(movementCost(fight, 'charge'), baseCost - 1);
+    assert.equal(movementCost(fight, 'charge'), baseCost);
+    assert.equal(movementCost({ ...fight, lastMovement: { move: 'backStep', streak: 2, turn: fight.turn } }, 'charge'), 1);
   }
   assert.equal(edited.energy, 1, 'buying a skill does not refill energy');
   assert.equal(edited.heroes, opening.heroes, 'buying a skill does not reset the encounter');
   const refunded = applyCharacterAction(trained, { type: 'skillPath', pick });
-  assert.equal(movementCost(syncTrainingSkills(edited, refunded), 'charge'), baseCost);
-  assert.equal(movementCost(retryTrainingFight(pickedScenario, refunded), 'charge'), baseCost);
+  for (const fight of [syncTrainingSkills(edited, refunded), retryTrainingFight(pickedScenario, refunded)]) {
+    assert.equal(movementCost(fight, 'charge'), baseCost);
+    assert.equal(movementCost({ ...fight, lastMovement: { move: 'backStep', streak: 2, turn: fight.turn } }, 'charge'), 2);
+  }
 });
 
 void test('scenarios are grouped by unit type, including the Seven Sins', () => {

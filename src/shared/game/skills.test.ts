@@ -57,7 +57,7 @@ test('a path entry circle costs 3 skill points', () => {
   assert.equal(skillPointsLeft({ ...c, level: 4 }), 1);
 });
 
-test('Endurance (Movement entry) takes 1 energy off Charge and Back Step', () => {
+test('Endurance (Movement entry) grants a 1-energy streak discount', () => {
   assert.equal(movementDiscountOf([]), 0);
   assert.equal(movementDiscountOf([{ branch: 0, tier: 0, slot: 0 }]), 1);
   assert.equal(
@@ -113,7 +113,7 @@ test('each path ends at two gated endpoints (both can be taken) and restores onl
   }
 });
 
-test('in combat, Endurance makes Charge and Back Step start at 0 energy', () => {
+test('Charge and Back Step start free, and Endurance knocks one off consecutive moves', () => {
   const setup = {
     hp: 50,
     maxHp: 50,
@@ -127,9 +127,17 @@ test('in combat, Endurance makes Charge and Back Step start at 0 energy', () => 
     ...setup,
     skillPicks: [{ branch: 0, tier: 0, slot: 0 }],
   });
-  assert.equal(movementCost(plain, 'backStep'), 1);
-  assert.equal(movementCost(enduring, 'backStep'), 0);
-  assert.equal(movementCost(enduring, 'charge'), 0);
+  for (const button of ['backStep', 'charge'] as const) {
+    assert.equal(movementCost(plain, button), 0);
+    assert.equal(movementCost(enduring, button), 0);
+    for (const streak of [1, 2, 3]) {
+      const lastMovement = { move: button, streak, turn: plain.turn };
+      assert.equal(movementCost({ ...plain, lastMovement }, button), streak);
+      assert.equal(movementCost({ ...enduring, lastMovement }, button), streak - 1);
+      assert.equal(movementCost({ ...enduring, lastMovement, turn: enduring.turn + 2 }, button), 0);
+    }
+    assert.equal(movementCost({ ...enduring, movementFatigue: 2 }, button), 2);
+  }
 });
 
 test('Invincible turns the next hit to 0, one stack per hit', () => {

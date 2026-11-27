@@ -35,7 +35,7 @@ export const MAX_IMBUES_PER_CARD = 3;
  * Energy it costs the villain to Charge: when the front row is empty,
  * the field closes in (up to CHARGE_ROWS rows) when the villain charges.
  */
-export const CHARGE_COST = 1;
+export const CHARGE_COST = 0;
 /** Momentum (gained by charging) multiplies the next Melee card's damage. */
 export const MOMENTUM_DAMAGE_FACTOR = 1.5;
 /** A Rampage card gets double Momentum's bonus: +50% becomes +100%. */
@@ -81,7 +81,7 @@ export const BUFF_KEYWORDS: readonly {
  * Energy it costs the villain to Back Step: with everyone in the front
  * row, the field falls back BACK_STEP_ROWS row (out of melee reach).
  */
-export const BACK_STEP_COST = 1;
+export const BACK_STEP_COST = 0;
 /**
  * Range attacks at their proper range (a villain card at a hero past
  * the front row, a hero shooting from past the front row) deal this
