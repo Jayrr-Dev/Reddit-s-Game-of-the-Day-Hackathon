@@ -19,7 +19,8 @@ import { progressionFromWins, healingAmount, type RingProgress, allocateTrait, a
 
 import { STARTER_DECK, type CardId } from './cards.ts';
 import { combatOutcome, endTurn, playCard, startCombat, SELF_TARGET_UID } from './combat.ts';
-import { mightAt, routeOptions, stopSeed, type Stop } from './kingdom.ts';
+import { canChooseRegion, isRegionChoice, type RegionChoice } from './regionRoutes.ts';
+import { regionIndexOf, mightAt, routeOptions, stopSeed, type Stop } from './kingdom.ts';
 import { isMovementId, move } from './movement.ts';
 import type { GoldVictory } from './gold.ts';
 import { PANDORA_MAX_HP_GAIN, PANDORA_MAX_HP_LOSS, type PandoraRunEffect } from './pandora.ts';
@@ -59,6 +60,7 @@ export type RunPhase =
   | { kind: 'fallen'; battlefield?: { stop: Stop; combat: CombatState } };
 
 export type RunState = {
+  regionPath?: Partial<Record<number, RegionChoice>>;
   attempt: number;
   rewardStarter?: StarterName;
   ringDrops?: number[];
@@ -122,6 +124,7 @@ export type RunAction =
   | { type: 'discardItem'; itemId: string }
   /** Locks the spent trait nodes in (Save traits); only a respec undoes it. */
   | { type: 'saveTraits' }
+  | { type: 'chooseRegion'; option: RegionChoice }
   | { type: 'chooseStop'; option: number }
   | PlayCardAction
   | { type: 'endTurn' }
@@ -176,6 +179,13 @@ export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt
 
 // --- TRANSITIONS ---
 
+/** Each region branch has its own deterministic encounters. Legacy routes keep the daily seed. */
+function regionRouteKey(state: RunState, stop: number) {
+  const index = regionIndexOf(stop);
+  const choice = state.regionPath?.[index];
+  return choice === undefined ? state.dailyKey : state.dailyKey + ':region:' + index + ':' + choice;
+}
+
 /** Moves on to the crossroads of the next stop. */
 const advanceToNextStop = (state: RunState): RunState => {
   const stop = state.stop + 1;
@@ -183,7 +193,7 @@ const advanceToNextStop = (state: RunState): RunState => {
     ...state,
     stop,
     storyRingUnlocked: undefined,
-    phase: { kind: 'route', options: routeOptions(state.dailyKey, stop, !!state.deckImbues && !state.promisedToGreed) },
+    phase: { kind: 'route', options: routeOptions(regionRouteKey(state, stop), stop, !!state.deckImbues && !state.promisedToGreed) },
   };
 };
 
@@ -380,6 +390,11 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
       return { ...state, character, baseMaxHp: baseHp, ...health,
         phase: phase.kind === 'combat' ? { ...phase, combat: syncCharacterCombat(phase.combat, character, credited, baseHp, state.character.highestVigorHp) } : phase };
     }
+    case 'chooseRegion': {
+      if (!isRegionChoice(action.option) || !canChooseRegion(state)) return state;
+      const next = { ...state, regionPath: { ...state.regionPath, [regionIndexOf(state.stop)]: action.option } };
+      return { ...next, phase: { kind: 'route', options: routeOptions(regionRouteKey(next, next.stop), next.stop, !!next.deckImbues && !next.promisedToGreed) } };
+    }
     case 'chooseStop': {
       const chosen =
         phase.kind === 'route' ? phase.options[action.option] : undefined;
@@ -489,6 +504,8 @@ export const isRunAction = (value: unknown): value is RunAction => {
     case 'equipItem': return 'slot' in value && (value.slot === 'ring' || value.slot === 'amulet') && (!('ringIndex' in value) || (value.slot === 'ring' && isRingIndex(value.ringIndex))) && 'itemId' in value && (typeof value.itemId === 'string' || value.itemId === null);
     case 'discardItem': return 'itemId' in value && typeof value.itemId === 'string';
     case 'saveTraits': return true;
+    case 'chooseRegion':
+      return 'option' in value && isRegionChoice(value.option);
     case 'chooseStop':
       return 'option' in value && isIndex(value.option);
     case 'playCard':

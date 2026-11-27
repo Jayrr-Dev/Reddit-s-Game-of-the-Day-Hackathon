@@ -4,7 +4,7 @@
 // your HP between fights, deck size and the score so far.
 // ===================================================================
 
-import { regionIndexOf, regionName } from '../../../shared/game/kingdom';
+import { regionOfRun } from '../../../shared/game/regionRoutes';
 import { STOPS_PER_REGION } from '../../../shared/game/rules';
 import { computeScore, type RunState } from '../../../shared/game/run';
 import { Glyph } from '../ui/Glyph';
@@ -17,7 +17,7 @@ export const RunHud = ({ run, onOpenCharacter }: { run: RunState; onOpenCharacte
     <header className="flex w-full items-center justify-between gap-2 border-b border-edge px-3 py-2 text-xs">
       <div className="flex flex-col">
         <span className="font-display text-sm font-bold text-accent">
-          {regionName(regionIndexOf(run.stop))}
+          {regionOfRun(run)}
         </span>
         <span className="text-ink-muted">
           Stop {stepInRegion}/{STOPS_PER_REGION} · Wave {run.stop}

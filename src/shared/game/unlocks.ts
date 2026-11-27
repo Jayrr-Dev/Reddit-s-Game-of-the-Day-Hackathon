@@ -13,6 +13,7 @@
 import { isCardId, STARTER_DECK, type CardId } from './cards.ts';
 import { CUSTOM_DECK_LIMIT } from './sandboxDecks.ts';
 import { HEROES, type HeroId } from './heroes.ts';
+import { chosenRegion } from './regionRoutes.ts';
 import { stopLocation } from './routeLocation.ts';
 import { runReducer, type RunAction, type RunState } from './run.ts';
 import type { CombatState } from './types.ts';
@@ -106,7 +107,7 @@ const stopOfStep = (before: RunState, action: RunAction): Pick<Unlocks, 'facedUn
   if (!stop) return { facedUnits: [], visitedMaps: [] };
   return {
     facedUnits: [...stop.heroIds],
-    visitedMaps: [stopLocation(before.stop, action.option, stop.kind).name],
+    visitedMaps: [stopLocation(before.stop, action.option, stop.kind, chosenRegion(before)).name],
   };
 };
 

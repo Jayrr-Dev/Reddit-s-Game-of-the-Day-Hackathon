@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { showToast } from '@devvit/web/client';
+import { canChooseRegion, regionOfRun } from '../../shared/game/regionRoutes';
 import type { RunAction } from '../../shared/game/run';
 import type { FinishRunResponse, InitResponse, RingShopResponse, StartRunResponse } from '../../shared/types/api';
 import { useDailyGame } from '../hooks/useDailyGame';
@@ -21,6 +22,7 @@ import { PlayerName } from '../lib/playerName';
 import { AccountId } from '../lib/accountId';
 import { IsAdmin } from '../lib/adminRole';
 import { journeys } from '../lib/journeys';
+import { ConquestPrelude, RegionCrossroads } from './game/ConquestPrelude';
 import { StarterPicker } from './game/StarterPicker';
 import type { PlayerBuild } from '../../shared/game/playerBuild';
 import { IntroView } from './game/IntroView';
@@ -128,6 +130,11 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
       />
     );
   }
+  if (run.phase.kind === 'route' && run.stop === 1) {
+    const seed = id ?? [data.accountId ?? 'guest', run.dailyKey, run.attempt].join(':');
+    return <ConquestPrelude key={seed} seed={seed} options={run.phase.options}
+      onChoose={option => act({ type: 'chooseStop', option })} />;
+  }
   if (run.phase.kind === 'fallen' && run.phase.battlefield && !viewedDefeat)
     return <StoryDefeat run={run} onContinue={() => setViewedDefeat(true)} />;
   if (isFallen) {
@@ -142,6 +149,10 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
       />
     );
   }
+  if (canChooseRegion(run))
+    return <RegionCrossroads key={run.stop} stop={run.stop}
+      conquered={regionOfRun({ ...run, stop: run.stop - 1 })}
+      onChoose={option => act({ type: 'chooseRegion', option })} />;
   return <VillainRunGame run={run} runId={id} onAction={act} />;
 };
 

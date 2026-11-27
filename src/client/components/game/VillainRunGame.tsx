@@ -9,7 +9,8 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { traitPointsAvailable, xpToNextLevel, type CharacterState } from '../../../shared/game/character';
 import { skillPointsLeft } from '../../../shared/game/skills';
 import { Button } from '../ui/Button';
-import { regionIndexOf, regionName } from '../../../shared/game/kingdom';
+import { regionIndexOf } from '../../../shared/game/kingdom';
+import { chosenRegion, regionOfRun } from '../../../shared/game/regionRoutes';
 import { PANDORA_CURSE_BOUNTY, PANDORA_RUN_COPY } from '../../../shared/game/pandora';
 import { getItem } from '../../../shared/game/items';
 import { appleAtVictory, goldRewardFor } from '../../../shared/game/gold';
@@ -27,7 +28,7 @@ import { OfferView } from './OfferView';
 import { routeLocation } from './routeLocation';
 import { GreedBargain } from './GreedBargain';
 import { getCard } from '../../../shared/game/cards';
-import { RouteView } from './RouteView';
+import { ConquestMap } from './ConquestPrelude';
 import { MAP_IMAGES } from './combat/Backdrop';
 import { RunHud } from './RunHud';
 import { useProgressiveImage } from '../../hooks/useProgressiveImage';
@@ -53,17 +54,16 @@ const PhaseBody = ({ run, runId, onAction }: VillainRunGameProps) => {
     case 'greed-bargain':
       return <GreedBargain run={run} onAction={onAction} />;
     case 'route':
-      return <RouteView stopNumber={run.stop} options={phase.options} onAction={onAction} />;
+      return <ConquestMap key={run.stop} stop={run.stop} region={regionOfRun(run)} route={chosenRegion(run)} options={phase.options} onChoose={option => onAction({ type: 'chooseStop', option })} />;
     case 'combat': {
-      const region = regionIndexOf(run.stop);
       return (
         <CombatView
           key={run.stop}
           combat={phase.combat}
           character={run.character}
           deck={run.deck}
-          terrainIndex={routeLocation(run.stop, phase.stop.optionIndex ?? 0, phase.stop.kind).terrain}
-          where={`Wave ${run.stop} · ${regionName(region)}`}
+          terrainIndex={routeLocation(run.stop, phase.stop.optionIndex ?? 0, phase.stop.kind, chosenRegion(run)).terrain}
+          where={`Wave ${run.stop} · ${regionOfRun(run)}`}
           score={computeScore(run.stats)}
           onAction={onAction}
           pauseActions={
@@ -186,7 +186,7 @@ export const VillainRunGame = ({ run, runId, onAction }: VillainRunGameProps) =>
     return (
       <div className="run-board flex h-full flex-col items-center justify-center gap-2 text-center" role="status">
         <strong>Wave {run.stop}</strong>
-        <span>{regionName(regionIndexOf(run.stop))}</span>
+        <span>{regionOfRun(run)}</span>
       </div>
     );
   if (run.phase.kind === 'combat')
@@ -198,7 +198,7 @@ export const VillainRunGame = ({ run, runId, onAction }: VillainRunGameProps) =>
   return (
     <div className="run-board flex h-full w-full flex-col overflow-hidden" style={run.phase.kind === 'reward' ? undefined : { backgroundImage: `linear-gradient(#140e0bbc, #140d09e8), url("${regionArt.src}")` }}>
       <RunHud run={run} onOpenCharacter={() => setShowCharacter(true)} />
-      <main className="flex min-h-0 flex-1 flex-col items-center justify-center-safe overflow-y-auto p-3">
+      <main data-route-board={run.phase.kind === 'route' || undefined} className="flex min-h-0 flex-1 flex-col items-center justify-center-safe overflow-y-auto p-3">
         {apple && (
           <p className="mb-2 text-center text-xs text-accent">Found: {getItem(apple).name}. Give it to Metatron to refresh the shop.</p>
         )}
