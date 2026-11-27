@@ -143,16 +143,12 @@ const cardGuard = (card: CardDef, stats: Stats): number =>
     return sum + Math.floor((effect.amount * (100 + stats.shieldPercent)) / 100) + stats.shieldFlat;
   }, 0);
 
-/** Incoming damage one play of a card stops this turn: its Guard, plus a dodge for Distance. */
-const cardBlock = (config: CostCurveConfig, card: CardDef, stats: Stats): number => {
-  const { incomingPerTurn, distanceDodgeShare } = config.player;
-  const dodge = card.keywords.includes('distance') ? distanceDodgeShare * incomingPerTurn : 0;
-  return cardGuard(card, stats) + dodge;
-};
+/** True for a card that steps back out of reach (Distance). */
+const hasDistance = (card: CardDef): boolean => card.keywords.includes('distance');
 
 // --- HAND ---
 /** One card the deck holds: what it costs, deals and stops, and how many copies the deck has. */
-type DeckCard = { cost: number; damage: number; block: number; copies: number };
+type DeckCard = { cost: number; damage: number; guard: number; distance: boolean; copies: number };
 
 /** One turn: the best damage hand, and the damage stopped on an average draw. */
 type Turn = { damage: number; blocked: number; toughness: number };
@@ -179,16 +175,20 @@ const bestDamage = (deck: DeckCard[], energy: number, cards: number): number => 
 };
 
 /**
- * Damage stopped on an AVERAGE turn, not the best one: each copy of a
- * Guard or Distance card is in hand cardsPerTurn / deck size of the
- * time. A deck with one Guard card can't hold it every turn, so
- * defence is counted by draw odds while damage stays a ceiling.
+ * Damage stopped on an AVERAGE turn, not the best one: each copy is in
+ * hand cardsPerTurn / deck size of the time. Guard adds up. Distance
+ * does not: once you are out of reach a second step dodges nothing
+ * more, so it counts once, at the chance any Distance card is drawn.
  */
 const averageBlock = (config: CostCurveConfig, deck: DeckCard[], cards: number): number => {
+  const { incomingPerTurn, distanceDodgeShare, maxBlockedShare } = config.player;
   const deckSize = deck.reduce((sum, card) => sum + card.copies, 0);
   const inHand = deckSize === 0 ? 0 : Math.min(1, cards / deckSize);
-  const blocked = deck.reduce((sum, card) => sum + card.block * card.copies * inHand, 0);
-  return Math.min(blocked, config.player.incomingPerTurn * config.player.maxBlockedShare);
+  const guard = deck.reduce((sum, card) => sum + card.guard * card.copies * inHand, 0);
+  const distanceCopies = deck.reduce((sum, card) => sum + (card.distance ? card.copies : 0), 0);
+  const distanceDrawn = 1 - (1 - inHand) ** distanceCopies;
+  const dodge = distanceDrawn * distanceDodgeShare * incomingPerTurn;
+  return Math.min(guard + dodge, incomingPerTurn * maxBlockedShare);
 };
 
 /** One turn for a style with these stats and skills. */
@@ -196,7 +196,8 @@ const styleTurn = (config: CostCurveConfig, style: PlayStyle, stats: Stats, skil
   const deck = styleCards(style).map((card) => ({
     cost: card.cost,
     damage: cardDamage(config, card, stats, skills),
-    block: cardBlock(config, card, stats),
+    guard: cardGuard(card, stats),
+    distance: hasDistance(card),
     copies: card.rarity === 'legendary' ? 1 : 2,
   }));
   const blocked = averageBlock(config, deck, stats.cardsPerTurn);
