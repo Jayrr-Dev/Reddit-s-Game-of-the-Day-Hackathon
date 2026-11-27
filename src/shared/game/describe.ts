@@ -89,7 +89,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   hex: {
     label: 'Hex',
     description:
-      'Loses **1** after each player action, unless it gained Hex. **Odd** Hex on enemies deals its value after your actions and at turn start. Enemy actions also reduce Hex on you.',
+      'Active Hex gains **1** per action unless that action applies Hex to the target. **Odd** Hex on enemies deals its value after your actions and at turn start. Enemy moves also grow Hex on you.',
   },
   burn: {
     label: 'Burn',

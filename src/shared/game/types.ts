@@ -24,7 +24,7 @@ import type { SkillPick } from './skills.ts';
  * - shock:  the next landed attack bursts these stacks once and halves them
  * - bleed:  each landed Melee/Range hit adds damage past Guard; total lands
  *           after the attack, then Bleed drops by 1 (see Combatant.bleedTaken)
- * - hex:    counts down after player actions (also enemy actions when on the player); odd stacks burst at player turn start and against enemies after each player action.
+ * - hex:    grows after player actions (also enemy actions when on the player); odd stacks burst at player turn start and against enemies after each player action.
  *           The enemy turn does not tick Hex.
  * - vex:    every affliction laid on it gets this many more stacks;
  *           drops by 1 at the end of its turn

@@ -6,7 +6,7 @@
 // "HEX AURA"); reduced motion holds a still sigil.
 // ===================================================================
 
-import { hexAfterCountdown, hexBurnAmount } from '../../../../shared/game/combatant';
+import { hexAfterGrowth, hexBurnAmount } from '../../../../shared/game/combatant';
 import type { Combatant } from '../../../../shared/game/types';
 import { HexSigil } from './HexSigil';
 
@@ -17,7 +17,7 @@ type HexAuraState = 'waiting' | 'primed';
 /** How bright the ring is, or null when the unit has no Hex. */
 const auraStateOf = (hex: number, source?: Combatant): HexAuraState | null => {
   if (hex <= 0) return null;
-  return (hexBurnAmount(hex, source) || hexBurnAmount(hexAfterCountdown(hex), source)) > 0 ? 'primed' : 'waiting';
+  return (hexBurnAmount(hex, source) || hexBurnAmount(hexAfterGrowth(hex), source)) > 0 ? 'primed' : 'waiting';
 };
 
 // --- COMPONENT ---

@@ -1568,7 +1568,7 @@ const cardBeats = (
   if (counted !== current) states.push(counted);
   const ticked = hexAfterPlayerAction(paid, counted);
   if (ticked !== counted) {
-    // Give an actual burst its own damage beat, but do not pause for countdown alone.
+    // Give an actual burst its own damage beat, but do not pause for stack growth alone.
     const burst = ticked.heroes.some((unit, i) => unit.hp < counted.heroes[i]!.hp);
     if (burst || !states.length) states.push(ticked);
     else states[states.length - 1] = ticked;
@@ -2280,8 +2280,8 @@ const heroActs = (
   }, hasAttack ? updateHeroes(state, [uid], revealCloak) : state);
 
   const afterBleed = acted.player.hp > 0 ? bleedOnAttack(acted.player, state.player.statuses.bleed, actor, attackBlock.bleedHits) : acted.player;
-  // Every enemy move counts once for existing Hex on the player, even support moves.
-  // A move that adds Hex does not also remove a stack.
+  // Every enemy move grows existing Hex on the player, even support moves.
+  // A move that applies Hex skips the automatic extra stack.
   const player = planned ? hexAfterActionUnlessApplied(state.player, afterBleed) : afterBleed;
   const isDiving = planned !== null && isAloft(actor);
   const settled = updateHeroes({ ...acted, player }, [uid], (unit) => {

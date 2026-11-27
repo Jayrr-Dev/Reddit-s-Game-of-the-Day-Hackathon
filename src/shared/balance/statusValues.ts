@@ -7,7 +7,7 @@
 
 import {
   afterActionLeft,
-  hexAfterCountdown,
+  hexAfterGrowth,
   hexBurnAmount,
 } from '../game/combatant.ts';
 import {
@@ -38,7 +38,7 @@ export const hexValue = (config: CostCurveConfig, stacks: number): number => {
   for (let turn = 0; hex > 0 && turn < MAX_SIMULATED_TURNS; turn += 1) {
     const weight = delayed(config, turn + 1);
     total += hexBurnAmount(hex) * weight; // Turn opening.
-    hex = hexAfterCountdown(hex);
+    hex = hexAfterGrowth(hex);
     total += hexBurnAmount(hex) * weight; // The next action.
   }
   return total * config.battle.hexLandsLate;

@@ -188,7 +188,7 @@ void test('Invincible does not spend a stack blocking Hex or a support move', ()
   const actor = { ...base.heroes[0]!, heroId: 'holt' as const, row: 'front' as const, moveIndex: 0 };
   const player = addStatus(addStatus(base.player, 'hex', 8), 'invincible', 1);
   const after = endTurn({ ...base, player, heroes: [actor] });
-  assert.equal(after.player.hp, player.hp - 7);
+  assert.equal(after.player.hp, player.hp - 9);
   assert.equal(after.player.statuses.invincible, 1);
 });
 
@@ -270,30 +270,30 @@ void test('odd Hex deals its value and spends exactly one stack; even Hex waits'
   }
 });
 
-void test('actions tick Hex down without bursting, even when the resulting count is odd', () => {
+void test('Hex grows by one without bursting in the stack helper and never grows from zero', () => {
   const before = addStatus(createCombatant(100, 100), 'hex', 4);
   const odd = hexAfterAction(before);
-  assert.equal(odd.statuses.hex, 3);
+  assert.equal(odd.statuses.hex, 5);
   assert.equal(odd.hp, 100);
-  assert.equal(hexAfterAction(odd).statuses.hex, 2);
-  const exhausted = hexAfterAction(addStatus(before, 'hex', -3));
+  assert.equal(hexAfterAction(odd).statuses.hex, 6);
+  const exhausted = createCombatant(100, 100);
   assert.equal(exhausted.statuses.hex, 0);
   assert.equal(hexAfterAction(exhausted), exhausted);
 });
 
-void test('playing a card and moving each count the player Hex down once without bursting', () => {
+void test('playing a card and moving each grow player Hex once without bursting', () => {
   const fight = fightWith(['backhand']);
   const state = { ...fight, player: addStatus(fight.player, 'hex', 4) };
   const paid = playCard(state, 0, state.heroes[0]!.uid);
   assert.equal(paid.player.hp, state.player.hp);
-  assert.equal(paid.player.statuses.hex, 3);
+  assert.equal(paid.player.statuses.hex, 5);
   const stepped = move(paid, 'backStep');
   assert.equal(stepped.player.hp, paid.player.hp);
-  assert.equal(stepped.player.statuses.hex, 2);
-  assert.equal(finishPlayerTurn(stepped).player.statuses.hex, 2);
+  assert.equal(stepped.player.statuses.hex, 6);
+  assert.equal(finishPlayerTurn(stepped).player.statuses.hex, 6);
 });
 
-void test('fresh and counted-down odd Hex burst immediately, and odd stacks also burst at turn start', () => {
+void test('fresh and grown odd Hex burst immediately, and odd stacks also burst at turn start', () => {
   const fresh = squireAndArcher(['darkCloak', 'mourningCurse']);
   const [squire, archer] = fresh.heroes;
   assert.ok(squire && archer);
@@ -301,30 +301,30 @@ void test('fresh and counted-down odd Hex burst immediately, and odd stacks also
   const untouched = { ...archer, hp: 50, maxHp: 50 };
   const start = { ...withHand(fresh, ['darkCloak']), heroes: [cursed, untouched] };
   const played = playCard(start, 0, -1);
-  assert.equal(played.heroes[0]?.statuses.hex, 6);
+  assert.equal(played.heroes[0]?.statuses.hex, 8);
   assert.equal(played.heroes[1]?.statuses.hex, 0);
   const applied = playCard(withHand({ ...played, energy: 5 }, ['mourningCurse']), 0, archer.uid);
-  assert.equal(applied.heroes[0]?.statuses.hex, 5);
-  assert.equal(applied.heroes[0]?.hp, 45, 'the existing target counts down to odd and bursts');
+  assert.equal(applied.heroes[0]?.statuses.hex, 9);
+  assert.equal(applied.heroes[0]?.hp, 41, 'the existing target grows to odd and bursts');
   assert.equal(applied.heroes[1]?.hp, 47, 'the freshly applied odd Hex bursts for 3');
   assert.equal(applied.heroes[1]?.statuses.hex, 3, 'fresh curses keep their printed value');
   const next = startPlayerTurn(applied);
-  assert.deepEqual(next.heroes.map(unit => unit.statuses.hex), [5, 3], 'enemy bursts do not spend another stack');
-  assert.deepEqual(next.heroes.map(unit => unit.hp), [40, 44]);
+  assert.deepEqual(next.heroes.map(unit => unit.statuses.hex), [9, 3], 'enemy bursts do not change stacks');
+  assert.deepEqual(next.heroes.map(unit => unit.hp), [32, 44]);
   const moved = move(next, 'backStep');
-  assert.deepEqual(moved.heroes.map(unit => unit.statuses.hex), [4, 2]);
-  assert.deepEqual(startPlayerTurn(moved).heroes.map(unit => unit.hp), [40, 44], 'even Hex does not burst');
+  assert.deepEqual(moved.heroes.map(unit => unit.statuses.hex), [10, 4]);
+  assert.deepEqual(startPlayerTurn(moved).heroes.map(unit => unit.hp), [32, 44], 'even Hex does not burst');
 });
 
-void test('adding Hex skips the countdown even on an already cursed target', () => {
+void test('adding Hex skips the extra stack even on an already cursed target', () => {
   const fresh = squireAndArcher(['mourningCurse']);
   const [squire, archer] = fresh.heroes;
   assert.ok(squire && archer);
   const hero = addStatus({ ...squire, hp: 50, maxHp: 50 }, 'hex', 2);
   const ally = addStatus({ ...archer, hp: 50, maxHp: 50 }, 'hex', 2);
   const after = playCard({ ...withHand(fresh, ['mourningCurse']), heroes: [hero, ally] }, 0, squire.uid);
-  assert.deepEqual(after.heroes.map(unit => unit.statuses.hex), [5, 1]);
-  assert.deepEqual(after.heroes.map(unit => unit.hp), [45, 49]);
+  assert.deepEqual(after.heroes.map(unit => unit.statuses.hex), [5, 3]);
+  assert.deepEqual(after.heroes.map(unit => unit.hp), [45, 47]);
 });
 
 void test('a turn-opening burst can defeat a cursed enemy and record the kill', () => {
@@ -337,12 +337,12 @@ void test('a turn-opening burst can defeat a cursed enemy and record the kill', 
   assert.equal(next.killsThisTurn, 1);
 });
 
-void test('an action that takes enemy Hex from 2 to 1 bursts for 1 and can record a kill', () => {
+void test('an action that takes enemy Hex from 2 to 3 bursts for 3 and can record a kill', () => {
   const battle = fightWith(['backhand']);
   const hero = battle.heroes[0]!;
-  const moved = move({ ...battle, heroes: [addStatus({ ...hero, hp: 1 }, 'hex', 2)] }, 'backStep');
+  const moved = move({ ...battle, heroes: [addStatus({ ...hero, hp: 3 }, 'hex', 2)] }, 'backStep');
   assert.equal(moved.heroes.length, 0);
-  assert.equal(moved.fallen.at(-1)?.hexDamageTaken, 1);
+  assert.equal(moved.fallen.at(-1)?.hexDamageTaken, 3);
   assert.equal(moved.slain, battle.slain + 1);
 });
 
@@ -357,7 +357,7 @@ void test('incoming damage preview accounts for every attack and existing defens
   assert.equal(potentialEnemyHpLoss(guarded), 0);
   const hexed = { ...state, player: addStatus(state.player, 'hex', 7) };
   assert.equal(potentialEnemyHpLoss(hexed), open);
-  assert.equal(pendingPlayerHexDamage(hexed), 5);
+  assert.equal(pendingPlayerHexDamage(hexed), 9);
   assert.equal(potentialEnemyHpLoss({ ...state, waveArrival: true }), 0);
   assert.equal(potentialEnemyHpLoss({ ...state, player: addStatus(state.player, 'cloak', 2) }), 0);
 });
@@ -413,7 +413,7 @@ void test('player Hex preview skips enemy actions at wave arrival then forecasts
   const result = endTurn(cursed);
   assert.equal(cursed.player.hp - result.player.hp, expected);
   assert.equal(result.player.statuses.hex, 6);
-  assert.equal(pendingPlayerHexDamage(result), 5);
+  assert.equal(pendingPlayerHexDamage(result), 7);
   const poisoned = { ...cursed, player: addStatus(cursed.player, 'poison', 5) };
   const justPoison = { ...poisoned, player: { ...poisoned.player, statuses: { ...poisoned.player.statuses, hex: 0 } } };
   assert.equal(pendingPlayerHexDamage(poisoned), expected);
@@ -448,12 +448,12 @@ void test('a support move can leave player Hex odd, then it burns only at turn s
   };
   const steps = endTurnSteps(hexed);
   const bard = steps.find(step => step.actorUid === fight.heroes[0]?.uid);
-  assert.equal(bard?.state.player.statuses.hex, 5);
+  assert.equal(bard?.state.player.statuses.hex, 7);
   assert.equal(bard?.state.player.hp, 50, 'no burst during the Bard move');
   const next = steps.at(-1)!.state;
-  assert.equal(next.player.hp, 45);
-  assert.equal(next.player.statuses.hex, 4);
-  assert.equal(pendingPlayerHexDamage(hexed), 5);
+  assert.equal(next.player.hp, 43);
+  assert.equal(next.player.statuses.hex, 6);
+  assert.equal(pendingPlayerHexDamage(hexed), 7);
   const even = { ...hexed, player: addStatus(hexed.player, 'hex', -1) };
   assert.equal(pendingPlayerHexDamage(even), 0);
   assert.equal(endTurn(even).player.hp, 50);
@@ -466,11 +466,11 @@ void test('the caster keeps the fresh Hex value and each later ally move counts 
   const heroes = battle.heroes.map(unit => unit.heroId === 'archmage' ? { ...unit, moveIndex: 1 } : unit);
   const steps = endTurnSteps({ ...battle, heroes });
   const enemyMoves = steps.filter(step => step.actorUid !== null);
-  assert.deepEqual(enemyMoves.map(step => step.state.player.statuses.hex), [4, 3]);
+  assert.deepEqual(enemyMoves.map(step => step.state.player.statuses.hex), [4, 5]);
   assert.ok(enemyMoves.every(step => !step.state.player.hexDamageTaken));
-  assert.equal(steps.at(-1)?.state.player.hexDamageTaken, 3);
+  assert.equal(steps.at(-1)?.state.player.hexDamageTaken, 5);
   const stacked = endTurnSteps({ ...battle, heroes, player: addStatus(battle.player, 'hex', 1) });
-  assert.deepEqual(stacked.filter(step => step.actorUid !== null).map(step => step.state.player.statuses.hex), [5, 4]);
+  assert.deepEqual(stacked.filter(step => step.actorUid !== null).map(step => step.state.player.statuses.hex), [5, 6]);
   assert.equal(stacked.at(-1)?.state.player.hexDamageTaken ?? 0, 0);
 });
 
@@ -3123,9 +3123,9 @@ void test('Reap previews and deals Intelligence-scaled magic damage based on tar
   const beats = playCardSteps({ ...fight, heroes: [target] }, 0, target.uid);
   assert.equal(beats[0]?.heroes[0]?.hp, 454, '46 Reap damage');
   const after = beats.at(-1)!;
-  assert.equal(after.heroes[0]?.hp, 451, 'the card also counts down to 3 and bursts');
-  assert.equal(after.heroes[0]?.statuses.hex, 3);
-  assert.equal(startPlayerTurn(after).heroes[0]?.hp, 448, 'Hex bursts at the next opening');
+  assert.equal(after.heroes[0]?.hp, 449, 'the card also grows Hex to 5 and bursts');
+  assert.equal(after.heroes[0]?.statuses.hex, 5);
+  assert.equal(startPlayerTurn(after).heroes[0]?.hp, 444, 'Hex bursts at the next opening');
 });
 void test('Scorn scales enemy Poison and Burn during enemy turns and Hex at the player opening', () => {
   const trigger = (scorn: number, hex: number) => {

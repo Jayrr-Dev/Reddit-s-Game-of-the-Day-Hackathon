@@ -10,7 +10,7 @@ import {
   WEAKEN_DAMAGE_FACTOR,
   FROST_DAMAGE_PER_STACK,
   HEX_BURN_STACK_COST,
-  HEX_ACTION_COST,
+  HEX_ACTION_GAIN,
   BANE_AFFLICTIONS,
   MOMENTUM_DAMAGE_FACTOR,
   RAMPAGE_MOMENTUM_MULTIPLIER,
@@ -833,7 +833,7 @@ export const hexAfterBurn = (hex: number, source?: HexSource): number =>
   Math.max(0, hex - (hexBurnAmount(hex, source) ? HEX_BURN_STACK_COST : 0));
 
 /** Remaining Hex after a player action. */
-export const hexAfterCountdown = (hex: number): number => Math.max(0, hex - HEX_ACTION_COST);
+export const hexAfterGrowth = (hex: number): number => hex > 0 ? hex + HEX_ACTION_GAIN : 0;
 
 /** Burst at the current count without changing it. */
 export const hexBurst = <T extends Combatant>(target: T, source?: Combatant): T => {
@@ -855,17 +855,17 @@ function dealHexDamage<T extends Combatant>(target: T, amount: number, source?: 
   return { ...loseHp(target, loss), hexDamageTaken: (target.hexDamageTaken ?? 0) + loss };
 }
 
-/** Count down an active Hex without triggering it. */
+/** Grow active Hex without triggering it. */
 export const hexAfterAction = <T extends Combatant>(target: T): T => {
   if (target.hp <= 0 || target.statuses.hex <= 0) return target;
-  return { ...target, statuses: { ...target.statuses, hex: hexAfterCountdown(target.statuses.hex) } };
+  return { ...target, statuses: { ...target.statuses, hex: hexAfterGrowth(target.statuses.hex) } };
 };
 
 /** A target that gained Hex from this action keeps every stack. */
 export const hexAfterActionUnlessApplied = <T extends Combatant>(before: T, after: T): T =>
   after.statuses.hex > before.statuses.hex ? after : hexAfterAction(after);
 
-/** A player action checks enemy Hex after resolving its countdown or application. */
+/** A player action checks enemy Hex after resolving its growth or application. */
 export function hexAfterPlayerAction(before: CombatState, after: CombatState): CombatState {
   const existing = new Map(before.heroes.map(unit => [unit.uid, unit]));
   const heroes = after.heroes.map(unit => {

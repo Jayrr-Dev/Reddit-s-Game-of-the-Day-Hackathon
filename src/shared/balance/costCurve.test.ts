@@ -20,9 +20,12 @@ void test('Status values replay the game rules', () => {
   // Odd Hex bursts immediately and can burst again at an opening.
   const delay = CONFIG.battle.delayKeptPerTurn;
   const late = CONFIG.battle.hexLandsLate;
-  assert.ok(Math.abs(hexValue(CONFIG, 1) - (1 + delay) * late) < 1e-9);
-  assert.ok(Math.abs(hexValue(CONFIG, 3) - (3 + 3 * delay + delay ** 2 + delay ** 3) * late) < 1e-9);
-  assert.ok(Math.abs(hexValue(CONFIG, 5) - (5 + 5 * delay + 3 * (delay ** 2 + delay ** 3) + delay ** 4 + delay ** 5) * late) < 1e-9);
+  const expected = (initial: number) => initial + Array.from({ length: 10 }, (_, round) => {
+    const odd = initial + round + (round % 2);
+    return odd * delay ** (round + 1);
+  }).reduce((a, b) => a + b, 0);
+  for (const stacks of [1, 3, 5])
+    assert.ok(Math.abs(hexValue(CONFIG, stacks) - expected(stacks) * late) < 1e-9);
 });
 
 void test('Every effect on every card in play gets a price', () => {

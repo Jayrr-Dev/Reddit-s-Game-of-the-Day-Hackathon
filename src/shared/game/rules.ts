@@ -267,8 +267,8 @@ export const MALAISE_TURNS = 1;
  * behind the target (1 = full damage; lower it for a falloff).
  */
 export const PIERCE_DAMAGE_FACTOR = 1;
-/** Active Hex counts down by this much after each player action. */
-export const HEX_ACTION_COST = 1;
+/** Stacks an active Hex gains from an action that does not apply Hex. */
+export const HEX_ACTION_GAIN = 1;
 /** How many stacks an active Hex spends when it burns. */
 export const HEX_BURN_STACK_COST = 1;
 
