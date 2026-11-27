@@ -254,8 +254,8 @@
 
 .shop-apple-offer { display: flex; align-items: flex-end; gap: .35rem; }
 .shop-apple-row { position: relative; display: block; background: none; padding: 0; }
-.shop-apple-icon-button { pointer-events: auto; display: inline-flex; align-items: center; gap: .2rem; min-height: 2.1rem; padding: .18rem .36rem .18rem .22rem; border: 1px solid #806244; border-radius: .4rem; background: #211727f7; color: #ffe1a2; font-weight: 750; }
-.shop-apple-icon-button[aria-expanded="true"] { border-color: #f1bf70; }
+.shop-apple-icon-button { pointer-events: auto; display: inline-flex; align-items: center; gap: .2rem; min-height: 2.1rem; padding: .18rem .36rem .18rem .22rem; border: 0; border-radius: .4rem; background: #211727f7; color: #ffe1a2; font-weight: 750; }
+.shop-apple-icon-button[aria-expanded="true"] { background: #3a2930; }
 .shop-apple-icon-button:focus-visible { outline: 2px solid #ffe097; outline-offset: 2px; }
 .shop-apple-icon-button img { display: block; width: 1.32rem; height: 1.32rem; }
 .shop-apple-popover { position: absolute; z-index: 7; bottom: calc(100% + .35rem); left: 0; display: grid; gap: .35rem; width: min(12rem, calc(100vw - 7rem)); pointer-events: auto; padding: .55rem; border: 1px solid #9a754a; border-radius: .45rem; background: #211727; color: #ffedce; box-shadow: 0 .35rem .75rem #120d15b5; }

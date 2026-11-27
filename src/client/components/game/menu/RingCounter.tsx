@@ -190,7 +190,7 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
               <button type="button" className="ring-counter-price" disabled={owned || short || busy !== undefined || offeringApple !== undefined}
                 aria-label={owned ? offer.name + (box ? ' opened' : ' owned') : (box ? 'Open ' : 'Buy ') + offer.name + ' for ' + offer.price + ' Gold' + (short ? ', not enough Gold' : '')}
                 onClick={() => void buy(offer.id)}>
-                {owned ? box ? 'Opened' : 'Owned' : busy === offer.id ? box ? 'Opening' : 'Buying' : <>{box && <span>Open</span>}<GoldCoins /> {offer.price}</>}
+                {owned ? box ? 'Opened' : 'Owned' : busy === offer.id ? box ? 'Opening' : 'Buying' : <><GoldCoins /> {offer.price}</>}
               </button>
             </li>;
           })}
