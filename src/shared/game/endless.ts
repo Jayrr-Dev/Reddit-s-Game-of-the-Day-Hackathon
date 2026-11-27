@@ -13,8 +13,13 @@ import { DRAFT_POWER_STAGES, type DraftPowerStage, type EndlessDraft } from './e
 import { combatantBonuses } from './combatant.ts';
 import { drawCards } from './combat.ts';
 
-export const ENDLESS_BATTLE_VERSION = 2;
-export type EndlessBattleVersion = 1 | typeof ENDLESS_BATTLE_VERSION;
+export const ENDLESS_BATTLE_VERSION = 3;
+export type EndlessBattleVersion = 1 | 2 | typeof ENDLESS_BATTLE_VERSION;
+
+/** Accept every saved Endless version without upgrading an active run. */
+export function isEndlessBattleVersion(value: unknown): value is EndlessBattleVersion {
+  return value === 1 || value === 2 || value === ENDLESS_BATTLE_VERSION;
+}
 export type EndlessProfile = { wins: number; xpStartWins?: number | undefined; bonusXp?: number | undefined;
   shopRings: ShopRingId[]; rings: RingProgress; edits: RunAction[] };
 
@@ -55,10 +60,12 @@ function startOnslaught(run: RunState): RunState {
 /** Endless uses the day's seeded battles without campaign routing or a final stop. */
 export function createEndless(day: string, deck?: readonly CardId[], battleVersion?: EndlessBattleVersion, profile?: EndlessProfile, starterClass?: StarterName): RunState {
   // New Endless attempts use the original Vigor HP curve. Older logs must replay at their starting HP.
-  const originalVigorHp = battleVersion === ENDLESS_BATTLE_VERSION;
+  const originalVigorHp = battleVersion !== undefined && battleVersion >= 2;
   const starter = createRun(day + ':endless', profile?.rings, 0, profile?.wins ?? 0, profile?.shopRings ?? [],
     undefined, 1, undefined, false, undefined, profile?.xpStartWins, originalVigorHp, profile?.bonusXp);
-  const fresh = profile?.edits.reduce(runReducer, starter) ?? starter;
+  const built = profile?.edits.reduce(runReducer, starter) ?? starter;
+  // Restoring a saved build is not an in-battle respec: fill its final HP before applying starting powers.
+  const fresh = battleVersion === ENDLESS_BATTLE_VERSION ? { ...built, hp: built.maxHp } : built;
   const run = deck ? { ...fresh, deck: [...deck], ...(starterClass && { rewardStarter: starterClass }) } : fresh;
   return battleVersion !== undefined ? startOnslaught(run)
     : runReducer(run, { type: 'chooseStop', option: 0 });

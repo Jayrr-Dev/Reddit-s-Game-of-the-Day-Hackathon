@@ -263,6 +263,27 @@ test('new Endless drops the extra Vigor HP without changing Conquest, older save
   assert.equal(applyBorrowedPower(fresh, { rarity: 'common', benefit: { kind: 'hp', amount: 8, percent: false }, seed: 1 }).maxHp, 341);
 });
 
+test('a fresh Endless run fills HP after replaying Vigor edits without changing earlier saves', () => {
+  const vigor = (owned: boolean) => ({ type: 'setTraitNode', trait: 'vigor', node: 1, owned } as const);
+  const profile = { wins: 100, shopRings: [], rings: { bossWins: 0, rareSlots: [] },
+    edits: [vigor(true), vigor(false), vigor(true)] };
+  const deck = ['backhand'] as const;
+  const old = createEndless('respec', deck, 2, profile);
+  const fresh = createEndless('respec', deck, ENDLESS_BATTLE_VERSION, profile);
+  assert.equal(old.phase.kind, 'combat');
+  assert.equal(fresh.phase.kind, 'combat');
+  assert.equal(old.phase.combat.player.hp, 66);
+  assert.equal(old.maxHp, 76);
+  assert.equal(fresh.phase.combat.player.hp, 76);
+  assert.equal(fresh.hp, fresh.maxHp);
+  assert.equal(fresh.maxHp, old.maxHp);
+  assert.deepEqual(fresh.character, old.character);
+  const paid = applyBorrowedPower(fresh, { rarity: 'rare', benefit: { kind: 'stat', stat: 'startingEnergy', amount: 1 },
+    price: { kind: 'blood', percent: 20 }, seed: 123 });
+  assert.equal(paid.phase.kind, 'combat');
+  assert.equal(paid.phase.combat.player.hp, fresh.maxHp - Math.ceil(fresh.maxHp * .2));
+});
+
 test('Endless recruits mixed mobs in progressively larger and stronger waves beyond Wave 100', () => {
   const early = buildEndlessWaves('test', 0).waves;
   const late = buildEndlessWaves('test', 100).waves;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useReducer, useState, useSyncExternalStore } from 'react';
-import { createEndless, draftBorrowedOffers, ENDLESS_BATTLE_VERSION, endlessClearedWaves, endlessWaveNumber, reduceEndless, restoreEndlessProfile, withDraftBorrowedPowers, type EndlessBattleVersion, type EndlessProfile } from '../../../shared/game/endless';
+import { createEndless, draftBorrowedOffers, ENDLESS_BATTLE_VERSION, endlessClearedWaves, endlessWaveNumber, isEndlessBattleVersion, reduceEndless, restoreEndlessProfile, withDraftBorrowedPowers, type EndlessBattleVersion, type EndlessProfile } from '../../../shared/game/endless';
 import { progressionFromWins, type RingProgress } from '../../../shared/game/character';
 import type { InitResponse } from '../../../shared/types/api';
 import { apiClient } from '../../lib/apiClient';
@@ -37,7 +37,7 @@ function restore(day: string, key: string): Session {
       const draft = 'draft' in value && isSavedEndlessDraft(value.draft) ? value.draft : null;
       const started = actions.length > 0 || ('started' in value && value.started === true);
       const deck = started && draft && draft.cards.length === endlessDraftSize(draft) ? draft.cards : undefined;
-      const battleVersion = 'battleVersion' in value && (value.battleVersion === 1 || value.battleVersion === ENDLESS_BATTLE_VERSION)
+      const battleVersion = 'battleVersion' in value && isEndlessBattleVersion(value.battleVersion)
         ? value.battleVersion : undefined;
       const profile = 'profile' in value ? restoreEndlessProfile(value.profile) : undefined;
       const initial = createEndless(day, deck, battleVersion, profile, draft?.starter);
