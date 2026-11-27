@@ -446,14 +446,7 @@ export const CARDS = {
     { kind: 'rush', amount: 2 },
     draw(1),
   ]),
-  instinct: card(
-    'Instinct',
-    'buff',
-    1,
-    'uncommon',
-    [buff('instinct', 1)],
-    REMOVES
-  ),
+  instinct: card('Instinct', 'buff', 1, 'uncommon', [buff('instinct', 1)]),
   bane: card('Bane', 'buff', 1, 'uncommon', [buff('bane', 3)], REMOVES),
   plateArmor: card(
     'Plate Armor',

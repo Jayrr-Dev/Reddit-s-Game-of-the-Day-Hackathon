@@ -933,6 +933,16 @@ void test('Protection and Instinct cap at IV on repeated casts in a turn', () =>
   assert.ok(describeCard('instinct').includes('Instinct I'));
 });
 
+void test('Instinct is discarded and can be drawn again instead of being removed', () => {
+  const start = fightWith(['instinct']);
+  const cast = playCard(start, 0, -1);
+  assert.equal(cast.player.statuses.instinct, 1);
+  assert.deepEqual(cast.discardPile, ['instinct']);
+  assert.deepEqual(cast.removedPile, []);
+  assert.deepEqual(describeCard('instinct'), ['Instinct I']);
+  assert.ok(endTurn(cast).hand.includes('instinct'));
+});
+
 void test("Bulwark protects through two full enemy turns, then expires", () => {
   const start = withHand(fightWith(['backhand']), ['bulwark', 'bulwark']);
   const twice = playCard(playCard(start, 0, -1), 0, -1);
