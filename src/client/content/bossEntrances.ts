@@ -38,60 +38,72 @@ const DEFAULT_ENTRANCE: BossEntrance = {
 };
 
 const BOSS_ENTRANCES: Partial<Record<HeroId, BossEntrance>> = {
+  holyKing: {
+    epithet: 'The Hallowed Crown',
+    line: 'You have come for my throne. Do not mistake the people beneath it for the crown.',
+  },
+  greed: {
+    epithet: 'The Gilded Hoarder',
+    line: 'I would not put a price on that fury. I wonder what it cost you.',
+  },
+  envy: {
+    epithet: 'The Borrowed Face',
+    line: 'I wanted to know what Xatan saw in you. I can feel it now.',
+  },
   mageBorneAstra: {
     epithet: 'Oracle of the Silent Choir',
-    line: 'Hush. The stars are listening.',
+    line: 'I heard the Seer. I stayed to see if the stars were wrong.',
   },
   cervielSword: {
     epithet: 'One Will in Three Forms',
-    line: 'One purpose. Three forms. No escape.',
+    line: 'Three of me, and still they asked who would guard the children.',
   },
   grandangelCambiel: {
     epithet: 'The Gilded Shade',
-    line: 'Even gold casts a shadow.',
+    line: 'I would strip off every piece of gold if it bought them time.',
   },
   archangelZeruel: {
     epithet: 'Bearer of the Violet Halos',
-    line: 'I did not descend to bargain.',
+    line: 'The two at my back are under my wing. Take one more step.',
   },
   grandangelRaziel: {
     epithet: 'Keeper of the Unspoken',
-    line: 'What you hide has always been known to me.',
+    line: 'The stake has been cold for years. You still smell of smoke.',
   },
   grandangelGeonosis: {
     epithet: 'Harbinger of Whitefall',
-    line: 'The silence comes first. Then the frost.',
+    line: 'A ruined city makes no sound. I will not hear that silence twice.',
   },
   zadkielOfDominations: {
     epithet: 'Voice of the Divine Edict',
-    line: 'In this court, the last word is mine.',
+    line: 'They called it heresy. Is your verdict meant to be any kinder?',
   },
   fulgurDragonknight: {
     epithet: 'The Storm Made Flesh',
-    line: 'The sky has already chosen where you fall.',
+    line: 'The road behind you is empty. This one still has people on it.',
   },
   grandangelCherubiel: {
     epithet: 'Warden of the Broken Halo',
-    line: 'My halo was broken. My judgment was not.',
+    line: 'Look at this halo. You can break a thing and still fail to make it kneel.',
   },
   mageBorneAzula: {
     epithet: 'The Sevenfold Oracle',
-    line: 'Seven eyes. Every possible future ends here.',
+    line: 'In every future where I turn away, someone else has to stand here.',
   },
   lightLordMori: {
     epithet: 'Keeper of the Last Light',
-    line: 'Kneel. The last light does not forgive.',
+    line: 'My knights put their faith in me. I will not spend their lives to save my own.',
   },
-  angelAssassin: { epithet: 'Blade Behind the Veil', line: 'One shadow is all I need.' },
-  twinAxeKnight: { epithet: 'The Gilded Headsman', line: 'I bring a verdict with both hands.' },
-  archangelUriel: { epithet: 'Warden of the Crimson Gate', line: 'Stand before the flame and be weighed.' },
-  zeruelArmored: { epithet: 'The Ivory Eclipse', line: 'The eclipse needs no witness.' },
-  sloth: { epithet: 'The Unmoving', line: 'All your fury, and the mountain has not moved.' },
-  pride: { epithet: 'The Fallen Sovereign', line: 'Look up. You stand before a sovereign.' },
-  lust: { epithet: 'The Veiled Apparition', line: 'Tell me what you want. Leave out the lies.' },
-  gluttony: { epithet: 'The Hollow Hunger', line: 'Bring me what you have left.' },
+  angelAssassin: { epithet: 'Blade Behind the Veil', line: 'If I can end this unseen, no one else has to draw a blade.' },
+  twinAxeKnight: { epithet: 'The Gilded Headsman', line: 'The crown can lose its throne. My soldiers cannot lose another home.' },
+  archangelUriel: { epithet: 'Warden of the Crimson Gate', line: 'I will not ask you to forgive them. I am asking you to let these people pass.' },
+  zeruelArmored: { epithet: 'The Ivory Eclipse', line: 'The throne was never what you came for. You go no higher.' },
+  sloth: { epithet: 'The Unmoving', line: 'I felt you coming through the stone. The old one never shook me awake.' },
+  pride: { epithet: 'The Fallen Sovereign', line: 'Seven hundred years. I thought no one could take his seat. Now I feel why it is yours.' },
+  lust: { epithet: 'The Veiled Apparition', line: 'I feel what you want. If they all die, will she be any less gone?' },
+  gluttony: { epithet: 'The Hollow Hunger', line: 'I can taste it from here. Even I know when a hunger is too big to feed.' },
   holyDragon: { epithet: 'Wyrm of the Last Light', line: 'I kept this flame when your kingdom was ash.', durationMs: 9200, landingMs: 2200, voice: { cue: 'bossUncVoice', durationMs: 4330 } },
-  tempestWyrm: { epithet: 'Spear of the Breaking Sky', line: 'The storm bows to no one. Least of all to you.', landingMs: 2200 },
+  tempestWyrm: { epithet: 'Spear of the Breaking Sky', line: 'They will have the wind at their backs until the last of them is across.', landingMs: 2200 },
   grandGriffon: {
     epithet: 'Talon of the High Sky',
     line: 'Demon, we meet again. You came for vengeance. So did I. For my master!',

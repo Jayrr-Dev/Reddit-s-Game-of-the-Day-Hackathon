@@ -3095,12 +3095,12 @@ textarea,
 @keyframes boss-voiced-speech {0%,100%{opacity:0}5%,95%{opacity:1}}
 @keyframes boss-voiced-reveal {from{opacity:0}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){
-  .boss-entrance {animation-name:none;}
-  .boss-dialogue {display:none;}
-  .boss-entrance .boss-entrance-card {animation-name:none;}
-  .boss-entrance[data-voiced] .boss-dialogue {display:block;bottom:26%;animation-name:none;}
+  .boss-entrance {animation-name:none;display:flex;flex-direction:column;justify-content:flex-end;gap:.6rem;padding:0 7% 12%;}
+  .boss-entrance .boss-dialogue,.boss-entrance .boss-entrance-card {
+    position:static;animation-name:none;
+  }
+  .boss-entrance[data-voiced] .boss-dialogue-static {display:block;}
   .boss-entrance[data-voiced] .boss-dialogue-timed {display:none;}
-  .boss-entrance[data-voiced] .boss-entrance-card {animation-name:none;}
 }
 @keyframes fx-fade-in {
   from {

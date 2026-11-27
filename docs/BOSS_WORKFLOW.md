@@ -7,6 +7,7 @@ Use this workflow for new units and animation updates in Villain Run. Deliver an
 - Record the display name, stable unit ID, role, size, starting row, opening move, and signature move. Keep the existing ID when updating art or renaming a unit.
 - For each animated action, mark the anticipation, release or impact, recovery, and return to idle. For bosses, decide what the player should read and counter. Keep phases, summons, and balance decisions separate from art approval.
 - Put hidden canon in [Story Notes](STORY.md), not in player-facing copy.
+- Write a short entrance line that would make sense even if the player met this boss first. Give it a personal reason to speak and at most one new clue. Other clues can come from the arena, a reward description, or what the boss does. Match any recorded line to its captions.
 
 ## 2. Lock the approved reference
 
