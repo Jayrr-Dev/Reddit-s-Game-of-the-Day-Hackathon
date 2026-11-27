@@ -6,6 +6,7 @@
 // ===================================================================
 
 export const redisKeys = {
+  adminShopVisit: (userId: string, visit: string) => `profile:test-shop:v1:${userId}:${visit}`,
   ringPurchases: (userId: string) => `profile:ring-purchases:v1:${userId}`,
   victories: (userId: string) => `progress:v1:${userId}:wins`,
   runBaseline: (userId: string, day: string, id: string) => `progress:v1:${userId}:${day}:${id}`,

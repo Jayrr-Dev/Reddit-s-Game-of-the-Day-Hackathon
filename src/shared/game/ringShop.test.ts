@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { MYSTERY_BOX_PRICE, TEMP_RING_IDS, goldAfterPurchases, quotePurchase, quoteShopPurchase, readPurchases, readShopWallet, shopOffers, shopRingIds } from './ringShop.ts';
+import { ADMIN_SHOP_GOLD, MYSTERY_BOX_PRICE, assignPandoraEffect, claimPandoraBounty, openedShopBoxes, shopGoldBalance, TEMP_RING_IDS, goldAfterPurchases, quotePurchase, quoteShopPurchase, readPurchases, readShopWallet, shopOffers, shopRingIds } from './ringShop.ts';
 import { createRun, replayRun, runReducer } from './run.ts';
 import { characterBonuses, trainingRingProgress } from './character.ts';
 import { inventoryStacks } from './inventory.ts';
@@ -75,8 +75,9 @@ test('a mystery box costs exactly 100 Gold, awards an unowned item and only open
   assert.equal(box.price, MYSTERY_BOX_PRICE);
   const old = readShopWallet('{"cinder-band":30}');
   assert.equal(quoteShopPurchase(129, old, box, day, 'roll').status, 'short');
-  const purchase = quoteShopPurchase(130, old, box, day, 'roll');
-  if (purchase.status !== 'buy' || !('reward' in purchase) || !purchase.reward) throw new Error('Expected reward');
+  const purchase = Array.from({ length: 35 }, (_, index) => quoteShopPurchase(130, old, box, day, String(index)))
+    .find(result => result.status === 'buy' && 'reward' in result && result.reward?.kind === 'jewelry');
+  if (!purchase || purchase.status !== 'buy' || !('reward' in purchase) || purchase.reward?.kind !== 'jewelry') throw new Error('Expected reward');
   assert.notEqual(purchase.reward.id, 'cinder-band');
   const saved = readShopWallet(JSON.stringify(purchase.next));
   assert.equal(goldAfterPurchases(130, saved.items), 0);
@@ -91,12 +92,52 @@ test('mystery rewards can be ordinary rings, Legendary rings or amulets', () => 
   const found = new Set<string>();
   for (let i = 0; i < 1000; i++) {
     const purchase = quoteShopPurchase(100, { items: {}, boxes: {} }, box, day, String(i));
-    if (purchase.status === 'buy' && 'reward' in purchase && purchase.reward) {
+    if (purchase.status === 'buy' && 'reward' in purchase && purchase.reward?.kind === 'jewelry') {
       found.add(purchase.reward.slot + ':' + purchase.reward.rarity);
     }
   }
   assert.ok(found.has('ring:Common') && found.has('ring:Legendary'));
   assert.ok([...found].some(key => key.startsWith('amulet:')));
   const items = Object.fromEntries([...TEMP_RING_IDS, 'ferryman-token', 'vesper-locket', 'last-lantern'].map(id => [id, 1]));
-  assert.equal(quoteShopPurchase(1000, { items, boxes: {} }, box, day, 'roll').status, 'owned');
+  const result = quoteShopPurchase(1000, { items, boxes: {} }, box, day, 'roll');
+  assert.equal(result.status, 'buy');
+  if (result.status === 'buy' && 'reward' in result) assert.notEqual(result.reward?.kind, 'jewelry');
+});
+
+test('Pandora Gold changes include the price and clamp a loss to what is left', () => {
+  const receipt = day + ':mystery-box-5';
+  const wallet = readShopWallet(JSON.stringify({ items: {}, boxes: {}, events: { [receipt]: { kind: 'gold', change: 180 } } }));
+  assert.equal(shopGoldBalance(100, wallet), 180);
+  assert.deepEqual(openedShopBoxes(day, wallet), ['mystery-box-5']);
+  const box = shopOffers(day, true)[4]!;
+  assert.equal(quoteShopPurchase(ADMIN_SHOP_GOLD, wallet, box, day, 'new visit').status, 'owned');
+  const open = quoteShopPurchase(ADMIN_SHOP_GOLD, readShopWallet(), box, day, 'new visit');
+  assert.equal(open.status, 'buy');
+  for (let i = 0; i < 100; i++) {
+    const buy = quoteShopPurchase(106, readShopWallet(), box, day, String(i));
+    if (buy.status === 'buy' && 'reward' in buy && buy.reward?.kind === 'gold' && buy.reward.change <= 0)
+      assert.equal(buy.reward.change, -6);
+  }
+});
+
+test('Pandora effects apply to one issued run and bounty survives replay without paying twice', () => {
+  const receipt = day + ':mystery-box-5';
+  const id = 'd45964e8-4729-4f63-ad79-e2286afa4f30';
+  const wallet = readShopWallet(JSON.stringify({items:{},boxes:{},events:{[receipt]:{kind:'run',effect:'half-life'}}}));
+  const bound = assignPandoraEffect(wallet, id);
+  if (!bound) throw new Error('Expected queued effect');
+  assert.equal(assignPandoraEffect(bound.wallet, id), undefined);
+  assert.equal(claimPandoraBounty(bound.wallet, 'another run'), undefined);
+  const curseRun = replayRun(day, [], undefined, 0, 0, [], bound.effect);
+  const ordinary = createRun(day);
+  assert.equal(curseRun.hp, Math.ceil(ordinary.hp / 2));
+  assert.equal(curseRun.maxHp, ordinary.maxHp);
+  assert.deepEqual(curseRun.phase, ordinary.phase);
+  assert.equal(createRun(day, undefined, 0, 0, [], 'lasting-vigor').maxHp, ordinary.maxHp + 12);
+  assert.equal(createRun(day, undefined, 0, 0, [], 'brittle-blood').maxHp, ordinary.maxHp - 10);
+  const earned = claimPandoraBounty(bound.wallet, id);
+  if (!earned) throw new Error('Expected bounty');
+  const restored = readShopWallet(JSON.stringify(earned));
+  assert.equal(shopGoldBalance(100, restored), 160);
+  assert.equal(claimPandoraBounty(restored, id), undefined);
 });

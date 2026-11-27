@@ -5,7 +5,8 @@
 // both sides instead of failing at runtime.
 // ===================================================================
 
-import type { RingRarity, ShopOffer, ShopOfferId, ShopRingId, MysteryBoxId } from '../game/ringShop.ts';
+import type { PandoraRunEffect } from '../game/pandora.ts';
+import type { ShopReward, ShopOffer, ShopOfferId, ShopRingId, MysteryBoxId } from '../game/ringShop.ts';
 import type { RunAction, RunStats } from '../game/run.ts';
 import type { UnitStatOverride, UnitStatOverrides } from '../game/unitOverrides.ts';
 
@@ -89,12 +90,13 @@ export type RingShopResponse = {
   offers: ShopOffer[];
   opened: MysteryBoxId[];
   collectedAll: boolean;
+  testVisit?: string;
   owned: ShopRingId[];
 };
-export type BuyRingRequest = { ringId: ShopOfferId; offerDay: string };
-export type ShopReward = Pick<import('../game/ringShop.ts').RingOffer, 'id' | 'name' | 'slot'> & { rarity: RingRarity };
+export type BuyRingRequest = { ringId: ShopOfferId; offerDay: string; testVisit?: string };
+export type { ShopReward } from '../game/ringShop.ts';
 export type BuyRingResponse = { status: 'bought' | 'owned' | 'short' | 'stale' | 'retry'; shop: RingShopResponse; reward?: ShopReward };
-export type RunProfile = { id: string; wins: number; shopRings?: ShopRingId[] };
+export type RunProfile = { id: string; wins: number; shopRings?: ShopRingId[]; pandoraEffect?: PandoraRunEffect };
 export type StartRunResponse = {
   build?: import('../game/playerBuild.ts').PlayerBuild;
   profile?: RunProfile;

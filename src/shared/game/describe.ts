@@ -410,8 +410,8 @@ export const KEYWORD_INFO: Record<CardKeyword, StatusInfo> = {
     description: "Once played, it's out for the rest of the fight",
   },
   exhaust: {
-    label: 'Use',
-    description: 'Limited plays per run\nAfter the last play, this copy **Exhausts**',
+    label: 'Destroy',
+    description: 'Limited plays per run\nAfter the last play, **Destroy** this copy for the rest of the run',
   },
   charge: {
     label: 'Charge',
@@ -694,7 +694,7 @@ export const describeCardUse = (
   const left = Math.max(0, uses - usesSpent);
   return {
     label: KEYWORD_INFO.exhaust.label,
-    description: `**${left}** ${left === 1 ? 'play' : 'plays'} left this run\nAfter the last play, this copy **Exhausts**`,
+    description: `**${left}** ${left === 1 ? 'play' : 'plays'} left this run\nAfter the last play, **Destroy** this copy for the rest of the run`,
   };
 };
 

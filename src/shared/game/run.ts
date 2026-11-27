@@ -22,6 +22,7 @@ import { combatOutcome, endTurn, playCard, startCombat, SELF_TARGET_UID } from '
 import { mightAt, routeOptions, stopSeed, type Stop } from './kingdom.ts';
 import { isMovementId, move } from './movement.ts';
 import type { GoldVictory } from './gold.ts';
+import { PANDORA_MAX_HP_GAIN, PANDORA_MAX_HP_LOSS, type PandoraRunEffect } from './pandora.ts';
 import { ringInventory, type ShopRingId } from './ringShop.ts';
 import { rollOffers } from './rewards.ts';
 import { isUniqueInDeck } from './unique.ts';
@@ -59,6 +60,7 @@ export type RunState = {
   rewardStarter?: StarterName;
   ringDrops?: number[];
   baseMaxHp?: number;
+  pandoraEffect?: PandoraRunEffect;
   storyRingUnlocked?: number | undefined;
   character: CharacterState;
   dailyKey: string;
@@ -144,19 +146,23 @@ const initialCharacter = (ringProgress: RingProgress | undefined, wins: number, 
 
 /** The start of the day's run: full HP, starter deck, first crossroads. */
 export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt = 0, wins = 0,
-  shopRings: readonly ShopRingId[] = []): RunState => ({
+  shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect): RunState => {
+  const maxHp = PLAYER_MAX_HP + (pandoraEffect === 'lasting-vigor' ? PANDORA_MAX_HP_GAIN : pandoraEffect === 'brittle-blood' ? -PANDORA_MAX_HP_LOSS : 0);
+  return {
   attempt,
+  ...(pandoraEffect && { pandoraEffect, baseMaxHp: maxHp }),
   dailyKey,
   stop: 1,
   character: initialCharacter(ringProgress, wins, shopRings),
-  hp: PLAYER_MAX_HP,
-  maxHp: PLAYER_MAX_HP,
+  hp: pandoraEffect === 'half-life' ? Math.ceil(maxHp / 2) : maxHp,
+  maxHp,
   deck: [...STARTER_DECK],
   usesSpent: {},
   stats: EMPTY_STATS,
   goldVictories: [],
   phase: { kind: 'route', options: routeOptions(dailyKey, 1) },
-});
+  };
+};
 
 // --- TRANSITIONS ---
 
@@ -398,8 +404,8 @@ export const replayRun = (
   dailyKey: string,
   actions: readonly RunAction[],
   ringProgress?: RingProgress,
-  attempt = 0, wins = 0, shopRings: readonly ShopRingId[] = []
-): RunState => actions.reduce(runReducer, createRun(dailyKey, ringProgress, attempt, wins, shopRings));
+  attempt = 0, wins = 0, shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect
+): RunState => actions.reduce(runReducer, createRun(dailyKey, ringProgress, attempt, wins, shopRings, pandoraEffect));
 
 /** True once the heroes have stopped the villain. */
 export const isRunOver = (state: RunState): boolean =>

@@ -3,14 +3,15 @@ import { apiClient } from '../../../lib/apiClient';
 import { useAccountId } from '../../../lib/accountId';
 import { GoldCoins } from '../profileParts';
 import type { RingShopResponse, ShopReward } from '../../../../shared/types/api';
-import type { ShopOfferId } from '../../../../shared/game/ringShop';
+import type { ShopOfferId, ShopRingId } from '../../../../shared/game/ringShop';
 import { MysteryChest, MysteryReveal } from './MysteryReveal';
 import { ShopJewelryArt } from './ShopJewelryArt';
 import './ring-counter.css';
 
-export function RingCounter({ onSale, onBuyingChange }: { onSale: () => void; onBuyingChange: (buying: boolean) => void }) {
+export function RingCounter({ onSale, onBuyingChange, onTestInventory }: { onSale: () => void; onBuyingChange: (buying: boolean) => void; onTestInventory?: (items: ShopRingId[], visit: string) => void }) {
   const account = useAccountId();
   const busyRef = useRef(false);
+  const testVisitRef = useRef<string>(undefined);
   const [shop, setShop] = useState<RingShopResponse>();
   const [busy, setBusy] = useState<ShopOfferId>();
   const [selected, setSelected] = useState<ShopOfferId>();
@@ -22,11 +23,17 @@ export function RingCounter({ onSale, onBuyingChange }: { onSale: () => void; on
     if (!account) return;
     let active = true;
     setError(false);
-    apiClient.ringShop().then(result => { if (active) setShop(result); }).catch(() => {
+    apiClient.ringShop(testVisitRef.current).then(result => {
+      if (!active) return;
+      setShop(result);
+      if (result.testVisit) testVisitRef.current = result.testVisit;
+      else if (testVisitRef.current) setNote('Test visit expired. Reopen the Shop.');
+      if (result.testVisit) onTestInventory?.(result.owned, result.testVisit);
+    }).catch(() => {
       if (active) setError(true);
     });
     return () => { active = false; };
-  }, [account, retry]);
+  }, [account, retry, onTestInventory]);
 
   useEffect(() => {
     if (!selected) return;
@@ -52,14 +59,15 @@ export function RingCounter({ onSale, onBuyingChange }: { onSale: () => void; on
     setBusy(id);
     setNote('');
     try {
-      const result = await apiClient.buyRing({ ringId: id, offerDay: shop.offerDay });
+      const result = await apiClient.buyRing({ ringId: id, offerDay: shop.offerDay, ...(shop.testVisit && { testVisit: shop.testVisit }) });
       setShop(result.shop);
+      if (result.shop.testVisit) onTestInventory?.(result.shop.owned, result.shop.testVisit);
       if (result.status === 'bought') onSale();
       if (result.reward) setReward(result.reward);
-      setNote(result.status === 'bought' ? 'Bought. Equip it in Profile.' :
+      setNote(result.status === 'bought' ? (result.shop.testVisit ? 'Test result applies to this visit only.' : 'Bought. Equip it in Profile.') :
         result.status === 'owned' ? 'This offer is no longer available.' :
         result.status === 'short' ? 'Not enough Gold.' :
-        result.status === 'stale' ? 'Stock changed. Check the new offers.' :
+        result.status === 'stale' ? (shop.testVisit && !result.shop.testVisit ? 'Test visit expired. Reopen the Shop.' : 'Stock changed. Check the new offers.') :
         'The shop is busy. Please try again.');
     } catch {
       setNote('Purchase could not be confirmed. Check the shop again before retrying.');
@@ -75,14 +83,13 @@ export function RingCounter({ onSale, onBuyingChange }: { onSale: () => void; on
   if (error) return <div className="ring-counter-state">Could not load the shop. <button type="button" onClick={() => setRetry(value => value + 1)}>Retry</button></div>;
   if (!shop) return <p className="ring-counter-state" role="status">Loading stock.</p>;
   return <section className="ring-counter" aria-label="Jewelry for sale">
-    <span className="ring-counter-gold" aria-label={shop.gold + ' Gold available'}><GoldCoins /> {shop.gold.toLocaleString()} Gold</span>
+    <span className="ring-counter-gold" aria-label={shop.gold + (shop.testVisit ? ' test Gold available' : ' Gold available')}><GoldCoins /> {shop.gold.toLocaleString()} {shop.testVisit ? 'Test Gold' : 'Gold'}</span>
     <div className="ring-counter-layer">
       <div className="ring-counter-frame">
         <ul className="ring-counter-stock">
           {shop.offers.map(offer => {
             const box = offer.slot === 'box';
             const owned = box ? shop.opened.includes(offer.id) : shop.owned.includes(offer.id);
-            const soldOut = box && shop.collectedAll;
             const inspecting = selected === offer.id;
             const detailsId = 'shop-details-' + offer.id;
             const short = shop.gold < offer.price;
@@ -96,12 +103,12 @@ export function RingCounter({ onSale, onBuyingChange }: { onSale: () => void; on
                 <strong>{offer.name}</strong>
                 {!box && <small>{offer.rarity} {offer.slot === 'amulet' ? 'Amulet' : 'Ring'}</small>}
                 <p>{offer.flavor}</p>
-                {!box && <span>{offer.effect ?? 'Cosmetic'}</span>}
+                <span>{box ? 'May give jewelry, change your Gold, or bless or curse your next conquest.' : offer.effect ?? 'Cosmetic'}</span>
               </div>}
-              <button type="button" className="ring-counter-price" disabled={owned || soldOut || short || busy !== undefined}
-                aria-label={soldOut ? 'All mystery rewards owned' : owned ? offer.name + (box ? ' opened' : ' owned') : (box ? 'Open ' : 'Buy ') + offer.name + ' for ' + offer.price + ' Gold' + (short ? ', not enough Gold' : '')}
+              <button type="button" className="ring-counter-price" disabled={owned || short || busy !== undefined}
+                aria-label={owned ? offer.name + (box ? ' opened' : ' owned') : (box ? 'Open ' : 'Buy ') + offer.name + ' for ' + offer.price + ' Gold' + (short ? ', not enough Gold' : '')}
                 onClick={() => void buy(offer.id)}>
-                {soldOut ? 'Empty' : owned ? box ? 'Opened' : 'Owned' : busy === offer.id ? box ? 'Opening' : 'Buying' : <><GoldCoins /> {offer.price}</>}
+                {owned ? box ? 'Opened' : 'Owned' : busy === offer.id ? box ? 'Opening' : 'Buying' : <><GoldCoins /> {offer.price}</>}
               </button>
             </li>;
           })}

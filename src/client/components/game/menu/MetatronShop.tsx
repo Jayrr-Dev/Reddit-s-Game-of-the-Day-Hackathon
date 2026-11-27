@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react';
+import type { ShopRingId } from '../../../../shared/game/ringShop';
 import shopAmbient from '../../../assets/npcs/metatron-shop-ambient.webp';
 import shopFrame from '../../../assets/npcs/metatron-shop-frame.webp';
 import { Button } from '../../ui/Button';
@@ -56,7 +57,7 @@ function MetatronIdle() {
   );
 }
 
-export const MetatronShop = ({ onClose }: { onClose: () => void }) => {
+export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void; onTestInventory?: (items: ShopRingId[], visit: string) => void }) => {
   const [line, setLine] = useState<number | null>(null);
   const [buying, setBuying] = useState(false);
   const [waited, setWaited] = useState<number | null>(null);
@@ -115,9 +116,9 @@ export const MetatronShop = ({ onClose }: { onClose: () => void }) => {
       <p className="text-xs text-ink">Metatron the Fallen Angel</p>
     </header>
 
-    <RingCounter onSale={greetPurchase} onBuyingChange={setBuying} />
+    <RingCounter onSale={greetPurchase} onBuyingChange={setBuying} {...(onTestInventory && { onTestInventory })} />
     <footer className="flex items-end justify-end gap-2">
-      <Button variant="menu" className="max-w-24 shrink-0" onClick={onClose}>
+      <Button variant="menu" className="max-w-24 shrink-0" onClick={onClose} disabled={buying}>
         Back
       </Button>
     </footer>

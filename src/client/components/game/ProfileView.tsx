@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { ShopRingId } from '../../../shared/game/ringShop';
+import { ringInventory, type ShopRingId } from '../../../shared/game/ringShop';
+import type { BagLayout } from '../../../shared/game/bagLayout';
 import { type RingProgress } from '../../../shared/game/character';
 import {
   characterEdit,
@@ -30,16 +31,20 @@ export function ProfileView({
   data,
   rings,
   onClose,
+  testJewelry = [],
 }: {
   data: InitResponse;
   rings?: RingProgress | undefined;
   onClose: () => void;
+  testJewelry?: readonly ShopRingId[];
 }) {
   const [build, setBuild] = useState<PlayerBuild>(() =>
     localBuild(data.accountId)
   );
   const [wins, setWins] = useState(data.lifetimeWins ?? 0);
   const [shopRings, setShopRings] = useState<ShopRingId[]>([]);
+  const [testActions, setTestActions] = useState<RunAction[]>([]);
+  const [testBag, setTestBag] = useState<BagLayout>();
   const [gold, setGold] = useState(data.gold ?? 0);
   const [loading, setLoading] = useState(!!data.accountId);
   const [saving, setSaving] = useState(false);
@@ -81,7 +86,10 @@ export function ProfileView({
     runReducer,
     createRun(data.dailyKey, rings, 0, wins, shopRings)
   );
-  const character = run.character;
+  const temporary = ringInventory(testJewelry).filter(item => !run.character.inventory.some(real => real.id === item.id));
+  const character = temporary.length ? testActions.reduce(runReducer, { ...run, character: {
+    ...run.character, inventory: [...run.character.inventory, ...temporary],
+  } }).character : run.character;
   const name = build.selected;
   const cards = build.decks[name] ?? starterDeck(name);
   const valid = validStarter(name, cards);
@@ -104,6 +112,10 @@ export function ProfileView({
   }
   function changeCharacter(action: RunAction) {
     if (!characterEdit(action)) return;
+    if (temporary.length && (action.type === 'equipItem' || (action.type === 'discardItem' && temporary.some(item => item.id === action.itemId)))) {
+      setTestActions(previous => [...previous, action]);
+      return;
+    }
     setBuild((previous) => {
       const current = previous.character.reduce(
         runReducer,
@@ -179,14 +191,15 @@ export function ProfileView({
       inventory={
         <InventoryPanel
           owner={{ character, bag: items }}
-          layout={build.bag}
-          onLayout={(bag) => setBuild((previous) => ({ ...previous, bag }))}
+          layout={temporary.length ? testBag ?? build.bag : build.bag}
+          onLayout={(bag) => temporary.length ? setTestBag(bag) : setBuild((previous) => ({ ...previous, bag }))}
           onTrash={(stack) => void trash(stack)}
         />
       }
       onClose={() => void leave()}
       profile={
         <>
+          {temporary.length > 0 && <p className="text-xs text-ink-muted">Test jewelry does not transfer to Conquest. Reopen the Shop to reset.</p>}
           <ProfileStrip username={data.username} wins={wins} gold={gold} bestScore={data.bestScoreToday ?? 0} />
           <ProfileDeck title="Starter deck" note="Choose the deck for your next conquest." cards={cards}>
             <div className="profile-classes">

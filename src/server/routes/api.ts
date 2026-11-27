@@ -13,7 +13,8 @@ import { Hono } from 'hono';
 import { context, reddit, redis } from '@devvit/web/server';
 import { replayForScore, replayForScoreAndUnlocks } from '../../shared/game/replayForScore';
 import { getUnlocks, recordUnlocks } from '../core/playerUnlocks';
-import { buyRing, getRingShop, readPlayerProgress, recordVictories } from '../core/playerRingShop';
+import { bindPandoraRun, creditPandoraBounty, buyRing, getAdminRingShop, getRingShop, openAdminRingShop, readPlayerProgress, recordVictories } from '../core/playerRingShop';
+import { isPandoraRunEffect } from '../../shared/game/pandora';
 import { isShopOfferId, shopRingIds } from '../../shared/game/ringShop';
 import { goldRewardFor } from '../../shared/game/gold';
 import { MAX_RUN_ACTIONS } from '../../shared/game/rules';
@@ -108,10 +109,20 @@ api.get('/profile',async c => {
   const [build, progress, items, unlocks] = await Promise.all([getBuild(id), readPlayerProgress(id), getItems(id), getUnlocks(id)]);
   return c.json<ProfileResponse>({ build, ...progress, items, unlocks });
 });
+const isShopVisitId = (value: unknown): value is string =>
+  typeof value === 'string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(value);
+
 api.get('/shop/rings', async c => {
   const id = context.userId;
   if (!id) return jsonError(c, 401, 'Sign in to enter the jewelry shop');
-  return c.json<RingShopResponse>(await getRingShop(id, getDailyKey(), await isCurrentUserAdmin()));
+  c.header('Cache-Control', 'private, no-store');
+  const day = getDailyKey();
+  const admin = await isCurrentUserAdmin();
+  if (!admin) return c.json<RingShopResponse>(await getRingShop(id, day));
+  const visit = c.req.query('testVisit');
+  if (visit === undefined) return c.json<RingShopResponse>(await openAdminRingShop(id, day));
+  if (!isShopVisitId(visit)) return jsonError(c, 400, 'Invalid shop test visit');
+  return c.json<RingShopResponse>(await getAdminRingShop(id, day, visit));
 });
 api.post('/shop/rings/buy', async c => {
   const id = context.userId;
@@ -120,7 +131,10 @@ api.post('/shop/rings/buy', async c => {
   if (!body || typeof body !== 'object' || !('ringId' in body) || !isShopOfferId(body.ringId) ||
     !('offerDay' in body) || typeof body.offerDay !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.offerDay))
     return jsonError(c, 400, 'Invalid jewelry offer');
-  return c.json<BuyRingResponse>(await buyRing(id, getDailyKey(), body.offerDay, body.ringId, await isCurrentUserAdmin()));
+  const visit = 'testVisit' in body ? body.testVisit : undefined;
+  if (visit !== undefined && !isShopVisitId(visit))
+    return jsonError(c, 400, 'Invalid shop test visit');
+  return c.json<BuyRingResponse>(await buyRing(id, getDailyKey(), body.offerDay, body.ringId, await isCurrentUserAdmin(), visit));
 });
 api.post('/profile',async c => {
   const id=context.userId;
@@ -190,14 +204,19 @@ api.get('/init', async (c) => {
 api.post('/run/start', async (c) => {
   const { userId } = context;
   try {
-    const isRanked = userId
-      ? await beginRun(getCurrentPostDailyKey(), userId)
-      : false;
-    if (!userId) return c.json<StartRunResponse>({ type: 'runStart', isRanked });
-    const { wins, shopRings } = await readPlayerProgress(userId);
+    if (!userId) return c.json<StartRunResponse>({ type: 'runStart', isRanked: false });
+    const body: unknown = await c.req.json().catch(() => null);
+    const candidate = body && typeof body === 'object' && 'testVisit' in body ? body.testVisit : undefined;
+    const testVisit = isShopVisitId(candidate) && await isCurrentUserAdmin() ? candidate : undefined;
+    const day = getCurrentPostDailyKey();
+    const [{ wins, shopRings }, build] = await Promise.all([readPlayerProgress(userId), getBuild(userId)]);
     const profile = { id: randomUUID(), wins, shopRings };
-    await redis.set(redisKeys.runBaseline(userId, getCurrentPostDailyKey(), profile.id), JSON.stringify({ wins, shopRings }));
-    return c.json<StartRunResponse>({ type: 'runStart', isRanked, profile, build: await getBuild(userId) });
+    const withEffect = (testVisit && await bindPandoraRun(userId, day, profile, testVisit))
+      || await bindPandoraRun(userId, day, profile);
+    if (withEffect) return c.json<StartRunResponse>({ type: 'runStart', isRanked: false, profile: withEffect, build });
+    const isRanked = await beginRun(day, userId);
+    await redis.set(redisKeys.runBaseline(userId, day, profile.id), JSON.stringify({ wins, shopRings }));
+    return c.json<StartRunResponse>({ type: 'runStart', isRanked, profile, build });
   } catch (error) {
     console.error('api/run/start failed', error);
     return jsonError(c, 500, toErrorMessage(error));
@@ -214,7 +233,11 @@ async function verifyProgress(day: string, body: FinishRunRequest, userId: strin
   const wins = typeof saved === 'number' ? saved :
     saved && typeof saved === 'object' && 'wins' in saved && typeof saved.wins === 'number' ? saved.wins : 0;
   const shopRings = saved && typeof saved === 'object' && 'shopRings' in saved ? shopRingIds(saved.shopRings) : [];
-  const { state: run, unlocks } = replayForScoreAndUnlocks(day, body.actions, wins, shopRings);
+  const effect = saved && typeof saved === 'object' && 'pandoraEffect' in saved && isPandoraRunEffect(saved.pandoraEffect) ? saved.pandoraEffect : undefined;
+  const testVisit = saved && typeof saved === 'object' && 'testVisit' in saved && isShopVisitId(saved.testVisit) ? saved.testVisit : undefined;
+  const { state: run, unlocks } = replayForScoreAndUnlocks(day, body.actions, wins, shopRings, effect);
+  if (effect === 'half-life' && run.goldVictories.length > 0) await creditPandoraBounty(userId, body.runId, testVisit);
+  if (testVisit) return run;
   await recordUnlocks(userId, unlocks);
   const runId = body.runId;
   const awards = run.goldVictories.map(({ stop, encounter }, index) => ({
@@ -248,7 +271,7 @@ api.post('/run/finish', async (c) => {
     const username = await reddit.getCurrentUsername();
     if (!userId || !username) return jsonError(c, 401, 'Log in to save scores');
 
-    const isRanked = await completeRun(dailyKey, userId);
+    const isRanked = !finalState.pandoraEffect && await completeRun(dailyKey, userId);
     const [board, streak] = await Promise.all([
       isRanked
         ? recordRankedScore(dailyKey, username, score)

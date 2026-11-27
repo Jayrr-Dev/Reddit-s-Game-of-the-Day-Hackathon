@@ -1,6 +1,7 @@
 import { hashSeed, nextInt, pickDistinct, pickOne } from './rng.ts';
 import { TRAINING_JEWELRY } from './trainingJewelry.ts';
 import { shopAmuletSummary, type ShopAmuletId } from './amuletBonuses.ts';
+import { drawPandoraEvent, readPandoraEvent, PANDORA_CURSE_BOUNTY, type PandoraEvent, type PandoraRunEffect } from './pandora.ts';
 import type { EquipmentSlot } from './character.ts';
 
 // --- STOCK AND PRICES ---
@@ -35,12 +36,18 @@ export type MysteryBoxId = (typeof MYSTERY_BOX_IDS)[number];
 export type ShopOfferId = ShopRingId | MysteryBoxId;
 type MysteryOffer = { id: MysteryBoxId; name: string; flavor: string; slot: 'box'; rarity: RingRarity; price: number };
 export type ShopOffer = RingOffer | MysteryOffer;
-export type ShopWallet = { items: RingPurchases; boxes: Partial<Record<string, ShopRingId>> };
+export type ShopWallet = { items: RingPurchases; boxes: Partial<Record<string, ShopRingId>>; events?: Partial<Record<string, PandoraEvent>> };
+export type ShopReward =
+  | { kind: 'jewelry'; id: ShopRingId; name: string; slot: EquipmentSlot; rarity: RingRarity }
+  | PandoraEvent;
+const isBoxReceipt = (key: string) => /^\d{4}-\d{2}-\d{2}:mystery-box-[45]$/.test(key);
+export const ADMIN_SHOP_GOLD = 1000;
 export const MYSTERY_BOX_PRICE = 100;
+export const PANDORA_BOX_NAME = "Pandora's Box";
 const BOX_CHANCE = 10;
 const boxOffer = (id: MysteryBoxId): MysteryOffer => ({
-  id, name: 'Mystery Box', slot: 'box', rarity: 'Rare', price: MYSTERY_BOX_PRICE,
-  flavor: 'Contains an unowned ring or amulet. Ordinary rings are the most common.',
+  id, name: PANDORA_BOX_NAME, slot: 'box', rarity: 'Rare', price: MYSTERY_BOX_PRICE,
+  flavor: "I never told it your name. It knew it all the same.",
 });
 export const isShopOfferId = (id: unknown): id is ShopOfferId =>
   isShopRingId(id) || MYSTERY_BOX_IDS.some(known => known === id);
@@ -125,29 +132,74 @@ export function readShopWallet(raw?: string): ShopWallet {
     if (!data.boxes || typeof data.boxes !== 'object' || Array.isArray(data.boxes))
       throw new Error('Invalid mystery box history');
     for (const [receipt, id] of Object.entries(data.boxes)) {
-      if (!/^\d{4}-\d{2}-\d{2}:mystery-box-[45]$/.test(receipt) || !isShopRingId(id) ||
+      if (!isBoxReceipt(receipt) || !isShopRingId(id) ||
         items[id] !== MYSTERY_BOX_PRICE || Object.values(boxes).includes(id))
         throw new Error('Invalid mystery box receipt');
       boxes[receipt] = id;
     }
-    return { items, boxes };
+    const events: NonNullable<ShopWallet['events']> = {};
+    if ('events' in data) {
+      if (!data.events || typeof data.events !== 'object' || Array.isArray(data.events))
+        throw new Error('Invalid Pandora receipts');
+      for (const [receipt, event] of Object.entries(data.events)) {
+        if (!isBoxReceipt(receipt) || boxes[receipt]) throw new Error('Invalid Pandora receipt');
+        events[receipt] = readPandoraEvent(event);
+      }
+    }
+    return { items, boxes, ...(Object.keys(events).length && { events }) };
   }
   return { items: readPurchases(raw), boxes: {} };
 }
 
-/** A daily box can only be opened once and only grants a piece not already owned. */
+/** Include box tickets, Gold outcomes and cleared curse bounties in the balance. */
+export function shopGoldBalance(earned: number, wallet: ShopWallet): number {
+  const purchases = Object.values(wallet.items).reduce((sum, price) => sum + price, 0);
+  const events = Object.values(wallet.events ?? {}).reduce((sum, event) =>
+    sum - MYSTERY_BOX_PRICE + (event?.kind === 'gold' ? event.change : event?.claimed ? PANDORA_CURSE_BOUNTY : 0), 0);
+  return Math.max(0, earned - purchases + events);
+}
+
+/** One opening per slot and day, whether the result is jewelry or another outcome. */
+export const openedShopBoxes = (day: string, wallet: ShopWallet): MysteryBoxId[] =>
+  MYSTERY_BOX_IDS.filter(box => wallet.boxes[day + ':' + box] || wallet.events?.[day + ':' + box]);
+
+/** Attach the oldest unused effect to an issued run. */
+export function assignPandoraEffect(wallet: ShopWallet, runId: string) {
+  for (const [receipt, event] of Object.entries(wallet.events ?? {})) {
+    if (event?.kind !== 'run' || event.runId) continue;
+    const effect: PandoraRunEffect = event.effect;
+    return { effect, wallet: { ...wallet, events: { ...wallet.events, [receipt]: { ...event, runId } } } };
+  }
+  return undefined;
+}
+
+/** Credit a curse bounty only once, after verified progress for the assigned run. */
+export function claimPandoraBounty(wallet: ShopWallet, runId: string): ShopWallet | undefined {
+  for (const [receipt, event] of Object.entries(wallet.events ?? {})) {
+    if (event?.kind !== 'run' || event.effect !== 'half-life' || event.runId !== runId || event.claimed) continue;
+    return { ...wallet, events: { ...wallet.events, [receipt]: { ...event, claimed: true } } };
+  }
+  return undefined;
+}
+
+/** A daily box can only be opened once. */
 export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: ShopOffer, day: string, entropy: string) {
+  const balance = shopGoldBalance(earned, wallet);
   if (offer.slot !== 'box') {
-    const decision = quotePurchase(earned, wallet.items, offer);
-    if (decision.status !== 'buy') return decision;
-    return { status: 'buy', next: { ...wallet, items: decision.next } } as const;
+    if (wallet.items[offer.id] !== undefined) return { status: 'owned' } as const;
+    if (balance < offer.price) return { status: 'short' } as const;
+    return { status: 'buy', next: { ...wallet, items: { ...wallet.items, [offer.id]: offer.price } } } as const;
   }
   const receipt = day + ':' + offer.id;
-  if (wallet.boxes[receipt] || allShopJewelryOwned(wallet.items)) return { status: 'owned' } as const;
-  if (goldAfterPurchases(earned, wallet.items) < offer.price) return { status: 'short' } as const;
+  if (wallet.boxes[receipt] || wallet.events?.[receipt]) return { status: 'owned' } as const;
+  if (balance < offer.price) return { status: 'short' } as const;
 
   const unowned = SHOP_IDS.filter(id => wallet.items[id] === undefined);
   const seed = (label: string) => hashSeed('metatron:box:' + entropy + ':' + receipt + ':' + label);
+  if (allShopJewelryOwned(wallet.items) || nextInt(seed('kind'), 100)[0] < 50) {
+    const event = drawPandoraEvent(nextInt(seed('event'), 100)[0], balance - offer.price);
+    return { status: 'buy', reward: event, next: { ...wallet, events: { ...wallet.events, [receipt]: event } } } as const;
+  }
   const [tier] = nextInt(seed('tier'), 100);
   const desired = tier < 5 ? AMULET_IDS : tier < 6 ? TEMP_RING_IDS.slice(8) :
     tier < 11 ? TEMP_RING_IDS.slice(6, 8) : tier < 30 ? TEMP_RING_IDS.slice(4, 6) : TEMP_RING_IDS.slice(0, 4);
@@ -157,8 +209,8 @@ export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: Sho
   const item = catalog.get(id)!;
   return {
     status: 'buy',
-    reward: { id, name: item.name, slot: item.slot, rarity: shopRarity(id) },
-    next: { items: { ...wallet.items, [id]: offer.price }, boxes: { ...wallet.boxes, [receipt]: id } },
+    reward: { kind: 'jewelry', id, name: item.name, slot: item.slot, rarity: shopRarity(id) },
+    next: { ...wallet, items: { ...wallet.items, [id]: offer.price }, boxes: { ...wallet.boxes, [receipt]: id } },
   } as const;
 }
 
@@ -167,5 +219,5 @@ function shopRarity(id: ShopRingId): RingRarity {
   return rings.find(ring => ring.id === id)?.rarity ?? AMULET_IDS.map(key => ({ key, rarity: AMULET_RARITY[key] })).find(entry => entry.key === id)!.rarity;
 }
 
-/** Retire mystery boxes once there is nothing new left to award. */
+/** When every item is owned the box can still give a non-jewelry outcome. */
 export const allShopJewelryOwned = (items: RingPurchases): boolean => SHOP_IDS.every(id => items[id] !== undefined);

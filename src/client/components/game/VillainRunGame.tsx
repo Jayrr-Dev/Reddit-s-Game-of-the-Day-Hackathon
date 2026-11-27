@@ -7,6 +7,7 @@
 import { playSound } from '../../lib/gameAudio';
 import { useEffect, useRef, useState } from 'react';
 import { regionIndexOf, regionName } from '../../../shared/game/kingdom';
+import { PANDORA_CURSE_BOUNTY, PANDORA_RUN_COPY } from '../../../shared/game/pandora';
 import { goldRewardFor } from '../../../shared/game/gold';
 import { BattleCharacterSheet } from './BattleCharacterSheet';
 import {
@@ -158,6 +159,12 @@ export const VillainRunGame = ({ run, runId, onAction }: VillainRunGameProps) =>
             <strong>Level up! Level {run.character.level}</strong>
             <span>Open character sheet</span>
           </button>
+        )}
+        {run.pandoraEffect && run.stop === 1 && run.phase.kind === 'route' && (
+          <p className="mb-2 text-center text-xs text-ink"><strong>{PANDORA_RUN_COPY[run.pandoraEffect].title}:</strong> {PANDORA_RUN_COPY[run.pandoraEffect].detail.replace('your next conquest', 'this conquest')} This run is unranked.</p>
+        )}
+        {run.pandoraEffect === 'half-life' && run.phase.kind === 'reward' && run.goldVictories.length === 1 && (
+          <p className="mb-2 text-center text-xs text-accent">Curse cleared: +{PANDORA_CURSE_BOUNTY} Gold</p>
         )}
         <PhaseBody run={run} runId={runId} onAction={onAction} />
       </main>

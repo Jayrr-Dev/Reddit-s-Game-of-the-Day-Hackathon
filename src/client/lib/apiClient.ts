@@ -57,7 +57,7 @@ const postJson = <TResponse>(path: string, payload?: unknown) =>
 
 // --- ROUTES ---
 export const apiClient = {
-  ringShop: () => request<RingShopResponse>('/api/shop/rings'),
+  ringShop: (testVisit?: string) => request<RingShopResponse>('/api/shop/rings' + (testVisit ? '?testVisit=' + encodeURIComponent(testVisit) : ''), { cache: 'no-store' }),
   buyRing: (payload: BuyRingRequest) => postJson<BuyRingResponse>('/api/shop/rings/buy', payload),
   profile: () => request<ProfileResponse>('/api/profile'),
   saveProfile: (build: import('../../shared/game/playerBuild').PlayerBuild) => postJson<{saved:boolean}>('/api/profile',build),
@@ -65,7 +65,7 @@ export const apiClient = {
   discardItem: (payload: UseItemRequest) => postJson<DiscardItemResponse>('/api/profile/discard-item', payload),
   init: () => request<InitResponse>('/api/init'),
   leaderboard: () => request<LeaderboardResponse>('/api/leaderboard'),
-  startRun: () => postJson<StartRunResponse>('/api/run/start'),
+  startRun: (testVisit?: string) => postJson<StartRunResponse>('/api/run/start', testVisit ? { testVisit } : undefined),
   progress: (payload: FinishRunRequest) => postJson<{saved: boolean}>('/api/run/progress', payload),
   finishRun: (payload: FinishRunRequest) =>
     postJson<FinishRunResponse>('/api/run/finish', payload),

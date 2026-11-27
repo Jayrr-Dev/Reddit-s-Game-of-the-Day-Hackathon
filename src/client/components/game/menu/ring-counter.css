@@ -127,3 +127,6 @@
 @media (prefers-reduced-motion: reduce) {
   .shop-mystery-opening .shop-mystery-art, .shop-mystery-opening .shop-chest-lid, .shop-mystery-opening i, .shop-reward-sigil { animation: none; }
 }
+
+.shop-mystery[data-curse] { --reveal-ink: #ef9d9c; }
+.shop-reward-sigil .profile-gold-icon { width: 2.5rem; height: 2.5rem; }

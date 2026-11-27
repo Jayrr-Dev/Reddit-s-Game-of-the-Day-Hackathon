@@ -12,7 +12,7 @@
 // The rules and the leaderboard open as sheets over the menu.
 // ===================================================================
 
-import { useState, useSyncExternalStore } from 'react';
+import { useCallback, useState, useSyncExternalStore } from 'react';
 import { getVolume, subscribeVolume } from '../../lib/gameAudio';
 import { useMapAudio } from '../../lib/mapAudio';
 import { GAME_TITLE, LEADERBOARD_SIZE } from '../../../shared/constants/game';
@@ -30,6 +30,7 @@ import { KeyArt } from './menu/KeyArt';
 import { useGameSettings } from '../../hooks/useGameSettings';
 import { SettingsDialog } from './menu/SettingsDialog';
 import { MenuPanel } from './menu/MenuPanel';
+import type { ShopRingId } from '../../../shared/game/ringShop';
 import { MetatronShop } from './menu/MetatronShop';
 import { DevPanel } from './menu/DevPanel';
 import { ProfileView } from './ProfileView';
@@ -47,6 +48,7 @@ export type IntroViewProps = {
   onStart: () => void;
   /** Opens the target-dummy practice fight (testing aid). */
   onPractice: () => void;
+  onShopTestVisit?: (visit: string | undefined) => void;
 };
 
 // --- CONSTANTS ---
@@ -170,15 +172,21 @@ export const IntroView = ({
   isStarting,
   onStart,
   onPractice,
+  onShopTestVisit,
 }: IntroViewProps) => {
   const [sheet, setSheet] = useState<Sheet>('none');
+  const [testJewelry, setTestJewelry] = useState<ShopRingId[]>([]);
+  const receiveTestInventory = useCallback((items: ShopRingId[], visit: string) => {
+    setTestJewelry(items);
+    onShopTestVisit?.(visit);
+  }, [onShopTestVisit]);
   const musicVolume = useSyncExternalStore(subscribeVolume, () => getVolume('music'));
   useMapAudio({ mapId: 'Home', active: sheet !== 'tutorial' && sheet !== 'dev', bossActive: false, musicVolume: musicVolume / 100, sfxVolume: 0 });
   const isAdmin = useIsAdmin();
   const settings = useGameSettings();
   const closeSheet = () => setSheet('none');
   const note = rankedNote(data, canResume);
-  if (sheet === 'profile') return <ProfileView data={data} rings={profileRings} onClose={closeSheet} />;
+  if (sheet === 'profile') return <ProfileView data={data} rings={profileRings} onClose={closeSheet} testJewelry={isAdmin ? testJewelry : []} />;
   if (sheet === 'tutorial') return <FirstFight accountId={data.accountId} onExit={closeSheet} onRules={() => setSheet('rules')} />;
 
   return (
@@ -195,7 +203,7 @@ export const IntroView = ({
           </Button>
           <div className="grid w-full grid-cols-2 gap-2">
             <Button variant="menu" onClick={() => setSheet('profile')}>Profile</Button>
-            <Button variant="menu" onClick={() => setSheet('shop')}>Shop</Button>
+            <Button variant="menu" onClick={() => { setTestJewelry([]); onShopTestVisit?.(undefined); setSheet('shop'); }}>Shop</Button>
           </div>
           <Button variant="menu" onClick={() => setSheet('board')}>
             Today's tyrants
@@ -221,7 +229,7 @@ export const IntroView = ({
           )}
         </nav>
       </div>
-      {sheet === 'shop' && <MetatronShop onClose={closeSheet} />}
+      {sheet === 'shop' && <MetatronShop onClose={closeSheet} onTestInventory={receiveTestInventory} />}
       {sheet === 'dev' && isAdmin && <DevPanel onClose={closeSheet} />}
       {sheet === 'rules' && (
         <MenuPanel title="Combat Rules" onClose={() => setSheet('tutorial')} wide>

@@ -77,7 +77,7 @@ const SLIDES: readonly Lesson[] = [
       ['Draw pile', 'Where your next cards come from. Tap the stack by End Turn to inspect it.'],
       ['Discard', 'Most played cards and leftover hand cards go here. When Draw runs out, Discard is shuffled back in.'],
       ['Hold', 'A card with Hold stays in hand when you end your turn.'],
-      ['Remove vs. Exhaust', 'Remove lasts for the fight. Exhaust uses a per-run counter; when the last use is spent, that copy leaves the run deck.'],
+      ['Remove vs. Destroy', 'Remove lasts for the fight. Destroy uses a per-run counter; when the last use is spent, that copy leaves the run deck.'],
       [KEYWORD_INFO.unique.label, `${KEYWORD_INFO.unique.description}. Card rewards skip a Unique card you already own, and the deck builder won't add a second copy.`],
     ],
     example: `Blood Pact goes to Remove; an ordinary ${getCard('backhand').name} can return after reshuffling.`,

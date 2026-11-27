@@ -32,7 +32,7 @@ import { Screen } from './ui/Screen';
 // --- TYPES ---
 type SessionProps = {
   data: InitResponse;
-  startRun: () => Promise<StartRunResponse>;
+  startRun: (testVisit?: string) => Promise<StartRunResponse>;
   finishRun: (actions: RunAction[], runId?: string) => Promise<FinishRunResponse>;
 };
 
@@ -49,6 +49,8 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
   const isFallen = run.phase.kind === 'fallen';
   const canResume = hasProgress && !isFallen;
 
+  const shopTestVisit = useRef<string>(undefined);
+  const setShopTestVisit = useCallback((visit: string | undefined) => { shopTestVisit.current = visit; }, []);
   const latest = useRef(actions);
   useEffect(() => { latest.current = actions; }, [actions]);
   const id = profile?.id;
@@ -84,7 +86,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
     setViewedDefeat(false);
     try {
       if (!canResume) {
-        const started = await startRun();
+        const started = await startRun(shopTestVisit.current);
         restart(started.profile, build ?? started.build);
         playSound('conquestStart', 1, .7);
         reset();
@@ -114,6 +116,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
         isStarting={isStarting}
         onStart={() => void handleStart()}
         onPractice={() => setIsPracticing(true)}
+        onShopTestVisit={setShopTestVisit}
       />
     );
   }
