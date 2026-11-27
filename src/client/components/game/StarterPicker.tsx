@@ -6,12 +6,14 @@ import { getCard } from '../../../shared/game/cards';
 import { createCombatant } from '../../../shared/game/combatant';
 import type { PlayerBuild } from '../../../shared/game/playerBuild';
 import { starterNames, starterDeck, signatures, type StarterName } from '../../../shared/game/starters';
+import type { RingShopResponse } from '../../../shared/types/api';
 import { apiClient } from '../../lib/apiClient';
 import { getVolume, subscribeVolume } from '../../lib/gameAudio';
 import { useMapAudio } from '../../lib/mapAudio';
 import { localBuild } from '../../lib/playerBuild';
 import { Button } from '../ui/Button';
 import type { MAP_NAMES } from './combat/Backdrop';
+import { CarryBagDialog } from './CarryBagDialog';
 import { PileDialog } from './combat/PileDialog';
 
 const STARTER_THEMES = {
@@ -21,8 +23,8 @@ const STARTER_THEMES = {
   Archer: "King’s Road",
 } satisfies Record<StarterName, (typeof MAP_NAMES)[number]>;
 
-export function StarterPicker({ accountId, starting, onBack, onConfirm, testVisit }: {
-  accountId?: string | undefined; starting: boolean; onBack:()=>void; onConfirm:(build:PlayerBuild, carryId?: string)=>void; testVisit?: string | undefined;
+export function StarterPicker({ accountId, starting, onBack, onConfirm, loadTestShop }: {
+  accountId?: string | undefined; starting: boolean; onBack:()=>void; onConfirm:(build:PlayerBuild, carryId?: string)=>void; loadTestShop?: () => Promise<RingShopResponse>;
 }) {
   const [build,setBuild]=useState(()=>localBuild(accountId));
   const [inspect,setInspect]=useState<StarterName|null>(null);
@@ -32,6 +34,7 @@ export function StarterPicker({ accountId, starting, onBack, onConfirm, testVisi
   const [carry, setCarry] = useState<CarryCard[]>([]);
   const [queued, setQueued] = useState<{ real?: PandoraRunEffect | undefined; test?: PandoraRunEffect | undefined; testCards?: CarryCard[] }>({});
   const [carryId, setCarryId] = useState('');
+  const [showBag, setShowBag] = useState(false);
   const starter = build.decks[build.selected] ?? starterDeck(build.selected);
   const selectedCarry = carry.find(card => card.id === carryId && !isUniqueInDeck(starter, card.cardId));
   const pending = selectedCarry ? (queued.testCards?.some(card => card.id === selectedCarry.id) ? queued.test : queued.real) : queued.test ?? queued.real;
@@ -42,7 +45,7 @@ export function StarterPicker({ accountId, starting, onBack, onConfirm, testVisi
   useEffect(()=>{
     if(!accountId)return;
     let live=true;setLoading(true);setError(false);
-    Promise.all([apiClient.profile(), testVisit ? apiClient.ringShop(testVisit).catch(() => undefined) : undefined]).then(([result, test]) => {
+    Promise.all([apiClient.profile(), loadTestShop?.().catch(() => undefined)]).then(([result, test]) => {
       if (!live) return;
       setBuild(result.build);
       setQueued({ real: result.nextEffect, test: test?.nextEffect, ...(test?.carryCards && { testCards: test.carryCards }) });
@@ -50,7 +53,7 @@ export function StarterPicker({ accountId, starting, onBack, onConfirm, testVisi
     })
       .catch(()=>{if(live)setError(true);}).finally(()=>{if(live)setLoading(false);});
     return ()=>{live=false;};
-  },[accountId,retry,testVisit]);
+  },[accountId,retry,loadTestShop]);
   return <main className="starter-picker"><header><h1>Choose your starter deck</h1>
     {!loading && cursed && <p className="starter-curse" role="status"><strong>Cursed: {PANDORA_RUN_COPY[pending].title}</strong><span>{PANDORA_RUN_COPY[pending].detail.replace('your next conquest', 'this run')}</span></p>}
   </header>
@@ -67,16 +70,12 @@ export function StarterPicker({ accountId, starting, onBack, onConfirm, testVisi
       </article>;
     })}</div>}
     <footer className="starter-footer">
-      <label className="starter-carry"><span>Bring Card</span>
-        <select aria-label="Bring Card" value={selectedCarry?.id ?? ''} onChange={event => setCarryId(event.target.value)} disabled={loading || error || starting || !carry.length}>
-          <option value="">{carry.length ? 'None' : 'No cards in Inventory'}</option>
-          {carry.map(card => <option key={card.id} value={card.id} disabled={isUniqueInDeck(starter, card.cardId)}>{getCard(card.cardId).name} ({card.source === 'shop' ? 'Shop' : 'From Hell'})</option>)}
-        </select>
-      </label>
-      {selectedCarry && <small>For this run only. Runs with a brought card are unranked.</small>}
+      <Button variant="menu" disabled={loading || error || starting} aria-haspopup="dialog" onClick={() => setShowBag(true)}>Bring a Card</Button>
+      {selectedCarry && <small>In bag: {getCard(selectedCarry.cardId).name} · Unranked run</small>}
       <div><Button variant="menu" disabled={starting} onClick={onBack}>Back</Button>
-      <Button variant="menuPrimary" disabled={loading||error||starting} onClick={()=>onConfirm(build, selectedCarry?.id)}>{starting?'Starting.':'Begin as '+build.selected}</Button></div>
+      <Button variant="menuPrimary" disabled={loading||error||starting} onClick={()=>onConfirm(build, selectedCarry?.id)}>{starting?'Starting.':'Begin'}</Button></div>
     </footer>
+    {showBag && <CarryBagDialog cards={carry} starter={starter} selected={selectedCarry} onPick={setCarryId} onClose={() => setShowBag(false)} />}
     {inspect && <PileDialog pile="deck" titleOverride={inspect+' starter deck'} cards={build.decks[inspect]??starterDeck(inspect)} attacker={attacker} killsThisTurn={0} usesSpent={{}} onClose={()=>setInspect(null)}/>}
   </main>;
 }

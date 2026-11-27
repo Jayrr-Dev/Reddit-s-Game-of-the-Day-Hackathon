@@ -3621,3 +3621,37 @@ textarea,
   .home-player-badge { position: static; display: flex; align-items: center; width: fit-content; max-width: calc(100% - 1.3rem); min-height: 1.7rem; margin: 0 auto .5rem .65rem; }
   .home-player-badge > span { white-space: nowrap; }
 }
+
+.carry-bag-dialog {
+  position: fixed; inset: 0; margin: auto; width: min(34rem, calc(100vw - 1.25rem));
+  max-height: min(90dvh, 30rem); overflow: auto; padding: 1rem;
+  border: 1px solid #9c7449; border-radius: .55rem; color: #f5e5c2;
+  background: radial-gradient(ellipse at top, #392332, #1c131b 65%);
+}
+.carry-bag-dialog::backdrop { background: #0e0a14be; }
+.carry-bag-dialog h2 { margin: 0; font: 800 1.3rem var(--font-display, Georgia, serif); color: #f2c882; }
+.carry-bag-dialog p { margin: .25rem 0 0; font-size: .75rem; color: #dfc7a7; }
+.carry-bag-slot {
+  display: flex; align-items: center; gap: .65rem; min-height: 3.55rem; margin: .75rem 0;
+  padding: .45rem .58rem; border: 1px dashed #ad8253; border-radius: .35rem; background: #271c26;
+}
+.carry-bag-slot[data-over] { border-color: #ffe0a5; background: #61452f; }
+.carry-bag-slot .carry-bag-icon { width: 1.45rem; height: 1.45rem; color: #e6b76b; }
+.carry-bag-slot > div { display: grid; flex: 1; gap: .16rem; text-align: left; }
+.carry-bag-slot > div > strong { color: #ffd38e; font-size: .8rem; }
+.carry-bag-slot > div > span { font-size: .69rem; }
+.carry-bag-dialog .carry-bag-cards {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(5.25rem, 1fr)); gap: .65rem;
+  max-height: min(37dvh, 13rem); overflow: auto; list-style: none; margin: 0; padding: .18rem;
+}
+.carry-bag-card { width: 100%; display: grid; justify-items: center; gap: .16rem; cursor: grab; }
+.carry-bag-card small { color: #d8b997; font-size: .64rem; }
+.carry-bag-card > button[aria-pressed="true"] { outline: 1px solid #f7cc82; border-radius: .25rem; }
+.carry-bag-card > button:focus-visible { outline: 2px solid #ffe19a; }
+.carry-bag-card > button:disabled { cursor: not-allowed; opacity: .48; }
+.carry-bag-empty { padding: .55rem 0; }
+.starter-picker .carry-bag-dialog footer { display: flex; margin-top: .7rem; justify-content: space-between; align-items: center; gap: .6rem; }
+.starter-picker .carry-bag-dialog footer button { width: auto; min-width: 5.25rem; }
+.carry-bag-card, .carry-bag-card > button { touch-action: none; user-select: none; }
+.carry-bag-card > button > * { pointer-events: none; }
+.carry-bag-drag-ghost { position: fixed; z-index: 10; pointer-events: none; transform: translate(-50%, -60%) rotate(-7deg); filter: drop-shadow(0 .3rem .45rem #0d070fc0); }

@@ -9,7 +9,7 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { showToast } from '@devvit/web/client';
 import type { RunAction } from '../../shared/game/run';
-import type { FinishRunResponse, InitResponse, StartRunResponse } from '../../shared/types/api';
+import type { FinishRunResponse, InitResponse, RingShopResponse, StartRunResponse } from '../../shared/types/api';
 import { useDailyGame } from '../hooks/useDailyGame';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { useRun } from '../hooks/useRun';
@@ -51,6 +51,13 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
 
   const shopTestVisit = useRef<string>(undefined);
   const setShopTestVisit = useCallback((visit: string | undefined) => { shopTestVisit.current = visit; }, []);
+  const loadTestShop = useCallback(async (): Promise<RingShopResponse> => {
+    const existing = shopTestVisit.current;
+    let result = await apiClient.ringShop(existing);
+    if (existing && !result.testVisit) result = await apiClient.ringShop();
+    if (result.testVisit && shopTestVisit.current === existing) shopTestVisit.current = result.testVisit;
+    return result;
+  }, []);
   const latest = useRef(actions);
   useEffect(() => { latest.current = actions; }, [actions]);
   const id = profile?.id;
@@ -103,7 +110,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
     }
   };
 
-  if (choosing) return <StarterPicker accountId={data.accountId} starting={isStarting} onBack={()=>setChoosing(false)} onConfirm={(build, bringCard) => void handleStart(build, bringCard)} testVisit={shopTestVisit.current} />;
+  if (choosing) return <StarterPicker accountId={data.accountId} starting={isStarting} onBack={()=>setChoosing(false)} onConfirm={(build, bringCard) => void handleStart(build, bringCard)} {...(data.isAdmin && { loadTestShop })} />;
   if (isPracticing)
     return <SandboxView onExit={() => setIsPracticing(false)} />;
   if (!isPlaying) {
@@ -117,6 +124,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
         onStart={() => void handleStart()}
         onPractice={() => setIsPracticing(true)}
         onShopTestVisit={setShopTestVisit}
+        {...(data.isAdmin && { loadTestShop })}
       />
     );
   }

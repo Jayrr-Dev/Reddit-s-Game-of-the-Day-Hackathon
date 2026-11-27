@@ -6,7 +6,7 @@
 // then tap the destination. The details of the selected stack show alongside.
 // ===================================================================
 import { getCard } from '../../../../shared/game/cards';
-import type { CarryCard } from '../../../../shared/game/carryCards';
+import { carrySourceLabel, type CarryCard } from '../../../../shared/game/carryCards';
 import { useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import { stackKey, type InventoryOwner, type InventorySlot } from '../../../../shared/game/inventory';
 import type { BagArea } from '../../../../shared/game/bagLayout';
@@ -79,7 +79,7 @@ const InventoryDetails = ({ stack, notice, carry }: { stack: InventorySlot | und
         )}
         {carry.length > 0 && <div className="mt-2 border-t border-accent/25 pt-2" aria-label="Cards in Inventory">
           <strong>Cards</strong>
-          <ul className="text-xs">{carry.map(card => <li key={card.id}>{getCard(card.cardId).name} <span className="text-ink-muted">({card.source === 'shop' ? 'Shop' : 'From Hell'})</span></li>)}</ul>
+          <ul className="text-xs">{carry.map(card => <li key={card.id}>{getCard(card.cardId).name} <span className="text-ink-muted">({carrySourceLabel(card.source)})</span></li>)}</ul>
           <p className="text-xs text-ink-muted">Choose one at Bring Card before Conquest.</p>
         </div>}
       </div>

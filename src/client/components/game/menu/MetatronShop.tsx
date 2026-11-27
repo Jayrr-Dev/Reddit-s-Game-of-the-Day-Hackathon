@@ -121,7 +121,7 @@ function MetatronIdle() {
 }
 
 /** Fade each letter without letting a word break across lines. Then dismiss the bubble. */
-function ShopSpeech({ text, isReply, lastVoice }: { text: string; isReply: boolean; lastVoice: RefObject<MetatronVoice | undefined> }) {
+function ShopSpeech({ text, isReply, lastVoice, excited }: { text: string; isReply: boolean; lastVoice: RefObject<MetatronVoice | undefined>; excited: boolean }) {
   const [leaving, setLeaving] = useState(false);
   const [hidden, setHidden] = useState(false);
   let index = 0;
@@ -133,6 +133,10 @@ function ShopSpeech({ text, isReply, lastVoice }: { text: string; isReply: boole
     let stopVoice: (() => void) | undefined;
     const voice = window.setTimeout(() => {
       if (text === '...') return;
+      if (excited) {
+        stopVoice = playSound('metatronDelight', .96 + Math.random() * .16, .74 + Math.random() * .12);
+        return;
+      }
       const short = text.length < 24;
       const takes = (short ? METATRON_VOICES.slice(0, 2) : METATRON_VOICES).filter(take => take !== lastVoice.current);
       const take = takes[Math.floor(Math.random() * takes.length)]!;
@@ -144,7 +148,7 @@ function ShopSpeech({ text, isReply, lastVoice }: { text: string; isReply: boole
     const fade = window.setTimeout(() => setLeaving(true), readMs);
     const remove = window.setTimeout(() => setHidden(true), readMs + 360);
     return () => { window.clearTimeout(voice); window.clearTimeout(fade); window.clearTimeout(remove); stopVoice?.(); };
-  }, [text, lastVoice]);
+  }, [text, lastVoice, excited]);
   if (hidden) return null;
   return <p className="metatron-greeting" data-purchase={isReply || undefined} data-leaving={leaving || undefined} aria-label={text} aria-hidden={leaving || undefined}>
     <span aria-hidden="true">{text.split(/(\s+)/).map((word, position) => /^\s+$/.test(word) ? word : <span key={position} className="metatron-word">
@@ -243,7 +247,7 @@ export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void
 
     <div className="metatron-dialogue-layer">
       <div className="metatron-dialogue-frame">
-        {!buying && (greetingReady || reaction.serial > 0 || showWait) && <ShopSpeech key={showWait ? 'wait-' + idleCount : reaction.serial} isReply={reaction.serial > 0 || showWait} text={speech ?? ''} lastVoice={lastVoice} />}
+        {!buying && (greetingReady || reaction.serial > 0 || showWait) && <ShopSpeech key={showWait ? 'wait-' + idleCount : reaction.serial} isReply={reaction.serial > 0 || showWait} text={speech ?? ''} lastVoice={lastVoice} excited={!showWait && !!reaction.appleLine} />}
       </div>
     </div>
 

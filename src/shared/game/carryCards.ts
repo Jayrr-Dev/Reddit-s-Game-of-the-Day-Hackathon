@@ -3,8 +3,20 @@ import { ALL_CARD_IDS, getCard, isCardId, isCardInPlay, type CardId } from './ca
 export const SHOP_IMBUE_ID = 'imbue-card';
 export const IMBUE_PRICE = 85;
 export const IMBUE_CARDS = ALL_CARD_IDS.filter(id => getCard(id).type === 'imbue' && isCardInPlay(id));
-export type CarryCard = { id: string; cardId: CardId; source: 'shop' | 'ferryman'; spent?: string };
+export type CarryCard = { id: string; cardId: CardId; source: 'shop' | 'ferryman' | 'test'; spent?: string };
 export type CarryCards = Partial<Record<string, CarryCard>>;
+
+const TEST_CARDS = ['keenEdge', 'emberRune', 'wardingBolt', 'ruin'] as const satisfies readonly CardId[];
+export function seededAdminCarryCards(): CarryCards {
+  return Object.fromEntries(TEST_CARDS.map((cardId, index) => {
+    const id = 'test:' + index;
+    return [id, { id, cardId, source: 'test' }];
+  }));
+}
+
+export function carrySourceLabel(source: CarryCard['source']): string {
+  return source === 'shop' ? 'Shop' : source === 'test' ? 'Admin test' : 'From Hell';
+}
 
 export const isShopStockKey = (value: unknown): value is string => typeof value === 'string' &&
   /^\d{4}-\d{2}-\d{2}(?:T(?:[01]\d|2[0-3])\.\d{1,10}p?)?$/.test(value);
@@ -14,7 +26,7 @@ export const shopStockKey = (time: Date, bossRuns: number): string =>
   time.toISOString().slice(0, 13) + '.' + bossRuns;
 
 export const isCarryCardId = (value: unknown): value is string =>
-  typeof value === 'string' && (value.startsWith('shop:') ? isShopStockKey(value.slice(5)) : /^hell:[a-f0-9-]{36}$/.test(value));
+  typeof value === 'string' && (value.startsWith('shop:') ? isShopStockKey(value.slice(5)) : (/^hell:[a-f0-9-]{36}$/.test(value) || /^test:[0-3]$/.test(value)));
 
 /** Restore paid and recovered cards without trusting an arbitrary catalog key. */
 export function readCarryCards(value: unknown): CarryCards {
@@ -22,9 +34,10 @@ export function readCarryCards(value: unknown): CarryCards {
   const cards: CarryCards = {};
   for (const [id, row] of Object.entries(value)) {
     if (!isCarryCardId(id) || !row || typeof row !== 'object' || !isCardId(row.cardId) ||
-      (row.source !== 'shop' && row.source !== 'ferryman') ||
+      (row.source !== 'shop' && row.source !== 'ferryman' && row.source !== 'test') ||
       (row.source === 'shop' && !id.startsWith('shop:')) ||
       (row.source === 'ferryman' && !id.startsWith('hell:')) ||
+      (row.source === 'test' && (!id.startsWith('test:') || row.cardId !== TEST_CARDS[Number(id.slice(5))])) ||
       (row.spent !== undefined && (typeof row.spent !== 'string' || !/^[a-f0-9-]{36}$/.test(row.spent))))
       throw new Error('Invalid carry card receipt');
     cards[id] = { id, cardId: row.cardId, source: row.source, ...(row.spent && { spent: row.spent }) };

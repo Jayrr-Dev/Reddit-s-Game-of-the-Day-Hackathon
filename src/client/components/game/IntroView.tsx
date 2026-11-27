@@ -17,7 +17,7 @@ import { getVolume, subscribeVolume } from '../../lib/gameAudio';
 import { useMapAudio } from '../../lib/mapAudio';
 import { GAME_TITLE, LEADERBOARD_SIZE } from '../../../shared/constants/game';
 import { formatDailyKey } from '../../../shared/utils/dailyKey';
-import type { InitResponse, LeaderboardEntry } from '../../../shared/types/api';
+import type { InitResponse, LeaderboardEntry, RingShopResponse } from '../../../shared/types/api';
 import {
   LOGO_SUBTITLE,
 } from '../../content/lore';
@@ -53,6 +53,7 @@ export type IntroViewProps = {
   /** Opens the target-dummy practice fight (testing aid). */
   onPractice: () => void;
   onShopTestVisit?: (visit: string | undefined) => void;
+  loadTestShop?: () => Promise<RingShopResponse>;
 };
 
 // --- CONSTANTS ---
@@ -177,6 +178,7 @@ export const IntroView = ({
   onStart,
   onPractice,
   onShopTestVisit,
+  loadTestShop,
 }: IntroViewProps) => {
   const [sheet, setSheet] = useState<Sheet>('none');
   const [playerTotals, setPlayerTotals] = useState({ wins: data.lifetimeWins ?? 0, gold: data.gold ?? 0 });
@@ -196,6 +198,14 @@ export const IntroView = ({
     setTestJewelry(items);
     onShopTestVisit?.(visit);
   }, [onShopTestVisit]);
+  useEffect(() => {
+    if (sheet !== 'profile' || !loadTestShop) return;
+    let active = true;
+    loadTestShop().then(result => {
+      if (active && result.testVisit) receiveTestInventory(result.owned, result.testVisit, result.carryCards);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [sheet, loadTestShop, receiveTestInventory]);
   const musicVolume = useSyncExternalStore(subscribeVolume, () => getVolume('music'));
   const sfxVolume = useSyncExternalStore(subscribeVolume, () => getVolume('sfx'));
   useMapAudio({ mapId: sheet === 'shop' ? 'Gateway of Souls' : 'Home', active: sheet !== 'tutorial' && sheet !== 'dev', bossActive: false, musicVolume: musicVolume / 100, sfxVolume: sheet === 'shop' ? sfxVolume / 100 : 0 });

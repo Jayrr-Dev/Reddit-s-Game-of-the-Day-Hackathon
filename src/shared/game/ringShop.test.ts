@@ -1,4 +1,6 @@
 import test from 'node:test';
+import { availableCarryCards, seededAdminCarryCards } from './carryCards.ts';
+import { getCard, isCardInPlay } from './cards.ts';
 import assert from 'node:assert/strict';
 import { ADMIN_SHOP_GOLD, MYSTERY_BOX_PRICE, offerTestShopFruit, testShopFruit, testShopStockKey, assignPandoraEffect, claimPandoraBounty, openedShopBoxes, shopGoldBalance, TEMP_RING_IDS, goldAfterPurchases, quotePurchase, quoteShopPurchase, readPurchases, readShopWallet, shopOffers, shopRingIds } from './ringShop.ts';
 import { createRun, replayRun, runReducer } from './run.ts';
@@ -170,4 +172,13 @@ test('admin test apples start at 3 and 2, expire with the visit, and never affec
   assert.ok(!testShopStockKey(now, ordinary).endsWith('p'));
   assert.deepEqual(testShopFruit(ordinary), { 'metatrons-apple': 2, 'realm-apple': 0 });
   assert.deepEqual(testShopFruit(wallet), { 'metatrons-apple': 3, 'realm-apple': 2 });
+});
+
+test('a fresh admin shop visit carries two Imbues and two regular cards without taking any test Gold', () => {
+  const wallet = readShopWallet(JSON.stringify({ items: {}, boxes: {}, carry: seededAdminCarryCards() }));
+  const cards = availableCarryCards(wallet.carry);
+  assert.equal(cards.length, 4);
+  assert.equal(cards.filter(card => getCard(card.cardId).type === 'imbue').length, 2);
+  assert.ok(cards.every(card => card.source === 'test' && isCardInPlay(card.cardId)));
+  assert.equal(shopGoldBalance(ADMIN_SHOP_GOLD, wallet), ADMIN_SHOP_GOLD);
 });

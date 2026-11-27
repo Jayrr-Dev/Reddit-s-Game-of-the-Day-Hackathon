@@ -1,4 +1,4 @@
-import { availableCarryCards, shopStockKey } from '../../shared/game/carryCards';
+import { availableCarryCards, seededAdminCarryCards, shopStockKey } from '../../shared/game/carryCards';
 import type { ShopApple } from '../../shared/game/items';
 import type { CardId } from '../../shared/game/cards';
 import { randomUUID } from 'node:crypto';
@@ -58,7 +58,7 @@ const emptyWallet = (): ShopWallet => ({ items: {}, boxes: {} });
 /** Give each admin shop visit an isolated, expiring wallet. */
 export async function openAdminRingShop(id: string, day: string): Promise<RingShopResponse> {
   const visit = randomUUID();
-  const wallet = emptyWallet();
+  const wallet: ShopWallet = { ...emptyWallet(), carry: seededAdminCarryCards() };
   await redis.set(redisKeys.adminShopVisit(id, visit), JSON.stringify(wallet), { expiration: testExpiry() });
   return response(day, ADMIN_SHOP_GOLD, wallet, true, visit);
 }
@@ -146,6 +146,7 @@ export async function buyRing(id: string, day: string, offerDay: string, ringId:
 
 /** Bind a queued effect and selected carry card to the run and its replay baseline in one transaction. */
 export async function bindRunItems(id: string, day: string, profile: RunProfile, testVisit?: string, bringCard?: string) {
+  if (bringCard?.startsWith('test:') && !testVisit) return undefined;
   const key = testVisit ? redisKeys.adminShopVisit(id, testVisit) : redisKeys.ringPurchases(id);
   for (let i = 0; i < 6; i++) {
     const transaction = await redis.watch(key);
