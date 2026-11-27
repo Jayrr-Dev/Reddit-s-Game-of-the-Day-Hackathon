@@ -81,6 +81,18 @@ export function MysteryChest() {
   </svg>;
 }
 
+/** The illuminated corners stay sharp as the reward panel changes size. */
+function TreasureRewardFrame() {
+  return <div className="pandora-reward-frame" aria-hidden="true">
+    {[0, 1, 2, 3].map(corner => <svg key={corner} className="pandora-reward-corner" viewBox="0 0 36 36" fill="none">
+      <path d="M2 33V13l5-5 7-6h19M6 26V15l8-8h12" stroke="currentColor" strokeWidth="1.15" strokeLinecap="round" />
+      <path d="M7 19c2-7 5-10 12-12M11 13l2-2 3 1-4 4Z" stroke="currentColor" strokeWidth=".85" strokeLinejoin="round" />
+      <path d="m3 3 5 2-3 3-2-5Zm18 7 3-2 3 2-3 2ZM8 24l2-3 2 3-2 3Z" fill="currentColor" />
+    </svg>)}
+    <i className="pandora-frame-jewel" /><i className="pandora-frame-jewel" />
+  </div>;
+}
+
 /** Play the full reveal for a reward the server has already granted. */
 export function MysteryReveal({ reward, onClose }: { reward: ShopReward; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -115,6 +127,7 @@ export function MysteryReveal({ reward, onClose }: { reward: ShopReward; onClose
 
   return <dialog ref={dialog} className="shop-mystery" aria-label={PANDORA_BOX_NAME + ' reward'} data-rarity={rarity} data-curse={bad || undefined} data-opening={!shown || undefined} style={{ '--opening-time': REVEAL_MS[rarity] + 'ms' } as CSSProperties}
     onCancel={event => { event.preventDefault(); if (shown) onClose(); }}>
+    {shown && <TreasureRewardFrame />}
     <p className="shop-mystery-label">{shown ? reward.kind === 'jewelry' ? 'You found' : 'The box has spoken' : PANDORA_BOX_NAME}</p>
     {shown
       ? <div className="shop-mystery-reward" role="status">
