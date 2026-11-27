@@ -2,7 +2,7 @@
 // USES (EXHAUST)
 // An Exhaust card can be played a few times in a run (EXHAUST_USES,
 // or its own number), then it's gone from the deck. Its card counts
-// up: "Use 1/3", "Use 2/3", "Use 3/3", then it Exhausts. Copies can't
+// up: "Uses 1/3", "Uses 2/3", "Uses 3/3", then it Exhausts. Copies can't
 // be told apart, so they wear out one at a time.
 // ===================================================================
 

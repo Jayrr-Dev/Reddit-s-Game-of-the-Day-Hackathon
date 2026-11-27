@@ -632,7 +632,7 @@ const inCategory = (
   infos: readonly StatusInfo[]
 ): GlossaryEntry[] => infos.map((info) => ({ ...info, category }));
 
-const CARD_USE_INFO: StatusInfo = { label: 'Use', description: 'Limited plays per run. After the last play, **Destroy** this copy for the rest of the run.' };
+const CARD_USE_INFO: StatusInfo = { label: 'Uses', description: 'Limited plays per run. After the last play, **Destroy** this copy for the rest of the run.' };
 
 export const GLOSSARY: Readonly<Record<string, GlossaryEntry>> =
   // Later entries win a shared label: the movement Charge replaces the
@@ -675,8 +675,8 @@ const KEYWORD_LABEL = (keyword: CardKeyword): string =>
   KEYWORD_INFO[keyword].label;
 
 /**
- * An Exhaust card's count, counting up to its last use: "Use 1/3" on
- * a fresh card, "Use 3/3" on its last.
+ * An Exhaust card's count, counting up to its last use: "Uses 1/3" on
+ * a fresh card, "Uses 3/3" on its last.
  */
 const usesForCard = (cardId: CardId, attacker?: Pick<Combatant, 'skillPicks'>) =>
   usesOf(cardId, bonusUsesOf(getCard(cardId).type, attacker?.skillPicks));

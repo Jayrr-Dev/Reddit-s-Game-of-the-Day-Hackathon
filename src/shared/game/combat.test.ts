@@ -1925,7 +1925,7 @@ void test('a Healing Potion heals you and exhausts on its only use', () => {
   const after = playCard(hurt, 0, -1);
   assert.ok(after.player.hp > 30);
   assert.deepEqual(after.exhausted, ['healingPotion']);
-  assert.ok(describeCard('healingPotion').includes('Use 1/1'));
+  assert.ok(describeCard('healingPotion').includes('Uses 1/1'));
 });
 
 void test('the last use Exhausts the card out of the fight', () => {
@@ -1940,10 +1940,10 @@ void test('the last use Exhausts the card out of the fight', () => {
 });
 
 void test('an Exhaust card reads Destroy N/3, counting up', () => {
-  assert.ok(describeCard('rushPotion').includes(`Use 1/${EXHAUST_USES}`));
+  assert.ok(describeCard('rushPotion').includes(`Uses 1/${EXHAUST_USES}`));
   assert.ok(
     describeCard('rushPotion', undefined, undefined, 1).includes(
-      `Use 2/${EXHAUST_USES}`
+      `Uses 2/${EXHAUST_USES}`
     )
   );
 });

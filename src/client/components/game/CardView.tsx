@@ -71,7 +71,7 @@ export type CardViewProps = {
   isSelected?: boolean;
   /** Gifts this card carries from Imbue cards (shown as badges). */
   imbues?: readonly Imbue[];
-  /** Uses already spent on an Exhaust card ("Use 2/3" after one). */
+  /** Uses already spent on an Exhaust card ("Uses 2/3" after one). */
   usesSpent?: number;
   /** Glows teal while an Imbue card could imbue it. */
   isImbueTarget?: boolean;
