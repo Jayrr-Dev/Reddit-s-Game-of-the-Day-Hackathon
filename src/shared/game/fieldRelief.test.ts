@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { chooseReliefOffsets, laneReliefPoints, reliefIntersections } from './fieldRelief.ts';
+import { chooseReliefOffsets, laneReliefPoints, nameRelief, reliefIntersections } from './fieldRelief.ts';
 
 const ground = { left: 0, top: 10, width: 300, height: 200 };
 const spots = reliefIntersections(ground, .5);
@@ -43,6 +43,27 @@ test('units can use relief for a paired-intent overlap even when their bodies ar
   const near = { ...unit(155, 126, 'front'), plate: { left: 101, top: 48, width: 89, height: 48 } };
   assert.notDeepEqual(chooseReliefOffsets([far, near], ground), [still, still]);
   assert.deepEqual(chooseReliefOffsets([far], ground), [still]);
+});
+
+test('rear health uses lane relief rather than covering the front unit', () => {
+  const base = unit(150, 100);
+  const health = { left: 120, top: 109, width: 60, height: 18 };
+  const front = unit(150, 143, 'front', false);
+  const [rear, fixed] = chooseReliefOffsets([{ ...base, health }, front], ground);
+  assert.deepEqual(fixed, still);
+  assert.ok(rear && (health.left + health.width + rear.x <= front.body.left ||
+    health.left + rear.x >= front.body.left + front.body.width ||
+    health.top + health.height + rear.y <= front.body.top));
+  assert.deepEqual(chooseReliefOffsets([{ ...base, health }, unit(250, 143, 'front')], ground), [still, still]);
+});
+
+test('a name slides down to clear a neighboring intent when there is space', () => {
+  const name = { left: 90, top: 45, width: 90, height: 13 };
+  const blocking = { left: 65, top: 42, width: 45, height: 12 };
+  assert.deepEqual(nameRelief(name, [], ground), still);
+  assert.deepEqual(nameRelief(name, [blocking], ground), { x: 0, y: 11 });
+  const own = { left: 118, top: 60, width: 23, height: 14 };
+  assert.deepEqual(nameRelief(name, [blocking, own], { ...ground, height: 62 }), { x: 0, y: -18 });
 });
 
 test('asymmetric intent footprints must fit inside the battlefield before taking a relief point', () => {

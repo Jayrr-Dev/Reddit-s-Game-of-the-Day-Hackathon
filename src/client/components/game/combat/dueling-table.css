@@ -487,13 +487,18 @@
 .hero-plate-layer[data-crowded] .hero-plate {
   width: min(clamp(4rem, 14cqw, 6.25rem), calc((100cqw - 20px) / 3));
 }
+@container duel (max-width: 470px) {
+  .hero-plate-layer .hero-plate:is([data-hud-row="back"], [data-hud-row="horizon"]) {
+    width: clamp(3rem, 12cqw, 4.5rem);
+  }
+}
 .hero-plate-name {
   position: absolute;
-  inset-block-end: 100%;
+  inset-block-end: calc(100% + 2px);
   inset-inline-start: 50%;
-  translate: -50% 0;
+  translate: var(--hero-name-position, -50% 0);
   width: max-content;
-  max-width: min(10rem, var(--hero-edge-span));
+  max-width: min(10rem, calc(100cqw - 16px));
   overflow-wrap: anywhere;
   text-wrap: balance;
   text-align: center;

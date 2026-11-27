@@ -136,6 +136,7 @@ export const HeroPlate = ({ unit, field, player, showName }: HeroPlateProps) => 
             {...{ [FLOATING_UID_ATTR]: unit.uid }}
             onClick={(event) => event.stopPropagation()}
             data-hero-kind={unit.heroId}
+            data-hud-row={unit.row}
             className="hero-plate pointer-events-none absolute top-0 invisible"
           >
             <div className="hero-plate-head">

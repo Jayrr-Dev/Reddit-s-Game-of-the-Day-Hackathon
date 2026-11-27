@@ -4,7 +4,7 @@ import { prefersReducedMotion } from '../lib/motion';
 import type { HeroUnit } from '../../shared/game/types';
 import { isBoss } from '../content/heroLooks';
 import { rowPerspective } from '../components/game/combat/rowPerspective';
-import { chooseReliefOffsets, laneReliefPoints, type FieldBox as Box } from '../../shared/game/fieldRelief';
+import { chooseReliefOffsets, laneReliefPoints, nameRelief, type FieldBox as Box } from '../../shared/game/fieldRelief';
 
 export const PLATE_UID_ATTR = 'data-plate-uid';
 export const FLOATING_UID_ATTR = 'data-floating-uid';
@@ -12,6 +12,8 @@ export const HERO_LAYOUT_ATTR = 'data-hero-layout';
 const GAP = 3;
 const HEALTH_GAP = 11;
 const HEALTH_FLOOR_PADDING = 12;
+const FRONT_RELIEF_FORWARD_PX = 8;
+const NAME_GAP = 2;
 /**
  * LAYOUT TOLERANCE (px): how far a measure must move before the spacing
  * is solved again. The side-step gait bobs and tilts the sprites while
@@ -99,11 +101,12 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
       const anchor = field.querySelector<HTMLElement>(`[${PLATE_UID_ATTR}="${unit.uid}"]`);
       const plate = layer.querySelector<HTMLElement>(`[${FLOATING_UID_ATTR}="${unit.uid}"]`);
       const intent = plate?.querySelector<HTMLElement>('.hero-plate-head');
+      const health = plate?.querySelector<HTMLElement>('.hero-plate-health');
       const figure = anchor?.closest<HTMLElement>('.hero-flight');
       const layout = figure?.closest<HTMLElement>('[' + HERO_LAYOUT_ATTR + ']');
       const hitbox = figure?.closest<HTMLButtonElement>('button[data-hero-uid]');
-      return anchor && plate && intent && figure && layout && hitbox
-        ? [{ anchor, plate, intent, figure, layout, hitbox, unit }] : [];
+      return anchor && plate && intent && health && figure && layout && hitbox
+        ? [{ anchor, plate, intent, health, figure, layout, hitbox, unit }] : [];
     });
     let entries = findPlates();
     let previous: number[] = [];
@@ -117,7 +120,7 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
       const floor = Math.min(bounds.bottom, field.getBoundingClientRect().bottom,
         console?.getBoundingClientRect().top ?? bounds.bottom);
       const frame = { left: GAP, top, width: layer.clientWidth - GAP * 2, height: (floor - bounds.top) * sy - top - GAP };
-      const measures = entries.map(({anchor, plate, intent, figure, layout, hitbox, unit}) => {
+      const measures = entries.map(({anchor, plate, intent, health, figure, layout, hitbox, unit}) => {
         const { row } = unit;
         const rect = anchor.getBoundingClientRect();
         const body = figure.getBoundingClientRect();
@@ -146,24 +149,37 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
         const bodyLane = { left: feet.x - bodyWidth / 2, top: feet.y - bodyHeight, width: bodyWidth, height: bodyHeight };
         const width = intent.offsetWidth;
         const height = intent.offsetHeight;
+        const shownIntent = intent.getBoundingClientRect();
+        const intentBox = { left: (shownIntent.left - bounds.left) * sx, top: (shownIntent.top - bounds.top) * sy, width, height };
+        const name = intent.querySelector<HTMLElement>('.hero-plate-name');
         const naturalTop = silhouette.top - height - GAP;
         const natural = { width, height, left: center - width / 2, top: naturalTop };
         const healthY = (body.bottom - lift - bounds.top) * sy + HEALTH_GAP;
-        const relief = { body: bodyLane, feet, row, movable: !isBoss(unit) && !isAnchored(unit) };
-        return { width, silhouette, relief, ground, center, scaleX, scaleY, naturalTop, natural, healthY, plateWidth: plate.offsetWidth,
-          nameHeight: intent.querySelector<HTMLElement>('.hero-plate-name')?.offsetHeight ?? 0 };
+        const plateWidth = plate.offsetWidth;
+        const effects = health.querySelector<HTMLElement>('.enemy-status-grid');
+        const healthWidth = Math.max(plateWidth, (effects?.getBoundingClientRect().width ?? 0) * sx);
+        const healthBox = { left: center - healthWidth / 2, top: healthY - 6,
+          width: healthWidth, height: health.offsetHeight + 6 };
+        const relief = { body: bodyLane, health: healthBox, feet, row, movable: !isBoss(unit) && !isAnchored(unit) };
+        return { width, silhouette, relief, ground, center, scaleX, scaleY, naturalTop, natural, healthY, plateWidth,
+          intentBox, healthBox: { ...healthBox, left: healthBox.left + shift * sx, top: healthBox.top + lift * sy },
+          nameWidth: name?.offsetWidth ?? 0, nameHeight: name?.offsetHeight ?? 0 };
       });
       const key = [frame.width, frame.height, top, ...measures.flatMap(({width, natural, silhouette, relief, ground}) =>
         [width, natural.width, natural.height, natural.left, natural.top, silhouette.top, silhouette.width, silhouette.height,
-          relief.feet.x, relief.feet.y, relief.body.width, relief.body.height, ground.width, ground.height])];
+          relief.feet.x, relief.feet.y, relief.body.width, relief.body.height, relief.health.width, relief.health.height, ground.width, ground.height])];
       if (hasMoved(previous, key)) {
         previous = key;
         const groundBottom = Math.max(...measures.map(({ground}) => ground.top + ground.height));
         const layoutFrame = { ...frame, height: groundBottom - frame.top };
         const offsets = chooseReliefOffsets(measures.map(({relief, natural, ground}) => {
           const { farBoundary, boundary } = rowPerspective(relief.row);
+          // Front-row relief can step sideways or back, but never into the player HUD.
+          const near = relief.row === 'front' && ground.height > 0
+            ? Math.max(farBoundary, Math.min(boundary, (relief.feet.y + FRONT_RELIEF_FORWARD_PX - ground.top) / ground.height))
+            : boundary;
           return { ...relief, plate: natural, spots: relief.movable
-            ? laneReliefPoints(ground, farBoundary, boundary, relief.feet, relief.body, natural, layoutFrame) : [] };
+            ? laneReliefPoints(ground, farBoundary, near, relief.feet, relief.body, natural, layoutFrame, relief.health) : [] };
         }), layoutFrame);
         const placed: Box[] = [];
         const figures = measures.map(({silhouette}, i) => ({
@@ -183,7 +199,7 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
       // The model and portaled plate use the same interpolated offset. The
       // base anchor still follows attacks and row transitions without lag.
       const reduced = prefersReducedMotion();
-      measures.forEach(({ center, scaleX, scaleY, naturalTop, healthY, plateWidth, nameHeight }, i) => {
+      measures.forEach(({ center, scaleX, scaleY, naturalTop, healthY, plateWidth, nameHeight, nameWidth }, i) => {
         const { plate, layout } = entries[i]!;
         const target = targets[i];
         if (!target) return;
@@ -203,12 +219,23 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
         const left = (x - plateWidth / 2).toFixed(3) + 'px';
         const edgeSpan = Math.max(1, 2 * Math.min(x - GAP, frame.width + GAP - x)).toFixed(3) + 'px';
         // Keep a selected name clear of the arena header, even in the far row.
-        const nameFloor = nameHeight ? frame.top + nameHeight : 0;
-        const intentY = clamp(naturalTop + lift + Math.min(0, labelOffset), nameFloor, frame.top + frame.height).toFixed(3) + 'px';
+        const nameFloor = nameHeight ? frame.top + nameHeight + NAME_GAP : 0;
+        const intentTop = clamp(naturalTop + lift + Math.min(0, labelOffset), nameFloor, frame.top + frame.height);
+        const intentY = intentTop.toFixed(3) + 'px';
+        const ownIntent = { ...measures[i]!.natural, top: intentTop, left: x - measures[i]!.width / 2 };
+        const centeredNameLeft = x - nameWidth / 2;
+        const nameLeft = clamp(centeredNameLeft, frame.left, frame.left + frame.width - nameWidth);
+        const nudge = nameHeight ? nameRelief(
+          { left: nameLeft, top: intentTop - nameHeight - NAME_GAP, width: nameWidth, height: nameHeight },
+          [...measures.flatMap((other, j) => i === j ? [] : [other.intentBox, other.healthBox]), ownIntent],
+          { ...frame, height: Math.max(intentTop, measures[i]!.silhouette.top + lift) - frame.top }
+        ) : { x: 0, y: 0 };
+        const namePosition = `calc(-50% + ${(nudge.x + nameLeft - centeredNameLeft).toFixed(1)}px) ${nudge.y.toFixed(1)}px`;
         const hpY = Math.min(healthY + lift, frame.top + frame.height - HEALTH_FLOOR_PADDING).toFixed(3) + 'px';
         if (layout.style.translate !== translate) layout.style.translate = translate;
         if (plate.style.left !== left) plate.style.left = left;
         if (plate.style.getPropertyValue('--hero-edge-span') !== edgeSpan) plate.style.setProperty('--hero-edge-span', edgeSpan);
+        if (nameHeight && plate.style.getPropertyValue('--hero-name-position') !== namePosition) plate.style.setProperty('--hero-name-position', namePosition);
         if (plate.style.getPropertyValue('--hero-intent-y') !== intentY) plate.style.setProperty('--hero-intent-y', intentY);
         if (plate.style.getPropertyValue('--hero-hp-y') !== hpY) plate.style.setProperty('--hero-hp-y', hpY);
         if (plate.style.visibility !== 'visible') plate.style.visibility = 'visible';

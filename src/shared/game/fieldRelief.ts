@@ -1,8 +1,8 @@
 /** Screen-space layout only: the unit's combat row and column never change. */
 export type FieldBox = { left: number; top: number; width: number; height: number };
 export type ReliefPoint = { x: number; y: number };
-type UnitBox = { body: FieldBox; plate?: FieldBox; feet: ReliefPoint; row: string; movable: boolean; spots: readonly ReliefPoint[] };
-type Candidate = { body: FieldBox; plate?: FieldBox; offset: ReliefPoint; distance: number };
+type UnitBox = { body: FieldBox; plate?: FieldBox; health?: FieldBox; feet: ReliefPoint; row: string; movable: boolean; spots: readonly ReliefPoint[] };
+type Candidate = { body: FieldBox; plate?: FieldBox; health?: FieldBox; offset: ReliefPoint; distance: number };
 
 const area = (a: FieldBox, b: FieldBox, gap = 0) =>
   Math.max(0, Math.min(a.left + a.width, b.left + b.width) - Math.max(a.left, b.left) + gap) *
@@ -21,10 +21,11 @@ export const reliefIntersections = (ground: FieldBox, boundary: number): ReliefP
  */
 export function laneReliefPoints(
   ground: FieldBox, far: number, near: number, feet: ReliefPoint,
-  body: FieldBox, plate: FieldBox, frame: FieldBox,
+  body: FieldBox, plate: FieldBox, frame: FieldBox, health?: FieldBox,
 ): ReliefPoint[] {
-  const insetLeft = feet.x - Math.min(body.left, plate.left);
-  const insetRight = Math.max(body.left + body.width, plate.left + plate.width) - feet.x;
+  const insetLeft = feet.x - Math.min(body.left, plate.left, health?.left ?? Infinity);
+  const insetRight = Math.max(body.left + body.width, plate.left + plate.width,
+    health ? health.left + health.width : -Infinity) - feet.x;
   const left = Math.max(ground.left, frame.left + insetLeft);
   const right = Math.min(ground.left + ground.width, frame.left + frame.width - insetRight);
   if (right < left || ground.height <= 0) return [];
@@ -38,26 +39,52 @@ export function laneReliefPoints(
 
 const shift = (box: FieldBox, x: number, y: number) => ({ ...box, left: box.left + x, top: box.top + y });
 
+/** Slide a selected name out of neighboring intents without moving the units. */
+export function nameRelief(name: FieldBox, intents: readonly FieldBox[], frame: FieldBox): ReliefPoint {
+  const costOf = (box: FieldBox) => intents.reduce((sum, intent) => sum + area(box, intent, 2), 0);
+  if (!costOf(name)) return { x: 0, y: 0 };
+  const fits = (box: FieldBox) => box.left >= frame.left && box.left + box.width <= frame.left + frame.width &&
+    box.top >= frame.top && box.top + box.height <= frame.top + frame.height;
+  const deltas = intents.flatMap(intent => [
+    { x: 0, y: intent.top + intent.height + 2 - name.top },
+    { x: 0, y: intent.top - name.height - 2 - name.top },
+    { x: intent.left + intent.width + 2 - name.left, y: 0 },
+    { x: intent.left - name.width - 2 - name.left, y: 0 },
+  ]);
+  const rank = ({ x, y }: ReliefPoint) => y > 0 ? 0 : x === 0 ? 1 : 2;
+  return deltas.sort((a, b) => rank(a) - rank(b) || Math.abs(a.x + a.y) - Math.abs(b.x + b.y))
+    .find(({ x, y }) => { const box = shift(name, x, y); return fits(box) && !costOf(box); }) ??
+    { x: 0, y: 0 };
+}
+
 function placement(unit: UnitBox, offset: ReliefPoint, frame: FieldBox): Candidate {
   const { x, y } = offset;
   const body = shift(unit.body, x, y);
   const plate = unit.plate && shift(unit.plate, x, y);
   if (plate) plate.top = Math.max(frame.top, plate.top);
-  return { body, ...(plate && { plate }), offset, distance: x * x + y * y };
+  const health = unit.health && shift(unit.health, x, y);
+  return { body, ...(plate && { plate }), ...(health && { health }), offset, distance: x * x + y * y };
+}
+
+function clippedBox(box: FieldBox | undefined, frame: FieldBox) {
+  if (!box) return 0;
+  const outside = Math.max(0, frame.left - box.left) + Math.max(0, box.left + box.width - frame.left - frame.width);
+  return outside * box.height * 4;
 }
 
 function clippedPlate(candidate: Candidate, frame: FieldBox) {
-  const plate = candidate.plate;
-  if (!plate) return 0;
-  const outside = Math.max(0, frame.left - plate.left) + Math.max(0, plate.left + plate.width - frame.left - frame.width);
-  return outside * plate.height * 4;
+  return clippedBox(candidate.plate, frame) + clippedBox(candidate.health, frame);
 }
 
 function collisions(a: Candidate, b: Candidate, sameRow: boolean) {
   const cover = area(a.body, b.body, sameRow ? 3 : 0);
   // A little cross-row perspective overlap is expected. Plates still need room.
   const body = sameRow ? cover : Math.max(0, cover - .27 * Math.min(a.body.width * a.body.height, b.body.width * b.body.height));
+  // A rear HP/status group must not cover a closer unit or its intent.
   return body +
+    (a.health ? 4 * area(a.health, b.body, 3) + (b.plate ? 3 * area(a.health, b.plate, 3) : 0) : 0) +
+    (b.health ? 4 * area(b.health, a.body, 3) + (a.plate ? 3 * area(b.health, a.plate, 3) : 0) : 0) +
+    (a.health && b.health ? 3 * area(a.health, b.health, 3) : 0) +
     (a.plate && b.plate ? 3 * area(a.plate, b.plate, 3) : 0) +
     (a.plate ? 2 * area(a.plate, b.body, 2) : 0) +
     (b.plate ? 2 * area(b.plate, a.body, 2) : 0);
@@ -69,9 +96,10 @@ export function chooseReliefOffsets(units: readonly UnitBox[], frame: FieldBox):
     const primary = placement(unit, { x: 0, y: 0 }, frame);
     if (!unit.movable || !unit.body.width || !unit.body.height || units.length < 2) return [primary];
     const spots = unit.spots.map(point => placement(unit, { x: point.x - unit.feet.x, y: point.y - unit.feet.y }, frame))
-      .filter(({ body, plate, offset }) => {
-        const left = Math.min(body.left, plate?.left ?? body.left);
-        const right = Math.max(body.left + body.width, plate ? plate.left + plate.width : body.left + body.width);
+      .filter(({ body, plate, health, offset }) => {
+        const left = Math.min(body.left, plate?.left ?? Infinity, health?.left ?? Infinity);
+        const right = Math.max(body.left + body.width, plate ? plate.left + plate.width : -Infinity,
+          health ? health.left + health.width : -Infinity);
         return left >= frame.left && right <= frame.left + frame.width && body.top >= frame.top &&
           unit.feet.y + offset.y <= frame.top + frame.height + .5;
       });
@@ -95,7 +123,7 @@ export function chooseReliefOffsets(units: readonly UnitBox[], frame: FieldBox):
       for (const candidate of options) {
         if (!best && candidate.distance >= winner.distance) continue;
         const cost = score(candidate);
-        if (!unit.plate && cost) continue;
+        if (!unit.plate && !unit.health && cost) continue;
         if (cost < best || (cost === best && candidate.distance < winner.distance)) {
           winner = candidate;
           best = cost;
@@ -112,7 +140,7 @@ export function chooseReliefOffsets(units: readonly UnitBox[], frame: FieldBox):
   const costOf = (items: readonly Candidate[]) => items.reduce((total, candidate, i) =>
     items.slice(0, i).reduce((sum, other, j) => sum + pairCost(candidate, other, i, j),
       total + clippedPlate(candidate, frame)), 0);
-  if (units.some(unit => unit.plate) && costOf(selected) > 0) {
+  if (units.some(unit => unit.plate || unit.health) && costOf(selected) > 0) {
     let beam: { assigned: Candidate[]; cost: number; distance: number }[] = [{ assigned: [], cost: 0, distance: 0 }];
     for (let i = 0; i < units.length; i++) {
       beam = beam.flatMap(partial => choices[i]!.map(candidate => ({
