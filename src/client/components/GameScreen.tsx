@@ -47,6 +47,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
   const { run, actions, hasProgress, act, restart, profile } = useRun(data.dailyKey, data.accountId);
   const { entries, refresh } = useLeaderboard();
   const [isPlaying, setIsPlaying] = useState(false);
+  const onMainMenu = () => setIsPlaying(false);
   const [choosing, setChoosing] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [isPracticing, setIsPracticing] = useState(false);
@@ -148,6 +149,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
   if (run.phase.kind === 'route' && run.stop === 1) {
     const seed = id ?? [data.accountId ?? 'guest', run.dailyKey, run.attempt].join(':');
     return <ConquestPrelude key={seed} seed={seed} options={run.phase.options} worldSeed={run.dailyKey} atlasOptions={at => optionsFor(run, at)}
+      runControls={{ run, onAction: act, onMainMenu }}
       onChoose={(option, hellArtifact) => act({ type: 'chooseStop', option, ...(hellArtifact && { hellArtifact }) })} />;
   }
   if (run.phase.kind === 'sealing') {
@@ -174,7 +176,7 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
     return <RegionCrossroads key={run.stop} stop={run.stop} campaign={!!run.conquestVersion}
       conquered={regionOfRun({ ...run, stop: run.stop - 1 })}
       onChoose={option => act({ type: 'chooseRegion', option })} />;
-  return <VillainRunGame run={run} runId={id} onAction={act} />;
+  return <VillainRunGame run={run} runId={id} onAction={act} onMainMenu={onMainMenu} />;
 };
 
 // --- COMPONENT ---

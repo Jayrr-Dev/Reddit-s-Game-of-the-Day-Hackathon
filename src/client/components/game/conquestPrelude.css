@@ -254,3 +254,20 @@
 .atlas-popover-close { position: absolute; top: .25rem; right: .3rem; width: 1.65rem; height: 1.65rem; border-radius: .25rem; color: inherit; cursor: pointer; }
 .atlas-popover-content > button:last-child { width: 100%; min-height: 1.8rem; margin-top: .42rem; padding-block: .2rem; }
 .atlas-browse-back { inset: auto auto .7rem .7rem; }
+/* Map controls stay out of the route art and landmark popovers. */
+.atlas-map-actions:not([hidden]) { display: flex; align-items: center; gap: .375rem; }
+.atlas-map-actions > button { min-height: 2.5rem; }
+.atlas-map-actions > .atlas-settings-gear { display: grid; width: 2.5rem; padding: 0; border-radius: .3rem; color: var(--color-accent); }
+.atlas-profile {
+  position: absolute; z-index: 4; inset: .7rem auto auto .7rem;
+  display: inline-flex; align-items: center; gap: .38rem; min-height: 2.5rem; padding: .2rem .42rem .2rem .22rem;
+  border: 1px solid #b68d52; border-radius: .3rem; background: #2e231c; color: #fff0d2; text-align: left; cursor: pointer;
+}
+.atlas-profile:hover, .atlas-profile:focus-visible { outline: 2px solid #ffe4ab; outline-offset: 1px; }
+.atlas-profile-portrait { width: 1.9rem; height: 1.9rem; flex: none; object-fit: cover; border-radius: .2rem; }
+.atlas-profile > span { display: grid; gap: .12rem; }
+.atlas-profile strong { font: 750 .76rem/1.05 var(--font-display, Georgia, serif); }
+.atlas-profile small { display: flex; align-items: center; gap: .2rem; color: #f6ddba; font: 600 .65rem/1.1 var(--font-body, system-ui); white-space: nowrap; }
+.atlas-profile-heart { color: #ec9a8b; width: .7rem; height: .7rem; margin-left: .1rem; }
+.map-fullbleed[data-run-controls] { background: #46382e; }
+.map-fullbleed[data-run-controls] > .conquest-map-scroll { position: absolute; inset: 3.35rem 0 0; height: auto; }

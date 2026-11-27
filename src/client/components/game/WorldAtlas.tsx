@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { ARCHANGEL_BOSSES, GRANDANGEL_BOSSES } from '../../../shared/game/conquestAreas';
 import { bossArenaOf } from '../../content/bossArenas';
-import { Button } from '../ui/Button';
 import { ProgressiveImg } from '../ui/ProgressiveImage';
 import { ATLAS_REGIONS } from './AtlasRegions';
 import { RegionalEngraving } from './RegionalEngraving';
@@ -53,13 +52,14 @@ export function WorldAtlas({ current, onBack, onVisit }: {
     {entry && point && selected !== undefined && <aside className="world-region-details" role="group" aria-label="Region details"
       style={{'--region-x': Math.max(31,Math.min(69,point[0]/8))+'%', '--region-y': (point[1]/5.2)+'%'} as CSSProperties}
       data-above={point[1] >= 255 || undefined}>
-      <button type="button" aria-label="Close region details" onClick={() => setSelected(undefined)}>×</button>
+      <button type="button" className="world-region-close" aria-label="Close region details" onClick={() => setSelected(undefined)}>×</button>
       {arenaArt && <ProgressiveImg className="world-region-art" src={arenaArt} alt="" />}
       <small>Region {selected+1} · {selected === current ? 'Current' : selected < current ? 'Conquered' : 'Ahead'}</small>
       <strong>{entry.name}</strong>
       <p>{entry.angel} · {entry.landmark}</p>
       {selected === ATLAS_REGIONS.length-1 && <p>Mikhael awaits in Purgatory at the Last Citadel.</p>}
-      {onVisit && <Button variant="menuPrimary" className="world-visit-button" onClick={() => onVisit(selected)}>Visit region</Button>}
+      {onVisit && <button type="button" className="world-visit-button" aria-label="Visit region" title="Visit region"
+        onClick={() => onVisit(selected)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M19 9c0 4.5-7 9-7 9s-7-4.5-7-9a7 7 0 1 1 14 0ZM4 21h16"/><circle cx="12" cy="9" r="2.3"/></svg></button>}
     </aside>}
   </section>;
 }

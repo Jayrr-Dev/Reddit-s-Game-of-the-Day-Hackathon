@@ -46,6 +46,16 @@
   72% { opacity: .65; }
   86% { opacity: .38; }
 }
+.sin-motion-eye {
+  animation: sin-eye-ember 5.8s ease-in-out infinite;
+  mix-blend-mode: screen;
+}
+@keyframes sin-eye-ember {
+  0%, 100% { opacity: .10; }
+  30% { opacity: .77; }
+  63% { opacity: .18; }
+  79% { opacity: .39; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .sin-motion-wings, .sin-motion-clouds, .sin-motion-flame { display: none; animation: none; }
+  .sin-motion-host, .sin-motion-clouds, .sin-motion-flame { display: none; animation: none; }
 }

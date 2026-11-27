@@ -41,6 +41,7 @@ export type VillainRunGameProps = {
   run: RunState;
   runId?: string | undefined;
   onAction: (action: RunAction) => void;
+  onMainMenu?: (() => void) | undefined;
 };
 
 // --- AUDIO AND PACING ---
@@ -50,14 +51,14 @@ const LEVEL_UP_AFTER_VICTORY_MS = 3350;
 
 // --- SUBCOMPONENTS ---
 /** The body for the current phase. */
-const PhaseBody = ({ run, runId, onAction }: VillainRunGameProps) => {
+const PhaseBody = ({ run, runId, onAction, onMainMenu }: VillainRunGameProps) => {
   const { phase } = run;
 
   switch (phase.kind) {
     case 'greed-bargain':
       return <GreedBargain run={run} onAction={onAction} />;
     case 'route':
-      return <ConquestMap key={run.stop} stop={run.stop} region={regionOfRun(run)} route={chosenRegion(run)} options={phase.options} worldSeed={run.dailyKey} atlasOptions={at => optionsFor(run, at)} onChoose={option => onAction({ type: 'chooseStop', option })} />;
+      return <ConquestMap key={run.stop} runControls={onMainMenu ? { run, onAction, onMainMenu } : undefined} stop={run.stop} region={regionOfRun(run)} route={chosenRegion(run)} options={phase.options} worldSeed={run.dailyKey} atlasOptions={at => optionsFor(run, at)} onChoose={option => onAction({ type: 'chooseStop', option })} />;
     case 'combat': {
       const area = run.area;
       const battle = area?.battles[area.battle];
@@ -167,7 +168,7 @@ function LevelUpDialog({ character, onClose, onOpenCharacter }: {
  * Fills the post exactly (no page scroll inside the feed). Combat owns
  * the whole box; the other phases get the run HUD on top.
  */
-export const VillainRunGame = ({ run, runId, onAction }: VillainRunGameProps) => {
+export const VillainRunGame = ({ run, runId, onAction, onMainMenu }: VillainRunGameProps) => {
   const [showCharacter, setShowCharacter] = useState(false);
   const [dismissedLevel, setDismissedLevel] = useState<string>();
   const levelKey = (runId ?? run.dailyKey) + ':' + run.attempt + ':' + run.stop + ':' + run.character.level;
@@ -225,7 +226,7 @@ export const VillainRunGame = ({ run, runId, onAction }: VillainRunGameProps) =>
     );
   return (
     <div className="run-board flex h-full w-full flex-col overflow-hidden" style={run.phase.kind === 'reward' ? undefined : { backgroundImage: `linear-gradient(#140e0bbc, #140d09e8), url("${regionArt.src}")` }}>
-      <RunHud run={run} onOpenCharacter={() => setShowCharacter(true)} />
+      {run.phase.kind !== 'route' && <RunHud run={run} onOpenCharacter={() => setShowCharacter(true)} />}
       <main data-route-board={run.phase.kind === 'route' || undefined} className="flex min-h-0 flex-1 flex-col items-center justify-center-safe overflow-y-auto p-3">
         {apple && (
           <p className="mb-2 text-center text-xs text-accent">Found: {getItem(apple).name}. Give it to Metatron to refresh the shop.</p>
@@ -236,7 +237,7 @@ export const VillainRunGame = ({ run, runId, onAction }: VillainRunGameProps) =>
         {run.pandoraEffect === 'half-life' && run.phase.kind === 'reward' && run.goldVictories.length === 1 && (
           <p className="mb-2 text-center text-xs text-accent">Curse cleared: +{PANDORA_CURSE_BOUNTY} Gold</p>
         )}
-        <PhaseBody run={run} runId={runId} onAction={onAction} />
+        <PhaseBody run={run} runId={runId} onAction={onAction} onMainMenu={onMainMenu} />
       </main>
       {leveledAtReward && dismissedLevel !== levelKey && !showCharacter && (
         <LevelUpDialog key={levelKey} character={run.character}

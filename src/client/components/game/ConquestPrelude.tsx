@@ -21,6 +21,7 @@ import pride from '../../assets/npcs/sin-lair-pride.webp';
 import { AtlasInk, AtlasLandmark, landmarkOf, ATLAS_HEIGHT, ATLAS_WIDTH, type AtlasLink, type AtlasPoint } from './KingdomAtlas';
 import { ATLAS_REGIONS } from './AtlasRegions';
 import { WorldAtlas } from './WorldAtlas';
+import { AtlasPlayerControls, AtlasSettings, type AtlasRunControls } from './AtlasPlayerControls';
 import { SandboxView, type AtlasTrainingVisit } from './SandboxView';
 import { useIsAdmin } from '../../lib/adminRole';
 import { bossArenaOf } from '../../content/bossArenas';
@@ -58,10 +59,12 @@ export function ConquestMap({
   worldSeed = 'atlas',
   options: runOptions,
   atlasOptions,
+  runControls,
   onChoose,
 }: {
   stop?: number; region?: string; route?: RegionChoice | undefined; worldSeed?: string;
   options: readonly Stop[]; atlasOptions?: (stop: number) => readonly Stop[];
+  runControls?: AtlasRunControls | undefined;
   onChoose: (option: number) => void;
 }) {
   const isAdmin = useIsAdmin();
@@ -198,7 +201,7 @@ export function ConquestMap({
   };
   const position = ({x,y}: AtlasPoint) => ({ left: (100 * x / ATLAS_WIDTH) + '%', top: (100 * y / ATLAS_HEIGHT) + '%' });
   if (isAdmin && practice) return <SandboxView atlasVisit={practice} onExit={() => setPractice(undefined)} />;
-  return <section className="conquest-map map-fullbleed prelude-enter" aria-label={exploring ? theme.name + ' practice map' : region ? region + ' map' : 'Conquest map'}
+  return <section className="conquest-map map-fullbleed prelude-enter" data-run-controls={Boolean(runControls) || undefined} aria-label={exploring ? theme.name + ' practice map' : region ? region + ' map' : 'Conquest map'}
     onPointerDownCapture={event => {
       if (active && event.target instanceof Element && !event.target.closest('.atlas-destination-popover, .atlas-destination, .atlas-inspectable')) setSelected(undefined);
     }}
@@ -209,11 +212,14 @@ export function ConquestMap({
       }
     }}>
     {exploring && !showWorld && <div className="atlas-ascent atlas-browse-back"><button type="button" onClick={() => { setSelected(undefined); setBrowseRegion(undefined); }}>Back to conquest</button></div>}
-    {isCampaign && <div className="atlas-ascent" hidden={showWorld}>
+    {runControls && !showWorld && <AtlasPlayerControls {...runControls} />}
+    {(isCampaign || runControls) && <div className="atlas-ascent atlas-map-actions" hidden={showWorld}>
+      {isCampaign &&
       <button ref={worldTrigger} type="button" aria-controls="full-world-atlas" onClick={() => {
         setSelected(undefined);
         setShowWorld(true);
-      }}>World map</button>
+      }}>World map</button>}
+      {runControls && <AtlasSettings onMainMenu={runControls.onMainMenu} />}
     </div>}
     {showWorld && <WorldAtlas current={regionIndexOf(runStop)}
       {...(isAdmin && { onVisit: (index: number) => {
@@ -313,8 +319,9 @@ export function RegionCrossroads({ stop, conquered, campaign, onChoose }: {
 }
 
 /** One seeded meeting per run. The artifact leaves Hell with the player if chosen. */
-export function ConquestPrelude({ seed, options, worldSeed, atlasOptions, onChoose }: {
+export function ConquestPrelude({ seed, options, worldSeed, atlasOptions, runControls, onChoose }: {
   seed: string; options: readonly Stop[]; worldSeed?: string; atlasOptions?: (stop: number) => readonly Stop[];
+  runControls?: AtlasRunControls | undefined;
   onChoose: (option: number, artifact?: HellArtifactId) => void;
 }) {
   const saveKey = 'villain-arc:conquest-gift:' + seed;
@@ -326,7 +333,7 @@ export function ConquestPrelude({ seed, options, worldSeed, atlasOptions, onChoo
   });
   const [selected, setSelected] = useState<HellArtifactId>();
   const [host] = pickOne(hashSeed('conquest-sin:' + seed), HOSTS);
-  if (accepted) return <ConquestMap options={options} {...(worldSeed && {worldSeed})} {...(atlasOptions && {atlasOptions})}
+  if (accepted) return <ConquestMap runControls={runControls} options={options} {...(worldSeed && {worldSeed})} {...(atlasOptions && {atlasOptions})}
     onChoose={option => onChoose(option, isHellArtifact(accepted) ? accepted : undefined)} />;
   const labelSide = host.side === 'right' ? 'left' : 'right';
   return <section className="sin-prelude prelude-enter" aria-label="A meeting before revival"
