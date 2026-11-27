@@ -29,3 +29,8 @@
 @keyframes mikhael-brace { 0%,100%{transform:none} 44%{transform:scaleY(.92) scaleX(1.03)} }
 @keyframes mikhael-smear { 0%,37%,100%{opacity:0} 51%{opacity:.85} 69%{opacity:.24} }
 @media (prefers-reduced-motion:reduce) { .mikhael-rig * { animation:none !important; } }
+
+/* Keep Mikhael's full sword-phase wingspan in the narrow Reddit canvas. */
+.mikhael-sword-responsive { transform-box: view-box; }
+@media (max-width:440px) { .mikhael-sword-responsive { transform:scale(.75); } }
+@media (max-width:355px) { .mikhael-sword-responsive { transform:scale(.52); } .mikhael-sword-plate { bottom:60% !important; } }

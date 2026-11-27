@@ -14,6 +14,7 @@ import { ATTACK_MS, SWORD_FIRST_IMPACT_MS, TRANSFORMATION_MS } from '../content/
 import { endTurnSteps, type TurnStep } from '../../shared/game/combat';
 import type { RunAction } from '../../shared/game/run';
 import type { CombatState, HeroMove } from '../../shared/game/types';
+import { MIKHAEL_SWORD_DURATION_MS } from '../content/mikhaelMotion';
 import { bossMoveCue, type Cue, type MoveMoment } from '../content/bossMoveCues';
 import {
   humanoidLookOf,
@@ -58,6 +59,8 @@ const beatMs = (steps: readonly Beat[], index: number): number => {
   if (step.cervielVolleyKey !== undefined)
     return step.isCharge ? SWORD_FIRST_IMPACT_MS : ATTACK_MS - SWORD_FIRST_IMPACT_MS;
   if (step.isCharge) return SIGNATURE_CHARGE_MS;
+  const actor = step.state.heroes.find((unit) => unit.uid === step.actorUid);
+  if (actor?.heroId === 'archangelMikhael' && actor.phase !== 2 && step.attackType === 'melee') return MIKHAEL_SWORD_DURATION_MS;
   return next && next.actorUid !== null ? HERO_STAGGER_MS : HERO_ATTACK_MS;
 };
 

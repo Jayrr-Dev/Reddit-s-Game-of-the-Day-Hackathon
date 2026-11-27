@@ -164,12 +164,24 @@ void test('City Bosses, optional dragon Area Bosses, and hidden room outcomes ar
   assert.deepEqual([...seen].sort(), [...LOCATION_BOSSES].sort());
 });
 
+void test('Light Lord Mori closes Penitent Court with both retainers', () => {
+  const stop = 6 * STOPS_PER_REGION + 4;
+  const site = conquestStops(DAY, stop)[1]?.site;
+  assert.equal(site?.name, 'Penitent Court');
+  assert.equal(site?.cityBoss, 'lightLordMori');
+  assert.ok(site);
+  const battle = buildAreaBattles(site, DAY, stop, 1).at(-1);
+  assert.equal(battle?.finish, 'location-boss');
+  assert.deepEqual(battle?.waves.at(-1)?.heroIds, ['lightLordMori', 'paladin', 'hornedSentinel']);
+});
+
 void test('the Training roster exposes two grouping layers and late-game HP and attack scale', () => {
   const groups = groupUnitsByUnitType();
   const summons = groups.find(group => group.id === 'summons');
   assert.deepEqual(new Set(summons?.heroIds), new Set(['grandangelCerviel', 'cervielBow', 'zeruelRedSun', 'zeruelBlueSun']));
   for (const group of groups) assert.equal(unitRankGroups(group.heroIds).flatMap(rank => rank.heroIds).length, group.heroIds.length);
   assert.equal(unitRankLabel('angelAssassin'), 'Grunt');
+  assert.equal(unitRankLabel('lightLordMori'), 'City Boss');
   assert.equal(unitRankLabel('ballista'), 'Elite');
   assert.equal(getHero('ballista').maxHp, 100);
   for (const id of CHAMPION_IDS) assert.equal(unitRankLabel(id), 'Officer');

@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { describeHeroMoveList, type MoveIntent } from '../../shared/game/describe';
 import type { HeroId } from '../../shared/game/heroes';
+import { MIKHAEL_SWORD_DURATION_MS } from '../content/mikhaelMotion';
 import { wolfAttackOf, type HeroAction, type HeroActionStyle } from '../content/heroLooks';
 
 // --- CONSTANTS ---
@@ -49,9 +50,10 @@ export const useMoveShowcase = (heroId: HeroId, isPlaying: boolean): ShowcaseBea
   // Advance to the next beat after this one's duration.
   useEffect(() => {
     if (!isPlaying || moves.length === 0) return;
-    const timer = window.setTimeout(() => setStep((current) => current + 1), isActing ? ACT_MS : REST_MS);
+    const actMs = heroId === 'archangelMikhael' ? MIKHAEL_SWORD_DURATION_MS : ACT_MS;
+    const timer = window.setTimeout(() => setStep((current) => current + 1), isActing ? actMs : REST_MS);
     return () => window.clearTimeout(timer);
-  }, [isPlaying, isActing, step, moves.length]);
+  }, [heroId, isPlaying, isActing, step, moves.length]);
 
   if (!isPlaying || !move) return { moveName: '', action: null };
   if (!isActing) return { moveName: move.name, action: null };

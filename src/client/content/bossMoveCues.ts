@@ -24,6 +24,9 @@ const BOSS_MOVE_CUES: Partial<Record<HeroId, Record<string, MoveCues>>> = {
   pride: { 'Royal Challenge': { start: { sound: 'buffMajor', gain: 0.75 } }, 'Sovereign’s Verdict': { charge: { sound: 'bossDescent', gain: 0.55 }, impact: { sound: 'bladeHit', gain: 0.88 } } },
   lust: { Beckon: { start: { sound: 'curse', gain: 0.65 } }, 'Velvet Thrall': { charge: { sound: 'hexTrigger', gain: 0.55 }, impact: { sound: 'magicArcaneHit', gain: 0.72 } } },
   gluttony: { 'Ravenous Lash': { start: { sound: 'move', gain: 0.60 } }, Devour: { charge: { sound: 'curse', gain: 0.68 }, impact: { sound: 'bluntImpact', gain: 0.92 } } },
+  archangelMikhael: {
+    "The Taxiarch’s Sentence": { start: { sound: 'charge', gain: 0.86 } },
+  },
   holyDragon: {
     'Halo of Judgment': { impact: { sound: 'uncUltimate', gain: 0.95 } },
   },

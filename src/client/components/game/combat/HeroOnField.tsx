@@ -510,7 +510,7 @@ export const HeroOnField = ({
         >
           {isBoss(unit) && <BossLanding />}
           <div
-            className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${action ? bodyActionClass(action) : ''}`}
+            className={`absolute bottom-0 left-1/2 -translate-x-1/2 ${action && !(unit.heroId === 'archangelMikhael' && unit.phase !== 2) ? bodyActionClass(action) : ''}`}
             style={bodyStyle}
           >
             <div
@@ -520,7 +520,7 @@ export const HeroOnField = ({
               <div className="hero-step-gait h-full w-full">
                 {/* IDLE SWAY: figure and pick mark rock together */}
                 <div
-                  className="relative h-full w-full origin-bottom animate-hero-sway"
+                  className={`relative h-full w-full origin-bottom ${unit.heroId === 'archangelMikhael' && unit.phase !== 2 ? '' : 'animate-hero-sway'}`}
                   style={swayStyle(unit)}
                 >
                   <div
@@ -557,7 +557,7 @@ export const HeroOnField = ({
                 scaled-down plate rasterizes blurry) and its chips hold
                 still under the finger. */}
             <div
-              className="absolute inset-x-0 flex justify-center"
+              className={`absolute inset-x-0 flex justify-center ${unit.heroId === 'archangelMikhael' && unit.phase !== 2 ? 'mikhael-sword-plate' : ''}`}
               style={unit.heroId === 'holyKing' ? { bottom: 'calc(116% + 4px)' } : unit.heroId === 'lightLordMori' ? { bottom: 'calc(111% + 4px)' } : unit.heroId === 'fulgurDragonknight' ? { bottom: 'calc(107% + 3px)' } : unit.heroId === 'zadkielOfDominations' || unit.heroId === 'mageBorneAstra' || unit.heroId === 'grandangelCerviel' || unit.heroId === 'grandangelGeonosis' || unit.heroId === 'grandangelRaziel' ? { bottom: 'calc(120% + 4px)' } : unit.heroId === 'archangelZeruel' ? { bottom: 'calc(110% + 3px)' } : unit.heroId === 'cervielSword' || unit.heroId === 'cervielBow' ? { bottom: 'calc(98% + 3px)' } : unit.heroId === 'grandangelCherubiel' ? { bottom: 'calc(125% + 4px)' } : unit.heroId === 'mageBorneAzula' ? { bottom: 'calc(113% + 4px)' } : unit.heroId === 'angelArcher' ? { bottom: '82%' } : unit.heroId === 'ivoryWerewolf' ? IVORY_WEREWOLF_PLATE : plateStyle(size)}
             >
               <HeroPlate unit={unit} field={field} player={player} />

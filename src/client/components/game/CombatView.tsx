@@ -360,7 +360,8 @@ export const CombatView = ({
         old.uid === unit.uid && (old.row !== unit.row || old.col !== unit.col)));
       if (moved.length) {
         const rate = [.88, .92, .95][moved[0]!.uid % 3] ?? .92;
-        playSound('enemyStep', rate, .68);
+        if (moved.some(unit => unit.heroId === 'archangelMikhael')) playSound('charge', 1, .82);
+        if (moved.some(unit => unit.heroId !== 'archangelMikhael')) playSound('enemyStep', rate, .68);
       }
     }
     if ((!card || !usesShockCue(card)) && combat.heroes.some(unit => {

@@ -4,14 +4,14 @@ New runs have nine regions: six Grandangels guard the capitals first, followed b
 
 ## Locations and battles
 
-- Routes enter existing battlefield maps. Each location sets its number of battles, rooms, and secrets. Major destinations have a named City Boss, even if their setting is not literally a city. Optional dragon sites are Area Boss fights. Holy Dragon Sol is the exception and guards Sunward City.
+- Routes enter existing battlefield maps. Each location sets its number of battles, rooms, and secrets. Major destinations have a named City Boss, even if their setting is not literally a city. Optional dragon sites are Area Boss fights. Holy Dragon Sol is the exception and guards Sunward City. Light Lord Mori guards Penitent Court with his two knights.
 - A battle keeps one map, the same hand and resources, and a queue of authored waves of up to six enemies. Reinforcements arrive at the back and march before attacking. Gold, cards, and XP wait for the final wave.
 - After the reward, explore seeded room events and possible secrets, or rest to recover 25% max HP. Rest skips this battle's room searches. The remaining rooms disappear when leaving for the next battle or destination.
 - Training lists units by type and rank: Grunt, Elite, Officer, City Boss, Area Boss, Region Boss, Final Boss. Alpha, Omega and Cerviel's staff and bow forms have their own Summons section. Ballista is an Elite with 100 HP.
 
 ## Final Boss: Archangel Mikhael
 
-Mikhael commands God's army as its Taxiarch. He has 2,000 HP and switches at 1,000. In the frontline sword phase he wards, knocks Wraith back, and deals melee damage. In the Midline spear phase he pins or knocks Wraith back and can only throw from the first two lanes. If forced to the Horizon, his attacks are out of reach until he advances. The Last Citadel is a ruined stone battlefield. Separate layers carry storm light, cloud-buried angel watchers, drifting smoke above the rubble, and near ash. His light, force, and sealing powers take inspiration from [Apocalypse World Michael](https://supernatural.fandom.com/wiki/Michael_(Apocalypse_World)/Abilities_and_Weaknesses); the moves and story are original to Villain Run.
+Mikhael commands God's army as its Taxiarch. He has 2,000 HP and switches at 1,000. In the frontline sword phase he wards, knocks Wraith back, and deals melee damage. The sword rig uses a shared set of sharp WebP cels for the idle, rally, downward slash, rising slash, backhand and thrust. The four wings and halo are registered to the body for each cel. The sword art does not alter the fight rules. In the Midline spear phase he pins or knocks Wraith back and can only throw from the first two lanes. If forced to the Horizon, his attacks are out of reach until he advances. The Last Citadel is a ruined stone battlefield. Separate layers carry storm light, cloud-buried angel watchers, drifting smoke above the rubble, and near ash. His light, force, and sealing powers take inspiration from [Apocalypse World Michael](https://supernatural.fandom.com/wiki/Michael_(Apocalypse_World)/Abilities_and_Weaknesses); the moves and story are original to Villain Run.
 
 ## Experience
 

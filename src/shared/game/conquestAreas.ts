@@ -23,7 +23,7 @@ export const ARCHANGEL_BOSSES = [
   'archangelUriel', 'archangelZeruel', 'archangelMikhael',
 ] as const satisfies readonly HeroId[];
 
-export const LOCATION_BOSSES = ['grandGriffon', 'holyKing', 'twinAxeKnight', 'holyDragon', 'mageBorneAstra', 'mageBorneAzula'] as const satisfies readonly HeroId[];
+export const LOCATION_BOSSES = ['grandGriffon', 'holyKing', 'twinAxeKnight', 'holyDragon', 'mageBorneAstra', 'mageBorneAzula', 'lightLordMori'] as const satisfies readonly HeroId[];
 export const AREA_BOSSES = ['tempestWyrm', 'fulgurDragonknight'] as const satisfies readonly HeroId[];
 
 export const CAMPAIGN_LENGTH = GRANDANGEL_BOSSES.length + ARCHANGEL_BOSSES.length;
@@ -95,6 +95,7 @@ const BOSS_LOCATIONS = [
   { name: 'Khan’s Bastion', map: 'Fallen City', cityBoss: 'twinAxeKnight' },
   { name: 'The Astral Sanctum', map: 'Ancient Ruins', cityBoss: 'mageBorneAstra' },
   { name: 'Sunward City', map: 'City Square', cityBoss: 'holyDragon' },
+  { name: 'Penitent Court', map: 'Royal Court', cityBoss: 'lightLordMori' },
 ] as const satisfies readonly { name: string; map: string; cityBoss: typeof LOCATION_BOSSES[number] }[];
 
 /** New routes converge at the capital. Legacy runs retain the old route roll. */
@@ -139,7 +140,7 @@ export function buildAreaBattles(site: AreaSite, dailyKey: string, stop: number,
     const regionBoss = site.kind === 'capital' && battle === 1;
     const elite = CHAMPION_IDS[(index + battle + (site.kind === 'depths' ? 2 : 0) + option) % CHAMPION_IDS.length]!;
     const finale: Wave = regionBoss ? regionBossWave(index)
-      : cityBoss && site.cityBoss ? { name: 'City Boss', heroIds: [site.cityBoss], might: site.cityBoss === 'grandGriffon' ? 0.55 : 0.8 + index * 0.04 }
+      : cityBoss && site.cityBoss ? { name: 'City Boss', heroIds: site.cityBoss === 'lightLordMori' ? [site.cityBoss, 'paladin', 'hornedSentinel'] : [site.cityBoss], might: site.cityBoss === 'grandGriffon' ? 0.55 : 0.8 + index * 0.04 }
       : { name: 'Officer', heroIds: [elite], might: (stop <= 2 ? 0.52 : 0.82) + index * 0.12 };
     const reinforcement = site.kind === 'capital' ? (index >= 2 ? CONQUEST_SCENARIOS.capitalVanguard : CONQUEST_SCENARIOS.cityGarrison)
       : site.kind === 'depths' ? CONQUEST_SCENARIOS.undercroftGuard : CONQUEST_SCENARIOS.bridgeRetinue;

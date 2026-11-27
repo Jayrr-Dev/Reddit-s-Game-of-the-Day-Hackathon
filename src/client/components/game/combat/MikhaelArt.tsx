@@ -6,6 +6,7 @@ import type { HeroAction } from '../../../content/heroLooks';
 import type { HeroSize } from '../../../../shared/game/types';
 import { ProgressiveSvgImage } from '../../ui/ProgressiveImage';
 import './mikhaelRig.css';
+import { MikhaelSwordRig } from './MikhaelSwordRig';
 
 // --- REGISTRATION ---
 // Mask paths follow the faceted edges of each pose. The body and the weapon
@@ -53,6 +54,7 @@ export function MikhaelFigure({ size, phase, action }: { size: HeroSize; phase?:
   const motion = motionOf(action, spear);
   const armPath = ARM[spear ? 'spear' : 'sword'];
   const [armX, armY] = spear ? SPEAR_PIVOT : SWORD_PIVOT;
+  if (!spear) return <MikhaelSwordRig size={size} action={action} />;
   const art = '#' + id + '-image';
   const poseY = spear ? 0 : 31;
   return <svg className="mikhael-rig" data-mikhael-motion={motion} data-mikhael-weapon={spear ? 'spear' : 'sword'}
