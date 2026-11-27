@@ -57,6 +57,8 @@ import {
   scornBonus,
   offensiveBonus,
   castProtection,
+  castTimedProtection,
+  tickProtection,
   tierCut,
   castCardProtection,
   bleedOnAttack,
@@ -1962,7 +1964,7 @@ const applyHeroEffect = (
       return updateHeroes(
         state,
         heroTargets(state, actor.uid, effect.who),
-        castProtection
+        (unit) => effect.turns === undefined ? castProtection(unit) : castTimedProtection(unit, effect.turns)
       );
     case 'cleanse':
       return cleanseHeroes(state, heroTargets(state, actor.uid, effect.who));
@@ -2298,9 +2300,9 @@ const poisonStep = (state: CombatState, uid: number): TurnStep | null => {
 const applyMalaise = <T extends Combatant>(unit: T): T =>
   addStatus(unit, 'malaise', MALAISE_TURNS);
 
-const expireStackedBuffs = <T extends Combatant>(unit: T): T => {
-  const next = tickStackingBuffs(unit);
-  return tierIVExpires(unit) ? applyMalaise(next) : next;
+const expireStackedBuffs = <T extends Combatant>(unit: T, countProtection = true): T => {
+  const next = tickStackingBuffs(unit, countProtection);
+  return tierIVExpires(unit, countProtection) ? applyMalaise(next) : next;
 };
 
 /**
@@ -2314,11 +2316,11 @@ const resolveTurnSteps = (state: CombatState): TurnStep[] => {
   // 1. DISCARD THE HAND (HOLD CARDS STAY), THE VILLAIN'S UPKEEP, AND THE HEROES' GUARD FROM LAST ROUND FADES
   const discarded: CombatState = {
     ...finishPlayerTurn(state),
-    // Hero-cast Protection still expires when its owner's next turn starts.
+    // The player has just finished their window to attack timed hero Protection.
     heroes: state.heroes.map((unit) => {
       const guarded = expireGuard(tickCloak(unit));
       if (state.waveArrival) return guarded;
-      const active = dropRoundBuffs(guarded);
+      const active = dropRoundBuffs(tickProtection(guarded));
       return unit.statuses.protection === TIERED_MAX_TIER && !active.statuses.protection
         ? applyMalaise(active) : active;
     }),
@@ -2403,7 +2405,7 @@ const resolveTurnSteps = (state: CombatState): TurnStep[] => {
     state: startPlayerTurn({
       ...advanced,
       player: expireStackedBuffs({ ...advanced.player, statuses: { ...advanced.player.statuses, reflex: 0 } }),
-      heroes: advanced.heroes.map(expireStackedBuffs),
+      heroes: advanced.heroes.map(unit => expireStackedBuffs(unit, false)),
     }),
   });
   return steps;

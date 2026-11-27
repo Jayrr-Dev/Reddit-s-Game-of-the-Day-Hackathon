@@ -1045,7 +1045,7 @@ const describeHeroEffect = (
       return {
         kind: 'protect',
         text: effect.who === 'allies' ? 'ALL' : '',
-        label: `Protection${toWhom(effect.who)}\n${STATUS_INFO.protection.description.split('\n')[0]}\nLasts until the heroes' next turn`,
+        label: `Protection${toWhom(effect.who)}\n${STATUS_INFO.protection.description.split('\n')[0]}\n${effect.turns === undefined ? "Lasts until the heroes' next turn" : `Lasts ${effect.turns} turns`}`,
       };
     case 'cleanse':
       return {

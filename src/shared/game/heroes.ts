@@ -515,7 +515,7 @@ export const HEROES = {
   // TAXIARCH: sword at the front, spear in Midline, then a living retreat.
   archangelMikhael: {
     ...hero('Archangel Mikhael', 'boss', 2000, 38, 6, FRONT, [
-      move('Marshal’s Ward', guard(26), protect('self')),
+      move('Marshal’s Ward', guard(26), { kind: 'protect', who: 'self', turns: 3 }),
       move('Divide the Earth', strike(44), knockBack(1)),
       move('Sword of the Host', strike(25, 2)),
       signature(move('The Taxiarch’s Sentence', strike(72), dispel())),

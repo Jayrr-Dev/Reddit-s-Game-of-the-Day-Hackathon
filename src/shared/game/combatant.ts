@@ -555,6 +555,24 @@ export const castProtection = <T extends Combatant>(target: T): T => ({
   },
 });
 
+/** Applies a timed Protection tier for exactly this many opposing turns. */
+export const castTimedProtection = <T extends Combatant>(target: T, turns: number): T => ({
+  ...castProtection(target),
+  cardProtectionTurns: turns,
+  cardProtectionDuration: turns,
+});
+
+/** Spend one opposing turn of timed Protection. */
+export const tickProtection = <T extends Combatant>(target: T): T => {
+  const turns = target.cardProtectionTurns;
+  if (!turns) return target;
+  return {
+    ...target,
+    cardProtectionTurns: turns - 1,
+    ...(turns === 1 ? { statuses: { ...target.statuses, protection: 0 } } : {}),
+  };
+};
+
 /** Bulwark raises Protection and refreshes its duration. Traits can supply extra turns. */
 export const castCardProtection = <T extends Combatant>(
   target: T,
@@ -565,11 +583,7 @@ export const castCardProtection = <T extends Combatant>(
     STACKING_BUFF_TURNS +
     Math.max(0, Math.trunc(extraTurns)) +
     stackedBuffTurnsOf(target.skillPicks);
-  return {
-    ...castProtection(target),
-    cardProtectionTurns: duration,
-    cardProtectionDuration: duration,
-  };
+  return castTimedProtection(target, duration);
 };
 
 /**
@@ -618,27 +632,24 @@ export const enfeebleTimes = <T extends Combatant>(
   );
 
 /** True only on natural expiry, not when a status is cleansed or its target falls. */
-export const tierIVExpires = (target: Combatant): boolean =>
-  (target.cardProtectionTurns === 1 &&
+export const tierIVExpires = (target: Combatant, countProtection = true): boolean =>
+  (countProtection && target.cardProtectionTurns === 1 &&
     target.statuses.protection === TIERED_MAX_TIER) ||
   (target.instinctTurns === 1 &&
     target.statuses.instinct === TIERED_MAX_TIER) ||
   (target.enfeebleTurns === 1 && target.statuses.enfeeble === TIERED_MAX_TIER);
 
 /** Spend a turn only after the enemies had a turn (not on wave arrival). */
-export const tickStackingBuffs = <T extends Combatant>(target: T): T => {
-  const { cardProtectionTurns, enfeebleTurns, instinctTurns } = target;
-  if (!cardProtectionTurns && !enfeebleTurns && !instinctTurns) return target;
+export const tickStackingBuffs = <T extends Combatant>(target: T, countProtection = true): T => {
+  const protectedTarget = countProtection ? tickProtection(target) : target;
+  const { enfeebleTurns, instinctTurns } = protectedTarget;
+  if (!enfeebleTurns && !instinctTurns) return protectedTarget;
   return {
-    ...target,
-    ...(cardProtectionTurns
-      ? { cardProtectionTurns: cardProtectionTurns - 1 }
-      : {}),
+    ...protectedTarget,
     ...(enfeebleTurns ? { enfeebleTurns: enfeebleTurns - 1 } : {}),
     ...(instinctTurns ? { instinctTurns: instinctTurns - 1 } : {}),
     statuses: {
-      ...target.statuses,
-      ...(cardProtectionTurns === 1 ? { protection: 0 } : {}),
+      ...protectedTarget.statuses,
       ...(enfeebleTurns === 1 ? { enfeeble: 0 } : {}),
       ...(instinctTurns === 1 ? { instinct: 0 } : {}),
     },

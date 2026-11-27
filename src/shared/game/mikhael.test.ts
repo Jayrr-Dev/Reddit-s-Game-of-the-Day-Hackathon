@@ -47,3 +47,21 @@ void test('Heavenbreaker Charge closes from Horizon before hitting and respects 
   const blockers = [0, 1, 2].map(col => ({ ...createHeroUnit('squire', 30 + col, 1), row: 'front' as const, col }));
   assert.notEqual(plannedHeroMove(unit, [unit, ...blockers])?.move.name, MIKHAEL_CHARGE_NAME);
 });
+
+void test("Marshal's Ward protects Mikhael for three full player turns without counting the cast turn", () => {
+  const start = startCombat({ hp: 333, maxHp: 333, deck: ['backhand'], heroIds: ['archangelMikhael'], might: 1, seed: 9 });
+  const ward = endTurnSteps(start).find(beat => beat.move?.name.includes('Ward'));
+  assert.equal(ward?.state.heroes[0]?.cardProtectionTurns, 3);
+  const first = endTurn(start);
+  assert.equal(first.heroes[0]?.cardProtectionTurns, 3);
+  assert.equal(first.heroes[0]?.statuses.protection, 1);
+  const second = endTurn(first);
+  assert.equal(second.heroes[0]?.cardProtectionTurns, 2);
+  assert.equal(second.heroes[0]?.statuses.protection, 1);
+  const third = endTurn(second);
+  assert.equal(third.heroes[0]?.cardProtectionTurns, 1);
+  assert.equal(third.heroes[0]?.statuses.protection, 1);
+  const expired = endTurnSteps(third)[0]?.state.heroes[0];
+  assert.equal(expired?.cardProtectionTurns, 0);
+  assert.equal(expired?.statuses.protection, 0);
+});

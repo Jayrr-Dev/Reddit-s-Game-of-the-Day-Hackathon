@@ -147,7 +147,7 @@ export type Combatant = {
   shockDamageTaken?: number;
   /** True when Protection was cast this turn (else it lapses at turn end). */
   protectionCast?: boolean;
-  /** Enemy turns remaining for Protection cast by a player card. */
+  /** Opposing turns remaining for timed Protection. */
   cardProtectionTurns?: number;
   /** The only card type Fatigue ALL raises (none: every card). */
   fatigueAllType?: CardType | undefined;
@@ -421,8 +421,8 @@ export type HeroEffect =
   | { kind: 'cloak'; amount: number }
   | { kind: 'wrath'; amount: number; who: 'self' | 'allies' }
   | { kind: 'heal'; amount: number; who: 'self' | 'allies' }
-  /** Casts Protection (a tier up) on itself or every hero; spent when their next turn starts. */
-  | { kind: 'protect'; who: 'self' | 'allies' }
+  /** Casts Protection (a tier up); untimed casts expire at the start of the next hero turn. */
+  | { kind: 'protect'; who: 'self' | 'allies'; turns?: number }
   | { kind: 'dispel'; amount: number }
   | { kind: 'disrupt'; amount: number }
   /** Removes 1 random affliction from itself, or from each ally. */

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { mikhaelCelAt, mikhaelSwordClip, MIKHAEL_SWORD_DURATION_MS, type MikhaelAttackClip } from '../../../content/mikhaelMotion';
 import type { HeroAction } from '../../../content/heroLooks';
 import type { HeroSize } from '../../../../shared/game/types';
@@ -23,6 +23,9 @@ const ROWS = 3;
 const RIG_WIDTH_SHARE = 1.74;
 const GROUND = 98;
 const FOOT_SHARE = 0.932;
+// The source sword cels have a dark oval below the boots. Key it out
+// only in the foot strip; the separate World/Floor shadow stays put.
+const FOOT_STRIP_Y = 332;
 
 /** Advances a cached texture through its authored cels without redrawing the stage. */
 function MikhaelAttackAtlas({ clip }: { clip: MikhaelAttackClip }) {
@@ -77,6 +80,7 @@ function MikhaelIdleWind() {
 
 /** Draws the registered sword rig with its pinned wings, halo and accent frames. */
 export function MikhaelSwordRig({ size, action }: { size: HeroSize; action?: HeroAction | null | undefined }) {
+  const poseId = useId();
   const clip = mikhaelSwordClip(action);
   const width = BODY_WIDTH[size] * RIG_WIDTH_SHARE;
   const height = width * CELL_H / CELL_W;
@@ -88,8 +92,24 @@ export function MikhaelSwordRig({ size, action }: { size: HeroSize; action?: Her
   <svg data-mikhael-motion={clip} data-mikhael-weapon="sword" pointerEvents="none"
     x={(BODY_WIDTH[size] - width) / 2} y={GROUND - height * FOOT_SHARE} width={width} height={height}
     viewBox={'0 0 ' + CELL_W + ' ' + CELL_H} overflow="hidden" preserveAspectRatio="none">
-    {clip === 'idle' ? <MikhaelIdleWind /> : clip === 'rally'
-      ? <ProgressiveSvgImage href={rally} width={CELL_W} height={CELL_H} />
-      : <MikhaelAttackAtlas key={clip} clip={clip} />}
+    <defs>
+      <g id={poseId}>
+        {clip === 'idle' ? <MikhaelIdleWind /> : clip === 'rally'
+          ? <ProgressiveSvgImage href={rally} width={CELL_W} height={CELL_H} />
+          : <MikhaelAttackAtlas key={clip} clip={clip} />}
+      </g>
+      <clipPath id={`${poseId}-upper`}>
+        <rect width={CELL_W} height={FOOT_STRIP_Y} />
+      </clipPath>
+      <filter id={`${poseId}-boots`} filterUnits="userSpaceOnUse"
+        x={0} y={FOOT_STRIP_Y} width={CELL_W} height={CELL_H - FOOT_STRIP_Y}
+        colorInterpolationFilters="sRGB">
+        <feColorMatrix in="SourceGraphic" result="bootMask" type="matrix"
+          values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  8 8 0 0 -.95" />
+        <feComposite in="SourceGraphic" in2="bootMask" operator="in" />
+      </filter>
+    </defs>
+    <use href={`#${poseId}`} clipPath={`url(#${poseId}-upper)`} />
+    <use href={`#${poseId}`} filter={`url(#${poseId}-boots)`} />
   </svg></g>;
 }

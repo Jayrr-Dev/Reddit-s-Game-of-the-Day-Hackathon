@@ -273,11 +273,11 @@ const statusChipsOf = (
     const timedTurns = id === 'protection' ? combatant.cardProtectionTurns ?? 0
       : id === 'enfeeble' ? combatant.enfeebleTurns ?? 0
       : id === 'instinct' ? combatant.instinctTurns ?? 0 : 0;
-    // TURNS LEFT: timed tiers count down; card Protection and Reflex last until the unit's next turn.
+    // TURNS LEFT: timed tiers count down; untimed Protection and Reflex show one turn.
     const turnsLeft = timedTurns > 0 ? timedTurns
       : id === 'protection' || id === 'reflex' ? 1 : undefined;
     const durationText = timedTurns > 0
-      ? timedTurns + (timedTurns === 1 ? ' enemy turn left.' : ' enemy turns left.')
+      ? timedTurns + (timedTurns === 1 ? ' turn left.' : ' turns left.')
       : id === 'protection' ? 'Expires when this unit next starts its turn.' : '';
     return [{
       ...(turnsLeft !== undefined && { turnsLeft }),

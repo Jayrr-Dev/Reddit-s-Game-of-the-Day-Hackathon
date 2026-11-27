@@ -46,7 +46,8 @@
 .taxiarch-vortex-disc {
   position:absolute; top:38%; left:50%; width:max(108%,440px); aspect-ratio:1;
   translate:-50% -50%; background-size:100% 100%; background-repeat:no-repeat;
-  animation:taxiarch-storm-eye 46s linear infinite;
+  /* Matching slopes at both ends keep the eased loop seamless. */
+  animation:taxiarch-storm-eye 92s cubic-bezier(.33,.18,.67,.82) infinite;
 }
 @keyframes taxiarch-storm-eye { to { transform:rotate(1turn); } }
 @media (prefers-reduced-motion:reduce) { .taxiarch-vortex-disc { animation:none; } }
