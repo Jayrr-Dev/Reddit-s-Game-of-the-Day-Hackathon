@@ -30,7 +30,7 @@ void test('live buys start at the paid star, advance one node along a chosen arm
   const day = 'connected-ranks';
   const [first, second, third] = traitNodeArms('strength').left;
   assert.ok(first && second && third);
-  const fresh = createRun(day);
+  const fresh = createRun(day, undefined, 0, 1);
   assert.equal(runReducer(fresh, chooseNode('strength', first, true)), fresh);
   const root = chooseNode('strength', 1, true);
   const start = runReducer(fresh, root);
@@ -41,7 +41,7 @@ void test('live buys start at the paid star, advance one node along a chosen arm
     chooseNode('strength', second, true),
     enter,
   ];
-  const playing = replayRun(day, actions);
+  const playing = replayRun(day, actions, undefined, 0, 1);
   assert.ok(playing.phase.kind === 'combat');
   assert.equal(playing.character.traits.strength, 3);
   assert.equal(
@@ -69,7 +69,7 @@ void test('live buys start at the paid star, advance one node along a chosen arm
     )
   );
   assert.deepEqual(
-    replayForScore(day, [...actions, refund]).phase,
+    replayForScore(day, [...actions, refund], 1).phase,
     changed.phase
   );
   for (const invalid of [0, -1, 65, 2.5])

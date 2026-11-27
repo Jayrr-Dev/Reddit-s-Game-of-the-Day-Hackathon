@@ -104,7 +104,7 @@ export type RingShopResponse = {
 export type BuyRingRequest = { ringId: ShopOfferId; offerDay: string; testVisit?: string };
 export type { ShopReward } from '../game/ringShop.ts';
 export type BuyRingResponse = { status: 'bought' | 'owned' | 'short' | 'stale' | 'retry'; shop: RingShopResponse; reward?: ShopReward };
-export type RunProfile = { id: string; wins: number; shopRings?: ShopRingId[]; pandoraEffect?: PandoraRunEffect; cardRules?: 1; carriedCard?: CardId; carriedCards?: CardId[] };
+export type RunProfile = { id: string; wins: number; shopRings?: ShopRingId[]; pandoraEffect?: PandoraRunEffect; cardRules?: 1; progressionVersion?: 2; carriedCard?: CardId; carriedCards?: CardId[] };
 export type StartRunResponse = {
   build?: import('../game/playerBuild.ts').PlayerBuild;
   profile?: RunProfile;

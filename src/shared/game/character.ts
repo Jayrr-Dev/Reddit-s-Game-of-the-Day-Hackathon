@@ -35,9 +35,10 @@ const prefixes = Array.from({ length: TRAIT_CAP + 1 }, (_, count) => nodeIds.sli
 export const isTraitNode = (id: unknown): id is number => isTraitRank(id) && id > 0;
 export const traitNodeIds = (traits: Partial<Traits>, nodes: TraitNodes | undefined, trait: TraitId): readonly number[] =>
   nodes?.[trait] ?? prefixes[traits[trait] ?? 0]!;
-export const LEVEL_CAP = 70;
-const PREVIOUS_LEVEL_CAP = 100;
-const TRAIT_POINTS_PER_LEVEL = 3;
+export const LEVEL_CAP = 100;
+const LEGACY_RUN_LEVEL_CAP = 70;
+const LEGACY_TRAIT_POINTS_PER_LEVEL = 3;
+const TRAIT_POINTS_PER_LEVEL = 2;
 export const RING_SLOT_COUNT = 5;
 export const isRingIndex = (n: unknown): n is number =>
   typeof n === 'number' && Number.isInteger(n) && n >= 0 && n < RING_SLOT_COUNT;
@@ -53,6 +54,8 @@ export type EquipmentSlot = 'ring' | 'amulet';
 type Item = { id: string; name: string; slot: EquipmentSlot };
 export type CharacterState = {
   skillPicks?: SkillPick[];
+  /** Retained only by runs started before the progression update. */
+  legacyProgression?: true;
   level: number;
   xp: number;
   traits: Traits;
@@ -96,7 +99,7 @@ export const createCharacter = (ringProgress: RingProgress = {bossWins: 0, rareS
 export const isTrait = (id: unknown): id is TraitId =>
   TRAITS.some((trait) => trait === id);
 export const traitPointsAvailable = (character: CharacterState) =>
-  TRAIT_POINTS_PER_LEVEL * character.level -
+  (character.legacyProgression ? LEGACY_TRAIT_POINTS_PER_LEVEL : TRAIT_POINTS_PER_LEVEL) * character.level -
   TRAITS.reduce((sum, id) => sum + character.traits[id], 0);
 
 export const isTraitRank = (rank: unknown): rank is number =>
@@ -342,32 +345,34 @@ export const discardItem = (character: CharacterState, id: string): CharacterSta
 };
 
 const levelXpThreshold = (level: number) => 100 + 5 * (level - 1);
-export const xpToNextLevel = (level: number) =>
-  level >= LEVEL_CAP ? 0 : levelXpThreshold(level);
+export const xpToNextLevel = (level: number, legacyProgression = false) =>
+  level >= (legacyProgression ? LEGACY_RUN_LEVEL_CAP : LEVEL_CAP) ? 0 : levelXpThreshold(level);
 export const awardCharacterVictory = (
   character: CharacterState
 ): CharacterState => {
-  if (character.level >= LEVEL_CAP) return character;
+  const cap = character.legacyProgression ? LEGACY_RUN_LEVEL_CAP : LEVEL_CAP;
+  if (character.level >= cap) return character;
   const xp = character.xp + 100;
   const threshold = xpToNextLevel(character.level);
   if (xp < threshold) return { ...character, xp };
   const level = character.level + 1;
-  return { ...character, level, xp: level === LEVEL_CAP ? 0 : xp - threshold };
+  return { ...character, level, xp: level === cap ? 0 : xp - threshold };
 };
 
-/** Preserve the old build proportions with integer quotas and stable trait-order ties. */
-export function progressionFromWins(wins: number) {
+/** Reconstruct lifetime level and XP under the rules used when the run began. */
+export function progressionFromWins(wins: number, legacyProgression = false) {
   let level = 1;
   let xp = Math.max(0, Math.floor(wins)) * 100;
-  while (level < LEVEL_CAP && xp >= xpToNextLevel(level)) {
+  const cap = legacyProgression ? LEGACY_RUN_LEVEL_CAP : LEVEL_CAP;
+  while (level < cap && xp >= xpToNextLevel(level)) {
     xp -= xpToNextLevel(level);
     level++;
   }
-  return { level, xp: level === LEVEL_CAP ? 0 : xp };
+  return { level, xp: level === cap ? 0 : xp };
 }
 
-function fitLegacyBuild(traits: Traits, spent: number): Traits {
-  const budget = LEVEL_CAP * TRAIT_POINTS_PER_LEVEL;
+/** Preserve build proportions with integer quotas and stable trait-order ties. */
+function fitLegacyBuild(traits: Traits, spent: number, budget: number): Traits {
   if (spent <= budget) return traits;
   const adjusted = { ...traits };
   const shares = TRAITS.map(id => {
@@ -388,10 +393,10 @@ export const restoreCharacter = (value: unknown, training = false): CharacterSta
   if (
     !Number.isInteger(level) ||
     level < 1 ||
-    level > PREVIOUS_LEVEL_CAP ||
+    level > LEVEL_CAP ||
     !Number.isInteger(xp) ||
     xp < 0 ||
-    xp >= (level === PREVIOUS_LEVEL_CAP ? 1 : levelXpThreshold(level)) ||
+    xp >= (level === LEVEL_CAP ? 1 : levelXpThreshold(level)) ||
     !traits ||
     !TRAITS.every(
       (id) =>
@@ -402,9 +407,10 @@ export const restoreCharacter = (value: unknown, training = false): CharacterSta
   )
     return fresh;
   const spent = TRAITS.reduce((sum, id) => sum + traits[id], 0);
-  if (spent > level * TRAIT_POINTS_PER_LEVEL) return fresh;
-  const restoredLevel = Math.min(level, LEVEL_CAP);
-  const restoredTraits = level > LEVEL_CAP ? fitLegacyBuild(traits, spent) : traits;
+  if (spent > level * LEGACY_TRAIT_POINTS_PER_LEVEL) return fresh;
+  const restoredLevel = level;
+  // Older saves could spend three points per level. Keep the build, trimming only its excess allocation.
+  const restoredTraits = fitLegacyBuild(traits, spent, restoredLevel * TRAIT_POINTS_PER_LEVEL);
   const savedItems = (value as Partial<CharacterState>).inventory;
   const inventory = Array.isArray(savedItems)
     ? savedItems.filter(

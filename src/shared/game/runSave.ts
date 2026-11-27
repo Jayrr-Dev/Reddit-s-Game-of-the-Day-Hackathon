@@ -108,17 +108,18 @@ const restoreActions = (
   raw: unknown[],
   initialRings: RingProgress,
   attempt: number,
-  connected: boolean
+  connected: boolean,
+  legacyProgression: boolean
 ): LoggedRun => {
   const valid = raw.filter(isRunAction);
   if (connected || !valid.some((action) => action.type === 'setTraitNode'))
     return {
-      run: replayRun(day, valid, initialRings, attempt),
+      run: replayRun(day, valid, initialRings, attempt, 0, [], undefined, undefined, undefined, legacyProgression),
       actions: valid,
       initialRings,
       attempt,
     };
-  let run = createRun(day, initialRings, attempt);
+  let run = createRun(day, initialRings, attempt, 0, [], undefined, undefined, undefined, legacyProgression);
   const actions: RunAction[] = [];
   const previousIds = new Map<TraitId, readonly number[]>();
   for (const action of valid) {
@@ -190,7 +191,7 @@ export const restoreLoggedRun = (
     try {
       const saved = read(storage, logKey(day));
       if (Array.isArray(saved)) {
-        return restoreActions(day, saved, emptyProgress(), 0, false);
+        return restoreActions(day, saved, emptyProgress(), 0, false, true);
       }
       if (
         saved &&
@@ -209,18 +210,20 @@ export const restoreLoggedRun = (
           'wins' in saved.profile && typeof saved.profile.wins === 'number' && Number.isSafeInteger(saved.profile.wins)) {
           const profile = { id: saved.profile.id, wins: saved.profile.wins, ...('shopRings' in saved.profile && { shopRings: shopRingIds(saved.profile.shopRings) }),
             ...('pandoraEffect' in saved.profile && isPandoraRunEffect(saved.profile.pandoraEffect) && { pandoraEffect: saved.profile.pandoraEffect }),
+            ...('progressionVersion' in saved.profile && saved.profile.progressionVersion === 2 && { progressionVersion: 2 as const }),
             ...('cardRules' in saved.profile && saved.profile.cardRules === 1 && { cardRules: 1 as const }),
             ...('carriedCards' in saved.profile && isCarriedDeck(saved.profile.carriedCards) && { carriedCards: saved.profile.carriedCards }),
             ...('carriedCard' in saved.profile && isCardId(saved.profile.carriedCard) && { carriedCard: saved.profile.carriedCard }) };
           const actions = saved.actions.filter(isRunAction);
-          return { run: replayRun(day, actions, initialRings, saved.attempt, profile.wins, profile.shopRings, profile.pandoraEffect, profile.cardRules, profile.carriedCards ?? profile.carriedCard), attempt: saved.attempt, initialRings, actions, profile };
+          return { run: replayRun(day, actions, initialRings, saved.attempt, profile.wins, profile.shopRings, profile.pandoraEffect, profile.cardRules, profile.carriedCards ?? profile.carriedCard, profile.progressionVersion !== 2), attempt: saved.attempt, initialRings, actions, profile };
         }
         return restoreActions(
           day,
           saved.actions,
           initialRings,
           saved.attempt,
-          'traitRuleVersion' in saved && saved.traitRuleVersion === 5
+          'traitRuleVersion' in saved && saved.traitRuleVersion === 5,
+          !('progressionVersion' in saved && saved.progressionVersion === 2)
         );
       }
       return newAttempt(day, lifetimeRings(storage), 0);
@@ -278,6 +281,7 @@ export const saveLoggedRun = (state: LoggedRun, storage?: SaveStore): void => {
       key,
       JSON.stringify({
         traitRuleVersion: 5,
+        ...(!state.run.character.legacyProgression && { progressionVersion: 2 }),
         profile: state.profile,
         initialRings: state.initialRings,
         attempt: state.attempt,

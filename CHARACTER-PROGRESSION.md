@@ -1,8 +1,8 @@
 # Character progression
 
-Character level runs from 1 to 70. A new character has three unspent points and earns three more at each level, giving 210 points in total. Each of the six traits has 64 ranks. Buying all six would cost 384 points, so a level-70 character can fully specialize in three traits and still have 18 points to spend. Points can be saved.
+Character level runs from 1 to 100. A new character has two unspent trait points and earns two more at each level, giving 200 trait points in total. Each of the six traits has 64 ranks. Buying all six would cost 384 points, so a level-100 character can fully specialize in three traits and still have 8 points to spend. Points can be saved.
 
-A battle victory grants 100 XP. Reaching the next level costs 100 XP at level 1 and five more XP for each subsequent level. Unused XP carries over. In a ranked run, the character progresses with that run. Illusion Training starts at level 70 with all 210 points available. Its locally saved build can be respecced for free at any time, including during combat. Older characters above level 70 keep their equipment and unlocks. Builds within 210 spent points keep each rank. Over-budget builds retain the same proportions, with leftover points assigned to the largest fractional shares and ties resolved in trait order.
+A battle victory grants 100 XP. Reaching the next level costs 100 XP at level 1 and five more XP for each subsequent level. Unused XP carries over. In a ranked run, the character progresses with that run. Illusion Training starts at level 100 and uses the 200-point budget. Its locally saved build can be respecced for free at any time, including during combat. Older characters keep their equipment and unlocks. Builds within the new two-points-per-level budget keep each rank. Over-budget builds retain the same proportions, with leftover points assigned to the largest fractional shares and ties resolved in trait order.
 
 ## Trait boards
 

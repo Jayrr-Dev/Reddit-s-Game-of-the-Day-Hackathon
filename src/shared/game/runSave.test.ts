@@ -6,7 +6,7 @@ import {
   traitNodeArms,
   traitNodeIds,
 } from './character.ts';
-import { replayForScore } from './replayForScore.ts';
+import { replayForScore, replayForScoreAndUnlocks } from './replayForScore.ts';
 import { playBotRun } from './testBot.ts';
 import {
   restartLoggedRun,
@@ -111,7 +111,7 @@ void test('saved logs restore a mix of old rank edits and new individual node se
     ),
     [1]
   );
-  assert.deepEqual(restored.run, replayRun('rank-migration', restored.actions));
+  assert.deepEqual(restored.run, replayRun('rank-migration', restored.actions, undefined, 0, 0, [], undefined, undefined, undefined, true));
   saveLoggedRun(restored, storage);
   assert.deepEqual(
     restoreLoggedRun('rank-migration', storage).run,
@@ -146,7 +146,7 @@ void test('legacy disconnected buys and an interior refund migrate once, while n
     'strength'
   );
   assert.deepEqual(ids, normalizeTraitNodeIds('strength', [b, c]));
-  assert.deepEqual(migrated.run, replayRun('legacy-arms', migrated.actions));
+  assert.deepEqual(migrated.run, replayRun('legacy-arms', migrated.actions, undefined, 0, 0, [], undefined, undefined, undefined, true));
   saveLoggedRun(migrated, storage);
   assert.deepEqual(restoreLoggedRun('legacy-arms', storage), migrated);
   const saved = JSON.parse(storage.getItem(key)!);
@@ -157,3 +157,23 @@ void test('legacy disconnected buys and an interior refund migrate once, while n
   );
 });
 
+
+
+void test('saved runs and server replays use the point budget from when the run began', () => {
+  const storage = store();
+  const day = 'progression-version';
+  const key = 'villain-arc:run:' + day;
+  const actions: RunAction[] = [{ type: 'setTraitRank', trait: 'strength', rank: 3 }];
+  const base = { attempt: 0, initialRings: { bossWins: 0, rareSlots: [] }, traitRuleVersion: 5, actions };
+  const profile = { id: 'old-or-new', wins: 0 };
+  storage.setItem(key, JSON.stringify({ ...base, profile }));
+  const legacy = restoreLoggedRun(day, storage);
+  assert.equal(legacy.run.character.traits.strength, 3);
+  assert.equal(replayForScoreAndUnlocks(day, actions, 0, [], undefined, undefined, undefined, true).state.character.traits.strength, 3);
+  storage.setItem(key, JSON.stringify({ ...base, profile: { ...profile, progressionVersion: 2 } }));
+  const current = restoreLoggedRun(day, storage);
+  assert.equal(current.run.character.traits.strength, 0);
+  assert.equal(replayForScoreAndUnlocks(day, actions).state.character.traits.strength, 0);
+  saveLoggedRun(current, storage);
+  assert.deepEqual(restoreLoggedRun(day, storage), current);
+});

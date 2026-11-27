@@ -146,14 +146,14 @@ const EMPTY_STATS: RunStats = {
 // --- CREATION ---
 
 /** Owned shop rings are part of the trusted run baseline, not a player action. */
-const initialCharacter = (ringProgress: RingProgress | undefined, wins: number, shopRings: readonly ShopRingId[]) => {
+const initialCharacter = (ringProgress: RingProgress | undefined, wins: number, shopRings: readonly ShopRingId[], legacyProgression: boolean) => {
   const character = createCharacter(ringProgress);
-  return { ...character, ...progressionFromWins(wins), inventory: [...character.inventory, ...ringInventory(shopRings)] };
+  return { ...character, ...progressionFromWins(wins, legacyProgression), ...(legacyProgression && { legacyProgression: true as const }), inventory: [...character.inventory, ...ringInventory(shopRings)] };
 };
 
 /** The start of the day's run: full HP, starter deck, first crossroads. */
 export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt = 0, wins = 0,
-  shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[]): RunState => {
+  shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[], legacyProgression = false): RunState => {
   const carriedCards = typeof carried === 'string' ? [carried] : carried ? [...carried] : [];
   const maxHp = PLAYER_MAX_HP + (pandoraEffect === 'lasting-vigor' ? PANDORA_MAX_HP_GAIN : pandoraEffect === 'brittle-blood' ? -PANDORA_MAX_HP_LOSS : 0);
   return {
@@ -161,7 +161,7 @@ export const createRun = (dailyKey: string, ringProgress?: RingProgress, attempt
   ...(pandoraEffect && { pandoraEffect, baseMaxHp: maxHp }),
   dailyKey,
   stop: 1,
-  character: initialCharacter(ringProgress, wins, shopRings),
+  character: initialCharacter(ringProgress, wins, shopRings, legacyProgression),
   hp: (pandoraEffect === 'half-life' || pandoraEffect === 'half-life-double-gold') ? Math.ceil(maxHp / 2) : maxHp,
   maxHp,
   deck: appendCarriedCards(STARTER_DECK, carriedCards),
@@ -443,8 +443,8 @@ export const replayRun = (
   dailyKey: string,
   actions: readonly RunAction[],
   ringProgress?: RingProgress,
-  attempt = 0, wins = 0, shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[]
-): RunState => actions.reduce(runReducer, createRun(dailyKey, ringProgress, attempt, wins, shopRings, pandoraEffect, cardRules, carried));
+  attempt = 0, wins = 0, shopRings: readonly ShopRingId[] = [], pandoraEffect?: PandoraRunEffect, cardRules?: 1, carried?: CardId | readonly CardId[], legacyProgression = false
+): RunState => actions.reduce(runReducer, createRun(dailyKey, ringProgress, attempt, wins, shopRings, pandoraEffect, cardRules, carried, legacyProgression));
 
 /** True once the heroes have stopped the villain. */
 export const isRunOver = (state: RunState): boolean =>

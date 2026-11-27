@@ -28,18 +28,18 @@ import { createSandbox } from './sandbox.ts';
 import { createRun, isRunAction, replayRun, runReducer } from './run.ts';
 import { PLAYER_HP_CAP, PLAYER_MAX_HP } from './rules.ts';
 
-void test('70 levels fund 210 points while each of six traits caps at 64', () => {
+void test('100 levels fund 200 points while each of six traits caps at 64', () => {
   let character = createCharacter();
-  assert.equal(traitPointsAvailable(character), 3);
+  assert.equal(traitPointsAvailable(character), 2);
   while (character.level < LEVEL_CAP) character = awardCharacterVictory(character);
-  assert.equal(traitPointsAvailable(character), 210);
+  assert.equal(traitPointsAvailable(character), 200);
   assert.equal(awardCharacterVictory(character), character);
   for (const trait of TRAITS) {
     for (let i = 0; i < 65; i++) character = allocateTrait(character, trait);
     assert.ok(character.traits[trait] <= 64);
   }
   assert.equal(traitPointsAvailable(character), 0);
-  assert.deepEqual(Object.values(character.traits), [64, 64, 64, 18, 0, 0]);
+  assert.deepEqual(Object.values(character.traits), [64, 64, 64, 8, 0, 0]);
 });
 
 void test('full traits keep every endpoint after the 1-1-1-5 arm payout', () => {
@@ -135,25 +135,25 @@ void test('five rings equip independently and legacy single-ring saves restore t
 
 void test('direct rank edits refund points and reject invalid targets atomically', () => {
   const c = createCharacter();
-  const action = { type: 'setTraitRank', trait: 'strength', rank: 3 } as const;
+  const action = { type: 'setTraitRank', trait: 'strength', rank: 2 } as const;
   assert.ok(isRunAction(action));
   for (const rank of [-1, 65, 1.5, NaN, Infinity]) {
     assert.equal(isRunAction({ ...action, rank }), false);
     assert.equal(setTraitRank(c, 'strength', rank), c);
   }
-  const spent = setTraitRank(c, 'strength', 3);
+  const spent = setTraitRank(c, 'strength', 2);
   assert.equal(traitPointsAvailable(spent), 0);
   assert.equal(setTraitRank(spent, 'vigor', 1), spent);
-  assert.equal(setTraitRank(spent, 'strength', 3), spent);
+  assert.equal(setTraitRank(spent, 'strength', 2), spent);
   const partial = setTraitRank(spent, 'strength', 1);
-  assert.equal(traitPointsAvailable(partial), 2);
-  assert.equal(setTraitRank(partial, 'dexterity', 2).traits.dexterity, 2);
+  assert.equal(traitPointsAvailable(partial), 1);
+  assert.equal(setTraitRank(partial, 'dexterity', 1).traits.dexterity, 1);
   assert.deepEqual(replayRun('spiral', [action]).character, spent);
 });
 
 void test('refunding and rebuying Vigor cannot heal in camp or combat', () => {
   const start = createRun('vigor-refund');
-  const buy = { type: 'setTraitRank', trait: 'vigor', rank: 3 } as const;
+  const buy = { type: 'setTraitRank', trait: 'vigor', rank: 2 } as const;
   const refund = { ...buy, rank: 0 };
   const trained = runReducer(start, buy);
   const wounded = { ...trained, hp: 1 };
@@ -200,7 +200,7 @@ void test('all six traits grow across 64 ranks without changing equipment bonuse
   assert.equal(characterBonuses({ endurance: 64 }).startingEnergy, 6);
   assert.equal(characterBonuses().afflictionDamagePercent, 0);
 });
-void test('old level-100 saves retain equipment and unlocks and fit 300 spent points into 210', () => {
+void test('old level-100 saves retain equipment and unlocks and fit 300 spent points into 200', () => {
   const original = createCharacter({ bossWins: 3, rareSlots: [8] });
   const saved = {
     ...equipItem(original, 'amulet', 'travelers-amulet'),
@@ -208,10 +208,10 @@ void test('old level-100 saves retain equipment and unlocks and fit 300 spent po
     traits: { vigor: 64, strength: 64, dexterity: 64, intelligence: 64, scorn: 44, endurance: 0 },
   };
   const restored = restoreCharacter(JSON.parse(JSON.stringify(saved)));
-  assert.equal(restored.level, 70);
+  assert.equal(restored.level, 100);
   assert.equal(restored.xp, 0);
   assert.deepEqual(restored.traits,
-    { vigor: 45, strength: 45, dexterity: 45, intelligence: 45, scorn: 30, endurance: 0 });
+    { vigor: 43, strength: 43, dexterity: 43, intelligence: 42, scorn: 29, endurance: 0 });
   assert.equal(traitPointsAvailable(restored), 0);
   assert.equal(restored.highestVigor, 64);
   assert.deepEqual(restored.equipment, saved.equipment);
@@ -220,18 +220,18 @@ void test('old level-100 saves retain equipment and unlocks and fit 300 spent po
   assert.deepEqual(restoreCharacter(restored), restored);
 });
 
-void test('legacy builds within budget keep every rank and drop obsolete XP at the new cap', () => {
+void test('legacy builds within budget keep their rank, level and valid XP', () => {
   const character = { ...createCharacter(), level: 85, xp: 37 };
   character.traits.dexterity = 64;
   character.traits.scorn = 30;
   const saved = equipItem(character, 'ring', null);
   const restored = restoreCharacter(JSON.parse(JSON.stringify(saved)), true);
-  assert.equal(restored.level, 70);
-  assert.equal(restored.xp, 0);
+  assert.equal(restored.level, 85);
+  assert.equal(restored.xp, 37);
   assert.deepEqual(restored.traits, saved.traits);
   assert.deepEqual(restored.equipment, saved.equipment);
-  assert.equal(traitPointsAvailable(restored), 116);
-  assert.equal(restoreCharacter({ ...saved, level: 70, xp: 200 }).xp, 0);
+  assert.equal(traitPointsAvailable(restored), 76);
+  assert.equal(restoreCharacter({ ...saved, level: 70, xp: 200 }).xp, 200);
 });
 void test('all three curls preserve each of the 64 original node gains', () => {
   const fresh = { ...createCharacter(), level: LEVEL_CAP };
@@ -259,20 +259,20 @@ void test('all three curls preserve each of the 64 original node gains', () => {
     assert.equal(traitNodeIds(refund.traits, refund.traitNodes, trait).length, 63);
     assert.equal(traitNodeIds(refund.traits, refund.traitNodes, trait).includes(64), false);
     assert.equal(setTraitNode(refund, trait, 64, false), refund);
-    assert.equal(traitPointsAvailable(refund), 147);
+    assert.equal(traitPointsAvailable(refund), 137);
   }
 });
 
 void test('sparse board saves round-trip and reject invalid or overbudget purchases', () => {
-  let character = createCharacter();
+  let character = { ...createCharacter(), level: 2 };
   const { left, mixed } = traitNodeArms('vigor');
   for (const id of [1, left[0]!, mixed[0]!]) character = setTraitNode(character, 'vigor', id, true);
   assert.deepEqual(traitNodeIds(character.traits, character.traitNodes, 'vigor'), [1, left[0]!, mixed[0]!].sort((a,b) => a-b));
-  assert.equal(setTraitNode(character, 'strength', 1, true), character);
+  assert.notEqual(setTraitNode(character, 'strength', 1, true), character);
   for (const id of [-1,0,65,1.2,NaN]) assert.equal(setTraitNode(character, 'vigor', id, false), character);
   assert.deepEqual(restoreCharacter(JSON.parse(JSON.stringify(character))), character);
   const legacy = restoreCharacter({ ...createCharacter(), traits: { ...createCharacter().traits, vigor: 3 } });
-  assert.deepEqual(traitNodeIds(legacy.traits, legacy.traitNodes, 'vigor'), normalizeTraitNodeIds('vigor', [1,2,3]));
+  assert.deepEqual(traitNodeIds(legacy.traits, legacy.traitNodes, 'vigor'), normalizeTraitNodeIds('vigor', [1,2]));
 });
 
 void test('prior specialist saves and actions preserve counts and favor their original stats', () => {
@@ -315,18 +315,18 @@ void test('buy the shared starter, progress curls independently, and refund only
   for (const id of [mixed[0]!, right[1]!, left[0]!, right[0]!, 1])
     character = setTraitNode(character, 'vigor', id, false);
   assert.equal(character.traits.vigor, 0);
-  assert.equal(traitPointsAvailable(character), 210);
+  assert.equal(traitPointsAvailable(character), 200);
 });
 
 void test('sparse saves receive the shared star and contiguous rewards on the invested curls', () => {
-  const base = createCharacter();
+  const base = { ...createCharacter(), level: 2 };
   const { left, right } = traitNodeArms('vigor');
   const original = [left[6]!, left[19]!, right[11]!];
   const old = { ...base, traits: { ...base.traits, vigor: 3 }, traitNodes: { vigor: original } };
   const migrated = restoreCharacter(old);
   assert.deepEqual(traitNodeIds(migrated.traits, migrated.traitNodes, 'vigor'),
     [1, left[0]!, right[0]!].sort((a,b) => a-b));
-  assert.equal(traitPointsAvailable(migrated), 0);
+  assert.equal(traitPointsAvailable(migrated), 1);
   assert.deepEqual(restoreCharacter(migrated), migrated);
   assert.deepEqual(normalizeTraitNodeIds('vigor', [64]), [1]);
 });

@@ -5,7 +5,10 @@
 // ===================================================================
 
 import { playSound } from '../../lib/gameAudio';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { traitPointsAvailable, xpToNextLevel, type CharacterState } from '../../../shared/game/character';
+import { skillPointsLeft } from '../../../shared/game/skills';
+import { Button } from '../ui/Button';
 import { regionIndexOf, regionName } from '../../../shared/game/kingdom';
 import { PANDORA_CURSE_BOUNTY, PANDORA_RUN_COPY } from '../../../shared/game/pandora';
 import { getItem } from '../../../shared/game/items';
@@ -107,6 +110,40 @@ export const StoryDefeat = ({ run, onContinue }: { run: RunState; onContinue: ()
   </div>;
 };
 
+/** A level-up summary keeps the new level, unspent points, and next goal together. */
+function LevelUpDialog({ character, onClose, onOpenCharacter }: {
+  character: CharacterState; onClose: () => void; onOpenCharacter: () => void;
+}) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const xpGoal = xpToNextLevel(character.level, character.legacyProgression);
+  const earnedTraits = traitPointsAvailable(character) -
+    traitPointsAvailable({ ...character, level: character.level - 1 });
+  useLayoutEffect(() => {
+    const node = dialog.current;
+    node?.showModal();
+    return () => { if (node?.open) node.close(); };
+  }, []);
+  return <dialog ref={dialog} className="level-up-dialog" aria-labelledby={titleId}
+    onCancel={event => { event.preventDefault(); onClose(); }}>
+    <p className="level-up-kicker">Level up!</p>
+    <h2 id={titleId}>Level {character.level}</h2>
+    <dl className="level-up-points">
+      <div><dt>Trait points</dt><dd><strong>+{earnedTraits}</strong> earned <span>{traitPointsAvailable(character)} available</span></dd></div>
+      <div><dt>Skill points</dt><dd><strong>+1</strong> earned <span>{skillPointsLeft(character)} available</span></dd></div>
+    </dl>
+    {xpGoal > 0 ? <div className="level-up-xp">
+      <p>{xpGoal - character.xp} XP to level {character.level + 1}</p>
+      <progress aria-label={'XP toward level ' + (character.level + 1)} value={character.xp} max={xpGoal} />
+      <small>{character.xp} / {xpGoal} XP</small>
+    </div> : <p className="level-up-kicker">Max level reached</p>}
+    <footer>
+      <Button variant="menu" onClick={onOpenCharacter}>Character Sheet</Button>
+      <Button variant="menuPrimary" onClick={onClose}>Continue</Button>
+    </footer>
+  </dialog>;
+}
+
 // --- COMPONENT ---
 /**
  * Fills the post exactly (no page scroll inside the feed). Combat owns
@@ -114,6 +151,8 @@ export const StoryDefeat = ({ run, onContinue }: { run: RunState; onContinue: ()
  */
 export const VillainRunGame = ({ run, runId, onAction }: VillainRunGameProps) => {
   const [showCharacter, setShowCharacter] = useState(false);
+  const [dismissedLevel, setDismissedLevel] = useState<string>();
+  const levelKey = (runId ?? run.dailyKey) + ':' + run.attempt + ':' + run.stop + ':' + run.character.level;
   const [readyWave, setReadyWave] = useState(run.stop);
   const lastPhase = useRef(run.phase.kind);
   const leveledAtReward = run.phase.kind === 'reward' && run.phase.leveledUp;
@@ -160,12 +199,6 @@ export const VillainRunGame = ({ run, runId, onAction }: VillainRunGameProps) =>
     <div className="run-board flex h-full w-full flex-col overflow-hidden" style={run.phase.kind === 'reward' ? undefined : { backgroundImage: `linear-gradient(#140e0bbc, #140d09e8), url("${regionArt.src}")` }}>
       <RunHud run={run} onOpenCharacter={() => setShowCharacter(true)} />
       <main className="flex min-h-0 flex-1 flex-col items-center justify-center-safe overflow-y-auto p-3">
-        {run.phase.kind === 'reward' && run.phase.leveledUp && (
-          <button type="button" className="level-up-notice" onClick={() => setShowCharacter(true)}>
-            <strong>Level up! Level {run.character.level}</strong>
-            <span>Open character sheet</span>
-          </button>
-        )}
         {apple && (
           <p className="mb-2 text-center text-xs text-accent">Found: {getItem(apple).name}. Give it to Metatron to refresh the shop.</p>
         )}
@@ -177,6 +210,11 @@ export const VillainRunGame = ({ run, runId, onAction }: VillainRunGameProps) =>
         )}
         <PhaseBody run={run} runId={runId} onAction={onAction} />
       </main>
+      {leveledAtReward && dismissedLevel !== levelKey && !showCharacter && (
+        <LevelUpDialog key={levelKey} character={run.character}
+          onClose={() => setDismissedLevel(levelKey)}
+          onOpenCharacter={() => { setDismissedLevel(levelKey); setShowCharacter(true); }} />
+      )}
       {showCharacter && (
         <BattleCharacterSheet deck={run.deck} vitals={{ hp: run.hp, maxHp: run.maxHp }} character={run.character} onAction={onAction} onClose={() => setShowCharacter(false)} />
       )}
