@@ -73,12 +73,13 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
     onBuyingChange(true);
     setBusy(id);
     setNote('');
+    let revealing = false;
     try {
       const result = await apiClient.buyRing({ ringId: id, offerDay: shop.offerDay, ...(shop.testVisit && { testVisit: shop.testVisit }) });
       setShop(result.shop);
       if (result.shop.testVisit) onTestInventory?.(result.shop.owned, result.shop.testVisit, result.shop.carryCards ?? []);
       if (result.status === 'bought' && !result.reward) onSale();
-      if (result.reward) setReward(result.reward);
+      if (result.reward) { revealing = true; setReward(result.reward); }
       setNote(result.status === 'bought' ? (result.shop.testVisit ? 'Test result applies to this visit only.' : 'Bought. Equip it in Profile.') :
         result.status === 'owned' ? 'This offer is no longer available.' :
         result.status === 'short' ? 'Not enough Gold.' :
@@ -89,7 +90,7 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
       setRetry(value => value + 1);
     } finally {
       busyRef.current = false;
-      onBuyingChange(false);
+      if (!revealing) onBuyingChange(false);
       setBusy(undefined);
     }
   }
@@ -168,6 +169,6 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
         </div>
       </div>
     </div>
-    {reward && <MysteryReveal reward={reward} onClose={() => { setReward(undefined); onSale(); }} />}
+    {reward && <MysteryReveal reward={reward} onClose={() => { setReward(undefined); onSale(); onBuyingChange(false); }} />}
   </section>;
 }

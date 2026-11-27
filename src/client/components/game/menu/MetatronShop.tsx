@@ -33,12 +33,34 @@ const SALE_LINES = [
   'Keep a little gold. Want is rarely satisfied.',
 ] as const;
 
-const WAIT_LINES = [
-  'Take your time. Haste is the most expensive thing I sell.',
-  'You’ve gone quiet. A good sign, usually.',
-  'Even the dust has learned to wait.',
-  'The door stays where it is.',
+const IDLE_LORE = [
+  'Xaten gave seven mortals forever. Every hundred years, he asks them to earn it again.',
+  'Heaven cast me into Hell for stealing from its treasury. They never asked for the key back.',
+  'An angel told me demons would never touch holy gold. I wish he could see my customers now.',
+  'Uriel held the Crimson Gate open until the last pilgrim crossed. I remember things like that.',
+  'Zadkiel called every order mercy. I used to wait for him to explain the difference.',
+  'Cerviel could stand watch in three places. He still took the coldest post himself.',
+  'Zeruel can command two suns. Funny how little warmth there is in him.',
+  "Cherubiel kept his broken halo. I suppose he never cared what Heaven called beautiful.",
+  'Raziel knew which shelf I emptied. He never said a word. I still wonder why.',
+  'Mori knew every knight by name. I have met archangels who cannot say the same.',
+  'The last lord kept his seat seven hundred years. Xaten never once promised him seven hundred more.',
+  "The bells sounded the same on my last morning in Heaven. I don't know what I expected.",
+  'My greatest treasure? The key to Heaven’s treasury. The rest I sell. That, I keep.',
 ] as const;
+const FIRST_IDLE_MS = 25_000;
+const NEXT_IDLE_MS = 42_000;
+const GREETING_DELAY_MS = 2000;
+
+/** Draw each memory at most once per shop visit. */
+function shuffleIdleLore() {
+  const lines: string[] = [...IDLE_LORE];
+  for (let i = lines.length - 1; i > 0; i--) {
+    const other = Math.floor(Math.random() * (i + 1));
+    [lines[i], lines[other]] = [lines[other]!, lines[i]!];
+  }
+  return lines;
+}
 
 const SCENE_WIDTH = 1200;
 const SCENE_HEIGHT = 675;
@@ -98,16 +120,36 @@ export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void
   const [line, setLine] = useState<number | null>(null);
   const [reaction, setReaction] = useState<{ serial: number; apple?: ShopApple }>({ serial: 0 });
   const [buying, setBuying] = useState(false);
-  const [waited, setWaited] = useState<number | null>(null);
+  const [idleLore] = useState(shuffleIdleLore);
+  const [idleCount, setIdleCount] = useState(0);
   const [showWait, setShowWait] = useState(false);
+  const [greetingReady, setGreetingReady] = useState(false);
   useEffect(() => {
-    if (buying || waited !== null) return;
-    const timer = window.setTimeout(() => {
-      setWaited(Math.floor(Math.random() * WAIT_LINES.length));
-      setShowWait(true);
-    }, 25_000);
+    const timer = window.setTimeout(() => setGreetingReady(true), GREETING_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [buying, reaction.serial, waited]);
+  }, []);
+  useEffect(() => {
+    if (buying || idleCount >= idleLore.length) return;
+    let timer: number | undefined;
+    const schedule = () => {
+      window.clearTimeout(timer);
+      if (document.hidden) return;
+      timer = window.setTimeout(() => {
+        setIdleCount(count => count + 1);
+        setShowWait(true);
+      }, idleCount === 0 ? FIRST_IDLE_MS : NEXT_IDLE_MS);
+    };
+    schedule();
+    document.addEventListener('pointerdown', schedule);
+    document.addEventListener('keydown', schedule);
+    document.addEventListener('visibilitychange', schedule);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('pointerdown', schedule);
+      document.removeEventListener('keydown', schedule);
+      document.removeEventListener('visibilitychange', schedule);
+    };
+  }, [buying, reaction.serial, idleCount, idleLore.length]);
   function greetPurchase() {
     setReaction(previous => ({ serial: previous.serial + 1 }));
     setShowWait(false);
@@ -119,7 +161,7 @@ export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void
     setShowWait(false);
     setReaction(previous => ({ serial: previous.serial + 1, apple }));
   }
-  const speech = showWait && waited !== null ? WAIT_LINES[waited] :
+  const speech = showWait ? idleLore[idleCount - 1] :
     reaction.apple === REALM_APPLE ? 'Dry as grave sand. I’d forgotten the taste. Come, see what I’ve kept under the cloth.' :
     reaction.apple ? 'An apple. You remembered. Let me see what else I have.' :
     line === null ? greeting : SALE_LINES[line];
@@ -150,7 +192,7 @@ export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void
 
     <div className="metatron-dialogue-layer">
       <div className="metatron-dialogue-frame">
-        <ShopSpeech key={showWait ? 'wait' : reaction.serial} isReply={reaction.serial > 0 || showWait} text={speech ?? ''} />
+        {!buying && (greetingReady || reaction.serial > 0 || showWait) && <ShopSpeech key={showWait ? 'wait-' + idleCount : reaction.serial} isReply={reaction.serial > 0 || showWait} text={speech ?? ''} />}
       </div>
     </div>
 
