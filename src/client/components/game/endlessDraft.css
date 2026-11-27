@@ -11,8 +11,8 @@
   .endless-packs { grid-template-columns:repeat(2,minmax(0,1fr)); max-width:340px; }
   .endless-pack .starter-art { height:clamp(48px,13vh,76px); }
 }
-.endless-draft-shell > .results-layout { padding-top:48px; }
-.endless-draft-tools { position:absolute; z-index:5; inset:10px 12px auto; display:flex; justify-content:space-between; pointer-events:none; }
+.endless-draft-shell > .results-layout { padding-top:58px; }
+.endless-draft-chrome { inset: var(--oak-frame-width); }
 .draft-tool { display:grid; place-items:center; width:34px; height:34px; flex:none; border:1px solid var(--color-accent); border-radius:50%;
   color:var(--color-accent); background:var(--color-surface-sunken); pointer-events:auto; }
 .draft-tool:focus-visible { outline:2px solid var(--color-accent-hover); outline-offset:2px; }

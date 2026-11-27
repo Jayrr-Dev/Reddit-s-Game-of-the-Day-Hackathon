@@ -3348,8 +3348,9 @@ textarea,
   background: #22170f url('./assets/table/character-oak-grain.webp') center / cover;
 }
 .run-board > header { border-bottom:2px ridge #a27f48; }
+:root { --oak-frame-width: 8px; }
 .run-panel, .death-script, .run-results, .run-menu-panel {
-  border:8px solid #795733;
+  border:var(--oak-frame-width) solid #795733;
   border-image:url('./assets/table/character-oak-frame.webp') 34 round;
 }
 .run-panel, .death-script { padding:clamp(12px,3vw,26px); }
