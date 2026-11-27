@@ -79,11 +79,12 @@ export function endlessDraftOffers(day: string, draft: EndlessDraft): DraftOffer
   const seed = hashSeed(day + ':endless-draft:v1:' + draft.number + ':' + count);
   if (!count) return [...OPENERS];
 
-  // The two defensive picks protect against unusable decks. Start with cheap repeatable offense,
-  // and save the big cards for the last pick so they don't crowd out essentials.
+  // The first class pick draws from a broad, cheap pool. Later defensive rounds protect against unusable decks.
+  // Keep dedicated rounds for cheap reach and higher rarity.
   const eligible = ALL_CARD_IDS.filter(id => isDraftable(id) && !draft.cards.includes(id));
   const pool = eligible.filter(id => {
     const card = getCard(id);
+    if (count === 3 && draft.starter) return card.cost <= 2 && (card.rarity === 'common' || card.rarity === 'uncommon');
     if (count === 3 || count === 7 || (draft.starter && count === 13)) return card.type === 'defend' && card.cost <= 2;
     if (count === 4) return card.cost <= 1 && card.reach &&
       card.effects.some(effect => effect.kind === 'damage' || effect.kind === 'hex');

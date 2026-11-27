@@ -438,6 +438,11 @@
   0%,100% { opacity:0; }
   50% { opacity:.30; }
 }
+.table-player-health-hex {
+  position:absolute; inset-block:0;
+  background:linear-gradient(#e0c2ffcc,#9453e5b3 65%,#642dafb3);
+  border-inline-start:1px solid #e3c3ffeb;
+}
 .table-player-health-ticks {
   position:absolute; inset:0;
   background:repeating-linear-gradient(to right, transparent 0 calc(10% - 1px), #160b0c8a calc(10% - 1px) 10%);

@@ -29,6 +29,7 @@ import {
   createCombatant,
   castProtection,
   castCardProtection,
+  castTimedProtection,
   tickStackingBuffs,
   protectedAmount,
   expireGuard,
@@ -46,6 +47,7 @@ import {
   playCard,
   playCardSteps,
   startPlayerTurn,
+  pendingPlayerHexDamage,
   startCombat,
   targetsFor,
   soleTargetFor,
@@ -291,6 +293,37 @@ void test('hex runs its course: 7 burns, grows, burns, then triples out', () => 
   // 7 (x2) -> 4 (grows) -> 5 (x2) -> 3 (x3) -> gone.
   assert.deepEqual(hexLosses(7, 5), [14, 0, 10, 9, 0]);
   assert.deepEqual(hexLosses(4, 4), [0, 10, 9, 0]);
+});
+
+void test('player Hex preview shows only the damage due at the next turn opening', () => {
+  const player = createCombatant(63, 209);
+  for (const [hex, damage] of [[0, 0], [4, 0], [7, 14], [13, 39], [23, 63]] as const) {
+    assert.equal(pendingPlayerHexDamage({ player: { ...player, statuses: { ...player.statuses, hex } } }), damage);
+  }
+  const hexed = { ...player, statuses: { ...player.statuses, hex: 7 } };
+  const expiring = castTimedProtection(hexed, 1);
+  const staying = castTimedProtection(hexed, 2);
+  assert.equal(pendingPlayerHexDamage({ player: expiring }), 14);
+  assert.equal(pendingPlayerHexDamage({ player: staying }), 11);
+  assert.equal(pendingPlayerHexDamage({ player: expiring, waveArrival: true }), 11);
+});
+
+void test('player Hex preview agrees with the burn at wave arrival and clears on an even remainder', () => {
+  const state = startCombat({ hp: 63, maxHp: 209, deck: ['backhand'], heroIds: ['squire'], might: 1, seed: 7 });
+  const cursed = {
+    ...state,
+    waveArrival: true,
+    player: { ...state.player, statuses: { ...state.player.statuses, hex: 7 } },
+  };
+  const expected = pendingPlayerHexDamage(cursed);
+  const result = endTurn(cursed);
+  assert.equal(cursed.player.hp - result.player.hp, expected);
+  assert.equal(result.player.statuses.hex, 4);
+  assert.equal(pendingPlayerHexDamage(result), 0);
+  const poisoned = { ...cursed, player: addStatus(cursed.player, 'poison', 5) };
+  const justPoison = { ...poisoned, player: { ...poisoned.player, statuses: { ...poisoned.player.statuses, hex: 0 } } };
+  assert.equal(pendingPlayerHexDamage(poisoned), expected);
+  assert.equal(endTurn(justPoison).player.hp - endTurn(poisoned).player.hp, expected);
 });
 
 void test('a hexed hero burns before it acts, and its hex drops', () => {

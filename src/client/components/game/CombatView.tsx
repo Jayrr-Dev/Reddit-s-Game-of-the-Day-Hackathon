@@ -29,7 +29,7 @@ import { fallenWithDeathVoice } from '../../../shared/game/deathVoices';
 import { useEffect, useCallback, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { rowDepth } from '../../../shared/game/battlefield';
-import { endTurn, movementFailsOn, SELF_TARGET_UID } from '../../../shared/game/combat';
+import { endTurn, movementFailsOn, pendingPlayerHexDamage, SELF_TARGET_UID } from '../../../shared/game/combat';
 import type { RunAction } from '../../../shared/game/run';
 import type { CharacterState } from '../../../shared/game/character';
 import { BattleCharacterSheet } from './BattleCharacterSheet';
@@ -213,7 +213,7 @@ const PlayerBar = ({
       </div>
       <div className="table-energy relative flex min-w-0 flex-col items-center gap-1 pb-1">
         <GuardGainPops guard={combat.player.guard} />
-        <PlayerHealthBar {...health} />
+        <PlayerHealthBar {...health} hexDamage={pendingPlayerHexDamage({ ...combat, player: { ...combat.player, hp: health.hp } })} />
       </div>
       <div className="table-turn justify-self-end">
         <TurnCorner

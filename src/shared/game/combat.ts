@@ -2210,6 +2210,10 @@ export const heroTurnOrder = (heroes: readonly HeroUnit[]): HeroUnit[] =>
 
 // --- VILLAIN TURN ---
 
+/** Pre-Hex upkeep is shared by the actual turn and its HP preview. */
+const beforePlayerHex = (player: CombatState['player']) =>
+  dropRoundBuffs(expireGuard(tickCloak(player)));
+
 /**
  * Begins a villain turn: guard and last round's buffs fade, Hex burns,
  * energy refills (plus whatever the reserve kept), new hand.
@@ -2220,7 +2224,7 @@ export const startPlayerTurn = (state: CombatState): CombatState => {
     {
       ...state,
       // Hex and Poison run before the villain's action (its turn).
-      player: poisonTick(hexBurn(dropRoundBuffs(expireGuard(tickCloak(state.player))))),
+      player: poisonTick(hexBurn(beforePlayerHex(state.player))),
       energy: Math.min(maxEnergy, startingEnergy + state.reserve),
       reserve: 0,
       turn: state.turn + 1,
@@ -2303,6 +2307,18 @@ const applyMalaise = <T extends Combatant>(unit: T): T =>
 const expireStackedBuffs = <T extends Combatant>(unit: T, countProtection = true): T => {
   const next = tickStackingBuffs(unit, countProtection);
   return tierIVExpires(unit, countProtection) ? applyMalaise(next) : next;
+};
+
+/** Age the player's stacked buffs at the normal round boundary. */
+const expirePlayerRoundStacks = (player: CombatState['player']) =>
+  expireStackedBuffs({ ...player, statuses: { ...player.statuses, reflex: 0 } });
+
+/** HP that the currently queued Hex alone will cost at the next turn opening. */
+export const pendingPlayerHexDamage = ({ player, waveArrival }: Pick<CombatState, 'player' | 'waveArrival'>): number => {
+  if (player.hp <= 0 || player.statuses.hex <= 0) return 0;
+  // The arrival turn skips the normal stacked-buff countdown.
+  const atOpening = beforePlayerHex(waveArrival ? player : expirePlayerRoundStacks(player));
+  return player.hp - hexBurn(atOpening).hp;
 };
 
 /**
@@ -2404,7 +2420,7 @@ const resolveTurnSteps = (state: CombatState): TurnStep[] => {
     move: null,
     state: startPlayerTurn({
       ...advanced,
-      player: expireStackedBuffs({ ...advanced.player, statuses: { ...advanced.player.statuses, reflex: 0 } }),
+      player: expirePlayerRoundStacks(advanced.player),
       heroes: advanced.heroes.map(unit => expireStackedBuffs(unit, false)),
     }),
   });

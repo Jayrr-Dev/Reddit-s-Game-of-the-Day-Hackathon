@@ -46,7 +46,7 @@ test('all four Endless classes draft 20 cards with three distinct offers and def
       assert.equal(offers.length, picks === 0 ? 4 : 3);
       assert.equal(new Set(offers.flatMap(offer => offer.cards)).size, picks === 0 ? 12 : 3);
       assert.ok(offers.flatMap(offer => offer.cards).every(id => !draft.cards.includes(id) && getCard(id).type !== 'imbue'));
-      if ([3, 7, 13].includes(draft.cards.length)) {
+      if ([7, 13].includes(draft.cards.length)) {
         assert.ok(offers.flatMap(offer => offer.cards).every(id => getCard(id).type === 'defend'));
       }
       const chosen = offers[(number + picks) % offers.length]!;
@@ -66,6 +66,26 @@ test('all four Endless classes draft 20 cards with three distinct offers and def
     );
   }
   assert.equal(isSavedEndlessDraft({ number: 1, cards: ['not-a-card'] }), false);
+});
+
+test('the first single-card Endless pick varies by attempt and is not restricted to defense', () => {
+  const day = '2026-11-27';
+  const openers = endlessDraftOffers(day, { number: 1, cards: [] });
+  for (const { name, cards } of openers) {
+    assert.ok(name);
+    const seen = new Set<string>();
+    let mixed = 0;
+    for (let number = 1; number <= 20; number++) {
+      const draft: EndlessDraft = { number, starter: name, cards: [...cards] };
+      const ids = endlessDraftOffers(day, draft).flatMap(offer => offer.cards);
+      assert.equal(new Set(ids).size, 3);
+      assert.deepEqual(endlessDraftOffers(day, draft).flatMap(offer => offer.cards), ids);
+      if (ids.some(id => getCard(id).type !== 'defend')) mixed++;
+      seen.add([...ids].sort().join(','));
+    }
+    assert.ok(mixed > 15, name);
+    assert.ok(seen.size >= 10, name);
+  }
 });
 
 test('class bias favors its primary type without locking the draft or breaking old 11-card decks', () => {
