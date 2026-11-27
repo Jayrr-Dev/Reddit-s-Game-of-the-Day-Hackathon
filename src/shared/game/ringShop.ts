@@ -32,8 +32,8 @@ export function shopCardRarity(id: CardId): RingRarity {
 }
 
 export const PANDORA_CARD_TIERS = [
-  { item: 'Common', weight: 30 }, { item: 'Uncommon', weight: 30 },
-  { item: 'Rare', weight: 28 }, { item: 'Legendary', weight: 12 },
+  { item: 'Common', weight: 35 }, { item: 'Uncommon', weight: 30 },
+  { item: 'Rare', weight: 25 }, { item: 'Legendary', weight: 10 },
 ] as const;
 const pandoraCardPools = Object.fromEntries(PANDORA_CARD_TIERS.map(({ item }) =>
   [item, PLAYABLE_CARDS.filter(id => shopCardRarity(id) === item)] as const));

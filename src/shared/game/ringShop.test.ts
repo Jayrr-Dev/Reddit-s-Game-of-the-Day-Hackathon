@@ -13,7 +13,7 @@ import { hashSeed } from './rng.ts';
 const day = '2026-11-27';
 
 test('Pandora card rarity is rolled first and each tier can award a playable card', () => {
-  assert.deepEqual(PANDORA_CARD_TIERS.map(({ weight }) => weight), [30, 30, 28, 12]);
+  assert.deepEqual(PANDORA_CARD_TIERS.map(({ weight }) => weight), [35, 30, 25, 10]);
   const counts = new Map<string, number>();
   const samples = 4000;
   for (let i = 0; i < samples; i++) {
