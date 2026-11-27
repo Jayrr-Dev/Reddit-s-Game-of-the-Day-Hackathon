@@ -197,7 +197,7 @@
   --parchment-fill: radial-gradient(ellipse at center, #ffe8b5, #dfb67e);
   font-family: Georgia, serif;
 }
-.dueling-table [role='meter'] {
+.dueling-table .table-player-health {
   outline: 1px solid var(--brass);
 }
 .dueling-table [role='meter'] + div {
@@ -378,7 +378,7 @@
   background: linear-gradient(100deg, #547ca1, #254866 49%, #193348 50%, #355c7a);
 }
 .hand-guard:focus-visible::before { background: #245d87; inset: 5px; }
-.player-health-badge {
+.player-lethal-badge {
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -387,12 +387,11 @@
   height: 1.75rem;
   padding: 0 4px 4px;
   clip-path: polygon(0 0, 100% 0, 100% 60%, 50% 100%, 0 60%);
-  background: linear-gradient(#862d39, #4a121d);
-  color: #fff3df;
+  background: #330d12;
+  color: #ff555d;
   box-shadow: 0 1px 3px #16080a;
   font: bold 14px/1 var(--font-display);
 }
-.player-health-badge svg { color: #ff9297; }
 .table-status-dock > .table-pips { grid-column:2; margin-top:0; }
 .dueling-table [data-card-size='fan'] { height:var(--table-card-height); }
 .dueling-table [data-dragged-card] > [data-card-size='fan'] { width:100%; height:100%; }
@@ -481,17 +480,6 @@
     50% { translate: 0 -2px; rotate: .8deg; }
   }
 }
-.hero-plate {
-  width: clamp(4rem, 14cqw, 6.25rem);
-}
-.hero-plate-layer[data-crowded] .hero-plate {
-  width: min(clamp(4rem, 14cqw, 6.25rem), calc((100cqw - 20px) / 3));
-}
-@container duel (max-width: 470px) {
-  .hero-plate-layer .hero-plate:is([data-hud-row="back"], [data-hud-row="horizon"]) {
-    width: clamp(3rem, 12cqw, 4.5rem);
-  }
-}
 .hero-plate-name {
   position: absolute;
   inset-block-end: calc(100% + 2px);
@@ -508,15 +496,33 @@
 }
 .hero-plate-health {
   position: absolute;
-  inset: var(--hero-hp-y) 0 auto;
+  inset: var(--hero-hp-y) auto auto 50%;
+  translate: -50% 0;
+  width: max-content;
   display: grid;
   justify-items: center;
   gap: .3rem;
 }
-.hero-plate-health > [role="meter"] { width: 100%; margin-bottom: 5px; }
 .hero-plate-health > .enemy-status-grid { zoom: .8; }
 .hero-plate-health .enemy-status-grid button span { paint-order: stroke fill; -webkit-text-stroke: 1.5px black; }
-.hero-plate-health [role="meter"] { max-width: var(--hero-edge-span); }
+.enemy-health-shield {
+  position: relative;
+  display: grid;
+  place-items: start center;
+  min-width: 24px;
+  min-height: 16px;
+  padding: 2px 4px 0;
+  color: var(--color-ink);
+  font: 900 9px/1 var(--font-display, Georgia, serif);
+  font-variant-numeric: tabular-nums;
+}
+.enemy-health-shield svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.enemy-health-shield path { stroke: var(--brass); stroke-width: 1; transition: fill 150ms ease-out; }
+.enemy-health-shield > span { position: relative; paint-order: stroke fill; -webkit-text-stroke: 1.5px black; }
+.defeated-health-shield { position: absolute; top: calc(100% + 5px); left: 50%; translate: -50% 0; }
+@media (prefers-reduced-motion: reduce) {
+  .enemy-health-shield path { transition: none; }
+}
 .hero-plate-head {
   position: absolute;
   top: var(--hero-intent-y);

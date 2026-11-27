@@ -23,7 +23,7 @@ import { INTENT_LOOK, TIER_NAME_CLASS, toneVarOf } from '../../../content/visual
 import { Chip } from '../../ui/Chip';
 import { EnemyStatuses } from '../StatusRow';
 import { FLOATING_UID_ATTR, PLATE_UID_ATTR } from '../../../hooks/usePlateSpacing';
-import { DrainBar } from './DrainBar';
+import { EnemyHealthShield } from './EnemyHealthShield';
 import { MoveEffect } from '../MoveEffect';
 
 // --- TYPES ---
@@ -136,7 +136,6 @@ export const HeroPlate = ({ unit, field, player, showName }: HeroPlateProps) => 
             {...{ [FLOATING_UID_ATTR]: unit.uid }}
             onClick={(event) => event.stopPropagation()}
             data-hero-kind={unit.heroId}
-            data-hud-row={unit.row}
             className="hero-plate pointer-events-none absolute top-0 invisible"
           >
             <div className="hero-plate-head">
@@ -149,7 +148,7 @@ export const HeroPlate = ({ unit, field, player, showName }: HeroPlateProps) => 
               <IntentChips unit={unit} field={field} debuffBonus={debuffPowerOf(player.skillPicks)} />
             </div>
             <div className="hero-plate-health">
-              <DrainBar hp={unit.hp} maxHp={unit.maxHp} size="small" />
+              <EnemyHealthShield hp={unit.hp} maxHp={unit.maxHp} />
               <EnemyStatuses
                 combatant={unit}
                 source={player}

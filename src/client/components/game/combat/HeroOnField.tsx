@@ -49,6 +49,7 @@ import { HexAura } from './HexAura';
 import { ScrambleScribble } from './ScrambleScribble';
 import { HeroFigure } from './HeroFigure';
 import { HeroPlate } from './HeroPlate';
+import { EnemyHealthShield } from './EnemyHealthShield';
 import { PickMark } from './PickMark';
 
 // --- TYPES ---
@@ -304,6 +305,7 @@ const DyingHero = ({ unit, field }: { unit: HeroUnit; field: readonly HeroUnit[]
         >
           <HeroFigure heroId={unit.heroId} size={size} mood="wince" />
         </div>
+        <div className="defeated-health-shield"><EnemyHealthShield hp={0} maxHp={unit.maxHp} /></div>
         {EMBERS.map(([left, delay, drift]) => (
           <span
             key={`${left}-${delay}`}
@@ -373,6 +375,7 @@ const BossDeath = ({ unit, field }: { unit: HeroUnit; field: readonly HeroUnit[]
         >
           <HeroFigure heroId={unit.heroId} size={size} mood="fierce" />
         </div>
+        <div className="defeated-health-shield"><EnemyHealthShield hp={0} maxHp={unit.maxHp} /></div>
         {BOSS_MOTES.map(([left, bottom, delay, drift]) => (
           <span
             key={`${left}-${delay}`}

@@ -3427,9 +3427,7 @@ textarea,
 .results-board summary { cursor:pointer; }
 .portrait-level { position:absolute; left:50%; top:0; transform:translate(-50%,-55%); white-space:nowrap; padding:1px 5px; border:1px solid #bc9455; border-radius:4px; background:#2c1c13; color:#ffdf99; font:bold 11px/1.15 var(--font-display); pointer-events:none; }
 .glossary-energy-pip { display:inline-block; width:.65em; height:.65em; margin-inline-end:.22em; border-radius:50%; vertical-align:.02em; background:var(--energy-pip-fill); }
-.player-health-badge[data-health=lethal] { background:#330d12; }
 .glossary-energy-pip { display:inline-block; width:.65em; height:.65em; margin-inline-end:.22em; border-radius:50%; vertical-align:.02em; background:var(--energy-pip-fill); }
-.player-health-badge[data-health=lethal] svg { color:#ff555d; }
 .level-up-dialog {
   position: fixed; inset: 0; margin: auto; box-sizing: border-box;
   width: min(22rem, calc(100vw - 1.5rem)); max-height: calc(100dvh - 1.5rem); overflow: auto;

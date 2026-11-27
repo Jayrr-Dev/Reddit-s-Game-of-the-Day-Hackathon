@@ -1,7 +1,7 @@
 // ===================================================================
 // PLAYER CORNER
 // The bottom-left corner: the villain's hooded portrait inside a ring
-// that drains with HP, and the HP number on a shield beside it. Hits
+// that drains with HP, with a skull warning before a lethal turn. Hits
 // from the heroes shake the portrait, make the villain flinch and stack
 // up above it; their marks land on the whole screen (see PovImpact),
 // while gains and debuffs glow on the portrait (ImpactOverlay). The red
@@ -20,7 +20,7 @@ import { ImpactOverlay } from './ImpactOverlay';
 import { Glyph } from '../../ui/Glyph';
 
 // --- COMPONENT ---
-/** Renders the portrait and HP shield. */
+/** Renders the portrait and its lethal-turn warning. */
 export const PlayerCorner = ({
   player,
   level,
@@ -45,10 +45,7 @@ export const PlayerCorner = ({
   // Keyed on the newest hit, so the portrait shakes once per hit.
   const latestHitId = hits.findLast((hit) => hit.kind === 'hit')?.id ?? -1;
   return (
-    // The HP badge sits in the row (tucked over the ring's edge by a
-    // negative margin), so whatever follows starts after the badge,
-    // however many digits it shows.
-    <div className="flex shrink-0 items-end">
+    <div className="relative shrink-0">
       <div
         className="relative size-14 shrink-0"
         {...{ [VILLAIN_ANCHOR_ATTR]: true }}
@@ -106,14 +103,9 @@ export const PlayerCorner = ({
           />
         </div>
       </div>
-      <span data-health={lethal ? 'lethal' : low ? 'low' : 'normal'} className="player-health-badge pointer-events-none relative -mb-1 -ml-5">
-        {lethal ? <Glyph name="skull" className="size-4" /> :
-          <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-            <path d="M12 21S2 15 2 8.5C2 3 8.7 1 12 6c3.3-5 10-3 10 2.5C22 15 12 21 12 21Z" />
-            {low && <path d="m13 5-3 6 4 1-3 6" fill="none" stroke="#4a121d" strokeWidth="2.6" />}
-          </svg>}
-        <span className="num-center">{player.hp}</span>
-      </span>
+      {lethal && <span className="player-lethal-badge pointer-events-none absolute -bottom-1 -right-2" aria-hidden="true">
+        <Glyph name="skull" className="size-4" />
+      </span>}
     </div>
   );
 };

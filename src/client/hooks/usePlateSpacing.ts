@@ -10,8 +10,8 @@ export const PLATE_UID_ATTR = 'data-plate-uid';
 export const FLOATING_UID_ATTR = 'data-floating-uid';
 export const HERO_LAYOUT_ATTR = 'data-hero-layout';
 const GAP = 3;
-const HEALTH_GAP = 11;
-const HEALTH_FLOOR_PADDING = 12;
+const HEALTH_GAP = 5;
+const HEALTH_FLOOR_PADDING = 17;
 const FRONT_RELIEF_FORWARD_PX = 8;
 const NAME_GAP = 2;
 /**
@@ -96,7 +96,6 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
     }
     // Rear units have the least room above their heads. Place those rows first.
     const ordered = [...heroes].sort((a, b) => rowDepth(b.row) - rowDepth(a.row) || a.col - b.col || a.uid - b.uid);
-    layer.toggleAttribute('data-crowded', ordered.length >= 3);
     const findPlates = () => ordered.flatMap(unit => {
       const anchor = field.querySelector<HTMLElement>(`[${PLATE_UID_ATTR}="${unit.uid}"]`);
       const plate = layer.querySelector<HTMLElement>(`[${FLOATING_UID_ATTR}="${unit.uid}"]`);
@@ -120,7 +119,7 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
       const floor = Math.min(bounds.bottom, field.getBoundingClientRect().bottom,
         console?.getBoundingClientRect().top ?? bounds.bottom);
       const frame = { left: GAP, top, width: layer.clientWidth - GAP * 2, height: (floor - bounds.top) * sy - top - GAP };
-      const measures = entries.map(({anchor, plate, intent, health, figure, layout, hitbox, unit}) => {
+      const measures = entries.map(({anchor, intent, health, figure, layout, hitbox, unit}) => {
         const { row } = unit;
         const rect = anchor.getBoundingClientRect();
         const body = figure.getBoundingClientRect();
@@ -155,13 +154,11 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
         const naturalTop = silhouette.top - height - GAP;
         const natural = { width, height, left: center - width / 2, top: naturalTop };
         const healthY = (body.bottom - lift - bounds.top) * sy + HEALTH_GAP;
-        const plateWidth = plate.offsetWidth;
-        const effects = health.querySelector<HTMLElement>('.enemy-status-grid');
-        const healthWidth = Math.max(plateWidth, (effects?.getBoundingClientRect().width ?? 0) * sx);
-        const healthBox = { left: center - healthWidth / 2, top: healthY - 6,
-          width: healthWidth, height: health.offsetHeight + 6 };
+        const healthWidth = health.offsetWidth;
+        const healthBox = { left: center - healthWidth / 2, top: healthY,
+          width: healthWidth, height: health.offsetHeight };
         const relief = { body: bodyLane, health: healthBox, feet, row, movable: !isBoss(unit) && !isAnchored(unit) };
-        return { width, silhouette, relief, ground, center, scaleX, scaleY, naturalTop, natural, healthY, plateWidth,
+        return { width, silhouette, relief, ground, center, scaleX, scaleY, naturalTop, natural, healthY,
           intentBox, healthBox: { ...healthBox, left: healthBox.left + shift * sx, top: healthBox.top + lift * sy },
           nameWidth: name?.offsetWidth ?? 0, nameHeight: name?.offsetHeight ?? 0 };
       });
@@ -199,7 +196,7 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
       // The model and portaled plate use the same interpolated offset. The
       // base anchor still follows attacks and row transitions without lag.
       const reduced = prefersReducedMotion();
-      measures.forEach(({ center, scaleX, scaleY, naturalTop, healthY, plateWidth, nameHeight, nameWidth }, i) => {
+      measures.forEach(({ center, scaleX, scaleY, naturalTop, healthY, nameHeight, nameWidth }, i) => {
         const { plate, layout } = entries[i]!;
         const target = targets[i];
         if (!target) return;
@@ -216,8 +213,7 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
         if (layout.hasAttribute('data-relief-position') !== relief) layout.toggleAttribute('data-relief-position', relief);
         const translate = (shift / (sx * scaleX)).toFixed(3) + 'px ' + (lift / (sy * scaleY)).toFixed(3) + 'px';
         const x = center + shift;
-        const left = (x - plateWidth / 2).toFixed(3) + 'px';
-        const edgeSpan = Math.max(1, 2 * Math.min(x - GAP, frame.width + GAP - x)).toFixed(3) + 'px';
+        const left = x.toFixed(3) + 'px';
         // Keep a selected name clear of the arena header, even in the far row.
         const nameFloor = nameHeight ? frame.top + nameHeight + NAME_GAP : 0;
         const intentTop = clamp(naturalTop + lift + Math.min(0, labelOffset), nameFloor, frame.top + frame.height);
@@ -234,7 +230,6 @@ export const usePlateSpacing = (fieldRef: RefObject<HTMLElement | null>, heroes:
         const hpY = Math.min(healthY + lift, frame.top + frame.height - HEALTH_FLOOR_PADDING).toFixed(3) + 'px';
         if (layout.style.translate !== translate) layout.style.translate = translate;
         if (plate.style.left !== left) plate.style.left = left;
-        if (plate.style.getPropertyValue('--hero-edge-span') !== edgeSpan) plate.style.setProperty('--hero-edge-span', edgeSpan);
         if (nameHeight && plate.style.getPropertyValue('--hero-name-position') !== namePosition) plate.style.setProperty('--hero-name-position', namePosition);
         if (plate.style.getPropertyValue('--hero-intent-y') !== intentY) plate.style.setProperty('--hero-intent-y', intentY);
         if (plate.style.getPropertyValue('--hero-hp-y') !== hpY) plate.style.setProperty('--hero-hp-y', hpY);
