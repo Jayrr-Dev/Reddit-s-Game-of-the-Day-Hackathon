@@ -35,6 +35,7 @@ const SALE_LINES = [
 ] as const;
 
 const IDLE_LORE = [
+  'Hell hath no fury like a woman scorned',
   "Thou standest at the Gateway of Souls. This is the road from Earth. Even the dead stop to browse.",
   'Xaten granted seven mortals eternity. Once a century, he calleth them to account.',
   'For theft from Heaven’s treasury was I cast into Hell. To thy kind I sell what I stole.',
