@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ARCHANGEL_BOSSES, GRANDANGEL_BOSSES } from '../../../shared/game/conquestAreas';
+import { ARCHANGEL_BOSSES, GRANDANGEL_BOSSES, PURGATORY_ARENA_LORE, PURGATORY_ARENA_TITLE } from '../../../shared/game/conquestAreas';
 import { bossArenaOf } from '../../content/bossArenas';
 import { ProgressiveImg } from '../ui/ProgressiveImage';
 import { ATLAS_REGIONS } from './AtlasRegions';
@@ -58,7 +58,7 @@ export function WorldAtlas({ current, onBack, onVisit, controls }: {
       <small>Region {selected+1} · {selected === current ? 'Current' : selected < current ? 'Conquered' : 'Ahead'}</small>
       <strong>{entry.name}</strong>
       <p>{entry.angel} · {entry.landmark}</p>
-      {selected === ATLAS_REGIONS.length-1 && <p>Mikhael awaits in Purgatory at the Last Citadel.</p>}
+      {selected === ATLAS_REGIONS.length-1 && <p><b>{PURGATORY_ARENA_TITLE}.</b> {PURGATORY_ARENA_LORE}</p>}
       {onVisit && <button type="button" className="world-visit-button" aria-label="Visit region" title="Visit region"
         onClick={() => onVisit(selected)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M19 9c0 4.5-7 9-7 9s-7-4.5-7-9a7 7 0 1 1 14 0ZM4 21h16"/><circle cx="12" cy="9" r="2.3"/></svg></button>}
     </aside>}

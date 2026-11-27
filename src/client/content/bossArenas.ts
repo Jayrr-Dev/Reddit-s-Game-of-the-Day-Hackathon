@@ -1,6 +1,7 @@
 // --- BOSS ARENAS ---
 // Encounter IDs are stable across scenario names, and unlisted encounters
 // keep the regional map. Every boss plays the shared boss theme (mapAudio).
+import { PURGATORY_ARENA_TITLE } from '../../shared/game/conquestAreas';
 import scene0 from '../assets/terrain/boss/zeruel-twin-eclipse-citadel.webp';
 import scene1 from '../assets/terrain/boss/fulgur-thunderbreak-roost.webp';
 import scene2 from '../assets/terrain/boss/cerviel-threefold-sanctum.webp';
@@ -37,7 +38,7 @@ export const BOSS_ARENAS: Readonly<Partial<Record<string, BossArena>>> = {
   pride: { name: 'Hall of Mirrors', image: prideArena, ambience: 'stone', vanishingX: 50, horizon: 38 },
   lust: { name: 'The Veiled Sanctuary', image: lustArena, ambience: 'stone', vanishingX: 50, horizon: 38 },
   gluttony: { name: 'The Hollow Maw', image: gluttonyArena, ambience: 'stone', vanishingX: 50, horizon: 38 },
-  archangelMikhael: { name: 'The Last Citadel', image: taxiarchArena, ambience: 'stone', vanishingX: 50, horizon: 51, motion: 'taxiarch' },
+  archangelMikhael: { name: PURGATORY_ARENA_TITLE, image: taxiarchArena, ambience: 'stone', vanishingX: 50, horizon: 51, motion: 'taxiarch' },
   archangelZeruel: { name: 'Twin Eclipse Citadel', image: scene0, ambience: 'stone', vanishingX: 50, horizon: 38 },
   fulgurDragonknight: { name: 'Thunderbreak Roost', image: scene1, ambience: 'highland', vanishingX: 50, horizon: 33 },
   cervielSword: { name: 'Threefold Sanctum', image: scene2, ambience: 'stone', vanishingX: 50, horizon: 37 },

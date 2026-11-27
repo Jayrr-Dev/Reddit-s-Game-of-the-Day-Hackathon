@@ -34,6 +34,7 @@ import { ConquestMap } from './ConquestPrelude';
 import { MAP_IMAGES, MAP_NAMES } from './combat/Backdrop';
 import { AreaCamp } from './AreaCamp';
 import { RunHud } from './RunHud';
+import { isLastRegion, PURGATORY_ARENA_TITLE } from '../../../shared/game/conquestAreas';
 import { useProgressiveImage } from '../../hooks/useProgressiveImage';
 
 // --- TYPES ---
@@ -79,7 +80,7 @@ const PhaseBody = ({ run, runId, onAction, onMainMenu, endless }: VillainRunGame
           deck={run.deck}
           terrainIndex={mapIndex}
           {...(area && area.site.kind !== 'dragon' && { trainingArenaOverride: finalArena ?? null })}
-          {...(area && { campaignLocation: finalArena?.name ?? area.site.name })}
+          {...(area && { campaignLocation: area.site.kind === 'capital' && isLastRegion(run.stop) ? PURGATORY_ARENA_TITLE : area.site.name })}
           where={endless ? 'Endless · Wave ' + run.stop : wave && area?.wave !== 0 ? battleTitle + ' · ' + wave.name : battleTitle}
           score={endless ? run.stats.wavesCleared : computeScore(run.stats)}
           {...(endless && { scoreUnit: 'cleared' })}

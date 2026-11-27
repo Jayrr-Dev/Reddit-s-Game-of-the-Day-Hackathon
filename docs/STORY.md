@@ -8,6 +8,8 @@ Writer-facing notes. Contains a protagonist spoiler.
 
 **Writer note:** The Great Seer was speaking about the player, the city's sole survivor and the new Lord of Wrath. The prophecy leaves him unnamed.
 
+**The End of the World** is the ash-covered ruin of Wraith’s home, the city in the prophecy. Wraith was its only survivor. The mortal lived there; the Sin was born in its ashes. The final road through the Gate to Purgatory leads back to those ruins, where Mikhael awaits. Let the return to the city pay off the prophecy without spelling out the full story of his revenge.
+
 ## The Seven Sins
 
 The Seven Lords of Sin were once mortal. Each proved that no mortal surpassed them in their own sin. Xatan, Sovereign of Hell, granted them their titles and immortality.

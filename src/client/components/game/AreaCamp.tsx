@@ -1,4 +1,4 @@
-import { isLastRegion, REST_FRACTION } from '../../../shared/game/conquestAreas';
+import { isLastRegion, PURGATORY_ARENA_TITLE, REST_FRACTION } from '../../../shared/game/conquestAreas';
 import { areaVisitedRooms } from '../../../shared/game/areaMap';
 import { healingAmount } from '../../../shared/game/character';
 import type { RunAction, RunState } from '../../../shared/game/run';
@@ -13,7 +13,8 @@ export function AreaCamp({ run, onAction }: { run: RunState; onAction: (action: 
   const heal = Math.min(run.maxHp - run.hp, healingAmount(Math.ceil(run.maxHp * REST_FRACTION), run.character));
   const continuing = area.battle + 1 < area.battles.length ? 'Next battle'
     : area.site.kind === 'capital' && isLastRegion(run.stop) ? 'Finish conquest' : 'Leave area';
-  return <LocalAreaMap key={area.battle} site={area.site} battles={area.battles} interaction={{
+  const finalArea = area.site.kind === 'capital' && isLastRegion(run.stop);
+  return <LocalAreaMap key={area.battle} site={area.site} heading={finalArea ? PURGATORY_ARENA_TITLE : area.site.name} battles={area.battles} interaction={{
     battle: area.battle,
     visited: areaVisitedRooms(explored, phase.visited),
     onVisit: room => onAction({ type: 'areaCamp', choice: 'explore', room }),

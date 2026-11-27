@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { drawPandoraEvent, PANDORA_CURSE_POOL_CHANCE, PANDORA_BLESSING_POOL_CHANCE } from './pandora.ts';
+import { drawPandoraEvent, PANDORA_CURSE_POOL_CHANCE, PANDORA_BLESSING_POOL_CHANCE, PANDORA_EVENT_TICKETS } from './pandora.ts';
 import { GOLD_RANGES, goldFromVictoryScore, goldRewardFor } from './gold.ts';
 
 test('Gold rolls vary by run and stay within the encounter tier', () => {
@@ -19,7 +19,7 @@ test('Legacy wins retain their ten Gold and new records preserve their exact rol
 });
 
 test('new Pandora half-life rolls double every verified battle payout', () => {
-  assert.deepEqual(drawPandoraEvent(99, 200), { kind: 'run', effect: 'half-life-double-gold' });
+  assert.deepEqual(drawPandoraEvent(PANDORA_EVENT_TICKETS - 1, 200), { kind: 'run', effect: 'half-life-double-gold' });
   for (const encounter of ['horde', 'elite', 'champion'] as const) {
     for (let stop = 1; stop <= 10; stop++) {
       const base = goldRewardFor('run', stop, encounter);
@@ -29,14 +29,14 @@ test('new Pandora half-life rolls double every verified battle payout', () => {
   }
 });
 
-void test('Pandora keeps the 15% Curse and 10% Blessing pools equally weighted within each pool', () => {
+void test('Pandora has equally weighted 15% Curse and 15% Blessing pools', () => {
   assert.equal(PANDORA_CURSE_POOL_CHANCE, 15);
-  assert.equal(PANDORA_BLESSING_POOL_CHANCE, 10);
+  assert.equal(PANDORA_BLESSING_POOL_CHANCE, 15);
   const outcomes = new Map<string, number>();
-  for (let roll = 0; roll < 100; roll++) {
+  for (let roll = 0; roll < PANDORA_EVENT_TICKETS; roll++) {
     const event = drawPandoraEvent(roll, 200);
     const key = event.kind === 'gold' ? String(event.change) : event.kind === 'run' ? event.effect : 'card';
     outcomes.set(key, (outcomes.get(key) ?? 0) + 1);
   }
-  assert.deepEqual([...outcomes], [['180', 20], ['-60', 20], ['brittle-blood', 20], ['lasting-vigor', 20], ['half-life-double-gold', 20]]);
+  assert.deepEqual([...outcomes], [['180', 10], ['-60', 10], ['brittle-blood', 10], ['lasting-vigor', 15], ['half-life-double-gold', 15]]);
 });

@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { hashSeed, nextFloat, pickOne } from '../../../shared/game/rng';
-import { buildAreaBattles, conquestStops, GRANDANGEL_BOSSES } from '../../../shared/game/conquestAreas';
+import { buildAreaBattles, conquestStops, GRANDANGEL_BOSSES, PURGATORY_ARENA_LORE, PURGATORY_ARENA_TITLE } from '../../../shared/game/conquestAreas';
 import { areaVisitCount } from '../../../shared/game/areaMap';
 import { STOPS_PER_REGION } from '../../../shared/game/rules';
 import { regionChoices, type RegionChoice } from '../../../shared/game/regionRoutes';
@@ -172,7 +172,7 @@ export function ConquestMap({
     const wave = buildAreaBattles(site, worldSeed, selected.at, selected.option).at(-1)?.waves.at(-1);
     if (!wave) return;
     setSelected(undefined);
-    setPractice({ name: isSummit && site.kind === 'capital' ? 'The Last Citadel' : site.name,
+    setPractice({ name: isSummit && site.kind === 'capital' ? PURGATORY_ARENA_TITLE : site.name,
       map: site.map, heroes: wave.heroIds, bossArena: site.kind === 'capital' || site.kind === 'dragon' });
   };
   const arena = active?.node.site?.kind === 'capital' ? bossArenaOf(active.node.heroIds) : undefined;
@@ -218,7 +218,7 @@ export function ConquestMap({
   if (isAdmin && practice) return <SandboxView atlasVisit={practice} onExit={() => setPractice(undefined)} />;
   if (localOpen && active && site && localBattles) return <LocalAreaMap site={site} battles={localBattles}
     mapHandoff={mapHandoff}
-    heading={isSummit && site.kind === 'capital' ? 'The Last Citadel' : site.name}
+    heading={isSummit && site.kind === 'capital' ? PURGATORY_ARENA_TITLE : site.name}
     onBack={() => { setLocalOpen(false); setSelected(undefined); }}>
     {canTravel ? <Button variant="menuPrimary" onClick={() => onChoose(active.option)}>Enter area</Button>
       : canPractice ? <Button variant="menuPrimary" onClick={() => { setLocalOpen(false); practiceAt(); }}>Visit in practice</Button>
@@ -264,7 +264,7 @@ export function ConquestMap({
           <AtlasLandmark mark="crossing" /><strong>Gate to Purgatory</strong><small>World Summit</small>
         </div>}
         {rows.map(row => row.nodes.map(({ node, option, location, point, mark }) => {
-          const name = isSummit && node.site?.kind === 'capital' ? 'The Last Citadel' : location.name;
+          const name = isSummit && node.site?.kind === 'capital' ? PURGATORY_ARENA_TITLE : location.name;
           const available = !exploring && row.at === stop;
           const inspected = selected?.at === row.at && selected.option === option;
           return <button type="button" key={row.at + ':' + option}
@@ -297,8 +297,8 @@ export function ConquestMap({
         }}>×</button>
         {locationArt && <ProgressiveImg className="atlas-popover-art" src={locationArt} alt="" />}
         <span className="atlas-popover-kind">{typeLabel(active.node) ?? 'Battle route'}</span>
-        <strong>{isSummit && active.node.site?.kind === 'capital' ? 'The Last Citadel' : active.location.name}</strong>
-        <p>{isSummit && active.node.site?.kind === 'capital' ? 'Beyond the summit gate, Archangel Mikhael awaits in Purgatory.' : active.location.flavour}</p>
+        <strong>{isSummit && active.node.site?.kind === 'capital' ? PURGATORY_ARENA_TITLE : active.location.name}</strong>
+        <p>{isSummit && active.node.site?.kind === 'capital' ? PURGATORY_ARENA_LORE : active.location.flavour}</p>
         {localBattles && <small>{localBattles.length} {localBattles.length === 1 ? 'battle' : 'battles'} · {visits} {visits === 1 ? 'stop' : 'stops'}</small>}
         {site ? <Button variant="menuPrimary" onClick={() => { returnScroll.current = map.current?.scrollTop; setLocalOpen(true); }}>Open area map</Button>
           : canTravel ? <Button variant="menuPrimary" onClick={() => onChoose(active.option)}>Travel here</Button>

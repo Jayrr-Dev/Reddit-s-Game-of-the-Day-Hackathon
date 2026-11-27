@@ -1,9 +1,9 @@
 import { ALBUM_SLOTS, availableCarryCards, isCarrySelection, IMBUE_CARDS, IMBUE_PRICE, isShopStockKey, readCarryCards, shopCardReceipt, SHOP_IMBUE_ID, type CarryCards } from './carryCards.ts';
 import { ALL_CARD_IDS, getCard, isCardInPlay, type CardId } from './cards.ts';
-import { hashSeed, nextInt, pickDistinct, pickOne } from './rng.ts';
+import { hashSeed, nextInt, pickDistinct, pickOne, pickWeighted, type RngState } from './rng.ts';
 import { TRAINING_JEWELRY } from './trainingJewelry.ts';
 import { shopAmuletSummary, type ShopAmuletId } from './amuletBonuses.ts';
-import { drawPandoraEvent, readPandoraEvent, PANDORA_CURSE_BOUNTY, PANDORA_EVENT_CHANCE, pandoraGoldReward, type PandoraEvent, type PandoraRunEffect } from './pandora.ts';
+import { drawPandoraEvent, readPandoraEvent, PANDORA_CURSE_BOUNTY, PANDORA_EVENT_CHANCE, PANDORA_EVENT_TICKETS, pandoraGoldReward, type PandoraEvent, type PandoraRunEffect } from './pandora.ts';
 import type { EquipmentSlot } from './character.ts';
 import { isItemBag, itemQuantity, REALM_APPLE, SHOP_APPLE, spendItem, type ItemBag, type ShopApple } from './items.ts';
 
@@ -21,7 +21,7 @@ const RING_SLOTS = 3;
 const FOURTH_RARE_CHANCE = 40;
 const AMULET_CHANCE = 12;
 const SHOP_IMBUE_CHANCE = 65;
-const PANDORA_CARD_CHANCE = 25;
+const PANDORA_CARD_CHANCE = 20;
 const PLAYABLE_CARDS = ALL_CARD_IDS.filter(isCardInPlay);
 const NON_IMBUE_CARDS = PLAYABLE_CARDS.filter(id => getCard(id).type !== 'imbue');
 
@@ -29,6 +29,19 @@ const NON_IMBUE_CARDS = PLAYABLE_CARDS.filter(id => getCard(id).type !== 'imbue'
 export function shopCardRarity(id: CardId): RingRarity {
   const rarity = getCard(id).rarity;
   return rarity === 'legendary' ? 'Legendary' : rarity === 'rare' ? 'Rare' : rarity === 'uncommon' ? 'Uncommon' : 'Common';
+}
+
+export const PANDORA_CARD_TIERS = [
+  { item: 'Common', weight: 30 }, { item: 'Uncommon', weight: 30 },
+  { item: 'Rare', weight: 28 }, { item: 'Legendary', weight: 12 },
+] as const;
+const pandoraCardPools = Object.fromEntries(PANDORA_CARD_TIERS.map(({ item }) =>
+  [item, PLAYABLE_CARDS.filter(id => shopCardRarity(id) === item)] as const));
+
+/** Roll the rarity first so the number of cards in a tier doesn't affect its odds. */
+export function drawPandoraCard(raritySeed: RngState, cardSeed: RngState): CardId {
+  const [rarity] = pickWeighted(raritySeed, PANDORA_CARD_TIERS);
+  return pickOne(cardSeed, pandoraCardPools[rarity]!)[0];
 }
 
 export const TEMP_RING_IDS = [
@@ -276,7 +289,7 @@ export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: Sho
   const seed = (label: string) => hashSeed('metatron:box:' + entropy + ':' + receipt + ':' + label);
   const kindRoll = nextInt(seed('kind'), 100)[0];
   if (kindRoll < PANDORA_CARD_CHANCE) {
-    const [cardId] = pickOne(seed('card'), PLAYABLE_CARDS);
+    const cardId = drawPandoraCard(seed('card-rarity'), seed('card'));
     const owned = availableCarryCards(wallet.carry);
     const albumFull = !practice && owned.length >= ALBUM_SLOTS;
     if (albumFull || owned.some(card => card.cardId === cardId)) {
@@ -291,7 +304,7 @@ export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: Sho
     return { status: 'buy', reward, next: { ...wallet, events: { ...wallet.events, [receipt]: reward }, carry: { ...wallet.carry, [id]: card } } } as const;
   }
   if (kindRoll < PANDORA_CARD_CHANCE + PANDORA_EVENT_CHANCE) {
-    const event = drawPandoraEvent(nextInt(seed('event'), 100)[0], balance - offer.price, level);
+    const event = drawPandoraEvent(nextInt(seed('event'), PANDORA_EVENT_TICKETS)[0], balance - offer.price, level);
     return { status: 'buy', reward: event, next: { ...wallet, events: { ...wallet.events, [receipt]: event } } } as const;
   }
   const [tier] = nextInt(seed('tier'), 100);

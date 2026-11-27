@@ -7,8 +7,24 @@ import { createRun, replayRun, runReducer } from './run.ts';
 import { characterBonuses, trainingRingProgress } from './character.ts';
 import { drawPandoraEvent, pandoraGoldBreakdown, readPandoraEvent } from './pandora.ts';
 import { inventoryStacks } from './inventory.ts';
+import { drawPandoraCard, PANDORA_CARD_TIERS } from './ringShop.ts';
+import { hashSeed } from './rng.ts';
 
 const day = '2026-11-27';
+
+test('Pandora card rarity is rolled first and each tier can award a playable card', () => {
+  assert.deepEqual(PANDORA_CARD_TIERS.map(({ weight }) => weight), [30, 30, 28, 12]);
+  const counts = new Map<string, number>();
+  const samples = 4000;
+  for (let i = 0; i < samples; i++) {
+    const card = drawPandoraCard(hashSeed('rarity-test:' + i), hashSeed('card-test:' + i));
+    assert.ok(isCardInPlay(card));
+    const rarity = shopCardRarity(card);
+    counts.set(rarity, (counts.get(rarity) ?? 0) + 1);
+  }
+  for (const { item, weight } of PANDORA_CARD_TIERS)
+    assert.ok(Math.abs((counts.get(item) ?? 0) / samples * 100 - weight) < 4, item);
+});
 const [cinder, tideglass] = shopOffers(day);
 if (!cinder || cinder.slot !== 'ring' || !tideglass || tideglass.slot !== 'ring') throw new Error('Expected regular rings');
 
@@ -201,7 +217,7 @@ void test('Metatron can offer every playable card and Imbues make up most card o
   assert.ok(imbues / count > .60 && imbues / count < .70, String(imbues / count));
 });
 
-void test('Pandora rolls cards about 25% of the time and stores them as reusable inventory', () => {
+void test('Pandora rolls cards about 20% of the time and stores them as reusable inventory', () => {
   const box = shopOffers(day, true)[4]!;
   let cardRolls = 0;
   for (let i = 0; i < 2000; i++) {
@@ -232,7 +248,7 @@ void test('Pandora rolls cards about 25% of the time and stores them as reusable
     assert.ok(testCard && isTestCarryCardId(testCard.id));
     assert.equal(testCard.source, 'test');
   }
-  assert.ok(cardRolls >= 450 && cardRolls <= 550, String(cardRolls));
+  assert.ok(cardRolls >= 345 && cardRolls <= 455, String(cardRolls));
 });
 
 
@@ -240,7 +256,7 @@ void test('Pandora Gold keeps its base and adds a level percentage without chang
   assert.deepEqual(drawPandoraEvent(0, 100, 1), { kind: 'gold', change: 180 });
   assert.deepEqual(pandoraGoldBreakdown(10), { base: 180, percent: 18, bonus: 32, total: 212 });
   assert.deepEqual(pandoraGoldBreakdown(20, 'Rare'), { base: 110, percent: 38, bonus: 41, total: 151 });
-  assert.deepEqual(drawPandoraEvent(20, 100, 70), { kind: 'gold', change: -60 });
+  assert.deepEqual(drawPandoraEvent(10, 100, 70), { kind: 'gold', change: -60 });
   const reward = drawPandoraEvent(0, 100, 10);
   assert.deepEqual(readPandoraEvent(reward), { kind: 'gold', change: 212, rewardLevel: 10 });
   assert.throws(() => readPandoraEvent({ kind: 'gold', change: 999, rewardLevel: 10 }));

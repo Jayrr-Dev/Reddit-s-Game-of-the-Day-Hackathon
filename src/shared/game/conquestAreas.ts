@@ -13,6 +13,8 @@ export type ConquestVersion = 1 | typeof CONQUEST_VERSION;
 export function isConquestVersion(value: unknown): value is ConquestVersion {
   return value === 1 || value === CONQUEST_VERSION;
 }
+export const PURGATORY_ARENA_TITLE = 'The End of the World';
+export const PURGATORY_ARENA_LORE = 'The Sin rose from the ashes of this city. Mikhael waits amid what remains.';
 export const MAX_WAVE_SIZE = 6;
 export const REST_FRACTION = 0.25;
 
