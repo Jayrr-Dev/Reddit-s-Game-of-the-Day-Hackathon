@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Glyph } from '../../ui/Glyph';
+import { Tooltip } from '../../ui/Tooltip';
+import { STATUS_INFO } from '../../../../shared/game/describe';
 
 type PlayerHealthProps = { hp: number; maxHp: number; guard: number; hexDamage: number; incomingDamage: number; burnDamage: number; lethal: boolean };
 
@@ -63,5 +65,14 @@ export function PlayerHealthBar({ hp, maxHp, guard, hexDamage, incomingDamage, b
       <span className="table-player-health-ticks" aria-hidden="true" />
       <span className="table-player-health-label" aria-hidden="true">{hp}/{maxHp}</span>
     </div>
+    {guard > 0 && (
+      <span className="table-guard-count">
+        <Tooltip opensOn="click" content={{ title: STATUS_INFO.guard.label, description: STATUS_INFO.guard.description }}>
+          <button type="button" className="hand-guard" aria-label={`Guard: ${guard}`}>
+            <span>{guard}</span>
+          </button>
+        </Tooltip>
+      </span>
+    )}
   </div>;
 }

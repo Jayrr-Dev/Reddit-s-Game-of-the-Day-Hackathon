@@ -359,25 +359,40 @@
   isolation: isolate;
   display: grid;
   place-items: center;
-  min-width: 36px;
-  height: 37px;
-  padding: 0 8px 2px;
-  clip-path: var(--shield-shape);
-  background: linear-gradient(135deg, #f7fbff 10%, #70859d 33%, #e0edfa 52%, #445266 73%, #cdd9e6);
+  min-width: 26px;
+  min-height: 26px;
+  padding: 0 6px 2px;
+  border-radius: 4px;
+  pointer-events: auto;
   color: white;
-  font: bold 16px/1 var(--font-display);
+  font: bold 11px/1 var(--font-display);
   font-variant-numeric: tabular-nums;
   text-shadow: 0 1px 2px #000;
 }
-.hand-guard::before {
+.hand-guard::before,
+.hand-guard::after {
   content: '';
   position: absolute;
-  z-index: -1;
-  inset: 3px;
   clip-path: var(--shield-shape);
+}
+.hand-guard::before {
+  z-index: -2;
+  inset: 2px 0;
+  background: linear-gradient(135deg, #f7fbff 10%, #70859d 33%, #e0edfa 52%, #445266 73%, #cdd9e6);
+}
+.hand-guard::after {
+  z-index: -1;
+  inset: 4px 2px;
   background: linear-gradient(100deg, #547ca1, #254866 49%, #193348 50%, #355c7a);
 }
-.hand-guard:focus-visible::before { background: #245d87; inset: 5px; }
+.hand-guard:focus-visible { outline: 1px solid var(--brass); }
+.table-guard-count {
+  position: absolute;
+  display: grid;
+  z-index: 1;
+  inset: 50% 0 auto auto;
+  translate: 50% -50%;
+}
 .player-lethal-badge {
   position: absolute;
   inset: 50% auto auto 0;
@@ -492,7 +507,6 @@
   display:flex; align-items:center; justify-content:center; gap:4px;
   pointer-events:none;
 }
-.table-player-status > .hand-guard { flex:none; }
 .table-player-status:empty { display:none; }
 
 .guide-lanes {
