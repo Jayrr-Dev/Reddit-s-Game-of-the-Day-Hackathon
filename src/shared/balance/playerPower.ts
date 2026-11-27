@@ -20,9 +20,11 @@
 //   trait boards (characterBonuses).
 // - Skill points (1 a level) buy the style's circles in order
 //   (playerStyles.ts).
-// - Each turn the hand holds the best mix of the style's cards for the
-//   energy and cards drawn (up to 2 copies, 1 of a Legendary). Remove,
-//   Exhaust, Imbue, buff and pure Guard cards are left out.
+// - Deck (DeckMode): by default the style's training decksets, each card
+//   once, with damage averaged over random hands (buffs, heals and
+//   imbues deal nothing). 'best' instead plays the best mix of the
+//   style's attacks every turn (up to 2 copies, 1 of a Legendary): a
+//   ceiling.
 // - Guard and Distance count on an AVERAGE draw (each copy is in hand
 //   cardsPerTurn / deck size of the time), not every turn.
 // - Iron Ring and Traveler's Amulet are worn.
@@ -30,6 +32,7 @@
 
 import { characterBonuses, TRAIT_CAP, type Traits } from '../game/character.ts';
 import { ALL_CARD_IDS, getCard, isCardInPlay } from '../game/cards.ts';
+import { sandboxDeckCards } from '../game/sandboxDecks.ts';
 import type { CardDef, CardEffect } from '../game/types.ts';
 import { cardValueParts } from './costCurve.ts';
 import type { CostCurveConfig } from './costCurveConfig.ts';
@@ -41,6 +44,13 @@ type Stats = ReturnType<typeof characterBonuses>;
 
 /** The multipliers bought on the skill tree. */
 type SkillBonus = { damage: number; affliction: number; stacks: number; bought: string[] };
+
+/**
+ * Which deck to score: 'deckset' draws random hands from the style's
+ * training decksets (what a player really holds); 'best' plays the
+ * best hand of the style's attacks every turn (a ceiling).
+ */
+export type DeckMode = 'deckset' | 'best';
 
 /** One style at one level. */
 export type PlayerPower = {
@@ -150,9 +160,6 @@ const hasDistance = (card: CardDef): boolean => card.keywords.includes('distance
 /** One card the deck holds: what it costs, deals and stops, and how many copies the deck has. */
 type DeckCard = { cost: number; damage: number; guard: number; distance: boolean; copies: number };
 
-/** One turn: the best damage hand, and the damage stopped on an average draw. */
-type Turn = { damage: number; blocked: number; toughness: number };
-
 /**
  * Most damage one turn's hand can deal: a knapsack over energy and
  * cards drawn, each card up to its copies (2, or 1 for a Legendary).
@@ -191,19 +198,69 @@ const averageBlock = (config: CostCurveConfig, deck: DeckCard[], cards: number):
   return Math.min(guard + dodge, incomingPerTurn * maxBlockedShare);
 };
 
-/** One turn for a style with these stats and skills. */
-const styleTurn = (config: CostCurveConfig, style: PlayStyle, stats: Stats, skills: SkillBonus): Turn => {
-  const deck = styleCards(style).map((card) => ({
+// --- AVERAGE HAND ---
+/** A small seeded random generator (mulberry32), so every run gives the same numbers. */
+const seededRandom = (seed: number): (() => number) => {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
+/** `count` cards drawn at random from `deck` without putting any back. */
+const drawHand = (deck: readonly DeckCard[], count: number, random: () => number): DeckCard[] => {
+  const pile = [...deck];
+  const hand: DeckCard[] = [];
+  while (hand.length < count && pile.length > 0) {
+    hand.push(pile.splice(Math.floor(random() * pile.length), 1)[0]!);
+  }
+  return hand;
+};
+
+/**
+ * Average damage per turn from random hands of a deck: draw a hand,
+ * play its best mix for the energy, repeat `handSamples` times.
+ */
+const averageDamage = (config: CostCurveConfig, deck: readonly DeckCard[], energy: number, cards: number): number => {
+  const random = seededRandom(1);
+  const samples = config.player.handSamples;
+  let total = 0;
+  for (let sample = 0; sample < samples; sample += 1) {
+    const hand = drawHand(deck, cards, random).map((card) => ({ ...card, copies: 1 }));
+    total += bestDamage(hand, energy, cards);
+  }
+  return total / samples;
+};
+
+// --- DECKS ---
+/** The style's deck as card defs: its decksets (each card once) or its best attacks (2 copies). */
+const deckCards = (style: PlayStyle, mode: DeckMode): { card: CardDef; copies: number }[] => {
+  if (mode === 'best') {
+    return styleCards(style).map((card) => ({ card, copies: card.rarity === 'legendary' ? 1 : 2 }));
+  }
+  return style.decksets.flatMap((id) => sandboxDeckCards(id)).map((id) => ({ card: getCard(id), copies: 1 }));
+};
+
+/** The deck with each card's damage, Guard and Distance for these stats and skills. */
+const pricedDeck = (config: CostCurveConfig, style: PlayStyle, mode: DeckMode, stats: Stats, skills: SkillBonus): DeckCard[] =>
+  deckCards(style, mode).map(({ card, copies }) => ({
     cost: card.cost,
     damage: cardDamage(config, card, stats, skills),
     guard: cardGuard(card, stats),
     distance: hasDistance(card),
-    copies: card.rarity === 'legendary' ? 1 : 2,
+    copies,
   }));
-  const blocked = averageBlock(config, deck, stats.cardsPerTurn);
-  // HP lasts 1 / (share of a boss turn that still lands).
-  const toughness = 1 / (1 - blocked / config.player.incomingPerTurn);
-  return { damage: bestDamage(deck, stats.startingEnergy, stats.cardsPerTurn), blocked, toughness };
+
+/** Damage per turn: the average random hand of a deckset, or the best hand every turn. */
+const turnDamage = (config: CostCurveConfig, deck: DeckCard[], mode: DeckMode, stats: Stats): number => {
+  if (mode === 'best') return bestDamage(deck, stats.startingEnergy, stats.cardsPerTurn);
+  // One entry per copy, so a random draw can pick each copy.
+  const pile = deck.flatMap((card) => Array.from({ length: card.copies }, () => card));
+  return averageDamage(config, pile, stats.startingEnergy, stats.cardsPerTurn);
 };
 
 // --- TRAIT SEARCH ---
@@ -220,26 +277,29 @@ const damageSplits = (style: PlayStyle, points: number): Partial<Traits>[] => {
 };
 
 /** Scores one style at one level, searching for the strongest trait split. */
-export const playerPower = (config: CostCurveConfig, style: PlayStyle, level: number): PlayerPower => {
+export const playerPower = (config: CostCurveConfig, style: PlayStyle, level: number, mode: DeckMode = 'deckset'): PlayerPower => {
   const traitPoints = TRAIT_POINTS_PER_LEVEL * level;
   const skills = skillBonusAt(style.skills, SKILL_POINTS_PER_LEVEL * level);
-  const turnCache = new Map<string, Turn>();
+  const damageCache = new Map<string, number>();
   let best: PlayerPower | null = null;
   for (let vigor = 0; vigor <= Math.min(TRAIT_CAP, traitPoints); vigor += 2) {
     for (let endurance = 0; endurance <= Math.min(TRAIT_CAP, traitPoints - vigor); endurance += 2) {
       for (const split of damageSplits(style, traitPoints - vigor - endurance)) {
         const traits = { ...split, vigor, endurance };
         const stats = characterBonuses(traits, WORN);
-        // The hand depends only on damage traits, energy and Guard bonuses, not on HP.
-        const key = `${JSON.stringify(split)}|${stats.startingEnergy}|${stats.shieldPercent}|${stats.shieldFlat}`;
-        const turn = turnCache.get(key) ?? styleTurn(config, style, stats, skills);
-        turnCache.set(key, turn);
-        const toughness = stats.maxHp * turn.toughness;
-        const power = (turn.damage * toughness) / villainDamagePerTurn(config);
+        const deck = pricedDeck(config, style, mode, stats, skills);
+        // Damage depends only on the damage traits and energy, so it is reused across Vigor splits.
+        const key = `${JSON.stringify(split)}|${stats.startingEnergy}`;
+        const damage = damageCache.get(key) ?? turnDamage(config, deck, mode, stats);
+        damageCache.set(key, damage);
+        const blocked = averageBlock(config, deck, stats.cardsPerTurn);
+        // HP lasts 1 / (share of a boss turn that still lands).
+        const toughness = stats.maxHp / (1 - blocked / config.player.incomingPerTurn);
+        const power = (damage * toughness) / villainDamagePerTurn(config);
         if (!best || power > best.power) {
           best = {
             level, style: style.label, traits, skills: skills.bought, energy: stats.startingEnergy, hp: stats.maxHp,
-            damagePerTurn: turn.damage, blockedPerTurn: turn.blocked, toughness, power,
+            damagePerTurn: damage, blockedPerTurn: blocked, toughness, power,
           };
         }
       }

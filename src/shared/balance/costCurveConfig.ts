@@ -194,6 +194,8 @@ export type CostCurveConfig = {
     maxBlockedShare: number;
     /** Share of a turn's damage one Distance move dodges (only Melee is out of reach). */
     distanceDodgeShare: number;
+    /** Random hands drawn to average a deckset's damage per turn. */
+    handSamples: number;
   };
 };
 
@@ -290,7 +292,7 @@ export const COST_CURVE_CONFIG: CostCurveConfig = {
     revive: 30,
     soarShare: 0.5,
   },
-  player: { incomingPerTurn: 50, maxBlockedShare: 0.8, distanceDodgeShare: 0.2 },
+  player: { incomingPerTurn: 50, maxBlockedShare: 0.8, distanceDodgeShare: 0.2, handSamples: 400 },
 };
 
 // --- OVERRIDES ---
