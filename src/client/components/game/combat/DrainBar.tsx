@@ -20,7 +20,7 @@ export type DrainBarProps = {
 // --- CONSTANTS ---
 /** Bar and emblem proportions per size. */
 const LOOK: Record<DrainBarSize, { bar: string; emblem: string }> = {
-  small: { bar: 'h-1', emblem: 'h-5 w-7 text-[9px]' },
+  small: { bar: 'h-1', emblem: 'h-4 w-max min-w-6 px-[3px] text-[9px] leading-none' },
   large: { bar: 'h-3', emblem: 'h-11 w-14 text-xl' },
 };
 
