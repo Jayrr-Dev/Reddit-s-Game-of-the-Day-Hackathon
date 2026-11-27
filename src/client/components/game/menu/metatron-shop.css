@@ -68,8 +68,8 @@
 }
 @keyframes metatron-greet-nod {
   0%, 12%, 100% { transform: none; }
-  43% { transform: translateY(7px) scaleY(.979); }
-  74% { transform: translateY(-.7px); }
+  46% { transform: translateY(2px) rotate(.22deg); }
+  74% { transform: translateY(.35px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

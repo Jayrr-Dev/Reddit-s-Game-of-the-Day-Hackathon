@@ -9,6 +9,18 @@ import { ProgressiveImg, ProgressiveSvgImage } from '../../ui/ProgressiveImage';
 import { RingCounter } from './RingCounter';
 import './metatron-shop.css';
 
+const GREETINGS = [
+  '...',
+  'Hello, Demon.',
+  'I crave...',
+  'Pity.',
+  'You scent of Hell.',
+  'Hmm, apples...',
+  'Barter?',
+  'You reek of Ambition',
+  'sup.',
+] as const;
+
 const SALE_LINES = [
   'Ah, gold matching ambition.',
   'You bargain with gold. The world deals in consequences.',
@@ -79,6 +91,7 @@ function ShopSpeech({ text, isReply }: { text: string; isReply: boolean }) {
 }
 
 export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void; onTestInventory?: (items: ShopRingId[], visit: string, carry: CarryCard[]) => void }) => {
+  const [greeting] = useState(() => GREETINGS[Math.floor(Math.random() * GREETINGS.length)]);
   const [line, setLine] = useState<number | null>(null);
   const [reaction, setReaction] = useState<{ serial: number; apple?: ShopApple }>({ serial: 0 });
   const [buying, setBuying] = useState(false);
@@ -106,7 +119,7 @@ export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void
   const speech = showWait && waited !== null ? WAIT_LINES[waited] :
     reaction.apple === REALM_APPLE ? 'Dry as grave sand. I’d forgotten the taste. Come, see what I’ve kept under the cloth.' :
     reaction.apple ? 'An apple. You remembered. Let me see what else I have.' :
-    line === null ? 'Greetings.' : SALE_LINES[line];
+    line === null ? greeting : SALE_LINES[line];
   return (
   <section
     role="dialog"
