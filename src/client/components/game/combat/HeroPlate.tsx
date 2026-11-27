@@ -148,7 +148,6 @@ export const HeroPlate = ({ unit, field, player, showName }: HeroPlateProps) => 
               <IntentChips unit={unit} field={field} debuffBonus={debuffPowerOf(player.skillPicks)} />
             </div>
             <div className="hero-plate-health">
-              <EnemyHealthShield hp={unit.hp} maxHp={unit.maxHp} />
               <EnemyStatuses
                 combatant={unit}
                 source={player}
@@ -158,7 +157,9 @@ export const HeroPlate = ({ unit, field, player, showName }: HeroPlateProps) => 
                   unit.row,
                   hasLongRangePassive(unit)
                 )}
-              />
+              >
+                <EnemyHealthShield hp={unit.hp} maxHp={unit.maxHp} />
+              </EnemyStatuses>
             </div>
           </div>,
           layer

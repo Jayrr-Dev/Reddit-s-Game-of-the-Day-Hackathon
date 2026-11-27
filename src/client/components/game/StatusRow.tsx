@@ -16,6 +16,7 @@ import {
   useState,
   type KeyboardEvent,
   type MouseEvent,
+  type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -39,6 +40,7 @@ import {
   OUT_OF_RANGE_HIT_CHANCE,
   TIERED_MAX_TIER,
   MALAISE_TURNS,
+  STATUS_IS_AFFLICTION,
 } from '../../../shared/game/rules';
 import type {
   Combatant,
@@ -76,6 +78,7 @@ type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
   Pick<ChipProps, 'fill' | 'turnsLeft'> & {
     /** Shock's drop stage, drawn in place of its glyph. */
     shockCharge?: Charge;
+    isDebuff?: boolean;
     key: StatusId | PassiveId | 'guard' | 'outOfRange';
     title: string;
     description: string;
@@ -158,6 +161,7 @@ const passiveChipsOf = (passives: readonly PassiveId[]): StatusChip[] =>
 /** The Out of Range chip: the chance a shot lands, e.g. "50%". */
 const OUT_OF_RANGE_CHIP: StatusChip = {
   key: 'outOfRange',
+  isDebuff: true,
   ...OUT_OF_RANGE_LOOK,
   text: `${Math.round(OUT_OF_RANGE_HIT_CHANCE * 100)}%`,
   title: OUT_OF_RANGE_INFO.label,
@@ -224,6 +228,7 @@ const oneUseAmount = (id: StatusId, total: number, buffs: readonly TimedBuff[]) 
 /** The chip a burst Shock leaves for a moment: its drop splashing. */
 const splashChipOf = (value: number): StatusChip => ({
   key: 'shock',
+  isDebuff: true,
   ...STATUS_LOOK.shock,
   text: String(value),
   title: STATUS_INFO.shock.label,
@@ -280,6 +285,7 @@ const statusChipsOf = (
     return [{
       ...(turnsLeft !== undefined && { turnsLeft }),
       key: id,
+      isDebuff: STATUS_IS_AFFLICTION[id],
       ...STATUS_LOOK[id],
       text: id === 'reflex' ? `+${Math.round(reflexDodgeOf(combatant) * 100)}%`
         : owner === 'player' && (id === 'weaken' || TIERED_STATUSES.has(id))
@@ -428,17 +434,44 @@ const OverflowChip = ({
 };
 
 // --- COMPONENT ---
-/** Enemy plates use equal-size tiles so the counts line up across rows. */
-const ENEMY_COLUMNS = 4;
-const ENEMY_VISIBLE_TILES = ENEMY_COLUMNS * 3;
+/** Give each flank a short row; extra effects stay available through overflow. */
+const ENEMY_VISIBLE_PER_SIDE = 3;
 
+/** An enemy's small status tile retains its full detail on click. */
+const EnemyStatusTile = ({ chip }: { chip: StatusChip }) => (
+  <Tooltip opensOn="click" content={{title: chip.title, description: chip.description}}>
+    <button type="button" aria-label={([chip.title, chip.text].join(' ').trim()) + (chip.turnsLeft !== undefined ? ', ' + chip.turnsLeft + (chip.turnsLeft === 1 ? ' turn left' : ' turns left') : '')}
+      className={`relative grid size-6 cursor-pointer place-items-center rounded-[3px] bg-surface-sunken ring-1 ring-edge focus-visible:outline-2 focus-visible:outline-accent ${chip.fill ? 'text-black' : chip.toneClass}`}
+      style={{backgroundColor: chip.fill}}>
+      <span className={chip.turnsLeft !== undefined ? 'translate-x-0.5 translate-y-0.5' : chip.text ? '-translate-x-0.5 -translate-y-0.5' : ''}>
+        {chipIconOf(chip) ?? <Glyph name={chip.glyph} className="size-4" />}
+      </span>
+      {chip.text && <span className="absolute right-0 bottom-0 rounded-tl-sm bg-black/90 px-px text-[10px] leading-none font-bold tabular-nums text-white">{chip.text}</span>}
+      {chip.turnsLeft !== undefined && <TurnsLeft turns={chip.turnsLeft} placement="corner" />}
+    </button>
+  </Tooltip>
+);
+
+/** Render one side of the HP shield, keeping the first effect closest to HP. */
+function EnemyEffectGroup({ chips, side }: { chips: readonly StatusChip[]; side: 'buffs' | 'debuffs' }) {
+  const shownCount = chips.length > ENEMY_VISIBLE_PER_SIDE ? ENEMY_VISIBLE_PER_SIDE - 1 : chips.length;
+  const shown = chips.slice(0, shownCount);
+  return <div role={chips.length ? 'group' : undefined} aria-label={chips.length ? `Enemy ${side}` : undefined}
+    data-effect-side={side} className="enemy-status-grid">
+    {shown.map(chip => <EnemyStatusTile key={chip.key} chip={chip} />)}
+    {shownCount < chips.length && <OverflowChip all={chips} hidden={chips.slice(shownCount)} />}
+  </div>;
+}
+
+/** Center HP between beneficial and harmful effects, without moving the shield. */
 export const EnemyStatuses = ({
-  combatant, passives, isOutOfRange, source,
+  combatant, passives, isOutOfRange, source, children,
 }: {
   combatant: Combatant;
   source: Combatant;
   passives: readonly PassiveId[];
   isOutOfRange: boolean;
+  children: ReactNode;
 }) => {
   const splashed = useShockSplash(combatant);
   const chips = [
@@ -446,34 +479,11 @@ export const EnemyStatuses = ({
     ...passiveChipsOf(passives),
     ...statusChipsOf(combatant, splashed, undefined, [], source),
   ];
-  if (!chips.length) return null;
-  const shown = chips.length > ENEMY_VISIBLE_TILES
-    ? chips.slice(0, ENEMY_VISIBLE_TILES - 1)
-    : chips;
-  return (
-    <div
-      role="group"
-      aria-label="Enemy effects"
-        dir="rtl"
-      className="enemy-status-grid grid shrink-0 justify-items-stretch gap-[2px]"
-      style={{ gridTemplateColumns: `repeat(${Math.min(chips.length, ENEMY_COLUMNS)}, 1.5rem)` }}
-    >
-      {shown.map(chip => (
-        <Tooltip key={chip.key} opensOn="click" content={{title: chip.title, description: chip.description}}>
-          <button type="button" aria-label={([chip.title, chip.text].join(' ').trim()) + (chip.turnsLeft !== undefined ? ', ' + chip.turnsLeft + (chip.turnsLeft === 1 ? ' turn left' : ' turns left') : '')}
-            className={`relative grid size-6 cursor-pointer place-items-center rounded-[3px] bg-surface-sunken ring-1 ring-edge focus-visible:outline-2 focus-visible:outline-accent ${chip.fill ? 'text-black' : chip.toneClass}`}
-            style={{backgroundColor: chip.fill}}>
-            <span className={chip.turnsLeft !== undefined ? 'translate-x-0.5 translate-y-0.5' : chip.text ? '-translate-x-0.5 -translate-y-0.5' : ''}>
-              {chipIconOf(chip) ?? <Glyph name={chip.glyph} className="size-4" />}
-            </span>
-            {chip.text && <span className="absolute right-0 bottom-0 rounded-tl-sm bg-black/90 px-px text-[10px] leading-none font-bold tabular-nums text-white">{chip.text}</span>}
-            {chip.turnsLeft !== undefined && <TurnsLeft turns={chip.turnsLeft} placement="corner" />}
-          </button>
-        </Tooltip>
-      ))}
-      {shown.length < chips.length && <OverflowChip all={chips} hidden={chips.slice(shown.length)} />}
-    </div>
-  );
+  return <>
+    <EnemyEffectGroup side="buffs" chips={chips.filter(chip => !chip.isDebuff)} />
+    {children}
+    <EnemyEffectGroup side="debuffs" chips={chips.filter(chip => chip.isDebuff)} />
+  </>;
 };
 
 /** How the chips sit in their space. */

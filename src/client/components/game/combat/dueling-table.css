@@ -500,10 +500,17 @@
   translate: -50% 0;
   width: max-content;
   display: grid;
-  justify-items: center;
-  gap: .3rem;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  column-gap: 3px;
 }
-.hero-plate-health > .enemy-status-grid { zoom: .8; }
+.hero-plate-health > .enemy-status-grid {
+  display: flex;
+  gap: 3px;
+  zoom: .533333;
+}
+.enemy-status-grid[data-effect-side="buffs"] { justify-content: flex-start; flex-direction: row-reverse; }
+.enemy-status-grid[data-effect-side="debuffs"] { justify-content: flex-start; }
 .hero-plate-health .enemy-status-grid button span { paint-order: stroke fill; -webkit-text-stroke: 1.5px black; }
 .enemy-health-shield {
   position: relative;
