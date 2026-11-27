@@ -7,6 +7,8 @@ import { Glyph } from '../ui/Glyph';
 import { ProgressiveImg } from '../ui/ProgressiveImage';
 import { BattleCharacterSheet } from './BattleCharacterSheet';
 import { SettingsDialog } from './menu/SettingsDialog';
+import { MapExpandButton } from './MapExpandButton';
+import type { MapHandoff } from '../../lib/mapExpansion';
 
 export type AtlasRunControls = {
   run: Pick<RunState, 'character' | 'hp' | 'maxHp' | 'deck' | 'artifacts' | 'conquestVersion'>;
@@ -37,7 +39,10 @@ export function AtlasPlayerControls({ run, onAction, onMainMenu }: AtlasRunContr
 }
 
 /** Reuses the same preferences as battle without abandoning the conquest. */
-export function AtlasSettings() {
+export function AtlasSettings({ view, className = 'atlas-settings-gear' }: { view?: MapHandoff | undefined; className?: string }) {
   const { controls } = useGameSettings();
-  return <SettingsDialog className="atlas-settings-gear">{controls}</SettingsDialog>;
+  return <SettingsDialog className={className}>
+    <MapExpandButton view={view} />
+    {controls}
+  </SettingsDialog>;
 }

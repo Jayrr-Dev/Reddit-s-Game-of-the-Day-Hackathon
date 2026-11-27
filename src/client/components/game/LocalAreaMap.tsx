@@ -3,7 +3,7 @@ import { areaMapNodes, areaTerrain, type AreaMapNode, type AreaTerrain } from '.
 import { battleTierName, type AreaBattle, type AreaSite } from '../../../shared/game/conquestAreas';
 import { Glyph } from '../ui/Glyph';
 import { AtlasLandmark } from './KingdomAtlas';
-import { MapExpandButton } from './MapExpandButton';
+import { AtlasSettings } from './AtlasPlayerControls';
 import type { MapHandoff } from '../../lib/mapExpansion';
 import './localAreaMap.css';
 
@@ -79,13 +79,13 @@ export function LocalAreaMap({ site, battles, heading = site.name, onBack, inter
   };
 
   return <section className="local-area-map prelude-enter" data-terrain={terrain} aria-label={heading + ' area map'}
-    onKeyDown={event => { if (onBack && event.key === 'Escape') { event.stopPropagation(); onBack(); } }}>
+    onKeyDown={event => { if (onBack && event.key === 'Escape' && !(event.target instanceof Element && event.target.closest('dialog'))) { event.stopPropagation(); onBack(); } }}>
     <header className="local-area-header">
       {onBack && <button type="button" className="map-expand-button" title="Back to regional map" aria-label="Back to regional map" onClick={onBack}>
         <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6M8 12h12"/></svg>
       </button>}
       <div><small>{TERRAIN_LABEL[terrain]}</small><h1 ref={title} tabIndex={-1}>{heading}</h1></div>
-      <MapExpandButton className="local-area-expand" {...(mapHandoff && { view: mapHandoff })} />
+      <AtlasSettings className="local-area-settings" view={mapHandoff} />
     </header>
     <div className="local-area-chart">
       <MapInk terrain={terrain} nodes={nodes} />

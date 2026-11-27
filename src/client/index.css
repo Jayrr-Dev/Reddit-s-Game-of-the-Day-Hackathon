@@ -77,7 +77,6 @@
   outline: 2px solid var(--color-accent-hover);
   outline-offset: 2px;
 }
-.world-atlas-expand { position: absolute; z-index: 4; inset: .65rem .65rem auto auto; }
 
 /* --- LINING DIGITS ---
    Georgia (the display font) draws old-style digits: a "1" is short

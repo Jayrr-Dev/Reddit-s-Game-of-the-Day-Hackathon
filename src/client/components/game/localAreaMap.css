@@ -18,8 +18,8 @@
   flex: none;
 }
 .local-area-header { justify-content: flex-start; }
-.local-area-header button { width: 2.5rem; height: 2.5rem; flex: none; }
-.local-area-header .local-area-expand { margin-left: auto; }
+.local-area-header > button { width: 2.5rem; height: 2.5rem; flex: none; }
+.local-area-header > .local-area-settings { margin-left: auto; }
 .local-area-header h1 { font: 700 clamp(1rem, 4vw, 1.45rem)/1.15 Georgia, serif; margin: 0; }
 .local-area-header small, .local-area-inspection { color: var(--color-accent); font-size: .72rem; }
 .local-area-footer { justify-content: flex-end; flex-wrap: wrap; }

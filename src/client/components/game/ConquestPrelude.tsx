@@ -23,7 +23,6 @@ import { AtlasInk, AtlasLandmark, landmarkOf, ATLAS_HEIGHT, ATLAS_WIDTH, type At
 import { ATLAS_REGIONS } from './AtlasRegions';
 import { WorldAtlas } from './WorldAtlas';
 import { LocalAreaMap } from './LocalAreaMap';
-import { MapExpandButton } from './MapExpandButton';
 import { readMapHandoff, useMapExpansionScope, type MapHandoff } from '../../lib/mapExpansion';
 import { AtlasPlayerControls, AtlasSettings, type AtlasRunControls } from './AtlasPlayerControls';
 import { SandboxView, type AtlasTrainingVisit } from './SandboxView';
@@ -227,27 +226,25 @@ export function ConquestMap({
   </LocalAreaMap>;
   return <section className="conquest-map map-fullbleed prelude-enter" data-run-controls={Boolean(runControls) || undefined} aria-label={exploring ? theme.name + ' practice map' : region ? region + ' map' : 'Conquest map'}
     onPointerDownCapture={event => {
-      if (active && event.target instanceof Element && !event.target.closest('.atlas-destination-popover, .atlas-destination, .atlas-inspectable')) setSelected(undefined);
+      if (active && event.target instanceof Element && !event.target.closest('.atlas-destination-popover, .atlas-destination, .atlas-inspectable, .atlas-settings-gear, dialog')) setSelected(undefined);
     }}
     onKeyDown={event => {
-      if (event.key === 'Escape' && selected !== undefined) {
+      if (event.key === 'Escape' && selected !== undefined && !(event.target instanceof Element && event.target.closest('dialog'))) {
         setSelected(undefined);
         selectedMarker.current?.focus({ preventScroll: true });
       }
     }}>
     {exploring && !showWorld && <div className="atlas-ascent atlas-browse-back"><button type="button" onClick={() => { setSelected(undefined); setBrowseRegion(undefined); }}>Back to conquest</button></div>}
     {runControls && !showWorld && <AtlasPlayerControls {...runControls} />}
-    {(isCampaign || runControls) && <div className="atlas-ascent atlas-map-actions" hidden={showWorld}>
-      {isCampaign &&
+    {isCampaign && <div className="atlas-ascent atlas-map-actions" hidden={showWorld}>
       <button ref={worldTrigger} type="button" aria-controls="full-world-atlas" onClick={() => {
         setSelected(undefined);
         setShowWorld(true);
-      }}>World map</button>}
-      <MapExpandButton view={mapHandoff} />
+      }}>World map</button>
     </div>}
-    {runControls && !showWorld && <AtlasSettings />}
+    {(isCampaign || runControls) && !showWorld && <AtlasSettings view={mapHandoff} />}
     {showWorld && <WorldAtlas current={regionIndexOf(runStop)}
-      controls={<MapExpandButton className="world-atlas-expand" view={mapHandoff} />}
+      controls={<AtlasSettings view={mapHandoff} />}
       {...(isAdmin && { onVisit: (index: number) => {
         setSelected(undefined);
         setBrowseRegion(index);

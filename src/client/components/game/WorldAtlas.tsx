@@ -18,12 +18,12 @@ export function WorldAtlas({ current, onBack, onVisit, controls }: {
   const boss = selected === undefined ? undefined : [...GRANDANGEL_BOSSES, ...ARCHANGEL_BOSSES][selected];
   const arenaArt = boss ? bossArenaOf([boss])?.image : undefined;
   return <section className="world-atlas" id="full-world-atlas" aria-label="Full world map" onKeyDown={event => {
-    if (event.key !== 'Escape') return;
+    if (event.key !== 'Escape' || (event.target instanceof Element && event.target.closest('dialog'))) return;
     event.stopPropagation();
     if (selected !== undefined) setSelected(undefined);
     else onBack();
   }} onPointerDown={event => {
-    if (event.target instanceof Element && !event.target.closest('.world-node,.world-region-details')) setSelected(undefined);
+    if (event.target instanceof Element && !event.target.closest('.world-node,.world-region-details,.atlas-settings-gear,dialog')) setSelected(undefined);
   }}>
     <WorldGeography current={current} />
     <div className="world-atlas-compass" aria-hidden="true">

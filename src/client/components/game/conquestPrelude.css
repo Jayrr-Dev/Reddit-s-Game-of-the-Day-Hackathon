@@ -258,7 +258,6 @@
 .atlas-map-actions:not([hidden]) { display: flex; align-items: center; gap: .375rem; }
 .atlas-map-actions > button { min-height: 2.5rem; }
 .atlas-settings-gear { position: absolute; inset: auto .7rem .7rem auto; z-index: 4; }
-.atlas-map-actions > .map-expand-button { display: grid; width: 2.5rem; padding: 0; }
 .atlas-main-controls {
   position: absolute; z-index: 4; inset: .7rem auto auto .7rem;
   display: flex; align-items: center; gap: .4rem;
@@ -281,6 +280,6 @@
   .atlas-profile strong { display: none; }
   .atlas-profile small { display: grid; gap: .12rem; }
   .atlas-profile-heart { margin-left: 0; }
-  .atlas-map-actions > button:not(.map-expand-button) { padding-inline: .38rem; }
+  .atlas-map-actions > button { padding-inline: .38rem; }
 }
 .map-fullbleed[data-run-controls] > .conquest-map-scroll { scroll-padding-top: 3.35rem; }
