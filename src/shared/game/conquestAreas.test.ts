@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { activeRows, formUp } from './battlefield.ts';
 import { areaMapNodes, areaTerrain } from './areaMap.ts';
 import { createHeroUnit } from './combat.ts';
+import { combatantBonuses } from './combatant.ts';
 import { ARCHANGEL_BOSSES, AREA_BOSSES, areaCounts, areaRoomEvent, BATTLE_WAVES, battleTierName, buildAreaBattles, CAMPAIGN_LENGTH, CONQUEST_VERSION, conquestStops, GRANDANGEL_BOSSES, LOCATION_BOSSES, MAX_WAVE_SIZE } from './conquestAreas.ts';
 import { CONQUEST_SCENARIOS } from './conquestScenarios.ts';
 import { CHAMPION_IDS, getHero } from './heroes.ts';
@@ -82,6 +83,32 @@ void test('reinforcements march in from the back with the same hand, player, and
   assert.equal(won.phase.kind, 'reward');
   assert.equal(won.goldVictories.length, 1);
   assert.equal(won.stats.wavesCleared, BATTLE_WAVES.skirmish);
+});
+
+void test('an End Turn wave clear opens a fresh hand and refills energy on reinforcement arrival', () => {
+  const initial = runReducer(campaign(), { type: 'chooseStop', option: 0 });
+  assert.equal(initial.phase.kind, 'combat');
+  const combat = initial.phase.combat;
+  const last = createHeroUnit('squire', combat.heroes[0]!.uid, 1);
+  for (const status of ['hex', 'poison'] as const) {
+    const enemy = { ...last, row: 'front' as const, col: 1, hp: 1, statuses: { ...last.statuses, [status]: 3 } };
+    const ready = { ...initial, phase: { ...initial.phase, combat: { ...combat, waveArrival: false, heroes: [enemy], energy: 1 } } };
+    const pending = runReducer(ready, { type: 'endTurn' });
+    assert.equal(pending.phase.kind, 'combat');
+    assert.equal(pending.area?.wavePending, true);
+    assert.equal(pending.phase.combat.energy, 0, 'End Turn has already spent this turn');
+    const next = runReducer(pending, { type: 'nextBattleWave' });
+    assert.equal(next.phase.kind, 'combat');
+    assert.equal(next.area?.wave, 1);
+    assert.equal(next.phase.combat.turn, combat.turn + 1);
+    const { maxEnergy, startingEnergy } = combatantBonuses(combat.player);
+    assert.equal(next.phase.combat.energy, Math.min(maxEnergy, startingEnergy + pending.phase.combat.reserve));
+    assert.equal(next.phase.combat.reserve, 0);
+    assert.ok(next.phase.combat.hand.length > 0);
+    assert.equal(next.phase.combat.player.hp, combat.player.hp);
+    assert.deepEqual(next.phase.combat.heroes.map(h => h.row), next.phase.combat.heroes.map(() => activeRows().at(-1)));
+    assert.equal(runReducer(next, { type: 'nextBattleWave' }), next, 'cannot refill a second time');
+  }
 });
 
 void test('large locations retain room visits; new Rest is part of the five-wave Respite', () => {

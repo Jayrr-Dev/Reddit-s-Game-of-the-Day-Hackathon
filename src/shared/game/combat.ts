@@ -2354,6 +2354,15 @@ const expireStackedBuffs = <T extends Combatant>(unit: T, countProtection = true
 const expirePlayerRoundStacks = (player: CombatState['player']) =>
   expireStackedBuffs({ ...player, statuses: { ...player.statuses, reflex: 0 } });
 
+/** Open the next round after enemy actions, including a wave that ended in upkeep. */
+export function openPlayerRound(state: CombatState): CombatState {
+  return startPlayerTurn({
+    ...state,
+    player: expirePlayerRoundStacks(state.player),
+    heroes: state.heroes.map(unit => expireStackedBuffs(unit, false)),
+  });
+}
+
 /** HP that the currently queued Hex alone will cost at the next turn opening. */
 export const pendingPlayerHexDamage = ({ player, waveArrival }: Pick<CombatState, 'player' | 'waveArrival'>): number => {
   if (player.hp <= 0 || player.statuses.hex <= 0) return 0;
@@ -2459,11 +2468,7 @@ const resolveTurnSteps = (state: CombatState): TurnStep[] => {
     actorUid: null,
     attackType: null,
     move: null,
-    state: startPlayerTurn({
-      ...advanced,
-      player: expirePlayerRoundStacks(advanced.player),
-      heroes: advanced.heroes.map(unit => expireStackedBuffs(unit, false)),
-    }),
+    state: openPlayerRound(advanced),
   });
   return steps;
 };

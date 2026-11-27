@@ -19,7 +19,7 @@ import { playerHpCap, progressionFromWins, healingAmount, type RingProgress, all
 
 import { getCard, STARTER_DECK, type CardId } from './cards.ts';
 import { getRunArtifact, isHellArtifact, type HellArtifactId, type RunArtifactId } from './hellArtifacts.ts';
-import { combatOutcome, createHeroUnit, drawCards, endTurn, playCard, startCombat, SELF_TARGET_UID } from './combat.ts';
+import { combatOutcome, createHeroUnit, drawCards, endTurn, openPlayerRound, playCard, startCombat, SELF_TARGET_UID } from './combat.ts';
 import { imbueBorrowedCopies, rollBorrowedPowers, type BorrowedPower } from './borrowedPowers.ts';
 import { combatantBonuses } from './combatant.ts';
 import { formUp } from './battlefield.ts';
@@ -72,6 +72,7 @@ export type RunPhase =
 
 type AreaProgress = {
   site: AreaSite; stop: Stop; battles: AreaBattle[]; battle: number; wave: number; wavePending?: boolean;
+  waveRefillPending?: boolean;
   waveBase?: number; respite?: { offers?: CardId[]; powers?: BorrowedPower[] }; pushes?: number; finds?: CardId[];
 };
 
@@ -398,15 +399,18 @@ function acceptNextWave(state: RunState): RunState {
   return spawnReinforcements(state, area, phase, area.wave + 1);
 }
 
-/** Spawns without touching the player's hand, resources or battle clock. */
+/** Preserve the current turn unless the last wave ended before its next refill. */
 function spawnReinforcements(state: RunState, area: AreaProgress, phase: Extract<RunPhase, { kind: 'combat' }>, index: number): RunState {
   const wave = area.battles[area.battle]?.waves[index];
   if (!wave) return state;
   const combat = phase.combat;
   const might = wave.might ?? conquestMightAt(state.stop);
   const heroes = formUp(wave.heroIds.map((id, index) => createHeroUnit(id, combat.nextUid + index, id === 'ballista' ? 1 : might)), 'furthest');
-  return { ...state, area: { ...area, wave: index, wavePending: false },
-    phase: { ...phase, combat: { ...combat, heroes, fallen: [], waveArrival: true, nextUid: combat.nextUid + heroes.length } } };
+  const { waveRefillPending, ...progress } = area;
+  const arriving = { ...combat, heroes, fallen: [], waveArrival: true, nextUid: combat.nextUid + heroes.length };
+  const next = { ...state, area: { ...progress, wave: index, wavePending: false },
+    phase: { ...phase, combat: arriving } };
+  return waveRefillPending ? settleCombat(next, phase.stop, openPlayerRound(arriving)) : next;
 }
 
 /** Inspection of the field can find a card without changing combat's active card copies. */
@@ -598,6 +602,18 @@ function bringHellArtifact(state: RunState, id: HellArtifactId): RunState {
   return { ...state, artifacts, baseMaxHp: baseMaxHp + bonus, hp: state.hp + bonus, maxHp: state.maxHp + bonus };
 }
 
+/** Remember a cancelled turn opening when an affliction ends the wave during End Turn. */
+function settleEndTurn(state: RunState, phase: Extract<RunPhase, { kind: 'combat' }>): RunState {
+  const combat = endTurn(phase.combat);
+  const next = settleCombat(state, phase.stop, combat);
+  const area = next.area;
+  if (combat === phase.combat || combat.turn !== phase.combat.turn || next.phase.kind !== 'combat' || !area) return next;
+  const battle = area.battles[area.battle];
+  const willContinue = area.wavePending || (area.respite && battle &&
+    (battle.finish === 'endless-boss' || area.wave + 1 < battle.waves.length));
+  return willContinue ? { ...next, area: { ...area, waveRefillPending: true } } : next;
+}
+
 /** Applies one action. Actions that don't fit the current phase are ignored. */
 export const runReducer = (state: RunState, action: RunAction): RunState => {
   const { phase } = state;
@@ -671,7 +687,7 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
         : state;
     case 'endTurn':
       return phase.kind === 'combat'
-        ? settleCombat(state, phase.stop, endTurn(phase.combat))
+        ? settleEndTurn(state, phase)
         : state;
     case 'move':
     case 'charge':

@@ -159,6 +159,25 @@ test('Endless clears five waves, drafts a prize, and carries the same combat int
   assert.equal(borrowed.phase.combat.turn, run.phase.combat.turn);
 });
 
+test('Endless refills once after an End Turn clear at the fifth-wave respite', () => {
+  const start = createEndless('refill', ['backhand'], ENDLESS_BATTLE_VERSION);
+  assert.equal(start.phase.kind, 'combat');
+  assert.ok(start.area);
+  const combat = start.phase.combat;
+  const last = createHeroUnit('squire', combat.heroes[0]!.uid, 1);
+  const ready = { ...start, area: { ...start.area, wave: 4 }, phase: { ...start.phase, combat: {
+    ...combat, energy: 0, waveArrival: false, heroes: [{ ...last, row: 'front' as const, col: 1, hp: 1,
+      statuses: { ...last.statuses, poison: 3 } }],
+  } } };
+  const pending = reduceEndless(ready, { type: 'endTurn' });
+  assert.ok(pending.area?.respite);
+  const next = reduceEndless(pending, { type: 'battleRespite', choice: 'rest' });
+  assert.equal(endlessWaveNumber(next), 6);
+  assert.equal(next.phase.kind, 'combat');
+  assert.equal(next.phase.combat.turn, combat.turn + 1);
+  assert.equal(next.phase.combat.energy, combatantBonuses(combat.player).startingEnergy);
+});
+
 test('draft refreshes replace offers, preserve cards, stop at five and pause at both power milestones', () => {
   const day = '2026-11-27';
   let draft: EndlessDraft = { number: 1, starter: 'Mage', cards: ['forkedBolt', 'frostBolt', 'mend', 'boneWard', 'arcaneBolt'] };
