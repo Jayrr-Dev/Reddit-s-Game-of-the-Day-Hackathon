@@ -93,7 +93,7 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
       if (result.shop.testVisit) onTestInventory?.(result.shop.owned, result.shop.testVisit, result.shop.carryCards ?? []);
       if (result.status === 'bought' && !result.reward) onSale(shop.offers.find(offer => offer.id === id));
       if (result.reward) { revealing = true; setReward(result.reward); }
-      setNote(result.status === 'bought' ? (result.shop.testVisit ? '' : result.reward ? 'Opening paid.' : shop.offers.some(offer => offer.id === id && offer.slot === 'card') ? 'Added to Album.' : 'Bought. Equip it in Profile.') :
+      setNote(result.status === 'bought' ? (shop.offers.some(offer => offer.id === id && offer.slot === 'card') ? (result.shop.testVisit ? 'Check your Album.' : 'Added to Album.') : result.shop.testVisit ? '' : result.reward ? 'Opening paid.' : 'Bought. Equip it in Profile.') :
         result.status === 'owned' ? 'This offer is no longer available.' :
         result.status === 'full' ? 'Album full. Trash a card to make room.' :
         result.status === 'short' ? 'Not enough Gold.' :

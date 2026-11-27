@@ -112,7 +112,9 @@ async function getBuild(id:string) {
 api.get('/profile',async c => {
   const id=context.userId;
   if(!id)return jsonError(c,401,'Sign in to load your profile');
-  const [build, progress, items, unlocks] = await Promise.all([getBuild(id), readPlayerProgress(id), getItems(id), getUnlocks(id)]);
+  const visit = c.req.query('testVisit');
+  const adminAlbum = c.req.query('album') === '1' && await isCurrentUserAdmin() ? (isShopVisitId(visit) ? { visit } : {}) : undefined;
+  const [build, progress, items, unlocks] = await Promise.all([getBuild(id), readPlayerProgress(id, adminAlbum), getItems(id), getUnlocks(id)]);
   return c.json<ProfileResponse>({ build, ...progress, items, unlocks });
 });
 const isShopVisitId = (value: unknown): value is string =>
@@ -197,14 +199,7 @@ api.post('/profile/album', async (c) => {
   const action: unknown = await c.req.json().catch(() => null);
   if (!action || typeof action !== 'object' || !('id' in action) || !('type' in action) ||
     !isCarryCardId(action.id)) return jsonError(c, 400, 'Invalid Album card');
-  const testVisit = 'testVisit' in action ? action.testVisit : undefined;
-  if (testVisit !== undefined) {
-    if (!isShopVisitId(testVisit) || action.type !== 'trash' || !isTestCarryCardId(action.id))
-      return jsonError(c, 400, 'Invalid test card');
-    if (!(await isCurrentUserAdmin())) return jsonError(c, 403, 'Admins only');
-    const carryCards = await updatePlayerAlbum(id, { type: 'trash', id: action.id }, testVisit);
-    return carryCards ? c.json({ carryCards }) : jsonError(c, 400, 'Test card not found or the visit expired');
-  }
+  if ('testVisit' in action) return jsonError(c, 400, 'Edit your cards in the Album');
   if (isTestCarryCardId(action.id)) return jsonError(c, 400, 'Invalid Album card');
   const selection = action.type === 'trash' ? { type: 'trash' as const, id: action.id }
     : action.type === 'swap' && 'with' in action && isCarryCardId(action.with) && !isTestCarryCardId(action.with)

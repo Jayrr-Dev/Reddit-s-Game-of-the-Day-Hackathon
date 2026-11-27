@@ -29,7 +29,6 @@ import { KeyArt } from './menu/KeyArt';
 import { useGameSettings } from '../../hooks/useGameSettings';
 import { SettingsDialog } from './menu/SettingsDialog';
 import { MenuPanel } from './menu/MenuPanel';
-import type { CarryCard } from '../../../shared/game/carryCards';
 import type { ShopRingId } from '../../../shared/game/ringShop';
 import { MetatronShop } from './menu/MetatronShop';
 import { DevPanel } from './menu/DevPanel';
@@ -191,11 +190,7 @@ export const IntroView = ({
     return () => { current = false; };
   }, [data.accountId, data.lifetimeWins, data.xpStartWins, data.bonusXp, data.gold, sheet]);
   const [testJewelry, setTestJewelry] = useState<ShopRingId[]>([]);
-  const [testCarry, setTestCarry] = useState<CarryCard[]>([]);
-  const [testAlbumVisit, setTestAlbumVisit] = useState<string>();
-  const receiveTestInventory = useCallback((items: ShopRingId[], visit: string, cards: CarryCard[]) => {
-    setTestCarry(cards);
-    setTestAlbumVisit(visit);
+  const receiveTestInventory = useCallback((items: ShopRingId[], visit: string) => {
     setTestJewelry(items);
     onShopTestVisit?.(visit);
   }, [onShopTestVisit]);
@@ -203,7 +198,7 @@ export const IntroView = ({
     if (sheet !== 'profile' || !loadTestShop) return;
     let active = true;
     loadTestShop().then(result => {
-      if (active && result.testVisit) receiveTestInventory(result.owned, result.testVisit, result.carryCards);
+      if (active && result.testVisit) receiveTestInventory(result.owned, result.testVisit);
     }).catch(() => {});
     return () => { active = false; };
   }, [sheet, loadTestShop, receiveTestInventory]);
@@ -222,7 +217,7 @@ export const IntroView = ({
   const note = activeRunLevel !== undefined && activeRunLevel !== level
     ? 'Saved run: Lv ' + activeRunLevel + ' · Profile: Lv ' + level
     : rankedNote(data, canResume);
-  if (sheet === 'profile') return <ProfileView data={data} rings={profileRings} onClose={closeSheet} testJewelry={isAdmin ? testJewelry : []} testCarry={isAdmin ? testCarry : []} testVisit={isAdmin ? testAlbumVisit : undefined} onTestCarryChange={setTestCarry} />;
+  if (sheet === 'profile') return <ProfileView data={data} rings={profileRings} onClose={closeSheet} testJewelry={isAdmin ? testJewelry : []} />;
   if (sheet === 'tutorial') return <FirstFight accountId={data.accountId} onExit={closeSheet} onRules={() => setSheet('rules')} />;
 
   return (
@@ -240,7 +235,7 @@ export const IntroView = ({
           {onEndless && <Button variant="menu" onClick={onEndless}>Endless</Button>}
           <div className="grid w-full grid-cols-2 gap-2">
             <Button variant="menu" onClick={() => setSheet('profile')}>Profile</Button>
-            <Button variant="menu" onClick={() => { setTestJewelry([]); setTestCarry([]); onShopTestVisit?.(undefined); setSheet('shop'); }}>Shop</Button>
+            <Button variant="menu" onClick={() => { setTestJewelry([]); onShopTestVisit?.(undefined); setSheet('shop'); }}>Shop</Button>
           </div>
           {SHOW_PRACTICE && (
             <Button variant="menu" onClick={onPractice}>

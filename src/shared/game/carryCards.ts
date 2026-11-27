@@ -6,7 +6,7 @@ export const IMBUE_PRICE = 85;
 export const ALBUM_SLOTS = 4;
 export const MAX_CARRY_CARDS = ALBUM_SLOTS;
 export const IMBUE_CARDS = ALL_CARD_IDS.filter(id => getCard(id).type === 'imbue' && isCardInPlay(id));
-export type CarryCard = { id: string; cardId: CardId; source: 'shop' | 'ferryman' | 'pandora' | 'test'; spent?: string; discarded?: true };
+export type CarryCard = { id: string; cardId: CardId; source: 'shop' | 'ferryman' | 'pandora' | 'test' | 'grant'; spent?: string; discarded?: true };
 export type CarryCards = Partial<Record<string, CarryCard>>;
 
 const TEST_CARDS = ['keenEdge', 'emberRune', 'wardingBolt', 'ruin'] as const satisfies readonly CardId[];
@@ -17,8 +17,24 @@ export function seededAdminCarryCards(): CarryCards {
   }));
 }
 
+/** Import admin samples and earned visit cards without replacing normal Album slots or reissuing trashed grants. */
+export function grantAdminAlbumCards(owned: CarryCards, visit?: CarryCards): CarryCards {
+  const originals = visit ?? seededAdminCarryCards();
+  const alreadyOwned = new Set(availableCarryCards(owned).map(card => card.cardId));
+  let next = owned;
+  for (const card of Object.values(originals)) {
+    if (!card || !isTestCarryCardId(card.id)) continue;
+    const id = 'grant:' + card.cardId;
+    if (next[id]) continue;
+    const discarded = card.discarded || alreadyOwned.has(card.cardId);
+    next = { ...next, [id]: { id, cardId: card.cardId, source: 'grant', ...(discarded && { discarded: true }) } };
+    if (!discarded) alreadyOwned.add(card.cardId);
+  }
+  return next;
+}
+
 export function carrySourceLabel(source: CarryCard['source']): string {
-  return source === 'shop' ? 'Shop' : source === 'test' ? 'Admin test' : source === 'pandora' ? 'Pandora' : 'From Hell';
+  return source === 'shop' ? 'Shop' : source === 'test' ? 'Admin test' : source === 'pandora' ? 'Pandora' : source === 'grant' ? 'Album' : 'From Hell';
 }
 
 export const isShopStockKey = (value: unknown): value is string => typeof value === 'string' &&
@@ -39,7 +55,7 @@ export const isTestCarryCardId = (id: string): boolean => /^test:[0-3]$/.test(id
 
 export const isCarryCardId = (value: unknown): value is string => typeof value === 'string' &&
   ((value.startsWith('shop:') && isShopStockKey(value.slice(5))) || /^hell:[a-f0-9-]{36}$/.test(value) ||
-    isTestCarryCardId(value) || isPandoraCarryId(value, 'pandora'));
+    isTestCarryCardId(value) || isPandoraCarryId(value, 'pandora') || (value.startsWith('grant:') && isCardId(value.slice(6))));
 
 /** Validate the selected inventory receipts, not client-supplied catalog IDs. */
 export const isCarrySelection = (value: unknown): value is string[] => Array.isArray(value) &&
@@ -60,10 +76,11 @@ export function readCarryCards(value: unknown): CarryCards {
   const cards: CarryCards = {};
   for (const [id, row] of Object.entries(value)) {
     if (!isCarryCardId(id) || !row || typeof row !== 'object' || !isCardId(row.cardId) ||
-      (row.source !== 'shop' && row.source !== 'ferryman' && row.source !== 'pandora' && row.source !== 'test') ||
+      (row.source !== 'shop' && row.source !== 'ferryman' && row.source !== 'pandora' && row.source !== 'test' && row.source !== 'grant') ||
       (row.source === 'shop' && !id.startsWith('shop:') && !isTestShopReceipt(id)) ||
       (row.source === 'ferryman' && !id.startsWith('hell:')) ||
       (row.source === 'pandora' && !isPandoraCarryId(id, 'pandora')) ||
+      (row.source === 'grant' && id !== 'grant:' + row.cardId) ||
       (row.source === 'test' && (!isTestCarryCardId(id) || (id.startsWith('test:') && row.cardId !== TEST_CARDS[Number(id.slice(5))]))) ||
       (row.spent !== undefined && (typeof row.spent !== 'string' || !/^[a-f0-9-]{36}$/.test(row.spent))) ||
       (row.discarded !== undefined && row.discarded !== true))

@@ -56,13 +56,20 @@ const postJson = <TResponse>(path: string, payload?: unknown) =>
     body: JSON.stringify(payload ?? {}),
   });
 
+/** Include the current test shop visit when opening the normal Album. */
+function albumProfilePath(accountId: string): string {
+  let visit: string | null = null;
+  try { visit = sessionStorage.getItem('villain-arc:test-shop:' + accountId); } catch { /* Storage is optional. */ }
+  return '/api/profile?album=1' + (visit ? '&testVisit=' + encodeURIComponent(visit) : '');
+}
+
 // --- ROUTES ---
 export const apiClient = {
   ringShop: (testVisit?: string) => request<RingShopResponse>('/api/shop/rings' + (testVisit ? '?testVisit=' + encodeURIComponent(testVisit) : ''), { cache: 'no-store' }),
   offerApple: (itemId: ShopApple, testVisit?: string) => postJson<Pick<ProfileResponse, 'items'> & { shop?: RingShopResponse }>('/api/shop/apple', { itemId, ...(testVisit && { testVisit }) }),
   buyRing: (payload: BuyRingRequest) => postJson<BuyRingResponse>('/api/shop/rings/buy', payload),
-  updateAlbum: (action: import('../../shared/game/carryCards').AlbumAction, testVisit?: string) => postJson<{ carryCards: import('../../shared/game/carryCards').CarryCard[] }>('/api/profile/album', { ...action, ...(testVisit && { testVisit }) }),
-  profile: () => request<ProfileResponse>('/api/profile', { cache: 'no-store' }),
+  updateAlbum: (action: import('../../shared/game/carryCards').AlbumAction) => postJson<{ carryCards: import('../../shared/game/carryCards').CarryCard[] }>('/api/profile/album', action),
+  profile: (albumAccountId?: string) => request<ProfileResponse>(albumAccountId ? albumProfilePath(albumAccountId) : '/api/profile', { cache: 'no-store' }),
   saveProfile: (build: import('../../shared/game/playerBuild').PlayerBuild) => postJson<{saved:boolean}>('/api/profile',build),
   useItem: (payload: UseItemRequest) => postJson<UseItemResponse>('/api/profile/use-item', payload),
   discardItem: (payload: UseItemRequest) => postJson<DiscardItemResponse>('/api/profile/discard-item', payload),

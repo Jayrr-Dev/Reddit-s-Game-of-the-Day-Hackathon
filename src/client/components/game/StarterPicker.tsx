@@ -39,7 +39,7 @@ export function StarterPicker({ accountId, starting, onBack, onConfirm, loadTest
       isUniqueInDeck([...starter, ...selectedCarry.map(entry => entry.cardId)], card.cardId)) return;
     setCarryIds([...selectedCarry.map(entry => entry.id), id]);
   }
-  const pending = selectedCarry.length ? (selectedCarry.some(card => card.source === 'test') ? queued.test : queued.real) : queued.test ?? queued.real;
+  const pending = selectedCarry.length ? queued.real : queued.test ?? queued.real;
   const cursed = pending && pending !== 'lasting-vigor';
   const [attacker]=useState(()=>createCombatant(66, 66));
   const musicVolume = useSyncExternalStore(subscribeVolume, () => getVolume('music'));
@@ -47,11 +47,11 @@ export function StarterPicker({ accountId, starting, onBack, onConfirm, loadTest
   useEffect(()=>{
     if(!accountId)return;
     let live=true;setLoading(true);setError(false);
-    Promise.all([apiClient.profile(), loadTestShop?.().catch(() => undefined)]).then(([result, test]) => {
+    Promise.all([apiClient.profile(accountId), loadTestShop?.().catch(() => undefined)]).then(([result, test]) => {
       if (!live) return;
       setBuild(result.build);
       setQueued({ real: result.nextEffect, test: test?.nextEffect });
-      setCarry([...new Map([...(result.carryCards ?? []).slice(0, ALBUM_SLOTS), ...(test?.carryCards ?? [])].map(card => [card.id, card])).values()]);
+      setCarry((result.carryCards ?? []).slice(0, ALBUM_SLOTS));
     })
       .catch(()=>{if(live)setError(true);}).finally(()=>{if(live)setLoading(false);});
     return ()=>{live=false;};

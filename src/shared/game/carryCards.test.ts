@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { availableCarryCards, changeAlbum, isCarryCardId, isCarrySelection, isTestCarryCardId, seededAdminCarryCards, shopStockKey } from './carryCards.ts';
+import { availableCarryCards, changeAlbum, grantAdminAlbumCards, isCarryCardId, isCarrySelection, isTestCarryCardId, seededAdminCarryCards, shopStockKey } from './carryCards.ts';
 import { appleAtVictory } from './gold.ts';
 import { PANDORA_DUPLICATE_GOLD } from './pandora.ts';
 import { replayForScoreAndUnlocks } from './replayForScore.ts';
@@ -31,6 +31,35 @@ test('Album keeps four active cards, allows an archive swap, and tombstones tras
   assert.equal(selectCarryCards(reloaded, [extra]), undefined);
   assert.equal(shopGoldBalance(200, reloaded), shopGoldBalance(200, initial));
   assert.equal(changeAlbum(reloaded.carry!, { type: 'trash', id: extra }), undefined);
+});
+
+test('admin samples and visit cards become normal reusable Album receipts without a charge', () => {
+  const legacyId = 'test-pandora:' + day + ':mystery-box-5';
+  const visit = { ...seededAdminCarryCards(), [legacyId]: { id: legacyId, cardId: 'mourningCurse', source: 'test' } } as const;
+  const carry = grantAdminAlbumCards({}, visit);
+  const wallet = readShopWallet(JSON.stringify({ ...readShopWallet(), carry }));
+  assert.deepEqual(availableCarryCards(wallet.carry).map(card => card.cardId), ['keenEdge', 'emberRune', 'wardingBolt', 'ruin', 'mourningCurse']);
+  assert.equal(shopGoldBalance(200, wallet), 200);
+  assert.deepEqual(selectCarryCards(wallet, ['grant:keenEdge', 'grant:ruin']), ['keenEdge', 'ruin']);
+  assert.equal(selectCarryCards(wallet, ['grant:mourningCurse']), undefined, 'overflow stays in the archive');
+  assert.equal(selectCarryCards(wallet, ['test:0']), undefined);
+  const swapped = changeAlbum(carry, { type: 'swap', id: 'grant:mourningCurse', with: 'grant:ruin' });
+  assert.ok(swapped);
+  assert.deepEqual(selectCarryCards({ ...wallet, carry: swapped }, ['grant:mourningCurse']), ['mourningCurse']);
+  const trashed = changeAlbum(swapped, { type: 'trash', id: 'grant:keenEdge' });
+  assert.ok(trashed);
+  assert.equal(grantAdminAlbumCards(trashed, visit), trashed);
+  assert.ok(!availableCarryCards(trashed).some(card => card.cardId === 'keenEdge'));
+});
+
+test('import preserves already owned receipts and skips cards trashed in the visit', () => {
+  const id = 'shop:' + day;
+  const owned = { [id]: { id, cardId: 'keenEdge', source: 'shop' } } as const;
+  const visit = changeAlbum(seededAdminCarryCards(), { type: 'trash', id: 'test:1' });
+  assert.ok(visit);
+  const next = grantAdminAlbumCards(owned, visit);
+  assert.deepEqual(availableCarryCards(next).map(card => card.id), [id, 'grant:wardingBolt', 'grant:ruin']);
+  assert.equal(grantAdminAlbumCards(next), next);
 });
 
 test('Artifacts appear in the run that receives them and never carry into the next', () => {

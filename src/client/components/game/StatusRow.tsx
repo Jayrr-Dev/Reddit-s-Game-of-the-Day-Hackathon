@@ -33,7 +33,6 @@ import {
   tierCut,
 } from '../../../shared/game/combatant';
 import {
-  STATUS_IS_AFFLICTION,
   WEAKEN_DAMAGE_FACTOR,
   SHOCK_BURST_FACTOR,
   SHOCK_HITS,
@@ -84,6 +83,7 @@ type StatusChip = Required<Pick<ChipProps, 'glyph' | 'text' | 'toneClass'>> &
 
 // --- CONSTANTS ---
 /** Statuses whose value is a tier (see TIERED_CUT_BY_TIER). */
+const IMPORTANT_PLAYER_STATUSES: readonly StatusId[] = ['hex', 'poison', 'burn', 'bleed', 'shock'];
 const TIERED_STATUSES: ReadonlySet<StatusId> = new Set([
   'protection',
   'enfeeble',
@@ -220,7 +220,6 @@ const oneUseAmount = (id: StatusId, total: number, buffs: readonly TimedBuff[]) 
     buff.buff === id && buff.duration === 'action' ? sum + buff.amount : sum, 0));
 };
 
-type StatusGroup = 'buffs' | 'afflictions' | 'hand';
 
 /** The chip a burst Shock leaves for a moment: its drop splashing. */
 const splashChipOf = (value: number): StatusChip => ({
@@ -243,12 +242,12 @@ const chipIconOf = (chip: StatusChip) =>
 const statusChipsOf = (
   combatant: Combatant,
   splashed: number | null,
-  group?: StatusGroup,
+  owner?: 'player',
   timedBuffs: readonly TimedBuff[] = [],
   source?: Combatant
 ): StatusChip[] => {
   const guard: StatusChip[] =
-    group === undefined && combatant.guard > 0
+    owner !== 'player' && combatant.guard > 0
       ? [
           {
             key: 'guard',
@@ -259,17 +258,16 @@ const statusChipsOf = (
           },
         ]
       : [];
-  const statuses = STATUS_ORDER.flatMap((id): StatusChip[] => {
+  const order = owner === 'player'
+    ? [...IMPORTANT_PLAYER_STATUSES, ...STATUS_ORDER.filter(id => !IMPORTANT_PLAYER_STATUSES.includes(id))]
+    : STATUS_ORDER;
+  const statuses = order.flatMap((id): StatusChip[] => {
     const total = combatant.statuses[id];
     if (!total) return [];
-    if (group === 'afflictions' && !STATUS_IS_AFFLICTION[id]) return [];
-    if (group === 'buffs' && STATUS_IS_AFFLICTION[id]) return [];
     const handModifier = id === 'momentum' || id === 'sharpshooter' ||
       id === 'weaken' || id === 'reflex' || TIERED_STATUSES.has(id);
-    if (handModifier && (group === 'buffs' || group === 'afflictions')) return [];
     const once = oneUseAmount(id, total, timedBuffs);
-    const amount = group === 'hand' ? (handModifier ? total : once) : group === 'buffs' ? total - once : total;
-    if (amount <= 0) return [];
+    const amount = total;
     const timedTurns = id === 'protection' ? combatant.cardProtectionTurns ?? 0
       : id === 'enfeeble' ? combatant.enfeebleTurns ?? 0
       : id === 'instinct' ? combatant.instinctTurns ?? 0 : 0;
@@ -284,7 +282,7 @@ const statusChipsOf = (
       key: id,
       ...STATUS_LOOK[id],
       text: id === 'reflex' ? `+${Math.round(reflexDodgeOf(combatant) * 100)}%`
-        : group === 'hand' && (id === 'weaken' || TIERED_STATUSES.has(id))
+        : owner === 'player' && (id === 'weaken' || TIERED_STATUSES.has(id))
         ? `${id === 'instinct' ? '+' : '-'}${Math.round(100 * (id === 'weaken' ? 1 - WEAKEN_DAMAGE_FACTOR : tierCut(amount)))}%`
         : chipText(id, amount),
       title: id === 'instinct' && amount === TIERED_MAX_TIER ? 'Ultra Instinct' : STATUS_INFO[id].label,
@@ -300,7 +298,7 @@ const statusChipsOf = (
           ? `Cannot use Buff cards or buff moves for ${total} more ${total === 1 ? 'turn' : 'turns'}.`
           : id === 'cloak'
           ? `Untargetable for ${total} more enemy ${total === 1 ? 'turn' : 'turns'} or until attacking. Area effects and existing afflictions still apply.`
-          : STATUS_INFO[id].description + (group === 'hand' && !handModifier ? ' Expires after your next card.' : ''),
+          : STATUS_INFO[id].description + (!handModifier && owner === 'player' && once === total ? ' Expires after your next card.' : ''),
       ...(id === 'hex' ? hexChipOf(total, combatant, source) : {}),
       ...(id === 'shock' ? shockChipOf(combatant, source) : {}),
       ...(id === 'poison' ? {description: `Deals ${incomingAfflictionDamage(combatant, total, source)} damage before each action, then loses 1 stack.`} : {}),
@@ -309,7 +307,7 @@ const statusChipsOf = (
     }];
   });
   const splash =
-    (group === undefined || group === 'afflictions') && splashed !== null && combatant.statuses.shock === 0
+    splashed !== null && combatant.statuses.shock === 0
       ? [splashChipOf(splashed)]
       : [];
   return [...guard, ...statuses, ...splash];
@@ -489,20 +487,18 @@ const ALIGN_CLASS = { start: 'justify-start', center: 'justify-center', end: 'ju
  */
 export const StatusRow = ({
   combatant,
-  group,
   timedBuffs,
   align = 'center',
   rows = 1,
 }: {
   combatant: Combatant;
-  group?: StatusGroup;
   timedBuffs?: readonly TimedBuff[];
   align?: keyof typeof ALIGN_CLASS;
   /** Lines the chips may wrap onto before folding into +N. */
   rows?: number;
 }) => {
   const splashed = useShockSplash(combatant);
-  const chips = statusChipsOf(combatant, splashed, group, timedBuffs);
+  const chips = statusChipsOf(combatant, splashed, 'player', timedBuffs);
   const { spaceRef, measureRef, overflowRef, fitCount } = useFitCount(
     chips.length,
     rows
@@ -510,6 +506,7 @@ export const StatusRow = ({
   const isOverflowing = fitCount < chips.length;
   const shown = chips.slice(0, fitCount);
   const hidden = chips.slice(fitCount);
+  if (!chips.length) return null;
 
   return (
     <div ref={spaceRef} className="relative w-full min-w-0 max-w-max">
@@ -539,7 +536,7 @@ export const StatusRow = ({
       >
         <Chip glyph="eye" text="+9" toneClass="text-ink" shape="square" />
       </span>
-      <div className={`flex min-h-5 flex-wrap gap-1 ${ALIGN_CLASS[align]} ${group === 'hand' && chips.length ? 'hand-damage-modifiers' : ''}`}>
+      <div className={`flex min-h-5 flex-wrap gap-1 ${ALIGN_CLASS[align]}`}>
         {shown.map((chip) => (
           <StatusChipView key={chip.key} chip={chip} />
         ))}

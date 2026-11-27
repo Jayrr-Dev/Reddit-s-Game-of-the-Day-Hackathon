@@ -98,6 +98,8 @@ import { TurnCorner } from './combat/TurnCorner';
 import { SettingsDialog } from './menu/SettingsDialog';
 import { PauseSheet } from './combat/PauseSheet';
 import { StatusRow } from './StatusRow';
+import { Tooltip } from '../ui/Tooltip';
+import { STATUS_INFO } from '../../../shared/game/describe';
 
 import { useGameSettings } from '../../hooks/useGameSettings';
 
@@ -212,6 +214,15 @@ const PlayerBar = ({
         />
       </div>
       <div className="table-energy relative flex min-w-0 flex-col items-center gap-1 pb-1">
+        <div className="table-player-status" role="group" aria-label="Player status effects">
+          {combat.player.guard > 0 && (
+            <Tooltip opensOn="click" content={{ title: STATUS_INFO.guard.label, description: STATUS_INFO.guard.description }}>
+              <button type="button" className="hand-guard" aria-label={`Guard: ${combat.player.guard}`}><span>{combat.player.guard}</span></button>
+            </Tooltip>
+          )}
+          {!!combat.borrowedPowers?.length && <BorrowedPowerBuff powers={combat.borrowedPowers} />}
+          <StatusRow combatant={combat.player} timedBuffs={combat.timedBuffs} rows={2} />
+        </div>
         <GuardGainPops guard={combat.player.guard} />
         <PlayerHealthBar {...health} hexDamage={pendingPlayerHexDamage({ ...combat, player: { ...combat.player, hp: health.hp } })} />
       </div>
@@ -625,14 +636,7 @@ export const CombatView = ({
           draggedBox={drag?.card ?? null}
         />
         <div className="table-status-dock">
-          <div className="table-buffs" role="group" aria-label="Player buffs">
-            {!!combat.borrowedPowers?.length && <BorrowedPowerBuff powers={combat.borrowedPowers} />}
-            <StatusRow combatant={combat.player} group="buffs" timedBuffs={combat.timedBuffs} align="end" />
-          </div>
           <EnergyTray inspectable={tutorialCue?.selector === '.table-pips'} energy={combat.energy} reserve={combat.reserve} traits={combat.player.traits} traitNodes={combat.player.traitNodes} equipment={combat.player.equipment} borrowedStats={combat.player.borrowedStats} />
-          <div className="table-afflictions" role="group" aria-label="Player afflictions">
-            <StatusRow combatant={combat.player} group="afflictions" align="start" />
-          </div>
         </div>
       </div>
       <div className="hero-plate-layer pointer-events-none absolute inset-0 z-[32]" />

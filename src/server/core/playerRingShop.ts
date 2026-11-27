@@ -1,4 +1,4 @@
-import { appendCarriedCards, availableCarryCards, changeAlbum, isTestCarryCardId, seededAdminCarryCards, shopCardReceipt, shopStockKey, type AlbumAction } from '../../shared/game/carryCards';
+import { appendCarriedCards, availableCarryCards, changeAlbum, grantAdminAlbumCards, isTestCarryCardId, seededAdminCarryCards, shopCardReceipt, shopStockKey, type AlbumAction } from '../../shared/game/carryCards';
 import type { ShopApple } from '../../shared/game/items';
 import type { CardId } from '../../shared/game/cards';
 import { randomUUID } from 'node:crypto';
@@ -37,12 +37,44 @@ async function readLevelCurveStart(id: string, wins: number): Promise<number> {
   return baseline == null ? wins : Number(baseline);
 }
 
-export async function readPlayerProgress(id: string) {
-  const [{ wins, earned, bonusXp }, raw] = await Promise.all([earnings(id), redis.get(redisKeys.ringPurchases(id))]);
-  const wallet = readShopWallet(raw);
+export async function readPlayerProgress(id: string, adminAlbum?: { visit?: string }) {
+  const [{ wins, earned, bonusXp }, wallet] = await Promise.all([earnings(id), adminAlbum
+    ? loadAdminAlbum(id, adminAlbum.visit)
+    : redis.get(redisKeys.ringPurchases(id)).then(raw => readShopWallet(raw))]);
   const nextEffect = pendingPandoraEffect(wallet);
   const xpStartWins = await readLevelCurveStart(id, wins);
   return { ...(nextEffect && { nextEffect }), wins, xpStartWins, bonusXp, gold: shopGoldBalance(earned, wallet), shopRings: shopRingIds(Object.keys(wallet.items)), carryCards: availableCarryCards(wallet.carry) };
+}
+
+/** Copy the verified admin's visit cards to the normal Album, preserving purchase receipts and ordering. */
+async function loadAdminAlbum(id: string, visit?: string): Promise<ShopWallet> {
+  const key = redisKeys.ringPurchases(id);
+  const visitRaw = visit ? await redis.get(redisKeys.adminShopVisit(id, visit)) : undefined;
+  const visitCards = visitRaw ? readShopWallet(visitRaw, true).carry : undefined;
+  for (let i = 0; i < 6; i++) {
+    const transaction = await redis.watch(key);
+    let inMulti = false;
+    let completed = false;
+    try {
+      const wallet = readShopWallet(await redis.get(key));
+      const owned = wallet.carry ?? {};
+      const carry = grantAdminAlbumCards(owned, visitCards);
+      if (carry === owned) return wallet;
+      const next = { ...wallet, carry };
+      await transaction.multi();
+      inMulti = true;
+      await transaction.set(key, JSON.stringify(next));
+      const result = await transaction.exec();
+      completed = true;
+      if (result[0] === 'OK') return next;
+    } finally {
+      if (!completed) {
+        if (inMulti) await transaction.discard().catch(() => {});
+        else await transaction.unwatch().catch(() => {});
+      }
+    }
+  }
+  throw new Error('Could not load the Album. Try again.');
 }
 
 function response(offerDay: string, earned: number, wallet: ShopWallet, admin: boolean, testVisit?: string): RingShopResponse {
@@ -115,7 +147,8 @@ export async function offerAdminShopFruit(id: string, visit: string, item: ShopA
 export async function buyRing(id: string, day: string, offerDay: string, ringId: ShopOfferId, admin = false, testVisit?: string) {
   if (admin && !testVisit) return { status: 'stale', shop: response(day, 0, emptyWallet(), true) } as const;
   const practice = admin ? testVisit : undefined;
-  const key = practice ? redisKeys.adminShopVisit(id, practice) : redisKeys.ringPurchases(id);
+  const albumKey = redisKeys.ringPurchases(id);
+  const key = practice ? redisKeys.adminShopVisit(id, practice) : albumKey;
   const funds = async () => {
     const totals = await earnings(id);
     return practice ? { ...totals, earned: ADMIN_SHOP_GOLD } : totals;
@@ -128,7 +161,7 @@ export async function buyRing(id: string, day: string, offerDay: string, ringId:
   if (!offer) return { status: 'stale', shop: await readCheckout() } as const;
   const entropy = offer.slot === 'box' ? randomUUID() : '';
   for (let attempt = 0; attempt < 6; attempt++) {
-    const transaction = await redis.watch(key, redisKeys.shopBossClears(id), redisKeys.premiumShopRefresh(id), ...(practice ? [] : [redisKeys.victories(id)]));
+    const transaction = await redis.watch(key, redisKeys.shopBossClears(id), redisKeys.premiumShopRefresh(id), ...(practice ? [albumKey] : [redisKeys.victories(id)]));
     let inMulti = false;
     let completed = false;
     try {
@@ -141,15 +174,21 @@ export async function buyRing(id: string, day: string, offerDay: string, ringId:
       const decision = quoteShopPurchase(earned, wallet, offer, stock, entropy, !!practice, progressionFromWins(wins, false, xpStartWins, bonusXp).level);
       if (decision.status === 'owned') return { status: 'owned', shop: response(stock, earned, wallet, admin, practice) } as const;
       if (decision.status === 'short' || decision.status === 'full') return { status: decision.status, shop: response(stock, earned, wallet, admin, practice) } as const;
+      // Test Gold remains isolated. Cards earned there become permanent Album copies.
+      const album = practice && decision.next.carry !== wallet.carry
+        ? readShopWallet(await redis.get(albumKey)) : undefined;
+      const albumCarry = album ? grantAdminAlbumCards(album.carry ?? {}, decision.next.carry) : undefined;
       // The receipt doubles as ownership and debit. No partial outcome can exist.
       await transaction.multi();
       inMulti = true;
       const receipt = JSON.stringify(practice || decision.next.events || decision.next.carry || Object.keys(decision.next.boxes).length ? decision.next : decision.next.items);
       if (practice) await transaction.set(key, receipt, { expiration: testExpiry() });
       else await transaction.set(key, receipt);
+      if (album && albumCarry && albumCarry !== album.carry)
+        await transaction.set(albumKey, JSON.stringify({ ...album, carry: albumCarry }));
       const result = await transaction.exec();
       completed = true;
-      if (result[0] === 'OK')
+      if (result[0] === 'OK' && result.every(entry => entry === 'OK'))
         return { status: 'bought', shop: response(stock, earned, decision.next, admin, practice), ...('reward' in decision && { reward: decision.reward }) } as const;
       // A concurrent wallet or victory update aborted the write. Re-quote both.
     } finally {
@@ -211,21 +250,20 @@ export async function bindRunItems(id: string, day: string, profile: RunProfile,
 }
 
 /** Save an Album edit without refunding or removing its original purchase receipt. */
-export async function updatePlayerAlbum(id: string, action: AlbumAction, testVisit?: string) {
-  const key = testVisit ? redisKeys.adminShopVisit(id, testVisit) : redisKeys.ringPurchases(id);
+export async function updatePlayerAlbum(id: string, action: AlbumAction) {
+  const key = redisKeys.ringPurchases(id);
   for (let i = 0; i < 6; i++) {
     const transaction = await redis.watch(key);
     let inMulti = false;
     let completed = false;
     try {
       const raw = await redis.get(key);
-      if (testVisit && !raw) return undefined;
-      const wallet = readShopWallet(raw, !!testVisit);
+      const wallet = readShopWallet(raw);
       const carry = changeAlbum(wallet.carry ?? {}, action);
       if (!carry) return undefined;
       await transaction.multi();
       inMulti = true;
-      await transaction.set(key, JSON.stringify({ ...wallet, carry }), testVisit ? { expiration: testExpiry() } : undefined);
+      await transaction.set(key, JSON.stringify({ ...wallet, carry }));
       const result = await transaction.exec();
       completed = true;
       if (result[0] === 'OK') return availableCarryCards(carry);
