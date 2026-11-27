@@ -1,5 +1,7 @@
 # Villain Run
 
+The [Design Bible](docs/DESIGN_BIBLE.md) sets the rules for controls, readability, cards, encounters, and progression.
+
 The [art style guide](ART_STYLE.md) covers card illustrations, battlefield art, units, and frame assets.
 The [Unit Creation & Animation workflow](docs/BOSS_WORKFLOW.md) covers art approval, motion interpolation, WebP export, encounter setup, and playtest checks. See [Card Balance References](docs/CARD_BALANCE.md) for guidance on balancing card costs and effects. Track open work in the [project to-do](docs/TODO.md).
 

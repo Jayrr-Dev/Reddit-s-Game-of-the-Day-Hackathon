@@ -23,6 +23,8 @@ You are writing a Devvit web application that will be executed on Reddit.com.
   - `hooks/`: Data hooks. `lib/apiClient.ts` is the only place that calls `fetch`.
 - `/src/shared`: **Shared Code**. Constants, API types, and pure functions (with `*.test.ts` next to them). Relative imports inside `src/shared` use the `.ts` extension so `node --test` can run them.
 
+Review gameplay and UI changes against the [Villain Run Design Bible](docs/DESIGN_BIBLE.md).
+
 ## Frontend
 
 ### Rules
