@@ -438,6 +438,15 @@
   0%,100% { opacity:0; }
   50% { opacity:.30; }
 }
+.table-player-health-heal {
+  position:absolute; inset-block:0;
+  background:linear-gradient(#b4ee9a,#63b766 60%,#397343);
+  animation:table-health-heal-fill 1050ms ease-out both;
+}
+@keyframes table-health-heal-fill {
+  0%, 14% { clip-path: inset(0); }
+  100% { clip-path: inset(0 0 0 100%); }
+}
 .table-player-health-guard {
   position:absolute; inset:0 auto auto 0; height:52%;
   background:linear-gradient(#83beff,#3779d1);
@@ -474,6 +483,7 @@
 @container duel (max-width:470px) { .table-player-health-frame { width:calc(100% - 8px); } }
 @media (prefers-reduced-motion:reduce) {
   .table-player-health-trail { transition:none; }
+  .table-player-health-heal { display:none; }
   .table-player-health[data-low-health] .table-player-health-fill::after { animation:none; }
 }
 .table-player-status {

@@ -1,9 +1,22 @@
+import { useState } from 'react';
 import { Glyph } from '../../ui/Glyph';
 
 type PlayerHealthProps = { hp: number; maxHp: number; guard: number; hexDamage: number; incomingDamage: number; burnDamage: number; lethal: boolean };
 
+/** Remember only the current gain; taking damage or changing max HP clears it. */
+function useHealFill(hp: number, maxHp: number) {
+  const [previous, setPrevious] = useState({ hp, maxHp, healFrom: hp, serial: 0 });
+  if (previous.hp !== hp || previous.maxHp !== maxHp) {
+    const healFrom = hp > previous.hp && maxHp === previous.maxHp ? previous.hp : hp;
+    setPrevious({ hp, maxHp, healFrom, serial: previous.serial + 1 });
+  }
+  return previous;
+}
+
 /** Preview Burn in orange, incoming hits in light red, and Hex in purple. */
 export function PlayerHealthBar({ hp, maxHp, guard, hexDamage, incomingDamage, burnDamage, lethal }: PlayerHealthProps) {
+  const heal = useHealFill(hp, maxHp);
+  const healStart = heal.healFrom / Math.max(1, maxHp) * 100;
   const percent = Math.max(0, Math.min(100, hp / Math.max(1, maxHp) * 100));
   const guardPercent = Math.max(0, Math.min(100, guard / Math.max(1, maxHp) * 100));
   // Loss starts at the right edge and follows turn order: Burn, enemies, then Hex.
@@ -42,6 +55,10 @@ export function PlayerHealthBar({ hp, maxHp, guard, hexDamage, incomingDamage, b
       )}
       {pendingHex > 0 && (
         <span className="table-player-health-hex" style={{ left: hexStart + '%', width: (attackStart - hexStart) + '%' }} aria-hidden="true" />
+      )}
+      {heal.hp === hp && percent > healStart && (
+        <span key={heal.serial} className="table-player-health-heal"
+          style={{ left: healStart + '%', width: (percent - healStart) + '%' }} aria-hidden="true" />
       )}
       <span className="table-player-health-ticks" aria-hidden="true" />
       <span className="table-player-health-label" aria-hidden="true">{hp}/{maxHp}</span>
