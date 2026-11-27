@@ -37,7 +37,6 @@ import {
   WEAKEN_DAMAGE_FACTOR,
   SHOCK_BURST_FACTOR,
   SHOCK_HITS,
-  OUT_OF_RANGE_HIT_CHANCE,
   TIERED_MAX_TIER,
   MALAISE_TURNS,
   STATUS_IS_AFFLICTION,
@@ -158,12 +157,12 @@ const passiveChipsOf = (passives: readonly PassiveId[]): StatusChip[] =>
     description: PASSIVE_INFO[id].description,
   }));
 
-/** The Out of Range chip: the chance a shot lands, e.g. "50%". */
+/** Out of Range shows only the icon; the tooltip explains the hit chance. */
 const OUT_OF_RANGE_CHIP: StatusChip = {
   key: 'outOfRange',
   isDebuff: true,
   ...OUT_OF_RANGE_LOOK,
-  text: `${Math.round(OUT_OF_RANGE_HIT_CHANCE * 100)}%`,
+  text: '',
   title: OUT_OF_RANGE_INFO.label,
   description: OUT_OF_RANGE_INFO.description,
 };
