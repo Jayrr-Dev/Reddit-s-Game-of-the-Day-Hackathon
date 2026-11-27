@@ -418,14 +418,26 @@
 }
 .table-player-health {
   position:relative; isolation:isolate; align-self:center; width:min(100%,320px); height:13px;
+  inset-block-end:8px;
   overflow:hidden; border:1px solid var(--brass); border-radius:5px; background:#211516;
   box-shadow:0 1px 4px #160c08c9; color:#fff4df; pointer-events:none;
 }
 .table-player-health-trail,.table-player-health-fill {
   position:absolute; left:0; top:0; height:100%;
 }
-.table-player-health-trail { background:#f5c850; transition:width 420ms ease-out 220ms; }
+.table-player-health-trail { background:#f5c850; transition:width 850ms ease-out 220ms; }
 .table-player-health-fill { background:linear-gradient(#e85d56,#a72935 72%,#701a27); }
+.table-player-health[data-low-health] .table-player-health-fill {
+  background:linear-gradient(#a43d47,#702131 72%,#491723);
+}
+.table-player-health[data-low-health] .table-player-health-fill::after {
+  content:""; position:absolute; inset:0; background:#c64a53;
+  opacity:0; animation:table-low-health-breathe 2.6s ease-in-out infinite;
+}
+@keyframes table-low-health-breathe {
+  0%,100% { opacity:0; }
+  50% { opacity:.30; }
+}
 .table-player-health-ticks {
   position:absolute; inset:0;
   background:repeating-linear-gradient(to right, transparent 0 calc(10% - 1px), #160b0c8a calc(10% - 1px) 10%);
@@ -436,7 +448,10 @@
   text-shadow:0 1px 2px #000,0 0 2px #000; white-space:nowrap;
 }
 @container duel (max-width:470px) { .table-player-health { width:calc(100% - 8px); } }
-@media (prefers-reduced-motion:reduce) { .table-player-health-trail { transition:none; } }
+@media (prefers-reduced-motion:reduce) {
+  .table-player-health-trail { transition:none; }
+  .table-player-health[data-low-health] .table-player-health-fill::after { animation:none; }
+}
 .table-buffs,.table-afflictions { min-width: 0; display:flex; pointer-events:auto; }
 .table-buffs { justify-content:flex-end; }
 
