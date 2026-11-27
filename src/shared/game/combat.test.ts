@@ -48,6 +48,7 @@ import {
   playCardSteps,
   startPlayerTurn,
   pendingPlayerHexDamage,
+  potentialEnemyHpLoss,
   startCombat,
   targetsFor,
   soleTargetFor,
@@ -326,6 +327,36 @@ void test('hex runs its course: 7 burns, grows, burns, then triples out', () => 
   // 7 (x2) -> 4 (grows) -> 5 (x2) -> 3 (x3) -> gone.
   assert.deepEqual(hexLosses(7, 5), [14, 0, 10, 9, 0]);
   assert.deepEqual(hexLosses(4, 4), [0, 10, 9, 0]);
+});
+
+void test('incoming damage preview accounts for every attack and existing defenses but not Hex', () => {
+  const state = settled(startCombat({
+    hp: 100, maxHp: 100, deck: ['backhand'], heroIds: ['squire', 'archer'], might: 1, seed: 7,
+  }));
+  const single = { ...state, heroes: state.heroes.slice(0, 1) };
+  const open = potentialEnemyHpLoss(state);
+  assert.ok(open > potentialEnemyHpLoss(single) && potentialEnemyHpLoss(single) > 0);
+  const guarded = { ...state, player: { ...state.player, guard: 100 } };
+  assert.equal(potentialEnemyHpLoss(guarded), 0);
+  const hexed = { ...state, player: addStatus(state.player, 'hex', 7) };
+  assert.equal(potentialEnemyHpLoss(hexed), open);
+  assert.equal(pendingPlayerHexDamage(hexed), 14);
+  assert.equal(potentialEnemyHpLoss({ ...state, waveArrival: true }), 0);
+  assert.equal(potentialEnemyHpLoss({ ...state, player: addStatus(state.player, 'cloak', 2) }), 0);
+});
+
+void test('incoming damage preview assumes chance-based misses do not save the player', () => {
+  const state = fightWith(['backhand']);
+  const evasive = { ...state, player: addStatus(state.player, 'reflex', 1) };
+  const before = structuredClone(evasive);
+  const incoming = potentialEnemyHpLoss(evasive);
+  assert.equal(incoming, potentialEnemyHpLoss(state));
+  assert.ok(incoming > 0);
+  for (const rng of [2, 20, 200, 2000, 20000])
+    assert.equal(potentialEnemyHpLoss({ ...evasive, rng }), incoming);
+  assert.deepEqual(evasive, before);
+  const fragile = { ...state, player: { ...state.player, hp: 2 } };
+  assert.equal(potentialEnemyHpLoss(fragile), 2);
 });
 
 void test('player Hex preview shows only the damage due at the next turn opening', () => {

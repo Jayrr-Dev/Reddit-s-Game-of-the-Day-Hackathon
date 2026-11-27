@@ -434,6 +434,11 @@
   0%,100% { opacity:0; }
   50% { opacity:.30; }
 }
+.table-player-health-threat {
+  position:absolute; inset-block:0;
+  background:linear-gradient(#ffb1a2,#ef7977 65%,#cf525b);
+  border-inline-start:1px solid #ffd0b9;
+}
 .table-player-health-hex {
   position:absolute; inset-block:0;
   background:linear-gradient(#e0c2ffcc,#9453e5b3 65%,#642dafb3);

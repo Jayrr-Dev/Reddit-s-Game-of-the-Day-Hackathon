@@ -29,7 +29,7 @@ import { fallenWithDeathVoice } from '../../../shared/game/deathVoices';
 import { useEffect, useCallback, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { getCard, type CardId } from '../../../shared/game/cards';
 import { rowDepth } from '../../../shared/game/battlefield';
-import { endTurn, movementFailsOn, pendingPlayerHexDamage, SELF_TARGET_UID } from '../../../shared/game/combat';
+import { endTurn, movementFailsOn, pendingPlayerHexDamage, potentialEnemyHpLoss, SELF_TARGET_UID } from '../../../shared/game/combat';
 import type { RunAction } from '../../../shared/game/run';
 import type { CharacterState } from '../../../shared/game/character';
 import { BattleCharacterSheet } from './BattleCharacterSheet';
@@ -172,6 +172,7 @@ const pileCards = (combat: CombatState, pile: PileId): readonly CardId[] =>
 const PlayerBar = ({
   combat,
   health,
+  incomingDamage,
   level,
   lethal,
   hits,
@@ -183,6 +184,7 @@ const PlayerBar = ({
 }: {
   combat: CombatState;
   health: Health;
+  incomingDamage: number;
   level: number;
   lethal: boolean;
   hits: readonly PlayerHitPop[];
@@ -224,7 +226,7 @@ const PlayerBar = ({
           <StatusRow combatant={combat.player} timedBuffs={combat.timedBuffs} rows={2} />
         </div>
         <GuardGainPops guard={combat.player.guard} />
-        <PlayerHealthBar {...health} hexDamage={pendingPlayerHexDamage({ ...combat, player: { ...combat.player, hp: health.hp } })} />
+        <PlayerHealthBar {...health} incomingDamage={incomingDamage} hexDamage={pendingPlayerHexDamage({ ...combat, player: { ...combat.player, hp: health.hp } })} />
       </div>
       <div className="table-turn justify-self-end">
         <TurnCorner
@@ -385,6 +387,7 @@ export const CombatView = ({
   }, [heroTurn.cueBeat]);
   const bossEntrance = useBossEntrance(combat.heroes, bossIntros);
   const isAnimating = heroTurn.isPlaying || cardHits.isPlaying;
+  const incomingDamage = useMemo(() => heroTurn.isPlaying ? 0 : potentialEnemyHpLoss(realCombat), [heroTurn.isPlaying, realCombat]);
   const lethal = useMemo(() => realCombat.player.hp > 0 && endTurn(realCombat).player.hp <= 0, [realCombat]);
   // The card played last: its type colours its damage numbers, and a
   // Magic card's element shapes its bursts.
@@ -616,6 +619,7 @@ export const CombatView = ({
       <div inert={!!bossEntrance.entering} className="table-console relative z-30 flex shrink-0 flex-col">
         <PlayerBar
           health={playerHealth}
+          incomingDamage={isAnimating || isShooting ? 0 : incomingDamage}
           level={character.level}
           lethal={lethal && !isAnimating}
           combat={combat}

@@ -1943,32 +1943,33 @@ const applyHeroEffect = (
   state: CombatState,
   actor: HeroUnit,
   effect: HeroEffect,
-  attackBlock: { invincible: boolean }
+  attackBlock: { invincible: boolean },
+  forecast: boolean
 ): CombatState => {
   const support = heroSupportOutput(actor, effect);
   if (support && support.amount <= 0 && support.original > support.amount) return state;
   const power = support?.amount ?? 0;
   switch (effect.kind) {
     case 'attack':
-      return heroShoots(state, actor, effect, attackBlock);
+      return heroShoots(state, actor, effect, attackBlock, forecast);
     case 'hex':
     case 'poison':
     case 'burn':
     case 'frost':
     case 'bleed':
     case 'shock':
-      return afflictVillain(state, effect.kind, power, accuracyBonusOf(actor, 'magic'));
+      return afflictVillain(state, effect.kind, power, accuracyBonusOf(actor, 'magic'), forecast);
     case 'weaken':
-      return afflictVillain(state, 'weaken', power, accuracyBonusOf(actor, 'magic'));
+      return afflictVillain(state, 'weaken', power, accuracyBonusOf(actor, 'magic'), forecast);
     case 'malaise':
-      return afflictVillain(state, 'malaise', power, accuracyBonusOf(actor, 'magic'));
+      return afflictVillain(state, 'malaise', power, accuracyBonusOf(actor, 'magic'), forecast);
     case 'pin':
     case 'scramble':
-      return afflictVillain(state, effect.kind, power, accuracyBonusOf(actor, 'magic'));
+      return afflictVillain(state, effect.kind, power, accuracyBonusOf(actor, 'magic'), forecast);
     case 'fatigue': {
-      if (!effect.all) return afflictVillain(state, 'fatigue', power, accuracyBonusOf(actor, 'magic'));
+      if (!effect.all) return afflictVillain(state, 'fatigue', power, accuracyBonusOf(actor, 'magic'), forecast);
       // FATIGUE ALL: the newest one sets which card type it raises.
-      const laid = afflictVillain(state, 'fatigueAll', power, accuracyBonusOf(actor, 'magic'));
+      const laid = afflictVillain(state, 'fatigueAll', power, accuracyBonusOf(actor, 'magic'), forecast);
       return laid.player.statuses.fatigueAll === state.player.statuses.fatigueAll
         ? laid
         : { ...laid, player: { ...laid.player, fatigueAllType: effect.cardType } };
@@ -2055,8 +2056,9 @@ export const dodgeChanceAgainst = (target: Combatant, bonusAccuracy = 0): number
 };
 
 /** No chance to dodge means no RNG roll. */
-const rollDodge = (state: CombatState, bonusAccuracy = 0): [boolean, CombatState] => {
+const rollDodge = (state: CombatState, bonusAccuracy = 0, forecast = false): [boolean, CombatState] => {
   const chance = dodgeChanceAgainst(state.player, bonusAccuracy);
+  if (forecast) return [chance >= 1, state];
   if (chance <= 0) return [false, state];
   const [roll, rng] = nextFloat(state.rng);
   return [roll < chance, { ...state, rng }];
@@ -2070,9 +2072,10 @@ const afflictVillain = (
   state: CombatState,
   status: StatusId,
   amount: number,
-  bonusAccuracy = 0
+  bonusAccuracy: number,
+  forecast: boolean
 ): CombatState => {
-  const [dodged, rolled] = status === 'hex' ? [false, state] : rollDodge(state, bonusAccuracy);
+  const [dodged, rolled] = status === 'hex' ? [false, state] : rollDodge(state, bonusAccuracy, forecast);
   return {
     ...rolled,
     player: dodged
@@ -2095,7 +2098,8 @@ const heroShoots = (
   state: CombatState,
   actor: HeroUnit,
   effect: Extract<HeroEffect, { kind: 'attack' }>,
-  attackBlock: { invincible: boolean }
+  attackBlock: { invincible: boolean },
+  forecast: boolean
 ): CombatState => {
   const { type, perHit } = heroAttackOf(actor, effect, debuffPowerOf(state.player.skillPicks));
   const mayMiss = isOutOfRangeShot(type, actor.row, hasLongRangePassive(actor));
@@ -2103,12 +2107,12 @@ const heroShoots = (
   let current = state;
   let hasLandedAny = false;
   for (let hit = 0; hit < effect.hits; hit += 1) {
-    const [lands, rolled] = mayMiss
+    const [lands, rolled] = mayMiss && !forecast
       ? rollShot(current, OUT_OF_RANGE_HIT_CHANCE)
       : [true, current];
     // A hit that would land may still be dodged, unless Homing.
     const mayDodge = lands && !effect.isHoming;
-    const [dodged, ready] = mayDodge ? rollDodge(rolled, bonusAccuracy) : [false, rolled];
+    const [dodged, ready] = mayDodge ? rollDodge(rolled, bonusAccuracy, forecast) : [false, rolled];
     const isStruck = lands && !dodged;
     if (isStruck && perHit > 0) {
       if (attackBlock.invincible) {
@@ -2137,7 +2141,7 @@ const heroShoots = (
       ? (effect.perHit ?? []).reduce(
           (laid, proc) => {
             const { amount, original } = heroProcOutput(actor, proc);
-            return amount <= 0 && original > amount ? laid : afflictVillain(laid, proc.status, amount, bonusAccuracy);
+            return amount <= 0 && original > amount ? laid : afflictVillain(laid, proc.status, amount, bonusAccuracy, forecast);
           },
           struck
         )
@@ -2169,7 +2173,8 @@ const withAloft = (unit: HeroUnit, aloft: number): HeroUnit => ({
 const heroActs = (
   state: CombatState,
   uid: number,
-  isLast = true
+  isLast: boolean,
+  forecast: boolean
 ): CombatState => {
   const actor = state.heroes.find((unit) => unit.uid === uid);
   if (!actor || isDefeated(state.player)) return state;
@@ -2188,7 +2193,7 @@ const heroActs = (
     if (isCloaked(current.player) && isDirectHeroTarget(effect)) return current;
     const isSkipped = hasAttack && !hasLanded && isOnVillain(effect);
     if (isSkipped) return current;
-    const next = applyHeroEffect(current, freshActor, effect, attackBlock);
+    const next = applyHeroEffect(current, freshActor, effect, attackBlock, forecast);
     if (effect.kind === 'attack')
       hasLanded ||= villainWasHit(current.player, next.player);
     return next;
@@ -2376,7 +2381,7 @@ export const pendingPlayerHexDamage = ({ player, waveArrival }: Pick<CombatState
  * heroes' attacks one at a time. The last step is the final state.
  * Empty when the fight is already over.
  */
-const resolveTurnSteps = (state: CombatState): TurnStep[] => {
+const resolveTurnSteps = (state: CombatState, forecast = false): TurnStep[] => {
   if (combatOutcome(state) !== 'ongoing') return [];
 
   // 1. DISCARD THE HAND (HOLD CARDS STAY), THE VILLAIN'S UPKEEP, AND THE HEROES' GUARD FROM LAST ROUND FADES
@@ -2431,9 +2436,9 @@ const resolveTurnSteps = (state: CombatState): TurnStep[] => {
       // (upkeep runs now).
       const isLast = action === actions || !hasMove || isSoaring(planned.move);
       const attackType = plannedAttackType(actor, current.heroes);
-      const acted = heroActs(current, uid, isLast);
+      const acted = heroActs(current, uid, isLast, forecast);
       if (acted !== current) {
-        const next = planned && attackType ? {
+        const next = !forecast && planned && attackType ? {
           ...acted,
           playHistory: appendCombatHistory(acted.playHistory, {
             heroId, turn: current.turn, attackName: planned.move.name, attackType,
@@ -2454,6 +2459,8 @@ const resolveTurnSteps = (state: CombatState): TurnStep[] => {
     }
   }
 
+  if (forecast) return steps;
+
   // 3. HEROES BEHIND THEIR HOME ROW STEP ONE ROW TOWARD IT (MELEE CLOSE
   //    IN, ARCHERS COME IN OFF THE HORIZON), THEN THE NEXT VILLAIN TURN
   // Keep the distance set by enemy displacement through the end of the turn.
@@ -2472,6 +2479,22 @@ const resolveTurnSteps = (state: CombatState): TurnStep[] => {
   });
   return steps;
 };
+
+/** Estimate HP enemies can remove before the next player turn, assuming uncertain hits land.
+ * Uses an independent RNG for secondary effects (e.g. Dispel), never the combat's upcoming rolls.
+ * Player upkeep and Hex damage at the next turn opening are not part of this band.
+ */
+export function potentialEnemyHpLoss(state: CombatState): number {
+  if (state.waveArrival || combatOutcome(state) !== 'ongoing') return 0;
+  let lastHp = state.player.hp;
+  let enemyLoss = 0;
+  for (const step of resolveTurnSteps({ ...state, rng: 1 }, true)) {
+    const hp = step.state.player.hp;
+    if (step.actorUid !== null) enemyLoss += Math.max(0, lastHp - hp);
+    lastHp = hp;
+  }
+  return enemyLoss;
+}
 
 export function endTurnSteps(state: CombatState): TurnStep[] {
   let previous = state;
