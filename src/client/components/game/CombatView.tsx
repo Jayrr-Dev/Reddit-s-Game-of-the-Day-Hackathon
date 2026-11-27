@@ -93,7 +93,7 @@ import { MAP_NAMES } from './combat/Backdrop';
 import { TopBar } from './combat/TopBar';
 import { TurnCorner } from './combat/TurnCorner';
 import { SettingsDialog } from './menu/SettingsDialog';
-import { MenuPanel } from './menu/MenuPanel';
+import { PauseSheet } from './combat/PauseSheet';
 import { StatusRow } from './StatusRow';
 
 import { useGameSettings } from '../../hooks/useGameSettings';
@@ -219,29 +219,6 @@ const PlayerBar = ({
     </div>
   );
 };
-
-/** The pause sheet: where you are, your score, and Back to resume. */
-const PauseSheet = ({
-  where,
-  score,
-  scoreUnit,
-  actions,
-  onClose,
-}: {
-  where: string;
-  score: number;
-  scoreUnit: string;
-  actions?: ReactNode;
-  onClose: () => void;
-}) => (
-  <MenuPanel title="Paused" onClose={onClose}>
-    <p className="text-center text-sm text-ink">{where}</p>
-    <p className="text-center font-display text-2xl font-black text-accent">
-      {score} {scoreUnit}
-    </p>
-    {actions}
-  </MenuPanel>
-);
 
 // --- COMPONENT ---
 /** Renders one fight. */
@@ -732,7 +709,8 @@ export const CombatView = ({
           where={where}
           score={score}
           scoreUnit={scoreUnit}
-          actions={<>{settings}{pauseActions}</>}
+          settings={settings}
+          actions={pauseActions}
           onClose={() => setIsPaused(false)}
         />
       )}

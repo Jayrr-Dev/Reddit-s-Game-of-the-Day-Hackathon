@@ -1,9 +1,10 @@
 import { createRun, isRunOver, runReducer, type RunAction, type RunState } from './run.ts';
+import type { CardId } from './cards.ts';
 
 /** Endless uses the day's seeded battles without campaign routing or a final stop. */
-export function createEndless(day: string): RunState {
+export function createEndless(day: string, deck?: readonly CardId[]): RunState {
   const fresh = createRun(day + ':endless', undefined, 0, 0, [], undefined, 1);
-  return runReducer(fresh, { type: 'chooseStop', option: 0 });
+  return runReducer(deck ? { ...fresh, deck: [...deck] } : fresh, { type: 'chooseStop', option: 0 });
 }
 
 /** The first seeded path is always a fight, including a champion every fifth wave. */

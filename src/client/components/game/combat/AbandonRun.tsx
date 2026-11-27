@@ -16,14 +16,13 @@ export const AbandonRun = ({ onConfirm }: { onConfirm: () => void }) => {
     return (
       <Button
         variant="menu"
-        className="mt-auto max-w-60"
         onClick={() => setIsAsking(true)}
       >
         Abandon run
       </Button>
     );
   return (
-    <div className="mt-auto flex w-full max-w-60 flex-col items-center gap-2">
+    <div className="grid w-full gap-2">
       <p className="text-center text-xs text-ink-muted">
         End the march here? Your score so far is kept.
       </p>

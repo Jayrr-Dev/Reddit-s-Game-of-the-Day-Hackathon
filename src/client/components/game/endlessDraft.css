@@ -1,0 +1,11 @@
+/* Keep all three choices visible side by side in the narrow Reddit post. */
+.endless-draft.results-layout { gap:12px; padding-inline:12px; }
+.endless-draft-offers,.endless-packs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; width:min(100%,328px); }
+.endless-draft-offers { align-items:start; padding-top:10px; }
+.endless-draft-offers .card-face { width:100%; min-width:0; }
+.endless-packs .endless-pack { display:flex; flex-direction:column; justify-content:start; height:auto; min-height:110px; width:100%; padding:10px 7px; gap:4px; }
+.endless-pack::before,.endless-pack::after { display:none; }
+.endless-pack span { font:11px/1.25 var(--font-sans); letter-spacing:normal; }
+.endless-draft-list { text-align:left; }
+.endless-draft-list ul { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 12px; max-height:144px; overflow-y:auto; margin-top:4px; }
+.endless-draft-list li { padding-block:2px; }
