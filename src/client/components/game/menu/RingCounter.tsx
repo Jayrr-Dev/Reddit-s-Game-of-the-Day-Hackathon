@@ -7,11 +7,21 @@ import { GoldCoins } from '../profileParts';
 import type { RingShopResponse, ShopReward } from '../../../../shared/types/api';
 import { getItem, itemQuantity, REALM_APPLE, SHOP_APPLE, type ItemBag, type ShopApple } from '../../../../shared/game/items';
 import type { CarryCard } from '../../../../shared/game/carryCards';
-import { CardArtwork, CardView } from '../CardView';
+import { CardView } from '../CardView';
 import type { ShopOffer, ShopOfferId, ShopRingId } from '../../../../shared/game/ringShop';
 import { MysteryChest, MysteryReveal } from './MysteryReveal';
 import { ShopJewelryArt } from './ShopJewelryArt';
 import './ring-counter.css';
+
+/** A face-down shop card, sized like the other stock icons. */
+function ShopCardBack() {
+  return <svg className="shop-card-back" viewBox="0 0 54 80" aria-hidden="true">
+    <rect className="shop-card-back-paper" x="2" y="2" width="50" height="76" rx="5" />
+    <path className="shop-card-back-ink" d="M7 15a8 8 0 0 0 8-8h24a8 8 0 0 0 8 8v50a8 8 0 0 0-8 8H15a8 8 0 0 0-8-8ZM27 18l15 22-15 22L12 40Z" />
+    <path className="shop-card-back-seal" d="M27 53c-5 0-9-4-9-9 0-4 2-6 4-8 0 3 1 4 2 5 0-6 4-10 5-14 5 5 2 10 5 13l2-3c1 3 1 5 1 7 0 5-5 9-10 9Z" />
+    <path className="shop-card-back-ink" d="M27 10v5m0 50v5M10 27l5-5m24 36 5-5M10 53l5 5m24-36 5 5" />
+  </svg>;
+}
 
 export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory }: { onSale: (purchase?: Pick<ShopOffer, 'slot' | 'rarity'>) => void; onReroll: (item: ShopApple) => void; onBuyingChange: (buying: boolean) => void; onTestInventory?: (items: ShopRingId[], visit: string, carry: CarryCard[]) => void }) {
   const account = useAccountId();
@@ -178,7 +188,7 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
               <span className="ring-counter-name" title={offer.name}>{offer.name}</span>
               <button type="button" className="ring-counter-disc" data-card={offer.slot === 'card' || undefined} aria-expanded={inspecting} aria-controls={inspecting ? detailsId : undefined} data-shop-inspect
                 aria-label={'Inspect ' + offer.name} onClick={() => { setNote(''); setSelected(previous => previous === offer.id ? undefined : offer.id); }}>
-                {offer.slot === 'box' ? <MysteryChest /> : offer.slot === 'card' ? <span className="shop-card-thumbnail" aria-hidden="true"><CardArtwork cardId={offer.cardId} size="fan" showGlyph={false} /></span> : <ShopJewelryArt offer={offer} />}
+                {offer.slot === 'box' ? <MysteryChest /> : offer.slot === 'card' ? <ShopCardBack /> : <ShopJewelryArt offer={offer} />}
               </button>
               {inspecting && offer.slot === 'card' && <div className="shop-full-card" id={detailsId} data-shop-inspect>
                 <CardView cardId={offer.cardId} label={'Close ' + offer.name + ' card preview'} onClick={() => setSelected(undefined)} />

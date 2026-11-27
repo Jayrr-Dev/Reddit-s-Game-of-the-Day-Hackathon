@@ -44,11 +44,16 @@
 .ring-counter-disc[aria-expanded="true"], .ring-counter-disc:hover {
   box-shadow: inset 0 0 0 2px var(--item-rim), 0 0 12px color-mix(in srgb, var(--item-rim) 40%, transparent);
 }
-.ring-counter-disc[data-card] { border-radius: .42rem; overflow: hidden; }
-.shop-card-thumbnail { display: block; min-width: 0; }
-.shop-card-thumbnail { width: 100%; height: 100%; }
-.shop-card-thumbnail .card-window { height: 100%; border-radius: 0; }
-.shop-card-thumbnail svg { width: 70%; max-width: 1.65rem; height: 68%; }
+.ring-counter-disc[data-card] {
+  border: 0; border-radius: .42rem; background: transparent; box-shadow: none;
+}
+.ring-counter-disc[data-card]:hover, .ring-counter-disc[data-card][aria-expanded='true'] {
+  filter: drop-shadow(0 0 6px var(--item-rim));
+}
+.shop-card-back { width: 76%; height: 100%; max-height: 100%; filter: drop-shadow(0 2px 3px #100a16b0); }
+.shop-card-back-paper { fill: var(--color-surface-raised); stroke: var(--color-accent); stroke-width: 2; }
+.shop-card-back-ink { fill: none; stroke: var(--color-accent); stroke-width: 1.1; }
+.shop-card-back-seal { fill: var(--color-accent); }
 .shop-full-card {
   position: absolute; z-index: 5; bottom: calc(100% + .5rem); left: 50%;
   transform: translateX(-50%); pointer-events: auto;
@@ -56,8 +61,6 @@
 .ring-counter-item:first-child .shop-full-card { left: 0; transform: none; }
 .ring-counter-item:last-child .shop-full-card { left: auto; right: 0; transform: none; }
 .ring-counter-item:only-child .shop-full-card { left: 0; right: auto; }
-.shop-full-card .card-face { width: 8rem; height: 12.25rem; }
-.shop-full-card .card-window { height: 4rem; }
 .shop-item-art { width: 86%; height: 86%; }
 .ring-counter-price, .ring-counter-state button {
   min-height: 1.82rem; padding: .12rem .32rem; border: 1px solid #b0874d; border-radius: .28rem;
