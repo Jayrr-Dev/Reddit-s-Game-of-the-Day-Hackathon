@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ADMIN_SHOP_GOLD, MYSTERY_BOX_PRICE, assignPandoraEffect, claimPandoraBounty, openedShopBoxes, shopGoldBalance, TEMP_RING_IDS, goldAfterPurchases, quotePurchase, quoteShopPurchase, readPurchases, readShopWallet, shopOffers, shopRingIds } from './ringShop.ts';
+import { ADMIN_SHOP_GOLD, MYSTERY_BOX_PRICE, offerTestShopFruit, testShopFruit, testShopStockKey, assignPandoraEffect, claimPandoraBounty, openedShopBoxes, shopGoldBalance, TEMP_RING_IDS, goldAfterPurchases, quotePurchase, quoteShopPurchase, readPurchases, readShopWallet, shopOffers, shopRingIds } from './ringShop.ts';
 import { createRun, replayRun, runReducer } from './run.ts';
 import { characterBonuses, trainingRingProgress } from './character.ts';
 import { inventoryStacks } from './inventory.ts';
@@ -147,4 +147,27 @@ test('Pandora effects apply to one issued run and bounty survives replay without
   const restored = readShopWallet(JSON.stringify(earned));
   assert.equal(shopGoldBalance(100, restored), 160);
   assert.equal(claimPandoraBounty(restored, id), undefined);
+});
+
+test('admin test apples start at 3 and 2, expire with the visit, and never affect real stock', () => {
+  const now = '2026-11-27T03.50p';
+  const wallet = readShopWallet(undefined);
+  const stockBefore = testShopStockKey(now, wallet);
+  assert.equal(stockBefore, '2026-11-27T03.0');
+  assert.deepEqual(testShopFruit(wallet), { 'metatrons-apple': 3, 'realm-apple': 2 });
+  const realm = offerTestShopFruit(wallet, now, 'realm-apple')!;
+  const restored = readShopWallet(JSON.stringify(realm));
+  const premiumStock = testShopStockKey(now, restored);
+  assert.notEqual(premiumStock, stockBefore);
+  assert.equal(shopOffers(premiumStock, true)[3]?.rarity, 'Legendary');
+  assert.equal(shopOffers(premiumStock, true).filter(o => o.slot === 'box').length, 1);
+  assert.deepEqual(testShopFruit(restored), { 'metatrons-apple': 3, 'realm-apple': 1 });
+  assert.equal(shopGoldBalance(ADMIN_SHOP_GOLD, restored), ADMIN_SHOP_GOLD);
+  assert.equal(testShopStockKey('2026-11-27T04.9', restored), '2026-11-27T04.0');
+  const noRealm = offerTestShopFruit(restored, now, 'realm-apple')!;
+  assert.equal(offerTestShopFruit(noRealm, now, 'realm-apple'), undefined);
+  const ordinary = offerTestShopFruit(noRealm, now, 'metatrons-apple')!;
+  assert.ok(!testShopStockKey(now, ordinary).endsWith('p'));
+  assert.deepEqual(testShopFruit(ordinary), { 'metatrons-apple': 2, 'realm-apple': 0 });
+  assert.deepEqual(testShopFruit(wallet), { 'metatrons-apple': 3, 'realm-apple': 2 });
 });

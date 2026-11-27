@@ -1,9 +1,10 @@
 import { availableCarryCards, shopStockKey } from '../../shared/game/carryCards';
+import type { ShopApple } from '../../shared/game/items';
 import type { CardId } from '../../shared/game/cards';
 import { randomUUID } from 'node:crypto';
 import { redis } from '@devvit/web/server';
 import { goldFromVictoryScore } from '../../shared/game/gold';
-import { ADMIN_SHOP_GOLD, allShopJewelryOwned, assignPandoraEffect, claimPandoraBounty, openedShopBoxes, pendingPandoraEffect, shopGoldBalance, quoteShopPurchase, recoverCardFromHell, takeCarryCard, readShopWallet, shopOffers, shopRingIds, type ShopWallet, type ShopOfferId } from '../../shared/game/ringShop';
+import { ADMIN_SHOP_GOLD, allShopJewelryOwned, assignPandoraEffect, claimPandoraBounty, openedShopBoxes, pendingPandoraEffect, shopGoldBalance, quoteShopPurchase, recoverCardFromHell, takeCarryCard, readShopWallet, shopOffers, shopRingIds, offerTestShopFruit, testShopFruit, testShopStockKey, type ShopWallet, type ShopOfferId } from '../../shared/game/ringShop';
 import type { RingShopResponse, RunProfile } from '../../shared/types/api';
 import { redisKeys } from './redisKeys';
 
@@ -31,6 +32,7 @@ export async function readPlayerProgress(id: string) {
 }
 
 function response(offerDay: string, earned: number, wallet: ShopWallet, admin: boolean, testVisit?: string): RingShopResponse {
+  if (testVisit) offerDay = testShopStockKey(offerDay, wallet);
   const nextEffect = pendingPandoraEffect(wallet);
   const offers = shopOffers(offerDay, admin);
   const opened = openedShopBoxes(offerDay, wallet).length
@@ -40,7 +42,7 @@ function response(offerDay: string, earned: number, wallet: ShopWallet, admin: b
     ...(nextEffect && { nextEffect }),
     offerDay, gold: shopGoldBalance(earned, wallet), owned: shopRingIds(Object.keys(wallet.items)),
     offers, opened,
-    collectedAll: allShopJewelryOwned(wallet.items), ...(testVisit && { testVisit }),
+    collectedAll: allShopJewelryOwned(wallet.items), ...(testVisit && { testVisit, testItems: testShopFruit(wallet) }),
     carryCards: availableCarryCards(wallet.carry), imbueBought: !!wallet.carry?.['shop:' + offerDay],
   };
 }
@@ -67,6 +69,35 @@ export async function getAdminRingShop(userId: string, day: string, visit: strin
   return raw ? response(day, ADMIN_SHOP_GOLD, readShopWallet(raw), true, visit) : response(day, 0, emptyWallet(), true);
 }
 
+/** The test reroll and fruit debit are one wallet write. Never touch the actual bag or stock cycle. */
+export async function offerAdminShopFruit(id: string, visit: string, item: ShopApple): Promise<RingShopResponse | undefined> {
+  const key = redisKeys.adminShopVisit(id, visit);
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const transaction = await redis.watch(key);
+    let inMulti = false;
+    let completed = false;
+    try {
+      const raw = await redis.get(key);
+      if (!raw) return undefined;
+      const day = shopStockKey(new Date(), 0);
+      const next = offerTestShopFruit(readShopWallet(raw), day, item);
+      if (!next) return undefined;
+      await transaction.multi();
+      inMulti = true;
+      await transaction.set(key, JSON.stringify(next), { expiration: testExpiry() });
+      const result = await transaction.exec();
+      completed = true;
+      if (result[0] === 'OK') return response(day, ADMIN_SHOP_GOLD, next, true, visit);
+    } finally {
+      if (!completed) {
+        if (inMulti) await transaction.discard().catch(() => {});
+        else await transaction.unwatch().catch(() => {});
+      }
+    }
+  }
+  throw new Error('Could not reroll the test shop.');
+}
+
 export async function buyRing(id: string, day: string, offerDay: string, ringId: ShopOfferId, admin = false, testVisit?: string) {
   if (admin && !testVisit) return { status: 'stale', shop: response(day, 0, emptyWallet(), true) } as const;
   const practice = admin ? testVisit : undefined;
@@ -76,21 +107,22 @@ export async function buyRing(id: string, day: string, offerDay: string, ringId:
     const stock = await currentShopStock(id);
     return practice ? getAdminRingShop(id, stock, practice) : getRingShop(id, stock);
   };
-  const offer = shopOffers(day, admin).find(item => item.id === ringId);
-  if (offerDay !== day || !offer) return { status: 'stale', shop: await readCheckout() } as const;
+  const offer = shopOffers(offerDay, admin).find(item => item.id === ringId);
+  if (!offer) return { status: 'stale', shop: await readCheckout() } as const;
   const entropy = offer.slot === 'box' ? randomUUID() : '';
   for (let attempt = 0; attempt < 6; attempt++) {
     const transaction = await redis.watch(key, redisKeys.shopBossClears(id), redisKeys.premiumShopRefresh(id), ...(practice ? [] : [redisKeys.victories(id)]));
     let inMulti = false;
     let completed = false;
     try {
-      const [{ earned }, raw, currentStock] = await Promise.all([funds(), redis.get(key), currentShopStock(id)]);
-      if (currentStock !== day) return { status: 'stale', shop: await readCheckout() } as const;
+      const [{ earned }, raw, currentStock] = await Promise.all([funds(), redis.get(key), practice ? Promise.resolve(shopStockKey(new Date(), 0)) : currentShopStock(id)]);
       if (practice && !raw) return { status: 'stale', shop: response(day, 0, emptyWallet(), true) } as const;
       const wallet = readShopWallet(raw);
-      const decision = quoteShopPurchase(earned, wallet, offer, day, entropy);
-      if (decision.status === 'owned') return { status: 'owned', shop: response(day, earned, wallet, admin, practice) } as const;
-      if (decision.status === 'short') return { status: 'short', shop: response(day, earned, wallet, admin, practice) } as const;
+      const stock = practice ? testShopStockKey(currentStock, wallet) : currentStock;
+      if (stock !== offerDay) return { status: 'stale', shop: await readCheckout() } as const;
+      const decision = quoteShopPurchase(earned, wallet, offer, stock, entropy);
+      if (decision.status === 'owned') return { status: 'owned', shop: response(stock, earned, wallet, admin, practice) } as const;
+      if (decision.status === 'short') return { status: 'short', shop: response(stock, earned, wallet, admin, practice) } as const;
       // The receipt doubles as ownership and debit. No partial outcome can exist.
       await transaction.multi();
       inMulti = true;
@@ -100,7 +132,7 @@ export async function buyRing(id: string, day: string, offerDay: string, ringId:
       const result = await transaction.exec();
       completed = true;
       if (result[0] === 'OK')
-        return { status: 'bought', shop: response(day, earned, decision.next, admin, practice), ...('reward' in decision && { reward: decision.reward }) } as const;
+        return { status: 'bought', shop: response(stock, earned, decision.next, admin, practice), ...('reward' in decision && { reward: decision.reward }) } as const;
       // A concurrent wallet or victory update aborted the write. Re-quote both.
     } finally {
       if (!completed) {

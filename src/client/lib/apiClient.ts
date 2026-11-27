@@ -59,7 +59,7 @@ const postJson = <TResponse>(path: string, payload?: unknown) =>
 // --- ROUTES ---
 export const apiClient = {
   ringShop: (testVisit?: string) => request<RingShopResponse>('/api/shop/rings' + (testVisit ? '?testVisit=' + encodeURIComponent(testVisit) : ''), { cache: 'no-store' }),
-  offerApple: (itemId: ShopApple) => postJson<Pick<ProfileResponse, 'items'>>('/api/shop/apple', { itemId }),
+  offerApple: (itemId: ShopApple, testVisit?: string) => postJson<Pick<ProfileResponse, 'items'> & { shop?: RingShopResponse }>('/api/shop/apple', { itemId, ...(testVisit && { testVisit }) }),
   buyRing: (payload: BuyRingRequest) => postJson<BuyRingResponse>('/api/shop/rings/buy', payload),
   profile: () => request<ProfileResponse>('/api/profile'),
   saveProfile: (build: import('../../shared/game/playerBuild').PlayerBuild) => postJson<{saved:boolean}>('/api/profile',build),

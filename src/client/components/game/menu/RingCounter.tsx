@@ -23,6 +23,7 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
   const [offeringApple, setOfferingApple] = useState<ShopApple>();
   const [reward, setReward] = useState<ShopReward>();
   const [note, setNote] = useState('');
+  const visibleApples = shop?.testVisit ? shop.testItems ?? {} : testVisitRef.current ? {} : apples;
   const [error, setError] = useState(false);
   const [retry, setRetry] = useState(0);
   useEffect(() => {
@@ -97,18 +98,19 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
 
   /** Offer a real item; leave the account Gold and admin visit intact. */
   async function giftApple(item: ShopApple) {
-    if (!itemQuantity(apples, item) || busyRef.current) return;
+    if (!itemQuantity(visibleApples, item) || busyRef.current) return;
     busyRef.current = true;
     onBuyingChange(true);
     setOfferingApple(item);
     setNote('');
     try {
-      const result = await apiClient.offerApple(item);
-      setApples(result.items);
+      const result = await apiClient.offerApple(item, testVisitRef.current);
+      if (result.shop) setShop(result.shop);
+      else setApples(result.items);
       setSelected(undefined);
       onReroll(item);
       setNote(item === REALM_APPLE ? 'Realm Apple given. Legendary stock refreshed.' : 'Apple given. Stock refreshed.');
-      setRetry(value => value + 1);
+      if (!result.shop) setRetry(value => value + 1);
     } catch {
       setNote('The apple could not be offered. Check your Inventory.');
     } finally {
@@ -125,7 +127,7 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
     <span className="ring-counter-gold" aria-label={shop.gold + (shop.testVisit ? ' test Gold available' : ' Gold available')}><GoldCoins /> {shop.gold.toLocaleString()} {shop.testVisit ? 'Test Gold' : 'Gold'}</span>
     <div className="shop-apple-offer">
       {([SHOP_APPLE, REALM_APPLE] as const).map(item => {
-        const count = itemQuantity(apples, item);
+        const count = itemQuantity(visibleApples, item);
         const name = item === SHOP_APPLE ? 'Apple' : getItem(item).name;
         return count > 0 && <div key={item} className="shop-apple-row">
           <span>{name}: {count}</span>

@@ -5,6 +5,7 @@ import { TRAINING_JEWELRY } from './trainingJewelry.ts';
 import { shopAmuletSummary, type ShopAmuletId } from './amuletBonuses.ts';
 import { drawPandoraEvent, readPandoraEvent, PANDORA_CURSE_BOUNTY, type PandoraEvent, type PandoraRunEffect } from './pandora.ts';
 import type { EquipmentSlot } from './character.ts';
+import { isItemBag, itemQuantity, REALM_APPLE, SHOP_APPLE, spendItem, type ItemBag, type ShopApple } from './items.ts';
 
 // --- STOCK AND PRICES ---
 export const RING_RARITIES = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'] as const;
@@ -39,7 +40,7 @@ export type ShopOfferId = ShopRingId | MysteryBoxId | typeof SHOP_IMBUE_ID;
 type MysteryOffer = { id: MysteryBoxId; name: string; flavor: string; slot: 'box'; rarity: RingRarity; price: number };
 type CardOffer = { id: typeof SHOP_IMBUE_ID; name: string; flavor: string; slot: 'card'; cardId: CardId; rarity: RingRarity; price: number };
 export type ShopOffer = RingOffer | MysteryOffer | CardOffer;
-export type ShopWallet = { items: RingPurchases; boxes: Partial<Record<string, ShopRingId>>; events?: Partial<Record<string, PandoraEvent>>; carry?: CarryCards };
+export type ShopWallet = { items: RingPurchases; boxes: Partial<Record<string, ShopRingId>>; events?: Partial<Record<string, PandoraEvent>>; carry?: CarryCards; testFruit?: { items: ItemBag; stock: string } };
 export type ShopReward =
   | { kind: 'jewelry'; id: ShopRingId; name: string; slot: EquipmentSlot; rarity: RingRarity }
   | PandoraEvent;
@@ -49,6 +50,23 @@ const isBoxReceipt = (key: string) => {
 };
 export const ADMIN_SHOP_GOLD = 1000;
 export const MYSTERY_BOX_PRICE = 100;
+const STARTER_TEST_FRUIT: Readonly<ItemBag> = { [SHOP_APPLE]: 3, [REALM_APPLE]: 2 };
+export const testShopFruit = (wallet: ShopWallet): ItemBag => wallet.testFruit?.items ?? { ...STARTER_TEST_FRUIT };
+
+export function testShopStockKey(day: string, wallet: ShopWallet): string {
+  const hour = day.slice(0, 13);
+  const custom = wallet.testFruit?.stock;
+  // Admin testing uses its own stock seed, never the player's real restock count.
+  return custom?.slice(0, 13) === hour ? custom : hour.length === 13 ? hour + '.0' : day;
+}
+
+export function offerTestShopFruit(wallet: ShopWallet, day: string, item: ShopApple): ShopWallet | undefined {
+  const items = spendItem(testShopFruit(wallet), item);
+  if (!items) return undefined;
+  const revision = 1_000_000_000 + (5 - itemQuantity(items, SHOP_APPLE) - itemQuantity(items, REALM_APPLE));
+  const stock = day.slice(0, 13) + '.' + revision + (item === REALM_APPLE ? 'p' : '');
+  return { ...wallet, testFruit: { items, stock } };
+}
 export const PANDORA_BOX_NAME = "Pandora's Box";
 const BOX_CHANCE = [8, 8, 8, 16, 24] as const;
 const boxOffer = (id: MysteryBoxId): MysteryOffer => ({
@@ -165,7 +183,14 @@ export function readShopWallet(raw?: string): ShopWallet {
       }
     }
     const carry = 'carry' in data ? readCarryCards(data.carry) : undefined;
-    return { items, boxes, ...(Object.keys(events).length && { events }), ...(carry && { carry }) };
+    const fruit = 'testFruit' in data ? data.testFruit : undefined;
+    let testFruit: ShopWallet['testFruit'];
+    if (fruit !== undefined) {
+      if (!fruit || typeof fruit !== 'object' || !('items' in fruit) || !isItemBag(fruit.items) ||
+        !('stock' in fruit) || !isShopStockKey(fruit.stock)) throw new Error('Invalid test shop fruit');
+      testFruit = { items: fruit.items, stock: fruit.stock };
+    }
+    return { items, boxes, ...(Object.keys(events).length && { events }), ...(carry && { carry }), ...(testFruit && { testFruit }) };
   }
   return { items: readPurchases(raw), boxes: {} };
 }

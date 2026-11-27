@@ -95,6 +95,7 @@ export type RingShopResponse = {
   opened: MysteryBoxId[];
   collectedAll: boolean;
   testVisit?: string;
+  testItems?: import('../game/items.ts').ItemBag;
   carryCards: CarryCard[];
   nextEffect?: PandoraRunEffect;
   imbueBought: boolean;

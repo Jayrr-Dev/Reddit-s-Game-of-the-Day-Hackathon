@@ -15,7 +15,7 @@ import { replayForScore, replayForScoreAndUnlocks } from '../../shared/game/repl
 import { getUnlocks, recordUnlocks } from '../core/playerUnlocks';
 import { isCardId } from '../../shared/game/cards';
 import { isCarryCardId, isShopStockKey } from '../../shared/game/carryCards';
-import { bankHellCard, bindRunItems, creditPandoraBounty, currentShopStock, recordShopBossClear, buyRing, getAdminRingShop, getRingShop, openAdminRingShop, readPlayerProgress, recordVictories } from '../core/playerRingShop';
+import { bankHellCard, bindRunItems, creditPandoraBounty, currentShopStock, recordShopBossClear, buyRing, getAdminRingShop, getRingShop, offerAdminShopFruit, openAdminRingShop, readPlayerProgress, recordVictories } from '../core/playerRingShop';
 import { isPandoraRunEffect } from '../../shared/game/pandora';
 import { isShopOfferId, shopRingIds } from '../../shared/game/ringShop';
 import { appleAtVictory, goldRewardFor } from '../../shared/game/gold';
@@ -132,6 +132,15 @@ api.post('/shop/apple', async c => {
   const body: unknown = await c.req.json().catch(() => null);
   const choice = body && typeof body === 'object' && 'itemId' in body ? body.itemId : SHOP_APPLE;
   if (!isShopApple(choice)) return jsonError(c, 400, 'Choose an Apple or a Realm Apple.');
+  const testVisit = body && typeof body === 'object' && 'testVisit' in body ? body.testVisit : undefined;
+  const admin = await isCurrentUserAdmin();
+  if (admin) {
+    if (!isShopVisitId(testVisit)) return jsonError(c, 400, 'Reopen the Shop to start a test visit.');
+    const shop = await offerAdminShopFruit(id, testVisit, choice);
+    if (!shop) return jsonError(c, 400, 'Test fruit is gone or the visit expired. Reopen the Shop.');
+    return c.json({ items: shop.testItems ?? {}, shop });
+  }
+  if (testVisit !== undefined) return jsonError(c, 403, 'Test shop is for admins only.');
   const items = await offerApple(id, choice);
   if (!items) return jsonError(c, 400, 'You do not have an Apple for Metatron.');
   return c.json({ items });
