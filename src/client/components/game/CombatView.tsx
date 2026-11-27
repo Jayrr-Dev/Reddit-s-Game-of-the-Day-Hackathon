@@ -264,6 +264,7 @@ export const CombatView = ({
   const heroTurn = useHeroTurn(realCombat, onAction);
   const cardHits = useCardHits(realCombat, onAction);
   const incomingImpactDelay = heroTurn.arrowStep || heroTurn.lightningStep ? HERO_SHOT_RELEASE_MS + HERO_SHOT_FLIGHT_MS
+    : heroTurn.angelMageCasting ? HERO_SHOT_RELEASE_MS
     : heroTurn.bossImpact?.sound === 'griffonDive' ? GRIFFON_DIVE_LAND_MS : 0;
   const { endTurn: playHeroTurn } = heroTurn;
   const { playCard: playCardHits } = cardHits;

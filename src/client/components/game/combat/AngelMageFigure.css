@@ -17,7 +17,61 @@
   to { transform: rotate(360deg); }
 }
 
+/* The shoulders stay pinned; only the feather silhouette opens. */
+.angel-mage-rig :is(.angel-host-wing, .angel-mage-staff, .angel-mage-hand, .angel-mage-sigil, .angel-mage-release) {
+  transform-box: view-box;
+}
+.angel-mage-rig .angel-host-wing-left { transform-origin: 39px 45px; --mage-wing-side: 1; }
+.angel-mage-rig .angel-host-wing-right { transform-origin: 46px 45px; --mage-wing-side: -1; }
+.angel-mage-staff { transform-origin: 29px 52px; }
+.angel-mage-hand { transform-origin: 57px 51px; }
+.angel-mage-sigil, .angel-mage-release { transform-origin: 68px 51px; }
+.angel-mage-release { color: #ffe9a9; opacity: 0; pointer-events: none; }
+.angel-mage-rig[data-mage-pose="cast"] .angel-mage-release { color: #edfaff; }
+.angel-mage-rig[data-mage-pose="idle"] .angel-host-wing {
+  animation: angel-mage-wing-breath 3.9s ease-in-out infinite;
+}
+.angel-mage-rig[data-mage-pose="idle"] .angel-host-wing-right { animation-delay: -.19s; }
+
+/* 560 ms matches HERO_ATTACK_MS; the 57% spark matches HERO_SHOT_RELEASE_MS. */
+.angel-mage-rig:not([data-mage-pose="idle"]) .angel-host-wing { animation: angel-mage-wing-cast 560ms both; }
+.angel-mage-rig:not([data-mage-pose="idle"]) .angel-mage-staff { animation: angel-mage-staff-lift 560ms both; }
+.angel-mage-rig:not([data-mage-pose="idle"]) .angel-mage-hand { animation: angel-mage-hand-cast 560ms both; }
+.angel-mage-rig:not([data-mage-pose="idle"]) .angel-mage-sigil { animation: angel-mage-sigil-charge 560ms both; }
+.angel-mage-rig:not([data-mage-pose="idle"]) .angel-mage-release { animation: angel-mage-spark 560ms both; }
+
+@keyframes angel-mage-wing-breath {
+  50% { rotate: calc(var(--mage-wing-side) * 4deg); scale: 1.02 1; }
+}
+@keyframes angel-mage-wing-cast {
+  0%, 100% { rotate: 0deg; scale: 1; }
+  41%, 52% { rotate: calc(var(--mage-wing-side) * -5deg); scale: .9 1.02; }
+  64% { rotate: calc(var(--mage-wing-side) * 13deg); scale: 1.08 1; }
+}
+@keyframes angel-mage-staff-lift {
+  0%, 100% { rotate: 0deg; }
+  46%, 55% { rotate: 57deg; }
+  69% { rotate: 29deg; }
+}
+@keyframes angel-mage-hand-cast {
+  0%, 100% { rotate: 0deg; }
+  43%, 53% { rotate: -36deg; }
+  64% { rotate: -12deg; }
+}
+@keyframes angel-mage-sigil-charge {
+  0%, 100% { scale: 1; opacity: 1; }
+  18% { scale: .6; opacity: .7; }
+  52% { scale: 1.22; opacity: 1; }
+  73% { scale: .8; opacity: .7; }
+}
+@keyframes angel-mage-spark {
+  0%, 55% { opacity: 0; scale: .7; }
+  57% { opacity: .94; scale: 1.16; }
+  82%, 100% { opacity: 0; scale: 1.67; }
+}
 @media (prefers-reduced-motion: reduce) {
+  .angel-mage-rig *,
   .angel-mage-circle-outer,
-  .angel-mage-circle-inner { animation: none; }
+  .angel-mage-circle-inner { animation: none !important; }
+  .angel-mage-rig:not([data-mage-pose="idle"]) .angel-mage-release { opacity: .62; }
 }

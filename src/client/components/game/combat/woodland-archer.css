@@ -23,7 +23,16 @@
   top: 32%;
 }
 
-.woodland-archer[data-archer-sprite='wingedArcher'] { aspect-ratio: 154 / 146; }
+.woodland-archer[data-archer-sprite='wingedArcher'] {
+  aspect-ratio: 154 / 146;
+  background-size: 1600% 200%;
+}
+.woodland-archer[data-archer-sprite='wingedArcher']:not([data-shooting]) {
+  animation: angel-archer-hover 1.55s steps(16, jump-none) infinite;
+}
+.woodland-archer[data-archer-sprite='wingedArcher'][data-shooting] {
+  background-position-y: 100%;
+}
 .woodland-archer[data-archer-sprite='wingedArcher'] .woodland-arrow-origin {
   left: 66.6%;
   top: 52.7%;
@@ -37,11 +46,17 @@
   top: 32.6%;
 }
 
+/* A separate animation name restarts the full draw timeline on each shot. */
+@keyframes angel-archer-hover {
+  from { background-position-x: 0%; }
+  to { background-position-x: 100%; }
+}
+
 @keyframes woodland-archer-shot {
   from { background-position-x: 0%; }
   to { background-position-x: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .woodland-archer[data-shooting='true'] { animation: none; }
+  .woodland-archer[data-shooting='true'], .woodland-archer[data-archer-sprite='wingedArcher']:not([data-shooting]) { animation: none; }
 }

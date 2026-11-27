@@ -1,5 +1,5 @@
 // --- ANGEL MAGE FIGURE ---
-import type { HeroMood } from '../../../content/heroLooks';
+import type { HeroAction, HeroMood } from '../../../content/heroLooks';
 import './AngelMageFigure.css';
 
 const IVORY = '#eee2cd';
@@ -62,10 +62,10 @@ const DivineCircle = () => (
  * and left arm. The Angel Mage and the Angel Archer add their own
  * weapon hand on top, so both read as the same order of angels.
  */
-export const AngelHostBody = ({ mood }: { mood: HeroMood }) => (
+export const AngelHostBody = ({ mood, staffArm = false }: { mood: HeroMood; staffArm?: boolean }) => (
   <>
-    <Wing />
-    <g transform="translate(85 0) scale(-1 1)"><Wing /></g>
+    <g className="angel-host-wing angel-host-wing-left"><Wing /></g>
+    <g className="angel-host-wing angel-host-wing-right"><g transform="translate(85 0) scale(-1 1)"><Wing /></g></g>
     <polygon points="30,49 43,44 56,49 66,85 58,94 27,94 20,85" fill={IVORY} />
     <polygon points="43,44 56,49 66,85 58,94 43,94" fill={MAUVE} />
     <polygon points="32,55 43,53 53,57 49,77 43,88 33,72" fill={PLUM} />
@@ -79,17 +79,38 @@ export const AngelHostBody = ({ mood }: { mood: HeroMood }) => (
     <polygon points="36,33 41,29 47,30 50,36 48,43 41,45 36,40" fill="#c39977" />
     <polygon points="36,33 35,44 32,48 33,36 38,29 43,24 49,28 52,35 52,45 49,48 48,36 46,32 41,28" fill={GOLD} />
     <path d={mood === 'fierce' ? 'M37 35 41 37 M45 37 49 35' : 'M37 36h4m3 0h4'} fill="none" stroke={INK} strokeWidth="1.15" />
-    <polygon points="28,50 32,56 25,72 20,71 20,66" fill={MAUVE} />
+    {!staffArm && <polygon points="28,50 32,56 25,72 20,71 20,66" fill={MAUVE} />}
   </>
 );
 
-/** The Angel Host body with a staff and a spinning circle of divine light. */
-export const AngelMage = ({ mood }: { mood: HeroMood }) => (
-  <>
-    <AngelHostBody mood={mood} />
-    <path d="M13 85 24 66 29 57" fill="none" stroke={GOLD} strokeWidth="2.2" />
-    <ellipse cx="12" cy="85" rx="4" ry="2.5" fill="none" stroke={GOLD} strokeWidth="1.1" />
-    <polygon points="54,49 60,49 61,59 66,55 69,57 63,66 58,66" fill={MAUVE} />
-    <DivineCircle />
-  </>
+/** A restrained halo pulse centered on the rune rather than the unit. */
+const CastRelease = () => (
+  <g className="angel-mage-release" fill="none">
+    <circle cx={CIRCLE.x} cy={CIRCLE.y} r="9" stroke="currentColor" strokeWidth="1.2" />
+    <circle cx={CIRCLE.x} cy={CIRCLE.y} r="13" stroke="currentColor" strokeWidth=".65" strokeDasharray="13 6" />
+    <path d="M68 38v6m0 14v6M55 51h6m14 0h6M59 42l4 4m10 10 4 4m0-18-4 4m-10 10-4 4" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+    <path d="m68 46 1.5 3.5L73 51l-3.5 1.5L68 56l-1.5-3.5L63 51l3.5-1.5z" fill="currentColor" />
+  </g>
 );
+
+/** Shoulder-led staff lift, open wings and a rune that releases on the shot beat. */
+export const AngelMage = ({ mood, action }: { mood: HeroMood; action?: HeroAction | null | undefined }) => {
+  const pose = action?.style === 'magic' ? 'cast' : action?.style === 'support' ? 'ward' : 'idle';
+  return (
+    <g className="angel-mage-rig" data-mage-pose={pose}>
+      <AngelHostBody mood={mood} staffArm />
+      <g className="angel-mage-staff">
+        <path d="M13 85 24 66 29 57" fill="none" stroke={GOLD} strokeWidth="2.2" />
+        <ellipse cx="12" cy="85" rx="4" ry="2.5" fill="none" stroke={GOLD} strokeWidth="1.1" />
+        <polygon points="28,50 32,56 25,72 20,71 20,66" fill={MAUVE} />
+      </g>
+      <g className="angel-mage-hand">
+        <polygon points="54,49 60,49 61,59 66,55 69,57 63,66 58,66" fill={MAUVE} />
+        <g className="angel-mage-sigil">
+          <DivineCircle />
+          {pose !== 'idle' && <CastRelease />}
+        </g>
+      </g>
+    </g>
+  );
+};

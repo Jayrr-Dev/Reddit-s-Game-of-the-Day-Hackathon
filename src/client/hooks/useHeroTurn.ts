@@ -225,6 +225,8 @@ export const useHeroTurn = (
     /** The beat on screen, when its move has a sound of its own to start. */
     cueBeat: beatCueOf(step) ? step : undefined,
     bladeStep: isBladeAttack(step) ? step : undefined,
+    angelMageCasting: !!step && !step.isCharge && step.attackType === 'magic' &&
+      step.state.heroes.some(unit => unit.uid === step.actorUid && unit.heroId === 'angelMage'),
     lightningStep: step && !step.isCharge && step.attackType === 'magic' &&
       step.state.heroes.some(unit => unit.uid === step.actorUid && unit.heroId === 'fulgurDragonknight')
       ? step : undefined,
