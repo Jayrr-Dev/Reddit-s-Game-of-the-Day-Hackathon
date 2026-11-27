@@ -55,9 +55,8 @@ const IDLE_COLUMNS = 5;
 const IDLE_ROWS = 5;
 const IDLE_CELS = 24;
 const IDLE_BEAT_MS = 3200 / IDLE_CELS;
-// Fade into the original planted drawing before the lower robe and boots.
-const IDLE_BLEND_Y = 278;
-const IDLE_PIN_Y = 302;
+// Use the unwarped original for the entire lower robe, sword tip and boots.
+const IDLE_PIN_Y = 286;
 
 /** Plays the planted body's wing, fabric and hair cels at the held animation cadence. */
 function MikhaelIdleWind() {
@@ -78,29 +77,19 @@ function MikhaelIdleWind() {
   if (art.isPlaceholder) return <ProgressiveSvgImage href={idle} width={CELL_W} height={CELL_H} />;
   return <g data-mikhael-idle-cel={cel}>
     <defs>
-      <linearGradient id={`${pinId}-blend`} gradientUnits="userSpaceOnUse"
-        x1={0} x2={0} y1={IDLE_BLEND_Y} y2={IDLE_PIN_Y}>
-        <stop stopColor="white" stopOpacity={1} />
-        <stop offset="1" stopColor="white" stopOpacity={0} />
-      </linearGradient>
-      <linearGradient id={`${pinId}-pin`} href={`#${pinId}-blend`}>
-        <stop stopColor="white" stopOpacity={0} />
-        <stop offset="1" stopColor="white" stopOpacity={1} />
-      </linearGradient>
-      <mask id={`${pinId}-moving`} maskUnits="userSpaceOnUse" x={0} y={0} width={CELL_W} height={IDLE_PIN_Y}>
-        <rect width={CELL_W} height={IDLE_PIN_Y} fill={`url(#${pinId}-blend)`} />
-      </mask>
-      <mask id={`${pinId}-grounded`} maskUnits="userSpaceOnUse" x={0} y={IDLE_BLEND_Y}
-        width={CELL_W} height={CELL_H - IDLE_BLEND_Y}>
-        <rect y={IDLE_BLEND_Y} width={CELL_W} height={CELL_H - IDLE_BLEND_Y} fill={`url(#${pinId}-pin)`} />
-      </mask>
+      <clipPath id={`${pinId}-moving`}>
+        <rect width={CELL_W} height={IDLE_PIN_Y} />
+      </clipPath>
+      <clipPath id={`${pinId}-grounded`}>
+        <rect y={IDLE_PIN_Y} width={CELL_W} height={CELL_H - IDLE_PIN_Y} />
+      </clipPath>
     </defs>
-    <g mask={`url(#${pinId}-grounded)`}>
+    <g clipPath={`url(#${pinId}-grounded)`}>
       <ProgressiveSvgImage href={idle} width={CELL_W} height={CELL_H} />
     </g>
     <image href={art.src} width={CELL_W * IDLE_COLUMNS} height={CELL_H * IDLE_ROWS}
       x={-(cel % IDLE_COLUMNS) * CELL_W} y={-Math.floor(cel / IDLE_COLUMNS) * CELL_H}
-      preserveAspectRatio="none" mask={`url(#${pinId}-moving)`} />
+      preserveAspectRatio="none" clipPath={`url(#${pinId}-moving)`} />
   </g>;
 }
 

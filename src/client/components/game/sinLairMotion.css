@@ -1,0 +1,51 @@
+.sin-lair-motion {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  overflow: hidden;
+  container-type: size;
+}
+.sin-prelude-content:has(> .sin-lair-motion)::before { display: none; }
+
+.sin-motion-plane {
+  position: absolute;
+  top: 50%;
+  left: var(--sin-focus, 50%);
+  width: max(100cqw, 177.77778cqh);
+  height: max(100cqh, 56.25cqw);
+  max-width: none;
+  transform: translate(calc(-1 * var(--sin-focus, 50%)), -50%);
+}
+
+@container (max-width: 520px) {
+  .sin-motion-plane {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    transform: none;
+  }
+}
+
+.sin-motion-clouds { animation: sin-cloud-drift 21s ease-in-out infinite alternate; mix-blend-mode: screen; }
+.sin-motion-flame { animation: sin-flame-flicker 2.5s ease-in-out infinite both; mix-blend-mode: screen; }
+
+@keyframes sin-cloud-drift {
+  from { transform: translate(-23px, 2px); opacity: .34; }
+  55% { opacity: .83; }
+  to { transform: translate(22px, -5px); opacity: .51; }
+}
+@keyframes sin-flame-flicker {
+  0%, 100% { opacity: .28; }
+  18% { opacity: .69; }
+  28% { opacity: .41; }
+  47% { opacity: .81; }
+  63% { opacity: .47; }
+  72% { opacity: .65; }
+  86% { opacity: .38; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sin-motion-wings, .sin-motion-clouds, .sin-motion-flame { display: none; animation: none; }
+}

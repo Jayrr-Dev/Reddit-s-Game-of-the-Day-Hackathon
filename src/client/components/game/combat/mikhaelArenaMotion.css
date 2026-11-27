@@ -1,4 +1,4 @@
-/* LAYERS: distant rift light, the half-seen Host, passing clouds, then ash and dust. */
+/* LAYERS: distant rift light, the half-seen Host, and passing clouds. */
 .taxiarch-skies { position:absolute; inset:0; overflow:hidden; pointer-events:none; isolation:isolate; }
 .taxiarch-skies > * { position:absolute; inset:0; pointer-events:none; }
 .taxiarch-sky-rays {
@@ -15,23 +15,9 @@
     radial-gradient(ellipse at 84% 24%,var(--color-surface-raised),transparent 46%);
   filter:blur(16px); opacity:.61; animation:taxiarch-clouds 27s linear infinite alternate;
 }
-.taxiarch-floor-smoke {
-  inset:23% -18% 23%; background:radial-gradient(ellipse 40% 13% at 18% 48%,var(--color-ink-muted),transparent 85%),
-    radial-gradient(ellipse 34% 11% at 78% 56%,var(--color-ink-muted),transparent 93%);
-  filter:blur(11px); opacity:.14; animation:taxiarch-dust 19s ease-in-out infinite alternate;
-}
-.taxiarch-near-motes {
-  background:radial-gradient(circle at 14% 78%,var(--color-ink-muted),transparent 1.1px),
-    radial-gradient(circle at 83% 71%,var(--color-ink-muted),transparent 1.4px),
-    radial-gradient(circle at 31% 86%,var(--color-accent),transparent 1.2px),
-    radial-gradient(circle at 70% 89%,var(--color-ink-muted),transparent 1px);
-  animation:taxiarch-motes 13s ease-in-out infinite;
-}
 @keyframes taxiarch-rays { from {opacity:.03;transform:rotate(-3deg)} to {opacity:.11;transform:rotate(3deg)} }
 @keyframes taxiarch-clouds { from {transform:translateX(-8%)} to {transform:translateX(8%)} }
-@keyframes taxiarch-dust { from {transform:translateX(5%)} to {transform:translateX(-9%)} }
 @keyframes taxiarch-hover { from {transform:translateY(-.8px)} to {transform:translateY(1.35px)} }
-@keyframes taxiarch-motes { from {opacity:0;transform:translate(2%,3%)} 45% {opacity:.6} to {opacity:0;transform:translate(-7%,-10%)} }
 @media (prefers-reduced-motion:reduce) {
   .taxiarch-skies *, .taxiarch-skies { animation:none!important; }
   .taxiarch-sky-rays { opacity:.06; }

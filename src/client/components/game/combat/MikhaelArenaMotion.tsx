@@ -29,7 +29,5 @@ export function MikhaelArenaMotion() {
       </g>)}
     </svg>
     <div className="taxiarch-clouds" />
-    <div className="taxiarch-floor-smoke" />
-    <div className="taxiarch-near-motes" />
   </div>;
 }

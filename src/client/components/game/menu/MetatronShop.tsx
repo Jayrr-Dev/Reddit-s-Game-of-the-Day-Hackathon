@@ -7,6 +7,7 @@ import shopFrame from '../../../assets/npcs/metatron-shop-frame.webp';
 import { METATRON_ANGEL_LORE } from '../../../content/metatronAngelLore';
 import { playSound } from '../../../lib/gameAudio';
 import { Button } from '../../ui/Button';
+import { SpeechBubble } from '../../ui/SpeechBubble';
 import { ProgressiveImg, ProgressiveSvgImage } from '../../ui/ProgressiveImage';
 import { RingCounter } from './RingCounter';
 import './metatron-shop.css';
@@ -150,11 +151,11 @@ function ShopSpeech({ text, isReply, lastVoice, excited }: { text: string; isRep
     return () => { window.clearTimeout(voice); window.clearTimeout(fade); window.clearTimeout(remove); stopVoice?.(); };
   }, [text, lastVoice, excited]);
   if (hidden) return null;
-  return <p className="metatron-greeting" data-purchase={isReply || undefined} data-leaving={leaving || undefined} aria-label={text} aria-hidden={leaving || undefined}>
+  return <SpeechBubble className="metatron-greeting" data-purchase={isReply || undefined} data-leaving={leaving || undefined} aria-label={text} aria-hidden={leaving || undefined}>
     <span aria-hidden="true">{text.split(/(\s+)/).map((word, position) => /^\s+$/.test(word) ? word : <span key={position} className="metatron-word">
       {Array.from(word, (letter, local) => <span key={local} className="metatron-letter" style={{ animationDelay: LETTER_START_MS + index++ * LETTER_STEP_MS + 'ms' }}>{letter}</span>)}
     </span>)}</span>
-  </p>;
+  </SpeechBubble>;
 }
 
 export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void; onTestInventory?: (items: ShopRingId[], visit: string, carry: CarryCard[]) => void }) => {

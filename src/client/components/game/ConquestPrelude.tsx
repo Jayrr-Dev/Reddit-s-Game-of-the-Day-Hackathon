@@ -1,20 +1,25 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { hashSeed, pickOne } from '../../../shared/game/rng';
+import { hashSeed, nextFloat, pickOne } from '../../../shared/game/rng';
 import { areaCounts, conquestStops, GRANDANGEL_BOSSES } from '../../../shared/game/conquestAreas';
-import { REGION_NAMES, STOPS_PER_REGION } from '../../../shared/game/rules';
+import { STOPS_PER_REGION } from '../../../shared/game/rules';
 import { regionChoices, type RegionChoice } from '../../../shared/game/regionRoutes';
-import { regionIndexOf, type Stop } from '../../../shared/game/kingdom';
+import { regionIndexOf, routeOptions, type Stop } from '../../../shared/game/kingdom';
 import { routeLocation } from './routeLocation';
 import { STOP_COPY } from '../../content/lore';
 import { MAP_IMAGES, MAP_NAMES } from './combat/Backdrop';
 import { ProgressiveImg } from '../ui/ProgressiveImage';
 import { Button } from '../ui/Button';
+import { Glyph } from '../ui/Glyph';
+import { SpeechBubble } from '../ui/SpeechBubble';
+import { HELL_ARTIFACTS, isHellArtifact, type HellArtifactId } from '../../../shared/game/hellArtifacts';
 import greed from '../../assets/npcs/greed-gilded-vault.webp';
 import sloth from '../../assets/npcs/sin-lair-sloth.webp';
 import envy from '../../assets/npcs/sin-lair-envy.webp';
 import gluttony from '../../assets/npcs/sin-lair-gluttony.webp';
 import lust from '../../assets/npcs/sin-lair-lust.webp';
 import pride from '../../assets/npcs/sin-lair-pride.webp';
+import { AtlasInk, AtlasLandmark, landmarkOf, ATLAS_HEIGHT, ATLAS_WIDTH, type AtlasLink, type AtlasPoint } from './KingdomAtlas';
+import { SinLairMotion } from './SinLairMotion';
 import './conquestPrelude.css';
 
 // --- THE SIX HOSTS ---
@@ -25,10 +30,6 @@ const HOSTS = [
   { name: 'Envy', lair: 'Gallery of Borrowed Crowns', line: 'They took everything from thee. And yet thou hast something I cannot touch.', backdrop: envy, focus: '31%', side: 'left' },
   { name: 'Gluttony', lair: 'The Empty Feast', line: 'The dead come back hungry. Thou camest back with the same hunger.', backdrop: gluttony, focus: '73%', side: 'right' },
   { name: 'Sloth', lair: 'The Stillstone Dais', line: 'Seven hundred years, the old lord held that seat. Thou hast not sat once.', backdrop: sloth, focus: '55%', side: 'center' },
-] as const;
-
-const CITY_POSITIONS = [
-  [50, 45], [27, 35], [72, 28], [41, 20], [66, 12], [50, 5],
 ] as const;
 
 /** Map landmark art represents settlements, not their enemies. */
@@ -44,69 +45,99 @@ function CitySeal({ citadel = false, location = '' }: { citadel?: boolean; locat
   </svg>;
 }
 
-/** Scroll from the crossing upward; only current destinations can start a fight. */
-export function ConquestMap({ stop = 1, region, route, options, onChoose }: {
-  stop?: number; region?: string; route?: RegionChoice | undefined;
-  options: readonly Stop[]; onChoose: (option: number) => void;
+/** Preview the actual region's destinations without making later stops selectable. */
+export function ConquestMap({
+  stop = 1,
+  region,
+  route,
+  worldSeed = 'atlas',
+  options,
+  atlasOptions,
+  onChoose,
+}: {
+  stop?: number; region?: string; route?: RegionChoice | undefined; worldSeed?: string;
+  options: readonly Stop[]; atlasOptions?: (stop: number) => readonly Stop[];
+  onChoose: (option: number) => void;
 }) {
   const map = useRef<HTMLDivElement>(null);
-  const title = useRef<HTMLHeadingElement>(null);
+  const activeMarker = useRef<HTMLButtonElement>(null);
   const [selected, setSelected] = useState<number>();
-  const isCampaign = options.some(node => node.site);
-  const locationOf = (option: number, node: Stop) => node.site ?? (node.kind === 'greed-bargain'
+  const regionIndex = regionIndexOf(stop);
+  const firstStop = regionIndex * STOPS_PER_REGION + 1;
+  const isCampaign = options.some(option => option.site);
+  const atlasSeed = [worldSeed, regionIndex, route ?? 0].join(':');
+  const origin = { x: 355, y: 825 };
+  const locationOf = (node: Stop, at: number, option: number) => node.site ?? (node.kind === 'greed-bargain'
     ? { name: 'The Gilded Vault', flavour: STOP_COPY[node.kind].blurb }
-    : routeLocation(stop, option, node.kind, route));
-  const active = selected === undefined ? undefined : options[selected];
-  const place = selected === undefined || !active ? undefined : locationOf(selected, active);
-  const landmarks = Array.from({ length: STOPS_PER_REGION }, (_, i) =>
-    routeLocation(stop - (stop - 1) % STOPS_PER_REGION + i, 0, i === STOPS_PER_REGION - 1 ? 'champion' : 'horde', route).name);
-  const regionEnd = (regionIndexOf(stop) + 1) * STOPS_PER_REGION;
-  const capital = isCampaign ? conquestStops('atlas', regionEnd, route)[0]?.site : undefined;
-  const labels = isCampaign && capital ? [capital.name, ...new Set(landmarks.slice(0, -1))]
-    : stop === 1 ? REGION_NAMES : [...new Set(landmarks)];
-  const counts = active?.site ? areaCounts(active.site) : undefined;
+    : routeLocation(at, option, node.kind, route));
+  const rows = Array.from({ length: STOPS_PER_REGION }, (_, index) => {
+    const at = firstStop + index;
+    const nodes = at === stop ? options : atlasOptions?.(at) ??
+      (isCampaign ? conquestStops(worldSeed, at, route) : routeOptions(worldSeed, at));
+    return {
+      at,
+      nodes: nodes.map((node, option) => {
+        const [jitter] = nextFloat(hashSeed(atlasSeed + ':marker:' + index + ':' + option));
+        const center = nodes.length === 1 ? 418 : 238 + 302 * option / (nodes.length - 1);
+        const location = locationOf(node, at, option);
+        return { node, option, location,
+          point: { x: center + (jitter - .5) * 43 + index * 6, y: 710 - index * 144 },
+          mark: landmarkOf(location.name, node.site?.kind ?? (node.kind === 'champion' ? 'capital' : undefined)),
+        };
+      }),
+    };
+  });
+  const links = rows.flatMap((row, i): AtlasLink[] => {
+    const previous = i === 0 ? [origin] : rows[i - 1]!.nodes.map(node => node.point);
+    const state = row.at === stop ? 'open' : row.at > stop ? 'future' : 'past';
+    return previous.flatMap(from => row.nodes.map(({point:to}) => ({from,to,state})));
+  });
+  const active = rows[stop - firstStop]?.nodes.find(node => node.option === selected);
+  const counts = active?.node.site ? areaCounts(active.node.site) : undefined;
+  const typeLabel = (node: Stop) => node.site?.kind === 'capital'
+    ? regionIndex >= GRANDANGEL_BOSSES.length ? 'Final Boss' : 'Region Boss'
+    : node.site?.kind === 'dragon' ? 'Area Boss' : node.site?.cityBoss ? 'City Boss' : undefined;
   useLayoutEffect(() => {
-    if (map.current) map.current.scrollTop = map.current.scrollHeight;
-    title.current?.focus({ preventScroll: true });
-  }, []);
-  return <section className="conquest-map prelude-enter" aria-label="Conquest map">
-    <header>
-      <h1 ref={title} tabIndex={-1}>{stop === 1 ? 'The Road to the Throne' : region}</h1>
-      <p>{stop === 1 ? 'Pick your first destination. Scroll up to see the regions ahead.' : 'Choose your next destination in this region.'}</p>
-    </header>
-    <div className="conquest-map-scroll" ref={map} tabIndex={0} aria-label="Scrollable kingdom map">
+    const scroller = map.current;
+    if (!scroller) return;
+    scroller.scrollTop = stop === firstStop
+      ? scroller.scrollHeight
+      : Math.max(0, (activeMarker.current?.offsetTop ?? 0) - scroller.clientHeight * .56);
+    scroller.focus({ preventScroll: true });
+  }, [firstStop, stop]);
+
+  const position = ({x,y}: AtlasPoint) => ({ left: (100 * x / ATLAS_WIDTH) + '%', top: (100 * y / ATLAS_HEIGHT) + '%' });
+  return <section className="conquest-map map-fullbleed prelude-enter" aria-label={region ? region + ' map' : 'Conquest map'}
+    onKeyDown={event => {
+      if (event.key === 'Escape' && selected !== undefined) {
+        setSelected(undefined);
+        map.current?.focus({ preventScroll: true });
+      }
+    }}>
+    <div className="conquest-map-scroll atlas-scrollbar-hidden" ref={map} tabIndex={0} aria-label="Scrollable kingdom map">
       <div className="conquest-map-atlas">
-        <svg className="conquest-map-ink" viewBox="0 0 600 900" preserveAspectRatio="none" aria-hidden="true">
-          <defs>
-            <pattern id="atlas-lines" width="108" height="134" patternUnits="userSpaceOnUse">
-              <path d="M-8 83Q38 20 110 35M-7 93Q38 27 116 46M-9 105Q42 42 116 57M-7 118Q46 55 116 66" fill="none" stroke="currentColor" strokeWidth="1" />
-            </pattern>
-          </defs>
-          <rect width="600" height="900" fill="url(#atlas-lines)" opacity=".35" />
-          <path className="atlas-river" d="M-10 399C136 474 92 526 209 556S452 469 621 614" />
-          <path className="atlas-future" d="M300 405C230 384 221 348 162 315S340 274 432 252S288 215 246 180S396 136 396 108S300 73 300 45" />
-          <path className="atlas-road" d="M300 405C283 483 164 534 156 621S229 756 300 810M300 405C332 477 444 548 444 621S393 746 300 810" />
-        </svg>
-        {labels.map((name, i) => {
-          const position = CITY_POSITIONS[i];
-          if (!position) return null;
-          return <div key={name} className="atlas-city" style={{ left: position[0] + '%', top: position[1] + '%' }}><CitySeal citadel={name === capital?.name || i >= 3} location={name} /><span>{name === capital?.name ? <small>Capital city</small> : stop === 1 && !isCampaign && <small>Region {i + 1}</small>}{name}</span></div>;
-        })}
-        {options.map((stop, i) => {
-          const location = locationOf(i, stop);
-          return <button type="button" key={i} className="atlas-destination" aria-pressed={selected === i}
-            aria-label={location.name} style={{ left: (options.length === 1 ? 50 : 26 + (48 * i) / (options.length - 1)) + '%' }}
-            onClick={() => setSelected(i)}>
-            <CitySeal location={location.name} /><strong>{location.name}</strong><small>{stop.site?.kind === 'capital' ? (regionIndexOf(regionEnd) >= GRANDANGEL_BOSSES.length ? 'Capital · Final Boss' : 'Capital · Region Boss') : stop.site?.kind === 'dragon' ? 'Area Boss' : stop.site?.cityBoss ? 'City Boss' : stop.site ? 'Battle route' : STOP_COPY[stop.kind].title}</small>
-          </button>;
-        })}
-        <div className="atlas-origin"><span aria-hidden="true">◆</span><strong>{stop === 1 ? 'The Crossing' : 'You are here'}</strong><small>{stop === 1 ? 'Wraith rises here' : 'Stop ' + ((stop - 1) % STOPS_PER_REGION + 1) + ' of ' + STOPS_PER_REGION}</small></div>
+        <AtlasInk seed={atlasSeed} links={links} selected={active?.point} />
+        {rows.map(row => row.nodes.map(({ node, option, location, point, mark }) => {
+          const content = <><AtlasLandmark mark={mark} /><strong>{location.name}</strong>
+            {typeLabel(node) && <small>{typeLabel(node)}</small>}</>;
+          return row.at === stop
+            ? <button type="button" key={row.at + ':' + option} className="atlas-destination" aria-pressed={selected === option}
+                aria-label={location.name} ref={option === 0 ? activeMarker : undefined} style={position(point)}
+                onClick={() => setSelected(current => current === option ? undefined : option)}>{content}</button>
+            : <div key={row.at + ':' + option} className="atlas-city" data-state={row.at < stop ? 'past' : 'future'}
+                style={position(point)}>{content}</div>;
+        }))}
+        <div className="atlas-origin" style={position(origin)}>
+          <AtlasLandmark mark="crossing"/><strong>{firstStop === 1 ? 'The Crossing' : 'Into the region'}</strong>
+          {firstStop === 1 && <small>A Sin rises here</small>}
+        </div>
       </div>
     </div>
-    <footer>
-      <span>{place ? <><strong>{place.name}</strong><small>{place.flavour}</small>{counts && <small>{counts.battles} {counts.battles === 1 ? 'battle' : 'battles'} · {counts.rooms} rooms</small>}</> : 'Choose a destination on the map'}</span>
-      <Button variant="menuPrimary" disabled={selected === undefined} onClick={() => selected !== undefined && onChoose(selected)}>Confirm destination</Button>
-    </footer>
+    {active && <footer className="atlas-destination-footer">
+      <span><strong>{active.location.name}</strong><small>{active.location.flavour}</small>
+        {counts && <small>{counts.battles} {counts.battles === 1 ? 'battle' : 'battles'} · {counts.rooms} rooms</small>}</span>
+      <Button variant="menuPrimary" onClick={() => onChoose(active.option)}>Confirm destination</Button>
+    </footer>}
   </section>;
 }
 
@@ -145,28 +176,50 @@ export function RegionCrossroads({ stop, conquered, campaign, onChoose }: {
   </section>;
 }
 
-/** One seeded meeting per run; the placeholder gift never changes game state. */
-export function ConquestPrelude({ seed, options, onChoose }: { seed: string; options: readonly Stop[]; onChoose: (option: number) => void }) {
+/** One seeded meeting per run. The artifact leaves Hell with the player if chosen. */
+export function ConquestPrelude({ seed, options, worldSeed, atlasOptions, onChoose }: {
+  seed: string; options: readonly Stop[]; worldSeed?: string; atlasOptions?: (stop: number) => readonly Stop[];
+  onChoose: (option: number, artifact?: HellArtifactId) => void;
+}) {
   const saveKey = 'villain-arc:conquest-gift:' + seed;
-  const [accepted, setAccepted] = useState(() => {
-    try { return sessionStorage.getItem(saveKey) === 'accepted'; } catch { return false; }
+  const [accepted, setAccepted] = useState<HellArtifactId | 'accepted' | undefined>(() => {
+    try {
+      const saved = sessionStorage.getItem(saveKey);
+      return isHellArtifact(saved) || saved === 'accepted' ? saved : undefined;
+    } catch { return undefined; }
   });
+  const [selected, setSelected] = useState<HellArtifactId>();
   const [host] = pickOne(hashSeed('conquest-sin:' + seed), HOSTS);
-  if (accepted) return <ConquestMap options={options} onChoose={onChoose} />;
+  if (accepted) return <ConquestMap options={options} {...(worldSeed && {worldSeed})} {...(atlasOptions && {atlasOptions})}
+    onChoose={option => onChoose(option, isHellArtifact(accepted) ? accepted : undefined)} />;
+  const labelSide = host.side === 'right' ? 'left' : 'right';
   return <section className="sin-prelude prelude-enter" aria-label="A meeting before revival"
-    data-side={host.side} style={{ '--sin-lair': 'url("' + host.backdrop + '")', '--sin-focus': host.focus } as CSSProperties}>
-    <div className="sin-prelude-stage" aria-hidden="true" />
-    <div className="sin-prelude-scene">
-      <header><p>{host.lair}</p><h1>{host.name}</h1></header>
-      <p className="sin-prelude-line">“{host.line}”</p>
-      <div className="sin-prelude-offer">
-        <div><strong>Gift they will offer</strong><small>Placeholder</small></div>
-        <Button variant="menuPrimary" onClick={() => {
-          try { sessionStorage.setItem(saveKey, 'accepted'); } catch { /* storage is optional */ }
-          setAccepted(true);
-        }}>Accept gift</Button>
+    data-label-side={labelSide} style={{ '--sin-lair': 'url("' + host.backdrop + '")', '--sin-focus': host.focus } as CSSProperties}>
+    <div className="sin-prelude-content">
+      <SinLairMotion host={host.name} art={host.backdrop} />
+      <div className="sin-lair-art" aria-hidden="true" />
+      <div className="sin-host-voice">
+        <header className="sin-host-name"><h1>{host.name}</h1><p>{host.lair}</p></header>
+        <SpeechBubble className="sin-line sin-speech-desktop" tail={labelSide === 'left' ? 'right' : 'left'}>{host.line}</SpeechBubble>
+      </div>
+      <SpeechBubble className="sin-speech-mobile" tail={labelSide === 'left' ? 'up-right' : 'up-left'}>{host.line}</SpeechBubble>
+      <div className="sin-artifacts">
+        <header><h2>Artifacts from Hell</h2><p>Take one to Earth. This run only.</p></header>
+        <ul className="sin-artifact-list">
+          {HELL_ARTIFACTS.map(artifact => <li key={artifact.id}>
+            <button type="button" className="sin-artifact" aria-pressed={selected === artifact.id}
+              onClick={() => setSelected(artifact.id)}>
+              <span className="sin-artifact-icon" style={{ color: artifact.color }}><Glyph name={artifact.icon} /></span>
+              <span><strong>{artifact.name}</strong><small>{artifact.detail}</small></span>
+            </button>
+          </li>)}
+        </ul>
+        <Button className="sin-artifact-action" variant="menuPrimary" disabled={!selected} onClick={() => {
+          if (!selected) return;
+          try { sessionStorage.setItem(saveKey, selected); } catch { /* storage is optional */ }
+          setAccepted(selected);
+        }}>Bring artifact</Button>
       </div>
     </div>
   </section>;
 }
-

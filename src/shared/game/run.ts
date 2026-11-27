@@ -18,6 +18,7 @@ import { progressionFromWins, healingAmount, type RingProgress, allocateTrait, a
 // ===================================================================
 
 import { getCard, STARTER_DECK, type CardId } from './cards.ts';
+import { HELL_ARTIFACTS, isHellArtifact, type HellArtifactId } from './hellArtifacts.ts';
 import { combatOutcome, createHeroUnit, endTurn, playCard, startCombat, SELF_TARGET_UID } from './combat.ts';
 import { formUp } from './battlefield.ts';
 import { areaRoomEvent, buildAreaBattles, conquestMightAt, conquestStops, isLastRegion, REST_FRACTION, type AreaBattle, type AreaSite, type RoomEvent } from './conquestAreas.ts';
@@ -134,7 +135,7 @@ export type RunAction =
   /** Locks the spent trait nodes in (Save traits); only a respec undoes it. */
   | { type: 'saveTraits' }
   | { type: 'chooseRegion'; option: RegionChoice }
-  | { type: 'chooseStop'; option: number }
+  | { type: 'chooseStop'; option: number; hellArtifact?: HellArtifactId }
   | { type: 'nextBattleWave' }
   | { type: 'finishSealing' }
   | { type: 'areaCamp'; choice: 'explore' | 'rest' | 'continue' }
@@ -200,7 +201,7 @@ function regionRouteKey(state: RunState, stop: number) {
 }
 
 /** Only new runs use the expanded campaign. The earlier route is replayed unchanged. */
-function optionsFor(state: RunState, stop: number): Stop[] {
+export function optionsFor(state: RunState, stop: number): Stop[] {
   const key = regionRouteKey(state, stop);
   return state.conquestVersion ? conquestStops(key, stop, state.regionPath?.[regionIndexOf(stop)])
     : routeOptions(key, stop, !!state.deckImbues && !state.promisedToGreed);
@@ -458,6 +459,18 @@ export const applyCharacterAction = (
   }
 };
 
+/** Carry one artifact's effect into this run, never into the permanent inventory. */
+function bringHellArtifact(state: RunState, id: HellArtifactId): RunState {
+  const artifact = HELL_ARTIFACTS.find(entry => entry.id === id);
+  if (!artifact) return state;
+  if ('card' in artifact) return { ...state, deck: [...state.deck, artifact.card] };
+
+  const bonus = Math.max(0, Math.min(10, PLAYER_HP_CAP - state.maxHp));
+  const baseMaxHp = state.baseMaxHp ??
+    state.maxHp - characterBonuses(state.character.traits, state.character.equipment, state.character.traitNodes).maxHp + PLAYER_MAX_HP;
+  return { ...state, baseMaxHp: baseMaxHp + bonus, hp: state.hp + bonus, maxHp: state.maxHp + bonus };
+}
+
 /** Applies one action. Actions that don't fit the current phase are ignored. */
 export const runReducer = (state: RunState, action: RunAction): RunState => {
   const { phase } = state;
@@ -501,7 +514,9 @@ export const runReducer = (state: RunState, action: RunAction): RunState => {
       if (state.conquestVersion && canChooseRegion(state)) return state;
       const chosen =
         phase.kind === 'route' ? phase.options[action.option] : undefined;
-      return chosen ? enterStop(state, { ...chosen, optionIndex: action.option }) : state;
+      if (!chosen) return state;
+      const prepared = state.stop === 1 && action.hellArtifact ? bringHellArtifact(state, action.hellArtifact) : state;
+      return enterStop(prepared, { ...chosen, optionIndex: action.option });
     }
     case 'nextBattleWave':
       return acceptNextWave(state);
@@ -616,7 +631,8 @@ export const isRunAction = (value: unknown): value is RunAction => {
     case 'chooseRegion':
       return 'option' in value && isRegionChoice(value.option);
     case 'chooseStop':
-      return 'option' in value && isIndex(value.option);
+      return 'option' in value && isIndex(value.option) &&
+        (!('hellArtifact' in value) || value.hellArtifact === undefined || isHellArtifact(value.hellArtifact));
     case 'playCard':
       return (
         'handIndex' in value &&

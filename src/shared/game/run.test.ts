@@ -217,3 +217,22 @@ void test('only lethal battles retain the final field for the story defeat scree
   assert.ok(abandoned.phase.kind === 'fallen');
   assert.equal(abandoned.phase.battlefield, undefined);
 });
+
+void test('Hell artifacts affect only the chosen conquest and replay the same way', () => {
+  const fresh = createRun(DAY);
+  const ward = { type: 'chooseStop', option: 0, hellArtifact: 'bone-sigil' } as const;
+  const withWard = runReducer(fresh, ward);
+  assert.deepEqual(withWard.deck, [...fresh.deck, 'boneWard']);
+  assert.deepEqual(replayRun(DAY, [ward]), withWard);
+  assert.equal(runReducer(withWard, ward), withWard);
+  assert.equal(isRunAction(ward), true);
+  assert.equal(isRunAction({ ...ward, hellArtifact: 'not-an-artifact' }), false);
+  const withHeart = runReducer(fresh, { ...ward, hellArtifact: 'ember-heart' });
+  assert.equal(withHeart.maxHp, fresh.maxHp + 10);
+  assert.equal(withHeart.hp, fresh.hp + 10);
+  const withVial = runReducer(fresh, { ...ward, hellArtifact: 'ashen-vial' });
+  assert.deepEqual(withVial.deck, [...fresh.deck, 'antidote']);
+  assert.deepEqual(createRun(DAY).deck, fresh.deck);
+  const later = { ...fresh, stop: 2 };
+  assert.deepEqual(runReducer(later, ward), runReducer(later, { type: 'chooseStop', option: 0 }));
+});

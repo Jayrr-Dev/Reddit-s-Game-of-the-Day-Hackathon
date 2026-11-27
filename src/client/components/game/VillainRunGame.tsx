@@ -18,6 +18,7 @@ import { appleAtVictory, goldRewardFor } from '../../../shared/game/gold';
 import { BattleCharacterSheet } from './BattleCharacterSheet';
 import {
   computeScore,
+  optionsFor,
   type RunAction,
   type RunState,
 } from '../../../shared/game/run';
@@ -56,7 +57,7 @@ const PhaseBody = ({ run, runId, onAction }: VillainRunGameProps) => {
     case 'greed-bargain':
       return <GreedBargain run={run} onAction={onAction} />;
     case 'route':
-      return <ConquestMap key={run.stop} stop={run.stop} region={regionOfRun(run)} route={chosenRegion(run)} options={phase.options} onChoose={option => onAction({ type: 'chooseStop', option })} />;
+      return <ConquestMap key={run.stop} stop={run.stop} region={regionOfRun(run)} route={chosenRegion(run)} options={phase.options} worldSeed={run.dailyKey} atlasOptions={at => optionsFor(run, at)} onChoose={option => onAction({ type: 'chooseStop', option })} />;
     case 'combat': {
       const area = run.area;
       const battle = area?.battles[area.battle];

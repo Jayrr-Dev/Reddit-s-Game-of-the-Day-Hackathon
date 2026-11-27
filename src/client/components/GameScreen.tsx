@@ -24,6 +24,7 @@ import { IsAdmin } from '../lib/adminRole';
 import { journeys } from '../lib/journeys';
 import { MikhaelEnding } from './game/MikhaelEnding';
 import { goldRewardFor } from '../../shared/game/gold';
+import { optionsFor } from '../../shared/game/run';
 import { ConquestPrelude, RegionCrossroads } from './game/ConquestPrelude';
 import { StarterPicker } from './game/StarterPicker';
 import type { PlayerBuild } from '../../shared/game/playerBuild';
@@ -135,8 +136,8 @@ const GameSession = ({ data, startRun, finishRun }: SessionProps) => {
   }
   if (run.phase.kind === 'route' && run.stop === 1) {
     const seed = id ?? [data.accountId ?? 'guest', run.dailyKey, run.attempt].join(':');
-    return <ConquestPrelude key={seed} seed={seed} options={run.phase.options}
-      onChoose={option => act({ type: 'chooseStop', option })} />;
+    return <ConquestPrelude key={seed} seed={seed} options={run.phase.options} worldSeed={run.dailyKey} atlasOptions={at => optionsFor(run, at)}
+      onChoose={(option, hellArtifact) => act({ type: 'chooseStop', option, ...(hellArtifact && { hellArtifact }) })} />;
   }
   if (run.phase.kind === 'sealing') {
     const gold = id ? goldRewardFor(id, run.stop, 'champion', run.pandoraEffect, run.area?.battle) : undefined;

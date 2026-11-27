@@ -1,0 +1,34 @@
+:where(.game-speech-bubble) { position: relative; }
+.game-speech-bubble {
+  margin: 0;
+  padding: .28rem .62rem;
+  border: 1px solid #b58d59;
+  border-radius: .4rem;
+  background: #211727f2;
+  box-shadow: 0 2px 7px #140c17a0;
+  color: #fff0d0;
+  font: 600 clamp(.7rem, 1.55cqw, .88rem)/1.2 var(--font-display, Georgia, serif);
+}
+.game-speech-bubble::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: .4rem;
+  height: .4rem;
+  border-left: 1px solid #b58d59;
+  border-bottom: 1px solid #b58d59;
+  background: #211727;
+  transform: translate(-60%, -50%) rotate(45deg);
+}
+.game-speech-bubble[data-tail="right"]::before {
+  left: auto;
+  right: 0;
+  transform: translate(60%, -50%) rotate(225deg);
+}
+.game-speech-bubble[data-tail^="up-"]::before {
+  top: 0;
+  left: 25%;
+  transform: translateY(-60%) rotate(135deg);
+}
+.game-speech-bubble[data-tail="up-right"]::before { left: 75%; }
