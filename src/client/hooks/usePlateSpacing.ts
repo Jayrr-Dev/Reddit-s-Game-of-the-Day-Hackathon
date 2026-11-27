@@ -10,8 +10,8 @@ export const PLATE_UID_ATTR = 'data-plate-uid';
 export const FLOATING_UID_ATTR = 'data-floating-uid';
 export const HERO_LAYOUT_ATTR = 'data-hero-layout';
 const GAP = 3;
-const HEALTH_GAP = 5;
-const HEALTH_FLOOR_PADDING = 17;
+const HEALTH_GAP = -3;
+const HEALTH_FLOOR_PADDING = 25;
 const FRONT_RELIEF_FORWARD_PX = 8;
 const NAME_GAP = 2;
 /**

@@ -538,11 +538,13 @@
   gap: 3px;
   zoom: .533333;
 }
+.hero-plate-health [data-range-penalty] { zoom: 1.25; }
 .enemy-status-grid[data-effect-side="buffs"] { justify-content: flex-start; flex-direction: row-reverse; }
 .enemy-status-grid[data-effect-side="debuffs"] { justify-content: flex-start; }
 .hero-plate-health .enemy-status-grid button span { paint-order: stroke fill; -webkit-text-stroke: 1.5px black; }
 .enemy-health-shield {
   position: relative;
+  zoom: 1.25;
   display: grid;
   place-items: start center;
   min-width: 24px;
@@ -556,7 +558,7 @@
 .enemy-health-shield-fill { fill: var(--color-hp); transition: clip-path 150ms ease-out; }
 .enemy-health-shield-outline { fill: none; stroke: var(--brass); stroke-width: 1; }
 .enemy-health-shield > span { position: relative; paint-order: stroke fill; -webkit-text-stroke: 1.5px black; }
-.defeated-health-shield { position: absolute; top: calc(100% + 5px); left: 50%; translate: -50% 0; }
+.defeated-health-shield { position: absolute; top: calc(100% - 3px); left: 50%; translate: -50% 0; }
 @media (prefers-reduced-motion: reduce) {
   .enemy-health-shield-fill { transition: none; }
 }
