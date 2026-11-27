@@ -253,7 +253,7 @@ export const MetatronShop = ({ onClose, onTestInventory }: { onClose: () => void
     </div>
 
     <MenuBackButton onClick={onClose} disabled={buying} />
-    <header className="metatron-shop-heading w-fit rounded-md bg-[#17111d]/90 px-3 py-2">
+    <header className="metatron-shop-heading w-fit self-end rounded-md bg-[#17111d]/90 px-3 py-2 text-right">
       <h2 className="font-display text-sm font-black uppercase tracking-widest text-accent">
         Shop
       </h2>

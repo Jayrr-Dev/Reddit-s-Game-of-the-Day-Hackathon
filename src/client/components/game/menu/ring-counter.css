@@ -9,7 +9,7 @@
 }
 .ring-counter-gold, .ring-counter-price { display: inline-flex; align-items: center; justify-content: center; gap: .22rem; white-space: nowrap; }
 .ring-counter-gold {
-  position: absolute; z-index: 2; top: .9rem; right: .9rem;
+  position: absolute; z-index: 2; inset-block-start: 4.65rem;
   padding: .32rem .58rem; border: 1px solid #927041; border-radius: .42rem;
   background: #201625; color: #ffda8d; font-size: .78rem; font-weight: 750;
 }

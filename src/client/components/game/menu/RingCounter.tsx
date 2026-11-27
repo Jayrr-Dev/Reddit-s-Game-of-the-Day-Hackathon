@@ -157,7 +157,7 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
   if (error) return <div className="ring-counter-state">Could not load the shop. <button type="button" onClick={() => setRetry(value => value + 1)}>Retry</button></div>;
   if (!shop) return <p className="ring-counter-state" role="status">Loading stock.</p>;
   return <section className="ring-counter" aria-label="Metatron's stock">
-    <span className="ring-counter-gold" aria-label={shop.gold + (shop.testVisit ? ' test Gold available' : ' Gold available')}><GoldCoins /> {shop.gold.toLocaleString()} {shop.testVisit ? 'Test Gold' : 'Gold'}</span>
+    <span className="ring-counter-gold end-3 sm:end-4" aria-label={shop.gold + (shop.testVisit ? ' test Gold available' : ' Gold available')}><GoldCoins /> {shop.gold.toLocaleString()} {shop.testVisit ? 'Test Gold' : 'Gold'}</span>
     <div className="shop-apple-offer">
       {([SHOP_APPLE, REALM_APPLE] as const).map(item => {
         const count = itemQuantity(visibleApples, item);
