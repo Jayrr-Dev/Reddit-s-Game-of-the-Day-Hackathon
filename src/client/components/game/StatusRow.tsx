@@ -166,16 +166,16 @@ const OUT_OF_RANGE_CHIP: StatusChip = {
   description: OUT_OF_RANGE_INFO.description,
 };
 
-/** Preview the coming countdown burst, plus the player's turn-start burn when applicable. */
+/** Preview the next countdown and the turn-start damage at the current count. */
 const hexChipOf = (hex: number, target: Combatant, source?: Combatant, isPlayer = false): Partial<StatusChip> => {
   const next = hexAfterCountdown(hex);
-  const burst = incomingAfflictionDamage(target, hexBurnAmount(next, source), source);
-  const opening = isPlayer ? incomingAfflictionDamage(target, hexBurnAmount(hex)) : 0;
+  const opening = incomingAfflictionDamage(target, hexBurnAmount(hex, source), source);
+  const left = isPlayer ? hexAfterBurn(hex, source) : hex;
   return {
-    fill: burst || opening ? toneVarOf(STATUS_LOOK.hex) : undefined,
+    fill: opening ? toneVarOf(STATUS_LOOK.hex) : undefined,
     text: String(hex),
-    description: `Next action: ${hex} to ${next} Hex${burst ? `, dealing ${burst} damage` : ''}.` +
-      (opening ? ` At your turn start: ${opening} damage, then ${hexAfterBurn(hex)} Hex.` : ''),
+    description: `Next action: ${hex} to ${next} Hex. At your turn start, if unchanged: ${opening ? `${opening} damage` : 'no burst'}` +
+      (left !== hex ? `, then ${left} Hex.` : '.'),
   };
 };
 

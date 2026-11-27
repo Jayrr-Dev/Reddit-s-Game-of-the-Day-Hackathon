@@ -270,46 +270,22 @@ void test('odd Hex deals its value and spends exactly one stack; even Hex waits'
   }
 });
 
-void test('an action counts Hex down to 3 or 13 and bursts without an extra deduction', () => {
-  for (const hex of [4, 14, 24]) {
-    const before = { ...createCombatant(100, 100), statuses: { ...NO_STATUSES, hex } };
-    const burst = hexAfterAction(before);
-    assert.equal(burst.hp, 100 - (hex - 1));
-    assert.equal(burst.statuses.hex, hex - 1);
-    assert.equal(burst.hexDamageTaken, hex - 1);
-    const later = hexAfterAction(burst);
-    assert.equal(later.hp, burst.hp);
-    assert.equal(later.statuses.hex, hex - 2);
-  }
+void test('actions tick Hex down without bursting, even when the resulting count is odd', () => {
+  const before = addStatus(createCombatant(100, 100), 'hex', 4);
+  const odd = hexAfterAction(before);
+  assert.equal(odd.statuses.hex, 3);
+  assert.equal(odd.hp, 100);
+  assert.equal(hexAfterAction(odd).statuses.hex, 2);
+  const exhausted = hexAfterAction(addStatus(before, 'hex', -3));
+  assert.equal(exhausted.statuses.hex, 0);
+  assert.equal(hexAfterAction(exhausted), exhausted);
 });
 
-void test('9 Hex counts down to zero and deals 16 total damage', () => {
-  const target = createCombatant(100, 100);
-  let unit = { ...target, statuses: { ...target.statuses, hex: 9 } };
-  for (const [hex, hp] of [[8, 100], [7, 93], [6, 93], [5, 88], [4, 88], [3, 85], [2, 85], [1, 84], [0, 84]]) {
-    unit = hexAfterAction(unit);
-    assert.equal(unit.statuses.hex, hex);
-    assert.equal(unit.hp, hp);
-  }
-  assert.equal(hexAfterAction(unit), unit, 'zero Hex stays gone');
-});
-
-void test('33 Hex totals 256 or 304 with Sixfold Curse at face value', () => {
-  const target = createCombatant(500, 500);
-  const caster = { ...target, skillPicks: [{ branch: 4, tier: 3, slot: 0 }] };
-  for (const [source, total] of [[undefined, 256], [caster, 304]] as const) {
-    let enemy = addStatus(target, 'hex', 33);
-    for (let i = 0; i < 33; i++) enemy = hexAfterAction(enemy, source);
-    assert.equal(enemy.statuses.hex, 0);
-    assert.equal(enemy.hexDamageTaken, total);
-  }
-});
-
-void test('playing a card and moving each count the player Hex down once', () => {
+void test('playing a card and moving each count the player Hex down once without bursting', () => {
   const fight = fightWith(['backhand']);
   const state = { ...fight, player: addStatus(fight.player, 'hex', 4) };
   const paid = playCard(state, 0, state.heroes[0]!.uid);
-  assert.equal(paid.player.hp, state.player.hp - 3);
+  assert.equal(paid.player.hp, state.player.hp);
   assert.equal(paid.player.statuses.hex, 3);
   const stepped = move(paid, 'backStep');
   assert.equal(stepped.player.hp, paid.player.hp);
@@ -317,36 +293,38 @@ void test('playing a card and moving each count the player Hex down once', () =>
   assert.equal(finishPlayerTurn(stepped).player.statuses.hex, 2);
 });
 
-void test('only player actions count down each cursed enemy, even on untargeted card plays', () => {
+void test('player actions reduce existing enemy Hex; only turn start bursts at face value', () => {
   const fresh = squireAndArcher(['darkCloak', 'mourningCurse']);
   const [squire, archer] = fresh.heroes;
   assert.ok(squire && archer);
-  const cursed = addStatus({ ...squire, hp: 50, maxHp: 50 }, 'hex', 6);
+  const cursed = addStatus({ ...squire, hp: 50, maxHp: 50 }, 'hex', 7);
   const untouched = { ...archer, hp: 50, maxHp: 50 };
   const start = { ...withHand(fresh, ['darkCloak']), heroes: [cursed, untouched] };
   const played = playCard(start, 0, -1);
-  assert.equal(played.heroes[0]?.statuses.hex, 5);
-  assert.equal(played.heroes[0]?.hp, 45);
+  assert.equal(played.heroes[0]?.statuses.hex, 6);
   assert.equal(played.heroes[1]?.statuses.hex, 0);
   const applied = playCard(withHand({ ...played, energy: 5 }, ['mourningCurse']), 0, archer.uid);
-  assert.equal(applied.heroes[0]?.statuses.hex, 4);
-  assert.equal(applied.heroes[1]?.statuses.hex, 3, 'fresh curses start at their printed value');
-  const moved = move(applied, 'backStep');
-  assert.equal(moved.heroes[0]?.statuses.hex, 3);
-  assert.equal(moved.heroes[0]?.hp, 42);
-  assert.equal(moved.heroes[1]?.statuses.hex, 2);
-  const next = endTurn(moved);
-  assert.deepEqual(next.heroes.map(unit => unit.statuses.hex), [3, 2], 'no enemy-turn countdown');
-  assert.equal(next.heroes[0]?.hp, 42, 'odd Hex does not burst on the enemy turn');
+  assert.equal(applied.heroes[0]?.statuses.hex, 5);
+  assert.equal(applied.heroes[0]?.hp, 50, 'landing on odd Hex does not burst');
+  assert.equal(applied.heroes[1]?.statuses.hex, 3, 'fresh curses keep their printed value');
+  const next = startPlayerTurn(applied);
+  assert.deepEqual(next.heroes.map(unit => unit.statuses.hex), [5, 3], 'enemy bursts do not spend another stack');
+  assert.deepEqual(next.heroes.map(unit => unit.hp), [45, 47]);
+  const moved = move(next, 'backStep');
+  assert.deepEqual(moved.heroes.map(unit => unit.statuses.hex), [4, 2]);
+  assert.deepEqual(startPlayerTurn(moved).heroes.map(unit => unit.hp), [45, 47], 'even Hex does not burst');
 });
 
-void test('a player movement burst can defeat a cursed enemy and record the kill', () => {
+void test('a turn-opening burst can defeat a cursed enemy and record the kill', () => {
   const battle = fightWith(['backhand']);
   const hero = battle.heroes[0]!;
   const moved = move({ ...battle, heroes: [addStatus({ ...hero, hp: 3 }, 'hex', 4)] }, 'backStep');
-  assert.equal(moved.heroes.length, 0);
-  assert.equal(moved.fallen.at(-1)?.hexDamageTaken, 3);
-  assert.equal(moved.slain, battle.slain + 1);
+  assert.equal(moved.heroes.length, 1);
+  const next = startPlayerTurn(moved);
+  assert.equal(next.heroes.length, 0);
+  assert.equal(next.fallen.at(-1)?.hexDamageTaken, 3);
+  assert.equal(next.slain, battle.slain + 1);
+  assert.equal(next.killsThisTurn, 1);
 });
 
 void test('incoming damage preview accounts for every attack and existing defenses but not Hex', () => {
@@ -422,15 +400,16 @@ void test('player Hex preview agrees with the burn at wave arrival and clears on
   assert.equal(endTurn(justPoison).player.hp - endTurn(poisoned).player.hp, expected);
 });
 
-void test('an enemy turn leaves both odd and empowered Hex alone', () => {
+void test('enemy actions leave Hex alone, then the new player turn bursts once', () => {
   const fight = fightWith(['backhand']);
   const squire = fight.heroes[0]!;
   for (const hex of [3, 7, 13]) {
     const cursed = { ...fight, heroes: [addStatus(squire, 'hex', hex)] };
     const steps = endTurnSteps(cursed);
     assert.ok(steps.some(step => step.actorUid === squire.uid));
-    assert.ok(steps.every(step => step.state.heroes[0]?.hp === squire.hp));
+    assert.ok(steps.slice(0, -1).every(step => step.state.heroes[0]?.hp === squire.hp));
     assert.ok(steps.every(step => step.state.heroes[0]?.statuses.hex === hex));
+    assert.equal(steps.at(-1)?.state.heroes[0]?.hp, squire.hp - hex);
   }
 });
 
@@ -3092,9 +3071,12 @@ void test('Reap previews and deals Intelligence-scaled magic damage based on tar
   assert.ok(describeCard('reap', fight.player, target).includes('Damage 46'));
   const beats = playCardSteps({ ...fight, heroes: [target] }, 0, target.uid);
   assert.equal(beats[0]?.heroes[0]?.hp, 454, '46 Reap damage');
-  assert.equal(beats.at(-1)?.heroes[0]?.hp, 451, 'the card also counts Hex down to 3 for a separate burst');
+  const after = beats.at(-1)!;
+  assert.equal(after.heroes[0]?.hp, 454, 'the card does not burst Hex');
+  assert.equal(after.heroes[0]?.statuses.hex, 3);
+  assert.equal(startPlayerTurn(after).heroes[0]?.hp, 451, 'Hex bursts at the next opening');
 });
-void test('Scorn scales enemy Poison and Burn during enemy turns, without triggering Hex', () => {
+void test('Scorn scales enemy Poison and Burn during enemy turns and Hex at the player opening', () => {
   const trigger = (scorn: number, hex: number) => {
     const battle = traitFight('mend', { scorn });
     const hero = battle.heroes[0]!;
@@ -3104,7 +3086,7 @@ void test('Scorn scales enemy Poison and Burn during enemy turns, without trigge
   const ordinary = trigger(0, 5);
   const scaled = trigger(64, 5);
   const enemy = scaled.heroes[0]!;
-  const expected = [7, 9].reduce((sum, n) => sum + Math.floor(n * 1.6), 0);
+  const expected = [7, 9, 5].reduce((sum, n) => sum + Math.floor(n * 1.6), 0);
   assert.equal(500 - enemy.hp, expected);
   assert.deepEqual(enemy.statuses, ordinary.heroes[0]!.statuses);
   assert.equal(scaled.player.hp, ordinary.player.hp);

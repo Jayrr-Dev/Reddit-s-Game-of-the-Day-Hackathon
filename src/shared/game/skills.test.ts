@@ -24,7 +24,7 @@ import {
   damageFactorOf,
   incomingAfflictionDamage,
   hexAfterBurn,
-  hexAfterAction,
+  hexBurst,
   hexBurnAmount,
   takeHit,
 } from './combatant.ts';
@@ -458,7 +458,7 @@ test('the second capstone is still offered once the first is owned', () => {
   assert.ok(offer.steps.length > 0, offer.message);
 });
 
-test('Sixfold Curse: Hex ending in 6 bursts at face value on countdown', () => {
+test('Sixfold Curse: Hex ending in 6 bursts at face value at turn start', () => {
   const hexer = { skillPicks: [{ branch: 4, tier: 3, slot: 0 }] };
   assert.equal(hexBurnAmount(6), 0);
   assert.equal(hexBurnAmount(6, hexer), 6);
@@ -466,7 +466,7 @@ test('Sixfold Curse: Hex ending in 6 bursts at face value on countdown', () => {
   assert.equal(hexAfterBurn(6), 6);
   assert.equal(hexBurnAmount(13, hexer), 13);
   const target = createCombatant(40, 40);
-  const burst = hexAfterAction({ ...target, statuses: { ...target.statuses, hex: 7 } }, { ...target, ...hexer });
+  const burst = hexBurst({ ...target, statuses: { ...target.statuses, hex: 6 } }, { ...target, ...hexer });
   assert.equal(burst.hp, 34);
   assert.equal(burst.statuses.hex, 6);
 });

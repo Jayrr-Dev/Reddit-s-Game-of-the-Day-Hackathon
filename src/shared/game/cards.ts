@@ -222,7 +222,7 @@ export const CARDS = {
     [energy(2), draw(1)],
     EXHAUSTS
   ),
-  // Curses lay Hex. Later player actions count it down and burst on odd values.
+  // Curses lay Hex. Player actions count it down; odd Hex bursts at the start of the player's turn.
   mourningCurse: card('Mourning Curse', 'curse', 1, 'basic', [hex(3)]),
   chainsOfGrief: card('Chains of Grief', 'curse', 1, 'basic', [
     pull(1),

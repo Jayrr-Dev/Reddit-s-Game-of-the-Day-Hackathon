@@ -17,11 +17,12 @@ void test('The target follows the curve: slot + energy x cost, times the rarity 
 void test('Status values replay the game rules', () => {
   // Burn 3 deals 3, halves to 1, deals 1, then runs out.
   assert.equal(burnValue(3), 4);
-  // Hex 5 counts through 4, 3, 2, 1, 0. Only 3 and 1 deal damage.
+  // Hex deals face value on odd openings, assuming one later action per round.
   const delay = CONFIG.battle.delayKeptPerTurn;
-  assert.equal(hexValue(CONFIG, 1), 0);
-  assert.equal(hexValue(CONFIG, 3), delay * CONFIG.battle.hexLandsLate);
-  assert.equal(hexValue(CONFIG, 5), (3 * delay + delay ** 3) * CONFIG.battle.hexLandsLate);
+  const late = CONFIG.battle.hexLandsLate;
+  assert.equal(hexValue(CONFIG, 1), delay * late);
+  assert.equal(hexValue(CONFIG, 3), (3 * delay + delay ** 3) * late);
+  assert.equal(hexValue(CONFIG, 5), (5 * delay + 3 * delay ** 3 + delay ** 5) * late);
 });
 
 void test('Every effect on every card in play gets a price', () => {
@@ -29,16 +30,14 @@ void test('Every effect on every card in play gets a price', () => {
     const card = getCard(id);
     for (const part of cardValueParts(CONFIG, card)) {
       assert.ok(Number.isFinite(part.points), `${id}: ${part.label} is not a number`);
-      // A lone Hex 1 ticks to zero; its value as setup is not modeled here.
-      const isSetupHex = part.label === 'hex' && card.effects.some(effect => effect.kind === 'hex' && effect.amount === 1);
-      if (!isSetupHex) assert.notEqual(part.points, 0, `${id}: ${part.label} is priced at 0; give it a price in costCurve.ts`);
+      assert.notEqual(part.points, 0, `${id}: ${part.label} is priced at 0; give it a price in costCurve.ts`);
     }
   }
 });
 
 void test('Known outliers land where the benchmark put them', () => {
   assert.equal(scoreCard(CONFIG, 'flurry').verdict, 'on curve');
-  assert.equal(scoreCard(CONFIG, 'whisperHex').verdict, 'too weak');
+  assert.equal(scoreCard(CONFIG, 'whisperHex').verdict, 'on curve');
   assert.equal(scoreCard(CONFIG, 'dispel').verdict, 'too weak');
   assert.equal(scoreAllCards(CONFIG).length, ALL_CARD_IDS.filter(isCardInPlay).length);
 });

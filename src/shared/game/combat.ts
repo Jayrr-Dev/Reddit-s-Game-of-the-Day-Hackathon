@@ -80,6 +80,7 @@ import {
   burnTick,
   endOfTurnUpkeep,
   hexBurn,
+  hexBurst,
   hexAfterPlayerAction,
   poisonTick,
   guardAmount,
@@ -1566,9 +1567,8 @@ const cardBeats = (
   if (counted !== current) states.push(counted);
   const ticked = hexAfterPlayerAction(paid, counted);
   if (ticked !== counted) {
-    // Animate a real burst separately, but don't pause for just a stack change.
-    const burst = ticked.player.hp < counted.player.hp || ticked.heroes.some((unit, i) => unit.hp < counted.heroes[i]!.hp);
-    if (burst || !states.length) states.push(ticked);
+    // Keep the countdown on the last action beat, with no separate pause.
+    if (!states.length) states.push(ticked);
     else states[states.length - 1] = ticked;
   }
   return states;
@@ -2345,19 +2345,19 @@ const beforePlayerHex = (player: CombatState['player']) =>
  */
 export const startPlayerTurn = (state: CombatState): CombatState => {
   const { startingEnergy, maxEnergy, cardsPerTurn } = combatantBonuses(state.player);
-  return autoPlayScrambled(applyFatigueAll(applyFatigue(drawCards(
-    {
-      ...state,
-      // Hex and Poison run before the villain's action (its turn).
-      player: poisonTick(hexBurn(beforePlayerHex(state.player))),
-      energy: Math.min(maxEnergy, startingEnergy + state.reserve),
-      reserve: 0,
-      turn: state.turn + 1,
-      killsThisTurn: 0,
-      followUpReady: false,
-    },
-    cardsPerTurn
-  ))));
+  const heroes = state.heroes.map(unit => hexBurst(unit, state.player));
+  const opened: CombatState = {
+    ...state,
+    heroes,
+    player: poisonTick(hexBurn(beforePlayerHex(state.player))),
+    energy: Math.min(maxEnergy, startingEnergy + state.reserve),
+    reserve: 0,
+    turn: state.turn + 1,
+    killsThisTurn: 0,
+    followUpReady: false,
+  };
+  const resolved = heroes.some((unit, index) => unit !== state.heroes[index]) ? removeFallen(opened) : opened;
+  return autoPlayScrambled(applyFatigueAll(applyFatigue(drawCards(resolved, cardsPerTurn))));
 };
 
 /** Expire temporary buffs before end-of-turn afflictions tick. */

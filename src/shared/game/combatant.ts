@@ -835,16 +835,18 @@ export const hexAfterBurn = (hex: number, source?: HexSource): number =>
 /** Remaining Hex after a player action. */
 export const hexAfterCountdown = (hex: number): number => Math.max(0, hex - HEX_ACTION_COST);
 
-/** Hex burns at the player's turn opening, spending one stack. */
-export const hexBurn = <T extends Combatant>(
-  target: T,
-  source?: Combatant
-): T => {
-  const { hex } = target.statuses;
-  const damage = hexBurnAmount(hex, source);
-  if (damage <= 0) return target;
-  const burned = dealHexDamage(target, damage, source);
-  return { ...burned, statuses: { ...burned.statuses, hex: hexAfterBurn(hex, source) } };
+/** Burst at the current count without changing it. */
+export const hexBurst = <T extends Combatant>(target: T, source?: Combatant): T => {
+  if (target.hp <= 0) return target;
+  const damage = hexBurnAmount(target.statuses.hex, source);
+  return damage > 0 ? dealHexDamage(target, damage, source) : target;
+};
+
+/** Hex on the player spends one stack when it bursts. */
+export const hexBurn = <T extends Combatant>(target: T, source?: Combatant): T => {
+  const burned = hexBurst(target, source);
+  return burned === target ? target
+    : { ...burned, statuses: { ...burned.statuses, hex: hexAfterBurn(target.statuses.hex, source) } };
 };
 
 /** Apply Hex damage separately from its stack change for the combat HUD. */
@@ -853,20 +855,17 @@ function dealHexDamage<T extends Combatant>(target: T, amount: number, source?: 
   return { ...loseHp(target, loss), hexDamageTaken: (target.hexDamageTaken ?? 0) + loss };
 }
 
-/** Count down once and burst at the resulting value without spending another stack. */
-export const hexAfterAction = <T extends Combatant>(target: T, source?: Combatant): T => {
+/** Player actions change the count, but only turn openings can burst. */
+export const hexAfterAction = <T extends Combatant>(target: T): T => {
   if (target.hp <= 0 || target.statuses.hex <= 0) return target;
-  const hex = hexAfterCountdown(target.statuses.hex);
-  const ticked = { ...target, statuses: { ...target.statuses, hex } };
-  const damage = hexBurnAmount(hex, source);
-  return damage > 0 ? dealHexDamage(ticked, damage, source) : ticked;
+  return { ...target, statuses: { ...target.statuses, hex: hexAfterCountdown(target.statuses.hex) } };
 };
 
 /** Only player actions count down Hex on enemies that were already cursed. */
 export function hexAfterPlayerAction(before: CombatState, after: CombatState): CombatState {
   const primed = new Set(before.heroes.filter(unit => unit.statuses.hex > 0).map(unit => unit.uid));
   const heroes = primed.size ? after.heroes.map(unit =>
-    primed.has(unit.uid) ? hexAfterAction(unit, before.player) : unit
+    primed.has(unit.uid) ? hexAfterAction(unit) : unit
   ) : after.heroes;
   const player = hexAfterAction(after.player);
   return player !== after.player || heroes.some((unit, index) => unit !== after.heroes[index])
