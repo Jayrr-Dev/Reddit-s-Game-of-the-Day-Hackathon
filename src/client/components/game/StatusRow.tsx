@@ -280,7 +280,7 @@ const statusChipsOf = (
       ...(id === 'hex' ? hexChipOf(total, combatant, source, owner === 'player') : {}),
       ...(id === 'shock' ? shockChipOf(combatant, source) : {}),
       ...(id === 'poison' ? {description: `Deals ${incomingAfflictionDamage(combatant, total, source)} damage before each action, then loses 1 stack.`} : {}),
-      ...(id === 'burn' ? {description: `Deals ${incomingAfflictionDamage(combatant, total, source)} damage after each action, then halves (rounded down).`} : {}),
+      ...(id === 'burn' ? {description: `Deals ${incomingAfflictionDamage(combatant, total, source)} damage after each action, then halves (round down). New Burn deals damage immediately.`} : {}),
       ...(id === 'bleed' ? {description: `Each landed Melee or Range hit adds ${incomingAfflictionDamage(combatant, bleedBiteOf(total), source)} Bleed damage. The total lands after the attack, then Bleed loses 1 stack.`} : {}),
     }];
   });

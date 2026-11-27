@@ -13,6 +13,7 @@ import {
   attackDamage,
   endOfTurnUpkeep,
   burnTick,
+  applyBurn,
   poisonTick,
   bleedOnAttack,
   bleedBiteOf,
@@ -492,6 +493,38 @@ void test('burn deals its value, then halves (a half rounds down)', () => {
   }
 });
 
+void test('new Burn deals damage immediately and keeps half its new stacks without consuming existing Burn', () => {
+  const target = addStatus(createCombatant(30, 30), 'burn', 4);
+  const ignited = applyBurn(target, 5);
+  assert.equal(ignited.hp, 25);
+  assert.equal(ignited.statuses.burn, 6);
+  assert.equal(ignited.burnDamageTaken, 5);
+  const ticked = burnTick(ignited);
+  assert.equal(ticked.hp, 19);
+  assert.equal(ticked.statuses.burn, 3);
+  assert.equal(ticked.burnDamageTaken, 11);
+});
+
+void test('a player card deals its hit and then Burn immediately', () => {
+  const battle = fightWith(['sear']);
+  const unit = battle.heroes[0]!;
+  const result = playCard(battle, 0, unit.uid).heroes[0]!;
+  assert.equal(result.hp, unit.hp - 8);
+  assert.equal(result.statuses.burn, 1);
+  assert.equal(result.burnDamageTaken, 3);
+});
+
+void test('enemy Burn applies immediately before the next player turn', () => {
+  const battle = settled(startCombat({
+    hp: 100, maxHp: 100, deck: ['backhand'], heroIds: ['maren'], might: 1, seed: 7,
+  }));
+  const maren = { ...battle.heroes[0]!, moveIndex: 1 };
+  const beat = endTurnSteps({ ...battle, heroes: [maren] }).find(step => step.actorUid === maren.uid);
+  assert.equal(beat?.state.player.hp, 95);
+  assert.equal(beat?.state.player.statuses.burn, 2);
+  assert.equal(beat?.state.player.burnDamageTaken, 5);
+});
+
 void test('a burning hero burns right after its action', () => {
   const fight = settled(
     startCombat({
@@ -922,7 +955,7 @@ void test('heroes act fastest first, ties by uid, beat by beat', () => {
 /** The Squire's uid in a fightWith() fight. */
 const squireUid = (state: CombatState): number => state.heroes[0]?.uid ?? -1;
 
-/** Direct HP the Squire lost when a card is played, before its separate Hex burst. */
+/** Direct HP the Squire lost when a card is played, without separate affliction damage. */
 const damageWith = (cardId: CardId, buffs: Partial<typeof NO_STATUSES>) => {
   const start = withHand(fightWith(['backhand']), [cardId]);
   const buffed = {
@@ -932,7 +965,8 @@ const damageWith = (cardId: CardId, buffs: Partial<typeof NO_STATUSES>) => {
   const before = buffed.heroes[0]?.hp ?? 0;
   const after = playCard(buffed, 0, squireUid(buffed));
   const result = after.heroes[0] ?? after.fallen.at(-1);
-  return before - (result?.hp ?? 0) - Math.min(result?.hexDamageTaken ?? 0, before);
+  const afflictions = (result?.hexDamageTaken ?? 0) + (result?.burnDamageTaken ?? 0);
+  return before - (result?.hp ?? 0) - Math.min(afflictions, before);
 };
 
 void test('Might, Surge and Hone each power up only their own card type', () => {
@@ -1490,8 +1524,9 @@ void test('the dragon makes two moves a turn: Sol summons, then breathes', () =>
   assert.equal(dragonSteps.length, 2);
   const after = steps.at(-1)?.state;
   assert.equal(after?.heroes.find((u) => u.uid === dragon.uid)?.moveIndex, 2);
-  // The summons joined this turn, so only Holy Breath (8 x 2) landed.
-  assert.equal(after?.player.hp, 999 - 16);
+  // The summons joined this turn. Each of Holy Breath's two hits deals 8 and applies Burn 4.
+  assert.equal(after?.player.hp, 999 - 16 - 8);
+  assert.equal(after?.player.statuses.burn, 4);
 });
 
 void test('a summon fills the flanks of the summoner with fresh uids', () => {
@@ -2584,7 +2619,8 @@ void test('every hit of an Ice card applies Frost (Frost Bolt hits twice)', () =
   const fire = withHand(fightWith([]), ['hexfire']);
   const burnt = playCard(fire, 0, uid).heroes.find((unit) => unit.uid === uid);
   assert.equal(burnt?.statuses.frost, 0);
-  assert.equal(burnt?.statuses.burn, 2);
+  assert.equal(burnt?.statuses.burn, 1);
+  assert.equal(burnt?.burnDamageTaken, 2);
 });
 
 // --- AUTO END TURN ---

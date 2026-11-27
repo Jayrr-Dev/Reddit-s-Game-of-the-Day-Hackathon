@@ -44,7 +44,7 @@ export const hexValue = (config: CostCurveConfig, stacks: number): number => {
   return total * config.battle.hexLandsLate;
 };
 
-/** Burn N: deals N after an action, then halves (see burnTick). */
+/** Burn N: deals N immediately, then ticks on later actions, halving each time. */
 export const burnValue = (stacks: number): number => {
   let total = 0;
   for (let burn = stacks; burn > 0; burn = afterActionLeft(burn)) {

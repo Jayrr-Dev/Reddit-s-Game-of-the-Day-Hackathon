@@ -886,14 +886,27 @@ export function hexAfterPlayerAction(before: CombatState, after: CombatState): C
 export const afterActionLeft = (stacks: number): number =>
   Math.ceil(stacks / AFTER_ACTION_DIVISOR - 0.5);
 
-/** Burn, right after an action: it deals its value, then halves. */
+/** Apply Burn damage without counting it as a direct hit. */
+const hurtByBurn = <T extends Combatant>(target: T, amount: number, source?: Combatant): T => {
+  const loss = Math.min(target.hp, incomingAfflictionDamage(target, amount, source));
+  return { ...loseHp(target, loss), burnDamageTaken: (target.burnDamageTaken ?? 0) + loss };
+};
+
+/** New Burn deals its value immediately; only the new stacks halve. */
+export const applyBurn = <T extends Combatant>(target: T, amount: number, source?: Combatant): T => {
+  if (target.hp <= 0 || amount <= 0) return target;
+  return addStatus(hurtByBurn(target, amount, source), 'burn', afterActionLeft(amount));
+};
+
+/** Existing Burn ticks after an action and then halves. */
 export const burnTick = <T extends Combatant>(
   target: T,
   source?: Combatant
 ): T => {
   const { burn } = target.statuses;
   if (burn <= 0) return target;
-  const burned = loseHp(target, incomingAfflictionDamage(target, burn, source));
+  if (target.hp <= 0) return target;
+  const burned = hurtByBurn(target, burn, source);
   const left = afterActionLeft(burn);
   return { ...burned, statuses: { ...burned.statuses, burn: left } };
 };

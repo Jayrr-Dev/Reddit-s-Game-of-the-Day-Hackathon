@@ -78,6 +78,7 @@ import {
   createCombatant,
   afterAction,
   burnTick,
+  applyBurn,
   endOfTurnUpkeep,
   hexBurn,
   hexBurst,
@@ -1062,9 +1063,10 @@ const applyOnPortrait = (
         : takeHit(player, damage, cardDef.type);
       return { ...current, player: hit };
     }
+    case 'burn':
+      return { ...state, player: applyBurn(player, afflictionAmount(effect.amount, player, 'burn', player), player) };
     case 'hex':
     case 'poison':
-    case 'burn':
     case 'frost':
     case 'bleed':
     case 'shock':
@@ -1115,9 +1117,11 @@ const applyCardEffect = (
   switch (effect.kind) {
     case 'damage':
       return villainAttack(state, effect, targetUid, cardDef, play, observeHit);
+    case 'burn':
+      return updateHeroes(state, resolveTargets(state, effect.target, targetUid, cardDef.type), unit =>
+        applyBurn(unit, afflictionAmount(effect.amount, state.player, 'burn', unit), state.player));
     case 'hex':
     case 'poison':
-    case 'burn':
     case 'frost':
     case 'bleed':
     case 'shock':
@@ -2035,9 +2039,10 @@ const applyHeroEffect = (
   switch (effect.kind) {
     case 'attack':
       return heroShoots(state, actor, effect, attackBlock, forecast);
+    case 'burn':
+      return afflictVillain(state, 'burn', power, accuracyBonusOf(actor, 'magic'), forecast);
     case 'hex':
     case 'poison':
-    case 'burn':
     case 'frost':
     case 'bleed':
     case 'shock':
@@ -2163,7 +2168,7 @@ const afflictVillain = (
     ...rolled,
     player: dodged
       ? dodge(rolled.player)
-      : addStatus(rolled.player, status, amount),
+      : status === 'burn' ? applyBurn(rolled.player, amount) : addStatus(rolled.player, status, amount),
   };
 };
 
