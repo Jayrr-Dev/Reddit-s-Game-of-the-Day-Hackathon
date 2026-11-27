@@ -93,6 +93,7 @@ export type CardViewProps = {
   /** "fan" cards sit in the fanned hand; "offer" cards are full size. */
   size?: CardSize;
   onClick?: () => void;
+  onDoubleClick?: () => void;
   selected?: boolean;
   /** Accessible name when the card's click does something its text doesn't say (e.g. "Add Cleave"). */
   label?: string;
@@ -434,6 +435,7 @@ export const CardView = ({
   isFaded = false,
   size = 'offer',
   onClick,
+  onDoubleClick,
   selected,
   label,
 }: CardViewProps) => {
@@ -448,6 +450,7 @@ export const CardView = ({
     <button
       type="button"
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
       aria-label={label}
       data-card-type={cardDef.type}
       data-card-id={cardId}

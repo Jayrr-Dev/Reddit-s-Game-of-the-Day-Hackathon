@@ -42,18 +42,18 @@ export function EndlessDraftView({ day, draft, onPick, onBegin, loading, loadErr
   const complete = count === size;
   const offers = endlessDraftOffers(day, draft);
   const refreshes = ENDLESS_DRAFT_REFRESHES - (draft.refreshesUsed ?? 0);
-  const pick = () => {
-    if (selected === null) return;
+  const pick = (index: number | null) => {
+    if (index === null || loading || !offers[index]) return;
     playSound('reward', 1.15, .68);
-    onPick(selected);
+    onPick(index);
     setSelected(null);
   };
   return <main className="run-results results-layout endless-draft" aria-labelledby="draft-title">
     <header>
       <h1 id="draft-title">{complete ? 'Deck ready' : count === 0 ? 'Choose your class' : 'Draft your deck'}</h1>
-      <p className="mt-2 text-sm text-ink-muted" aria-live="polite">
-        {complete ? 'Your draft is complete.' : count === 0 ? 'Start with three cards. Your class favors certain card types.' : 'Pick one card.'}
-      </p>
+      {(complete || count === 0) && <p className="mt-2 text-sm text-ink-muted" aria-live="polite">
+        {complete ? 'Your draft is complete.' : 'Start with three cards. Your class favors certain card types.'}
+      </p>}
     </header>
     {count > 0 && <p className="font-display text-base font-bold text-accent" aria-live="polite">
       {draft.starter ? draft.starter + ' · ' : ''}{count} / {size} cards
@@ -65,7 +65,7 @@ export function EndlessDraftView({ day, draft, onPick, onBegin, loading, loadErr
       {offers.map((offer, index) => {
         const id = offer.cards[0];
         return id && <CardView key={id} cardId={id} selected={index === selected}
-          onClick={() => setSelected(index)} />;
+          onClick={() => setSelected(index)} onDoubleClick={() => pick(index)} />;
       })}
     </div>}
     {count > 0 && !complete && <Button variant="menu" className="min-w-36" disabled={refreshEndlessDraft(day, draft) === draft}
@@ -73,7 +73,7 @@ export function EndlessDraftView({ day, draft, onPick, onBegin, loading, loadErr
     {loadError && <p role="alert">Could not load your character. Try again.</p>}
     <div className="results-actions draft-primary">
       <Button variant="menuPrimary" disabled={loading || (!complete && selected === null)}
-        onClick={complete ? onBegin : pick}>{complete ? loading ? 'Loading character…' : 'Begin Endless' : count === 0 ? 'Choose class' : 'Add card'}</Button>
+        onClick={complete ? onBegin : () => pick(selected)}>{complete ? loading ? 'Loading character…' : 'Begin Endless' : count === 0 ? 'Choose class' : 'Add card'}</Button>
     </div>
   </main>;
 }
