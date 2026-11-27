@@ -23,15 +23,26 @@
   top: 32%;
 }
 
+/* --- ANGEL ARCHER HD ATLAS ---
+   An 8 x 8 grid of 2x frames (scripts/art/angel-archer-hd.py): rows 0-5
+   are the 48-frame hover loop, rows 6-7 the 16-frame shot. A grid keeps
+   the file inside browser texture limits, so each clip runs two stepped
+   animations: columns cycle once per row, rows advance once per clip. */
 .woodland-archer[data-archer-sprite='wingedArcher'] {
+  --angel-hover-time: 1.55s;
   aspect-ratio: 154 / 146;
-  background-size: 1600% 200%;
+  background-size: 800% 800%;
 }
 .woodland-archer[data-archer-sprite='wingedArcher']:not([data-shooting]) {
-  animation: angel-archer-hover 1.55s steps(16, jump-none) infinite;
+  animation:
+    angel-archer-hover-rows var(--angel-hover-time) steps(6, jump-none) infinite,
+    angel-archer-cols calc(var(--angel-hover-time) / 6) steps(8, jump-none) infinite;
 }
 .woodland-archer[data-archer-sprite='wingedArcher'][data-shooting] {
-  background-position-y: 100%;
+  /* Frame 9 of 16 is still the release at 9/16 of the attack. */
+  animation:
+    angel-archer-shot-rows var(--archer-shot-time) steps(2, jump-none) both,
+    angel-archer-shot-cols calc(var(--archer-shot-time) / 2) steps(8, jump-none) 2 both;
 }
 .woodland-archer[data-archer-sprite='wingedArcher'] .woodland-arrow-origin {
   left: 66.6%;
@@ -46,10 +57,23 @@
   top: 32.6%;
 }
 
-/* A separate animation name restarts the full draw timeline on each shot. */
-@keyframes angel-archer-hover {
+/* Separate shot names restart the full draw timeline on each shot. */
+@keyframes angel-archer-cols {
   from { background-position-x: 0%; }
   to { background-position-x: 100%; }
+}
+@keyframes angel-archer-shot-cols {
+  from { background-position-x: 0%; }
+  to { background-position-x: 100%; }
+}
+/* Row r of 8 sits at r / 7 of the travel: hover rows 0-5, shot rows 6-7. */
+@keyframes angel-archer-hover-rows {
+  from { background-position-y: 0%; }
+  to { background-position-y: calc(500% / 7); }
+}
+@keyframes angel-archer-shot-rows {
+  from { background-position-y: calc(600% / 7); }
+  to { background-position-y: 100%; }
 }
 
 @keyframes woodland-archer-shot {
@@ -58,5 +82,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .woodland-archer[data-shooting='true'], .woodland-archer[data-archer-sprite='wingedArcher']:not([data-shooting]) { animation: none; }
+  .woodland-archer[data-shooting='true'], .woodland-archer[data-archer-sprite='wingedArcher'] { animation: none; }
+  .woodland-archer[data-archer-sprite='wingedArcher'][data-shooting] { background-position: 100% 100%; }
 }
