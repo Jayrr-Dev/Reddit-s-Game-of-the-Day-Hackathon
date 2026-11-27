@@ -493,16 +493,16 @@ void test('burn deals its value, then halves (a half rounds down)', () => {
   }
 });
 
-void test('new Burn deals damage immediately and keeps half its new stacks without consuming existing Burn', () => {
+void test('new Burn deals damage immediately and keeps every new and existing stack', () => {
   const target = addStatus(createCombatant(30, 30), 'burn', 4);
   const ignited = applyBurn(target, 5);
   assert.equal(ignited.hp, 25);
-  assert.equal(ignited.statuses.burn, 6);
+  assert.equal(ignited.statuses.burn, 9);
   assert.equal(ignited.burnDamageTaken, 5);
   const ticked = burnTick(ignited);
-  assert.equal(ticked.hp, 19);
-  assert.equal(ticked.statuses.burn, 3);
-  assert.equal(ticked.burnDamageTaken, 11);
+  assert.equal(ticked.hp, 16);
+  assert.equal(ticked.statuses.burn, 4);
+  assert.equal(ticked.burnDamageTaken, 14);
 });
 
 void test('a player card deals its hit and then Burn immediately', () => {
@@ -510,7 +510,7 @@ void test('a player card deals its hit and then Burn immediately', () => {
   const unit = battle.heroes[0]!;
   const result = playCard(battle, 0, unit.uid).heroes[0]!;
   assert.equal(result.hp, unit.hp - 8);
-  assert.equal(result.statuses.burn, 1);
+  assert.equal(result.statuses.burn, 3);
   assert.equal(result.burnDamageTaken, 3);
 });
 
@@ -521,7 +521,7 @@ void test('enemy Burn applies immediately before the next player turn', () => {
   const maren = { ...battle.heroes[0]!, moveIndex: 1 };
   const beat = endTurnSteps({ ...battle, heroes: [maren] }).find(step => step.actorUid === maren.uid);
   assert.equal(beat?.state.player.hp, 95);
-  assert.equal(beat?.state.player.statuses.burn, 2);
+  assert.equal(beat?.state.player.statuses.burn, 5);
   assert.equal(beat?.state.player.burnDamageTaken, 5);
 });
 
@@ -1526,7 +1526,7 @@ void test('the dragon makes two moves a turn: Sol summons, then breathes', () =>
   assert.equal(after?.heroes.find((u) => u.uid === dragon.uid)?.moveIndex, 2);
   // The summons joined this turn. Each of Holy Breath's two hits deals 8 and applies Burn 4.
   assert.equal(after?.player.hp, 999 - 16 - 8);
-  assert.equal(after?.player.statuses.burn, 4);
+  assert.equal(after?.player.statuses.burn, 8);
 });
 
 void test('a summon fills the flanks of the summoner with fresh uids', () => {
@@ -2377,7 +2377,8 @@ void test('an effect that does not stack can not be imbued twice', () => {
 });
 
 void test('every imbue lasts the battle, coming back with its card', () => {
-  const state = cloakFight(['emberRune', 'backhand']);
+  const fight = cloakFight(['emberRune', 'backhand']);
+  const state = { ...fight, heroes: fight.heroes.map(unit => ({ ...unit, hp: 50, maxHp: 50 })) };
   const uid = state.heroes[0]?.uid ?? -1;
   const imbued = playCard(state, 0, 0, undefined, 1);
   const played = playCard(imbued, 0, uid);
@@ -2619,7 +2620,7 @@ void test('every hit of an Ice card applies Frost (Frost Bolt hits twice)', () =
   const fire = withHand(fightWith([]), ['hexfire']);
   const burnt = playCard(fire, 0, uid).heroes.find((unit) => unit.uid === uid);
   assert.equal(burnt?.statuses.frost, 0);
-  assert.equal(burnt?.statuses.burn, 1);
+  assert.equal(burnt?.statuses.burn, 2);
   assert.equal(burnt?.burnDamageTaken, 2);
 });
 

@@ -30,6 +30,7 @@ import type { CostCurveConfig } from './costCurveConfig.ts';
 import {
   bleedValue,
   burnValue,
+  halvingValue,
   enfeebleValue,
   hexValue,
   poisonValue,
@@ -145,7 +146,7 @@ const priceHostile = (
     case 'hex':
       return hexValue(config, effect.amount) * area;
     case 'burn':
-      return burnValue(effect.amount) * perHit;
+      return burnValue(effect.amount * context.afflictionHits) * area;
     case 'poison':
       return poisonValue(config, effect.amount) * perHit;
     case 'bleed':
@@ -153,7 +154,7 @@ const priceHostile = (
     case 'shock':
       return shockValue(config, effect.amount) * area;
     case 'frost':
-      return burnValue(effect.amount * context.afflictionHits) * area;
+      return halvingValue(effect.amount * context.afflictionHits) * area;
     case 'weaken':
       return weakenValue(config, effect.amount) * area;
     case 'enfeeble':
@@ -320,7 +321,7 @@ export const cardValueParts = (config: CostCurveConfig, card: CardDef): ValuePar
 const elementValuePart = (card: CardDef): ValuePart[] => {
   const onHit = card.element ? ELEMENT_ON_HIT[card.element] : null;
   if (!onHit || onHit.status !== 'frost') return [];
-  return [{ label: 'ice frost', points: burnValue(onHit.amount * hitsPerPlay(card)) }];
+  return [{ label: 'ice frost', points: halvingValue(onHit.amount * hitsPerPlay(card)) }];
 };
 
 /** What a card of this cost and rarity should be worth. */

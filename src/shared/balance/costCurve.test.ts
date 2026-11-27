@@ -3,7 +3,7 @@ import test from 'node:test';
 import { ALL_CARD_IDS, getCard, isCardInPlay } from '../game/cards.ts';
 import { cardValueParts, scoreAllCards, scoreCard, targetValue } from './costCurve.ts';
 import { COST_CURVE_CONFIG, withOverride } from './costCurveConfig.ts';
-import { burnValue, hexValue } from './statusValues.ts';
+import { burnValue, halvingValue, hexValue } from './statusValues.ts';
 
 const CONFIG = COST_CURVE_CONFIG;
 
@@ -15,8 +15,9 @@ void test('The target follows the curve: slot + energy x cost, times the rarity 
 });
 
 void test('Status values replay the game rules', () => {
-  // Burn 3 deals 3, halves to 1, deals 1, then runs out.
-  assert.equal(burnValue(3), 4);
+  // Burn 3 deals 3 upfront, then 3 and 1 after actions. Frost keeps its existing valuation.
+  assert.equal(burnValue(3), 7);
+  assert.equal(halvingValue(3), 4);
   // Hex 3, 3 actions a turn, 3 turns, no discounts: 3+5 this turn, 5+7 next, 9+11 the last = 40.
   const plain = { ...CONFIG, battle: { ...CONFIG.battle, actionsPerTurn: 3, hexTurnsLeft: 3, delayKeptPerTurn: 1, hexLandsLate: 1 } };
   assert.equal(hexValue(plain, 3), 40);
