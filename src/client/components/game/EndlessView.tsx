@@ -3,7 +3,7 @@ import { createEndless, ENDLESS_BATTLE_VERSION, endlessClearedWaves, endlessWave
 import type { RingProgress } from '../../../shared/game/character';
 import { apiClient } from '../../lib/apiClient';
 import { localBuild } from '../../lib/playerBuild';
-import { ENDLESS_DRAFT_SIZE, endlessDraftOffers, isSavedEndlessDraft, type EndlessDraft } from '../../../shared/game/endlessDraft';
+import { endlessDraftSize, endlessDraftOffers, isSavedEndlessDraft, type EndlessDraft } from '../../../shared/game/endlessDraft';
 import { isRunAction, isRunOver, type RunAction, type RunState } from '../../../shared/game/run';
 import { MAX_RUN_ACTIONS } from '../../../shared/game/rules';
 import { Button } from '../ui/Button';
@@ -27,10 +27,10 @@ function restore(day: string, key: string): Session {
       const best = 'best' in value && typeof value.best === 'number' && Number.isSafeInteger(value.best) && value.best > 0 ? value.best : 0;
       const draft = 'draft' in value && isSavedEndlessDraft(value.draft) ? value.draft : null;
       const started = actions.length > 0 || ('started' in value && value.started === true);
-      const deck = started && draft?.cards.length === ENDLESS_DRAFT_SIZE ? draft.cards : undefined;
+      const deck = started && draft && draft.cards.length === endlessDraftSize(draft) ? draft.cards : undefined;
       const battleVersion = 'battleVersion' in value && value.battleVersion === ENDLESS_BATTLE_VERSION ? ENDLESS_BATTLE_VERSION : undefined;
       const profile = 'profile' in value ? restoreEndlessProfile(value.profile) : undefined;
-      return { day, run: actions.reduce(reduceEndless, createEndless(day, deck, battleVersion, profile)), actions, best, started, draft,
+      return { day, run: actions.reduce(reduceEndless, createEndless(day, deck, battleVersion, profile, draft?.starter)), actions, best, started, draft,
         ...(battleVersion && { battleVersion }), ...(profile && { profile }) };
     }
   } catch { /* A local save is optional. */ }
@@ -47,11 +47,12 @@ function update(session: Session, event: Event): Session {
   if (event.type === 'pick') {
     if (!draft || started || draft.cards.length !== event.at) return session;
     const offer = endlessDraftOffers(session.day, draft)[event.index];
-    return offer ? { ...session, draft: { ...draft, cards: [...draft.cards, ...offer.cards] } } : session;
+    return offer ? { ...session, draft: { ...draft, cards: [...draft.cards, ...offer.cards],
+      ...(offer.name && { starter: offer.name }) } } : session;
   }
   if (event.type === 'begin') {
-    if (started || draft?.cards.length !== ENDLESS_DRAFT_SIZE) return session;
-    return { ...session, run: createEndless(session.day, draft.cards, ENDLESS_BATTLE_VERSION, event.profile), actions: [], started: true,
+    if (started || !draft || draft.cards.length !== endlessDraftSize(draft)) return session;
+    return { ...session, run: createEndless(session.day, draft.cards, ENDLESS_BATTLE_VERSION, event.profile, draft.starter), actions: [], started: true,
       battleVersion: ENDLESS_BATTLE_VERSION, profile: event.profile };
   }
   if (!started) return session;
@@ -107,7 +108,7 @@ export function EndlessView({ day, accountId, rings, onBack }: { day: string; ac
     <div className="results-stats" style={{ gridTemplateColumns: resumable || hasDraft ? 'repeat(2, minmax(0, 1fr))' : '1fr' }}>
       <StatTile label="Best today" value={best + ' cleared'} />
       {resumable && <StatTile label="Current run" value={'Wave ' + endlessWaveNumber(run)} />}
-      {hasDraft && <StatTile label="Draft" value={draft.cards.length + ' / ' + ENDLESS_DRAFT_SIZE} />}
+      {hasDraft && <StatTile label="Draft" value={draft.cards.length + ' / ' + endlessDraftSize(draft)} />}
     </div>
     <div className="results-actions">
       <Button variant="menuPrimary" onClick={resumable ? () => setPage('battle') : hasDraft ? () => setPage('draft') : startDraft}>

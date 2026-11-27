@@ -7,6 +7,7 @@ import { characterEdit } from './playerBuild.ts';
 import { isRunAction } from './run.ts';
 import { isRingIndex, type RingProgress } from './character.ts';
 import { shopRingIds, type ShopRingId } from './ringShop.ts';
+import type { StarterName } from './starters.ts';
 
 export const ENDLESS_BATTLE_VERSION = 1;
 export type EndlessProfile = { wins: number; xpStartWins?: number | undefined; bonusXp?: number | undefined;
@@ -47,11 +48,11 @@ function startOnslaught(run: RunState): RunState {
 }
 
 /** Endless uses the day's seeded battles without campaign routing or a final stop. */
-export function createEndless(day: string, deck?: readonly CardId[], battleVersion?: typeof ENDLESS_BATTLE_VERSION, profile?: EndlessProfile): RunState {
+export function createEndless(day: string, deck?: readonly CardId[], battleVersion?: typeof ENDLESS_BATTLE_VERSION, profile?: EndlessProfile, starterClass?: StarterName): RunState {
   const starter = createRun(day + ':endless', profile?.rings, 0, profile?.wins ?? 0, profile?.shopRings ?? [],
     undefined, 1, undefined, false, undefined, profile?.xpStartWins, false, profile?.bonusXp);
   const fresh = profile?.edits.reduce(runReducer, starter) ?? starter;
-  const run = deck ? { ...fresh, deck: [...deck] } : fresh;
+  const run = deck ? { ...fresh, deck: [...deck], ...(starterClass && { rewardStarter: starterClass }) } : fresh;
   return battleVersion === ENDLESS_BATTLE_VERSION ? startOnslaught(run)
     : runReducer(run, { type: 'chooseStop', option: 0 });
 }

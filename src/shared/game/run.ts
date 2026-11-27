@@ -440,7 +440,7 @@ function resolveRespite(state: RunState, area: AreaProgress, phase: Extract<RunP
   const combat = phase.combat;
   if (endless && choice === 'fight') {
     const wave = (area.waveBase ?? 0) + area.wave + 1;
-    const cards = rollOffers(stopSeed(state.dailyKey, 'endless-spoils', wave), 'champion', [], undefined,
+    const cards = rollOffers(stopSeed(state.dailyKey, 'endless-spoils', wave), 'champion', [], state.rewardStarter,
       state.character.skillPicks, state.deck, undefined, true, wave, 1);
     return { ...state, area: { ...area, respite: { offers: cards } } };
   }

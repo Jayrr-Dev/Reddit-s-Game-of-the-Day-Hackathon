@@ -6,7 +6,8 @@ import { buildEndlessWaves } from './endlessWaves.ts';
 import { progressionFromWins } from './character.ts';
 import { createRun, type RunState } from './run.ts';
 import { getCard } from './cards.ts';
-import { ENDLESS_DRAFT_SIZE, endlessDraftOffers, isSavedEndlessDraft, type EndlessDraft } from './endlessDraft.ts';
+import { ENDLESS_CLASS_TYPES, endlessDraftOffers, endlessDraftSize, isSavedEndlessDraft, type EndlessDraft } from './endlessDraft.ts';
+import { starterNames } from './starters.ts';
 
 test('Endless starts at a seeded fight without changing Conquest', () => {
   const day = '2026-11-27';
@@ -32,23 +33,26 @@ test('Endless advances directly to seeded fights well past the campaign finale',
   assert.equal(reduceEndless(fallen, { type: 'endTurn' }), fallen);
 });
 
-test('Endless drafts offer three distinct usable choices at every step, including defense', () => {
+test('all four Endless classes draft 20 cards with three distinct offers and defensive rounds', () => {
   for (let number = 1; number <= 50; number++) {
     const day = '2026-11-27';
     const draft: EndlessDraft = { number, cards: [] };
-    for (let picks = 0; picks < 9; picks++) {
+    for (let picks = 0; picks < 18; picks++) {
       const offers = endlessDraftOffers(day, draft);
       assert.deepEqual(endlessDraftOffers(day, draft), offers);
-      assert.equal(offers.length, 3);
-      assert.equal(new Set(offers.flatMap(offer => offer.cards)).size, picks === 0 ? 9 : 3);
+      assert.equal(offers.length, picks === 0 ? 4 : 3);
+      assert.equal(new Set(offers.flatMap(offer => offer.cards)).size, picks === 0 ? 12 : 3);
       assert.ok(offers.flatMap(offer => offer.cards).every(id => !draft.cards.includes(id) && getCard(id).type !== 'imbue'));
-      if (draft.cards.length === 3 || draft.cards.length === 7) {
+      if ([3, 7, 13].includes(draft.cards.length)) {
         assert.ok(offers.flatMap(offer => offer.cards).every(id => getCard(id).type === 'defend'));
       }
-      draft.cards.push(...offers[(number + picks) % 3]!.cards);
+      const chosen = offers[(number + picks) % offers.length]!;
+      draft.cards.push(...chosen.cards);
+      if (chosen.name) draft.starter = chosen.name;
       assert.ok(isSavedEndlessDraft(draft));
     }
-    assert.equal(draft.cards.length, ENDLESS_DRAFT_SIZE);
+    assert.equal(endlessDraftSize(draft), 20);
+    assert.equal(draft.cards.length, 20);
     assert.deepEqual(endlessDraftOffers(day, draft), []);
     const run = createEndless(day, draft.cards);
     assert.deepEqual(run.deck, draft.cards);
@@ -59,6 +63,25 @@ test('Endless drafts offer three distinct usable choices at every step, includin
     );
   }
   assert.equal(isSavedEndlessDraft({ number: 1, cards: ['not-a-card'] }), false);
+});
+
+test('class bias favors its primary type without locking the draft or breaking old 11-card decks', () => {
+  for (const starter of starterNames) {
+    const type = ENDLESS_CLASS_TYPES[starter][0];
+    const cards = ['cruelSlash', 'cleave', 'boneWard', 'hexfire', 'spiteBolt'] as const;
+    let favored = 0;
+    let unbiased = 0;
+    for (let number = 1; number <= 240; number++) {
+      const selections = { number, cards: [...cards] };
+      const count = (draft: EndlessDraft) => endlessDraftOffers('class', draft)
+        .flatMap(offer => offer.cards).filter(id => getCard(id).type === type).length;
+      unbiased += count(selections);
+      favored += count({ ...selections, starter });
+    }
+    assert.ok(favored > unbiased, starter);
+    assert.ok(favored < 240 * 3, starter);
+  }
+  assert.equal(endlessDraftSize({ number: 1, cards: ['cruelSlash', 'cleave', 'boneWard'] }), 11);
 });
 
 test('Endless clears five waves, drafts a prize, and carries the same combat into Wave 6', () => {
