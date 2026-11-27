@@ -821,12 +821,23 @@ export const expireGuard = <T extends Combatant>(target: T): T => {
   return { ...target, statuses: { ...target.statuses, brace: brace - 1 } };
 };
 
-/** Who laid a Hex: their skill tree can widen the empowered digits. */
+/** Who laid a Hex: their skill tree can amplify a burst. */
 type HexSource = { skillPicks?: readonly SkillPick[] };
 
-/** Hex deals its face value on odd stacks; Sixfold Curse also enables endings in 6. */
+const hexBurstCount = (hex: number, source?: HexSource): number => {
+  if (hex <= 0 || hex % 3 !== 0) return 0;
+  return hex % 6 === 0 && hasHexSixOf(source?.skillPicks) ? 2 : 1;
+};
+
+/** Raw Hex damage at a trigger point, before scaling and mitigation. */
 export const hexBurnAmount = (hex: number, source?: HexSource): number =>
-  hex > 0 && (hex % 2 !== 0 || (hex % 10 === 6 && hasHexSixOf(source?.skillPicks))) ? hex : 0;
+  hex * hexBurstCount(hex, source);
+
+/** Scale and mitigate each burst on its own, then combine the damage. */
+export const hexBurstDamage = (target: Combatant, hex: number, source?: Combatant): number => {
+  const bursts = hexBurstCount(hex, source);
+  return bursts ? bursts * incomingAfflictionDamage(target, hex, source) : 0;
+};
 
 /** Spend one stack only when the current Hex triggers. */
 export const hexAfterBurn = (hex: number, source?: HexSource): number =>
@@ -838,8 +849,10 @@ export const hexAfterGrowth = (hex: number): number => hex > 0 ? hex + HEX_ACTIO
 /** Burst at the current count without changing it. */
 export const hexBurst = <T extends Combatant>(target: T, source?: Combatant): T => {
   if (target.hp <= 0) return target;
-  const damage = hexBurnAmount(target.statuses.hex, source);
-  return damage > 0 ? dealHexDamage(target, damage, source) : target;
+  const hex = target.statuses.hex;
+  if (!hexBurstCount(hex, source)) return target;
+  const loss = hexBurstDamage(target, hex, source);
+  return { ...loseHp(target, loss), hexDamageTaken: (target.hexDamageTaken ?? 0) + loss };
 };
 
 /** Hex on the player spends one stack when it bursts. */
@@ -848,12 +861,6 @@ export const hexBurn = <T extends Combatant>(target: T, source?: Combatant): T =
   return burned === target ? target
     : { ...burned, statuses: { ...burned.statuses, hex: hexAfterBurn(target.statuses.hex, source) } };
 };
-
-/** Apply Hex damage separately from its stack change for the combat HUD. */
-function dealHexDamage<T extends Combatant>(target: T, amount: number, source?: Combatant): T {
-  const loss = incomingAfflictionDamage(target, amount, source);
-  return { ...loseHp(target, loss), hexDamageTaken: (target.hexDamageTaken ?? 0) + loss };
-}
 
 /** Grow active Hex without triggering it. */
 export const hexAfterAction = <T extends Combatant>(target: T): T => {

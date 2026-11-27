@@ -30,7 +30,7 @@ import {
   bleedBiteOf,
   hexAfterBurn,
   hexAfterGrowth,
-  hexBurnAmount,
+  hexBurstDamage,
   tierCut,
 } from '../../../shared/game/combatant';
 import {
@@ -169,13 +169,13 @@ const OUT_OF_RANGE_CHIP: StatusChip = {
 /** Preview the next stack increase, its burst on enemies, and the turn-start burst. */
 const hexChipOf = (hex: number, target: Combatant, source?: Combatant, isPlayer = false): Partial<StatusChip> => {
   const next = hexAfterGrowth(hex);
-  const opening = incomingAfflictionDamage(target, hexBurnAmount(hex, source), source);
-  const action = isPlayer ? 0 : incomingAfflictionDamage(target, hexBurnAmount(next, source), source);
+  const opening = hexBurstDamage(target, hex, source);
+  const action = isPlayer ? 0 : hexBurstDamage(target, next, source);
   const left = isPlayer ? hexAfterBurn(hex, source) : hex;
   return {
     fill: (opening || action) ? toneVarOf(STATUS_LOOK.hex) : undefined,
     text: String(hex),
-    description: (isPlayer ? 'Enemy actions also add 1 to active Hex. ' : '') +
+    description: 'Hex bursts at multiples of 3. ' + (isPlayer ? 'Enemy actions also add 1 to active Hex. ' : '') +
       `If no Hex is added: ${hex} to ${next} Hex${action ? `, dealing ${action} damage` : ''} after an action. ` +
       `At your turn start, if unchanged: ${opening ? `${opening} damage` : 'no burst'}` +
       (left !== hex ? `, then ${left} Hex.` : '.'),

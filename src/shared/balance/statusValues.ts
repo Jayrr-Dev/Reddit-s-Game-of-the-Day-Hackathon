@@ -31,7 +31,7 @@ const delayed = (config: CostCurveConfig, turns: number): number =>
 // --- DAMAGE OVER TIME ---
 /**
  * Hex on an enemy never runs out: it grows by 1 after each of your
- * actions and bursts for its value whenever it is odd (when applied,
+ * actions and bursts for its value at multiples of 3 (when applied,
  * after an action, and at turn start). So its worth depends on how
  * long the target lives. Replays that for `hexTurnsLeft` turns of
  * `actionsPerTurn` actions: the rest of this turn, then whole turns.

@@ -458,17 +458,22 @@ test('the second capstone is still offered once the first is owned', () => {
   assert.ok(offer.steps.length > 0, offer.message);
 });
 
-test('Sixfold Curse: Hex ending in 6 bursts at face value at turn start', () => {
+test('Sixfold Curse bursts twice at multiples of six without creating extra trigger points', () => {
   const hexer = { skillPicks: [{ branch: 4, tier: 3, slot: 0 }] };
-  assert.equal(hexBurnAmount(6), 0);
-  assert.equal(hexBurnAmount(6, hexer), 6);
-  assert.equal(hexAfterBurn(16, hexer), 15);
-  assert.equal(hexAfterBurn(6), 6);
-  assert.equal(hexBurnAmount(13, hexer), 13);
+  assert.equal(hexBurnAmount(6), 6);
+  assert.equal(hexBurnAmount(6, hexer), 12);
+  assert.equal(hexBurnAmount(12, hexer), 24);
+  assert.equal(hexBurnAmount(9, hexer), 9);
+  assert.equal(hexBurnAmount(16, hexer), 0);
+  assert.equal(hexAfterBurn(16, hexer), 16);
+  assert.equal(hexAfterBurn(6), 5);
   const target = createCombatant(40, 40);
   const burst = hexBurst({ ...target, statuses: { ...target.statuses, hex: 6 } }, { ...target, ...hexer });
-  assert.equal(burst.hp, 34);
+  assert.equal(burst.hp, 28);
   assert.equal(burst.statuses.hex, 6);
+  const protectedTarget = { ...target, statuses: { ...target.statuses, hex: 6, protection: 1 } };
+  const protectedBurst = hexBurst(protectedTarget, { ...target, ...hexer });
+  assert.equal(protectedBurst.hp, 30, 'each six-damage burst rounds to five after Protection');
 });
 
 test('Malediction: afflictions deal 5% more per rank', () => {

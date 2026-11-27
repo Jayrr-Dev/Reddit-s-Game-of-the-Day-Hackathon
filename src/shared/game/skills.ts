@@ -137,7 +137,7 @@ export const SKILL_EFFECTS: Readonly<Record<string, SkillEffect>> = {
   '4-3-0': {
     name: 'Sixfold Curse',
     description:
-      'Hex ending in 6 also bursts for its stack value after your actions and at turn start',
+      'Hex bursts twice at multiples of 6',
   },
   '4-0-0': {
     name: 'Grimoire',
@@ -380,7 +380,7 @@ export const POTENCY_PER_RANK = 0.03;
 /** How much stronger buffs' flat bonuses are (0 to 0.15). */
 export const buffPowerBonusOf = (picks?: readonly SkillPick[]): number =>
   ranksIn(picks, 3, 2, 0) * POTENCY_PER_RANK;
-/** SIXFOLD CURSE (Afflictions capstone): Hex ending in 6 is empowered too. */
+/** SIXFOLD CURSE (Afflictions capstone): Hex bursts twice at multiples of 6. */
 export const hasHexSixOf = (picks?: readonly SkillPick[]): boolean =>
   hasSkill(picks, 4, 3, 0);
 /** MALEDICTION (Hex and Curses line): affliction damage, +5% per rank. */
