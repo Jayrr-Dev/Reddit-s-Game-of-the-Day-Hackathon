@@ -117,6 +117,8 @@ export const SOUND_EFFECTS: readonly { name: string; url: string }[] = [
   ...new Map(Object.entries(sounds).reverse().map(([key, url]) => [url, { name: keyLabel(key), url }])).values(),
 ].sort((a, b) => a.name.localeCompare(b.name));
 const deathCues = Object.values(deathVoiceCues).flat();
+const deathMixCues = new Set<Sound>([...deathCues, 'playerDeath', 'deathScreen']);
+const DEATH_MIX_GAIN = 0.5;
 const nextDeathByVoice = new Map<keyof typeof deathVoiceCues, number>();
 
 /** Rotates the takes within a character's voice family. */
@@ -203,8 +205,9 @@ export function playSound(name: Sound, rate = 1, gain = 1) {
   const cached = preloaded.get(name);
   const voice = cached && !voices.has(cached) ? cached : new Audio(sounds[name]);
   if (voice.currentTime > 0) voice.currentTime = 0;
-  voices.set(voice, gain);
-  voice.volume = (volumes.sfx / 100) ** 2 * gain;
+  const mixedGain = deathMixCues.has(name) ? gain * DEATH_MIX_GAIN : gain;
+  voices.set(voice, mixedGain);
+  voice.volume = (volumes.sfx / 100) ** 2 * mixedGain;
   voice.playbackRate = rate;
   voice.preservesPitch = false;
   voice.onended = () => { voices.delete(voice); };
