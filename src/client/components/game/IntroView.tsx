@@ -184,7 +184,7 @@ export const IntroView = ({
     onShopTestVisit?.(visit);
   }, [onShopTestVisit]);
   const musicVolume = useSyncExternalStore(subscribeVolume, () => getVolume('music'));
-  useMapAudio({ mapId: 'Home', active: sheet !== 'tutorial' && sheet !== 'dev', bossActive: false, musicVolume: musicVolume / 100, sfxVolume: 0 });
+  useMapAudio({ mapId: sheet === 'shop' ? 'Gateway of Souls' : 'Home', active: sheet !== 'tutorial' && sheet !== 'dev', bossActive: false, musicVolume: musicVolume / 100, sfxVolume: 0 });
   const isAdmin = useIsAdmin();
   const settings = useGameSettings();
   const closeSheet = () => setSheet('none');

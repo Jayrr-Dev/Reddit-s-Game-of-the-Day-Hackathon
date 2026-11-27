@@ -31,13 +31,14 @@ export function MysteryChest() {
   </svg>;
 }
 
-/** A short, optional animation for a reward the server has already granted. */
+/** Play the full reveal for a reward the server has already granted. */
 export function MysteryReveal({ reward, onClose }: { reward: ShopReward; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const sounded = useRef(false);
+  const continueButton = useRef<HTMLButtonElement>(null);
   const rarity = reward.kind === 'jewelry' ? reward.rarity : reward.kind === 'gold' && reward.change > 0 ? 'Legendary' : 'Rare';
   const bad = reward.kind === 'gold' ? reward.change <= 0 : reward.kind === 'run' && reward.effect !== 'lasting-vigor';
-  const [shown, setShown] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const [shown, setShown] = useState(false);
 
   useEffect(() => {
     const node = dialog.current;
@@ -47,6 +48,7 @@ export function MysteryReveal({ reward, onClose }: { reward: ShopReward; onClose
 
   useEffect(() => {
     if (shown) {
+      continueButton.current?.focus();
       if (!sounded.current) {
         sounded.current = true;
         playSound(bad ? 'curse' : 'reward', rarity === 'Legendary' ? 0.9 : 1, 0.72);
@@ -62,7 +64,7 @@ export function MysteryReveal({ reward, onClose }: { reward: ShopReward; onClose
   }, [shown, rarity, bad]);
 
   return <dialog ref={dialog} className="shop-mystery" aria-label={PANDORA_BOX_NAME + ' reward'} data-rarity={rarity} data-curse={bad || undefined} style={{ '--opening-time': REVEAL_MS[rarity] + 'ms' } as CSSProperties}
-    onCancel={event => { event.preventDefault(); if (shown) onClose(); else setShown(true); }}>
+    onCancel={event => { event.preventDefault(); if (shown) onClose(); }}>
     <p className="shop-mystery-label">{shown ? reward.kind === 'jewelry' ? 'You found' : 'The box has spoken' : PANDORA_BOX_NAME}</p>
     {shown
       ? <div className="shop-mystery-reward" role="status">
@@ -89,8 +91,8 @@ export function MysteryReveal({ reward, onClose }: { reward: ShopReward; onClose
           </div>
           <MysteryChest />
         </div>}
-    <button type="button" className="shop-mystery-action" onClick={shown ? onClose : () => setShown(true)}>
-      {shown ? 'Continue' : 'Skip reveal'}
-    </button>
+    {shown
+      ? <button ref={continueButton} type="button" className="shop-mystery-action" onClick={onClose}>Continue</button>
+      : <p className="shop-mystery-wait" role="status">The seal is breaking.</p>}
   </dialog>;
 }

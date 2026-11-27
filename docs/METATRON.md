@@ -1,7 +1,7 @@
 # Metatron the Fallen Angel
 
-Metatron stole from Heaven's treasury. Heaven cast him into Hell for it. Now he sells the stolen treasures to demons. He lives and keeps his shop at the Gateway of Souls, the passage between Earth and Hell.
+Metatron stole from Heaven's treasury and was cast into Hell. Now the stolen treasures are sold to demons at the Gateway of Souls, the passage between Earth and Hell.
 
-Gold is a means to buy his freedom, not the reason he hoards the treasures. Heaven will not let him return until he has parted with everything he stole. He's willing to sell the hoard, but the treasury key will be the last thing he lets go.
+The gold buys freedom, but Heaven will not allow a return until everything stolen has been sold or given away. The treasury key is the last thing Metatron would part with.
 
-The shop dialogue reveals this in pieces. Metatron remembers Heaven firsthand. His older memories and more formal bargains sometimes carry an old turn of phrase. Keep his speech plain when the sentiment matters more. He speaks fondly of some angels and with contempt for others. His recollections can foreshadow the choices and habits players see in those bosses, but should not explain their encounters or reveal the protagonist's plans.
+Reveal this in scraps of shop dialogue. Metatron remembers Heaven firsthand and speaks fondly of some angels and with contempt for others. Older memories and formal bargains sometimes carry an old turn of phrase. Keep the speech plain when the sentiment matters more. These recollections can foreshadow the angels' choices without explaining their encounters or the protagonist's plans. Leave Metatron's personal history partly unresolved.

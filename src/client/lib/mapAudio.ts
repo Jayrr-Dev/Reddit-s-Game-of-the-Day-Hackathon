@@ -11,6 +11,7 @@ import highland from '../assets/audio/ambience-highland.ogg';
 import fire from '../assets/audio/ambience-fire.ogg';
 import wander from '../assets/audio/score-wander.ogg';
 import home from '../assets/audio/score-home.ogg';
+import gatewayOfSouls from '../assets/audio/score-gateway-of-souls.ogg';
 import undertow from '../assets/audio/score-undertow.ogg';
 import battleOrchestral from '../assets/audio/score-battle-orchestral.ogg';
 import boss from '../assets/audio/boss-army-of-minotaur.ogg';
@@ -50,6 +51,7 @@ const bossAmbiences: Record<BossArenaAmbience, string> = { stone, highland, civi
 
 const scenes: Record<string, readonly [ambience: string, score: string]> = {
   Home: [wild, home],
+  'Gateway of Souls': [stone, gatewayOfSouls],
   'Village Green': [wild, villageGreenScore],
   "King’s Road": [highland, kingsRoadScore],
   Monastery: [stone, monasteryScore],
@@ -72,7 +74,7 @@ const scenes: Record<string, readonly [ambience: string, score: string]> = {
   Mines: [stone, minesScore],
   Cave: [water, caveScore],
   Dungeon: [stone, dungeonScore],
-} satisfies Record<(typeof MAP_NAMES)[number] | "Home", readonly [ambience: string, score: string]>;
+} satisfies Record<(typeof MAP_NAMES)[number] | "Home" | "Gateway of Souls", readonly [ambience: string, score: string]>;
 
 // --- SOUND LIBRARY: MUSIC AND AMBIENCE ---
 /** One named loop the Sounds tab can preview. */
