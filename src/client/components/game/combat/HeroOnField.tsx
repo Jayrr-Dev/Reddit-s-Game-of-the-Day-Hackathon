@@ -44,7 +44,7 @@ import { bossIntroIdOf } from '../../../content/bossIntros';
 import { figureAspect, headTopShare } from '../../../lib/heroFigure';
 import { moodOf } from '../../../lib/heroMood';
 import { seeded } from '../../../lib/seeded';
-import { GroundShadow } from './GroundShadow';
+import { GroundShadow, MikhaelFloorShadow } from './GroundShadow';
 import { HexAura } from './HexAura';
 import { ScrambleScribble } from './ScrambleScribble';
 import { HeroFigure } from './HeroFigure';
@@ -76,6 +76,9 @@ export type HeroOnFieldProps = {
 // --- CONSTANTS ---
 /** How many columns wide a boss is drawn. */
 const BOSS_DRAW_COLUMNS = 3;
+// The Citadel art has a lower horizon than the combat layout. In the
+// lane container, visible stone starts at 75%; the near edge is 100%.
+const CITADEL_FLOOR_START = 0.75;
 /**
  * A boss may be drawn this much wider than the field, so it fills both
  * rows' height; only its wingtips spill past the edges.
@@ -465,6 +468,9 @@ export const HeroOnField = ({
   // The glow only marks a choice: with one hero left there is nothing to pick between.
   const isOutlined = isFocused && field.length > 1;
   const bodyStyle = bodyStyleOf(unit, size);
+  const isMikhael = unit.heroId === 'archangelMikhael';
+  const slot = boxStyle(unit, field);
+  const { feet } = rowPerspective(unit.row);
   const secondPhase = unit.phase === 2 && hero.secondPhase?.visual === 'cervielBladeVolley';
   const mood = moodOf({
     isHurt: lastHitId !== null,
@@ -473,6 +479,11 @@ export const HeroOnField = ({
     maxHp: unit.maxHp,
   });
   return (
+    <>
+    {isMikhael && (
+      <MikhaelFloorShadow unit={unit} slot={slot}
+        top={100 * (CITADEL_FLOOR_START + (1 - CITADEL_FLOOR_START) * feet)} />
+    )}
     <button
       type="button"
       onClick={() => onTap(unit.uid)}
@@ -480,7 +491,7 @@ export const HeroOnField = ({
       data-row-label={rowLabel(unit.row)}
       aria-label={`${hero.name}, ${unit.hp} of ${unit.maxHp} HP, ${rowLabel(unit.row)}`}
       className={`pointer-events-auto absolute transition-[left,bottom,width,height,scale,opacity,filter] duration-500 ease-in-out motion-reduce:transition-none ${AIM_CLASS[aim]} ${action ? (LIFT_ACTION_CLASS[action.style] ?? '') : ''}`}
-      style={boxStyle(unit, field)}
+      style={slot}
       data-aloft={isAloft(unit) ? '' : undefined}
       data-cloaked={unit.statuses.cloak > 0 ? '' : undefined}
       data-acting={action ? '' : undefined}
@@ -495,11 +506,9 @@ export const HeroOnField = ({
         className="unit-stage relative h-full w-full [container-type:size]"
         data-boss-intro={isBoss(unit) ? bossIntroIdOf(unit.heroId) : undefined}
       >
-        <GroundShadow
-          unit={unit}
-          restStyle={bodyStyle}
-          marchDelayMs={arrivalDelay}
-        />
+        {!isMikhael && (
+          <GroundShadow unit={unit} restStyle={bodyStyle} marchDelayMs={arrivalDelay} />
+        )}
         {/* ENTERS ONCE, WHEN THE HERO FIRST APPEARS: A WAVE MARCHES IN, A
             BOSS DESCENDS OR RISES (its entrance, see BossEntrance) */}
         <div
@@ -567,5 +576,6 @@ export const HeroOnField = ({
         </div>
       </div>
     </button>
+    </>
   );
 };

@@ -36,3 +36,17 @@
   .taxiarch-skies *, .taxiarch-skies { animation:none!important; }
   .taxiarch-sky-rays { opacity:.06; }
 }
+
+/* Independent moving sky. Its soft edge leaves the ruins and horizon still. */
+.taxiarch-vortex-window {
+  position:absolute; inset:0 0 45%; overflow:hidden; pointer-events:none;
+  mask-image:radial-gradient(ellipse 55% 86% at 50% 37%, #000 30%, #000e 51%, transparent 96%);
+}
+.taxiarch-vortex-perspective { position:absolute; inset:0; transform:scaleY(.71); transform-origin:50% 38%; }
+.taxiarch-vortex-disc {
+  position:absolute; top:38%; left:50%; width:max(108%,440px); aspect-ratio:1;
+  translate:-50% -50%; background-size:100% 100%; background-repeat:no-repeat;
+  animation:taxiarch-storm-eye 46s linear infinite;
+}
+@keyframes taxiarch-storm-eye { to { transform:rotate(1turn); } }
+@media (prefers-reduced-motion:reduce) { .taxiarch-vortex-disc { animation:none; } }

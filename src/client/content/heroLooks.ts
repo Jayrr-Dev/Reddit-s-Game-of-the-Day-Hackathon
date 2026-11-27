@@ -242,7 +242,7 @@ const CREATURE_SHADOW: Record<CreatureId, GroundShadow> = {
   angelAssassin: { halfWidthShare: 0.22, opacity: 0.24, ...LIFT_RESPONSE },
   twinAxeKnight: { halfWidthShare: 0.39, opacity: 0.46, ...LIFT_RESPONSE },
   archangelUriel: { halfWidthShare: 0.26, opacity: 0.33, ...LIFT_RESPONSE },
-  archangelMikhael: { halfWidthShare: 0.26, opacity: 0.33, ...LIFT_RESPONSE },
+  archangelMikhael: { halfWidthShare: 0.26, opacity: 0.56, ...LIFT_RESPONSE },
 };
 
 /** The ground shadow a hero casts. */
@@ -322,7 +322,7 @@ export const HERO_LOOKS: Record<HumanoidId, HeroLook> = {
     gear: STEEL,
     accent: '#d1a04e',
     armor: 'mail',
-    features: { eyes: 'round', brow: 'arched', mouth: 'smile' },
+    features: { eyes: 'narrow', brow: 'stern', mouth: 'line' },
   },
   shieldmaiden: {
     headgear: 'braids',
@@ -345,7 +345,7 @@ export const HERO_LOOKS: Record<HumanoidId, HeroLook> = {
     gear: OLIVE,
     accent: '#c19a62',
     armor: 'cloth',
-    features: { eyes: 'narrow', brow: 'flat', mouth: 'smirk' },
+    features: { eyes: 'narrow', brow: 'stern', mouth: 'line' },
   },
   rogue: {
     headgear: 'maskedHood',
@@ -368,7 +368,7 @@ export const HERO_LOOKS: Record<HumanoidId, HeroLook> = {
     gear: PARCHMENT,
     accent: '#d1a04e',
     armor: 'cloth',
-    features: { eyes: 'droopy', brow: 'thin', mouth: 'small' },
+    features: { eyes: 'hooded', brow: 'flat', mouth: 'small' },
   },
   bard: {
     headgear: 'featherCap',
@@ -380,7 +380,7 @@ export const HERO_LOOKS: Record<HumanoidId, HeroLook> = {
     accent: '#e3bd5e',
     armor: 'cloth',
     cape: BURNT_ORANGE,
-    features: { eyes: 'wide', brow: 'arched', mouth: 'smile' },
+    features: { eyes: 'hooded', brow: 'heavy', mouth: 'line' },
   },
 
   // ELITES

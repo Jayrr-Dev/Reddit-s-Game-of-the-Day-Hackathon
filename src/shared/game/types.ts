@@ -447,7 +447,7 @@ export type HeroEffect =
    * Knocks the villain back `lines` lines: every hero ends up that much
    * farther, as with a Back Step (and nobody walks in that turn).
    */
-  | { kind: 'knockBack' | 'pullPlayer'; lines: number }
+  | { kind: 'knockBack' | 'pullPlayer' | 'advanceSelf'; lines: number }
   /** Sets off the villain's Shock now, however many hits it has taken. */
   | { kind: 'detonate' };
 

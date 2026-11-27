@@ -172,6 +172,7 @@ const hero = (
 const armored = (def: HeroDef, armor: number): HeroDef => ({ ...def, armor });
 
 // --- CATALOG ---
+export const MIKHAEL_CHARGE_NAME = 'Heavenbreaker Charge';
 export const HEROES = {
   // GRUNTS (THE HORDE)
   squire: hero('Squire', 'grunt', 14, 210, 4, FRONT, [
@@ -518,6 +519,7 @@ export const HEROES = {
       move('Divide the Earth', strike(44), knockBack(1)),
       move('Sword of the Host', strike(25, 2)),
       signature(move('The Taxiarch’s Sentence', strike(72), dispel())),
+      move(MIKHAEL_CHARGE_NAME, { kind: 'advanceSelf', lines: 2 }, strike(66)),
     ]),
     survivesDefeat: true,
     secondPhase: {

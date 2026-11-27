@@ -761,6 +761,14 @@ const moveRowsUpTo = (
   return field;
 };
 
+/* DASH: the acting hero advances without moving the rest of the field. */
+export function advanceHeroBy(heroes: readonly HeroUnit[], unit: HeroUnit, rows: number): HeroUnit[] {
+  let field = [...heroes];
+  if (isAnchored(unit) || isPinned(unit) || isAloft(unit)) return field;
+  for (let step = 0; step < rows; step += 1) field = moveRows(field, unit.uid, -1, true);
+  return field;
+}
+
 /** Pull N: the hero steps up to `rows` rows nearer (stops if blocked). */
 export const pullHero = (heroes: HeroUnit[], uid: number, rows = 1) =>
   moveRowsUpTo(heroes, uid, -1, rows);

@@ -13,7 +13,7 @@ export type MikhaelAttackClip = Exclude<MikhaelSwordClip, 'idle' | 'rally'>;
 export function mikhaelSwordClip(action: HeroAction | null | undefined): MikhaelSwordClip {
   if (!action) return 'idle';
   if (action.isCharging || action.style === 'support') return 'rally';
-  if (action.isSignature) return 'thrust';
+  if (action.isSignature || action.moveName === 'Heavenbreaker Charge') return 'thrust';
   if (action.moveName === 'Divide the Earth') return 'downward';
   if (action.swing === 'upcut' || action.swing === 'chop' || action.swing === 'forward') return 'upward';
   return 'backhand';

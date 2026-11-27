@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { combatOutcome, createHeroUnit, endTurn, plannedHeroMove, playCard, startCombat } from './combat.ts';
-import { getHero } from './heroes.ts';
+import { combatOutcome, createHeroUnit, endTurn, endTurnSteps, plannedHeroMove, playCard, startCombat } from './combat.ts';
+import { getHero, MIKHAEL_CHARGE_NAME } from './heroes.ts';
 import { preferredRow } from './battlefield.ts';
 
 void test('Mikhael opens with melee, moves to Midline at half HP, and never dies', () => {
@@ -33,4 +33,17 @@ void test('Mikhael opens with melee, moves to Midline at half HP, and never dies
   assert.equal(cleared.fallen.length, 0);
   assert.equal(cleared.slain, 0);
   assert.equal(getHero('archangelMikhael').survivesDefeat, true);
+});
+
+void test('Heavenbreaker Charge closes from Horizon before hitting and respects a pin', () => {
+  const start = startCombat({ hp: 333, maxHp: 333, deck: ['backhand'], heroIds: ['archangelMikhael'], might: 1, seed: 9 });
+  const unit = { ...start.heroes[0]!, row: 'horizon' as const };
+  assert.equal(plannedHeroMove(unit, [unit])?.move.name, MIKHAEL_CHARGE_NAME);
+  const step = endTurnSteps({ ...start, heroes: [unit] }).find(beat => beat.move?.name === MIKHAEL_CHARGE_NAME);
+  assert.equal(step?.state.heroes[0]?.row, 'front');
+  assert.equal(step?.state.player.hp, 267);
+  const pinned = { ...unit, statuses: { ...unit.statuses, pin: 2 } };
+  assert.notEqual(plannedHeroMove(pinned, [pinned])?.move.name, MIKHAEL_CHARGE_NAME);
+  const blockers = [0, 1, 2].map(col => ({ ...createHeroUnit('squire', 30 + col, 1), row: 'front' as const, col }));
+  assert.notEqual(plannedHeroMove(unit, [unit, ...blockers])?.move.name, MIKHAEL_CHARGE_NAME);
 });

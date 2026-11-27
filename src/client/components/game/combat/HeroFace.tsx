@@ -330,16 +330,18 @@ export const HeroFace = ({
   at,
   features,
   mood,
+  serious = false,
 }: {
   at: FacePlacement;
   features: FaceFeatures;
   mood: HeroMood;
+  serious?: boolean;
 }) => {
   const unit = at.r / 10;
   const eyeOffset = at.hw * EYE_SPREAD;
-  const mouth = mood === 'calm' ? features.mouth : MOOD_MOUTH[mood];
+  const mouth = serious ? (mood === 'worried' || mood === 'wince' ? 'frown' : features.mouth === 'small' ? 'small' : 'line') : mood === 'calm' ? features.mouth : MOOD_MOUTH[mood];
   return (
-    <g className="hero-face">
+    <g className="hero-face" data-mouth={mouth}>
       <EyeAndBrow
         side="left"
         centre={[at.mid - eyeOffset, at.eyes]}

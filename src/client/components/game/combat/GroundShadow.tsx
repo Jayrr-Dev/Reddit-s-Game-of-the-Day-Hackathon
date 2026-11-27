@@ -70,3 +70,34 @@ export const GroundShadow = ({
     </div>
   );
 };
+
+/** The Citadel floor sits below the visible combat lanes. The pool glides
+ * with Mikhael's lane, but never inherits his body's lift or action poses. */
+export const MikhaelFloorShadow = ({
+  unit,
+  slot,
+  top,
+}: {
+  unit: HeroUnit;
+  slot: CSSProperties;
+  top: number;
+}) => (
+  <div
+    aria-hidden="true"
+    className="pointer-events-none absolute h-0 transition-[top,left,width] duration-500 ease-in-out motion-reduce:transition-none"
+    style={{ left: slot.left, width: slot.width, top: `${top}%` }}
+  >
+    <div
+      data-mikhael-floor-shadow=""
+      className="ground-shadow absolute left-1/2 -translate-1/2"
+      style={{
+        ...shadowVars(unit),
+        width: 'min(72%, 13rem)',
+        aspectRatio: '7 / 1',
+        minHeight: '5px',
+        maxHeight: '21px',
+        ['--aloft-height' as string]: 1,
+      }}
+    />
+  </div>
+);

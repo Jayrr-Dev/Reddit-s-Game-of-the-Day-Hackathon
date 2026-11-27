@@ -1065,6 +1065,8 @@ const describeHeroEffect = (
         text: '',
         label: 'Flies up out of reach, then dives next turn',
       };
+    case 'advanceSelf':
+      return { kind: 'advance', text: String(effect.lines), label: 'Charges up to ' + effect.lines + ' lanes toward you before striking' };
     case 'pullPlayer':
       return { kind: 'pullPlayer', text: String(effect.lines), label: `Pulls you closer by ${effect.lines} line${effect.lines === 1 ? '' : 's'}` };
     case 'knockBack':

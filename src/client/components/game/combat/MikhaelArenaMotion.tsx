@@ -1,4 +1,17 @@
+import skyEye from '../../../assets/terrain/boss/mikhael-citadel-storm-eye.webp';
+import { useProgressiveImage } from '../../../hooks/useProgressiveImage';
 import './mikhaelArenaMotion.css';
+
+// --- ROTATING BACKGROUND ---
+/** Paints only clouds so the original terrain can be composed separately. */
+export function MikhaelStormSky() {
+  const eye = useProgressiveImage(skyEye);
+  return <div className="taxiarch-vortex-window" data-taxiarch-layer="storm-background" aria-hidden="true">
+    <div className="taxiarch-vortex-perspective">
+      <div className="taxiarch-vortex-disc" style={{ backgroundImage: 'url("' + eye.src + '")' }} />
+    </div>
+  </div>;
+}
 
 // --- DEPTH MARKERS ---
 const WATCHERS = [[14, 16, .53], [23, 24, .37], [32, 15, .41], [68, 19, .39], [78, 23, .43], [88, 15, .52]] as const;

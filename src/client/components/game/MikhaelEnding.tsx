@@ -3,7 +3,7 @@ import { playSound } from '../../lib/gameAudio';
 import { Button } from '../ui/Button';
 import { ProgressiveImg } from '../ui/ProgressiveImage';
 import { bossArenaOf } from '../../content/bossArenas';
-import { MikhaelArenaMotion } from './combat/MikhaelArenaMotion';
+import { MikhaelArenaMotion, MikhaelStormSky } from './combat/MikhaelArenaMotion';
 import { HeroFigure } from './combat/HeroFigure';
 import './mikhaelEnding.css';
 
@@ -20,6 +20,7 @@ export function MikhaelEnding({ gold, onContinue }: { gold?: number | undefined;
   }, []);
   return <section className="mikhael-ending" aria-label="The Last Seal" data-sealed={sealed || undefined}>
     {image && <ProgressiveImg className="mikhael-ending-backdrop" src={image} alt="" />}
+    <MikhaelStormSky />
     <MikhaelArenaMotion />
     <div className="mikhael-ending-stage" aria-hidden="true">
       <div className="mikhael-ending-mikhael"><HeroFigure heroId="archangelMikhael" size={3} phase={2} /></div>

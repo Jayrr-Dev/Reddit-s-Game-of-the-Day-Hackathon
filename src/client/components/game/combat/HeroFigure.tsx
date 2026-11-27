@@ -18,7 +18,7 @@
 // ===================================================================
 
 import { useId, type CSSProperties, type ReactNode } from 'react';
-import type { HeroId } from '../../../../shared/game/heroes';
+import { getHero, type HeroId } from '../../../../shared/game/heroes';
 import type { HeroSize } from '../../../../shared/game/types';
 import {
   ARMOR_STEEL,
@@ -456,18 +456,24 @@ const Head = ({
   f,
   look,
   mood,
+  serious,
 }: {
   f: Frame;
   look: HeroLook;
   mood: HeroMood;
-}) => (
-  <>
+  serious: boolean;
+}) => {
+  // Keep the head polygon below the brim rather than overlapping its crown.
+  const coveredTop = look.headgear === 'kettleHelm' ? .45 : look.headgear === 'mitre' ? .29 : look.headgear === 'featherCap' ? .28 : 0;
+  const hairline = f.top + f.r * coveredTop;
+  return (
+  <g data-humanoid-head={look.headgear}>
     <Halves
       mid={f.mid}
       fill={look.skin}
       left={[
-        [f.mid, f.top],
-        [f.mid - f.hw, f.top],
+        [f.mid, hairline],
+        [f.mid - f.hw * (coveredTop ? .94 : 1), hairline],
         [f.mid - f.hw, f.jaw],
         [f.mid, f.chin],
       ]}
@@ -477,6 +483,7 @@ const Head = ({
         at={f}
         features={look.features ?? DEFAULT_FEATURES}
         mood={mood}
+        serious={serious}
       />
     ) : (
       <>
@@ -498,8 +505,9 @@ const Head = ({
         />
       </>
     )}
-  </>
-);
+  </g>
+  );
+};
 
 // --- SUBCOMPONENTS: HEADGEAR ---
 /**
@@ -522,16 +530,16 @@ const HEADGEAR: Record<
           fill={gear}
           left={[
             [f.mid, f.top - f.r * 0.55],
-            [f.mid - f.hw * 0.7, f.top - f.r * 0.25],
-            [f.mid - f.hw * 0.9, f.top + f.r * 0.3],
-            [f.mid, f.top + f.r * 0.3],
+            [f.mid - f.hw * 0.83, f.top - f.r * 0.28],
+            [f.mid - f.hw * 1.09, f.top + f.r * 0.46],
+            [f.mid, f.top + f.r * 0.46],
           ]}
         />
         <Halves
           mid={f.mid}
           fill={gear}
           left={[
-            [f.mid, f.top + f.r * 0.2],
+            [f.mid, f.top + f.r * 0.39],
             [f.mid - f.hw * 1.45, f.top + f.r * 0.35],
             [f.mid - f.hw * 1.35, f.top + f.r * 0.55],
             [f.mid, f.top + f.r * 0.5],
@@ -641,9 +649,9 @@ const HEADGEAR: Record<
           fill={gear}
           left={[
             [f.mid, f.top - f.r * 1.45],
-            [f.mid - f.hw * 0.85, f.top - f.r * 0.55],
-            [f.mid - f.hw * 0.85, f.top + f.r * 0.3],
-            [f.mid, f.top + f.r * 0.3],
+            [f.mid - f.hw * 1.04, f.top - f.r * 0.55],
+            [f.mid - f.hw * 1.04, f.top + f.r * 0.39],
+            [f.mid, f.top + f.r * 0.39],
           ]}
         />
         <rect
@@ -1508,7 +1516,7 @@ const HumanoidFigure = ({
       {isArmored && <Coif f={f} mail={mail} />}
       <Arms f={f} look={look} mail={mail} k={k} />
       {look.armor === 'plate' && <Pauldrons f={f} />}
-      <Head f={f} look={look} mood={mood} />
+      <Head f={f} look={look} mood={mood} serious={getHero(heroId).tier === 'grunt'} />
       {gear.front}
       {/* THE PROP SWINGS, DRAWS OR RISES AROUND THE HAND */}
       <g

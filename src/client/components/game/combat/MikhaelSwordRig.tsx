@@ -11,6 +11,7 @@ import up from '../../../assets/heroes/mikhael-rig-upward-slash.webp';
 import backhand from '../../../assets/heroes/mikhael-rig-backhand-sweep.webp';
 import thrust from '../../../assets/heroes/mikhael-rig-charge-thrust.webp';
 import idle from '../../../assets/heroes/mikhael-rig-idle.webp';
+import idleWind from '../../../assets/heroes/mikhael-rig-idle-wind.webp';
 import rally from '../../../assets/heroes/mikhael-rig-rally.webp';
 
 // --- ATLAS GEOMETRY ---
@@ -46,6 +47,34 @@ function MikhaelAttackAtlas({ clip }: { clip: MikhaelAttackClip }) {
   </g>;
 }
 
+// --- IDLE WIND ---
+const IDLE_COLUMNS = 5;
+const IDLE_ROWS = 5;
+const IDLE_CELS = 24;
+const IDLE_BEAT_MS = 3200 / IDLE_CELS;
+
+/** Plays the planted body's wing, fabric and hair cels at the held animation cadence. */
+function MikhaelIdleWind() {
+  const art = useProgressiveImage(idleWind);
+  const [cel, setCel] = useState(0);
+  useEffect(() => {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (art.isPlaceholder || reduced.matches) return;
+    const started = performance.now();
+    const tick = () => {
+      if (document.visibilityState === 'visible' && !reduced.matches)
+        setCel(Math.floor((performance.now() - started) / IDLE_BEAT_MS) % IDLE_CELS);
+    };
+    const timer = window.setInterval(tick, IDLE_BEAT_MS);
+    return () => window.clearInterval(timer);
+  }, [art.isPlaceholder]);
+  if (art.isPlaceholder) return <ProgressiveSvgImage href={idle} width={CELL_W} height={CELL_H} />;
+  return <g data-mikhael-idle-cel={cel}>
+    <image href={art.src} width={CELL_W * IDLE_COLUMNS} height={CELL_H * IDLE_ROWS}
+      x={-(cel % IDLE_COLUMNS) * CELL_W} y={-Math.floor(cel / IDLE_COLUMNS) * CELL_H} preserveAspectRatio="none" />
+  </g>;
+}
+
 /** Draws the registered sword rig with its pinned wings, halo and accent frames. */
 export function MikhaelSwordRig({ size, action }: { size: HeroSize; action?: HeroAction | null | undefined }) {
   const clip = mikhaelSwordClip(action);
@@ -59,8 +88,8 @@ export function MikhaelSwordRig({ size, action }: { size: HeroSize; action?: Her
   <svg data-mikhael-motion={clip} data-mikhael-weapon="sword" pointerEvents="none"
     x={(BODY_WIDTH[size] - width) / 2} y={GROUND - height * FOOT_SHARE} width={width} height={height}
     viewBox={'0 0 ' + CELL_W + ' ' + CELL_H} overflow="hidden" preserveAspectRatio="none">
-    {clip === 'idle' || clip === 'rally'
-      ? <ProgressiveSvgImage href={clip === 'rally' ? rally : idle} width={CELL_W} height={CELL_H} />
+    {clip === 'idle' ? <MikhaelIdleWind /> : clip === 'rally'
+      ? <ProgressiveSvgImage href={rally} width={CELL_W} height={CELL_H} />
       : <MikhaelAttackAtlas key={clip} clip={clip} />}
   </svg></g>;
 }

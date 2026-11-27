@@ -21,6 +21,7 @@ import { afflictsThroughBlocksOf, bonusUsesOf, debuffPowerOf, stackedBuffTurnsOf
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import {
   advanceHeroes,
+  advanceHeroBy,
   fallBack,
   stepForward,
   canPull,
@@ -261,6 +262,9 @@ const canMakeMove = (
   heroes: readonly HeroUnit[]
 ): boolean =>
   heroMove.effects.every((effect) => {
+    const charge = heroMove.effects.find(part => part.kind === 'advanceSelf');
+    if (effect.kind === 'advanceSelf') return unit.row !== 'front' && advanceHeroBy(heroes, unit, effect.lines).some(foe => foe.uid === unit.uid && foe.row === 'front');
+    if (charge && effect.kind === 'attack' && effect.type === 'melee') return true;
     if (effect.kind === 'summon') return summonSpots(heroes, unit, effect).length > 0;
     if (effect.kind === 'attack' && effect.maxRange !== undefined && rowDepth(unit.row) >= effect.maxRange) return false;
     return (
@@ -284,8 +288,7 @@ export const plannedHeroMove = (
 ): PlannedMove | null => {
   const definition = getHero(unit.heroId);
   const moves = movesForHeroPhase(unit, definition);
-  return (
-    moves
+  const available = moves
       .map((_, step) => {
         const index = unit.moveIndex + step;
         const original = moves[index % moves.length];
@@ -296,11 +299,9 @@ export const plannedHeroMove = (
             ? { ...effect, hits: 1 } : effect);
         return { move: effects.length ? { ...original, effects } : undefined, index };
       })
-      .find(
-        (planned): planned is PlannedMove =>
-          planned.move !== undefined && canMakeMove(planned.move, unit, heroes)
-      ) ?? null
-  );
+      .filter((planned): planned is PlannedMove =>
+        planned.move !== undefined && canMakeMove(planned.move, unit, heroes));
+  return available.find(({ move }) => move.effects.some(effect => effect.kind === 'advanceSelf')) ?? available[0] ?? null;
 };
 
 /** True for a move that flies the hero up: it ends the hero's turn. */
@@ -1986,6 +1987,8 @@ const applyHeroEffect = (
       return updateHeroes(state, [actor.uid], (unit) => addStatus(unit, 'cloak', effect.amount));
     case 'soar':
       return updateHeroes(state, [actor.uid], (unit) => withAloft(unit, 1));
+    case 'advanceSelf':
+      return { ...state, heroes: advanceHeroBy(state.heroes, actor, effect.lines) };
     case 'knockBack':
     case 'pullPlayer':
       return forcePlayerMovement(state, effect.kind === 'pullPlayer', effect.lines);
