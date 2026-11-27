@@ -7,7 +7,7 @@
 import type { ReactNode } from 'react';
 import { carrySourceLabel } from '../../../../shared/game/carryCards';
 import { describeCard } from '../../../../shared/game/describe';
-import { CardArtwork } from '../CardView';
+import { CardView } from '../CardView';
 import type { InventorySlot } from '../../../../shared/game/inventory';
 import { isShopApple } from '../../../../shared/game/items';
 import { ShopAppleIcon } from '../menu/ShopAppleIcon';
@@ -31,7 +31,7 @@ export const slotLook = (slot: InventorySlot): SlotLook => {
   switch (slot.kind) {
     case 'card':
       return {
-        icon: <CardArtwork cardId={slot.cardId} size="fan" showGlyph={false} />,
+        icon: <span className="inv-card-miniature"><CardView cardId={slot.cardId} size="fan" /></span>,
         subtitle: 'Card · ' + carrySourceLabel(slot.source),
         details: <>
           <ul className="inv-card-rules">{describeCard(slot.cardId).map(line => <li key={line}>{line.replace(/\*\*/g, '')}</li>)}</ul>
