@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 import { mikhaelCelAt, mikhaelSwordClip, MIKHAEL_SWORD_DURATION_MS, type MikhaelAttackClip } from '../../../content/mikhaelMotion';
 import type { HeroAction } from '../../../content/heroLooks';
 import type { HeroSize } from '../../../../shared/game/types';
@@ -55,18 +55,15 @@ const IDLE_COLUMNS = 5;
 const IDLE_ROWS = 5;
 const IDLE_CELS = 24;
 const IDLE_BEAT_MS = 3200 / IDLE_CELS;
-// The wind cels warp everything they cover, including the sword and greaves.
-// Only cloth, hair and wings should sway, so the hard parts are traced here
-// (cel pixels) and redrawn from the unwarped idle pose on top of each cel.
-// The sword outline runs pommel, fist, crossguard, then down the blade.
-const IDLE_PINNED_PARTS = [
-  'M298 250 306 233 321 233 322 262 320 272 310 275 278 358 268 358 293 274 289 268 288 257Z',
-  'M331 283 352 283 354 330 366 333 368 372 330 372Z',
-] as const;
-
+// The wind atlas is pre-baked so it can play as a single moving image:
+// - the sword and greaves are pasted from the still idle pose into every cel,
+//   so only cloth, hair and wings sway (sword outline in 704x396 cel space:
+//   M298 250 306 233 321 233 322 262 320 272 310 275 278 358 268 358 293 274
+//   289 268 288 257Z, greaves: M331 283 352 283 354 330 366 333 368 372 330 372Z);
+// - the dark oval under the boots is already keyed out, like KeyedPose does live.
+// Doing that live each frame (two <use> copies, a clip and a filter) made it lag.
 /** Plays the wing, cloth and hair cels, with the sword and boots held still. */
 function MikhaelIdleWind() {
-  const pinId = useId();
   const art = useProgressiveImage(idleWind);
   const [cel, setCel] = useState(0);
   useEffect(() => {
@@ -80,42 +77,19 @@ function MikhaelIdleWind() {
     const timer = window.setInterval(tick, IDLE_BEAT_MS);
     return () => window.clearInterval(timer);
   }, [art.isPlaceholder]);
-  if (art.isPlaceholder) return <ProgressiveSvgImage href={idle} width={CELL_W} height={CELL_H} />;
-  return <g data-mikhael-idle-cel={cel}>
-    <defs>
-      <clipPath id={`${pinId}-pinned`}>
-        {IDLE_PINNED_PARTS.map((part) => <path key={part} d={part} />)}
-      </clipPath>
-    </defs>
-    <image href={art.src} width={CELL_W * IDLE_COLUMNS} height={CELL_H * IDLE_ROWS}
-      x={-(cel % IDLE_COLUMNS) * CELL_W} y={-Math.floor(cel / IDLE_COLUMNS) * CELL_H}
-      preserveAspectRatio="none" />
-    <g clipPath={`url(#${pinId}-pinned)`}>
-      <ProgressiveSvgImage href={idle} width={CELL_W} height={CELL_H} />
-    </g>
-  </g>;
+  if (art.isPlaceholder) return <KeyedPose><ProgressiveSvgImage href={idle} width={CELL_W} height={CELL_H} /></KeyedPose>;
+  return <image data-mikhael-idle-cel={cel} href={art.src} width={CELL_W * IDLE_COLUMNS} height={CELL_H * IDLE_ROWS}
+    x={-(cel % IDLE_COLUMNS) * CELL_W} y={-Math.floor(cel / IDLE_COLUMNS) * CELL_H}
+    preserveAspectRatio="none" />;
 }
 
-/** Draws the registered sword rig with its pinned wings, halo and accent frames. */
-export function MikhaelSwordRig({ size, action }: { size: HeroSize; action?: HeroAction | null | undefined }) {
+// --- FOOT KEYING ---
+/** Draws a raw pose with the dark oval below the boots keyed out. */
+function KeyedPose({ children }: { children: ReactNode }) {
   const poseId = useId();
-  const clip = mikhaelSwordClip(action);
-  const width = BODY_WIDTH[size] * RIG_WIDTH_SHARE;
-  const height = width * CELL_H / CELL_W;
-  useEffect(() => {
-    const timer = window.setTimeout(() => { Object.values(FRAMES).forEach((src) => { void loadFullImage(src); }); }, 300);
-    return () => window.clearTimeout(timer);
-  }, []);
-  return <g className="mikhael-sword-responsive" style={{ transformOrigin: BODY_WIDTH[size] / 2 + 'px ' + GROUND + 'px' }}>
-  <svg data-mikhael-motion={clip} data-mikhael-weapon="sword" pointerEvents="none"
-    x={(BODY_WIDTH[size] - width) / 2} y={GROUND - height * FOOT_SHARE} width={width} height={height}
-    viewBox={'0 0 ' + CELL_W + ' ' + CELL_H} overflow="hidden" preserveAspectRatio="none">
+  return <>
     <defs>
-      <g id={poseId}>
-        {clip === 'idle' ? <MikhaelIdleWind /> : clip === 'rally'
-          ? <ProgressiveSvgImage href={rally} width={CELL_W} height={CELL_H} />
-          : <MikhaelAttackAtlas key={clip} clip={clip} />}
-      </g>
+      <g id={poseId}>{children}</g>
       <clipPath id={`${poseId}-upper`}>
         <rect width={CELL_W} height={FOOT_STRIP_Y} />
       </clipPath>
@@ -129,5 +103,24 @@ export function MikhaelSwordRig({ size, action }: { size: HeroSize; action?: Her
     </defs>
     <use href={`#${poseId}`} clipPath={`url(#${poseId}-upper)`} />
     <use href={`#${poseId}`} filter={`url(#${poseId}-boots)`} />
+  </>;
+}
+
+/** Draws the registered sword rig with its pinned wings, halo and accent frames. */
+export function MikhaelSwordRig({ size, action }: { size: HeroSize; action?: HeroAction | null | undefined }) {
+  const clip = mikhaelSwordClip(action);
+  const width = BODY_WIDTH[size] * RIG_WIDTH_SHARE;
+  const height = width * CELL_H / CELL_W;
+  useEffect(() => {
+    const timer = window.setTimeout(() => { Object.values(FRAMES).forEach((src) => { void loadFullImage(src); }); }, 300);
+    return () => window.clearTimeout(timer);
+  }, []);
+  return <g className="mikhael-sword-responsive" style={{ transformOrigin: BODY_WIDTH[size] / 2 + 'px ' + GROUND + 'px' }}>
+  <svg data-mikhael-motion={clip} data-mikhael-weapon="sword" pointerEvents="none"
+    x={(BODY_WIDTH[size] - width) / 2} y={GROUND - height * FOOT_SHARE} width={width} height={height}
+    viewBox={'0 0 ' + CELL_W + ' ' + CELL_H} overflow="hidden" preserveAspectRatio="none">
+    {clip === 'idle' ? <MikhaelIdleWind /> : <KeyedPose>{clip === 'rally'
+      ? <ProgressiveSvgImage href={rally} width={CELL_W} height={CELL_H} />
+      : <MikhaelAttackAtlas key={clip} clip={clip} />}</KeyedPose>}
   </svg></g>;
 }
