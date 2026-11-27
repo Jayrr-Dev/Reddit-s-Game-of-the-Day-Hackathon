@@ -206,7 +206,8 @@
 .pandora-seal { top: 46%; width: min(53cqw, 66cqh); z-index: 0; animation: pandora-seal-charge var(--opening-time) linear both; }
 .pandora-floor { top: 83%; width: min(69cqw, 62cqh); z-index: 1; animation: pandora-seal-charge var(--opening-time) linear both; }
 .pandora-chest-anchor { top: 79%; z-index: 4; width: min(38cqw, 38cqh, 10rem); aspect-ratio: 72 / 64; }
-.shop-mystery-opening .pandora-chest-anchor .shop-mystery-art { width: 100%; height: 100%; }
+/* The hinged lid rises above the chest SVG; only the surrounding stage clips effects. */
+.shop-mystery-opening .pandora-chest-anchor .shop-mystery-art { width: 100%; height: 100%; overflow: visible; }
 .pandora-burst { position: absolute; inset: 0; z-index: 2; pointer-events: none; color: var(--reveal-ink); }
 .pandora-beams { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .pandora-beams > g:first-of-type { transform-origin: 50% 80%; animation: pandora-treasure-beams var(--opening-time) linear both; }
