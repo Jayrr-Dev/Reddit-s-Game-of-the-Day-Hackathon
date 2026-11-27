@@ -142,12 +142,12 @@ export function MysteryReveal({ reward, onClose }: { reward: ShopReward; onClose
           </> : reward.kind === 'card' ? <>
             <div className="shop-reward-card" aria-hidden="true" inert><CardView cardId={reward.cardId} /></div>
             <strong>{getCard(reward.cardId).name}</strong>
-            <span>{shopCardRarity(reward.cardId)} Card · Added to Inventory</span>
+            <span>{shopCardRarity(reward.cardId)} Card · Added to Album</span>
           </> : reward.kind === 'gold' ? <>
             <div className="shop-reward-sigil"><GoldCoins /></div>
             <strong>{reward.change > 0 ? '+' : ''}{reward.change} Gold</strong>
             {goldBreakdown && <span>{goldBreakdown.base} base + {goldBreakdown.bonus} level bonus ({goldBreakdown.percent}%)</span>}
-            <span>{reward.duplicateRarity ? 'Already owned: ' + reward.duplicateRarity + ' reward exchanged for Gold.' : reward.change > 0 ? 'A purse left for the next hand.' : reward.change < 0 ? 'The box took more than its price.' : 'No Gold left for the box to take.'}</span>
+            <span>{reward.albumFull ? 'Album full: card exchanged for Gold.' : reward.duplicateRarity ? 'Already owned: ' + reward.duplicateRarity + ' reward exchanged for Gold.' : reward.change > 0 ? 'A purse left for the next hand.' : reward.change < 0 ? 'The box took more than its price.' : 'No Gold left for the box to take.'}</span>
           </> : <>
             <div className="shop-reward-sigil"><MysteryChest /></div>
             <strong>{PANDORA_RUN_COPY[reward.effect].title}</strong>

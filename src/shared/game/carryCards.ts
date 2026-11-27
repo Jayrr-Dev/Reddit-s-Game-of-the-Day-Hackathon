@@ -3,9 +3,10 @@ import { ALL_CARD_IDS, getCard, isCardId, isCardInPlay, type CardId } from './ca
 
 export const SHOP_IMBUE_ID = 'imbue-card';
 export const IMBUE_PRICE = 85;
-export const MAX_CARRY_CARDS = 4;
+export const ALBUM_SLOTS = 4;
+export const MAX_CARRY_CARDS = ALBUM_SLOTS;
 export const IMBUE_CARDS = ALL_CARD_IDS.filter(id => getCard(id).type === 'imbue' && isCardInPlay(id));
-export type CarryCard = { id: string; cardId: CardId; source: 'shop' | 'ferryman' | 'pandora' | 'test'; spent?: string };
+export type CarryCard = { id: string; cardId: CardId; source: 'shop' | 'ferryman' | 'pandora' | 'test'; spent?: string; discarded?: true };
 export type CarryCards = Partial<Record<string, CarryCard>>;
 
 const TEST_CARDS = ['keenEdge', 'emberRune', 'wardingBolt', 'ruin'] as const satisfies readonly CardId[];
@@ -64,13 +65,33 @@ export function readCarryCards(value: unknown): CarryCards {
       (row.source === 'ferryman' && !id.startsWith('hell:')) ||
       (row.source === 'pandora' && !isPandoraCarryId(id, 'pandora')) ||
       (row.source === 'test' && (!isTestCarryCardId(id) || (id.startsWith('test:') && row.cardId !== TEST_CARDS[Number(id.slice(5))]))) ||
-      (row.spent !== undefined && (typeof row.spent !== 'string' || !/^[a-f0-9-]{36}$/.test(row.spent))))
+      (row.spent !== undefined && (typeof row.spent !== 'string' || !/^[a-f0-9-]{36}$/.test(row.spent))) ||
+      (row.discarded !== undefined && row.discarded !== true))
       throw new Error('Invalid carry card receipt');
-    cards[id] = { id, cardId: row.cardId, source: row.source, ...(row.spent && { spent: row.spent }) };
+    cards[id] = { id, cardId: row.cardId, source: row.source,
+      ...(row.spent && { spent: row.spent }), ...(row.discarded && { discarded: true }) };
   }
   return cards;
 }
 
 /** Owned cards are reusable; old spend markers no longer hide the originals. */
 export const availableCarryCards = (owned?: CarryCards): CarryCard[] =>
-  Object.values(owned ?? {}).flatMap(card => card ? [{ id: card.id, cardId: card.cardId, source: card.source }] : []);
+  Object.values(owned ?? {}).flatMap(card => card && !card.discarded ? [{ id: card.id, cardId: card.cardId, source: card.source }] : []);
+
+export type AlbumAction = { type: 'trash'; id: string } | { type: 'swap'; id: string; with: string };
+
+/** Moves legacy extras into the four carryable positions or marks a confirmed discard. */
+export function changeAlbum(owned: CarryCards, action: AlbumAction): CarryCards | undefined {
+  const active = availableCarryCards(owned);
+  const index = active.findIndex(card => card.id === action.id);
+  const card = owned[action.id];
+  if (index < 0 || !card) return undefined;
+  if (action.type === 'trash') return { ...owned, [action.id]: { ...card, discarded: true } };
+  const other = active.findIndex(card => card.id === action.with);
+  if (index < ALBUM_SLOTS || other < 0 || other >= ALBUM_SLOTS) return undefined;
+  [active[index], active[other]] = [active[other]!, active[index]!];
+  return Object.fromEntries([
+    ...active.map(({ id }) => [id, owned[id]] as const),
+    ...Object.entries(owned).filter(([, entry]) => entry?.discarded),
+  ]);
+}

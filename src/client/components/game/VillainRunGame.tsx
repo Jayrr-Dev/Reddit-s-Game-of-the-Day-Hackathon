@@ -73,6 +73,7 @@ const PhaseBody = ({ run, runId, onAction, onMainMenu }: VillainRunGameProps) =>
         <CombatView
           key={run.stop + ':' + (area?.battle ?? 0)}
           combat={phase.combat}
+          artifacts={run.artifacts}
           character={run.character}
           deck={run.deck}
           terrainIndex={mapIndex}
@@ -242,7 +243,7 @@ export const VillainRunGame = ({ run, runId, onAction, onMainMenu }: VillainRunG
           onOpenCharacter={() => { setDismissedLevel(levelKey); setShowCharacter(true); }} />
       )}
       {showCharacter && (
-        <BattleCharacterSheet deck={run.deck} vitals={{ hp: run.hp, maxHp: run.maxHp }} character={run.character} onAction={onAction} onClose={() => setShowCharacter(false)} />
+        <BattleCharacterSheet deck={run.deck} artifacts={run.artifacts} vitals={{ hp: run.hp, maxHp: run.maxHp }} character={run.character} onAction={onAction} onClose={() => setShowCharacter(false)} />
       )}
     </div>
   );

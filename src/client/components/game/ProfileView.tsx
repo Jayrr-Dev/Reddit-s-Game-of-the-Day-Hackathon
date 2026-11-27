@@ -24,6 +24,7 @@ import { apiClient } from '../../lib/apiClient';
 import { localBuild, storeBuild } from '../../lib/playerBuild';
 import { Button } from '../ui/Button';
 import { ProfileDeck, ProfileStrip } from './profileParts';
+import { AlbumPanel } from './inventory/AlbumPanel';
 import { InventoryPanel } from './inventory/InventoryPanel';
 import type { InventorySlot } from '../../../shared/game/inventory';
 import { RunCharacterSheet } from './RunCharacterSheet';
@@ -93,7 +94,6 @@ export function ProfileView({
     runReducer,
     createRun(data.dailyKey, rings, 0, wins, shopRings, undefined, undefined, undefined, false, undefined, xpStartWins)
   );
-  const inventoryCards = [...new Map([...carry, ...testCarry].map(card => [card.id, card])).values()];
   const usesTestBag = testJewelry.length > 0 || testCarry.length > 0;
   const temporary = ringInventory(testJewelry).filter(item => !run.character.inventory.some(real => real.id === item.id));
   const character = temporary.length ? testActions.reduce(runReducer, { ...run, character: {
@@ -197,9 +197,10 @@ export function ProfileView({
       onAction={changeCharacter}
       onRespec={() => void respec()}
       respecItem={respecItem}
+      album={<AlbumPanel cards={carry} onChange={setCarry} />}
       inventory={
         <InventoryPanel
-          owner={{ character, bag: items, carryCards: inventoryCards }}
+          owner={{ character, bag: items }}
           layout={usesTestBag ? testBag ?? build.bag : build.bag}
           onLayout={(bag) => usesTestBag ? setTestBag(bag) : setBuild((previous) => ({ ...previous, bag }))}
           onTrash={(stack) => void trash(stack)}

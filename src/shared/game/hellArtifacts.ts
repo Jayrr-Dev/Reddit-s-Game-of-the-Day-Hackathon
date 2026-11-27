@@ -5,6 +5,14 @@ export const HELL_ARTIFACTS = [
 ] as const;
 
 export type HellArtifactId = (typeof HELL_ARTIFACTS)[number]['id'];
+export type RunArtifactId = HellArtifactId;
+export type RunArtifact = (typeof HELL_ARTIFACTS)[number] & { kind: 'artifact'; duration: 'run' };
+
+/** Artifact definitions live outside permanent items and the Album. */
+export function getRunArtifact(id: RunArtifactId): RunArtifact {
+  const artifact = HELL_ARTIFACTS.find(entry => entry.id === id)!;
+  return { ...artifact, kind: 'artifact', duration: 'run' };
+}
 
 export const isHellArtifact = (value: unknown): value is HellArtifactId =>
   HELL_ARTIFACTS.some(artifact => artifact.id === value);

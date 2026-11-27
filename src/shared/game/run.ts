@@ -18,7 +18,7 @@ import { playerHpCap, progressionFromWins, healingAmount, type RingProgress, all
 // ===================================================================
 
 import { getCard, STARTER_DECK, type CardId } from './cards.ts';
-import { HELL_ARTIFACTS, isHellArtifact, type HellArtifactId } from './hellArtifacts.ts';
+import { getRunArtifact, isHellArtifact, type HellArtifactId, type RunArtifactId } from './hellArtifacts.ts';
 import { combatOutcome, createHeroUnit, endTurn, playCard, startCombat, SELF_TARGET_UID } from './combat.ts';
 import { formUp } from './battlefield.ts';
 import { areaRoomEvent, buildAreaBattles, conquestMightAt, conquestStops, isLastRegion, REST_FRACTION, type AreaBattle, type AreaSite, type ConquestVersion, type RoomEvent } from './conquestAreas.ts';
@@ -68,6 +68,7 @@ export type RunPhase =
 type AreaProgress = { site: AreaSite; stop: Stop; battles: AreaBattle[]; battle: number; wave: number; wavePending?: boolean };
 
 export type RunState = {
+  artifacts?: readonly RunArtifactId[];
   conquestVersion?: ConquestVersion;
   area?: AreaProgress | undefined;
   regionPath?: Partial<Record<number, RegionChoice>>;
@@ -467,14 +468,15 @@ export const applyCharacterAction = (
 
 /** Carry one artifact's effect into this run, never into the permanent inventory. */
 function bringHellArtifact(state: RunState, id: HellArtifactId): RunState {
-  const artifact = HELL_ARTIFACTS.find(entry => entry.id === id);
-  if (!artifact) return state;
-  if ('card' in artifact) return { ...state, deck: [...state.deck, artifact.card] };
+  if (!isHellArtifact(id) || state.artifacts?.includes(id)) return state;
+  const artifact = getRunArtifact(id);
+  const artifacts = [...(state.artifacts ?? []), id];
+  if ('card' in artifact) return { ...state, artifacts, deck: [...state.deck, artifact.card] };
 
   const bonus = Math.max(0, Math.min(10, playerHpCap(state.character.legacyVigor) - state.maxHp));
   const baseMaxHp = state.baseMaxHp ??
     state.maxHp - characterBonuses(state.character.traits, state.character.equipment, state.character.traitNodes, state.character.legacyVigor).maxHp + PLAYER_MAX_HP;
-  return { ...state, baseMaxHp: baseMaxHp + bonus, hp: state.hp + bonus, maxHp: state.maxHp + bonus };
+  return { ...state, artifacts, baseMaxHp: baseMaxHp + bonus, hp: state.hp + bonus, maxHp: state.maxHp + bonus };
 }
 
 /** Applies one action. Actions that don't fit the current phase are ignored. */

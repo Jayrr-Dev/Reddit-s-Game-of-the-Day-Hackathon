@@ -88,5 +88,9 @@ export const inventoryOf = (owner: InventoryOwner): InventorySection[] =>
 export const inventoryStacks = (owner: InventoryOwner): InventorySlot[] =>
   inventoryOf(owner).flatMap((section) => section.slots);
 
+/** Equipped jewelry belongs to Equipment, not a backpack or belt cell. */
+export const backpackStacks = (owner: InventoryOwner): InventorySlot[] =>
+  inventoryStacks(owner).filter(slot => slot.kind !== 'jewelry' || !slot.equipped);
+
 /** A stack's key is unique across kinds, since two kinds may share an id. */
 export const stackKey = (slot: Pick<InventorySlot, 'kind' | 'id'>) => `${slot.kind}:${slot.id}`;

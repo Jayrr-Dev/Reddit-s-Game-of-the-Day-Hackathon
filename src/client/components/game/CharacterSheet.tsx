@@ -45,10 +45,11 @@ type SheetProps = {
   profile?: ReactNode;
   /** When given with a profile, an Inventory tab follows the Profile tab. */
   inventory?: ReactNode;
+  album?: ReactNode;
   /** When given, Respec asks first and shows the item it spends. */
   respecItem?: RespecItem | undefined;
 };
-type SheetPage = 'profile' | 'inventory' | 'traits' | 'equipment' | 'skills';
+type SheetPage = 'profile' | 'inventory' | 'album' | 'traits' | 'equipment' | 'skills';
 /** The tab order. Profile and Inventory show only when the sheet is given them. */
 const SHEET_TABS: ReadonlyArray<{ page: SheetPage; label: string }> = [
   { page: 'profile', label: 'Profile' },
@@ -56,6 +57,7 @@ const SHEET_TABS: ReadonlyArray<{ page: SheetPage; label: string }> = [
   { page: 'traits', label: 'Traits' },
   { page: 'equipment', label: 'Equipment' },
   { page: 'inventory', label: 'Inventory' },
+  { page: 'album', label: 'Album' },
 ];
 type Stat = keyof ReturnType<typeof characterBonuses>;
 const TRAIT_ICONS: Record<TraitId, GlyphName> = {
@@ -372,6 +374,7 @@ export const CharacterSheet = ({
   onClose,
   profile,
   inventory,
+  album,
   respecItem,
 }: SheetProps) => {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -451,7 +454,7 @@ export const CharacterSheet = ({
       )}
       </header>
       <div className="cs-pages" aria-label="Character views">
-        {SHEET_TABS.filter(({ page: tab }) => (tab === 'profile' ? profile : tab === 'inventory' ? inventory : true)).map(({ page: tab, label }) => (
+        {SHEET_TABS.filter(({ page: tab }) => (tab === 'profile' ? profile : tab === 'inventory' ? inventory : tab === 'album' ? album : true)).map(({ page: tab, label }) => (
           <button
             key={tab}
             type="button"
@@ -473,6 +476,8 @@ export const CharacterSheet = ({
           <div className="cs-profile">{profile}</div>
         ) : page === 'inventory' ? (
           inventory
+        ) : page === 'album' ? (
+          album
         ) : page === 'traits' ? (
           <Traits
             character={character}

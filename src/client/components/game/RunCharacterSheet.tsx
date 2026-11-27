@@ -6,9 +6,10 @@ import { CharacterSheet, type SheetVitals } from './CharacterSheet';
 import type { RespecItem } from './RespecDialog';
 
 /** Routes sheet controls through the active run or practice reducer. */
-export const RunCharacterSheet = ({ character, vitals, onAction, onClose, onRespec, levelGuide, profile, inventory, respecItem }: {
+export const RunCharacterSheet = ({ character, vitals, onAction, onClose, onRespec, levelGuide, profile, inventory, album, respecItem }: {
   profile?: ReactNode;
   inventory?: ReactNode;
+  album?: ReactNode;
   respecItem?: RespecItem | undefined;
   levelGuide?: "spend" | "close" | undefined;
   character: CharacterState;
@@ -17,7 +18,7 @@ export const RunCharacterSheet = ({ character, vitals, onAction, onClose, onResp
   onAction: (action: RunAction) => void;
   onClose: () => void;
 }) => (
-  <CharacterSheet levelGuide={levelGuide} profile={profile} inventory={inventory} respecItem={respecItem}
+  <CharacterSheet levelGuide={levelGuide} profile={profile} inventory={inventory} album={album} respecItem={respecItem}
     onSkill={(pick, rankUp) => onAction({ type: rankUp ? 'buySkill' : 'skillPath', pick })}
     onRespec={onRespec}
     character={character} vitals={vitals}

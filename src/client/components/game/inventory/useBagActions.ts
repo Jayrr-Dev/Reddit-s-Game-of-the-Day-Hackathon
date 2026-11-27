@@ -12,7 +12,7 @@ import {
   type BagCell,
   type BagLayout,
 } from '../../../../shared/game/bagLayout';
-import { inventoryStacks, stackKey, type InventoryOwner, type InventorySlot } from '../../../../shared/game/inventory';
+import { backpackStacks, stackKey, type InventoryOwner, type InventorySlot } from '../../../../shared/game/inventory';
 
 // --- TYPES ---
 /** Everything a stack can be dropped on. */
@@ -44,7 +44,7 @@ export const targetOf = (zone: string | null): BagTarget | null => {
 // --- HOOK ---
 /** Selection, notices and every move the Inventory allows. */
 export function useBagActions(owner: InventoryOwner, { layout, onLayout, onTrash }: BagHandlers) {
-  const stacks = inventoryStacks(owner);
+  const stacks = backpackStacks(owner);
   const keys = stacks.map(stackKey);
   const bag = arrangeBag(layout, keys);
   const [selectedKey, setSelectedKey] = useState<string | undefined>();

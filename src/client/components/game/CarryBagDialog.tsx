@@ -88,12 +88,12 @@ export function CarryBagDialog({ cards, starter, selected, onPack, onRemove, onC
       const { left, right, top, bottom } = event.currentTarget.getBoundingClientRect();
       if (event.clientX < left || event.clientX > right || event.clientY < top || event.clientY > bottom) onClose();
     } }}>
-    <header><h2 id={titleId}>Bring a Card</h2><p>Drag cards between Inventory and Bag, or tap to move them.</p></header>
+    <header><h2 id={titleId}>Bring a Card</h2><p>Pick cards from your Album to bring. The originals stay in your Album.</p></header>
     <div className="carry-bag-layout">
-      <section className="carry-bag-inventory" aria-label="Inventory" data-carry-drop="inventory"
+      <section className="carry-bag-inventory" aria-label="Album" data-carry-drop="inventory"
         data-over={(drag?.over === 'inventory' && packedIds.has(drag.item.id)) || undefined}>
-        <h3>Inventory</h3>
-        {cards.some(card => !packedIds.has(card.id)) || flight ? <ul className="carry-bag-cards" aria-label="Cards in inventory">
+        <h3>Album</h3>
+        {cards.some(card => !packedIds.has(card.id)) || flight ? <ul className="carry-bag-cards" aria-label="Cards in Album">
           {cards.map(card => {
             const duplicate = isUniqueInDeck(deck, card.cardId);
             const blocked = full || duplicate;
@@ -130,7 +130,7 @@ export function CarryBagDialog({ cards, starter, selected, onPack, onRemove, onC
                   const r = event.currentTarget.getBoundingClientRect();
                   unpack(card, r.left + r.width / 2, r.top + r.height / 2, false);
                 }}>
-                <CardView cardId={card.cardId} size="fan" label={'Return ' + getCard(card.cardId).name + ' to Inventory'} />
+                <CardView cardId={card.cardId} size="fan" label={'Return ' + getCard(card.cardId).name + ' to Album'} />
               </div>
             </li>;
           })}

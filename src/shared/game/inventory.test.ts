@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createCharacter } from './character.ts';
-import { inventoryOf, inventoryStacks, stackKey } from './inventory.ts';
+import { backpackStacks, inventoryOf, inventoryStacks, stackKey } from './inventory.ts';
 import { startingBag } from './items.ts';
 
 test('the inventory lists consumables and owned jewelry, and no unowned cards', () => {
@@ -23,6 +23,14 @@ test('trashing a worn ring removes it from the bag and its slot, and saves as a 
   const character = applyCharacterAction(createCharacter(), action);
   assert.equal(character.inventory.some((item) => item.id === 'iron-ring'), false);
   assert.equal(character.equipment.rings[0], null);
+});
+
+test('equipped jewelry stays out of the backpack until unequipped', async () => {
+  const { equipItem } = await import('./character.ts');
+  const character = createCharacter();
+  assert.ok(!backpackStacks({ character, bag: {} }).some(slot => slot.id === 'iron-ring'));
+  const unequipped = equipItem(character, 'ring', null, 0);
+  assert.ok(backpackStacks({ character: unequipped, bag: {} }).some(slot => slot.id === 'iron-ring'));
 });
 
 test('unspent shop cards appear as backpack stacks under their real card names', () => {

@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { PANDORA_RUN_COPY, type PandoraRunEffect } from '../../../shared/game/pandora';
-import { MAX_CARRY_CARDS, type CarryCard } from '../../../shared/game/carryCards';
+import { ALBUM_SLOTS, MAX_CARRY_CARDS, type CarryCard } from '../../../shared/game/carryCards';
 import { isUniqueInDeck } from '../../../shared/game/unique';
 import { getCard } from '../../../shared/game/cards';
 import { createCombatant } from '../../../shared/game/combatant';
@@ -59,7 +59,7 @@ export function StarterPicker({ accountId, starting, onBack, onConfirm, loadTest
       if (!live) return;
       setBuild(result.build);
       setQueued({ real: result.nextEffect, test: test?.nextEffect });
-      setCarry([...new Map([...(result.carryCards ?? []), ...(test?.carryCards ?? [])].map(card => [card.id, card])).values()]);
+      setCarry([...new Map([...(result.carryCards ?? []).slice(0, ALBUM_SLOTS), ...(test?.carryCards ?? [])].map(card => [card.id, card])).values()]);
     })
       .catch(()=>{if(live)setError(true);}).finally(()=>{if(live)setLoading(false);});
     return ()=>{live=false;};

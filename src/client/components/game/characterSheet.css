@@ -113,6 +113,10 @@
   border-color: #edc984;
   color: var(--color-on-accent);
 }
+@container character-frame (max-width: 29rem) {
+  .cs-pages:has([data-tab='album']) { flex-wrap: wrap; }
+  .cs-pages:has([data-tab='album']) button { flex: 1 0 28%; }
+}
 .cs-pages button:not([aria-pressed='true']),
 .cs-trait-grid button,
 .cs-trait-summary .cs-action {

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { availableCarryCards, isCarryCardId, isCarrySelection, isTestCarryCardId, seededAdminCarryCards, shopStockKey } from './carryCards.ts';
+import { availableCarryCards, changeAlbum, isCarryCardId, isCarrySelection, isTestCarryCardId, seededAdminCarryCards, shopStockKey } from './carryCards.ts';
 import { appleAtVictory } from './gold.ts';
 import { PANDORA_DUPLICATE_GOLD } from './pandora.ts';
 import { replayForScoreAndUnlocks } from './replayForScore.ts';
@@ -16,6 +16,32 @@ import { openedShopBoxes, quoteShopPurchase, recoverCardFromHell, readShopWallet
 const day = '2026-11-27';
 const firstId = 'b4879658-3fed-485f-8039-600f1045a9f8';
 const nextId = '4c9d180d-5955-4c68-bcd2-92995619e472';
+
+test('Album keeps four active cards, allows an archive swap, and tombstones trash without refunding it', () => {
+  const extra = 'shop:' + day;
+  const initial = { ...readShopWallet(), carry: { ...seededAdminCarryCards(), [extra]: { id: extra, cardId: 'wardingBolt', source: 'shop' } } } as const;
+  assert.equal(selectCarryCards(initial, [extra]), undefined);
+  const swapped = changeAlbum(initial.carry, { type: 'swap', id: extra, with: 'test:1' });
+  assert.ok(swapped);
+  assert.deepEqual(selectCarryCards({ ...initial, carry: swapped }, [extra]), ['wardingBolt']);
+  const discarded = changeAlbum(swapped, { type: 'trash', id: extra });
+  assert.ok(discarded);
+  const reloaded = readShopWallet(JSON.stringify({ ...initial, carry: discarded }));
+  assert.equal(availableCarryCards(reloaded.carry).length, 4);
+  assert.equal(selectCarryCards(reloaded, [extra]), undefined);
+  assert.equal(shopGoldBalance(200, reloaded), shopGoldBalance(200, initial));
+  assert.equal(changeAlbum(reloaded.carry!, { type: 'trash', id: extra }), undefined);
+});
+
+test('Artifacts appear in the run that receives them and never carry into the next', () => {
+  const started = createRun(day);
+  const action = { type: 'chooseStop', option: 0, hellArtifact: 'ember-heart' } as const;
+  const awarded = runReducer(started, action);
+  assert.deepEqual(awarded.artifacts, ['ember-heart']);
+  assert.equal(awarded.maxHp, started.maxHp + 10);
+  assert.deepEqual(replayForScoreAndUnlocks(day, [action]).state.artifacts, awarded.artifacts);
+  assert.equal(createRun(day, undefined, 1).artifacts, undefined);
+});
 
 test('an Imbue destroys its own copy and the exact target keeps its gift in the next battle', () => {
   const deck: CardId[] = ['keenEdge', 'arcaneBolt', 'arcaneBolt'];

@@ -1,4 +1,4 @@
-import { availableCarryCards, isCarrySelection, IMBUE_CARDS, IMBUE_PRICE, isShopStockKey, readCarryCards, shopCardReceipt, SHOP_IMBUE_ID, type CarryCards } from './carryCards.ts';
+import { ALBUM_SLOTS, availableCarryCards, isCarrySelection, IMBUE_CARDS, IMBUE_PRICE, isShopStockKey, readCarryCards, shopCardReceipt, SHOP_IMBUE_ID, type CarryCards } from './carryCards.ts';
 import { ALL_CARD_IDS, getCard, isCardInPlay, type CardId } from './cards.ts';
 import { hashSeed, nextInt, pickDistinct, pickOne } from './rng.ts';
 import { TRAINING_JEWELRY } from './trainingJewelry.ts';
@@ -53,7 +53,7 @@ export type ShopOffer = RingOffer | MysteryOffer | CardOffer;
 export type ShopWallet = { items: RingPurchases; boxes: Partial<Record<string, ShopRingId>>; events?: Partial<Record<string, PandoraEvent>>; carry?: CarryCards; testFruit?: { items: ItemBag; stock: string } };
 export type ShopReward =
   | { kind: 'jewelry'; id: ShopRingId; name: string; slot: EquipmentSlot; rarity: RingRarity }
-  | PandoraEvent;
+  | (PandoraEvent & { albumFull?: true });
 const isBoxReceipt = (key: string) => {
   const [stock, box, ...extra] = key.split(':');
   return !extra.length && isShopStockKey(stock) && MYSTERY_BOX_IDS.some(id => id === box);
@@ -259,6 +259,7 @@ export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: Sho
   if (offer.slot === 'card') {
     const id = shopCardReceipt(day, practice);
     if (wallet.carry?.[id]) return { status: 'owned' } as const;
+    if (!practice && availableCarryCards(wallet.carry).length >= ALBUM_SLOTS) return { status: 'full' } as const;
     if (balance < offer.price) return { status: 'short' } as const;
     return { status: 'buy', next: { ...wallet, carry: { ...wallet.carry, [id]: { id, cardId: offer.cardId, source: 'shop' } } } } as const;
   }
@@ -276,10 +277,13 @@ export function quoteShopPurchase(earned: number, wallet: ShopWallet, offer: Sho
   const kindRoll = nextInt(seed('kind'), 100)[0];
   if (kindRoll < PANDORA_CARD_CHANCE) {
     const [cardId] = pickOne(seed('card'), PLAYABLE_CARDS);
-    if (availableCarryCards(wallet.carry).some(card => card.cardId === cardId)) {
+    const owned = availableCarryCards(wallet.carry);
+    const albumFull = !practice && owned.length >= ALBUM_SLOTS;
+    if (albumFull || owned.some(card => card.cardId === cardId)) {
       const rarity = shopCardRarity(cardId);
       const reward = pandoraGoldReward(level, rarity);
-      return { status: 'buy', reward, next: { ...wallet, events: { ...wallet.events, [receipt]: reward } } } as const;
+      return { status: 'buy', reward: { ...reward, ...(albumFull && { albumFull: true as const }) },
+        next: { ...wallet, events: { ...wallet.events, [receipt]: reward } } } as const;
     }
     const id = (practice ? 'test-pandora:' : 'pandora:') + receipt;
     const card = { id, cardId, source: practice ? 'test' : 'pandora' } satisfies NonNullable<CarryCards[string]>;
@@ -313,13 +317,15 @@ function shopRarity(id: ShopRingId): RingRarity {
 }
 
 /** Resolve an entire ordered selection of owned receipts without consuming them. */
-export function selectCarryCards(wallet: ShopWallet, receipts: readonly string[]) {
+export function selectCarryCards(wallet: ShopWallet, receipts: readonly string[], practice = false) {
   if (!isCarrySelection(receipts)) return undefined;
+  const owned = availableCarryCards(wallet.carry);
+  const active = new Map((practice ? owned : owned.slice(0, ALBUM_SLOTS)).map(card => [card.id, card.cardId]));
   const cards: CardId[] = [];
   for (const receipt of receipts) {
-    const card = wallet.carry?.[receipt];
+    const card = active.get(receipt);
     if (!card) return undefined;
-    cards.push(card.cardId);
+    cards.push(card);
   }
   return cards;
 }

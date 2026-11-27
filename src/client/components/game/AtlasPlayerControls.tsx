@@ -9,7 +9,7 @@ import { BattleCharacterSheet } from './BattleCharacterSheet';
 import { SettingsDialog } from './menu/SettingsDialog';
 
 export type AtlasRunControls = {
-  run: Pick<RunState, 'character' | 'hp' | 'maxHp' | 'deck'>;
+  run: Pick<RunState, 'character' | 'hp' | 'maxHp' | 'deck' | 'artifacts'>;
   onAction: (action: RunAction) => void;
   onMainMenu: () => void;
 };
@@ -27,7 +27,7 @@ export function AtlasPlayerControls({ run, onAction }: AtlasRunControls) {
       </span>
     </button>
     {profile && <BattleCharacterSheet
-      deck={run.deck} character={run.character} vitals={{ hp: run.hp, maxHp: run.maxHp }}
+      deck={run.deck} artifacts={run.artifacts} character={run.character} vitals={{ hp: run.hp, maxHp: run.maxHp }}
       onAction={onAction} onClose={() => setProfile(false)}
     />}
   </>;

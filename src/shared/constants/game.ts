@@ -20,7 +20,7 @@ export const DAILY_DATA_TTL_DAYS = 30;
 
 // --- PLAYER INVENTORY ---
 /** Cells in the backpack grid (4 x 4). It grows by whole rows if a player owns more. */
-export const BACKPACK_SLOTS = 16;
+export const BACKPACK_SLOTS = 12;
 /** Columns in the backpack grid. */
 export const BACKPACK_COLUMNS = 4;
 /** Cells in the belt strip under the backpack; with the trash it fills one 4-square row. */

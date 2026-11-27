@@ -1,4 +1,4 @@
-import { appendCarriedCards, availableCarryCards, isTestCarryCardId, seededAdminCarryCards, shopCardReceipt, shopStockKey } from '../../shared/game/carryCards';
+import { appendCarriedCards, availableCarryCards, changeAlbum, isTestCarryCardId, seededAdminCarryCards, shopCardReceipt, shopStockKey, type AlbumAction } from '../../shared/game/carryCards';
 import type { ShopApple } from '../../shared/game/items';
 import type { CardId } from '../../shared/game/cards';
 import { randomUUID } from 'node:crypto';
@@ -138,7 +138,7 @@ export async function buyRing(id: string, day: string, offerDay: string, ringId:
       const xpStartWins = await readLevelCurveStart(id, wins);
       const decision = quoteShopPurchase(earned, wallet, offer, stock, entropy, !!practice, progressionFromWins(wins, false, xpStartWins).level);
       if (decision.status === 'owned') return { status: 'owned', shop: response(stock, earned, wallet, admin, practice) } as const;
-      if (decision.status === 'short') return { status: 'short', shop: response(stock, earned, wallet, admin, practice) } as const;
+      if (decision.status === 'short' || decision.status === 'full') return { status: decision.status, shop: response(stock, earned, wallet, admin, practice) } as const;
       // The receipt doubles as ownership and debit. No partial outcome can exist.
       await transaction.multi();
       inMulti = true;
@@ -180,7 +180,7 @@ export async function bindRunItems(id: string, day: string, profile: RunProfile,
       if (testKey && !testRaw) return undefined;
       const testWallet = readShopWallet(testRaw ?? undefined, true);
       const realWallet = readShopWallet(realRaw ?? undefined);
-      const test = selectCarryCards(testWallet, testIds);
+      const test = selectCarryCards(testWallet, testIds, true);
       const real = selectCarryCards(realWallet, realIds);
       if (!test || !real) return undefined;
       const cardsByReceipt = new Map([...testIds.map((receipt, index) => [receipt, test[index]!] as const),
@@ -206,6 +206,33 @@ export async function bindRunItems(id: string, day: string, profile: RunProfile,
     }
   }
   throw new Error('Could not start the run with these items. Try again.');
+}
+
+/** Save an Album edit without refunding or removing its original purchase receipt. */
+export async function updatePlayerAlbum(id: string, action: AlbumAction) {
+  const key = redisKeys.ringPurchases(id);
+  for (let i = 0; i < 6; i++) {
+    const transaction = await redis.watch(key);
+    let inMulti = false;
+    let completed = false;
+    try {
+      const wallet = readShopWallet(await redis.get(key));
+      const carry = changeAlbum(wallet.carry ?? {}, action);
+      if (!carry) return undefined;
+      await transaction.multi();
+      inMulti = true;
+      await transaction.set(key, JSON.stringify({ ...wallet, carry }));
+      const result = await transaction.exec();
+      completed = true;
+      if (result[0] === 'OK') return availableCarryCards(carry);
+    } finally {
+      if (!completed) {
+        if (inMulti) await transaction.discard().catch(() => {});
+        else await transaction.unwatch().catch(() => {});
+      }
+    }
+  }
+  throw new Error('Could not update the Album. Try again.');
 }
 
 /** A verified first battle credits the bound curse run, at most once. */

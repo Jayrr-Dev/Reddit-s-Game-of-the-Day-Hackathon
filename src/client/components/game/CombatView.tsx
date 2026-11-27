@@ -100,6 +100,7 @@ import { useGameSettings } from '../../hooks/useGameSettings';
 
 // --- TYPES ---
 export type CombatViewProps = {
+  artifacts?: readonly import('../../../shared/game/hellArtifacts').RunArtifactId[] | undefined;
   tutorialCue?: { selector: string; label: string };
   allowCombatAction?: (action: RunAction) => boolean;
   onPileClosed?: (pile: CardBrowserView) => void;
@@ -242,6 +243,7 @@ const PauseSheet = ({
 // --- COMPONENT ---
 /** Renders one fight. */
 export const CombatView = ({
+  artifacts,
   combat: realCombat,
   character,
   onRespec,
@@ -708,7 +710,7 @@ export const CombatView = ({
           : tutorialCue)} />
       )}
       {showCharacter && (
-        <BattleCharacterSheet deck={deck} levelGuide={levelGuide} vitals={{ hp: combat.player.hp, maxHp: combat.player.maxHp, guard: combat.player.guard, energy: combat.energy }} onRespec={onRespec} character={character} onAction={onAction} onClose={() => { setShowCharacter(false); onCharacterClosed?.(); }} />
+        <BattleCharacterSheet deck={deck} artifacts={artifacts} levelGuide={levelGuide} vitals={{ hp: combat.player.hp, maxHp: combat.player.maxHp, guard: combat.player.guard, energy: combat.energy }} onRespec={onRespec} character={character} onAction={onAction} onClose={() => { setShowCharacter(false); onCharacterClosed?.(); }} />
       )}
       {openPile && (
         <PileDialog

@@ -16,7 +16,8 @@ import { replayForScore, replayForScoreAndUnlocks } from '../../shared/game/repl
 import { getUnlocks, recordUnlocks } from '../core/playerUnlocks';
 import { isCardId } from '../../shared/game/cards';
 import { isStarterName, starterDeck } from '../../shared/game/starters';
-import { isCarrySelection, isCarriedDeck, isShopStockKey } from '../../shared/game/carryCards';
+import { isCarryCardId, isCarrySelection, isCarriedDeck, isShopStockKey, isTestCarryCardId } from '../../shared/game/carryCards';
+import { updatePlayerAlbum } from '../core/playerRingShop';
 import { bankHellCard, bindRunItems, creditPandoraBounty, currentShopStock, recordShopBossClear, buyRing, getAdminRingShop, getRingShop, offerAdminShopFruit, openAdminRingShop, readPlayerProgress, recordVictories } from '../core/playerRingShop';
 import { isPandoraRunEffect } from '../../shared/game/pandora';
 import { isShopOfferId, shopRingIds } from '../../shared/game/ringShop';
@@ -189,6 +190,21 @@ api.post('/profile/discard-item', async (c) => {
   if (!isItemId(itemId)) return jsonError(c, 400, 'Unknown item');
   return c.json<DiscardItemResponse>({ items: await discardPlayerItem(id, itemId) });
 });
+// --- POST /api/profile/album ---
+api.post('/profile/album', async (c) => {
+  const id = context.userId;
+  if (!id) return jsonError(c, 401, 'Sign in to edit your Album');
+  const action: unknown = await c.req.json().catch(() => null);
+  if (!action || typeof action !== 'object' || !('id' in action) || !('type' in action) ||
+    !isCarryCardId(action.id) || isTestCarryCardId(action.id)) return jsonError(c, 400, 'Invalid Album card');
+  const selection = action.type === 'trash' ? { type: 'trash' as const, id: action.id }
+    : action.type === 'swap' && 'with' in action && isCarryCardId(action.with) && !isTestCarryCardId(action.with)
+      ? { type: 'swap' as const, id: action.id, with: action.with } : undefined;
+  if (!selection) return jsonError(c, 400, 'Invalid Album action');
+  const carryCards = await updatePlayerAlbum(id, selection);
+  return carryCards ? c.json({ carryCards }) : jsonError(c, 400, 'Those cards are no longer in those slots');
+});
+
 // --- GET /api/init ---
 // Everything the game needs on first paint: day, player, best score, streak.
 api.get('/init', async (c) => {

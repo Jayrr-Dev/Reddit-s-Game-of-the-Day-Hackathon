@@ -6,7 +6,7 @@ import { ShopAppleIcon } from './ShopAppleIcon';
 import { GoldCoins } from '../profileParts';
 import type { RingShopResponse, ShopReward } from '../../../../shared/types/api';
 import { getItem, itemQuantity, REALM_APPLE, SHOP_APPLE, type ItemBag, type ShopApple } from '../../../../shared/game/items';
-import type { CarryCard } from '../../../../shared/game/carryCards';
+import { ALBUM_SLOTS, type CarryCard } from '../../../../shared/game/carryCards';
 import { CardView } from '../CardView';
 import type { ShopOffer, ShopOfferId, ShopRingId } from '../../../../shared/game/ringShop';
 import { MysteryChest, MysteryReveal } from './MysteryReveal';
@@ -93,8 +93,9 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
       if (result.shop.testVisit) onTestInventory?.(result.shop.owned, result.shop.testVisit, result.shop.carryCards ?? []);
       if (result.status === 'bought' && !result.reward) onSale(shop.offers.find(offer => offer.id === id));
       if (result.reward) { revealing = true; setReward(result.reward); }
-      setNote(result.status === 'bought' ? (result.shop.testVisit ? '' : result.reward ? 'Opening paid.' : shop.offers.some(offer => offer.id === id && offer.slot === 'card') ? 'Added to Inventory.' : 'Bought. Equip it in Profile.') :
+      setNote(result.status === 'bought' ? (result.shop.testVisit ? '' : result.reward ? 'Opening paid.' : shop.offers.some(offer => offer.id === id && offer.slot === 'card') ? 'Added to Album.' : 'Bought. Equip it in Profile.') :
         result.status === 'owned' ? 'This offer is no longer available.' :
+        result.status === 'full' ? 'Album full. Trash a card to make room.' :
         result.status === 'short' ? 'Not enough Gold.' :
         result.status === 'stale' ? (shop.testVisit && !result.shop.testVisit ? 'Test visit expired. Reopen the Shop.' : 'Stock changed. Check the new offers.') :
         'The shop is busy. Please try again.');
@@ -184,6 +185,7 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
             const inspecting = selected === offer.id;
             const detailsId = 'shop-details-' + offer.id;
             const short = shop.gold < offer.price;
+            const albumFull = !shop.testVisit && offer.slot === 'card' && (shop.carryCards?.length ?? 0) >= ALBUM_SLOTS;
             return <li key={offer.id} className="ring-counter-item" style={{ '--shop-slot': slot } as CSSProperties} data-rarity={offer.rarity} data-box={box || undefined}>
               <span className="ring-counter-name" title={offer.name}>{offer.name}</span>
               <button type="button" className="ring-counter-disc" data-card={offer.slot === 'card' || undefined} aria-expanded={inspecting} aria-controls={inspecting ? detailsId : undefined} data-shop-inspect
@@ -199,10 +201,10 @@ export function RingCounter({ onSale, onReroll, onBuyingChange, onTestInventory 
                 <p>{offer.flavor}</p>
                 <span>{offer.slot === 'box' ? 'Pay to open it once. The box stays with Metatron. The reward is yours.' : offer.effect ?? 'Cosmetic'}</span>
               </div>}
-              <button type="button" className="ring-counter-price" disabled={owned || short || busy !== undefined || offeringApple !== undefined}
-                aria-label={owned ? offer.name + (box ? ' opened' : ' owned') : (box ? 'Open ' : 'Buy ') + offer.name + ' for ' + offer.price + ' Gold' + (short ? ', not enough Gold' : '')}
+              <button type="button" className="ring-counter-price" disabled={owned || short || albumFull || busy !== undefined || offeringApple !== undefined}
+                aria-label={albumFull && !owned ? offer.name + ', Album full' : owned ? offer.name + (box ? ' opened' : ' owned') : (box ? 'Open ' : 'Buy ') + offer.name + ' for ' + offer.price + ' Gold' + (short ? ', not enough Gold' : '')}
                 onClick={() => void buy(offer.id)}>
-                {owned ? box ? 'Opened' : 'Owned' : busy === offer.id ? box ? 'Opening' : 'Buying' : <><GoldCoins /> {offer.price}</>}
+                {owned ? box ? 'Opened' : 'Owned' : albumFull ? 'Album full' : busy === offer.id ? box ? 'Opening' : 'Buying' : <><GoldCoins /> {offer.price}</>}
               </button>
             </li>;
           })}
