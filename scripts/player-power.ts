@@ -7,6 +7,7 @@
 //   npm run player -- --style=curses                 archer | melee | mage | curses | hybrid
 //   npm run player -- --level=50                     one level
 //   npm run player -- --set=curve.energyValue=7      change a number for this run
+//   npm run player -- --best                         best hand every turn (a ceiling), not the deckset
 //   npm run player -- --md > player.md               a Markdown table
 // ===================================================================
 
@@ -32,7 +33,7 @@ const configFromArgs = (): CostCurveConfig =>
 const DEFAULT_LEVELS = [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
 
 // --- OUTPUT ---
-const HEADERS = ['Style', 'Level', 'Energy', 'HP', 'Damage/turn', 'Power', 'Traits', 'Skills bought'];
+const HEADERS = ['Style', 'Level', 'Energy', 'HP', 'Damage/turn', 'Blocked/turn', 'Toughness', 'Power', 'Traits', 'Skills bought'];
 
 /** "Str 64, Vig 40, End 22" for the trait split the search chose. */
 const traitText = (result: PlayerPower): string =>
@@ -48,6 +49,8 @@ const rowCells = (result: PlayerPower): string[] => [
   String(result.energy),
   String(result.hp),
   String(result.damagePerTurn),
+  String(Math.round(result.blockedPerTurn)),
+  String(result.toughness),
   String(result.power),
   traitText(result),
   String(result.skills.length),
@@ -59,9 +62,10 @@ const main = (): void => {
   const config = configFromArgs();
   const styleIds = argValues('style');
   const levels = argValues('level').map(Number);
+  const mode = process.argv.includes('--best') ? 'best' : 'deckset';
   const styles = PLAY_STYLES.filter((style) => styleIds.length === 0 || styleIds.includes(style.id));
   const results = styles.flatMap((style) =>
-    (levels.length ? levels : DEFAULT_LEVELS).map((level) => playerPower(config, style, level))
+    (levels.length ? levels : DEFAULT_LEVELS).map((level) => playerPower(config, style, level, mode))
   );
   const rows = results.map(rowCells);
   console.log(process.argv.includes('--md') ? markdownTable(HEADERS, rows) : textTable(HEADERS, rows));

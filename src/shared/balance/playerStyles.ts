@@ -10,6 +10,7 @@
 // ===================================================================
 
 import type { TraitId } from '../game/character.ts';
+import type { DecksetId } from '../game/sandboxDecks.ts';
 import type { CardType } from '../game/types.ts';
 
 // --- TYPES ---
@@ -31,8 +32,10 @@ export type SkillStep = {
 export type PlayStyle = {
   id: PlayStyleId;
   label: string;
-  /** Card types the deck is built from. */
+  /** Card types the best deck is built from. */
   cardTypes: readonly CardType[];
+  /** Training decksets the average-hand deck is made of (each card once, as in game). */
+  decksets: readonly DecksetId[];
   /** Damage traits it raises (the optimiser splits points between them). */
   damageTraits: readonly TraitId[];
   /** Skill circles in buying order (each already includes its path's entry). */
@@ -53,6 +56,7 @@ export const PLAY_STYLES: readonly PlayStyle[] = [
     id: 'archer',
     label: 'Archer',
     cardTypes: ['range'],
+    decksets: ['archerSet'],
     damageTraits: ['dexterity'],
     skills: [
       { name: 'Quiver (Range entry)', points: 3 },
@@ -72,6 +76,7 @@ export const PLAY_STYLES: readonly PlayStyle[] = [
     id: 'melee',
     label: 'Melee',
     cardTypes: ['melee'],
+    decksets: ['meleeSet'],
     damageTraits: ['strength'],
     skills: [
       { name: 'Armory (Melee entry)', points: 3 },
@@ -92,6 +97,7 @@ export const PLAY_STYLES: readonly PlayStyle[] = [
     id: 'mage',
     label: 'Mage',
     cardTypes: ['magic'],
+    decksets: ['magicSet'],
     damageTraits: ['intelligence'],
     skills: [
       { name: 'Quiver (Magic entry)', points: 3 },
@@ -110,6 +116,7 @@ export const PLAY_STYLES: readonly PlayStyle[] = [
     id: 'curses',
     label: 'Curses',
     cardTypes: ['curse'],
+    decksets: ['cursedSet'],
     damageTraits: ['scorn'],
     skills: [
       AFFLICTION_ENTRY,
@@ -125,6 +132,7 @@ export const PLAY_STYLES: readonly PlayStyle[] = [
     id: 'hybrid',
     label: 'Hybrid (Melee + Curses)',
     cardTypes: ['melee', 'curse'],
+    decksets: ['meleeSet', 'cursedSet'],
     damageTraits: ['strength', 'scorn'],
     skills: [
       { name: 'Armory (Melee entry)', points: 3 },
