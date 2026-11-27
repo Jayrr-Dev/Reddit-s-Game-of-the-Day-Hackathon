@@ -18,7 +18,8 @@
     "test": "npm run test:unit",
     "images:placeholders": "node scripts/generate-image-placeholders.mjs",
     "balance": "node --experimental-strip-types --no-warnings=ExperimentalWarning scripts/card-balance.ts",
-    "power": "node --experimental-strip-types --no-warnings=ExperimentalWarning scripts/unit-power.ts"
+    "power": "node --experimental-strip-types --no-warnings=ExperimentalWarning scripts/unit-power.ts",
+    "player": "node --experimental-strip-types --no-warnings=ExperimentalWarning scripts/player-power.ts"
   },
   "engines": {
     "node": ">=24.0.0"
