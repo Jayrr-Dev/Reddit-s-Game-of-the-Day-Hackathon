@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { mikhaelCelAt, mikhaelSwordClip, MIKHAEL_SWORD_DURATION_MS, type MikhaelAttackClip } from '../../../content/mikhaelMotion';
 import type { HeroAction } from '../../../content/heroLooks';
 import type { HeroSize } from '../../../../shared/game/types';
@@ -62,25 +62,50 @@ const IDLE_BEAT_MS = 3200 / IDLE_CELS;
 //   289 268 288 257Z, greaves: M331 283 352 283 354 330 366 333 368 372 330 372Z);
 // - the dark oval under the boots is already keyed out, like KeyedPose does live.
 // Doing that live each frame (two <use> copies, a clip and a filter) made it lag.
+// The cels are only 7.5 per second, which read as choppy. Like Uriel's rig,
+// the loop runs on requestAnimationFrame and writes attributes directly (no
+// React render per frame), cross-fading each cel into the next so the sway
+// moves at the display's frame rate. The second cel is added with
+// plus-lighter inside an isolated group: (1 - t)·A + t·B in premultiplied
+// alpha, so the opaque body never turns see-through mid-fade.
+
+/** Moves an atlas image to show one cel. */
+const showCel = (image: SVGImageElement, cel: number): void => {
+  image.setAttribute('x', String(-(cel % IDLE_COLUMNS) * CELL_W));
+  image.setAttribute('y', String(-Math.floor(cel / IDLE_COLUMNS) * CELL_H));
+};
+
 /** Plays the wing, cloth and hair cels, with the sword and boots held still. */
 function MikhaelIdleWind() {
   const art = useProgressiveImage(idleWind);
-  const [cel, setCel] = useState(0);
+  const fromCel = useRef<SVGImageElement>(null);
+  const toCel = useRef<SVGImageElement>(null);
   useEffect(() => {
+    const from = fromCel.current;
+    const to = toCel.current;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (art.isPlaceholder || reduced.matches) return;
+    if (art.isPlaceholder || !from || !to || reduced.matches) return;
     const started = performance.now();
-    const tick = () => {
-      if (document.visibilityState === 'visible' && !reduced.matches)
-        setCel(Math.floor((performance.now() - started) / IDLE_BEAT_MS) % IDLE_CELS);
+    let handle = 0;
+    const draw = (now: number) => {
+      const beat = ((now - started) / IDLE_BEAT_MS) % IDLE_CELS;
+      const cel = Math.floor(beat);
+      const blend = beat - cel;
+      showCel(from, cel);
+      showCel(to, (cel + 1) % IDLE_CELS);
+      from.setAttribute('opacity', String(1 - blend));
+      to.setAttribute('opacity', String(blend));
+      handle = requestAnimationFrame(draw);
     };
-    const timer = window.setInterval(tick, IDLE_BEAT_MS);
-    return () => window.clearInterval(timer);
+    handle = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(handle);
   }, [art.isPlaceholder]);
   if (art.isPlaceholder) return <KeyedPose><ProgressiveSvgImage href={idle} width={CELL_W} height={CELL_H} /></KeyedPose>;
-  return <image data-mikhael-idle-cel={cel} href={art.src} width={CELL_W * IDLE_COLUMNS} height={CELL_H * IDLE_ROWS}
-    x={-(cel % IDLE_COLUMNS) * CELL_W} y={-Math.floor(cel / IDLE_COLUMNS) * CELL_H}
-    preserveAspectRatio="none" />;
+  return <g data-mikhael-idle-wind style={{ isolation: 'isolate' }}>
+    <image ref={fromCel} href={art.src} width={CELL_W * IDLE_COLUMNS} height={CELL_H * IDLE_ROWS} preserveAspectRatio="none" />
+    <image ref={toCel} href={art.src} width={CELL_W * IDLE_COLUMNS} height={CELL_H * IDLE_ROWS} preserveAspectRatio="none"
+      opacity={0} style={{ mixBlendMode: 'plus-lighter' }} />
+  </g>;
 }
 
 // --- FOOT KEYING ---
