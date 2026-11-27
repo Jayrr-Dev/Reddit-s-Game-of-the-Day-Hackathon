@@ -96,7 +96,7 @@ export const KEYWORD_LOOK: Record<CardKeyword, Look> = {
  * Longrange): its shots, and shots at it, land only some of the time.
  */
 export const OUT_OF_RANGE_LOOK: Look = {
-  glyph: 'arrowhead',
+  glyph: 'eyeOff',
   toneClass: 'text-range',
 };
 

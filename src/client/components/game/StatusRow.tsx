@@ -444,10 +444,11 @@ const EnemyStatusTile = ({ chip }: { chip: StatusChip }) => (
       data-range-penalty={chip.key === OUT_OF_RANGE_CHIP.key ? '' : undefined}
       className={`relative grid size-6 cursor-pointer place-items-center rounded-[3px] bg-surface-sunken ring-1 ring-edge focus-visible:outline-2 focus-visible:outline-accent ${chip.fill ? 'text-black' : chip.toneClass}`}
       style={{backgroundColor: chip.fill}}>
-      <span className={chip.turnsLeft !== undefined ? 'translate-x-0.5 translate-y-0.5' : chip.text ? '-translate-x-0.5 -translate-y-0.5' : ''}>
-        {chipIconOf(chip) ?? <Glyph name={chip.glyph} className="size-4" />}
+      <span className="enemy-status-icon" aria-hidden="true">
+        {chipIconOf(chip) ?? <Glyph name={chip.glyph} className="block size-full" />}
       </span>
-      {chip.text && <span className="absolute right-0 bottom-0 rounded-tl-sm bg-black/90 px-px text-[10px] leading-none font-bold tabular-nums text-white">{chip.text}</span>}
+      {chip.text && <span className="enemy-status-count" aria-hidden="true"
+        data-chars={chip.text.length}><span>{chip.text}</span></span>}
       {chip.turnsLeft !== undefined && <TurnsLeft turns={chip.turnsLeft} placement="corner" />}
     </button>
   </Tooltip>

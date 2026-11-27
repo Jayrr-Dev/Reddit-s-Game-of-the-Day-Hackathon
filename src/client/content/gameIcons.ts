@@ -14,7 +14,7 @@ import { SKILL_ICONS } from './skillIcons';
 export type GameIcon = { path: string; author: string; source: string };
 
 // --- ICONS ---
-export const GAME_ICONS: Record<GlyphName, GameIcon> = {
+export const GAME_ICONS: Record<Exclude<GlyphName, 'eyeOff'>, GameIcon> = {
   sword: {
     author: 'Lorc',
     source: 'https://game-icons.net/1x1/lorc/broadsword.html',
