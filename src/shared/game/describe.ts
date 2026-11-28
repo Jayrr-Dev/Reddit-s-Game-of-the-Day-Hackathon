@@ -205,7 +205,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
     description:
       'Reduces each Melee or Range hit taken. Lasts the fight.',
   },
-  move: { label: 'Move', description: 'Your next **Charge** or **Back Step** travels up to this many extra rows.' },
+  move: { label: 'Extra Movement', description: 'Your next **Charge** or **Back Step** travels up to this many extra rows.' },
   pin: {
     label: 'Pin',
     description:
@@ -334,6 +334,7 @@ export const describeCardEffect = (
     case 'wrath':
       return `Wrath ${effect.amount}`;
     case 'move':
+      return `+${effect.amount} next move`;
     case 'brace':
     case 'rush':
     case 'armor':
