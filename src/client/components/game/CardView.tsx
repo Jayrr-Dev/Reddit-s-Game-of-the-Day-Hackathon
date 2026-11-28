@@ -398,7 +398,11 @@ export const MovementCard = ({ move, cost, disabled, blockReason, onPlay }: {
   const frame = CARD_LOOK.movement;
   const action = MOVEMENT_LOOK[move];
   const baseCost = MOVEMENTS[move].baseCost;
-  const rules = blockReason ?? (move === 'backStep' ? 'Move back 1 line. Gain Reflex.' : 'Move closer 1 line. Gain Momentum.');
+  const rules = blockReason
+    ? [blockReason]
+    : move === 'backStep'
+      ? ['Back 1', 'Reflex']
+      : ['Forward 1', 'Momentum'];
   const costTone = cost > baseCost ? 'text-red-900' : cost < baseCost ? 'text-green-900' : 'text-on-accent';
   return (
     <button type="button" data-card-type="movement" data-card-size="fan" data-move={move}
@@ -409,7 +413,7 @@ export const MovementCard = ({ move, cost, disabled, blockReason, onPlay }: {
       <ArtWindow glyph={action.glyph} glowVar={frame.glowVar} look={look} />
       <NameBanner name={<Tooltip isInline content={{ title: action.label, description: blockReason ?? action.description }}>{action.label}</Tooltip>} frameClass={frame.frameClass} gemClass={null} look={look} />
       <span className={`card-rules flex w-full min-h-0 flex-1 flex-col justify-center rounded-b-sm bg-parchment text-on-parchment ${look.rules}`}>
-        <RulesLine text={rules} printed={rules} />
+        {rules.map(line => <RulesLine key={line} text={line} printed={line} />)}
       </span>
       <TypeRibbon typeName={frame.typeName} element={undefined} edge={undefined} look={look} />
     </button>

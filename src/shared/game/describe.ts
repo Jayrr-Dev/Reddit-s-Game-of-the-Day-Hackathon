@@ -644,6 +644,8 @@ export const GLOSSARY: Readonly<Record<string, GlossaryEntry>> =
         CARD_USE_INFO,
         { label: 'Charge', description: `Move forward when the ${ROW_LABEL.front} is empty and gain **Momentum**` },
         { label: 'Back Step', description: 'Move back if there is room. Gain **Reflex**.' },
+        { label: 'Forward', description: 'Move this many lines closer.' },
+        { label: 'Back', description: 'Move this many lines farther away.' },
         { label: 'Energy', description: 'Gain this much energy immediately to spend on cards or movement.' },
         IMBUE_INFO,
         CLEANSE_INFO,
