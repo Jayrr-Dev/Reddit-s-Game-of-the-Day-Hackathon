@@ -267,7 +267,7 @@ export const MALAISE_TURNS = 1;
  * behind the target (1 = full damage; lower it for a falloff).
  */
 export const PIERCE_DAMAGE_FACTOR = 1;
-/** Stacks an active Hex gains from an action that does not apply Hex. */
+/** Bonus stacks on already Hexed units when you play a Hex card. */
 export const HEX_ACTION_GAIN = 1;
 /** How many stacks an active Hex spends when it burns. */
 export const HEX_BURN_STACK_COST = 1;

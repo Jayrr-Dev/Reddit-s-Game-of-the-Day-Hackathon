@@ -26,25 +26,22 @@ const delayed = (config: CostCurveConfig, turns: number): number =>
 
 // --- DAMAGE OVER TIME ---
 /**
- * Hex on an enemy never runs out: it grows by 1 after each of your
- * actions and bursts for its value at multiples of 3 (when applied,
- * after an action, and at turn start). So its worth depends on how
- * long the target lives. Replays that for `afflictionTurnsLeft` turns of
- * `actionsPerTurn` actions: the rest of this turn, then whole turns.
+ * Value the application, follow-up Hex cards that raise this target by one,
+ * and turn openings while the target survives.
  */
 export const hexValue = (config: CostCurveConfig, stacks: number): number => {
-  const { actionsPerTurn, afflictionTurnsLeft } = config.battle;
+  const { hexCardsPerTurn, afflictionTurnsLeft } = config.battle;
   let hex = stacks;
-  // This turn: the burst on landing, then the actions left after the curse.
+  // This turn's Hex plays include the application itself.
   let total = hexBurnAmount(hex);
-  for (let action = 1; action < actionsPerTurn; action += 1) {
+  for (let action = 1; action < hexCardsPerTurn; action += 1) {
     hex = hexAfterGrowth(hex);
     total += hexBurnAmount(hex);
   }
-  // Later turns: a burst at turn start, then one check after each action.
+  // Later turns: check the opening and each follow-up Hex card.
   for (let turn = 1; turn < afflictionTurnsLeft; turn += 1) {
     let turnDamage = hexBurnAmount(hex);
-    for (let action = 0; action < actionsPerTurn; action += 1) {
+    for (let action = 0; action < hexCardsPerTurn; action += 1) {
       hex = hexAfterGrowth(hex);
       turnDamage += hexBurnAmount(hex);
     }

@@ -843,7 +843,7 @@ export const hexBurstDamage = (target: Combatant, hex: number, source?: Combatan
 export const hexAfterBurn = (hex: number, source?: HexSource): number =>
   Math.max(0, hex - (hexBurnAmount(hex, source) ? HEX_BURN_STACK_COST : 0));
 
-/** Remaining Hex after a player action. */
+/** Active Hex after the bonus from a Hex card. */
 export const hexAfterGrowth = (hex: number): number => hex > 0 ? hex + HEX_ACTION_GAIN : 0;
 
 /** Burst at the current count without changing it. */
@@ -863,24 +863,25 @@ export const hexBurn = <T extends Combatant>(target: T, source?: Combatant): T =
 };
 
 /** Grow active Hex without triggering it. */
-export const hexAfterAction = <T extends Combatant>(target: T): T => {
+export const growActiveHex = <T extends Combatant>(target: T): T => {
   if (target.hp <= 0 || target.statuses.hex <= 0) return target;
   return { ...target, statuses: { ...target.statuses, hex: hexAfterGrowth(target.statuses.hex) } };
 };
 
-/** A target that gained Hex from this action keeps every stack. */
-export const hexAfterActionUnlessApplied = <T extends Combatant>(before: T, after: T): T =>
-  after.statuses.hex > before.statuses.hex ? after : hexAfterAction(after);
+/** A Hex card's own application replaces the automatic bonus on that target. */
+const growUnlessApplied = <T extends Combatant>(before: T, after: T): T =>
+  after.statuses.hex > before.statuses.hex ? after : growActiveHex(after);
 
-/** A player action checks enemy Hex after resolving its growth or application. */
-export function hexAfterPlayerAction(before: CombatState, after: CombatState): CombatState {
+/** Resolve Hex only when a card raises a unit's count, via application or the Hex-card bonus. */
+export function resolveCardHex(before: CombatState, after: CombatState, isHexCard: boolean): CombatState {
   const existing = new Map(before.heroes.map(unit => [unit.uid, unit]));
   const heroes = after.heroes.map(unit => {
     if (unit.statuses.hex <= 0) return unit;
     const old = existing.get(unit.uid);
-    return hexBurst(old ? hexAfterActionUnlessApplied(old, unit) : unit, before.player);
+    const cursed = isHexCard && old ? growUnlessApplied(old, unit) : unit;
+    return cursed.statuses.hex > (old?.statuses.hex ?? 0) ? hexBurst(cursed, before.player) : cursed;
   });
-  const player = hexAfterActionUnlessApplied(before.player, after.player);
+  const player = isHexCard ? growUnlessApplied(before.player, after.player) : after.player;
   return player !== after.player || heroes.some((unit, index) => unit !== after.heroes[index])
     ? { ...after, player, heroes } : after;
 }

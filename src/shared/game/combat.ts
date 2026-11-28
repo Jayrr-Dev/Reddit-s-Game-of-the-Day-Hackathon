@@ -82,8 +82,7 @@ import {
   endOfTurnUpkeep,
   hexBurn,
   hexBurst,
-  hexAfterPlayerAction,
-  hexAfterActionUnlessApplied,
+  resolveCardHex,
   poisonTick,
   guardAmount,
   hasMomentumFor,
@@ -1443,6 +1442,15 @@ function knockbackImpact(before: CombatState, moved: CombatState, hits: Readonly
   return changed ? { ...moved, heroes, mostKillsInOneHit: Math.max(moved.mostKillsInOneHit ?? 0, kills) } : moved;
 }
 
+/** A real pull or knockback bursts Hex only on the units that changed lanes. */
+function burstDisplacedHex(before: CombatState, after: CombatState): CombatState {
+  const heroes = after.heroes.map(unit => {
+    const old = before.heroes.find(hero => hero.uid === unit.uid);
+    return old && old.row !== unit.row ? hexBurst(unit, before.player) : unit;
+  });
+  return heroes.some((unit, index) => unit !== after.heroes[index]) ? { ...after, heroes } : after;
+}
+
 /**
  * Resolves a paid-for card and returns the state after every beat (each
  * hit of each pick). Splitting hits changes nothing: a card's hits all
@@ -1538,6 +1546,13 @@ const cardBeats = (
           states.push(current);
         }
       }
+      if (effect.kind === 'pull' || effect.kind === 'push') {
+        const displaced = burstDisplacedHex(before, current);
+        if (displaced !== current) {
+          current = displaced;
+          states.push(current);
+        }
+      }
       // SHOCK CHAIN: a burst on this beat sets off the other Shocks, a beat each.
       if (primed.size && current.heroes.some(unit => {
         const old = before.heroes.find(hero => hero.uid === unit.uid);
@@ -1570,7 +1585,10 @@ const cardBeats = (
   // BLEED: combine each target's landed hits into one final damage beat.
   const counted = biteBleedOnAttack(paid, current, bleeders);
   if (counted !== current) states.push(counted);
-  const ticked = hexAfterPlayerAction(paid, counted);
+  const isHexCard = cardDef.effects.some(effect => effect.kind === 'hex');
+  const ticked = isHexCard || extra.some(effect => effect.kind === 'hex')
+    ? resolveCardHex(paid, counted, isHexCard)
+    : counted;
   if (ticked !== counted) {
     // Give an actual burst its own damage beat, but do not pause for stack growth alone.
     const burst = ticked.heroes.some((unit, i) => unit.hp < counted.heroes[i]!.hp);
@@ -2127,6 +2145,7 @@ const forcePlayerMovement = (state: CombatState, pulling: boolean, lines: number
   const distance = Math.max(0, ...heroes.map((unit, i) => Math.abs(rowDepth(unit.row) - rowDepth(state.heroes[i]!.row))));
   return {
     ...state, heroes,
+    player: distance > 0 ? hexBurn(state.player) : state.player,
     travelRows: (state.travelRows ?? 0) + (pulling ? distance : -distance),
     forcedMovement: { count: (state.forcedMovement?.count ?? 0) + 1, move: pulling ? 'charge' : 'backStep', distance },
   };
@@ -2285,11 +2304,8 @@ const heroActs = (
   }, hasAttack ? updateHeroes(state, [uid], revealCloak) : state);
 
   const afterBleed = acted.player.hp > 0 ? bleedOnAttack(acted.player, state.player.statuses.bleed, actor, attackBlock.bleedHits) : acted.player;
-  // Every enemy move grows existing Hex on the player, even support moves.
-  // A move that applies Hex skips the automatic extra stack.
-  const player = planned ? hexAfterActionUnlessApplied(state.player, afterBleed) : afterBleed;
   const isDiving = planned !== null && isAloft(actor);
-  const settled = updateHeroes({ ...acted, player }, [uid], (unit) => {
+  const settled = updateHeroes({ ...acted, player: afterBleed }, [uid], (unit) => {
     // BURN AND FROST RUN AFTER EVERY ACTION, UPKEEP AFTER THE LAST ONE
     const landed = afterAction(isDiving ? withAloft(unit, 0) : unit, state.player);
     return {

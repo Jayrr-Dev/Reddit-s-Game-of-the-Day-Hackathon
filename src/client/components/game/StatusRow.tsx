@@ -175,8 +175,8 @@ const hexChipOf = (hex: number, target: Combatant, source?: Combatant, isPlayer 
   return {
     fill: (opening || action) ? toneVarOf(STATUS_LOOK.hex) : undefined,
     text: String(hex),
-    description: 'Hex bursts at multiples of 3. ' + (isPlayer ? 'Enemy actions also add 1 to active Hex. ' : '') +
-      `If no Hex is added: ${hex} to ${next} Hex${action ? `, dealing ${action} damage` : ''} after an action. ` +
+    description: 'Hex bursts at multiples of 3. Pull and Knockback can trigger it without adding stacks. ' +
+      `A Hex card that doesn't add stacks here raises it to ${next}${action ? `, dealing ${action} damage` : ''}. ` +
       `At your turn start, if unchanged: ${opening ? `${opening} damage` : 'no burst'}` +
       (left !== hex ? `, then ${left} Hex.` : '.'),
   };

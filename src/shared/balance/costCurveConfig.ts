@@ -69,8 +69,8 @@ export type CostCurveConfig = {
     shockOnTarget: number;
     /** Hex already on a target when Reap is played. */
     hexOnTarget: number;
-    /** Your actions per turn (cards and moves): each one grows enemy Hex. */
-    actionsPerTurn: number;
+    /** Expected follow-up Hex cards per turn that don't directly Hex this target. */
+    hexCardsPerTurn: number;
     /** Turns a cursed unit lives on: enemy Hex never runs out, so this caps its value. */
     afflictionTurnsLeft: number;
   };
@@ -232,7 +232,7 @@ export const COST_CURVE_CONFIG: CostCurveConfig = {
     physicalHitsLeft: 8,
     shockOnTarget: 4,
     hexOnTarget: 4,
-    actionsPerTurn: 3,
+    hexCardsPerTurn: 1,
     afflictionTurnsLeft: 3,
   },
   movement: {

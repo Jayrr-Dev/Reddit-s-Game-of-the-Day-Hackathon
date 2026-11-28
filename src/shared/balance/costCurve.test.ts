@@ -18,9 +18,9 @@ void test('Status values replay the game rules', () => {
   // Burn 3 deals 3 upfront, then 3 and 1 after actions. Frost keeps its existing valuation.
   assert.equal(burnValue(3), 7);
   assert.equal(halvingValue(3), 4);
-  // Hex 3, 3 actions a turn, 3 turns, no discounts: one burst per turn for 3, 6, then 9.
-  const plain = { ...CONFIG, battle: { ...CONFIG.battle, actionsPerTurn: 3, afflictionTurnsLeft: 3, delayKeptPerTurn: 1, hexLandsLate: 1 } };
-  assert.equal(hexValue(plain, 3), 18);
+  // With one Hex card per turn, Hex 3 bursts on landing and at the next turn opening.
+  const plain = { ...CONFIG, battle: { ...CONFIG.battle, hexCardsPerTurn: 1, afflictionTurnsLeft: 3, delayKeptPerTurn: 1, hexLandsLate: 1 } };
+  assert.equal(hexValue(plain, 3), 6);
   assert.equal(poisonValue(plain, 8), 36);
 });
 

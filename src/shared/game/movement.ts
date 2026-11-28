@@ -15,9 +15,9 @@
 
 import { appendCombatHistory, recordEffects } from './combatHistory.ts';
 import { chargeGuardOf, iFramesOf, movementDiscountOf } from './skills.ts';
-import { addGuard, hexAfterPlayerAction } from './combatant.ts';
+import { addGuard } from './combatant.ts';
 import { fallBack, isDeep, rowDepth, stepForward } from './battlefield.ts';
-import { canPlayCard, canPlayCardOnSelf, combatOutcome, removeFallen } from './combat.ts';
+import { canPlayCard, canPlayCardOnSelf, combatOutcome } from './combat.ts';
 import {
   BACK_STEP_COST,
   BACK_STEP_ROWS,
@@ -274,8 +274,7 @@ export const move = (state: CombatState, moveId: MovementId): CombatState => {
     ...shiftFormation({ ...state, player: spendRush(state.player) }, moveId),
   };
   const moved = skillGrant(grant(paid, def.grants), moveId);
-  const resolved = hexAfterPlayerAction(state, moved);
-  return recordEffects(state, resolved === moved ? moved : removeFallen(resolved));
+  return recordEffects(state, moved);
 };
 
 /** Rampage and Momentum cards grant the same non-stacking bonus as Charge. */
