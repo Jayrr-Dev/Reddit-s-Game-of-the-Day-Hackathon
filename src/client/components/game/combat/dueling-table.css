@@ -553,7 +553,8 @@
 .hero-plate-health > .enemy-status-grid {
   display: flex;
   gap: 3px;
-  zoom: .533333;
+  /* STATUS CUBE SIZE: .533333 base, x1.1 so the cubes read 10% bigger (Sam, 2026-11-28). */
+  zoom: .586667;
 }
 .hero-plate-health [data-range-penalty] { zoom: 1.25; }
 .enemy-status-grid[data-effect-side="buffs"] { justify-content: flex-start; flex-direction: row-reverse; }
