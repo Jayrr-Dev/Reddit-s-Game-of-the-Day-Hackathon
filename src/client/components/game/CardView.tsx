@@ -3,7 +3,7 @@
 // One card face, laid out top to bottom like a classic battler card:
 //   cost orb      energy cost, top-left, overlapping the frame
 //   art window    an arched window with the type's glyph
-//   name banner   the name across the middle in a compact title font
+//   name banner   the name across the middle in the display font
 //   rules panel   parchment with the rules text, glossary words in
 //                 bold, and the card's own keywords on the last line
 //   rarity gem    a small V under the banner (starters have none)
@@ -130,8 +130,8 @@ const SIZE_LOOK: Record<CardSize, SizeLook> = {
     orb: 'size-5 text-[11px] -left-1.5 -top-1.5',
     art: 'h-7',
     glyph: 'size-5',
-    name: 'text-[9.5px] py-0.5',
-    rules: 'text-[10px] px-1',
+    name: 'text-[7.5px] py-0.5',
+    rules: 'text-[8px] leading-[1.15] px-0.5',
     ribbon: 'text-[7px] px-2 gap-0.5',
     ribbonIcon: 'size-2',
     gem: 'h-[8px] w-[11px]',
@@ -141,8 +141,8 @@ const SIZE_LOOK: Record<CardSize, SizeLook> = {
     orb: 'size-7 text-sm -left-2 -top-2',
     art: 'h-12',
     glyph: 'size-8',
-    name: 'text-xs py-0.5',
-    rules: 'text-xs px-1.5',
+    name: 'text-[10px] py-0.5',
+    rules: 'text-[10px] leading-snug px-1',
     ribbon: 'text-[8px] px-2 gap-1',
     ribbonIcon: 'size-2.5',
     gem: 'h-[10px] w-[14px]',
@@ -153,7 +153,7 @@ const SIZE_LOOK: Record<CardSize, SizeLook> = {
  * Words drawn bold in rules text: every glossary word (longest first,
  * so no word is cut short by a shorter one), plus ALL.
  */
-const BOLD_WORDS = [...Object.keys(GLOSSARY), 'ALL', 'Damage'].sort(
+const BOLD_WORDS = [...Object.keys(GLOSSARY), 'ALL'].sort(
   (a, b) => b.length - a.length
 );
 /** Durations ("this turn"), drawn in italics after their gift. */
@@ -236,7 +236,7 @@ const MarkedPart = ({
   useInfo: StatusInfo | null;
 }) => {
   if (DURATION_WORDS.includes(part)) return <i>{part}</i>;
-  const bold = <b className={`font-bold ${changeClassName}`}>{part}</b>;
+  const bold = <b className={`font-black ${changeClassName}`}>{part}</b>;
   const info = useInfo?.label === part ? useInfo : GLOSSARY[part];
   if (!info) return bold;
   return (
@@ -378,9 +378,9 @@ const NameBanner = ({
   look: SizeLook;
 }) => (
   <span
-    className={`card-banner relative -mx-[3px] shrink-0 ${frameClass} text-ink [text-shadow:0_1px_1px_rgb(0_0_0/0.8)] ${look.name}`}
+    className={`card-banner relative -mx-[3px] shrink-0 ${frameClass} font-display font-black uppercase leading-none tracking-tight text-ink [text-shadow:0_1px_1px_rgb(0_0_0/0.8)] ${look.name}`}
   >
-    <span className="card-banner-name">{name}</span>
+    {name}
     {gemClass && <RarityGem gemClass={gemClass} sizeClass={look.gem} />}
   </span>
 );
@@ -398,18 +398,18 @@ export const MovementCard = ({ move, cost, disabled, blockReason, onPlay }: {
   const frame = CARD_LOOK.movement;
   const action = MOVEMENT_LOOK[move];
   const baseCost = MOVEMENTS[move].baseCost;
-  const rules = move === 'backStep' ? ['Back 1 line', 'Gain Reflex'] : ['Closer 1 line', 'Gain Momentum'];
+  const rules = blockReason ?? (move === 'backStep' ? 'Move back 1 line. Gain Reflex.' : 'Move closer 1 line. Gain Momentum.');
   const costTone = cost > baseCost ? 'text-red-900' : cost < baseCost ? 'text-green-900' : 'text-on-accent';
   return (
     <button type="button" data-card-type="movement" data-card-size="fan" data-move={move}
-      disabled={disabled} onClick={onPlay} title={blockReason ?? undefined}
+      disabled={disabled} onClick={onPlay}
       className={`${FACE_CLASS} ${look.box} ${frame.frameClass}`}>
       <span aria-label={`${cost} energy, ${cost > baseCost ? 'increased' : cost < baseCost ? 'discounted' : 'base'} cost`}
         className={`absolute z-10 flex ${look.orb} items-center justify-center rounded-full bg-energy ${costTone} font-display font-black ring-2 ring-surface-sunken`}>{cost}</span>
       <ArtWindow glyph={action.glyph} glowVar={frame.glowVar} look={look} />
       <NameBanner name={<Tooltip isInline content={{ title: action.label, description: blockReason ?? action.description }}>{action.label}</Tooltip>} frameClass={frame.frameClass} gemClass={null} look={look} />
-      <span className={`card-rules flex w-full flex-col justify-center rounded-b-sm bg-parchment text-on-parchment ${look.rules}`}>
-        {rules.map(line => <RulesLine key={line} text={line} printed={line} />)}
+      <span className={`card-rules flex w-full min-h-0 flex-1 flex-col justify-center rounded-b-sm bg-parchment text-on-parchment ${look.rules}`}>
+        <RulesLine text={rules} printed={rules} />
       </span>
       <TypeRibbon typeName={frame.typeName} element={undefined} edge={undefined} look={look} />
     </button>
@@ -481,7 +481,7 @@ export const CardView = ({
         look={look}
       />
       <span
-        className={`card-rules flex w-full flex-col justify-center rounded-b-sm bg-parchment text-on-parchment ${look.rules}`}
+        className={`card-rules flex w-full min-h-0 flex-1 flex-col justify-center rounded-b-sm bg-parchment text-on-parchment ${look.rules}`}
       >
         {describeCard(cardId, attacker, target, usesSpent, imbues).map(
           (line, index) => (
