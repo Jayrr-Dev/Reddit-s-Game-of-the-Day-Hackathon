@@ -28,6 +28,7 @@ import { lookOfTerm } from '../../content/glossaryLooks';
 import type { Look } from '../../content/visuals';
 import {
   placeFloating,
+  TRIGGER_GAP,
   type FloatingPlacement,
 } from '../../lib/floatingPlacement';
 
@@ -159,6 +160,7 @@ export const Tooltip = ({
   children,
   isInline = false,
   opensOn = 'hover',
+  gap = TRIGGER_GAP,
 }: {
   content: TooltipContent;
   children: ReactNode;
@@ -169,6 +171,8 @@ export const Tooltip = ({
   isInline?: boolean;
   /** "hover" (default): hover or long press. "click": a popover. */
   opensOn?: 'hover' | 'click';
+  /** Space between the label and the trigger (px). */
+  gap?: number;
 }) => {
   const [placement, setPlacement] = useState<Placement | null>(null);
   const [labelHost, setLabelHost] = useState<Element | null>(null);
@@ -192,7 +196,7 @@ export const Tooltip = ({
       const rect = triggerRef.current?.getBoundingClientRect();
       setLabelHost(labelHostOf(triggerRef.current));
       if (rect) setPlacement(placeFloating(rect, widthOf(content.title),
-        content.title === 'Hex' ? HEX_MIN_ROOM_ABOVE : MIN_ROOM_ABOVE));
+        content.title === 'Hex' ? HEX_MIN_ROOM_ABOVE : MIN_ROOM_ABOVE, gap));
     }, delayMs);
   };
 
@@ -237,7 +241,7 @@ export const Tooltip = ({
       open || !rect
         ? null
         : placeFloating(rect, widthOf(content.title),
-          content.title === 'Hex' ? HEX_MIN_ROOM_ABOVE : POPOVER_MIN_ROOM_ABOVE)
+          content.title === 'Hex' ? HEX_MIN_ROOM_ABOVE : POPOVER_MIN_ROOM_ABOVE, gap)
     );
   };
   const popoverHandlers = {

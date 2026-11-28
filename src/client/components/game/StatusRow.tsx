@@ -408,10 +408,13 @@ const OverflowChip = ({
 // --- COMPONENT ---
 /** Give each flank a short row; extra effects stay available through overflow. */
 const ENEMY_VISIBLE_PER_SIDE = 3;
+/** Lift an enemy tile's popover clear of the tile and the HP shield beside it (px). */
+const ENEMY_TILE_POPOVER_GAP = 22;
 
 /** An enemy's small status tile retains its full detail on click. */
 const EnemyStatusTile = ({ chip }: { chip: StatusChip }) => (
-  <Tooltip opensOn="click" content={{title: chip.title, description: chip.description}}>
+  <Tooltip opensOn="click" gap={ENEMY_TILE_POPOVER_GAP}
+    content={{title: chip.title, description: chip.description}}>
     <button type="button" aria-label={([chip.title, chip.text].join(' ').trim()) + (chip.turnsLeft !== undefined ? ', ' + chip.turnsLeft + (chip.turnsLeft === 1 ? ' turn left' : ' turns left') : '')}
       data-range-penalty={chip.key === OUT_OF_RANGE_CHIP.key ? '' : undefined}
       className={`relative grid size-6 cursor-pointer place-items-center rounded-[3px] bg-surface-sunken ring-1 ring-edge focus-visible:outline-2 focus-visible:outline-accent ${chip.fill ? 'text-black' : chip.toneClass}`}
