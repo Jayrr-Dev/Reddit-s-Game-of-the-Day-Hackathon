@@ -89,7 +89,7 @@ export const STATUS_INFO: Record<StatusId | 'guard', StatusInfo> = {
   hex: {
     label: 'Hex',
     description:
-      'Playing a Hex card adds **1** to active Hex on units the card did not directly Hex. Hex bursts at **multiples of 3** on Pull, Knockback or your turn start. Enemy Hex also bursts when its stack count rises.',
+      "A Hex card adds **1** to already-cursed units it doesn't directly curse.\nBursts at **3, 6, 9…** on Pull, Knockback, or your turn start.\nOn enemies, reaching a multiple of **3** also triggers a burst.",
   },
   burn: {
     label: 'Burn',

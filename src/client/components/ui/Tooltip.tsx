@@ -54,10 +54,15 @@ const HOVER_DELAY_MS = 150;
 const LONG_PRESS_MS = 400;
 /** Most the label may be wide (px); it is placed before it renders. */
 const MAX_WIDTH = 200;
+/** A wider panel keeps the three Hex rules readable at inline game widths. */
+const HEX_WIDTH = 248;
 /** Below this much room above the trigger, show it underneath. */
 const MIN_ROOM_ABOVE = 70;
 /** A popover (a glossary entry, several lines) needs more room above. */
 const POPOVER_MIN_ROOM_ABOVE = 150;
+
+/** Matches the rendered width to the width used for placement. */
+const widthOf = (title: string): number => title === 'Hex' ? HEX_WIDTH : MAX_WIDTH;
 
 // --- SUBCOMPONENTS ---
 /** The bold title, in its term's colour with its icon when it has one. */
@@ -90,7 +95,7 @@ const TooltipLabel = ({
   <div
     role="tooltip"
     className={`pointer-events-none fixed z-[100] flex justify-center animate-tooltip-in ${placement.isAbove ? '-translate-y-full' : ''}`}
-    style={{ left: placement.left, top: placement.top, width: MAX_WIDTH }}
+    style={{ left: placement.left, top: placement.top, width: widthOf(content.title) }}
   >
     <div className="relative rounded-md border border-edge bg-surface-raised px-2.5 py-1.5 text-left shadow-[0_6px_18px_rgb(0_0_0/0.5)]">
       <TooltipTitle
@@ -100,7 +105,9 @@ const TooltipLabel = ({
       {content.body ? (
         <div className="mt-1 text-[11px] leading-snug">{content.body}</div>
       ) : content.description && (
-        <div className="mt-0.5 text-[11px] leading-snug text-ink-muted">
+        <div className={content.title === 'Hex'
+          ? 'mt-1 text-[13px] leading-snug text-ink [&_ul]:gap-1.5'
+          : 'mt-0.5 text-[11px] leading-snug text-ink-muted'}>
           <RichText text={content.description} />
         </div>
       )}
@@ -182,7 +189,8 @@ export const Tooltip = ({
     timerRef.current = window.setTimeout(() => {
       const rect = triggerRef.current?.getBoundingClientRect();
       setLabelHost(labelHostOf(triggerRef.current));
-      if (rect) setPlacement(placeFloating(rect, MAX_WIDTH, MIN_ROOM_ABOVE));
+      if (rect) setPlacement(placeFloating(rect, widthOf(content.title),
+        content.title === 'Hex' ? POPOVER_MIN_ROOM_ABOVE : MIN_ROOM_ABOVE));
     }, delayMs);
   };
 
@@ -226,7 +234,7 @@ export const Tooltip = ({
     setPlacement((open) =>
       open || !rect
         ? null
-        : placeFloating(rect, MAX_WIDTH, POPOVER_MIN_ROOM_ABOVE)
+        : placeFloating(rect, widthOf(content.title), POPOVER_MIN_ROOM_ABOVE)
     );
   };
   const popoverHandlers = {
