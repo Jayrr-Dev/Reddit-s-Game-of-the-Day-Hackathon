@@ -60,6 +60,8 @@ const HEX_WIDTH = 248;
 const MIN_ROOM_ABOVE = 70;
 /** A popover (a glossary entry, several lines) needs more room above. */
 const POPOVER_MIN_ROOM_ABOVE = 150;
+/** Leave room for wrapped rules and icons at the narrowest game width. */
+const HEX_MIN_ROOM_ABOVE = 180;
 
 /** Matches the rendered width to the width used for placement. */
 const widthOf = (title: string): number => title === 'Hex' ? HEX_WIDTH : MAX_WIDTH;
@@ -190,7 +192,7 @@ export const Tooltip = ({
       const rect = triggerRef.current?.getBoundingClientRect();
       setLabelHost(labelHostOf(triggerRef.current));
       if (rect) setPlacement(placeFloating(rect, widthOf(content.title),
-        content.title === 'Hex' ? POPOVER_MIN_ROOM_ABOVE : MIN_ROOM_ABOVE));
+        content.title === 'Hex' ? HEX_MIN_ROOM_ABOVE : MIN_ROOM_ABOVE));
     }, delayMs);
   };
 
@@ -234,7 +236,8 @@ export const Tooltip = ({
     setPlacement((open) =>
       open || !rect
         ? null
-        : placeFloating(rect, widthOf(content.title), POPOVER_MIN_ROOM_ABOVE)
+        : placeFloating(rect, widthOf(content.title),
+          content.title === 'Hex' ? HEX_MIN_ROOM_ABOVE : POPOVER_MIN_ROOM_ABOVE)
     );
   };
   const popoverHandlers = {
