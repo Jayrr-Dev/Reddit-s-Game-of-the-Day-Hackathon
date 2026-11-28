@@ -3,7 +3,7 @@ import test from 'node:test';
 import { ALL_CARD_IDS, getCard, isCardInPlay } from '../game/cards.ts';
 import { cardValueParts, scoreAllCards, scoreCard, targetValue } from './costCurve.ts';
 import { COST_CURVE_CONFIG, withOverride } from './costCurveConfig.ts';
-import { burnValue, halvingValue, hexValue } from './statusValues.ts';
+import { burnValue, halvingValue, hexValue, poisonValue } from './statusValues.ts';
 
 const CONFIG = COST_CURVE_CONFIG;
 
@@ -21,6 +21,7 @@ void test('Status values replay the game rules', () => {
   // Hex 3, 3 actions a turn, 3 turns, no discounts: one burst per turn for 3, 6, then 9.
   const plain = { ...CONFIG, battle: { ...CONFIG.battle, actionsPerTurn: 3, afflictionTurnsLeft: 3, delayKeptPerTurn: 1, hexLandsLate: 1 } };
   assert.equal(hexValue(plain, 3), 18);
+  assert.equal(poisonValue(plain, 8), 36);
 });
 
 void test('Every effect on every card in play gets a price', () => {

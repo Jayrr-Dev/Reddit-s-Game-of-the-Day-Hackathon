@@ -71,7 +71,7 @@ export type CostCurveConfig = {
     hexOnTarget: number;
     /** Your actions per turn (cards and moves): each one grows enemy Hex. */
     actionsPerTurn: number;
-    /** Turns an afflicted unit lives on: enemy Hex and Poison never run out, so this caps their value. */
+    /** Turns a cursed unit lives on: enemy Hex never runs out, so this caps its value. */
     afflictionTurnsLeft: number;
   };
   /** Prices for moving (see movement.ts: buttons start at zero, then use a shared streak). */

@@ -2423,7 +2423,7 @@ const plannedAttackType = (
 };
 
 /**
- * A hero's turn-opening Poison tick, as a separate beat.
+ * A hero's Poison tick before an action, as a separate beat.
  */
 const poisonStep = (state: CombatState, uid: number): TurnStep | null => {
   const unit = state.heroes.find((hero) => hero.uid === uid);
@@ -2500,15 +2500,14 @@ const resolveTurnSteps = (state: CombatState, forecast = false): TurnStep[] => {
   //    or a fallen villain end it early)
   let current = discarded;
   for (const { uid, heroId } of heroTurnOrder(discarded.heroes)) {
-    const poisoned = poisonStep(current, uid);
-    if (poisoned) {
-      steps.push(poisoned);
-      current = poisoned.state;
-      if (combatOutcome(current) !== 'ongoing') return steps;
-    }
-
     const actions = actionsOf({ heroId });
     for (let action = 1; action <= actions; action += 1) {
+      const poisoned = poisonStep(current, uid);
+      if (poisoned) {
+        steps.push(poisoned);
+        current = poisoned.state;
+        if (combatOutcome(current) !== 'ongoing') return steps;
+      }
       const actor = current.heroes.find((unit) => unit.uid === uid);
       if (!actor) break;
       const planned = plannedHeroMove(actor, current.heroes);

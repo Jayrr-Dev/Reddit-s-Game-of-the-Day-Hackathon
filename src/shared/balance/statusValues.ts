@@ -65,14 +65,14 @@ export const halvingValue = (stacks: number): number => {
 /** Burn values its immediate damage separately from the full stacks it leaves. */
 export const burnValue = (stacks: number): number => stacks + halvingValue(stacks);
 
-/** Poison deals its value, then grows. Price its damage within the simulation window. */
+/** Poison deals its value per tick and loses one stack until it expires. */
 export const poisonValue = (
   config: CostCurveConfig,
   stacks: number
 ): number => {
   let total = 0;
   let poison = stacks;
-  for (let turn = 0; poison > 0 && turn < config.battle.afflictionTurnsLeft; turn += 1) {
+  for (let turn = 0; poison > 0; turn += 1) {
     total += poison * delayed(config, turn);
     poison = poisonAfterTick(poison);
   }

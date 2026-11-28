@@ -279,7 +279,7 @@ const statusChipsOf = (
           : STATUS_INFO[id].description + (!handModifier && owner === 'player' && once === total ? ' Expires after your next card.' : ''),
       ...(id === 'hex' ? hexChipOf(total, combatant, source, owner === 'player') : {}),
       ...(id === 'shock' ? shockChipOf(combatant, source) : {}),
-      ...(id === 'poison' ? {description: `Deals ${incomingAfflictionDamage(combatant, total, source)} damage ${owner === 'player' ? 'at the start of your turn' : 'at the start of its turn'}, then grows by 25% (rounded up).`} : {}),
+      ...(id === 'poison' ? {description: `Deals ${incomingAfflictionDamage(combatant, total, source)} damage ${owner === 'player' ? 'at the start of your turn' : 'before each action'}, then loses 1 stack.`} : {}),
       ...(id === 'burn' ? {description: `Deals ${incomingAfflictionDamage(combatant, total, source)} damage after each action, then halves (round down). New Burn also deals damage immediately without losing stacks.`} : {}),
       ...(id === 'bleed' ? {description: `Each landed Melee or Range hit adds ${incomingAfflictionDamage(combatant, bleedBiteOf(total), source)} Bleed damage. The total lands after the attack, then Bleed loses 1 stack.`} : {}),
     }];

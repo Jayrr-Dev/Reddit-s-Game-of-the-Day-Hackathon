@@ -945,12 +945,12 @@ export const afterAction = <T extends Combatant>(
   source?: Combatant
 ): T => shockFade(frostThaw(burnTick(target, source)));
 
-/** Active Poison deepens after ticking; zero never grows on its own. */
-export const poisonAfterTick = (stacks: number): number => Math.ceil(stacks * 1.25);
+/** Poison loses one stack per tick and expires at zero. */
+export const poisonAfterTick = (stacks: number): number => Math.max(0, stacks - 1);
 
 /**
- * At the start of the affected unit's turn, Poison deals its current value
- * as damage, then grows by 25% (rounded up).
+ * Poison deals its current value before each enemy action or at player turn
+ * start, then loses one stack.
  */
 export const poisonTick = <T extends Combatant>(
   target: T,
