@@ -19,7 +19,7 @@ void test('Status values replay the game rules', () => {
   assert.equal(burnValue(3), 7);
   assert.equal(halvingValue(3), 4);
   // Hex 3, 3 actions a turn, 3 turns, no discounts: one burst per turn for 3, 6, then 9.
-  const plain = { ...CONFIG, battle: { ...CONFIG.battle, actionsPerTurn: 3, hexTurnsLeft: 3, delayKeptPerTurn: 1, hexLandsLate: 1 } };
+  const plain = { ...CONFIG, battle: { ...CONFIG.battle, actionsPerTurn: 3, afflictionTurnsLeft: 3, delayKeptPerTurn: 1, hexLandsLate: 1 } };
   assert.equal(hexValue(plain, 3), 18);
 });
 

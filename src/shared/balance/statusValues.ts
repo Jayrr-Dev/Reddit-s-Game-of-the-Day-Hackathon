@@ -19,10 +19,6 @@ import {
 } from '../game/rules.ts';
 import type { CostCurveConfig } from './costCurveConfig.ts';
 
-// --- CONSTANTS ---
-/** Bound long-lived status simulations to a ten-turn valuation window. */
-const MAX_SIMULATED_TURNS = 10;
-
 // --- HELPERS ---
 /** Share of value left after `turns` turns of delay. */
 const delayed = (config: CostCurveConfig, turns: number): number =>
@@ -33,11 +29,11 @@ const delayed = (config: CostCurveConfig, turns: number): number =>
  * Hex on an enemy never runs out: it grows by 1 after each of your
  * actions and bursts for its value at multiples of 3 (when applied,
  * after an action, and at turn start). So its worth depends on how
- * long the target lives. Replays that for `hexTurnsLeft` turns of
+ * long the target lives. Replays that for `afflictionTurnsLeft` turns of
  * `actionsPerTurn` actions: the rest of this turn, then whole turns.
  */
 export const hexValue = (config: CostCurveConfig, stacks: number): number => {
-  const { actionsPerTurn, hexTurnsLeft } = config.battle;
+  const { actionsPerTurn, afflictionTurnsLeft } = config.battle;
   let hex = stacks;
   // This turn: the burst on landing, then the actions left after the curse.
   let total = hexBurnAmount(hex);
@@ -46,7 +42,7 @@ export const hexValue = (config: CostCurveConfig, stacks: number): number => {
     total += hexBurnAmount(hex);
   }
   // Later turns: a burst at turn start, then one check after each action.
-  for (let turn = 1; turn < hexTurnsLeft; turn += 1) {
+  for (let turn = 1; turn < afflictionTurnsLeft; turn += 1) {
     let turnDamage = hexBurnAmount(hex);
     for (let action = 0; action < actionsPerTurn; action += 1) {
       hex = hexAfterGrowth(hex);
@@ -76,7 +72,7 @@ export const poisonValue = (
 ): number => {
   let total = 0;
   let poison = stacks;
-  for (let turn = 0; poison > 0 && turn < MAX_SIMULATED_TURNS; turn += 1) {
+  for (let turn = 0; poison > 0 && turn < config.battle.afflictionTurnsLeft; turn += 1) {
     total += poison * delayed(config, turn);
     poison = poisonAfterTick(poison);
   }
