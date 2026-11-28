@@ -84,6 +84,7 @@ const rankedNote = (data: InitResponse, canResume: boolean): string | null => {
   if (!data.username) return 'Log in to put your conquest on the board.';
   if (canResume)
     return 'Your march was interrupted. Pick up where you left off.';
+  if (data.localPreview) return 'Local preview. Runs are unranked.';
   return data.hasStartedRankedRun
     ? null
     : 'Your first run today is ranked. Make it count.';
@@ -142,6 +143,7 @@ const Hero = ({ data }: { data: InitResponse }) => (
       <p className="pl-1 text-[10px] font-semibold text-white">
         {formatDailyKey(data.dailyKey)}
       </p>
+      {data.localPreview && <p className="pl-1 text-[10px] font-semibold text-white">Local preview</p>}
       {data.appVersion && <p className="pl-1 text-[10px] font-semibold text-white" aria-label={'Build ' + data.appVersion}>v{data.appVersion}</p>}
     </div>
     <div className="absolute right-2 top-2 flex flex-col items-end gap-1.5">

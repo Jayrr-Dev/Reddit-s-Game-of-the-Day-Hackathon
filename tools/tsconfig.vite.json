@@ -6,6 +6,7 @@
     "types": ["node"],
     "rootDir": ".."
   },
-  "include": ["../vite.config.ts"],
-  "exclude": []
+  "include": ["../vite.config.ts", "../vite.local.config.ts", "../scripts/local-preview.ts"],
+  "exclude": [],
+  "references": [{ "path": "./tsconfig.shared.json" }]
 }

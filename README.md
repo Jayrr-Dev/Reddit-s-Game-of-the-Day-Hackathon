@@ -11,6 +11,14 @@ An entry for **[Reddit's Game of the Day Hackathon](https://redditgameofday2026.
 
 ---
 
+## Local preview
+
+Run `npm run dev:local` and open [Villain Run on localhost](http://127.0.0.1:5173/).
+Edits to the client update in the browser without a Reddit upload. The preview
+uses a separate test profile with all Illusion Training content unlocked. Local
+runs are unranked and do not read or update Reddit data. Shop transactions,
+leaderboard verification, and other Devvit features still need the Reddit playtest.
+
 ## How to play
 
 - **Goal:** push as deep into the kingdom as you can. The heroes never stop coming, so every run ends. Your score is how far you got.
