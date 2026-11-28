@@ -131,6 +131,8 @@ Replace `src/client/components/PlaceholderGame.tsx` and keep its contract: call 
 
 Icons from [game-icons.net](https://game-icons.net) by Lorc, Sbed, Carl Olsen, Skoll, Delapouite and DarkZaitzev, licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). The picks and their sources are listed in `src/client/content/gameIcons.ts` and `src/client/content/skillIcons.ts`.
 
+Numerals use [Atkinson Hyperlegible](https://github.com/google/fonts/tree/main/ofl/atkinsonhyperlegible) from the Braille Institute, under the [SIL Open Font License](src/client/assets/fonts/atkinson-hyperlegible-OFL.txt).
+
 ## Useful links
 
 - Docs: [Quickstart](https://developers.reddit.com/docs/quickstart/) · [Devvit Web](https://developers.reddit.com/docs/capabilities/devvit-web/devvit_web_overview) · [Building games](https://developers.reddit.com/docs/introduction/intro-games) · [Templates](https://developers.reddit.com/docs/examples/template-library) · [LLM docs index](https://developers.reddit.com/docs/llms.txt)

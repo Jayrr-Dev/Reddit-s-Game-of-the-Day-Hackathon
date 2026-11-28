@@ -22,7 +22,7 @@
   grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
   align-items: center;
   height: 32px;
-  font-family: Georgia, serif;
+  font-family: var(--font-georgia);
   color: var(--gold-light);
 }
 .table-brand,
@@ -115,7 +115,7 @@
   gap: 3px;
   width: auto;
   padding-inline: 5px;
-  font: bold clamp(9px, 1.4cqw, 12px) / 1 Georgia, serif;
+  font: bold clamp(9px, 1.4cqw, 12px) / 1 var(--font-georgia);
   color: var(--gold-light);
 }
 
@@ -195,7 +195,7 @@
 /* Warmer paper on the table; its texture comes from cardFace.css. */
 .dueling-table .card-rules {
   --parchment-fill: radial-gradient(ellipse at center, #ffe8b5, #dfb67e);
-  font-family: Georgia, serif;
+  font-family: var(--font-georgia);
 }
 .dueling-table .table-player-health {
   outline: 1px solid var(--brass);
@@ -492,7 +492,7 @@
 }
 .table-player-health-label {
   position:absolute; inset:0; display:grid; place-items:center;
-  font:bold 9px/1 Georgia, serif; font-variant-numeric:tabular-nums;
+  font:bold 9px/1 var(--font-georgia); font-variant-numeric:tabular-nums;
   text-shadow:0 1px 2px #000,0 0 2px #000; white-space:nowrap;
 }
 @container duel (max-width:470px) {

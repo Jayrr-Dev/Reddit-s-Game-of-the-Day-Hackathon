@@ -78,29 +78,40 @@
   outline-offset: 2px;
 }
 
-/* --- LINING DIGITS ---
-   Georgia (the display font) draws old-style digits: a "1" is short
-   and sits low, a "3" drops below the line, so numbers never look
-   centred in a badge. This face swaps in a serif with lining digits for
-   the digits and number signs only; letters stay Georgia. If none of
-   these fonts exist, the browser simply falls back to Georgia. */
+/* --- NUMERALS --- */
+/* Use Atkinson's digits without changing the typeface of surrounding words. */
 @font-face {
-  font-family: 'Lining Digits';
-  src:
-    local('Times New Roman'), local('TimesNewRomanPSMT'),
-    local('Liberation Serif'), local('Noto Serif'), local('DejaVu Serif');
-  unicode-range: U+0030-0039, U+002B, U+002D, U+0025, U+00D7, U+2212;
-  font-weight: 100 500;
+  font-family: 'Atkinson Hyperlegible Digits';
+  src: url('./assets/fonts/atkinson-digits-normal-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+  unicode-range: U+0030-0039;
 }
-/* The bold cut, so heavy numbers (costs, HP) stay heavy. */
+
 @font-face {
-  font-family: 'Lining Digits';
-  src:
-    local('Times New Roman Bold'), local('TimesNewRomanPS-BoldMT'),
-    local('Liberation Serif Bold'), local('Noto Serif Bold'),
-    local('DejaVu Serif Bold');
-  unicode-range: U+0030-0039, U+002B, U+002D, U+0025, U+00D7, U+2212;
-  font-weight: 600 900;
+  font-family: 'Atkinson Hyperlegible Digits';
+  src: url('./assets/fonts/atkinson-digits-normal-700.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+  unicode-range: U+0030-0039;
+}
+
+@font-face {
+  font-family: 'Atkinson Hyperlegible Digits';
+  src: url('./assets/fonts/atkinson-digits-italic-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+  unicode-range: U+0030-0039;
+}
+
+@font-face {
+  font-family: 'Atkinson Hyperlegible Digits';
+  src: url('./assets/fonts/atkinson-digits-italic-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+  unicode-range: U+0030-0039;
 }
 
 @theme {
@@ -196,8 +207,9 @@
 
   /* --- TYPOGRAPHY --- */
   --font-display:
-    'Lining Digits', 'Georgia', 'Times New Roman', ui-serif, serif;
-  --font-body: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    'Atkinson Hyperlegible Digits', 'Georgia', 'Times New Roman', ui-serif, serif;
+  --font-georgia: 'Atkinson Hyperlegible Digits', Georgia, serif;
+  --font-body: 'Atkinson Hyperlegible Digits', 'Inter', ui-sans-serif, system-ui, sans-serif;
 
   /* --- MOTION --- */
   --animate-rise: rise 180ms ease-out;
@@ -3090,10 +3102,10 @@ textarea,
   position:absolute; left:7%; right:7%; bottom:12%; text-shadow:0 2px 5px #100a06,0 0 10px black;
   animation-duration:inherit; animation-timing-function:ease; animation-fill-mode:both;
 }
-.boss-dialogue {font:italic clamp(16px,3cqw,23px)/1.35 Georgia,serif;animation-name:boss-speech;}
+.boss-dialogue {font:italic clamp(16px,3cqw,23px)/1.35 var(--font-georgia);animation-name:boss-speech;}
 .boss-entrance .boss-entrance-card {display:grid;gap:.2rem;animation-name:boss-reveal;}
-.boss-epithet {color:#ead09a;font:italic clamp(14px,2.6cqw,21px)/1.2 Georgia,serif;}
-.boss-entrance-name {font:500 clamp(25px,5.4cqw,46px)/1.06 Georgia,serif;text-wrap:balance;}
+.boss-epithet {color:#ead09a;font:italic clamp(14px,2.6cqw,21px)/1.2 var(--font-georgia);}
+.boss-entrance-name {font:500 clamp(25px,5.4cqw,46px)/1.06 var(--font-georgia);text-wrap:balance;}
 .boss-skip-hint {position:absolute;right:4%;bottom:3%;font-size:.72rem;color:#f5e5c6;}
 .dueling-table:has(.boss-entrance) :is(.table-console,.table-header,.hero-plate-layer,.hero-plate-layer *) {visibility:hidden;pointer-events:none;}
 @keyframes boss-scene {0%{background-color:#100d0a}18%,94%{opacity:1;background-color:transparent}100%{opacity:0}}
