@@ -133,6 +133,8 @@ Icons from [game-icons.net](https://game-icons.net) by Lorc, Sbed, Carl Olsen, S
 
 Numerals use [Atkinson Hyperlegible](https://github.com/google/fonts/tree/main/ofl/atkinsonhyperlegible) from the Braille Institute, under the [SIL Open Font License](src/client/assets/fonts/atkinson-hyperlegible-OFL.txt).
 
+Cards use [Barlow Semi Condensed](https://github.com/jpt/barlow) and [Source Sans 3](https://github.com/adobe-fonts/source-sans), under their [Barlow](src/client/assets/fonts/barlow-semi-condensed-OFL.txt) and [Source Sans](src/client/assets/fonts/source-sans-3-OFL.txt) Open Font Licenses.
+
 ## Useful links
 
 - Docs: [Quickstart](https://developers.reddit.com/docs/quickstart/) · [Devvit Web](https://developers.reddit.com/docs/capabilities/devvit-web/devvit_web_overview) · [Building games](https://developers.reddit.com/docs/introduction/intro-games) · [Templates](https://developers.reddit.com/docs/examples/template-library) · [LLM docs index](https://developers.reddit.com/docs/llms.txt)

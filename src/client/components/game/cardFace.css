@@ -116,10 +116,35 @@
     100% 100%;
 }
 
+.card-banner-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  padding-inline: 2px;
+  font-family: var(--font-card-title);
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+/* Long effects get room from the art, not a smaller type size. */
+.card-face .card-window {
+  flex-shrink: 1;
+  min-height: 12px;
+}
+
 /* --- RULES PARCHMENT --- */
 /* Fibres and stains over the base fill, scorched toward the edges.
    --parchment-fill lets a scene (the dueling table) warm the paper. */
 .card-face .card-rules {
+  flex: 1 0 auto;
+  padding-block: 1px;
+  text-align: start;
+  font-family: var(--font-card-rules);
+  font-weight: 500;
+  line-height: 1.12;
   background-image:
     radial-gradient(
       ellipse at center,

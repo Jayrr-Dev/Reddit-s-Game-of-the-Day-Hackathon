@@ -114,6 +114,28 @@
   unicode-range: U+0030-0039;
 }
 
+@font-face {
+  font-family: 'Barlow Semi Condensed';
+  src: url('./assets/fonts/barlow-semi-condensed-normal.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Source Sans 3';
+  src: url('./assets/fonts/source-sans-3-normal.woff2') format('woff2');
+  font-weight: 400 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Source Sans 3';
+  src: url('./assets/fonts/source-sans-3-italic.woff2') format('woff2');
+  font-weight: 400 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 @theme {
   /* --- SURFACES AND TEXT --- */
   --color-surface: #110a10;
@@ -210,6 +232,9 @@
     'Atkinson Hyperlegible Digits', 'Georgia', 'Times New Roman', ui-serif, serif;
   --font-georgia: 'Atkinson Hyperlegible Digits', Georgia, serif;
   --font-body: 'Atkinson Hyperlegible Digits', 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --font-card-title: 'Atkinson Hyperlegible Digits', 'Barlow Semi Condensed', var(--font-body);
+  --font-card-rules: 'Atkinson Hyperlegible Digits', 'Source Sans 3', var(--font-body);
 
   /* --- MOTION --- */
   --animate-rise: rise 180ms ease-out;
@@ -2464,13 +2489,6 @@ textarea,
    ------------------------------------------------------------------- */
 .hex-aura {
   transition: opacity 300ms ease-out;
-}
-.hex-aura-count {
-  fill: var(--color-ink);
-  stroke: var(--color-surface-sunken);
-  stroke-width: .35px;
-  stroke-linejoin: round;
-  paint-order: stroke fill;
 }
 .hex-aura[data-state='waiting'] {
   opacity: 0.27;

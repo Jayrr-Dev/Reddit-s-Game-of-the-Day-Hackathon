@@ -1,6 +1,6 @@
 // ===================================================================
 // HEX AURA
-// The Hex sigil and stack count stay visible while a unit is cursed.
+// The Hex sigil stays visible while a unit is cursed. Status icons show stacks.
 // The ring is faint unless the next action or turn start will trigger a burst.
 // PERFORMANCE: one element, transform and opacity only (index.css
 // "HEX AURA"); reduced motion holds a still sigil.
@@ -21,11 +21,10 @@ const auraStateOf = (hex: number, source?: Combatant): HexAuraState | null => {
 };
 
 // --- COMPONENT ---
-/** Renders the aura and count over its parent's box while Hex is active. */
+/** Renders the aura over its parent's box while Hex is active. */
 export const HexAura = ({ hex, source }: { hex: number; source?: Combatant }) => {
   const state = auraStateOf(hex, source);
   if (!state) return null;
-  const count = String(hex);
   return (
     <span
       className="pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[78%] -translate-x-1/2 -translate-y-1/2 text-hex"
@@ -37,13 +36,6 @@ export const HexAura = ({ hex, source }: { hex: number; source?: Combatant }) =>
           <HexSigil />
         </svg>
       </span>
-      <svg viewBox="0 0 10 10" className="absolute inset-0 size-full overflow-visible">
-        <text x="5" y="5" textAnchor="middle" dominantBaseline="central"
-          fontSize={count.length < 3 ? 3.7 : 9.6 / count.length}
-          className="hex-aura-count font-display font-black tabular-nums">
-          {count}
-        </text>
-      </svg>
     </span>
   );
 };

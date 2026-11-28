@@ -195,7 +195,6 @@
 /* Warmer paper on the table; its texture comes from cardFace.css. */
 .dueling-table .card-rules {
   --parchment-fill: radial-gradient(ellipse at center, #ffe8b5, #dfb67e);
-  font-family: var(--font-georgia);
 }
 .dueling-table .table-player-health {
   outline: 1px solid var(--brass);
@@ -258,9 +257,6 @@
   }
   .dueling-table [data-card-size='fan'] .card-window {
     height: 34px;
-  }
-  .dueling-table [data-card-size='fan'] .card-rules {
-    font-size: 9px;
   }
 }
 @container duel (max-width: 470px) {
