@@ -420,7 +420,7 @@ const EnemyStatusTile = ({ chip }: { chip: StatusChip }) => (
         {chipIconOf(chip) ?? <Glyph name={chip.glyph} className="block size-full" />}
       </span>
       {chip.text && chip.key !== 'hex' && <span className="enemy-status-count" aria-hidden="true"
-        data-chars={chip.text.length}><span>{chip.text}</span></span>}
+        data-chars={chip.text.length}>{chip.text}</span>}
       {chip.turnsLeft !== undefined && <TurnsLeft turns={chip.turnsLeft} placement="corner" />}
     </button>
   </Tooltip>

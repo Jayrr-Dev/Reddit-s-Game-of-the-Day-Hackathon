@@ -561,27 +561,28 @@
 .enemy-status-grid[data-effect-side="debuffs"] { justify-content: flex-start; }
 .enemy-status-icon { position: absolute; inset: 0; }
 .enemy-status-icon .shock-charge { width: 100%; height: 100%; }
+/* Anchor the stack count over the corner; extra digits grow inward. */
 .enemy-status-count {
   position: absolute;
-  inset: auto 0 0 auto;
-  width: 50%;
-  height: 50%;
+  inset-block-end: -2.5px;
+  inset-inline-end: -2.5px;
+  z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
   place-items: center;
-  border-radius: 2.5px 0 3px 0;
-  background: rgb(0 0 0 / 95%);
+  min-inline-size: 1.12em;
+  min-block-size: 1.12em;
+  padding-inline: .12em;
+  border-radius: 999px;
+  background: var(--color-surface-sunken);
   color: white;
-  font-size: 10px;
-  font-weight: 800;
+  font: 700 15px/1 var(--font-body);
   font-variant-numeric: tabular-nums;
-  line-height: 1;
   white-space: nowrap;
+  pointer-events: none;
 }
-.enemy-status-count[data-chars='2'] { font-size: 9px; }
-.enemy-status-count:not([data-chars='1'], [data-chars='2']) { font-size: 8px; }
-.enemy-status-count:not([data-chars='1'], [data-chars='2']) > span { scale: .67 1; }
-.enemy-status-count:not([data-chars='1'], [data-chars='2'], [data-chars='3']) > span { scale: .6 1; }
+.enemy-status-count[data-chars='2'] { font-size: 14px; }
+.enemy-status-count:not([data-chars='1'], [data-chars='2']) { font-size: 12px; }
+.enemy-status-count:not([data-chars='1'], [data-chars='2'], [data-chars='3']) { font-size: 10px; }
 .enemy-health-shield {
   position: relative;
   zoom: 1.25;
