@@ -115,6 +115,10 @@
     96px 96px,
     100% 100%;
 }
+.card-face .card-banner-label {
+  -webkit-text-stroke: 0.14em black;
+  paint-order: stroke fill;
+}
 
 /* --- RULES PARCHMENT --- */
 /* Fibres and stains over the base fill, scorched toward the edges.

@@ -380,7 +380,7 @@ const NameBanner = ({
   <span
     className={`card-banner relative -mx-[3px] shrink-0 ${frameClass} font-display font-black uppercase leading-none tracking-tight text-ink [text-shadow:0_1px_1px_rgb(0_0_0/0.8)] ${look.name}`}
   >
-    {name}
+    <span className="card-banner-label">{name}</span>
     {gemClass && <RarityGem gemClass={gemClass} sizeClass={look.gem} />}
   </span>
 );
